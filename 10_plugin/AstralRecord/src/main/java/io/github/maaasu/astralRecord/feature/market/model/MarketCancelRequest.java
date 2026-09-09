@@ -7,6 +7,7 @@ import java.util.UUID;
 public record MarketCancelRequest(
     UUID sellerAccountId,
     @Nullable String reason,
+    String idempotencyKey,
     UUID updatedBy
 ) {
 }

@@ -16,5 +16,10 @@ public interface IMarketRepository
 
     Task<MarketOperationResult<MarketListingResponse>> CancelListingAsync(Guid listingId, MarketCancelRequest request);
 
+    Task<MarketOperationResult<MarketListingResponse>> GetCancelResultAsync(
+        Guid listingId,
+        Guid sellerAccountId,
+        string idempotencyKey);
+
     Task<MarketOperationResult<MarketProceedsClaimResponse>> ClaimProceedsAsync(Guid listingId, MarketProceedsClaimRequest request);
 }

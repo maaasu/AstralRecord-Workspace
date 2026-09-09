@@ -48,6 +48,10 @@
 | `expires_at` | `DATETIME2(3)` |  | ○ |  | 掲載期限 |
 | `sold_at` | `DATETIME2(3)` |  |  |  | 購入成立日時 |
 | `canceled_at` | `DATETIME2(3)` |  |  |  | キャンセル日時 |
+| `cancel_idempotency_key` | `NVARCHAR(128)` |  |  |  | 取消を再送するための確定済みキー |
+| `cancel_request_hash` | `CHAR(64)` |  |  |  | 確定済み取消要求の SHA-256 hash |
+| `cancel_response_json` | `NVARCHAR(MAX)` |  |  |  | 確定済み取消応答。返却先 entry を含む JSON |
+| `cancel_completed_at` | `DATETIME2(3)` |  |  |  | 取消確定日時 |
 | `proceeds_claim_idempotency_key` | `NVARCHAR(128)` |  |  |  | 売上受取を再送するための確定済みキー |
 | `proceeds_claim_amount` | `BIGINT` |  |  |  | 確定済み売上受取額 |
 | `proceeds_claim_affected_entry_ids_json` | `NVARCHAR(MAX)` |  |  |  | 確定済み受取で更新した通貨 entry ID の JSON 配列 |
@@ -76,6 +80,8 @@
 | `CK_market_listing_status` | `[status] IN (N'ACTIVE', N'SOLD', N'CANCELED', N'EXPIRED', N'SUSPENDED')` | 状態 |
 | `CK_market_listing_version` | `[version] >= 1` | バージョン |
 | `CK_market_listing_valuation_json` | `[valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1` | 評価 JSON |
+| `CK_market_listing_cancel_response_json` | `[cancel_response_json] IS NULL OR ISJSON([cancel_response_json]) = 1` | 取消応答 JSON |
+| `CK_market_listing_cancel_receipt` | 取消 receipt 4 列がすべて `NULL` またはすべて非 `NULL` | 不完全な取消 receipt を禁止 |
 | `CK_market_listing_proceeds_claim_amount` | `[proceeds_claim_amount] IS NULL OR [proceeds_claim_amount] >= 1` | 受取済み額 |
 | `CK_market_listing_proceeds_claim_entries_json` | `[proceeds_claim_affected_entry_ids_json] IS NULL OR ISJSON([proceeds_claim_affected_entry_ids_json]) = 1` | 受取済み通貨 entry JSON |
 
@@ -123,6 +129,10 @@ CREATE TABLE [dbo].[market_listing] (
     [expires_at]               DATETIME2(3)     NOT NULL,
     [sold_at]                  DATETIME2(3)         NULL,
     [canceled_at]              DATETIME2(3)         NULL,
+    [cancel_idempotency_key]   NVARCHAR(128)        NULL,
+    [cancel_request_hash]      CHAR(64)             NULL,
+    [cancel_response_json]     NVARCHAR(MAX)        NULL,
+    [cancel_completed_at]      DATETIME2(3)         NULL,
     [proceeds_claim_idempotency_key] NVARCHAR(128)       NULL,
     [proceeds_claim_amount]    BIGINT               NULL,
     [proceeds_claim_affected_entry_ids_json] NVARCHAR(MAX) NULL,
@@ -148,6 +158,12 @@ CREATE TABLE [dbo].[market_listing] (
     CONSTRAINT [CK_market_listing_status] CHECK ([status] IN (N'ACTIVE', N'SOLD', N'CANCELED', N'EXPIRED', N'SUSPENDED')),
     CONSTRAINT [CK_market_listing_version] CHECK ([version] >= 1),
     CONSTRAINT [CK_market_listing_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1),
+    CONSTRAINT [CK_market_listing_cancel_response_json] CHECK ([cancel_response_json] IS NULL OR ISJSON([cancel_response_json]) = 1),
+    CONSTRAINT [CK_market_listing_cancel_receipt] CHECK (
+        ([cancel_idempotency_key] IS NULL AND [cancel_request_hash] IS NULL AND [cancel_response_json] IS NULL AND [cancel_completed_at] IS NULL)
+        OR
+        ([cancel_idempotency_key] IS NOT NULL AND [cancel_request_hash] IS NOT NULL AND [cancel_response_json] IS NOT NULL AND [cancel_completed_at] IS NOT NULL)
+    ),
     CONSTRAINT [CK_market_listing_proceeds_claim_amount] CHECK ([proceeds_claim_amount] IS NULL OR [proceeds_claim_amount] >= 1),
     CONSTRAINT [CK_market_listing_proceeds_claim_entries_json] CHECK ([proceeds_claim_affected_entry_ids_json] IS NULL OR ISJSON([proceeds_claim_affected_entry_ids_json]) = 1)
 );

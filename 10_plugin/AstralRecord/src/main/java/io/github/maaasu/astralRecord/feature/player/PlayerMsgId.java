@@ -1139,7 +1139,7 @@ public enum PlayerMsgId {
     P_6212(6212),
     // endregion
 
-    // region /feature/market 6300-6309
+    // region /feature/market 6300-6310
     /** マーケット出品完了。 */
     P_6300(6300),
     /** マーケット出品取り下げ完了。 */
@@ -1160,6 +1160,8 @@ public enum PlayerMsgId {
     P_6308(6308),
     /** 自分の出品を購入しようとした。 */
     P_6309(6309),
+    /** 出品取消の SQL 確定結果を確認中。 */
+    P_6310(6310),
     // endregion
 
     // region /feature/webauth 6400-6409

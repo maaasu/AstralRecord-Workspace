@@ -439,8 +439,9 @@ public final class InventorySaveCoordinator {
      * 成功後も未解決境界は維持するため、呼び出し側は API 応答待機中に autosave や logout save が
      * 操作前 state を保存しないよう保護されます。取得した handle は
      * {@link #completePreparedExternalOperation(PreparedExternalOperation, Function)} で成功完了するか、
-     * API が未確定のまま失敗した場合に {@link #abandonPreparedExternalOperation(PreparedExternalOperation)}
-     * で明示的に解除してください。
+     * API が操作を受理していないと確定した場合に
+     * {@link #abandonPreparedExternalOperation(PreparedExternalOperation)} で明示的に解除してください。
+     * 通信失敗など API transaction の結果が不明な場合は、同じ handle を保持して結果照会または冪等再送を続けます。
      *
      * @param accountId 対象アカウント ID
      * @return 保存済み baseline と対象 state を保持する handle の future
@@ -560,7 +561,8 @@ public final class InventorySaveCoordinator {
     }
 
     /**
-     * API transaction が未確定のまま失敗した事前保存 handle を破棄します。
+     * API transaction が開始されていない、または拒否されたと確定した事前保存 handle を破棄します。
+     * 結果不明の通信失敗では呼び出さず、結果照会または冪等再送まで境界を保持します。
      *
      * @param prepared 破棄する handle
      */

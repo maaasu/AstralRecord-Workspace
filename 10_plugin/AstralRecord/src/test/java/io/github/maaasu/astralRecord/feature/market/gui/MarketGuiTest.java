@@ -219,6 +219,7 @@ class MarketGuiTest extends MockBukkitTestBase {
             listedAt,
             listedAt,
             0L,
+            List.of(),
             List.of()
         );
     }

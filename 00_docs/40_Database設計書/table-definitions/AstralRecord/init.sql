@@ -1340,6 +1340,10 @@ CREATE TABLE [dbo].[market_listing] (
     [expires_at]               DATETIME2(3)     NOT NULL,
     [sold_at]                  DATETIME2(3)         NULL,
     [canceled_at]              DATETIME2(3)         NULL,
+    [cancel_idempotency_key]   NVARCHAR(128)        NULL,
+    [cancel_request_hash]      CHAR(64)             NULL,
+    [cancel_response_json]     NVARCHAR(MAX)        NULL,
+    [cancel_completed_at]      DATETIME2(3)         NULL,
     [proceeds_claim_idempotency_key] NVARCHAR(128)       NULL,
     [proceeds_claim_amount]    BIGINT               NULL,
     [proceeds_claim_affected_entry_ids_json] NVARCHAR(MAX) NULL,
@@ -1365,6 +1369,12 @@ CREATE TABLE [dbo].[market_listing] (
     CONSTRAINT [CK_market_listing_status] CHECK ([status] IN (N'ACTIVE', N'SOLD', N'CANCELED', N'EXPIRED', N'SUSPENDED')),
     CONSTRAINT [CK_market_listing_version] CHECK ([version] >= 1),
     CONSTRAINT [CK_market_listing_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1),
+    CONSTRAINT [CK_market_listing_cancel_response_json] CHECK ([cancel_response_json] IS NULL OR ISJSON([cancel_response_json]) = 1),
+    CONSTRAINT [CK_market_listing_cancel_receipt] CHECK (
+        ([cancel_idempotency_key] IS NULL AND [cancel_request_hash] IS NULL AND [cancel_response_json] IS NULL AND [cancel_completed_at] IS NULL)
+        OR
+        ([cancel_idempotency_key] IS NOT NULL AND [cancel_request_hash] IS NOT NULL AND [cancel_response_json] IS NOT NULL AND [cancel_completed_at] IS NOT NULL)
+    ),
     CONSTRAINT [CK_market_listing_proceeds_claim_amount] CHECK ([proceeds_claim_amount] IS NULL OR [proceeds_claim_amount] >= 1),
     CONSTRAINT [CK_market_listing_proceeds_claim_entries_json] CHECK ([proceeds_claim_affected_entry_ids_json] IS NULL OR ISJSON([proceeds_claim_affected_entry_ids_json]) = 1)
 );

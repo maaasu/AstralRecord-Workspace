@@ -27,6 +27,14 @@ public class MarketListingEntity
     public DateTime ExpiresAt { get; set; }
     public DateTime? SoldAt { get; set; }
     public DateTime? CanceledAt { get; set; }
+    /// <summary>取消を再送するための確定済み idempotency key です。</summary>
+    public string? CancelIdempotencyKey { get; set; }
+    /// <summary>確定済み取消要求を識別する SHA-256 hash です。</summary>
+    public string? CancelRequestHash { get; set; }
+    /// <summary>確定済み取消応答の JSON です。</summary>
+    public string? CancelResponseJson { get; set; }
+    /// <summary>取消を確定した日時です。</summary>
+    public DateTime? CancelCompletedAt { get; set; }
     /// <summary>売上受取を再送するための確定済み idempotency key です。</summary>
     public string? ProceedsClaimIdempotencyKey { get; set; }
     /// <summary>確定済み売上受取額です。</summary>

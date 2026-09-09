@@ -12,12 +12,14 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.market.gui.MarketScreen;
 import io.github.maaasu.astralRecord.feature.market.gui.MarketGui;
+import io.github.maaasu.astralRecord.feature.market.model.MarketCancelRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.repository.MarketRequestRejectedException;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -41,9 +43,11 @@ import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -354,6 +358,207 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
             requestCaptor.getAllValues().get(1).idempotencyKey());
         verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
             astPlayer, List.of(affectedEntryId), baseline);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: 取消POSTが結果不明でもSQL receiptを照会し、確定済みaffected IDsを同期して境界を解放する。
+    */
+    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    void cancellationCompletesPreparedBoundaryFromResultReceiptAfterOutcomeUnknown() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class), itemService, mock(MarketGui.class), marketService,
+            inventoryService, coordinator, mock(CurrencyService.class),
+            mock(PlayerMessageService.class), mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing canceled = listing(accountId, "CANCELED", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(canceled.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        when(marketService.cancel(eq(canceled.listingId()), any(MarketCancelRequest.class)))
+            .thenThrow(new MarketTransportException("response lost"));
+        when(marketService.findCancelResult(eq(canceled.listingId()), eq(accountId), any(String.class)))
+            .thenReturn(Optional.of(canceled));
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), canceled);
+
+        verify(marketService).findCancelResult(
+            canceled.listingId(), accountId, "market-cancel-" + canceled.listingId());
+        verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer, canceled.affectedInventoryEntryIds(), baseline);
+        verify(coordinator).completePreparedExternalOperation(
+            any(InventorySaveCoordinator.PreparedExternalOperation.class), any(Function.class));
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+        assertTrue(cancelRecoveryMap(handler).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_5-例外・ログ・運用.md
+     * 章・見出し: # 23_5-例外・ログ・運用 > ## Cache 運用
+     * 検証契約: Bukkit scheduler が取消再試行を拒否しても共通非同期 executor へ退避し、停止時まで prepared 境界を維持する。
+     */
+    @Test
+    void cancellationFallsBackWhenRetrySchedulerRejectsAndRetainsPreparedBoundaryOnShutdown() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        AtomicReference<Runnable> fallbackTask = new AtomicReference<>();
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class),
+            fallbackTask::set,
+            (task, delayTicks) -> {
+                throw new IllegalStateException("scheduler rejected");
+            }
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(accountId, "ACTIVE", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(listing.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        when(marketService.cancel(eq(listing.listingId()), any(MarketCancelRequest.class)))
+            .thenThrow(new MarketTransportException("unresolved"));
+        when(marketService.findCancelResult(eq(listing.listingId()), eq(accountId), any(String.class)))
+            .thenReturn(Optional.empty());
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), listing);
+
+        assertTrue(fallbackTask.get() != null);
+        assertFalse(cancelRecoveryMap(handler).isEmpty());
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+
+        handler.shutdown();
+
+        assertTrue(cancelRecoveryMap(handler).isEmpty());
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取 > ### Cancel の結果確定
+     * 検証契約: 確定4xxではAPI更新がないためprepared境界を破棄し、ローカル事前状態を維持する。
+     */
+    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    void cancellationAbandonsPreparedBoundaryAfterDeterministicRejection() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class), itemService, mock(MarketGui.class), marketService,
+            inventoryService, coordinator, mock(CurrencyService.class),
+            mock(PlayerMessageService.class), mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(accountId, "ACTIVE", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(listing.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        when(marketService.cancel(eq(listing.listingId()), any(MarketCancelRequest.class)))
+            .thenThrow(new MarketRequestRejectedException(409, "cancel rejected"));
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), listing);
+
+        verify(coordinator).abandonPreparedExternalOperation(
+            any(InventorySaveCoordinator.PreparedExternalOperation.class));
+        verify(coordinator, never()).completePreparedExternalOperation(any(), any(Function.class));
+        verify(inventoryService, never()).reconcileExternalInventoryEntriesToOwnedInventory(any(), any(), any());
+        assertTrue(cancelRecoveryMap(handler).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取 > ### Cancel の結果確定
+     * 検証契約: 結果照会も未確定なら同じ冪等キーとprepared境界を保持し、後続recoveryで一度だけ同期する。
+     */
+    @Test
+    void cancellationRetriesSameRequestAfterUnresolvedLookupWithoutReleasingBoundary() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class), itemService, mock(MarketGui.class), marketService,
+            inventoryService, coordinator, mock(CurrencyService.class),
+            mock(PlayerMessageService.class), mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing canceled = listing(accountId, "CANCELED", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(canceled.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        when(marketService.cancel(eq(canceled.listingId()), any(MarketCancelRequest.class)))
+            .thenThrow(new MarketTransportException("unresolved"))
+            .thenReturn(canceled);
+        when(marketService.findCancelResult(eq(canceled.listingId()), eq(accountId), any(String.class)))
+            .thenReturn(Optional.empty());
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), canceled);
+        Object recovery = cancelRecoveryMap(handler).get(canceled.listingId());
+        assertTrue(recovery != null);
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+
+        invoke(handler, "attemptCancelRecovery", new Class<?>[] { recovery.getClass() }, recovery);
+
+        var requests = org.mockito.ArgumentCaptor.forClass(MarketCancelRequest.class);
+        verify(marketService, times(2)).cancel(eq(canceled.listingId()), requests.capture());
+        assertEquals(
+            requests.getAllValues().get(0).idempotencyKey(),
+            requests.getAllValues().get(1).idempotencyKey());
+        verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer, canceled.affectedInventoryEntryIds(), baseline);
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+        assertTrue(cancelRecoveryMap(handler).isEmpty());
     }
 
     /**
@@ -748,6 +953,17 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static Map<UUID, Object> cancelRecoveryMap(MarketGuiEventHandler handler) {
+        try {
+            Field field = MarketGuiEventHandler.class.getDeclaredField("cancelRecoveries");
+            field.setAccessible(true);
+            return (Map<UUID, Object>) field.get(handler);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void completeMarketMutation(
         InventorySaveCoordinator coordinator,
@@ -755,6 +971,25 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
     ) {
         doReturn(result).when(coordinator).executeExclusiveAfterSave(
             any(UUID.class),
+            any(Function.class)
+        );
+        if (result.isCompletedExceptionally()) {
+            doReturn(result).when(coordinator).prepareExternalOperationAfterSave(any(UUID.class));
+            return;
+        }
+        when(coordinator.prepareExternalOperationAfterSave(any(UUID.class))).thenAnswer(invocation -> {
+            UUID accountId = invocation.getArgument(0);
+            var baseline = new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+            var prepared = new InventorySaveCoordinator.PreparedExternalOperation(
+                accountId,
+                mock(io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState.class),
+                baseline,
+                UUID.randomUUID()
+            );
+            return CompletableFuture.completedFuture(prepared);
+        });
+        doReturn(result).when(coordinator).completePreparedExternalOperation(
+            any(InventorySaveCoordinator.PreparedExternalOperation.class),
             any(Function.class)
         );
     }
@@ -773,6 +1008,27 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
                     return CompletableFuture.failedFuture(exception);
                 }
             });
+        when(coordinator.prepareExternalOperationAfterSave(any(UUID.class))).thenAnswer(invocation -> {
+            UUID accountId = invocation.getArgument(0);
+            var prepared = new InventorySaveCoordinator.PreparedExternalOperation(
+                accountId,
+                mock(io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState.class),
+                baseline,
+                UUID.randomUUID()
+            );
+            return CompletableFuture.completedFuture(prepared);
+        });
+        when(coordinator.completePreparedExternalOperation(
+            any(InventorySaveCoordinator.PreparedExternalOperation.class),
+            any(Function.class)
+        )).thenAnswer(invocation -> {
+            Function action = invocation.getArgument(1);
+            try {
+                return CompletableFuture.completedFuture(action.apply(baseline));
+            } catch (RuntimeException exception) {
+                return CompletableFuture.failedFuture(exception);
+            }
+        });
     }
 
     private static void invokeMarketMutationCallbacks(
@@ -810,12 +1066,13 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
 
     private static MarketListing listing(UUID accountId, String status, long pendingProceeds) {
         Instant now = Instant.parse("2026-08-17T00:00:00Z");
+        UUID sourceEntryId = UUID.randomUUID();
         return new MarketListing(
-            UUID.randomUUID(), accountId, "market-test", 0, null, UUID.randomUUID(),
+            UUID.randomUUID(), accountId, "market-test", 0, null, sourceEntryId,
             ItemCategory.MATERIAL.getApiValue(), "market_test_material", null, null,
             1L, 1L, "gold", 1L, 1L, 1L, null, null, "HIGH", null, null,
             status, null, now, now.plusSeconds(86_400L), null, null, 1, now, now,
-            pendingProceeds, List.of()
+            pendingProceeds, List.of(), List.of(sourceEntryId)
         );
     }
 

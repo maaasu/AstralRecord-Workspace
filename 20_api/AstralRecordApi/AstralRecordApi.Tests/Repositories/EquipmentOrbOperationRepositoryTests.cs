@@ -767,7 +767,11 @@ public class EquipmentOrbOperationRepositoryTests
             Type = "REPAIR",
             RepairFull = true,
         }, quantity: 1);
-        var secondOrb = await harness.AddNormalEntryAsync("conflict_repair_orb", "orb", 1);
+        var secondOrb = await harness.AddNormalEntryAsync(
+            "conflict_repair_orb",
+            "orb",
+            1,
+            slotIndex: 1);
         var operationId = Guid.NewGuid();
 
         var first = await harness.ExecuteAsync(

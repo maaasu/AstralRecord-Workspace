@@ -102,6 +102,22 @@ public class MarketService {
     }
 
     /**
+     * 応答不明となった出品取消の SQL 確定結果を照会します。
+     *
+     * @param listingId 出品 ID
+     * @param sellerAccountId 出品者アカウント ID
+     * @param idempotencyKey 取消要求と同じ冪等キー
+     * @return 確定済み取消。未確定の場合は空
+     */
+    public @NotNull Optional<MarketListing> findCancelResult(
+        @NotNull UUID listingId,
+        @NotNull UUID sellerAccountId,
+        @NotNull String idempotencyKey
+    ) {
+        return repository.findCancelResult(listingId, sellerAccountId, idempotencyKey);
+    }
+
+    /**
      * 売却済み出品の売上を受け取り、出品枠を解放します。
      *
      * @param listingId 受取対象の出品 ID

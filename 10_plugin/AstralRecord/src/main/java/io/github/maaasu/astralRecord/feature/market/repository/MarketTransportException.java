@@ -8,6 +8,10 @@ import org.jetbrains.annotations.NotNull;
 public final class MarketTransportException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
+    public MarketTransportException(@NotNull String message) {
+        super(message);
+    }
+
     public MarketTransportException(@NotNull String message, @NotNull Throwable cause) {
         super(message, cause);
     }

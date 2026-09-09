@@ -684,6 +684,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("IX_inventory_entry_active_inventory")
                 .HasFilter("[is_deleted] = 0")
                 .IncludeProperties(entry => entry.UpdatedAt);
+            entity.HasIndex(entry => new { entry.InventoryId, entry.ItemId })
+                .IsUnique()
+                .HasDatabaseName("UX_inventory_entry_inventory_item")
+                .HasFilter("[slot_index] IS NULL AND [item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL AND [is_deleted] = 0");
         });
 
         modelBuilder.Entity<EquipmentInstanceEntity>(entity =>
@@ -868,6 +872,15 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             entity.Property(e => e.SoldAt).HasColumnName("sold_at");
             entity.Property(e => e.CanceledAt).HasColumnName("canceled_at");
+            entity.Property(e => e.CancelIdempotencyKey)
+                .HasColumnName("cancel_idempotency_key")
+                .HasMaxLength(128);
+            entity.Property(e => e.CancelRequestHash)
+                .HasColumnName("cancel_request_hash")
+                .HasMaxLength(64)
+                .IsFixedLength();
+            entity.Property(e => e.CancelResponseJson).HasColumnName("cancel_response_json");
+            entity.Property(e => e.CancelCompletedAt).HasColumnName("cancel_completed_at");
             entity.Property(e => e.ProceedsClaimIdempotencyKey)
                 .HasColumnName("proceeds_claim_idempotency_key")
                 .HasMaxLength(128);

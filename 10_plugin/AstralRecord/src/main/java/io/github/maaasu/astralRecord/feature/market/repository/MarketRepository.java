@@ -20,8 +20,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -172,8 +174,13 @@ public class MarketRepository {
     public @NotNull MarketTransaction purchase(@NotNull UUID listingId, @NotNull MarketPurchaseRequest request) {
         String path = "/api/market/listings/" + listingId + "/purchase";
         HttpResponse<String> response = post(path, purchaseBody(request));
-        ensureStatus(response, 200, "POST " + path);
-        MarketTransaction transaction = parseTransaction(JsonParser.parseString(response.body()).getAsJsonObject());
+        ensureReplayableMutationStatus(response, 200, "POST " + path);
+        MarketTransaction transaction;
+        try {
+            transaction = parseTransaction(JsonParser.parseString(response.body()).getAsJsonObject());
+        } catch (RuntimeException invalidResponse) {
+            throw new MarketTransportException("POST " + path + " returned an invalid acknowledgement", invalidResponse);
+        }
         invalidateSeller(transaction.sellerAccountId());
         summaryCache.remove(transaction.buyerAccountId());
         listingCache.remove(listingId);
@@ -190,8 +197,8 @@ public class MarketRepository {
     public @NotNull MarketListing cancel(@NotNull UUID listingId, @NotNull MarketCancelRequest request) {
         String path = "/api/market/listings/" + listingId + "/cancel";
         HttpResponse<String> response = post(path, cancelBody(request));
-        ensureStatus(response, 200, "POST " + path);
-        MarketListing listing = parseListing(JsonParser.parseString(response.body()).getAsJsonObject());
+        ensureReplayableMutationStatus(response, 200, "POST " + path);
+        MarketListing listing = parseCancelListing(response.body(), listingId, request.sellerAccountId(), "POST " + path);
         invalidateSeller(listing.sellerAccountId());
         if (listing.status().equalsIgnoreCase("CANCELED")) {
             listingCache.remove(listingId);
@@ -199,6 +206,25 @@ public class MarketRepository {
             listingCache.put(listingId, MarketCacheEntry.of(listing, DETAIL_TTL));
         }
         return listing;
+    }
+
+    /**
+     * SQL に確定した取消 receipt を照会します。404 は取消未確定として空を返します。
+     */
+    public @NotNull Optional<MarketListing> findCancelResult(
+        @NotNull UUID listingId,
+        @NotNull UUID sellerAccountId,
+        @NotNull String idempotencyKey
+    ) {
+        String path = "/api/market/listings/" + listingId
+            + "/cancel-result?sellerAccountId=" + sellerAccountId
+            + "&idempotencyKey=" + URLEncoder.encode(idempotencyKey, StandardCharsets.UTF_8).replace("+", "%20");
+        HttpResponse<String> response = send(ApiRequestUtil.buildRequestBuilder(path).GET().build(), path);
+        if (response.statusCode() == 404) {
+            return Optional.empty();
+        }
+        ensureReplayableMutationStatus(response, 200, "GET " + path);
+        return Optional.of(parseCancelListing(response.body(), listingId, sellerAccountId, "GET " + path));
     }
 
     /**
@@ -214,8 +240,16 @@ public class MarketRepository {
     ) {
         String path = "/api/market/listings/" + listingId + "/claim-proceeds";
         HttpResponse<String> response = post(path, claimProceedsBody(request));
-        ensureStatus(response, 200, "POST " + path);
-        MarketProceedsClaim claim = parseProceedsClaim(JsonParser.parseString(response.body()).getAsJsonObject());
+        ensureReplayableMutationStatus(response, 200, "POST " + path);
+        MarketProceedsClaim claim;
+        try {
+            claim = parseProceedsClaim(JsonParser.parseString(response.body()).getAsJsonObject());
+            if (!claim.listingId().equals(listingId) || claim.affectedInventoryEntryIds().isEmpty()) {
+                throw new IllegalStateException("Market proceeds acknowledgement does not match request");
+            }
+        } catch (RuntimeException invalidResponse) {
+            throw new MarketTransportException("POST " + path + " returned an invalid acknowledgement", invalidResponse);
+        }
         invalidateSeller(request.sellerAccountId());
         listingCache.remove(listingId);
         return claim;
@@ -271,7 +305,7 @@ public class MarketRepository {
             return client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new MarketTransportException("Interrupted while requesting " + path, e);
         } catch (IOException e) {
             throw new MarketTransportException("Failed to request " + path, e);
         }
@@ -281,6 +315,25 @@ public class MarketRepository {
         if (response.statusCode() != expected) {
             throw new IllegalStateException(operation + " returned HTTP " + response.statusCode() + ": " + response.body());
         }
+    }
+
+    private void ensureReplayableMutationStatus(
+        @NotNull HttpResponse<String> response,
+        int expected,
+        @NotNull String operation
+    ) {
+        if (response.statusCode() == expected) {
+            return;
+        }
+        String message = operation + " returned HTTP " + response.statusCode() + ": " + response.body();
+        if (isOutcomeUnknown(response.statusCode())) {
+            throw new MarketTransportException(message);
+        }
+        throw new MarketRequestRejectedException(response.statusCode(), message);
+    }
+
+    private boolean isOutcomeUnknown(int statusCode) {
+        return statusCode == 408 || statusCode == 425 || statusCode == 429 || statusCode >= 500;
     }
 
     private JsonObject listingBody(@NotNull MarketListingCreateRequest request) {
@@ -335,6 +388,7 @@ public class MarketRepository {
         JsonObject body = new JsonObject();
         body.addProperty("sellerAccountId", request.sellerAccountId().toString());
         addString(body, "reason", request.reason());
+        body.addProperty("idempotencyKey", request.idempotencyKey());
         body.addProperty("updatedBy", request.updatedBy().toString());
         return body;
     }
@@ -392,8 +446,34 @@ public class MarketRepository {
             instant(obj, "createdAt"),
             instant(obj, "updatedAt"),
             longValue(obj, "pendingProceeds", 0),
-            uuidList(obj, "sourceInventoryEntryIds")
+            uuidList(obj, "sourceInventoryEntryIds"),
+            uuidList(obj, "affectedInventoryEntryIds")
         );
+    }
+
+    private @NotNull MarketListing parseCancelListing(
+        @NotNull String body,
+        @NotNull UUID expectedListingId,
+        @NotNull UUID expectedSellerAccountId,
+        @NotNull String operation
+    ) {
+        try {
+            JsonObject object = JsonParser.parseString(body).getAsJsonObject();
+            List<UUID> affectedEntryIds = requiredUuidList(object, "affectedInventoryEntryIds");
+            MarketListing listing = parseListing(object);
+            if (!listing.listingId().equals(expectedListingId)
+                || !listing.sellerAccountId().equals(expectedSellerAccountId)
+                || !(listing.status().equalsIgnoreCase("CANCELED") || listing.status().equalsIgnoreCase("SOLD"))
+                || listing.canceledAt() == null
+                || !listing.affectedInventoryEntryIds().equals(affectedEntryIds)) {
+                throw new IllegalStateException("Market cancel acknowledgement does not match request");
+            }
+            return listing;
+        } catch (MarketTransportException failure) {
+            throw failure;
+        } catch (RuntimeException invalidResponse) {
+            throw new MarketTransportException(operation + " returned an invalid acknowledgement", invalidResponse);
+        }
     }
 
     private MarketPriceQuote parseQuote(@NotNull JsonObject obj) {

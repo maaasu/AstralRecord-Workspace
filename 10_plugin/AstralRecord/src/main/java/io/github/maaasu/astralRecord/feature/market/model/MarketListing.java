@@ -38,6 +38,7 @@ public record MarketListing(
     Instant createdAt,
     Instant updatedAt,
     long pendingProceeds,
-    List<UUID> sourceInventoryEntryIds
+    List<UUID> sourceInventoryEntryIds,
+    List<UUID> affectedInventoryEntryIds
 ) {
 }

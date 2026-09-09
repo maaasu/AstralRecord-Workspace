@@ -634,6 +634,9 @@ public final class AstralRecord extends JavaPlugin {
         if (accountService != null) {
             accountService.stop();
         }
+        if (marketGuiEventHandler != null) {
+            marketGuiEventHandler.shutdown();
+        }
         if (tradeService != null) {
             tradeService.cancelAll();
         }
@@ -1497,7 +1500,8 @@ public final class AstralRecord extends JavaPlugin {
             inventorySaveCoordinator,
             currencyService,
             playerMessageService,
-            goldAmountSettingGui
+            goldAmountSettingGui,
+            playerStateExecutor
         );
 
         // skill

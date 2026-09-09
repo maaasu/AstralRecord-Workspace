@@ -1,4 +1,6 @@
 using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -408,6 +410,20 @@ public class MarketRepository(
 
     public async Task<MarketOperationResult<MarketListingResponse>> CancelListingAsync(Guid listingId, MarketCancelRequest request)
     {
+        if (listingId == Guid.Empty
+            || request.SellerAccountId == Guid.Empty
+            || request.UpdatedBy == Guid.Empty
+            || string.IsNullOrWhiteSpace(request.IdempotencyKey)
+            || request.IdempotencyKey.Length > 128
+            || request.Reason?.Length > 200)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                400,
+                "market.invalid_cancel_request",
+                "Cancel account IDs and idempotency key are required.");
+        }
+
+        var requestHash = ComputeCancelRequestHash(listingId, request);
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
@@ -425,11 +441,48 @@ public class MarketRepository(
                 return MarketOperationResult<MarketListingResponse>.Failure(statusCode, errorCode, detail);
             }
 
-            var listing = await FindListingForUpdateAsync(listingId);
+            var listing = await FindListingForCancelForUpdateAsync(listingId);
             if (listing is null)
                 return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
             if (listing.SellerAccountId != request.SellerAccountId)
                 return await RollbackFailureAsync(403, "market.not_seller", "Only seller can cancel listing.");
+            if (!string.IsNullOrWhiteSpace(listing.CancelIdempotencyKey))
+            {
+                if (!string.Equals(listing.CancelIdempotencyKey, request.IdempotencyKey, StringComparison.Ordinal)
+                    || !string.Equals(listing.CancelRequestHash, requestHash, StringComparison.Ordinal))
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.cancel_already_completed",
+                        "Listing was already canceled with another request.");
+                }
+
+                try
+                {
+                    var replay = ParseCancelReceipt(listing);
+                    await transactionScope.CommitAsync();
+                    return MarketOperationResult<MarketListingResponse>.Success(replay);
+                }
+                catch (JsonException)
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.cancel_receipt_invalid",
+                        "Cancel receipt is invalid.");
+                }
+
+            }
+            if (listing.CancelRequestHash is not null
+                || listing.CancelResponseJson is not null
+                || listing.CancelCompletedAt is not null)
+            {
+                return await RollbackFailureAsync(
+                    409,
+                    "market.cancel_receipt_invalid",
+                    "Cancel receipt is invalid.");
+            }
+            if (listing.IsDeleted)
+                return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
             if (listing.Status is not ("ACTIVE" or "SUSPENDED"))
                 return await RollbackFailureAsync(400, "market.cancel_invalid_status", "Listing cannot be canceled.");
 
@@ -463,14 +516,96 @@ public class MarketRepository(
             listing.UpdatedBy = request.UpdatedBy;
             listing.Version += 1;
 
-            await dbContext.SaveChangesAsync();
-            await transactionScope.CommitAsync();
-
-            return MarketOperationResult<MarketListingResponse>.Success(MapListing(
+            var response = MapListing(
                 listing,
                 sellerAccount,
                 sources.Select(source => source.InventoryEntryId).ToArray(),
-                pendingProceeds));
+                pendingProceeds,
+                restore.Value!);
+            listing.CancelIdempotencyKey = request.IdempotencyKey;
+            listing.CancelRequestHash = requestHash;
+            listing.CancelResponseJson = JsonSerializer.Serialize(response);
+            listing.CancelCompletedAt = now;
+
+            await dbContext.SaveChangesAsync();
+            await transactionScope.CommitAsync();
+
+            return MarketOperationResult<MarketListingResponse>.Success(response);
+        });
+    }
+
+    public async Task<MarketOperationResult<MarketListingResponse>> GetCancelResultAsync(
+        Guid listingId,
+        Guid sellerAccountId,
+        string idempotencyKey)
+    {
+        if (listingId == Guid.Empty
+            || sellerAccountId == Guid.Empty
+            || string.IsNullOrWhiteSpace(idempotencyKey)
+            || idempotencyKey.Length > 128)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                400,
+                "market.invalid_cancel_result_request",
+                "Cancel result account ID and idempotency key are required.");
+        }
+
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transactionScope = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+
+            async Task<MarketOperationResult<MarketListingResponse>> RollbackFailureAsync(
+                int statusCode,
+                string errorCode,
+                string detail)
+            {
+                await transactionScope.RollbackAsync();
+                dbContext.ChangeTracker.Clear();
+                return MarketOperationResult<MarketListingResponse>.Failure(statusCode, errorCode, detail);
+            }
+
+            var listing = await FindListingForCancelForUpdateAsync(listingId);
+            if (listing is null)
+                return await RollbackFailureAsync(404, "market.cancel_result_not_found", "Cancel result was not found.");
+            if (listing.SellerAccountId != sellerAccountId)
+                return await RollbackFailureAsync(403, "market.not_seller", "Only seller can read cancel result.");
+            if (string.IsNullOrWhiteSpace(listing.CancelIdempotencyKey))
+            {
+                if (listing.CancelRequestHash is not null
+                    || listing.CancelResponseJson is not null
+                    || listing.CancelCompletedAt is not null)
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.cancel_receipt_invalid",
+                        "Cancel receipt is invalid.");
+                }
+                return await RollbackFailureAsync(404, "market.cancel_result_not_found", "Cancel result was not found.");
+            }
+            if (!string.Equals(listing.CancelIdempotencyKey, idempotencyKey, StringComparison.Ordinal))
+            {
+                return await RollbackFailureAsync(
+                    409,
+                    "market.cancel_result_conflict",
+                    "Cancel result belongs to another idempotency key.");
+            }
+
+            try
+            {
+                var response = ParseCancelReceipt(listing);
+                await transactionScope.CommitAsync();
+                return MarketOperationResult<MarketListingResponse>.Success(response);
+            }
+            catch (JsonException)
+            {
+                return await RollbackFailureAsync(
+                    409,
+                    "market.cancel_receipt_invalid",
+                    "Cancel receipt is invalid.");
+            }
         });
     }
 
@@ -760,6 +895,25 @@ public class MarketRepository(
             .SingleOrDefaultAsync(listing => listing.ListingId == listingId);
     }
 
+    /// <summary>
+    /// 取消結果の再送を処理するため、論理削除済みの取消済み出品も更新ロック付きで取得します。
+    /// </summary>
+    private async Task<MarketListingEntity?> FindListingForCancelForUpdateAsync(Guid listingId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.MarketListings
+                .FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[market_listing] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [listing_id] = {listingId}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+
+        return await dbContext.MarketListings
+            .SingleOrDefaultAsync(listing => listing.ListingId == listingId);
+    }
+
     private async Task<InventoryEntryEntity?> FindInventoryEntryForUpdateAsync(
         Guid inventoryEntryId,
         bool includeDeleted)
@@ -776,6 +930,47 @@ public class MarketRepository(
         return await dbContext.InventoryEntries.SingleOrDefaultAsync(entry =>
             entry.InventoryEntryId == inventoryEntryId
             && (includeDeleted || !entry.IsDeleted));
+    }
+
+    private async Task<InventoryEntryEntity?> FindSlotlessStackForUpdateAsync(
+        Guid inventoryId,
+        string itemId,
+        Guid excludedInventoryEntryId)
+    {
+        var tracked = dbContext.InventoryEntries.Local.FirstOrDefault(entry =>
+            entry.InventoryId == inventoryId
+            && entry.InventoryEntryId != excludedInventoryEntryId
+            && entry.SlotIndex == null
+            && KeyComparer.Equals(entry.ItemId, itemId)
+            && entry.InstanceType == null
+            && entry.InstanceId == null
+            && !entry.IsDeleted);
+        if (tracked is not null)
+            return tracked;
+
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.InventoryEntries.FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[inventory_entry] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [inventory_id] = {inventoryId}
+                      AND [inventory_entry_id] <> {excludedInventoryEntryId}
+                      AND [slot_index] IS NULL
+                      AND [item_id] = {itemId}
+                      AND [instance_type] IS NULL
+                      AND [instance_id] IS NULL
+                      AND [is_deleted] = 0
+                    """)
+                .SingleOrDefaultAsync();
+        }
+
+        return await dbContext.InventoryEntries.SingleOrDefaultAsync(entry =>
+            entry.InventoryId == inventoryId
+            && entry.InventoryEntryId != excludedInventoryEntryId
+            && entry.SlotIndex == null
+            && entry.ItemId == itemId
+            && entry.InstanceType == null
+            && entry.InstanceId == null
+            && !entry.IsDeleted);
     }
 
     private async Task<bool> IsEquipmentEquippedForUpdateAsync(Guid accountId, Guid equipmentInstanceId)
@@ -978,6 +1173,43 @@ public class MarketRepository(
                         entry.InventoryId = bag.InventoryId;
                     }
                     entry.SlotIndex = null;
+                }
+            }
+            if (entry.IsDeleted && entry.SlotIndex == null && !listing.InstanceId.HasValue)
+            {
+                var destination = await FindSlotlessStackForUpdateAsync(
+                    entry.InventoryId,
+                    listing.ItemId,
+                    entry.InventoryEntryId);
+                if (destination is not null)
+                {
+                    if (!KeyComparer.Equals(destination.ItemCategory, entry.ItemCategory))
+                        return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                            409,
+                            "market.escrow_restore_item_mismatch",
+                            "Escrow destination item category does not match.");
+                    try
+                    {
+                        destination.Quantity = checked(destination.Quantity + entry.Quantity);
+                    }
+                    catch (OverflowException)
+                    {
+                        return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                            409,
+                            "market.escrow_restore_overflow",
+                            "Escrow quantity is too large to restore.");
+                    }
+                    var mergedAt = DateTime.UtcNow;
+                    destination.UpdatedAt = mergedAt;
+                    destination.UpdatedBy = updatedBy;
+                    entry.Quantity = 0L;
+                    entry.IsDeleted = true;
+                    entry.UpdatedAt = mergedAt;
+                    entry.UpdatedBy = updatedBy;
+                    if (!affectedEntryIds.Contains(destination.InventoryEntryId))
+                        affectedEntryIds.Add(destination.InventoryEntryId);
+                    remainingToRestore -= restoreQuantity;
+                    continue;
                 }
             }
             entry.IsDeleted = false;
@@ -1281,7 +1513,8 @@ public class MarketRepository(
         MarketListingEntity entity,
         SellerAccountIdentity sellerAccount,
         IReadOnlyList<Guid>? sourceInventoryEntryIds = null,
-        long pendingProceeds = 0L) => new()
+        long pendingProceeds = 0L,
+        IReadOnlyList<Guid>? affectedInventoryEntryIds = null) => new()
     {
         ListingId = entity.ListingId,
         SellerAccountId = entity.SellerAccountId,
@@ -1294,6 +1527,7 @@ public class MarketRepository(
         InstanceType = entity.InstanceType,
         InstanceId = entity.InstanceId,
         SourceInventoryEntryIds = sourceInventoryEntryIds ?? Array.Empty<Guid>(),
+        AffectedInventoryEntryIds = affectedInventoryEntryIds ?? Array.Empty<Guid>(),
         Quantity = entity.Quantity,
         RemainingQuantity = entity.RemainingQuantity,
         CurrencyId = entity.CurrencyId,
@@ -1316,6 +1550,38 @@ public class MarketRepository(
         UpdatedAt = entity.UpdatedAt,
         PendingProceeds = pendingProceeds,
     };
+
+    private static string ComputeCancelRequestHash(Guid listingId, MarketCancelRequest request)
+    {
+        var canonical = JsonSerializer.Serialize(new
+        {
+            ListingId = listingId,
+            request.SellerAccountId,
+            request.Reason,
+            request.UpdatedBy,
+        });
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static MarketListingResponse ParseCancelReceipt(MarketListingEntity listing)
+    {
+        var replay = JsonSerializer.Deserialize<MarketListingResponse>(listing.CancelResponseJson ?? string.Empty)
+            ?? throw new JsonException("Cancel response is empty.");
+        if (listing.CancelCompletedAt is null
+            || string.IsNullOrWhiteSpace(listing.CancelRequestHash)
+            || listing.CancelRequestHash.Length != 64
+            || replay.ListingId != listing.ListingId
+            || replay.SellerAccountId != listing.SellerAccountId
+            || replay.Status is not ("CANCELED" or "SOLD")
+            || replay.CanceledAt is null
+            || replay.AffectedInventoryEntryIds is null
+            || replay.AffectedInventoryEntryIds.Count == 0
+            || replay.AffectedInventoryEntryIds.Any(entryId => entryId == Guid.Empty))
+        {
+            throw new JsonException("Cancel response fields are invalid.");
+        }
+        return replay;
+    }
 
     private sealed record SellerAccountIdentity(string AccountName, int SlotIndex)
     {

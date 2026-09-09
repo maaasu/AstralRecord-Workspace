@@ -135,6 +135,24 @@ public class MarketController(
     }
 
     /// <summary>
+    /// 応答を受信できなかった取消について、SQL に確定済みの結果を照会します。
+    /// </summary>
+    [HttpGet("listings/{listingId:guid}/cancel-result")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetCancelResult(
+        Guid listingId,
+        [FromQuery] Guid sellerAccountId,
+        [FromQuery] string idempotencyKey)
+    {
+        var result = await marketRepository.GetCancelResultAsync(listingId, sellerAccountId, idempotencyKey);
+        return result.Succeeded ? Ok(result.Value) : Error(result);
+    }
+
+    /// <summary>
     /// 売却済み出品の未受取売上を出品者へ払い出し、出品枠を解放します。
     /// </summary>
     [HttpPost("listings/{listingId:guid}/claim-proceeds")]

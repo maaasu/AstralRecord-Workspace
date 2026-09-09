@@ -283,6 +283,7 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(created.Value!.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-equipment",
             UpdatedBy = harness.AccountId,
         });
         Assert.True(canceled.Succeeded);
@@ -312,6 +313,7 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-stack",
             UpdatedBy = harness.AccountId,
         });
 
@@ -354,6 +356,7 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-reused-slot",
             UpdatedBy = harness.AccountId,
         });
 
@@ -363,6 +366,204 @@ public class MarketRepositoryEquipmentListingTests
         Assert.False(restored.IsDeleted);
         Assert.Equal(3, restored.Quantity);
         Assert.Null(restored.SlotIndex);
+    }
+
+    [Fact]
+    public async Task CancelListing_MergesRestoreIntoExistingSlotlessStackWhenOriginalSlotWasReused()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 3);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+
+        var sourceInventoryId = await harness.DbContext.InventoryEntries
+            .Where(entry => entry.InventoryEntryId == entryId)
+            .Select(entry => entry.InventoryId)
+            .SingleAsync();
+        var destinationEntryId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        harness.DbContext.InventoryEntries.AddRange(
+            new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(),
+                InventoryId = sourceInventoryId,
+                SlotIndex = 1,
+                ItemCategory = "material",
+                ItemId = "another_material",
+                Quantity = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = harness.AccountId,
+                UpdatedBy = harness.AccountId,
+            },
+            new InventoryEntryEntity
+            {
+                InventoryEntryId = destinationEntryId,
+                InventoryId = sourceInventoryId,
+                SlotIndex = null,
+                ItemCategory = "material",
+                ItemId = "market_material",
+                Quantity = 5,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = harness.AccountId,
+                UpdatedBy = harness.AccountId,
+            });
+        await harness.DbContext.SaveChangesAsync();
+
+        var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-merge-stack",
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.True(canceled.Succeeded);
+        Assert.Equal([entryId], canceled.Value!.SourceInventoryEntryIds);
+        Assert.Equal([destinationEntryId], canceled.Value.AffectedInventoryEntryIds);
+        var source = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == entryId);
+        Assert.True(source.IsDeleted);
+        Assert.Equal(0, source.Quantity);
+        var destination = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == destinationEntryId);
+        Assert.False(destination.IsDeleted);
+        Assert.Null(destination.SlotIndex);
+        Assert.Equal(8, destination.Quantity);
+    }
+
+    [Fact]
+    public async Task CancelListing_ReplaysCommittedReceiptWithoutRestoringEscrowTwice()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 10);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+        var request = new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            Reason = "player_cancel",
+            IdempotencyKey = "cancel-replay",
+            UpdatedBy = harness.AccountId,
+        };
+
+        var missing = await harness.Repository.GetCancelResultAsync(
+            listing.Value!.ListingId,
+            harness.AccountId,
+            request.IdempotencyKey);
+        Assert.False(missing.Succeeded);
+        Assert.Equal("market.cancel_result_not_found", missing.ErrorCode);
+
+        var first = await harness.Repository.CancelListingAsync(listing.Value.ListingId, request);
+        var replay = await harness.Repository.CancelListingAsync(listing.Value.ListingId, request);
+        var lookup = await harness.Repository.GetCancelResultAsync(
+            listing.Value.ListingId,
+            harness.AccountId,
+            request.IdempotencyKey);
+
+        Assert.True(first.Succeeded);
+        Assert.True(replay.Succeeded);
+        Assert.True(lookup.Succeeded);
+        Assert.Equal(first.Value!.Version, replay.Value!.Version);
+        Assert.Equal(first.Value.Version, lookup.Value!.Version);
+        Assert.Equal(first.Value.CanceledAt, replay.Value.CanceledAt);
+        Assert.Equal(first.Value.AffectedInventoryEntryIds, replay.Value.AffectedInventoryEntryIds);
+        Assert.Equal(first.Value.AffectedInventoryEntryIds, lookup.Value.AffectedInventoryEntryIds);
+        var source = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == entryId);
+        Assert.Equal(10, source.Quantity);
+        var storedListing = await harness.DbContext.MarketListings.AsNoTracking()
+            .SingleAsync(candidate => candidate.ListingId == listing.Value.ListingId);
+        Assert.Equal(2, storedListing.Version);
+        Assert.Equal(request.IdempotencyKey, storedListing.CancelIdempotencyKey);
+        Assert.NotNull(storedListing.CancelResponseJson);
+    }
+
+    [Fact]
+    public async Task CancelListing_CommitResultUnknown_ReplaysReceiptWithoutRestoringEscrowTwice()
+    {
+        var interceptor = new CommitResultUnknownInterceptor();
+        await using var harness = await MarketHarness.CreateAsync(
+            addMembership: false,
+            commitInterceptor: interceptor);
+        var entryId = await harness.AddStackEntryAsync(quantity: 10);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+        interceptor.Rearm();
+
+        var result = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-commit-unknown",
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.True(interceptor.WasThrown);
+        Assert.Equal([entryId], result.Value!.AffectedInventoryEntryIds);
+        var source = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == entryId);
+        Assert.Equal(10, source.Quantity);
+        var storedListing = await harness.DbContext.MarketListings.AsNoTracking()
+            .SingleAsync(candidate => candidate.ListingId == listing.Value.ListingId);
+        Assert.Equal(2, storedListing.Version);
+    }
+
+    [Fact]
+    public async Task CancelListing_RejectsAnotherRequestAfterReceiptWasCommitted()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 3);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+        var first = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            Reason = "player_cancel",
+            IdempotencyKey = "cancel-original",
+            UpdatedBy = harness.AccountId,
+        });
+        Assert.True(first.Succeeded);
+
+        var anotherKey = await harness.Repository.CancelListingAsync(listing.Value.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            Reason = "player_cancel",
+            IdempotencyKey = "cancel-another",
+            UpdatedBy = harness.AccountId,
+        });
+        var changedPayload = await harness.Repository.CancelListingAsync(listing.Value.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            Reason = "changed_reason",
+            IdempotencyKey = "cancel-original",
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.False(anotherKey.Succeeded);
+        Assert.Equal("market.cancel_already_completed", anotherKey.ErrorCode);
+        Assert.False(changedPayload.Succeeded);
+        Assert.Equal("market.cancel_already_completed", changedPayload.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CancelListing_RequiresIdempotencyKeyBeforeStartingTransaction()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+
+        var result = await harness.Repository.CancelListingAsync(Guid.NewGuid(), new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = " ",
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("market.invalid_cancel_request", result.ErrorCode);
     }
 
     [Fact]
@@ -435,6 +636,7 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-hotbar-reused-slot",
             UpdatedBy = harness.AccountId,
         });
 
@@ -474,6 +676,7 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(created.Value!.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-multi-source",
             UpdatedBy = harness.AccountId,
         });
 
@@ -676,12 +879,23 @@ public class MarketRepositoryEquipmentListingTests
         var canceled = await harness.Repository.CancelListingAsync(created.Value.ListingId, new MarketCancelRequest
         {
             SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-partial-sale",
             UpdatedBy = harness.AccountId,
         });
         Assert.True(canceled.Succeeded);
         Assert.Equal("SOLD", canceled.Value!.Status);
         Assert.Equal(0, canceled.Value.RemainingQuantity);
         Assert.Equal(300, canceled.Value.PendingProceeds);
+
+        var cancelReplay = await harness.Repository.CancelListingAsync(created.Value.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "cancel-partial-sale",
+            UpdatedBy = harness.AccountId,
+        });
+        Assert.True(cancelReplay.Succeeded);
+        Assert.Equal(canceled.Value.Version, cancelReplay.Value!.Version);
+        Assert.Equal(canceled.Value.AffectedInventoryEntryIds, cancelReplay.Value.AffectedInventoryEntryIds);
 
         var sourceAfterCancel = await harness.DbContext.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == sourceEntryId);

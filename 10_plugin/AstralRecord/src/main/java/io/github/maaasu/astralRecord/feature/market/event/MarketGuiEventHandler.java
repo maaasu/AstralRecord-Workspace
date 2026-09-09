@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.repository.MarketRequestRejectedException;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -30,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
@@ -49,8 +51,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** マーケット GUI の操作と API 確定処理を扱います。 */
 public final class MarketGuiEventHandler extends AbstractEventHandler {
@@ -58,6 +65,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private static final String MARKET_CURRENCY_ID = "gold";
     private static final int PAGE_SIZE = MarketGui.CONTENT_SLOT_COUNT;
     private static final int QUERY_PAGE_SIZE = PAGE_SIZE + 1;
+    private static final long CANCEL_RECOVERY_INITIAL_DELAY_TICKS = 20L;
+    private static final long CANCEL_RECOVERY_MAX_DELAY_TICKS = 600L;
+    private static final long CANCEL_MUTATION_RETRY_WINDOW_NANOS = TimeUnit.SECONDS.toNanos(15L);
+    private static final long CANCEL_RECOVERY_FALLBACK_POLL_MILLIS = 100L;
 
     private final AstralRecord plugin;
     private final MarketGui marketGui;
@@ -68,8 +79,26 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final CurrencyService currencyService;
     private final PlayerMessageService messageService;
     private final GoldAmountSettingGui goldAmountSettingGui;
+    private final Executor cancelRecoveryExecutor;
+    private final DelayedAsyncScheduler cancelRecoveryScheduler;
     private final Map<UUID, MarketSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, MarketCancelRecovery> cancelRecoveries = new ConcurrentHashMap<>();
+    private volatile boolean closing;
 
+    /**
+     * マーケット GUI のイベント処理と、取消結果未確定時の再照会処理を構築します。
+     *
+     * @param plugin Plugin 本体
+     * @param itemService item マスタ参照
+     * @param itemStackFactory GUI item 構築
+     * @param marketService マーケット API 操作
+     * @param inventoryService プレイヤー inventory 操作
+     * @param inventorySaveCoordinator inventory 保存 lane
+     * @param currencyService 通貨操作
+     * @param messageService プレイヤーメッセージ送信
+     * @param goldAmountSettingGui Gold 入力 GUI
+     * @param cancelRecoveryExecutor Bukkit scheduler が一時的に再試行を受理できない場合の退避 executor
+     */
     public MarketGuiEventHandler(
         @NotNull AstralRecord plugin,
         @NotNull ItemService itemService,
@@ -79,7 +108,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull InventorySaveCoordinator inventorySaveCoordinator,
         @NotNull CurrencyService currencyService,
         @NotNull PlayerMessageService messageService,
-        @NotNull GoldAmountSettingGui goldAmountSettingGui
+        @NotNull GoldAmountSettingGui goldAmountSettingGui,
+        @NotNull Executor cancelRecoveryExecutor
     ) {
         this(
             plugin,
@@ -90,7 +120,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             inventorySaveCoordinator,
             currencyService,
             messageService,
-            goldAmountSettingGui
+            goldAmountSettingGui,
+            cancelRecoveryExecutor,
+            (task, delayTicks) -> Bukkit.getScheduler()
+                .runTaskLaterAsynchronously(plugin, task, delayTicks)
         );
     }
 
@@ -106,6 +139,36 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull PlayerMessageService messageService,
         @NotNull GoldAmountSettingGui goldAmountSettingGui
     ) {
+        this(
+            plugin,
+            itemService,
+            marketGui,
+            marketService,
+            inventoryService,
+            inventorySaveCoordinator,
+            currencyService,
+            messageService,
+            goldAmountSettingGui,
+            Runnable::run,
+            (task, delayTicks) -> Bukkit.getScheduler()
+                .runTaskLaterAsynchronously(plugin, task, delayTicks)
+        );
+    }
+
+    /** 再試行 executor と遅延 scheduler を差し替えて障害経路を検証するための package-private 構築子です。 */
+    MarketGuiEventHandler(
+        @NotNull AstralRecord plugin,
+        @NotNull ItemService itemService,
+        @NotNull MarketGui marketGui,
+        @NotNull MarketService marketService,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull CurrencyService currencyService,
+        @NotNull PlayerMessageService messageService,
+        @NotNull GoldAmountSettingGui goldAmountSettingGui,
+        @NotNull Executor cancelRecoveryExecutor,
+        @NotNull DelayedAsyncScheduler cancelRecoveryScheduler
+    ) {
         this.plugin = plugin;
         this.marketGui = marketGui;
         this.marketService = marketService;
@@ -115,6 +178,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         this.currencyService = currencyService;
         this.messageService = messageService;
         this.goldAmountSettingGui = goldAmountSettingGui;
+        this.cancelRecoveryExecutor = cancelRecoveryExecutor;
+        this.cancelRecoveryScheduler = cancelRecoveryScheduler;
     }
 
     /** 管理コマンドからマーケットを開きます。 */
@@ -125,6 +190,18 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     /** マーケット NPC からマーケットを開きます。 */
     public void openFromNpc(@NotNull Player player) {
         openBrowse(player, 1, true);
+    }
+
+    /**
+     * Plugin 停止時に新規取消復旧を止め、待機中 future を終了します。
+     * <p>
+     * API 結果が不明な prepared 境界は解除せず、停止保存が操作前 state を上書きすることを防ぎます。
+     * 次回ログインでは SQL に保存済みの inventory 正本を通常ロードします。
+     */
+    public void shutdown() {
+        closing = true;
+        cancelRecoveries.values().forEach(this::stopCancelRecoveryForShutdown);
+        sessions.clear();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -740,49 +817,340 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        UUID playerId = player.getUniqueId();
         UUID accountId = astPlayer.getAccount().getUuid();
         session.busy = true;
         session.screen = MarketScreen.LOADING;
         long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
-        inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
+        MarketCancelRequest request = new MarketCancelRequest(
+            accountId,
+            "player_cancel",
+            cancelIdempotencyKey(listing.listingId()),
+            accountId
+        );
+        CompletableFuture<CancelListingResult> cancellation = inventorySaveCoordinator
+            .prepareExternalOperationAfterSave(accountId)
+            .thenCompose(prepared -> beginPreparedCancellation(playerId, astPlayer, listing, request, prepared));
+        cancellation.whenComplete((result, throwable) -> finishCancellationOnMainThread(
+            playerId,
+            session,
+            requestVersion,
+            result,
+            throwable
+        ));
+    }
+
+    private @NotNull CompletableFuture<CancelListingResult> beginPreparedCancellation(
+        @NotNull UUID playerId,
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketListing listing,
+        @NotNull MarketCancelRequest request,
+        @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+    ) {
+        try {
+            if (closing) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("Market cancellation is stopping: " + listing.listingId())
+                );
+            }
             if (!canReturnListingToInventory(astPlayer, listing)) {
-                return CancelListingResult.capacityFailure();
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.completedFuture(CancelListingResult.capacityFailure());
             }
-            MarketListing canceled = marketService.cancel(listing.listingId(), new MarketCancelRequest(
-                accountId,
-                "player_cancel",
-                accountId
-            ));
-            inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+
+            MarketCancelRecovery recovery = new MarketCancelRecovery(
+                playerId,
                 astPlayer,
-                canceled.sourceInventoryEntryIds().isEmpty()
-                    ? legacySourceEntryIds(listing)
-                    : canceled.sourceInventoryEntryIds(),
-                baseline
+                listing.listingId(),
+                request,
+                prepared
             );
-            return CancelListingResult.completed();
-        }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
-            refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session, requestVersion)) {
-                return;
+            MarketCancelRecovery existing = cancelRecoveries.putIfAbsent(listing.listingId(), recovery);
+            if (existing != null) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("Market cancellation is already being recovered: " + listing.listingId())
+                );
             }
-            session.busy = false;
+            attemptCancelRecovery(recovery);
+            return recovery.completion();
+        } catch (RuntimeException failure) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    /** 完了済み取消を Bukkit main thread 上の現在セッションへ反映します。 */
+    private void finishCancellationOnMainThread(
+        @NotNull UUID playerId,
+        @NotNull MarketSession session,
+        long requestVersion,
+        @Nullable CancelListingResult result,
+        @Nullable Throwable throwable
+    ) {
+        if (closing) {
+            return;
+        }
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (closing) {
+                    return;
+                }
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null || !player.isOnline()) {
+                    return;
+                }
+                refreshInventoryUiAfterMarketMutation(player, throwable);
+                if (!isCurrentSession(player, session, requestVersion)) {
+                    return;
+                }
+                session.busy = false;
+                if (throwable != null) {
+                    sendMarketFailure(player, throwable);
+                    openListings(player, true, session.page);
+                    return;
+                }
+                if (result == null) {
+                    sendMarketFailure(player, new IllegalStateException("Market cancellation result was empty"));
+                    openListings(player, true, session.page);
+                    return;
+                }
+                if (result.inventoryCapacityInsufficient()) {
+                    messageService.send(player, PlayerMsgId.P_6308);
+                    GuiSound.DENY.play(player);
+                    openListings(player, true, session.page);
+                    return;
+                }
+                messageService.send(player, PlayerMsgId.P_6301);
+                GuiSound.SUCCESS.play(player);
+                openListings(player, true, session.page);
+            });
+        } catch (RuntimeException schedulingFailure) {
+            Logger.log(
+                LogId.E_6320,
+                schedulingFailure,
+                playerId,
+                "cancel-completion:" + session.sessionId
+            );
+        }
+    }
+
+    /** API 応答と SQL receipt のどちらかで取消結果を確定し、同じ prepared handle で再同期します。 */
+    private void attemptCancelRecovery(@NotNull MarketCancelRecovery recovery) {
+        if (closing) {
+            stopCancelRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!cancelRecoveries.containsKey(recovery.listingId()) || !recovery.beginAttempt()) {
+            return;
+        }
+
+        final MarketListing canceled;
+        try {
+            canceled = resolveCancelResult(recovery);
+        } catch (MarketRequestRejectedException rejected) {
+            recovery.finishAttempt();
+            rejectCancelRecovery(recovery, rejected);
+            return;
+        } catch (RuntimeException unresolved) {
+            recovery.finishAttempt();
+            scheduleCancelRecovery(recovery, unresolved);
+            return;
+        }
+
+        inventorySaveCoordinator.completePreparedExternalOperation(
+            recovery.prepared(),
+            baseline -> {
+                inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+                    recovery.astPlayer(),
+                    canceled.affectedInventoryEntryIds(),
+                    baseline
+                );
+                return CancelListingResult.completed();
+            }
+        ).whenComplete((result, throwable) -> {
+            recovery.finishAttempt();
             if (throwable != null) {
-                sendMarketFailure(player, throwable);
-                openListings(player, true, session.page);
+                scheduleCancelRecovery(recovery, throwable);
                 return;
             }
-            if (result.inventoryCapacityInsufficient()) {
-                messageService.send(player, PlayerMsgId.P_6308);
-                GuiSound.DENY.play(player);
-                openListings(player, true, session.page);
-                return;
+            if (cancelRecoveries.remove(recovery.listingId(), recovery)) {
+                recovery.completion().complete(result);
             }
-            messageService.send(player, PlayerMsgId.P_6301);
-            GuiSound.SUCCESS.play(player);
-            openListings(player, true, session.page);
-        }));
+        });
+    }
+
+    /**
+     * 取消 POST が結果不明なら固定 receipt を照会します。短時間だけ同じ POST を再送し、
+     * それ以降は結果照会だけに切り替えて、復旧後に未確定なら失敗を確定します。
+     */
+    private @NotNull MarketListing resolveCancelResult(@NotNull MarketCancelRecovery recovery) {
+        if (recovery.lookupOnly()) {
+            return marketService.findCancelResult(
+                recovery.listingId(),
+                recovery.request().sellerAccountId(),
+                recovery.request().idempotencyKey()
+            ).orElseThrow(() -> new MarketRequestRejectedException(
+                404,
+                "Market cancellation was not committed: " + recovery.listingId()
+            ));
+        }
+
+        try {
+            return marketService.cancel(recovery.listingId(), recovery.request());
+        } catch (MarketTransportException mutationFailure) {
+            final Optional<MarketListing> completed;
+            try {
+                completed = marketService.findCancelResult(
+                    recovery.listingId(),
+                    recovery.request().sellerAccountId(),
+                    recovery.request().idempotencyKey()
+                );
+            } catch (RuntimeException lookupFailure) {
+                lookupFailure.addSuppressed(mutationFailure);
+                throw lookupFailure;
+            }
+            if (completed.isPresent()) {
+                return completed.get();
+            }
+            throw mutationFailure;
+        }
+    }
+
+    private void scheduleCancelRecovery(
+        @NotNull MarketCancelRecovery recovery,
+        @NotNull Throwable failure
+    ) {
+        if (closing) {
+            stopCancelRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!cancelRecoveries.containsKey(recovery.listingId())) {
+            return;
+        }
+        if (recovery.markPendingNotified()) {
+            Logger.log(
+                LogId.E_6320,
+                failure,
+                recovery.playerId(),
+                "cancel-recovery:" + recovery.listingId()
+            );
+            notifyCancelRecoveryPending(recovery);
+        }
+        if (!recovery.markScheduled()) {
+            return;
+        }
+        long delayTicks = recovery.nextDelayTicks();
+        try {
+            cancelRecoveryScheduler.schedule(() -> {
+                recovery.clearScheduled();
+                attemptCancelRecovery(recovery);
+            }, delayTicks);
+        } catch (RuntimeException schedulingFailure) {
+            schedulingFailure.addSuppressed(failure);
+            Logger.log(
+                LogId.E_6320,
+                schedulingFailure,
+                recovery.playerId(),
+                "cancel-recovery-schedule:" + recovery.listingId()
+            );
+            scheduleCancelRecoveryFallback(recovery, delayTicks, schedulingFailure);
+        }
+    }
+
+    /** 待機通知は Bukkit main thread へ戻し、通知予約失敗が取消復旧を止めないようにします。 */
+    private void notifyCancelRecoveryPending(@NotNull MarketCancelRecovery recovery) {
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player online = Bukkit.getPlayer(recovery.playerId());
+                if (online != null && online.isOnline()) {
+                    messageService.send(online, PlayerMsgId.P_6310);
+                }
+            });
+        } catch (RuntimeException notificationFailure) {
+            Logger.log(
+                LogId.E_6320,
+                notificationFailure,
+                recovery.playerId(),
+                "cancel-recovery-notification:" + recovery.listingId()
+            );
+        }
+    }
+
+    /** Bukkit scheduler が拒否した場合だけ、既存の非同期 executor で同じ再試行を退避実行します。 */
+    private void scheduleCancelRecoveryFallback(
+        @NotNull MarketCancelRecovery recovery,
+        long delayTicks,
+        @NotNull RuntimeException schedulingFailure
+    ) {
+        try {
+            cancelRecoveryExecutor.execute(() -> awaitCancelRecoveryFallback(recovery, delayTicks));
+        } catch (RuntimeException executorFailure) {
+            executorFailure.addSuppressed(schedulingFailure);
+            stopUnscheduledCancelRecovery(recovery, executorFailure);
+        }
+    }
+
+    /** 停止要求を短い間隔で確認しながら、Bukkit scheduler と同じ遅延後に再照会します。 */
+    private void awaitCancelRecoveryFallback(@NotNull MarketCancelRecovery recovery, long delayTicks) {
+        long remainingMillis = Math.max(1L, delayTicks * 50L);
+        try {
+            while (!closing && cancelRecoveries.containsKey(recovery.listingId()) && remainingMillis > 0L) {
+                long sleepMillis = Math.min(CANCEL_RECOVERY_FALLBACK_POLL_MILLIS, remainingMillis);
+                TimeUnit.MILLISECONDS.sleep(sleepMillis);
+                remainingMillis -= sleepMillis;
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            stopUnscheduledCancelRecovery(recovery, interrupted);
+            return;
+        }
+
+        recovery.clearScheduled();
+        if (closing) {
+            stopCancelRecoveryForShutdown(recovery);
+            return;
+        }
+        attemptCancelRecovery(recovery);
+    }
+
+    /** 再試行経路自体を開始できない場合、future を終了しつつ結果不明の保存境界は維持します。 */
+    private void stopUnscheduledCancelRecovery(
+        @NotNull MarketCancelRecovery recovery,
+        @NotNull Throwable failure
+    ) {
+        recovery.clearScheduled();
+        if (cancelRecoveries.remove(recovery.listingId(), recovery)) {
+            Logger.log(
+                LogId.E_6320,
+                failure,
+                recovery.playerId(),
+                "cancel-recovery-unavailable:" + recovery.listingId()
+            );
+            recovery.completion().completeExceptionally(failure);
+        }
+    }
+
+    /** 停止処理では stale snapshot を防ぐ prepared 境界を維持し、process-local 復旧だけを破棄します。 */
+    private void stopCancelRecoveryForShutdown(@NotNull MarketCancelRecovery recovery) {
+        recovery.clearScheduled();
+        if (cancelRecoveries.remove(recovery.listingId(), recovery)) {
+            recovery.completion().completeExceptionally(
+                new IllegalStateException("Market cancellation recovery stopped: " + recovery.listingId())
+            );
+        }
+    }
+
+    private void rejectCancelRecovery(
+        @NotNull MarketCancelRecovery recovery,
+        @NotNull RuntimeException rejected
+    ) {
+        if (cancelRecoveries.remove(recovery.listingId(), recovery)) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(recovery.prepared());
+            recovery.completion().completeExceptionally(rejected);
+        }
     }
 
     /** 売却済み出品をクリックして、売上を受け取り出品枠を解放します。 */
@@ -1103,6 +1471,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return "market-proceeds-claim-" + listingId;
     }
 
+    private @NotNull String cancelIdempotencyKey(@NotNull UUID listingId) {
+        return "market-cancel-" + listingId;
+    }
+
     private void adjustPurchaseQuantity(
         @NotNull MarketSession session,
         @NotNull MarketListing listing,
@@ -1190,7 +1562,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         private long purchaseQuantity = 1L;
     }
 
-    /** 取消の保存 lane で確認した容量不足を、外部 API 未呼出の正常完了として返します。 */
+    /** 取消の事前保存後に確認した容量不足を、外部 API 未呼出の正常完了として返します。 */
     private record CancelListingResult(boolean inventoryCapacityInsufficient) {
         private static @NotNull CancelListingResult capacityFailure() {
             return new CancelListingResult(true);
@@ -1199,6 +1571,94 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         private static @NotNull CancelListingResult completed() {
             return new CancelListingResult(false);
         }
+    }
+
+    /** SQL receipt 確定まで同じ取消要求と保存境界を保持します。 */
+    private static final class MarketCancelRecovery {
+        private final UUID playerId;
+        private final AstPlayer astPlayer;
+        private final UUID listingId;
+        private final MarketCancelRequest request;
+        private final InventorySaveCoordinator.PreparedExternalOperation prepared;
+        private final CompletableFuture<CancelListingResult> completion = new CompletableFuture<>();
+        private final long startedAtNanos = System.nanoTime();
+        private final AtomicBoolean attempting = new AtomicBoolean();
+        private final AtomicBoolean scheduled = new AtomicBoolean();
+        private final AtomicBoolean pendingNotified = new AtomicBoolean();
+        private long retryDelayTicks = CANCEL_RECOVERY_INITIAL_DELAY_TICKS;
+
+        private MarketCancelRecovery(
+            @NotNull UUID playerId,
+            @NotNull AstPlayer astPlayer,
+            @NotNull UUID listingId,
+            @NotNull MarketCancelRequest request,
+            @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+        ) {
+            this.playerId = playerId;
+            this.astPlayer = astPlayer;
+            this.listingId = listingId;
+            this.request = request;
+            this.prepared = prepared;
+        }
+
+        private @NotNull UUID playerId() {
+            return playerId;
+        }
+
+        private @NotNull AstPlayer astPlayer() {
+            return astPlayer;
+        }
+
+        private @NotNull UUID listingId() {
+            return listingId;
+        }
+
+        private @NotNull MarketCancelRequest request() {
+            return request;
+        }
+
+        private @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared() {
+            return prepared;
+        }
+
+        private @NotNull CompletableFuture<CancelListingResult> completion() {
+            return completion;
+        }
+
+        private boolean beginAttempt() {
+            return attempting.compareAndSet(false, true);
+        }
+
+        private void finishAttempt() {
+            attempting.set(false);
+        }
+
+        private boolean markScheduled() {
+            return scheduled.compareAndSet(false, true);
+        }
+
+        private void clearScheduled() {
+            scheduled.set(false);
+        }
+
+        private boolean markPendingNotified() {
+            return pendingNotified.compareAndSet(false, true);
+        }
+
+        private boolean lookupOnly() {
+            return System.nanoTime() - startedAtNanos >= CANCEL_MUTATION_RETRY_WINDOW_NANOS;
+        }
+
+        private synchronized long nextDelayTicks() {
+            long delay = retryDelayTicks + Math.floorMod(listingId.hashCode(), 11);
+            retryDelayTicks = Math.min(CANCEL_RECOVERY_MAX_DELAY_TICKS, retryDelayTicks * 2L);
+            return delay;
+        }
+    }
+
+    @FunctionalInterface
+    interface DelayedAsyncScheduler {
+        void schedule(@NotNull Runnable task, long delayTicks);
     }
 
     /** 購入 API 前の拒否結果、または API 確定済み transaction を保持します。 */

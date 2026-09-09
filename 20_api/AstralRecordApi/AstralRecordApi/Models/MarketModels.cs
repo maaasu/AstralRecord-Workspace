@@ -14,8 +14,10 @@ public class MarketListingResponse
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }
     public Guid? InstanceId { get; init; }
-    /// <summary>出品作成・取消応答で返す source inventory entry の一覧です。Plugin の正本再同期にのみ使用します。</summary>
+    /// <summary>出品作成・取消応答で返す escrow 元 entry の一覧です。取消の実際の再同期先は AffectedInventoryEntryIds です。</summary>
     public IReadOnlyList<Guid> SourceInventoryEntryIds { get; init; } = Array.Empty<Guid>();
+    /// <summary>取消で実際に更新した inventory entry の一覧です。既存 stack へ併合した場合は併合先を返します。</summary>
+    public IReadOnlyList<Guid> AffectedInventoryEntryIds { get; init; } = Array.Empty<Guid>();
     public long Quantity { get; init; }
     /// <summary>現在 escrow に残る購入可能数量です。SOLD または取り下げ済みの場合は 0 です。</summary>
     public long RemainingQuantity { get; init; }
@@ -108,6 +110,11 @@ public class MarketCancelRequest
 {
     public Guid SellerAccountId { get; set; }
     public string? Reason { get; set; }
+    /// <summary>
+    /// 取消結果を安全に再送・照会するためのキーです。
+    /// 同一出品の再送では必ず同じ値を指定します。
+    /// </summary>
+    public required string IdempotencyKey { get; set; }
     public Guid UpdatedBy { get; set; }
 }
 
