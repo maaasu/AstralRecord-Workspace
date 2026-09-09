@@ -49,7 +49,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -82,6 +84,7 @@ public final class PotionUseService {
     private final BuffAcquisitionDisplayService buffDisplayService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, PendingPotionUse> pendingUses = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingConsumptions = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Map<String, Long>> cooldownExpiresAtMillis = new ConcurrentHashMap<>();
 
     /**
@@ -109,6 +112,7 @@ public final class PotionUseService {
 
     /**
      * 消耗品の使用待機を開始し、待機完了後に効果適用とアイテム消費を行います。
+     * 待機完了後の消費保存が確定するまでも、同じプレイヤーの使用を受け付けません。
      *
      * @param astPlayer 使用プレイヤー
      * @param hand 使用した手
@@ -122,7 +126,7 @@ public final class PotionUseService {
         }
 
         UUID playerId = astPlayer.getBukkit().getUniqueId();
-        if (pendingUses.containsKey(playerId)) {
+        if (pendingUses.containsKey(playerId) || pendingConsumptions.contains(playerId)) {
             return false;
         }
 
@@ -268,21 +272,30 @@ public final class PotionUseService {
             ? 1
             : Math.max(1, pending.consumable().getOnUse().getAmount());
         UUID accountId = pending.astPlayer().getAccount().getUuid();
-        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
-            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
-            if (inventoryBefore == null) throw new PotionMutationRejectedException();
-            try {
-                if (!inventoryService.consumeHotbarEntryStateOnly(
-                    accountId, consumedEntry.getInventoryEntryId(), pending.model().getId(), consumeAmount)) {
-                    throw new PotionMutationRejectedException();
+        pendingConsumptions.add(playerId);
+        CompletableFuture<Boolean> persistence;
+        try {
+            persistence = inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+                InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+                if (inventoryBefore == null) throw new PotionMutationRejectedException();
+                try {
+                    if (!inventoryService.consumeHotbarEntryStateOnly(
+                        accountId, consumedEntry.getInventoryEntryId(), pending.model().getId(), consumeAmount)) {
+                        throw new PotionMutationRejectedException();
+                    }
+                    return new InventorySaveCoordinator.CriticalMutation<>(true,
+                        () -> inventoryService.restoreState(inventoryBefore));
+                } catch (RuntimeException | Error failure) {
+                    inventoryService.restoreState(inventoryBefore);
+                    throw failure;
                 }
-                return new InventorySaveCoordinator.CriticalMutation<>(true,
-                    () -> inventoryService.restoreState(inventoryBefore));
-            } catch (RuntimeException | Error failure) {
-                inventoryService.restoreState(inventoryBefore);
-                throw failure;
-            }
-        }).whenComplete((saved, failure) -> runOnMainThread(() -> {
+            });
+        } catch (RuntimeException | Error failure) {
+            pendingConsumptions.remove(playerId);
+            throw failure;
+        }
+        persistence.whenComplete((saved, failure) -> runOnMainThread(() -> {
+            pendingConsumptions.remove(playerId);
             if (failure != null || !Boolean.TRUE.equals(saved)) {
                 Logger.warn(LogId.W_5252, accountId,
                     failure == null ? PotionMutationRejectedException.class.getSimpleName() : failure.getMessage());
