@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,10 +66,10 @@ class DebugFishingRodInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### デバッグ釣り竿入力候補解決
-     * 検証契約: キャスト中の同じmain hand右クリックは回収候補をclaimし、候補実行時にretractへ到達する。
+     * 検証契約: キャスト中のmain hand右クリックは入力だけをclaimし、再発射・巻き取りを行わない。
      */
     @Test
-    void resolvesAndExecutesRightClickAsRetractCandidateWhileCasting() {
+    void consumesRightClickWithoutRecastingWhileCasting() {
         Fixture fixture = fixture();
         when(fixture.service.findCurrentFishingRodInstanceId(fixture.astPlayer)).thenReturn("rod-instance");
         when(fixture.service.isCasting(fixture.astPlayer)).thenReturn(true);
@@ -81,10 +82,11 @@ class DebugFishingRodInteractionEventHandlerTest {
             candidate = handler.resolve(context(fixture)).stream().findFirst().orElseThrow();
         }
 
-        assertEquals("debug-fishing-rod-retract", candidate.id());
+        assertEquals("debug-fishing-rod-active", candidate.id());
         assertEquals(InputClaimPolicy.CLAIM_AND_CANCEL, candidate.claimPolicy());
         assertTrue(candidate.executeIfValid());
-        verify(fixture.service).retract(fixture.astPlayer);
+        verify(fixture.service, never()).cast(fixture.astPlayer);
+        verify(fixture.service, never()).cancel(fixture.playerId);
     }
 
     private Fixture fixture() {

@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** デバッグ釣り竿の発射・回収を共通入力gatewayへ接続します。 */
+/** デバッグ釣り竿の発射とキャスト中の入力抑止を共通入力gatewayへ接続します。 */
 public final class DebugFishingRodInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -58,7 +58,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             return List.of();
         }
         if (useService.isCasting(astPlayer)) {
-            return resolveRetractCandidate(snapshot, astPlayer, equipmentInstanceId);
+            return resolveActiveCastCandidate(snapshot, astPlayer, equipmentInstanceId);
         }
         if (!useService.canCast(astPlayer)) {
             return List.of();
@@ -80,25 +80,29 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
         ));
     }
 
-    private @NotNull Collection<PlayerInputCandidate> resolveRetractCandidate(
+    /**
+     * キャスト中の再入力を消費し、繰り出した糸の巻き取りとバニラ釣りを防ぎます。
+     *
+     * @param snapshot 入力時の状態
+     * @param astPlayer キャスト中のプレイヤー
+     * @param equipmentInstanceId 現在の釣り竿
+     * @return 同じ釣り竿のキャスト中だけ有効な入力抑止候補
+     */
+    private @NotNull Collection<PlayerInputCandidate> resolveActiveCastCandidate(
         @NotNull PlayerInteractionSnapshot snapshot,
         @NotNull AstPlayer astPlayer,
         @NotNull String equipmentInstanceId
     ) {
         return List.of(new PlayerInputCandidate(
-            "debug-fishing-rod-retract",
+            "debug-fishing-rod-active",
             InteractionTier.WORLD_INTERACTION,
             candidateDistance(snapshot),
             InteractionCandidateOrder.FISHING_ROD,
-            equipmentInstanceId + ":retract",
+            equipmentInstanceId + ":active",
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> useService.isCurrentFishingRod(astPlayer, equipmentInstanceId)
                 && useService.isCasting(astPlayer),
-            () -> runSafely(
-                () -> useService.retract(astPlayer),
-                LogId.E_3002,
-                "debug_fishing_rod_retract:" + snapshot.player().getName()
-            )
+            () -> { /* 巻き取りは行わず、入力だけを消費する。 */ }
         ));
     }
 
