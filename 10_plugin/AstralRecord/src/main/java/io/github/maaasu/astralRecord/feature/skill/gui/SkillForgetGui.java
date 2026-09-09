@@ -164,11 +164,11 @@ public final class SkillForgetGui {
     }
 
     private @NotNull ItemStack pageItem(@NotNull String name, int page, int pages) {
-        return GuiItems.create(
-            Material.MAP,
-            Component.text(name, NamedTextColor.WHITE),
-            List.of(Component.text(page + " / " + pages, NamedTextColor.GRAY))
-        );
+        Component label = Component.text(name, NamedTextColor.WHITE);
+        List<Component> lore = List.of(Component.text(page + " / " + pages, NamedTextColor.GRAY));
+        return name.startsWith("次")
+            ? GuiItems.nextPageButton(label, lore)
+            : GuiItems.previousPageButton(label, lore);
     }
 
     private @NotNull Material parseMaterial(@Nullable String raw) {

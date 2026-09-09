@@ -33,9 +33,9 @@ public final class ItemChatShareTabCompleter extends AstTabCompleter {
      */
     @Override
     protected @NotNull List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
-        List<String> names = itemChatShareService.getShareableItemNames(
+        List<String> names = itemChatShareService.getShareableItems(
             player.getBukkit().getInventory().getContents()
-        );
+        ).stream().map(ItemChatShareService.ShareableItem::commandSelection).toList();
         if (args.length == 0) {
             return names;
         }

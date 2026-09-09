@@ -40,6 +40,7 @@ import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -2395,11 +2396,11 @@ public class InventoryService {
             setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.getOrDefault(guiSlot, emptySlot));
         }
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
-            createScrollIcon(true, scrollRow > 0));
+            createScrollIcon(astPlayer, true, scrollRow > 0));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.INFO_GUI_SLOT,
             createInventoryInfoIcon(entries, capacity, displayCapacity, scrollRow));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT,
-            createScrollIcon(false, scrollRow < NormalInventoryLayout.maxScrollRow(displayCapacity)));
+            createScrollIcon(astPlayer, false, scrollRow < NormalInventoryLayout.maxScrollRow(displayCapacity)));
     }
 
     public @NotNull InventoryType getDisplayedInventoryType(@NotNull UUID accountId) {
@@ -7916,20 +7917,32 @@ public class InventoryService {
         return itemStack;
     }
 
-    private @NotNull ItemStack createScrollIcon(boolean up, boolean enabled) {
-        ItemStack itemStack = new ItemStack(enabled ? Material.ARROW : Material.GRAY_DYE);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(up ? "上へスクロール" : "下へスクロール",
-                enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY));
-            meta.lore(List.of(Component.text(
+    private @NotNull ItemStack createScrollIcon(
+        @NotNull AstPlayer astPlayer,
+        boolean up,
+        boolean enabled
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        int availableMoves = 0;
+        if (state != null) {
+            InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+            List<InventoryEntryModel> entries = bag == null
+                ? List.of()
+                : state.snapshotEntries(bag.getInventoryId());
+            int displayCapacity = NormalInventoryLayout.displayCapacity(entries, state.getBagSlotCapacity());
+            int current = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(displayCapacity));
+            availableMoves = up ? current : NormalInventoryLayout.maxScrollRow(displayCapacity) - current;
+        }
+        return GuiItems.scrollButton(
+            up,
+            Component.text(up ? "上へスクロール" : "下へスクロール",
+                enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY),
+            List.of(Component.text(
                 enabled ? "クリックで1行移動" : "これ以上スクロールできません",
                 enabled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY
-            )));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+            )),
+            availableMoves
+        );
     }
 
     private @NotNull ItemStack createInventoryInfoIcon(

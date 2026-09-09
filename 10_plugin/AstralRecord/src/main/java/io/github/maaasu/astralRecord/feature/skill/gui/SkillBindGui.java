@@ -943,19 +943,15 @@ public final class SkillBindGui {
     }
 
     private ItemStack createPreviousPageItem(int page, int pages) {
-        return createItem(
-            Material.ARROW,
-            "前のページ " + page + " / " + pages,
-            NamedTextColor.AQUA,
+        return GuiItems.previousPageButton(
+            Component.text("前のページ " + page + " / " + pages, NamedTextColor.AQUA),
             List.of(Component.text("クリック: 前のページ", NamedTextColor.YELLOW))
         );
     }
 
     private ItemStack createNextPageItem(int page, int pages) {
-        return createItem(
-            Material.ARROW,
-            "次のページ " + (page + 2) + " / " + pages,
-            NamedTextColor.AQUA,
+        return GuiItems.nextPageButton(
+            Component.text("次のページ " + (page + 2) + " / " + pages, NamedTextColor.AQUA),
             List.of(Component.text("クリック: 次のページ", NamedTextColor.YELLOW))
         );
     }

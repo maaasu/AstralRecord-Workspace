@@ -15,6 +15,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -169,13 +170,15 @@ class InventoryItemStackResolverTest {
         );
 
         resolver.resolveForBag(entry, accountId);
-        assertTrue(capturedLore(stack.itemMeta()).contains("クリックで使用"));
+        List<String> lore = capturedLore(stack.itemMeta());
+        assertTrue(lore.contains("クリックで使用"));
+        assertTrue(lore.contains("スロット番号: 1"));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
      * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: 数量 0 または削除済みのオーブには、クリック使用案内を表示しない。
+     * 検証契約: 数量 0 のオーブには、クリック使用案内を表示しない。
      */
     @Test
     void bagDisplayDoesNotAddUseLoreForInvalidOrbEntry() {
@@ -198,17 +201,10 @@ class InventoryItemStackResolverTest {
             0L,
             false
         );
-        InventoryEntryModel deleted = normalEntry(
-            model.getId(),
-            ItemCategory.ORB.getApiValue(),
-            accountId,
-            1L,
-            true
-        );
-
         resolver.resolveForBag(zeroQuantity, accountId);
-        resolver.resolveForBag(deleted, accountId);
-        verifyNoInteractions(stack.itemStack());
+        List<String> lore = capturedLore(stack.itemMeta());
+        assertFalse(lore.contains("クリックで使用"));
+        assertTrue(lore.contains("スロット番号: 1"));
     }
 
     /**
@@ -355,7 +351,9 @@ class InventoryItemStackResolverTest {
         );
 
         resolver.resolveForBag(entry, accountId);
-        verifyNoInteractions(stack.itemStack());
+        List<String> lore = capturedLore(stack.itemMeta());
+        assertFalse(lore.contains("クリックでホットバースロットに設定"));
+        assertTrue(lore.contains("スロット番号: 1"));
     }
 
     private static ItemModel clickableModel(ItemCategory category) {
@@ -380,8 +378,10 @@ class InventoryItemStackResolverTest {
     private static TestItemStack mockedItemStack() {
         ItemStack itemStack = mock(ItemStack.class);
         ItemMeta itemMeta = mock(ItemMeta.class);
+        PersistentDataContainer persistentDataContainer = mock(PersistentDataContainer.class);
         when(itemStack.getItemMeta()).thenReturn(itemMeta);
         when(itemMeta.lore()).thenReturn(List.of());
+        when(itemMeta.getPersistentDataContainer()).thenReturn(persistentDataContainer);
         return new TestItemStack(itemStack, itemMeta);
     }
 

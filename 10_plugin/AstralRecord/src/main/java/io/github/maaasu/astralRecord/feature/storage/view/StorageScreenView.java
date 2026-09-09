@@ -239,8 +239,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
         int maxPageCount
     ) {
         if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                 Component.text("前のページ", NamedTextColor.WHITE),
                 List.of(Component.text(pageIndex + " / " + totalPages(itemCount, maxPageCount), NamedTextColor.GRAY))
             ));
@@ -277,8 +276,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
             )
         ));
         if (hasNextPage(pageIndex, itemCount, maxPageCount)) {
-            inventory.setItem(NEXT_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 Component.text("次のページ", NamedTextColor.WHITE),
                 List.of(Component.text(
                     (pageIndex + 2) + " / " + totalPages(itemCount, maxPageCount),

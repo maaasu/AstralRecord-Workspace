@@ -156,15 +156,13 @@ public final class DungeonArchiveGui {
             boolean details
     ) {
         if (GuiPagination.hasPreviousPage(page)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.create(
-                    Material.ARROW,
+            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()),
                     List.of()));
         }
         inventory.setItem(BACK_SLOT, details ? GuiItems.backButton() : GuiItems.closeButton());
         if (GuiPagination.hasNextPage(page, entryCount, CONTENT_SIZE)) {
-            inventory.setItem(NEXT_SLOT, GuiItems.create(
-                    Material.ARROW,
+            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()),
                     List.of()));
         }

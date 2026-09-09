@@ -30,19 +30,24 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
      * 章・見出し: # 04_3-コマンド > ## 9. showitem コマンド
-     * 検証契約: AstralRecord itemだけを所持品の表示順で重複なく補完候補にし、同じ表示名を指定した場合は最初の実アイテムを解決する。
+     * 検証契約: AstralRecord itemだけを所持品の表示順でスロット番号付き候補にし、同名の各スタックを番号で区別して解決する。
      */
     @Test
-    void listsAndResolvesAstralInventoryItemsByDisplayName() {
+    void listsAndResolvesAstralInventoryItemsBySlotAndDisplayName() {
         ItemChatShareService service = new ItemChatShareService();
-        ItemStack first = astralItem("star_sword", "星詠みの剣");
-        ItemStack duplicate = astralItem("star_sword", "星詠みの剣");
-        ItemStack second = astralItem("moon_staff", "月影の杖");
+        ItemStack first = astralItem("star_sword", "星詠みの剣", 1);
+        ItemStack duplicate = astralItem("star_sword", "星詠みの剣", 2);
+        ItemStack second = astralItem("moon_staff", "月影の杖", 4);
         ItemStack vanilla = new ItemStack(Material.DIAMOND);
         ItemStack[] contents = {first, duplicate, vanilla, second};
 
-        assertEquals(List.of("星詠みの剣", "月影の杖"), service.getShareableItemNames(contents));
-        assertSame(first, service.findShareableItem(contents, "星詠みの剣"));
+        assertEquals(
+            List.of("[1] 星詠みの剣", "[2] 星詠みの剣", "[4] 月影の杖"),
+            service.getShareableItems(contents).stream()
+                .map(ItemChatShareService.ShareableItem::commandSelection)
+                .toList()
+        );
+        assertSame(duplicate, service.findShareableItem(contents, "[2] 星詠みの剣"));
     }
 
     /**
@@ -53,10 +58,15 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
     @Test
     void removesDecorativeMarkerFromShareableName() {
         ItemChatShareService service = new ItemChatShareService();
-        ItemStack item = astralItem("star_sword", "◆ 星詠みの剣");
+        ItemStack item = astralItem("star_sword", "◆ 星詠みの剣", 1);
         ItemStack[] contents = {item};
 
-        assertEquals(List.of("星詠みの剣"), service.getShareableItemNames(contents));
+        assertEquals(
+            List.of("[1] 星詠みの剣"),
+            service.getShareableItems(contents).stream()
+                .map(ItemChatShareService.ShareableItem::commandSelection)
+                .toList()
+        );
         assertSame(item, service.findShareableItem(contents, "星詠みの剣"));
     }
 
@@ -68,7 +78,7 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
     @Test
     void sharedTooltipOmitsInventoryOnlyActionLoreWithoutMutatingInventoryItem() {
         ItemChatShareService service = new ItemChatShareService();
-        ItemStack item = astralItem("star_sword", "星詠みの剣");
+        ItemStack item = astralItem("star_sword", "星詠みの剣", 1);
         ItemMeta meta = item.getItemMeta();
         meta.lore(new ArrayList<>(List.of(
             Component.text("通常のアイテム説明"),
@@ -107,7 +117,7 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
         assertNotSame(item, tooltipCaptor.getValue());
     }
 
-    private @NotNull ItemStack astralItem(@NotNull String itemId, @NotNull String displayName) {
+    private @NotNull ItemStack astralItem(@NotNull String itemId, @NotNull String displayName, int bagSlotNumber) {
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text(displayName));
@@ -115,6 +125,11 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
             new NamespacedKey("astralrecord", "item_id"),
             PersistentDataType.STRING,
             itemId
+        );
+        meta.getPersistentDataContainer().set(
+            new NamespacedKey("astralrecord", "bag_slot_number"),
+            PersistentDataType.INTEGER,
+            bagSlotNumber
         );
         item.setItemMeta(meta);
         return item;

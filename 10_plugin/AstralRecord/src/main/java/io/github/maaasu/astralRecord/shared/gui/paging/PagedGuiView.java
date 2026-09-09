@@ -69,16 +69,14 @@ public final class PagedGuiView {
         }
 
         if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                 Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
                 List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
         }
         inventory.setItem(BACK_SLOT, GuiItems.backButton());
         if (hasNextPage(pageIndex, itemCount)) {
-            inventory.setItem(NEXT_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
                 List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));

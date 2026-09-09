@@ -1594,10 +1594,11 @@ public final class OrbService {
      * @return 表示用ボタン
      */
     private @NotNull ItemStack pageButton(boolean next, boolean enabled) {
-        Material material = enabled ? Material.ARROW : Material.GRAY_DYE;
         String name = next ? "次のページ" : "前のページ";
         NamedTextColor color = enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY;
-        return GuiItems.create(material, Component.text(name, color), List.of());
+        return next
+            ? GuiItems.nextPageButton(Component.text(name, color), List.of())
+            : GuiItems.previousPageButton(Component.text(name, color), List.of());
     }
 
     /**

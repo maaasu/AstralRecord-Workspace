@@ -80,11 +80,11 @@ public final class DungeonEmergencyTeleportGui {
                             ? PlayerMsgId.P_7051.getId()
                             : PlayerMsgId.P_7050.getId()))));
         }
-        if (page > 0) inventory.setItem(PREVIOUS_SLOT, GuiItems.create(
-                Material.ARROW, PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()), List.of()));
+        if (page > 0) inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()), List.of()));
         inventory.setItem(CLOSE_SLOT, GuiItems.closeButton());
-        if (page < maxPage) inventory.setItem(NEXT_SLOT, GuiItems.create(
-                Material.ARROW, PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()), List.of()));
+        if (page < maxPage) inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()), List.of()));
         GuiOpenSupport.open(player, inventory);
     }
 

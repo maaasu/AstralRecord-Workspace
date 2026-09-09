@@ -397,7 +397,11 @@ public final class MarketGui {
     }
 
     private @NotNull ItemStack pageItem(@NotNull String name, int page) {
-        return item(Material.PAPER, name, NamedTextColor.YELLOW, List.of("ページ: " + Math.max(1, page)));
+        Component label = Component.text(name, NamedTextColor.YELLOW);
+        List<Component> lore = List.of(Component.text("ページ: " + Math.max(1, page), NamedTextColor.GRAY));
+        return name.startsWith("次")
+            ? GuiItems.nextPageButton(label, lore)
+            : GuiItems.previousPageButton(label, lore);
     }
 
     private @NotNull ItemStack listingItem(@NotNull MarketListing listing, boolean ownListing) {

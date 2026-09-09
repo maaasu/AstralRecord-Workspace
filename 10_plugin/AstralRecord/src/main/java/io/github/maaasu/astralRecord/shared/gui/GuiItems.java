@@ -1,24 +1,38 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * GUI 用 ItemStack の共通生成処理を提供します。
  */
 public final class GuiItems {
+    private static final String FOREST_GREEN_ARROW_UP_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGNlMzZmY2IxZTVmNmIzNjUxN2ZiYmViOWNiZjRiMGMwNWMzMGQ4YmRiNTE1NDgyNGU2MGU2ZDU1MGY1MjhlOSJ9fX0=";
+    private static final String FOREST_GREEN_ARROW_DOWN_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzM1YzFlZjEyN2Y1YzUyY2IzODlhOGFjNmRmM2Y2ZmM2NmNkMzdmMjYwOTRiM2UxZTc2ZDAxNzcxMTViYjA4ZiJ9fX0=";
+    private static final String FOREST_GREEN_ARROW_RIGHT_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWM5YzY3YTlmMTY4NWNkMWRhNDNlODQxZmU3ZWJiMTdmNmFmNmVhMTJhN2UxZjI3MjJmNWU3ZjA4OThkYjlmMyJ9fX0=";
+    private static final String FOREST_GREEN_ARROW_LEFT_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWExZWYzOThhMTdmMWFmNzQ3NzAxNDUxN2Y3ZjE0MWQ4ODZkZjQxYTMyYzczOGNjOGE4M2ZiNTAyOTdiZDkyMSJ9fX0=";
+
     private GuiItems() {
     }
 
@@ -100,6 +114,70 @@ public final class GuiItems {
             Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
             List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
         );
+    }
+
+    /**
+     * 前ページへ移動する Forest Green Arrow Left のボタンを生成します。
+     *
+     * @param name 表示名
+     * @param lore 説明行
+     * @return 前ページボタン
+     */
+    public static @NotNull ItemStack previousPageButton(@NotNull Component name, @NotNull List<Component> lore) {
+        return texturedHead(name, lore, FOREST_GREEN_ARROW_LEFT_TEXTURE);
+    }
+
+    /**
+     * 次ページへ移動する Forest Green Arrow Right のボタンを生成します。
+     *
+     * @param name 表示名
+     * @param lore 説明行
+     * @return 次ページボタン
+     */
+    public static @NotNull ItemStack nextPageButton(@NotNull Component name, @NotNull List<Component> lore) {
+        return texturedHead(name, lore, FOREST_GREEN_ARROW_RIGHT_TEXTURE);
+    }
+
+    /**
+     * インベントリ行を上下へ移動する Forest Green Arrow のボタンを生成します。
+     *
+     * @param up 上方向なら {@code true}
+     * @param name 表示名
+     * @param lore 説明行
+     * @param availableMoves 現在位置から移動可能な行数
+     * @return スクロールボタン。スタック数は移動可能行数（0件時は1）
+     */
+    public static @NotNull ItemStack scrollButton(
+        boolean up,
+        @NotNull Component name,
+        @NotNull List<Component> lore,
+        int availableMoves
+    ) {
+        ItemStack itemStack = texturedHead(
+            name,
+            lore,
+            up ? FOREST_GREEN_ARROW_UP_TEXTURE : FOREST_GREEN_ARROW_DOWN_TEXTURE
+        );
+        itemStack.setAmount(Math.max(1, availableMoves));
+        return itemStack;
+    }
+
+    private static @NotNull ItemStack texturedHead(
+        @NotNull Component name,
+        @NotNull List<Component> lore,
+        @NotNull String texture
+    ) {
+        ItemStack itemStack = create(Material.PLAYER_HEAD, name, lore);
+        if (!(itemStack.getItemMeta() instanceof SkullMeta skullMeta)) {
+            return itemStack;
+        }
+        PlayerProfile profile = Bukkit.createProfile(
+            UUID.nameUUIDFromBytes(texture.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+        );
+        profile.setProperty(new ProfileProperty("textures", texture));
+        skullMeta.setPlayerProfile(profile);
+        itemStack.setItemMeta(skullMeta);
+        return itemStack;
     }
 
     /**

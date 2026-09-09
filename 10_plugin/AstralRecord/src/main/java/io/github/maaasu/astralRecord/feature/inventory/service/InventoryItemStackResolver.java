@@ -14,6 +14,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,6 +38,7 @@ final class InventoryItemStackResolver {
         "クリックで使用",
         NamedTextColor.LIGHT_PURPLE
     ).decoration(TextDecoration.ITALIC, false);
+    private static final NamespacedKey BAG_SLOT_NUMBER_KEY = new NamespacedKey("astralrecord", "bag_slot_number");
 
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
@@ -234,9 +237,6 @@ final class InventoryItemStackResolver {
         @NotNull ItemModel itemModel
     ) {
         Component actionLore = resolveBagActionLore(entry, itemModel);
-        if (actionLore == null) {
-            return itemStack;
-        }
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return itemStack;
@@ -244,8 +244,16 @@ final class InventoryItemStackResolver {
         List<Component> lore = meta.lore() == null
             ? new ArrayList<>()
             : new ArrayList<>(meta.lore());
-        lore.add(Component.empty());
-        lore.add(actionLore);
+        if (actionLore != null) {
+            lore.add(Component.empty());
+            lore.add(actionLore);
+        }
+        Integer slotIndex = entry.getSlotIndex();
+        if (slotIndex != null && slotIndex > 0) {
+            lore.add(Component.text("スロット番号: " + slotIndex, NamedTextColor.GRAY)
+                .decoration(TextDecoration.ITALIC, false));
+            meta.getPersistentDataContainer().set(BAG_SLOT_NUMBER_KEY, PersistentDataType.INTEGER, slotIndex);
+        }
         meta.lore(lore);
         itemStack.setItemMeta(meta);
         return itemStack;

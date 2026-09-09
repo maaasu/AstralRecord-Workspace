@@ -90,8 +90,7 @@ public final class SellScreenView extends BaseMenuScreenView {
         }
 
         if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                 Component.text("前のページ", NamedTextColor.WHITE),
                 List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
@@ -114,8 +113,7 @@ public final class SellScreenView extends BaseMenuScreenView {
             List.of(Component.text("売却前の確認画面を開きます", NamedTextColor.GRAY))
         ));
         if (hasNextPage(pageIndex, itemCount)) {
-            inventory.setItem(NEXT_SLOT, createItem(
-                Material.MAP,
+            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 Component.text("次のページ", NamedTextColor.WHITE),
                 List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
