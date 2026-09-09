@@ -34,6 +34,7 @@ import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -75,25 +76,6 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
-     * 検証契約: 発射中の糸の中点は始点と終点を結ぶ直線上ではなく、下方へしなる二次ベジェ曲線上に配置される。
-     */
-    @Test
-    void ropePointHasSlackBelowTheStraightMidpoint() {
-        Location point = DebugFishingRodUseService.ropePoint(
-            new Location(null, 0.0D, 0.0D, 0.0D),
-            new Location(null, 5.0D, -2.0D, 0.0D),
-            new Location(null, 10.0D, 0.0D, 0.0D),
-            0.5D
-        );
-
-        assertEquals(5.0D, point.getX(), 0.0001D);
-        assertEquals(-1.0D, point.getY(), 0.0001D);
-        assertEquals(0.0D, point.getZ(), 0.0001D);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
      * 検証契約: キャスト距離を100000 block相当へ設定しても糸表示のサイズは固定の小さい値を保持し、区間長によって引き延ばされない。
      */
     @Test
@@ -107,6 +89,245 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         assertEquals(DebugFishingRodUseService.LINE_DISPLAY_LENGTH, transformation.getScale().x, 0.0001F);
         assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().y, 0.0001F);
         assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().z, 0.0001F);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 糸ノードは針より弱い重力を受け、停止中でも下方へ移動する。
+     */
+    @Test
+    void ropeNodesFallWithWeakerGravityThanHook() {
+        World world = mock(World.class);
+        stubNoRayTrace(world);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(
+            rodTip,
+            new Location(world, 4.5D, 64.5D, 0.5D)
+        );
+        active.phase = DebugFishingRodUseService.CastPhase.HOLDING;
+        active.currentHook = rodTip.clone();
+
+        DebugFishingRodUseService.advanceRope(active);
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertTrue(active.ropeNodes.get(1).getY() < rodTip.getY());
+        assertTrue(Math.abs(active.ropeVelocities.get(1).getY())
+            < DebugFishingRodUseService.HOOK_GRAVITY_PER_TICK);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 針を含む隣接ノードは最大リンク長を守り、糸の張力が針の速度へ反作用として返る。
+     */
+    @Test
+    void ropeConstraintsConnectAdjacentNodesAndHook() {
+        World world = mock(World.class);
+        stubNoRayTrace(world);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        Location hookTarget = new Location(world, 4.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(rodTip, hookTarget);
+        active.currentHook = hookTarget.clone();
+        active.phase = DebugFishingRodUseService.CastPhase.HOLDING;
+
+        DebugFishingRodUseService.advanceRope(active);
+
+        for (int index = 0; index < DebugFishingRodUseService.ROPE_SEGMENT_COUNT; index++) {
+            double distance = active.ropeNodes.get(index).distance(active.ropeNodes.get(index + 1));
+            assertTrue(
+                distance <= active.ropeSegmentLength + 0.001D,
+                "index=" + index + ", distance=" + distance
+                    + ", limit=" + active.ropeSegmentLength
+            );
+        }
+        assertTrue(active.velocity.getX() < DebugFishingRodUseService.HOOK_SPEED_PER_TICK);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 糸表示はベジェ曲線を再計算せず、物理ノードの位置を毎tickの描画位置へ使用する。
+     */
+    @Test
+    void renderRopeUsesPhysicalNodePositions() {
+        FishingFixture fixture = fishingFixture();
+        World world = mock(World.class);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        Location hook = new Location(world, 4.5D, 64.5D, 0.5D);
+        List<BlockDisplay> ropeDisplays = new ArrayList<>(DebugFishingRodUseService.ROPE_SEGMENT_COUNT);
+        for (int index = 0; index < DebugFishingRodUseService.ROPE_SEGMENT_COUNT; index++) {
+            ropeDisplays.add(mock(BlockDisplay.class));
+        }
+        DebugFishingRodUseService.ActiveCast active = new DebugFishingRodUseService.ActiveCast(
+            "test-equipment-instance",
+            rodTip,
+            rodTip,
+            hook,
+            4.0D,
+            false,
+            mock(BlockDisplay.class),
+            ropeDisplays
+        );
+        Location expectedPosition = new Location(world, 1.25D, 63.75D, 0.5D);
+        active.ropeNodes.set(1, expectedPosition);
+
+        fixture.service().renderRope(active);
+
+        verify(ropeDisplays.get(1)).teleport(eq(expectedPosition));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 糸ノードも針と同じblock ray traceで固体blockの手前に停止する。
+     */
+    @Test
+    void ropeNodeStopsAtSolidBlock() {
+        World world = mock(World.class);
+        Block solidBlock = mock(Block.class);
+        when(solidBlock.getType()).thenReturn(Material.STONE);
+        when(solidBlock.isPassable()).thenReturn(false);
+        RayTraceResult hit = mock(RayTraceResult.class);
+        when(hit.getHitBlock()).thenReturn(solidBlock);
+        when(hit.getHitPosition()).thenReturn(new Vector(1.0D, 64.5D, 0.5D));
+        when(world.rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        )).thenReturn(hit);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(
+            rodTip,
+            new Location(world, 20.5D, 64.5D, 0.5D)
+        );
+        active.phase = DebugFishingRodUseService.CastPhase.HOLDING;
+        active.ropeVelocities.get(1).setX(1.0D);
+
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertEquals(1.0D, active.ropeNodes.get(1).getX(), 0.0001D);
+        assertEquals(0.0D, active.ropeVelocities.get(1).lengthSquared(), 0.0001D);
+        assertFalse(active.ropeWaterImpacts[1]);
+        assertTrue(active.ropeStopped[1]);
+
+        Location stoppedPosition = active.ropeNodes.get(1).clone();
+        active.ropeVelocities.get(1).setY(-1.0D);
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertEquals(stoppedPosition, active.ropeNodes.get(1));
+        assertEquals(0.0D, active.ropeVelocities.get(1).lengthSquared(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 糸ノードも水blockを検知し、針より遅い速度で水中へ沈む。
+     */
+    @Test
+    void ropeNodeSinksAfterWaterImpact() {
+        World world = mock(World.class);
+        Block waterBlock = mock(Block.class);
+        Block solidBlock = mock(Block.class);
+        when(waterBlock.getType()).thenReturn(Material.WATER);
+        when(solidBlock.getType()).thenReturn(Material.STONE);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(solidBlock);
+        when(world.getBlockAt(any(Location.class))).thenReturn(solidBlock);
+        RayTraceResult hit = mock(RayTraceResult.class);
+        when(hit.getHitBlock()).thenReturn(waterBlock);
+        when(hit.getHitPosition()).thenReturn(new Vector(1.0D, 64.5D, 0.5D));
+        when(world.rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        )).thenReturn(hit);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(
+            rodTip,
+            new Location(world, 20.5D, 64.5D, 0.5D)
+        );
+        active.phase = DebugFishingRodUseService.CastPhase.HOLDING;
+        active.ropeVelocities.get(1).setX(1.0D);
+
+        DebugFishingRodUseService.advanceRope(active);
+        double impactY = active.ropeNodes.get(1).getY();
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertTrue(active.ropeWaterImpacts[1]);
+        assertEquals(
+            impactY - DebugFishingRodUseService.ROPE_WATER_SINK_SPEED_PER_TICK,
+            active.ropeNodes.get(1).getY(),
+            0.0001D
+        );
+        DebugFishingRodUseService.advanceRope(active);
+        Location stoppedPosition = active.ropeNodes.get(1).clone();
+        assertFalse(active.ropeWaterImpacts[1]);
+        assertTrue(active.ropeStopped[1]);
+
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertEquals(stoppedPosition, active.ropeNodes.get(1));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 水中の糸ノードが隣接拘束で移動しても、同じblock ray traceで固体blockに停止する。
+     */
+    @Test
+    void waterNodeConstraintMovementUsesCollisionRayTrace() {
+        World world = mock(World.class);
+        Block waterBlock = mock(Block.class);
+        Block solidBlock = mock(Block.class);
+        when(waterBlock.getType()).thenReturn(Material.WATER);
+        when(solidBlock.getType()).thenReturn(Material.STONE);
+        when(solidBlock.isPassable()).thenReturn(false);
+
+        RayTraceResult waterHit = mock(RayTraceResult.class);
+        when(waterHit.getHitBlock()).thenReturn(waterBlock);
+        when(waterHit.getHitPosition()).thenReturn(new Vector(1.0D, 64.5D, 0.5D));
+        RayTraceResult solidHit = mock(RayTraceResult.class);
+        when(solidHit.getHitBlock()).thenReturn(solidBlock);
+        when(solidHit.getHitPosition()).thenReturn(new Vector(1.25D, 64.5D, 0.5D));
+        when(world.rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        )).thenReturn(waterHit, solidHit);
+
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(
+            rodTip,
+            new Location(world, 20.5D, 64.5D, 0.5D)
+        );
+        active.currentHook = new Location(world, 20.5D, 64.5D, 0.5D);
+        for (int index = 0; index < DebugFishingRodUseService.ROPE_NODE_COUNT; index++) {
+            active.ropeNodes.set(
+                index,
+                new Location(world, 0.5D + index * active.ropeSegmentLength, 64.5D, 0.5D)
+            );
+        }
+        active.phase = DebugFishingRodUseService.CastPhase.HOLDING;
+        active.ropeVelocities.get(1).setX(1.0D);
+
+        DebugFishingRodUseService.advanceRope(active);
+
+        assertEquals(1.25D, active.ropeNodes.get(1).getX(), 0.0001D);
+        assertFalse(active.ropeWaterImpacts[1]);
+        assertTrue(active.ropeStopped[1]);
+        verify(world, times(2)).rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        );
     }
 
     /**
@@ -318,6 +539,16 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
             eq(FluidCollisionMode.ALWAYS),
             eq(false)
         )).thenReturn(hit);
+    }
+
+    private static void stubNoRayTrace(World world) {
+        when(world.rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        )).thenReturn(null);
     }
 
     private static FishingFixture fishingFixture() {
