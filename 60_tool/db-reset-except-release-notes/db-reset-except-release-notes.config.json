@@ -5,5 +5,12 @@
     "masterData": "",
     "history": ""
   },
+  "applicationOffline": {
+    "roots": [
+      "\\\\192.168.0.88\\server\\AstralRecordApi",
+      "\\\\192.168.0.88\\server\\AstralRecordWeb"
+    ],
+    "waitSeconds": 5
+  },
   "commandTimeoutSeconds": 600
 }

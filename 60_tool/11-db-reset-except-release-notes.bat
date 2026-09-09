@@ -11,7 +11,7 @@ for %%A in (%*) do if /I "%%~A"=="--yes" set "SKIP_PAUSE=1"
 echo.
 if "%EXIT_CODE%"=="0" (
     echo ========================================
-    echo DB reset completed successfully.
+    echo DB schema rebuild completed successfully.
     echo Release note publication and notification data were preserved.
     echo ========================================
 ) else (

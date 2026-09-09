@@ -17,7 +17,16 @@
     <None Update="db-reset-except-release-notes.config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="reset-db-except-release-notes.sql">
+    <None Include="..\..\00_docs\40_Database設計書\table-definitions\AstralRecord\init.sql"
+          Link="schemas\AstralRecord\init.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\00_docs\40_Database設計書\table-definitions\MasterDataDB\init.sql"
+          Link="schemas\MasterDataDB\init.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\00_docs\40_Database設計書\table-definitions\HistoryDB\init.sql"
+          Link="schemas\HistoryDB\init.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

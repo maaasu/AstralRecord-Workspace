@@ -1360,7 +1360,7 @@ CREATE TABLE [dbo].[market_listing] (
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [FK_market_listing_buyer_account] FOREIGN KEY ([buyer_account_id])
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT [FK_market_listing_source_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
+    CONSTRAINT [FK_market_listing_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
         REFERENCES [dbo].[inventory_entry] ([inventory_entry_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [CK_market_listing_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_listing_remaining_quantity] CHECK ([remaining_quantity] >= 0 AND [remaining_quantity] <= [quantity]),

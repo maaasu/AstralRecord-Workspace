@@ -72,7 +72,7 @@
 | `PK_market_listing` | `listing_id` | 主キー |
 | `FK_market_listing_seller_account` | `seller_account_id` → `dbo.account(uuid)` | 出品者 |
 | `FK_market_listing_buyer_account` | `buyer_account_id` → `dbo.account(uuid)` | 購入者 |
-| `FK_market_listing_source_inventory_entry` | `source_inventory_entry_id` → `dbo.inventory_entry(inventory_entry_id)` | 互換用先頭 source entry |
+| `FK_market_listing_inventory_entry` | `source_inventory_entry_id` → `dbo.inventory_entry(inventory_entry_id)` | 互換用先頭 source entry |
 | `CK_market_listing_quantity` | `[quantity] >= 1` | 数量は 1 以上 |
 | `CK_market_listing_remaining_quantity` | `[remaining_quantity] >= 0 AND [remaining_quantity] <= [quantity]` | 購入可能残数は総数量の範囲内 |
 | `CK_market_listing_price` | `[unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [price_floor] >= 0` | 価格制約 |
@@ -149,7 +149,7 @@ CREATE TABLE [dbo].[market_listing] (
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [FK_market_listing_buyer_account] FOREIGN KEY ([buyer_account_id])
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT [FK_market_listing_source_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
+    CONSTRAINT [FK_market_listing_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
         REFERENCES [dbo].[inventory_entry] ([inventory_entry_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [CK_market_listing_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_listing_remaining_quantity] CHECK ([remaining_quantity] >= 0 AND [remaining_quantity] <= [quantity]),

@@ -16,7 +16,7 @@
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
 | 10 | `10-release-management-deploy.bat` | Release Note 用の API / Web だけをビルド・デプロイ |
-| 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して3 DBのデータをリセット |
+| 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して最新 `init.sql` から3 DBを再作成 |
 | 12 | `12-build-network-plugins.bat` | Lobby / Velocity Proxyプラグインをビルドし、ローカル出力フォルダへJARを生成 |
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
 
@@ -159,7 +159,7 @@ DB 再構築で確認を省略する場合は次のように実行します。
 E:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
 ```
 
-リリースノートの公開・送信情報を保持したまま、その他の `AstralRecord`、`MasterDataDB`、`HistoryDB` のデータをリセットする場合は次を実行します。既定では `RESET` の確認入力が必要です。
+リリースノートの公開・送信情報を保持したまま、`AstralRecord`、`MasterDataDB`、`HistoryDB` を最新 `init.sql` から再作成する場合は次を実行します。既定では `RESET` の確認入力が必要です。
 
 ```powershell
 E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
@@ -171,4 +171,4 @@ E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
 E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
 ```
 
-この操作は対象DBを一時的に `SINGLE_USER WITH ROLLBACK IMMEDIATE` にします。実行前にAPI、Web、PluginなどのDB接続元を停止し、完了後は `03-master-data-reload.bat` で `MasterDataDB` を再投入してください。`--yes` を付けた場合はBAT終了時の `pause` も省略します。詳細は `db-reset-except-release-notes/README.md` を参照してください。
+この操作はSQL Serverのセッションロックで同時実行を防ぎ、API/Webへ実行ID付きの `app_offline.htm` を配置した上で、Release Note 2表を同一トランザクションで一時DBへ退避します。対象DBは `SINGLE_USER WITH ROLLBACK IMMEDIATE` で削除して再作成します。完了後はAPI起動時のSeederまたは `03-master-data-reload.bat` で `MasterDataDB` を再投入してください。復元まで成功した場合だけ一時DBと同じ実行IDの保守マーカーを削除し、途中失敗時は `AstralRecord` を `OFFLINE` にして一時DBと `--restore-backup` 復旧コマンドを残します。`--yes` を付けた場合はBAT終了時の `pause` も省略します。詳細は `db-reset-except-release-notes/README.md` を参照してください。
