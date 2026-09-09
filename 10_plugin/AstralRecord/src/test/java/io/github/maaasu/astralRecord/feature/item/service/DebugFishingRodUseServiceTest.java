@@ -115,7 +115,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         org.bukkit.Particle.DustOptions dust = (org.bukkit.Particle.DustOptions)
             SharedParticleDefinitions.FISHING_ROD_LINE.data();
         assertEquals(org.bukkit.Color.BLACK, dust.getColor());
-        assertEquals(0.35F, dust.getSize());
+        assertEquals(0.20F, dust.getSize());
     }
 
     /**
