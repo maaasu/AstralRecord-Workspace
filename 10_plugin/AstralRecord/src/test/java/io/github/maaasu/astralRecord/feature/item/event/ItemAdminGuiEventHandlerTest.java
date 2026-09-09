@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
@@ -16,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -23,6 +25,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ItemAdminGuiEventHandlerTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
+     * 章・見出し: # 04_3-コマンド > ## 8. 管理者item GUI操作
+     * 検証契約: 共通GUIクリック抑止で先にキャンセルされたイベントでも、管理GUIの操作処理を実行する。
+     */
+    @Test
+    void inventoryClickHandlerAcceptsEventsCancelledBySharedGuiGuard() throws NoSuchMethodException {
+        EventHandler annotation = ItemAdminGuiEventHandler.class
+            .getMethod("onInventoryClick", InventoryClickEvent.class)
+            .getAnnotation(EventHandler.class);
+
+        assertFalse(annotation.ignoreCancelled());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md

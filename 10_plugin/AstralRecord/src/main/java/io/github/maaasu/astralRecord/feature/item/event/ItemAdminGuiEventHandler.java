@@ -81,7 +81,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         open(player, 0);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();
