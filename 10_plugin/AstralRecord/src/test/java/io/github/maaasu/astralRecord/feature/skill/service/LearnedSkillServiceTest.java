@@ -101,6 +101,30 @@ class LearnedSkillServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: entryごとの必要数量を指定する習得は、その数量 map を変更せず予約・消費へ渡して個体を追加する。
+     */
+    @Test
+    void learnWithExplicitPaymentsPreservesEntryQuantities() {
+        UUID accountId = UUID.randomUUID();
+        UUID firstEntryId = UUID.randomUUID();
+        UUID secondEntryId = UUID.randomUUID();
+        InventoryService inventory = committingInventory(accountId);
+        LearnedSkillService service = service(accountId, inventory, List.of());
+        Map<UUID, Long> payments = Map.of(firstEntryId, 1L, secondEntryId, 2L);
+
+        assertTrue(service.learnFromManagerWithPaymentsAsync(
+            accountId, "adventurer_smash", accountId, payments,
+            ignored -> { }, failure -> { throw new AssertionError(failure); }
+        ));
+
+        verify(inventory).reserveLocalMutationPayment(eq(accountId), any(), eq(payments));
+        verify(inventory).commitLocalOrbOperationPayment(eq(accountId), any(), any(Runnable.class));
+        assertEquals(1, service.getLearnedSkills(accountId).size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
      * 検証契約: 習得素材を予約できない場合は個体を追加せず、仮予約を解放して失敗を通知する。
      */
     @Test

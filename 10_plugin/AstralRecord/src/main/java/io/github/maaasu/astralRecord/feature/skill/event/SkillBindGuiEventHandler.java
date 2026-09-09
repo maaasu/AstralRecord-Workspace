@@ -945,8 +945,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (definition == null) { GuiSound.DENY.play(player); return; }
         UUID playerId = player.getUniqueId();
         session.setProcessingSkillId(skillId);
-        boolean scheduled = learnedSkillService.learnFromManagerAsync(astPlayer.getAccount().getUuid(), skillId,
-            astPlayer.getAccount().getUuid(), requiredItemEntryIds(astPlayer, definition.getLearnRequiredItems()), learned -> {
+        Map<UUID, Long> requiredPayments = requiredItemPayments(astPlayer, definition.getLearnRequiredItems());
+        if (requiredPayments == null) {
+            session.clearProcessingSkill();
+            GuiSound.DENY.play(player);
+            return;
+        }
+        boolean scheduled = learnedSkillService.learnFromManagerWithPaymentsAsync(astPlayer.getAccount().getUuid(), skillId,
+            astPlayer.getAccount().getUuid(), requiredPayments, learned -> {
                 session.clearProcessingSkill();
                 AstPlayer current = currentPlayer(astPlayer);
                 if (current == null) return;
@@ -1071,7 +1077,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return current;
     }
 
-    /** レベルアップに必要な数量を、BAG/HOTBARのentryごとの支払額へ割り当てます。 */
+    /** 習得・レベルアップに必要な数量を、BAG/HOTBARのentryごとの支払額へ割り当てます。 */
     private @Nullable Map<UUID, Long> requiredItemPayments(
         @NotNull AstPlayer player,
         @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> requiredItems
@@ -1123,20 +1129,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         } catch (ArithmeticException overflow) {
             return null;
         }
-    }
-
-    /** API 正本が消費し得る、要求素材と一致する全ローカルentryを返します。 */
-    private @NotNull List<UUID> requiredItemEntryIds(
-        @NotNull AstPlayer player,
-        @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> requiredItems
-    ) {
-        return requiredItems.stream()
-            .map(cost -> plugin.getItemService().findLoadedById(cost.getItemId()))
-            .filter(Objects::nonNull)
-            .flatMap(item -> inventoryService.getOwnedGameStackEntries(player, item.getCategory(), item.getId()).stream())
-            .map(InventoryEntryModel::getInventoryEntryId)
-            .distinct()
-            .toList();
     }
 
     /**

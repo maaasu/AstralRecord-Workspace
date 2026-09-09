@@ -243,9 +243,61 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
+        return learnFromManagerWithPaymentsAsync(
+            accountId,
+            skillId,
+            updatedBy,
+            unitPayments(requiredItemEntryIds),
+            onSuccess,
+            onFailure,
+            onPending
+        );
+    }
+
+    /** 素材entryごとの数量を指定する、ローカルmutation対応の初回習得入口です。 */
+    public boolean learnFromManagerWithPaymentsAsync(
+        @NotNull UUID accountId,
+        @NotNull String skillId,
+        @NotNull UUID updatedBy,
+        @NotNull Map<UUID, Long> requiredItemPayments,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        return learnFromManagerWithPaymentsAsync(
+            accountId,
+            skillId,
+            updatedBy,
+            requiredItemPayments,
+            onSuccess,
+            onFailure,
+            () -> { }
+        );
+    }
+
+    /**
+     * スキル習得を受け付け、プレイヤー向け待機時間を超えた時に保留通知を呼び出します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param skillId 習得するスキル ID
+     * @param updatedBy 更新者 ID
+     * @param requiredItemPayments 素材 entry ごとの消費数量
+     * @param onSuccess API 正本反映成功時の処理
+     * @param onFailure API または正本同期失敗時の処理
+     * @param onPending 待機時間を超え、処理中ロックを維持したままUIを閉じる処理
+     * @return 処理を受け付けた場合は {@code true}
+     */
+    public boolean learnFromManagerWithPaymentsAsync(
+        @NotNull UUID accountId,
+        @NotNull String skillId,
+        @NotNull UUID updatedBy,
+        @NotNull Map<UUID, Long> requiredItemPayments,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure,
+        @NotNull Runnable onPending
+    ) {
         try {
             CompletableFuture<LearnedSkillInstance> future = commitCriticalPaymentMutation(
-                accountId, unitPayments(requiredItemEntryIds), () -> {
+                accountId, requiredItemPayments, () -> {
                 LearnedSkillInstance created = new LearnedSkillInstance(
                     UUID.randomUUID(), accountId, skillId, 1, List.of(), 1,
                     LocalDateTime.now(), LocalDateTime.now());
