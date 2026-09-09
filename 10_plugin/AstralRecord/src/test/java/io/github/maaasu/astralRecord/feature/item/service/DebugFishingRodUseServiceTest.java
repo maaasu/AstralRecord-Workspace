@@ -90,6 +90,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
      */
     @Test
     void renderRopeUsesPhysicalNodePositionsWithBoundedBlackDust() {
+        assertEquals(4, DebugFishingRodUseService.LINE_PARTICLE_INTERVAL_TICKS);
         FishingFixture fixture = fishingFixture();
         World world = fixture.bukkitPlayer().getWorld();
         when(world.getPlayers()).thenReturn(List.of(fixture.bukkitPlayer()));
