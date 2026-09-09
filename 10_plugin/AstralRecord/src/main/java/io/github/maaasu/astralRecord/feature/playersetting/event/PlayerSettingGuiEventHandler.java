@@ -239,6 +239,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (actionRingHoldSelectSynchronized) {
             player.updateInventory();
         }
+        boolean skillTreeCompactDisplaySynchronized = results.stream().anyMatch(persisted ->
+            persisted.key() == PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY
+                && !persisted.result().staleSession()
+        );
+        if (skillTreeCompactDisplaySynchronized) {
+            plugin.getSkillTreeService().markViewerContextDirty(player);
+        }
     }
 
     private @NotNull List<PersistResult> persistChanges(

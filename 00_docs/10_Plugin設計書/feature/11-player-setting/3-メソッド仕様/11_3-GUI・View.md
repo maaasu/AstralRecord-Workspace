@@ -5,7 +5,7 @@
 クラス名: `PlayerSettingGui`
 物理名: `open`, `refresh`
 
-54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24` と 4 行目の `29〜32` に配置する。
+54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24` と 4 行目の `29〜33` に配置する。
 
 | slot | key / 操作 |
 |---:|---|
@@ -18,6 +18,7 @@
 | 30 | `BUFF_SIDEBAR_DISPLAY` |
 | 31 | `ARMOR_DISPLAY` |
 | 32 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
+| 33 | `SKILL_TREE_COMPACT_DISPLAY`（`BOOK` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 

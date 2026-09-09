@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -271,6 +272,7 @@ public class SkillTreeService {
     private final WorldService worldService;
     private InventoryService inventoryService;
     private PlayerHudService playerHudService;
+    private @Nullable PlayerSettingService playerSettingService;
     private StatusService statusService;
     private SkillService skillService;
     private PassiveSkillService passiveSkillService;
@@ -368,6 +370,15 @@ public class SkillTreeService {
      */
     public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
         this.playerHudService = playerHudService;
+    }
+
+    /**
+     * スキルツリーノードのプレイヤー別表示設定を参照するサービスを設定します。
+     *
+     * @param playerSettingService ユーザー設定の cache 参照サービス
+     */
+    public void setPlayerSettingService(@NotNull PlayerSettingService playerSettingService) {
+        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -1297,6 +1308,64 @@ public class SkillTreeService {
         }
     }
 
+    /**
+     * 指定プレイヤーのスキル使用許可ノード強調表示を設定します。
+     * 設定はスキルツリー表示用のプロセス内状態だけへ保持します。
+     *
+     * @param player 表示設定を変更するプレイヤー
+     * @param enabled 有効にする場合は {@code true}
+     */
+    public void setSkillNodeHighlightEnabled(@NotNull Player player, boolean enabled) {
+        if (visualizer != null) {
+            visualizer.setSkillNodeHighlightEnabled(player.getUniqueId(), enabled);
+        }
+    }
+
+    /**
+     * 指定プレイヤーのスキル使用許可ノード強調表示を反転します。
+     *
+     * @param player 表示設定を変更するプレイヤー
+     * @return 反転後に有効なら {@code true}
+     */
+    public boolean toggleSkillNodeHighlight(@NotNull Player player) {
+        boolean enabled = !isSkillNodeHighlightEnabled(player);
+        setSkillNodeHighlightEnabled(player, enabled);
+        return enabled;
+    }
+
+    /**
+     * 指定プレイヤーのステータス絞り込み対象を設定します。
+     * 空集合は絞り込みを解除します。設定はプロセス内状態だけへ保持します。
+     *
+     * @param player 表示設定を変更するプレイヤー
+     * @param statusFilter 絞り込むステータス種別
+     */
+    public void setStatusFilter(@NotNull Player player, @NotNull Set<StatusType> statusFilter) {
+        if (visualizer != null) {
+            visualizer.setStatusFilter(player.getUniqueId(), statusFilter);
+        }
+    }
+
+    /**
+     * 指定プレイヤーに設定されたステータス絞り込み対象を返します。
+     *
+     * @param player 確認対象プレイヤー
+     * @return 不変なステータス種別集合。絞り込みなしの場合は空集合
+     */
+    public @NotNull Set<StatusType> statusFilter(@NotNull Player player) {
+        return visualizer == null ? Set.of() : visualizer.statusFilter(player.getUniqueId());
+    }
+
+    /**
+     * 指定プレイヤーのスキル使用許可ノード強調表示が有効かを返します。
+     *
+     * @param player 確認対象プレイヤー
+     * @return 有効なら {@code true}
+     */
+    public boolean isSkillNodeHighlightEnabled(@NotNull Player player) {
+        return visualizer == null || visualizer.isSkillNodeHighlightEnabled(player.getUniqueId());
+    }
+
     private void markViewerContextDirty(@NotNull UUID accountId) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -1713,14 +1782,16 @@ public class SkillTreeService {
         if (nodeLocation == null || nodeLocation.getWorld() == null || player.getWorld() != nodeLocation.getWorld()) {
             return NodeLabelDetail.HIDDEN;
         }
+        boolean compactDisplay = playerSettingService != null
+                && playerSettingService.isSkillTreeCompactDisplayEnabled(player.getUniqueId());
         double distanceSquared = player.getLocation().distanceSquared(nodeLocation);
         double detailedThreshold = Math.min(DETAILED_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= detailedThreshold * detailedThreshold) {
-            return NodeLabelDetail.DETAILED;
+            return compactDisplay ? NodeLabelDetail.SIMPLE : NodeLabelDetail.DETAILED;
         }
         double compactThreshold = Math.min(COMPACT_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= compactThreshold * compactThreshold) {
-            return NodeLabelDetail.COMPACT;
+            return compactDisplay ? NodeLabelDetail.SIMPLE : NodeLabelDetail.COMPACT;
         }
         return NodeLabelDetail.HIDDEN;
     }
@@ -2145,7 +2216,8 @@ public class SkillTreeService {
     ) {
         return new NodeLabelSet(
                 createNodeFieldLabel(node, presentationState, NodeLabelDetail.DETAILED),
-                createNodeFieldLabel(node, presentationState, NodeLabelDetail.COMPACT)
+                createNodeFieldLabel(node, presentationState, NodeLabelDetail.COMPACT),
+                createNodeFieldLabel(node, presentationState, NodeLabelDetail.SIMPLE)
         );
     }
 
@@ -2181,7 +2253,16 @@ public class SkillTreeService {
     ) {
         List<String> lines = new ArrayList<>();
         boolean emphasized = presentationState == NodePresentationState.AVAILABLE || presentationState == NodePresentationState.UNLOCKED;
-        lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
+        boolean simple = labelDetail == NodeLabelDetail.SIMPLE;
+        if (!simple) {
+            lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
+        }
+        if (simple) {
+            lines.add("&8Cost: &f" + nodePointDisplayName(node) + " &e" + node.pointCost());
+            appendNodeFieldSimpleStatusLines(lines, node, emphasized);
+            appendNodeFieldSimpleSkillLines(lines, node, emphasized);
+            return component(String.join("\n", lines));
+        }
         if (labelDetail == NodeLabelDetail.DETAILED) {
             if (presentationState == NodePresentationState.INACTIVE_CONDITION) {
                 lines.add("&c効果停止中: 解放条件未達");
@@ -2204,6 +2285,34 @@ public class SkillTreeService {
             lines.add((emphasized ? "&7" : "&8") + stripLegacy(node.lore().getFirst()));
         }
         return component(String.join("\n", lines));
+    }
+
+    private void appendNodeFieldSimpleStatusLines(
+            @NotNull List<String> lines,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean emphasized
+    ) {
+        for (SkillTreeStatusEffect status : node.statusEffects()) {
+            lines.add((emphasized ? "&7- " + status.statusType().legacyColor() : "&8- &7")
+                    + status.statusType().getDisplayName()
+                    + " "
+                    + (emphasized ? "&a" : "&7")
+                    + formatNodeStatusModifier(status));
+        }
+    }
+
+    private void appendNodeFieldSimpleSkillLines(
+            @NotNull List<String> lines,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean emphasized
+    ) {
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            var definition = skillService == null ? null : skillService.registry().getDefinition(effect.skillId());
+            String skillName = definition == null
+                    ? "未読込スキル"
+                    : SkillPresentationUtil.plainName(definition, "未定義スキル");
+            lines.add((emphasized ? "&7- &f" : "&8- &7") + skillName);
+        }
     }
 
     private void appendNodeFieldConditionLines(
@@ -2374,16 +2483,18 @@ public class SkillTreeService {
     public enum NodeLabelDetail {
         HIDDEN,
         COMPACT,
+        SIMPLE,
         DETAILED
     }
 
-    private record NodeLabelSet(@NotNull Component detailed, @NotNull Component compact) {
-        private static final NodeLabelSet EMPTY = new NodeLabelSet(Component.empty(), Component.empty());
+    private record NodeLabelSet(@NotNull Component detailed, @NotNull Component compact, @NotNull Component simple) {
+        private static final NodeLabelSet EMPTY = new NodeLabelSet(Component.empty(), Component.empty(), Component.empty());
 
         private @NotNull Component component(@NotNull NodeLabelDetail detail) {
             return switch (detail) {
                 case HIDDEN -> Component.empty();
                 case COMPACT -> compact;
+                case SIMPLE -> simple;
                 case DETAILED -> detailed;
             };
         }

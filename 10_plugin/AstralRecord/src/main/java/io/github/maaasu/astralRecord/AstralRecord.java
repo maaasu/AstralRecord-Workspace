@@ -1055,6 +1055,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerSettingService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
         inventoryPersistence.registerStateParticipant(playerSettingService::snapshotPlayerState);
+        skillTreeService.setPlayerSettingService(playerSettingService);
         // class
         playerClassService = new PlayerClassService(accountService);
         playerClassService.setInventoryService(inventoryService);

@@ -208,6 +208,47 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: 簡易ラベルはノード名・条件・区切りを出さず、Costと直接ステータス補正だけを表示する。
+     */
+    @Test
+    void simpleNodeFieldLabelOmitsNodeNameConditionsAndSectionHeaders() {
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Detailed Node Name",
+                Material.NETHER_STAR,
+                List.of("Detailed lore"),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                2,
+                new SkillTreeUnlockCondition(null, 7),
+                List.of(new SkillTreeStatusEffect(StatusType.ATTACK, StatusModifierType.FLAT, 5.0D))
+        );
+        SkillTreeService service = newService(node);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        String label = PlainTextComponentSerializer.plainText().serialize(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.SIMPLE
+                )
+        );
+
+        assertTrue(label.contains("Cost: PP 2"));
+        assertTrue(label.contains(StatusType.ATTACK.getDisplayName()));
+        assertFalse(label.contains("Detailed Node Name"));
+        assertFalse(label.contains("必要レベル"));
+        assertFalse(label.contains("ステータス"));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
      * 検証契約: classId付きCPノードはクラス名付きCostを表示し、コスト値だけを黄色で表示する。

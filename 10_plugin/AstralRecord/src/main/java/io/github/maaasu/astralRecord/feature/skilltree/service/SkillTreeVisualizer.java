@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -43,6 +44,7 @@ final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
+    private static final double NODE_BEAM_Y_OFFSET = 1.95D;
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double BEDROCK_EDGE_PARTICLE_SPACING = 1.5D;
@@ -51,6 +53,9 @@ final class SkillTreeVisualizer {
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final double NODE_TEXT_Y_OFFSET = 1.65D;
     private static final float NODE_ITEM_SCALE = 0.72F;
+    private static final float NODE_BEAM_WIDTH = 0.36F;
+    private static final float NODE_BEAM_DEPTH = 0.08F;
+    private static final float NODE_BEAM_HEIGHT = 12.0F;
     private static final float NODE_TEXT_SCALE = 0.85F;
     private static final float NODE_TEXT_COMPACT_SCALE = 0.72F;
     private static final float ADMIN_ITEM_SCALE = 0.72F;
@@ -70,6 +75,7 @@ final class SkillTreeVisualizer {
     private final Set<String> loggedInvalidEdges = new HashSet<>();
     private final Set<UUID> dirtyViewers = new HashSet<>();
     private final Map<UUID, Set<String>> dirtyNodeStateNodeIds = new HashMap<>();
+    private final Map<UUID, ViewerEmphasisState> viewerEmphasisStates = new HashMap<>();
     private boolean structureDirty = true;
     private BukkitTask task;
 
@@ -106,6 +112,7 @@ final class SkillTreeVisualizer {
         nodeVisuals.clear();
         adminPositionVisuals.clear();
         edgeVisuals.clear();
+        viewerEmphasisStates.clear();
     }
 
     void markStructureDirty() {
@@ -120,6 +127,40 @@ final class SkillTreeVisualizer {
     void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> nodeIds) {
         dirtyViewers.add(viewerId);
         dirtyNodeStateNodeIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(nodeIds);
+    }
+
+    boolean isSkillNodeHighlightEnabled(@NotNull UUID viewerId) {
+        return viewerEmphasisState(viewerId).skillNodeHighlightEnabled();
+    }
+
+    void setSkillNodeHighlightEnabled(@NotNull UUID viewerId, boolean enabled) {
+        ViewerEmphasisState current = viewerEmphasisState(viewerId);
+        updateViewerEmphasisState(viewerId, new ViewerEmphasisState(enabled, current.statusFilter()));
+    }
+
+    void setStatusFilter(@NotNull UUID viewerId, @NotNull Set<StatusType> statusFilter) {
+        ViewerEmphasisState current = viewerEmphasisState(viewerId);
+        updateViewerEmphasisState(viewerId, new ViewerEmphasisState(current.skillNodeHighlightEnabled(), statusFilter));
+    }
+
+    @NotNull Set<StatusType> statusFilter(@NotNull UUID viewerId) {
+        return viewerEmphasisState(viewerId).statusFilter();
+    }
+
+    private @NotNull ViewerEmphasisState viewerEmphasisState(@NotNull UUID viewerId) {
+        return viewerEmphasisStates.getOrDefault(viewerId, ViewerEmphasisState.DEFAULT);
+    }
+
+    private void updateViewerEmphasisState(
+            @NotNull UUID viewerId,
+            @NotNull ViewerEmphasisState nextState
+    ) {
+        if (nextState.equals(ViewerEmphasisState.DEFAULT)) {
+            viewerEmphasisStates.remove(viewerId);
+        } else {
+            viewerEmphasisStates.put(viewerId, nextState);
+        }
+        markViewerDirty(viewerId);
     }
 
     private void tick() {
@@ -142,6 +183,7 @@ final class SkillTreeVisualizer {
 
         dirtyViewers.removeAll(viewersToRefresh);
         dirtyNodeStateNodeIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        viewerEmphasisStates.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
         nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
@@ -206,17 +248,24 @@ final class SkillTreeVisualizer {
             if (partialNodeRefresh && !dirtyPositions.contains(visual.node().nodeId())) {
                 continue;
             }
-            boolean visible = mode == RenderMode.PLAYER
+            boolean nodeAvailableToViewer = mode == RenderMode.PLAYER
                     && astPlayer != null
-                    && service.isNodeVisible(astPlayer, visual.node())
-                    && isVisibleTo(player, visual.baseLocation());
+                    && service.isNodeVisible(astPlayer, visual.node());
+            boolean visible = nodeAvailableToViewer && isVisibleTo(player, visual.baseLocation());
             SkillTreeService.NodePresentationState nodeState = visible
                     ? resolveNodeState(player, visual.node())
                     : SkillTreeService.NodePresentationState.BLOCKED;
             SkillTreeService.NodeLabelDetail labelDetail = visible
                     ? service.nodeLabelDetail(player, visual.baseLocation())
                     : SkillTreeService.NodeLabelDetail.HIDDEN;
-            visual.updateViewer(player, visible, nodeState, labelDetail);
+            NodeBeamState beamState = nodeAvailableToViewer && isBeamVisibleTo(player, visual.baseLocation())
+                    ? resolveNodeBeamState(
+                            visual.node(),
+                            isSkillNodeHighlightEnabled(player.getUniqueId()),
+                            statusFilter(player.getUniqueId())
+                    )
+                    : NodeBeamState.HIDDEN;
+            visual.updateViewer(player, visible, nodeState, labelDetail, beamState);
         }
         for (EdgeVisual visual : edgeVisuals.values()) {
             if (partialNodeRefresh
@@ -440,6 +489,31 @@ final class SkillTreeVisualizer {
                 && player.getLocation().distanceSquared(location) <= viewDistance * viewDistance;
     }
 
+    private boolean isBeamVisibleTo(@NotNull Player player, @Nullable Location location) {
+        return location != null
+                && location.getWorld() != null
+                && player.getWorld() == location.getWorld();
+    }
+
+    static @NotNull NodeBeamState resolveNodeBeamState(
+            @NotNull SkillTreeNodeDefinition node,
+            boolean skillNodeHighlightEnabled,
+            @NotNull Set<StatusType> statusFilter
+    ) {
+        if (!statusFilter.isEmpty()) {
+            Set<StatusType> nodeStatusTypes = new HashSet<>();
+            node.statusEffects().forEach(effect -> nodeStatusTypes.add(effect.statusType()));
+            if (nodeStatusTypes.stream().anyMatch(statusFilter::contains)) {
+                return statusFilter.size() > 1 && nodeStatusTypes.containsAll(statusFilter)
+                        ? NodeBeamState.FILTER_ALL
+                        : NodeBeamState.FILTER_MATCH;
+            }
+        }
+        return skillNodeHighlightEnabled && !node.skillEffects().isEmpty()
+                ? NodeBeamState.SKILL
+                : NodeBeamState.HIDDEN;
+    }
+
     private @Nullable SharedParticleDefinition edgeParticle(@NotNull EdgeState state) {
         return switch (state) {
             case ADMIN -> SharedParticleDefinitions.SKILLTREE_EDGE_ADMIN_DUST;
@@ -562,6 +636,13 @@ final class SkillTreeVisualizer {
         return packetDisplay.text(nodeTextLocation(location), text, scale);
     }
 
+    private @NotNull SkillTreePacketDisplay.PacketEntity packetNodeBeamDisplay(
+            @NotNull Location location,
+            @NotNull Material material
+    ) {
+        return packetDisplay.beam(nodeBeamLocation(location), material, nodeBeamTransform());
+    }
+
     private @NotNull SkillTreePacketDisplay.PacketEntity packetEdgeDisplay(
             @NotNull Location left,
             @NotNull Location right,
@@ -587,10 +668,46 @@ final class SkillTreeVisualizer {
         );
     }
 
+    private @NotNull Location nodeBeamLocation(@NotNull Location location) {
+        return location.clone().add(0.0D, NODE_BEAM_Y_OFFSET, 0.0D);
+    }
+
+    private @NotNull SkillTreePacketDisplay.BeamTransform nodeBeamTransform() {
+        return new SkillTreePacketDisplay.BeamTransform(
+                new Vector3f(-NODE_BEAM_WIDTH * 0.5F, 0.0F, -NODE_BEAM_DEPTH * 0.5F),
+                new Vector3f(NODE_BEAM_WIDTH, NODE_BEAM_HEIGHT, NODE_BEAM_DEPTH),
+                new Quaternionf()
+        );
+    }
+
     private enum RenderMode {
         HIDDEN,
         ADMIN,
         PLAYER
+    }
+
+    enum NodeBeamState {
+        HIDDEN(Material.AIR),
+        SKILL(Material.YELLOW_STAINED_GLASS),
+        FILTER_MATCH(Material.PURPLE_STAINED_GLASS),
+        FILTER_ALL(Material.MAGENTA_STAINED_GLASS);
+
+        private final Material material;
+
+        NodeBeamState(@NotNull Material material) {
+            this.material = material;
+        }
+    }
+
+    private record ViewerEmphasisState(
+            boolean skillNodeHighlightEnabled,
+            @NotNull Set<StatusType> statusFilter
+    ) {
+        private static final ViewerEmphasisState DEFAULT = new ViewerEmphasisState(true, Set.of());
+
+        private ViewerEmphasisState {
+            statusFilter = Set.copyOf(statusFilter);
+        }
     }
 
     private enum EdgeState {
@@ -703,8 +820,10 @@ final class SkillTreeVisualizer {
         private final Interaction interaction;
         private final SkillTreePacketDisplay.PacketEntity lockedItem;
         private final SkillTreePacketDisplay.PacketEntity unlockedItem;
+        private final SkillTreePacketDisplay.PacketEntity beam;
         private final Map<NodeLabelKey, SkillTreePacketDisplay.PacketEntity> labels = new HashMap<>();
         private final Map<UUID, NodeRenderState> viewerStates = new HashMap<>();
+        private final Map<UUID, NodeBeamState> beamViewerStates = new HashMap<>();
 
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
@@ -712,18 +831,25 @@ final class SkillTreeVisualizer {
             this.interaction = createNodeInteraction(location, node.nodeId());
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
+            this.beam = packetNodeBeamDisplay(location, NodeBeamState.SKILL.material);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
             Logger.log(
                     LogId.I_9002,
                     "node",
@@ -757,6 +883,7 @@ final class SkillTreeVisualizer {
             Location nodeTextLocation = nodeTextLocation(location);
             lockedItem.move(itemLocation);
             unlockedItem.move(itemLocation);
+            packetDisplay.moveBeam(beam, nodeBeamLocation(location), NodeBeamState.SKILL.material, nodeBeamTransform());
             labels.values().forEach(label -> label.move(nodeTextLocation));
             showCurrentViewers();
         }
@@ -765,7 +892,8 @@ final class SkillTreeVisualizer {
                 @NotNull Player player,
                 boolean visible,
                 @NotNull SkillTreeService.NodePresentationState nodePresentationState,
-                @NotNull SkillTreeService.NodeLabelDetail labelDetail
+                @NotNull SkillTreeService.NodeLabelDetail labelDetail,
+                @NotNull NodeBeamState nextBeamState
         ) {
             NodeRenderState nextState = visible
                     ? new NodeRenderState(nodePresentationState, labelDetail)
@@ -773,18 +901,16 @@ final class SkillTreeVisualizer {
             UUID playerId = player.getUniqueId();
             NodeRenderState previousState = viewerStates.getOrDefault(playerId, NodeRenderState.HIDDEN);
 
-            if (previousState.equals(nextState)) {
-                return;
+            if (!previousState.equals(nextState)) {
+                if (nextState.hidden()) {
+                    viewerStates.remove(playerId);
+                } else {
+                    viewerStates.put(playerId, nextState);
+                }
+                hideState(player, previousState);
+                showState(player, nextState);
             }
-
-            if (nextState.hidden()) {
-                viewerStates.remove(playerId);
-            } else {
-                viewerStates.put(playerId, nextState);
-            }
-
-            hideState(player, previousState);
-            showState(player, nextState);
+            updateBeamViewer(player, nextBeamState);
         }
 
         private void registerLabel(
@@ -839,8 +965,30 @@ final class SkillTreeVisualizer {
             return labels.get(new NodeLabelKey(state.presentationState(), state.labelDetail()));
         }
 
+        private void updateBeamViewer(@NotNull Player player, @NotNull NodeBeamState nextState) {
+            UUID playerId = player.getUniqueId();
+            NodeBeamState previousState = beamViewerStates.getOrDefault(playerId, NodeBeamState.HIDDEN);
+            if (previousState == nextState) {
+                return;
+            }
+            if (nextState == NodeBeamState.HIDDEN) {
+                beamViewerStates.remove(playerId);
+            } else {
+                beamViewerStates.put(playerId, nextState);
+            }
+            if (previousState == NodeBeamState.HIDDEN) {
+                beam.spawn(player);
+            }
+            if (nextState == NodeBeamState.HIDDEN) {
+                beam.destroy(player);
+            } else {
+                packetDisplay.updateBlock(player, beam, nextState.material);
+            }
+        }
+
         private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
             viewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
+            beamViewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
         }
 
         private boolean isValid() {
@@ -850,6 +998,7 @@ final class SkillTreeVisualizer {
         private void remove() {
             hideCurrentViewers();
             viewerStates.clear();
+            beamViewerStates.clear();
             interaction.remove();
         }
 
@@ -860,6 +1009,12 @@ final class SkillTreeVisualizer {
                     hideState(player, entry.getValue());
                 }
             }
+            for (UUID playerId : beamViewerStates.keySet()) {
+                Player player = plugin.getServer().getPlayer(playerId);
+                if (player != null) {
+                    beam.destroy(player);
+                }
+            }
         }
 
         private void showCurrentViewers() {
@@ -867,6 +1022,13 @@ final class SkillTreeVisualizer {
                 Player player = plugin.getServer().getPlayer(entry.getKey());
                 if (player != null) {
                     showState(player, entry.getValue());
+                }
+            }
+            for (Map.Entry<UUID, NodeBeamState> entry : beamViewerStates.entrySet()) {
+                Player player = plugin.getServer().getPlayer(entry.getKey());
+                if (player != null) {
+                    beam.spawn(player);
+                    packetDisplay.updateBlock(player, beam, entry.getValue().material);
                 }
             }
         }

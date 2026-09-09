@@ -36,6 +36,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 30;
     public static final int ARMOR_DISPLAY_SLOT = 31;
     public static final int ACTION_RING_HOLD_SELECT_SLOT = 32;
+    public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 33;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -80,6 +81,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
             case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
+            case SKILL_TREE_COMPACT_DISPLAY_SLOT -> PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY;
             default -> null;
         };
     }
@@ -144,6 +146,12 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
                 Component.text("※有効にすると、構えている間は武器の見た目がトライデントに変化します。", NamedTextColor.RED),
                 Component.text("※動作が不安定になる可能性があります。", NamedTextColor.RED)
             )
+        ));
+        inventory.setItem(SKILL_TREE_COMPACT_DISPLAY_SLOT, createBooleanItem(
+            Material.BOOK,
+            PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
+            (Boolean) resolveValue(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, draftValues),
+            List.of(Component.text("ノード名と区切り見出しを省略して表示します。", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

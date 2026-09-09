@@ -149,6 +149,16 @@ public final class PlayerSettingService {
     public boolean isArmorDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ARMOR_DISPLAY, true); }
     public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, false); }
 
+    /**
+     * スキルツリーのノードラベルを簡易表示するかを、ロード済み設定だけから返します。
+     *
+     * @param userId 設定を所有するユーザー UUID
+     * @return 簡易表示が有効なら {@code true}。cache 未読込または型不正時は {@code false}
+     */
+    public boolean isSkillTreeCompactDisplayEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, false);
+    }
+
     /** Bukkit 操作時は cache と dirty state だけを即時更新する。 */
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request, long token) {
         UUID accountId = rememberOnlineAccount(request.userId());

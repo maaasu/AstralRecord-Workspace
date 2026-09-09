@@ -2,11 +2,16 @@ package io.github.maaasu.astralRecord.feature.skilltree.service;
 
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
+import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,6 +62,51 @@ class SkillTreeVisualizerTest {
         assertEquals(0, SkillTreeVisualizer.bedrockEdgeParticleCount(0.0D));
         assertEquals(3, SkillTreeVisualizer.bedrockEdgeParticleCount(0.5D));
         assertEquals(8, SkillTreeVisualizer.bedrockEdgeParticleCount(100.0D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: status絞り込みは補正の正負を問わず一致nodeを紫、複数条件の全一致nodeをマゼンタとして優先する。
+     */
+    @Test
+    void statusFilterUsesAnyMatchAndAllMatchBeamStatesRegardlessOfModifierSign() {
+        SkillTreeNodeDefinition skillNode = new SkillTreeNodeDefinition(
+                "999",
+                "Skill Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                List.of(new SkillTreeSkillEffect("test-skill"))
+        );
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Status Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                1,
+                List.of(
+                        new SkillTreeStatusEffect(StatusType.ATTACK, StatusModifierType.FLAT, -3.0D),
+                        new SkillTreeStatusEffect(StatusType.DEFENSE, StatusModifierType.SCALAR, 0.1D)
+                )
+        );
+
+        assertEquals(
+                SkillTreeVisualizer.NodeBeamState.SKILL,
+                SkillTreeVisualizer.resolveNodeBeamState(skillNode, true, Set.of())
+        );
+        assertEquals(
+                SkillTreeVisualizer.NodeBeamState.FILTER_MATCH,
+                SkillTreeVisualizer.resolveNodeBeamState(node, true, Set.of(StatusType.ATTACK, StatusType.MAX_HEALTH))
+        );
+        assertEquals(
+                SkillTreeVisualizer.NodeBeamState.FILTER_ALL,
+                SkillTreeVisualizer.resolveNodeBeamState(node, true, Set.of(StatusType.ATTACK, StatusType.DEFENSE))
+        );
     }
 
     private SkillTreeNodeDefinition node(String name) {

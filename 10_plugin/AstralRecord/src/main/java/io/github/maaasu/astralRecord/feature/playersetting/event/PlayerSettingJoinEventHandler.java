@@ -51,6 +51,7 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
                     && player.isOnline()
                     && playerSettingService.captureSessionToken(userId) == sessionToken) {
                     itemStackPacketAdapter.refreshEquipmentView(player);
+                    plugin.getSkillTreeService().markViewerContextDirty(player);
                 }
             });
         }, LogId.E_5314, playerName));

@@ -93,6 +93,9 @@ public final class PlayerSettingCommand extends AstCommand {
         if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
             player.getBukkit().updateInventory();
         }
+        if (key == PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY) {
+            plugin.getSkillTreeService().markViewerContextDirty(player.getBukkit());
+        }
         sendSuccess(
             player.getBukkit(),
             PlayerMsgResource.format(

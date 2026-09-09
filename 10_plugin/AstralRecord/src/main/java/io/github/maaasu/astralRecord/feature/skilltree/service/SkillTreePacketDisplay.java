@@ -37,6 +37,7 @@ import java.util.UUID;
  */
 final class SkillTreePacketDisplay {
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
+    private static final float BEAM_VIEW_RANGE = 512.0F;
     private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
@@ -79,7 +80,8 @@ final class SkillTreePacketDisplay {
                 new Vector3f(),
                 new Vector3f(scale, scale, scale),
                 new Quaternionf(),
-                Display.Billboard.CENTER
+                Display.Billboard.CENTER,
+                DEFAULT_VIEW_RANGE
         );
         if (glowing) {
             metadata.add(value(
@@ -106,7 +108,8 @@ final class SkillTreePacketDisplay {
                 new Vector3f(),
                 new Vector3f(scale, scale, scale),
                 new Quaternionf(),
-                Display.Billboard.CENTER
+                Display.Billboard.CENTER,
+                DEFAULT_VIEW_RANGE
         );
         metadata.add(value(
                 TEXT_DISPLAY_TEXT_INDEX,
@@ -125,7 +128,8 @@ final class SkillTreePacketDisplay {
                 transform.translation(),
                 transform.scale(),
                 transform.rotation(),
-                Display.Billboard.FIXED
+                Display.Billboard.FIXED,
+                DEFAULT_VIEW_RANGE
         );
         metadata.add(blockValue(material));
         return new PacketEntity(EntityType.BLOCK_DISPLAY, location, metadata);
@@ -136,7 +140,32 @@ final class SkillTreePacketDisplay {
                 transform.translation(),
                 transform.scale(),
                 transform.rotation(),
-                Display.Billboard.FIXED
+                Display.Billboard.FIXED,
+                DEFAULT_VIEW_RANGE
+        );
+        metadata.add(blockValue(material));
+        entity.move(location, metadata);
+    }
+
+    PacketEntity beam(Location location, Material material, BeamTransform transform) {
+        List<WrappedDataValue> metadata = baseDisplayMetadata(
+                transform.translation(),
+                transform.scale(),
+                transform.rotation(),
+                Display.Billboard.VERTICAL,
+                BEAM_VIEW_RANGE
+        );
+        metadata.add(blockValue(material));
+        return new PacketEntity(EntityType.BLOCK_DISPLAY, location, metadata);
+    }
+
+    void moveBeam(PacketEntity entity, Location location, Material material, BeamTransform transform) {
+        List<WrappedDataValue> metadata = baseDisplayMetadata(
+                transform.translation(),
+                transform.scale(),
+                transform.rotation(),
+                Display.Billboard.VERTICAL,
+                BEAM_VIEW_RANGE
         );
         metadata.add(blockValue(material));
         entity.move(location, metadata);
@@ -153,7 +182,8 @@ final class SkillTreePacketDisplay {
             Vector3f translation,
             Vector3f scale,
             Quaternionf leftRotation,
-            Display.Billboard billboard
+            Display.Billboard billboard,
+            float viewRange
     ) {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
@@ -164,7 +194,7 @@ final class SkillTreePacketDisplay {
         values.add(value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer(), leftRotation));
         values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
-        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
+        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), viewRange));
         values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
         values.add(value(DISPLAY_HEIGHT_INDEX, serializer(Float.class), 0.0F));
         return values;
@@ -215,6 +245,9 @@ final class SkillTreePacketDisplay {
     }
 
     record EdgeTransform(Vector3f translation, Vector3f scale, Quaternionf rotation) {
+    }
+
+    record BeamTransform(Vector3f translation, Vector3f scale, Quaternionf rotation) {
     }
 
     final class PacketEntity {

@@ -166,4 +166,42 @@ class PlayerSettingServiceDropLogTest {
 
         assertFalse(service.isActionRingHoldSelectEnabled(UUID.randomUUID()));
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: SKILL_TREE_COMPACT_DISPLAYをAPIなしでcache済みplayer選択値から返す。
+     */
+    @Test
+    void skillTreeCompactDisplayUsesCachedPlayerChoice() {
+        UUID userId = UUID.randomUUID();
+        PlayerSettingCache cache = new PlayerSettingCache();
+        cache.put(new PlayerSettingSnapshot(userId, Map.of(
+            PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
+            new PlayerSettingEntry(null, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, true, null)
+        )));
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            cache
+        );
+
+        assertTrue(service.isSkillTreeCompactDisplayEnabled(userId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: cache miss時のSKILL_TREE_COMPACT_DISPLAYをAPIなしで既定falseにする。
+     */
+    @Test
+    void skillTreeCompactDisplayDefaultsToDisabledWithoutCachedSnapshot() {
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+
+        assertFalse(service.isSkillTreeCompactDisplayEnabled(UUID.randomUUID()));
+    }
 }
