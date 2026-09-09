@@ -583,7 +583,16 @@ public class InventoryService {
                             InventoryEntryModel entry = findOwnedEntry(accountId, required.getKey());
                             if (entry == null || entry.getQuantity() - reservedEntryAmount(accountId,
                                 required.getKey()) < required.getValue()) return false;
-                            reduceDisplayedEntryQuantity(state, entry, entry.getQuantity() - required.getValue());
+                            if (entry.getQuantity() <= required.getValue()) {
+                                InventoryModel inventory = state.findInventoryById(entry.getInventoryId());
+                                if (inventory != null && inventory.getInventoryType() == InventoryType.HOTBAR) {
+                                    removeHotbarEntryAfterMove(state, entry);
+                                } else {
+                                    removeDisplayedEntryAfterMove(state, entry);
+                                }
+                            } else {
+                                reduceDisplayedEntryQuantity(state, entry, entry.getQuantity() - required.getValue());
+                            }
                         }
                     } else {
                         for (Map.Entry<String, Long> required : payment.normalItemAmounts().entrySet()) {

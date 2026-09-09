@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -169,6 +171,54 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さずインベントリから除去する。
+     */
+    @Test
+    void criticalPaymentRemovesEntryWhenSingleMaterialIsFullyConsumed() {
+        UUID accountId = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG);
+        state.putInventory(bag);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            entry(entryId, bag.getInventoryId(), 1, "skill_gem_raw", 1L, accountId)
+        ));
+        InventoryService service = inventoryService(state);
+
+        assertTrue(service.reserveLocalMutationPayment(accountId, operationId, Map.of(entryId, 1L)));
+        assertTrue(service.commitLocalOrbOperationPayment(accountId, operationId, () -> { }));
+
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: HOTBARの必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さず除去する。
+     */
+    @Test
+    void criticalPaymentRemovesHotbarEntryWhenSingleMaterialIsFullyConsumed() {
+        UUID accountId = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR);
+        state.putInventory(hotbar);
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            entry(entryId, hotbar.getInventoryId(), 1, "skill_gem_raw", 1L, accountId)
+        ));
+        InventoryService service = inventoryService(state);
+
+        assertTrue(service.reserveLocalMutationPayment(accountId, operationId, Map.of(entryId, 1L)));
+        assertTrue(service.commitLocalOrbOperationPayment(accountId, operationId, () -> { }));
+
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
      * 検証契約: API消費成功後の再同期失敗でも、APIが返した消費数量をローカル表示へ反映して削除時は前詰めする。
@@ -241,6 +291,9 @@ class PlayerInventoryStateSkillMutationTest {
     private static InventoryService inventoryService(PlayerInventoryState state) {
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
         registry.put(state);
+        InventorySaveCoordinator saveCoordinator = mock(InventorySaveCoordinator.class);
+        doAnswer(invocation -> invocation.<java.util.function.Supplier<?>>getArgument(1).get())
+            .when(saveCoordinator).executeLocalMutation(any(UUID.class), any());
         return new InventoryService(
             mock(InventoryRepository.class),
             mock(EquipmentLoadoutRepository.class),
@@ -248,7 +301,7 @@ class PlayerInventoryStateSkillMutationTest {
             mock(ItemStackFactory.class),
             registry,
             mock(InventoryPersistence.class),
-            mock(InventorySaveCoordinator.class)
+            saveCoordinator
         );
     }
 
