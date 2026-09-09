@@ -32,6 +32,7 @@
 | `generation.baseY` | Integer | `64`。天井を含め `-60..316` 内 |
 | `generation.roomCount.min/max` | Integer | `7/11`、`3..64`。seed 抽選 |
 | `generation.roomSize.min/max` | Integer | `11/23`、`7..64` |
+| `generation.bossRoomSize.min/max` | Integer | `generation.roomSize` と同値、`7..64`。min は `roomSize.min` 以上。最初の BSP 分割で専用葉区画を予約し、この範囲で BOSS 部屋の幅・奥行きを抽選する |
 | `generation.roomHeight` | Integer | `8`、`5..32` |
 | `generation.corridorWidth` | Integer | `3`、`1..7` の奇数 |
 | `generation.corridorHeight` | Integer | `4`、`2..roomHeight-2` |

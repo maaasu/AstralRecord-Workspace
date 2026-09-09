@@ -45,6 +45,7 @@ class DungeonDefinitionRepositoryTest {
         assertEquals("test_world", definition.entry().worldId());
         assertEquals(2.0D, definition.entry().radius());
         assertEquals(new DungeonDefinition.IntRange(7, 11), definition.generation().roomCount());
+        assertEquals(new DungeonDefinition.IntRange(11, 23), definition.generation().bossRoomSize());
         assertEquals(DungeonRoomShape.CYLINDER, definition.generation().roomShapes().get(1).shape());
         assertEquals(Material.STONE_BRICKS, definition.theme().floor().getFirst().material());
         assertTrue(!definition.theme().pillar().enabled());
@@ -80,6 +81,44 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(600L, definition.challenge().timeLimitSeconds());
         assertEquals(100.0D, definition.clearRewards().items().getFirst().rate());
         assertEquals("1", definition.clearRewards().items().getFirst().amount());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: bossRoomSizeを明示しない場合はroomSizeを使い、明示した場合だけ独立した範囲を読み込む。
+     */
+    @Test
+    void defaultsBossRoomSizeToRoomSizeAndReadsAnExplicitRange() throws IOException {
+        DungeonDefinition defaulted = load(yaml());
+        DungeonDefinition explicit = load(yaml().replace("encounter:\n", """
+                generation:
+                  roomSize:
+                    min: 12
+                    max: 20
+                  bossRoomSize:
+                    min: 16
+                    max: 24
+                encounter:
+                """));
+
+        assertEquals(new DungeonDefinition.IntRange(11, 23), defaulted.generation().bossRoomSize());
+        assertEquals(new DungeonDefinition.IntRange(12, 20), explicit.generation().roomSize());
+        assertEquals(new DungeonDefinition.IntRange(16, 24), explicit.generation().bossRoomSize());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: bossRoomSizeを明示した場合は範囲sectionでなければならず、既定値へ補正しない。
+     */
+    @Test
+    void rejectsAnExplicitBossRoomSizeThatIsNotARangeSection() {
+        assertThrows(IllegalArgumentException.class, () -> load(yaml().replace("encounter:\n", """
+                generation:
+                  bossRoomSize: 17
+                encounter:
+                """)));
     }
 
     /**

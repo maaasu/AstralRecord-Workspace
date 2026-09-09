@@ -82,6 +82,14 @@ public final class DungeonDefinitionRepository {
         ConfigurationSection encounter = requireSection(yaml, "encounter");
         ConfigurationSection challenge = yaml.getConfigurationSection("challenge");
         ConfigurationSection clearRewards = yaml.getConfigurationSection("clearRewards");
+        DungeonDefinition.IntRange roomSize = parseRange(
+                section(generation, "roomSize"), "generation.roomSize", 11, 23);
+        ConfigurationSection bossRoomSizeSection = section(generation, "bossRoomSize");
+        if (generation != null && generation.contains("bossRoomSize") && bossRoomSizeSection == null) {
+            throw new IllegalArgumentException("generation.bossRoomSize must be a section");
+        }
+        DungeonDefinition.IntRange bossRoomSize = parseRange(
+                bossRoomSizeSection, "generation.bossRoomSize", roomSize.min(), roomSize.max());
 
         return new DungeonDefinition(
                 schemaVersion,
@@ -108,7 +116,8 @@ public final class DungeonDefinitionRepository {
                         optionalInt(area, "depth", 128),
                         optionalInt(generation, "baseY", 64),
                         parseRange(section(generation, "roomCount"), "generation.roomCount", 7, 11),
-                        parseRange(section(generation, "roomSize"), "generation.roomSize", 11, 23),
+                        roomSize,
+                        bossRoomSize,
                         optionalInt(generation, "roomHeight", 8),
                         optionalInt(generation, "corridorWidth", 3),
                         optionalInt(generation, "corridorHeight", 4),

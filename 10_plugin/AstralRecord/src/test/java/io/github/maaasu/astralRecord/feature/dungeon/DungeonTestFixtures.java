@@ -34,6 +34,7 @@ public final class DungeonTestFixtures {
                         64,
                         new DungeonDefinition.IntRange(7, 11),
                         new DungeonDefinition.IntRange(11, 23),
+                        new DungeonDefinition.IntRange(17, 23),
                         8,
                         3,
                         4,
@@ -42,7 +43,9 @@ public final class DungeonTestFixtures {
                         List.of(
                                 new DungeonDefinition.WeightedShape(DungeonRoomShape.RECTANGLE, 70),
                                 new DungeonDefinition.WeightedShape(DungeonRoomShape.CYLINDER, 30)
-                        )
+                        ),
+                        List.of(new DungeonDefinition.WeightedRoomType(
+                                io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType.STANDARD, 1))
                 ),
                 new DungeonDefinition.Theme(
                         List.of(new DungeonDefinition.WeightedMaterial(Material.STONE_BRICKS, 1)),

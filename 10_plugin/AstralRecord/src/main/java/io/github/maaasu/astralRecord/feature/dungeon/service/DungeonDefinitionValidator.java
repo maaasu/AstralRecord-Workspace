@@ -85,6 +85,10 @@ public final class DungeonDefinitionValidator {
         }
         validateRange(definition, "generation.roomCount", generation.roomCount(), 3, MAX_ROOMS);
         validateRange(definition, "generation.roomSize", generation.roomSize(), 7, 64);
+        validateRange(definition, "generation.bossRoomSize", generation.bossRoomSize(), 7, 64);
+        if (generation.bossRoomSize().min() < generation.roomSize().min()) {
+            fail(definition, "generation.bossRoomSize.min must be at least generation.roomSize.min");
+        }
         if (generation.roomHeight() < 5 || generation.roomHeight() > 32) {
             fail(definition, "generation.roomHeight must be 5..32");
         }
@@ -107,10 +111,18 @@ public final class DungeonDefinitionValidator {
         validatePositiveWeights(definition, "generation.roomShapes", generation.roomShapes());
         validatePositiveWeights(definition, "generation.roomTypes", generation.roomTypes());
         int minimumPartition = generation.roomSize().min() + 4;
+        int minimumBossPartition = generation.bossRoomSize().min() + 4;
         int capacity = Math.max(1, generation.areaWidth() / minimumPartition)
                 * Math.max(1, generation.areaDepth() / minimumPartition);
         if (capacity < generation.roomCount().max()) {
             fail(definition, "generation.area cannot fit roomCount.max with roomSize.min");
+        }
+        boolean canReserveBossPartition = (generation.areaWidth() >= minimumPartition + minimumBossPartition
+                && generation.areaDepth() >= minimumBossPartition)
+                || (generation.areaDepth() >= minimumPartition + minimumBossPartition
+                && generation.areaWidth() >= minimumBossPartition);
+        if (!canReserveBossPartition) {
+            fail(definition, "generation.area cannot reserve bossRoomSize.min with roomSize.min");
         }
 
         validatePositiveWeights(definition, "theme.floor", definition.theme().floor());

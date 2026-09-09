@@ -154,30 +154,28 @@ class DungeonLayoutPlannerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: BOSS役割は一室だけに付き、その部屋は開始部屋以外でグラフ距離が最大の葉である。
+     * 検証契約: BOSS役割は予約した葉区画の一室だけに付き、設定した最小の幅と奥行きを満たす。
      */
     @Test
-    void assignsTheOnlyBossRoleToAFarthestLeaf() {
-        DungeonLayout layout = planner.plan(DungeonTestFixtures.definition(), 24680L);
-        Map<Integer, Set<Integer>> adjacency = adjacency(layout);
-        DungeonLayout.Room boss = layout.rooms().stream()
-                .filter(room -> room.role() == DungeonLayout.RoomRole.BOSS)
-                .findFirst()
-                .orElseThrow();
+    void reservesTheOnlyBossRoomAtTheConfiguredMinimumSize() {
+        DungeonDefinition definition = DungeonTestFixtures.definition();
+        for (long seed = 0; seed < 50; seed++) {
+            DungeonLayout layout = planner.plan(definition, seed);
+            Map<Integer, Set<Integer>> adjacency = adjacency(layout);
+            DungeonLayout.Room boss = layout.rooms().stream()
+                    .filter(room -> room.role() == DungeonLayout.RoomRole.BOSS)
+                    .findFirst()
+                    .orElseThrow();
 
-        long bossCount = layout.rooms().stream()
-                .filter(room -> room.role() == DungeonLayout.RoomRole.BOSS)
-                .count();
-        int farthestLeafDistance = layout.rooms().stream()
-                .filter(room -> room.id() != layout.startRoomId())
-                .filter(room -> adjacency.get(room.id()).size() == 1)
-                .mapToInt(DungeonLayout.Room::distanceFromStart)
-                .max()
-                .orElseThrow();
+            long bossCount = layout.rooms().stream()
+                    .filter(room -> room.role() == DungeonLayout.RoomRole.BOSS)
+                    .count();
 
-        assertEquals(1L, bossCount);
-        assertEquals(1, adjacency.get(boss.id()).size());
-        assertEquals(farthestLeafDistance, boss.distanceFromStart());
+            assertEquals(1L, bossCount);
+            assertEquals(1, adjacency.get(boss.id()).size());
+            assertTrue(boss.bounds().width() >= definition.generation().bossRoomSize().min());
+            assertTrue(boss.bounds().depth() >= definition.generation().bossRoomSize().min());
+        }
     }
 
     /**
@@ -195,7 +193,7 @@ class DungeonLayoutPlannerTest {
                 source.challenge(),
                 new DungeonDefinition.Generation(
                         generation.areaWidth(), generation.areaDepth(), generation.baseY(),
-                        generation.roomCount(), generation.roomSize(), generation.roomHeight(),
+                        generation.roomCount(), generation.roomSize(), generation.bossRoomSize(), generation.roomHeight(),
                         generation.corridorWidth(), generation.corridorHeight(),
                         generation.splitRatioMin(), generation.splitRatioMax(), generation.roomShapes(),
                         List.of(

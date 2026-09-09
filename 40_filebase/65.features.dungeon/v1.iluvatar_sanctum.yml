@@ -81,6 +81,9 @@ generation:
   roomSize:
     min: 13
     max: 23
+  bossRoomSize:
+    min: 17
+    max: 23
   roomHeight: 9
   corridorWidth: 3
   corridorHeight: 5

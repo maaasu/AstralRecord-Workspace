@@ -68,11 +68,17 @@ public final class DungeonLayoutPlanner {
                 generation.areaDepth() - 1
         ));
         List<Node> leaves = new ArrayList<>();
-        leaves.add(root);
         int minimumPartitionSize = generation.roomSize().min() + PARTITION_MARGIN * 2;
+        int minimumBossPartitionSize = generation.bossRoomSize().min() + PARTITION_MARGIN * 2;
+        if (!splitForBoss(root, generation, minimumPartitionSize, minimumBossPartitionSize, random)) {
+            return null;
+        }
+        leaves.add(root.left);
+        leaves.add(root.right);
 
         while (leaves.size() < targetRoomCount) {
             List<Node> splittable = leaves.stream()
+                    .filter(node -> !node.bossReserved)
                     .filter(node -> canSplit(node.bounds, minimumPartitionSize))
                     .sorted(Comparator
                             .comparingInt((Node node) -> node.bounds.width() * node.bounds.depth())
@@ -100,11 +106,15 @@ public final class DungeonLayoutPlanner {
         List<PlacedRoom> placedRooms = new ArrayList<>(leaves.size());
         for (int id = 0; id < leaves.size(); id++) {
             Node leaf = leaves.get(id);
-            DungeonLayout.Rect roomBounds = createRoomBounds(leaf.bounds, generation.roomSize(), random);
+            DungeonLayout.Rect roomBounds = createRoomBounds(
+                    leaf.bounds,
+                    leaf.bossReserved ? generation.bossRoomSize() : generation.roomSize(),
+                    random
+            );
             DungeonRoomShape shape = chooseShape(generation.roomShapes(), random);
             DungeonRoomType type = chooseRoomType(generation.roomTypes(), random);
             leaf.roomId = id;
-            placedRooms.add(new PlacedRoom(id, roomBounds, shape, type));
+            placedRooms.add(new PlacedRoom(id, roomBounds, shape, type, leaf.bossReserved));
         }
 
         List<Edge> edges = new ArrayList<>(leaves.size() - 1);
@@ -124,13 +134,8 @@ public final class DungeonLayoutPlanner {
         Map<Integer, Set<Integer>> adjacency = adjacency(placedRooms.size(), edges);
         Traversal traversal = traverse(startRoomId, adjacency);
         int bossRoomId = placedRooms.stream()
-                .filter(room -> room.id != startRoomId)
-                .filter(room -> adjacency.get(room.id).size() == 1)
-                .max(Comparator
-                        .comparingInt((PlacedRoom room) -> traversal.distance.get(room.id))
-                        .thenComparingInt(room -> room.bounds.centerX())
-                        .thenComparingInt(room -> room.bounds.centerZ())
-                        .thenComparingInt(PlacedRoom::id))
+                .filter(PlacedRoom::bossReserved)
+                .findFirst()
                 .orElseThrow()
                 .id;
 
@@ -255,6 +260,66 @@ public final class DungeonLayoutPlanner {
             node.right = new Node(new DungeonLayout.Rect(
                     node.bounds.minX(), leftMaxZ + 1, node.bounds.maxX(), node.bounds.maxZ()));
         }
+        return true;
+    }
+
+    /**
+     * 最初の BSP 分割で、通常部屋とは別にボス部屋を収容できる葉区画を予約します。
+     *
+     * @param root 分割前の根区画
+     * @param generation 生成設定
+     * @param minimumPartitionSize 通常部屋を収容する最小区画長
+     * @param minimumBossPartitionSize ボス部屋を収容する最小区画長
+     * @param random seed 由来の乱数
+     * @return ボス用葉区画を予約できた場合は {@code true}
+     */
+    private boolean splitForBoss(
+            @NotNull Node root,
+            @NotNull DungeonDefinition.Generation generation,
+            int minimumPartitionSize,
+            int minimumBossPartitionSize,
+            @NotNull SplittableRandom random
+    ) {
+        int width = root.bounds.width();
+        int depth = root.bounds.depth();
+        boolean canSplitX = width >= minimumPartitionSize + minimumBossPartitionSize
+                && depth >= minimumBossPartitionSize;
+        boolean canSplitZ = depth >= minimumPartitionSize + minimumBossPartitionSize
+                && width >= minimumBossPartitionSize;
+        if (!canSplitX && !canSplitZ) {
+            return false;
+        }
+
+        boolean splitX;
+        if (!canSplitZ) {
+            splitX = true;
+        } else if (!canSplitX) {
+            splitX = false;
+        } else if (width > depth * 1.25D) {
+            splitX = true;
+        } else if (depth > width * 1.25D) {
+            splitX = false;
+        } else {
+            splitX = random.nextBoolean();
+        }
+
+        int length = splitX ? width : depth;
+        int firstLength = length - minimumBossPartitionSize;
+
+        if (splitX) {
+            int leftMaxX = root.bounds.minX() + firstLength - 1;
+            root.left = new Node(new DungeonLayout.Rect(
+                    root.bounds.minX(), root.bounds.minZ(), leftMaxX, root.bounds.maxZ()));
+            root.right = new Node(new DungeonLayout.Rect(
+                    leftMaxX + 1, root.bounds.minZ(), root.bounds.maxX(), root.bounds.maxZ()));
+        } else {
+            int leftMaxZ = root.bounds.minZ() + firstLength - 1;
+            root.left = new Node(new DungeonLayout.Rect(
+                    root.bounds.minX(), root.bounds.minZ(), root.bounds.maxX(), leftMaxZ));
+            root.right = new Node(new DungeonLayout.Rect(
+                    root.bounds.minX(), leftMaxZ + 1, root.bounds.maxX(), root.bounds.maxZ()));
+        }
+        root.right.bossReserved = true;
         return true;
     }
 
@@ -513,6 +578,7 @@ public final class DungeonLayoutPlanner {
         private final DungeonLayout.Rect bounds;
         private Node left;
         private Node right;
+        private boolean bossReserved;
         private int roomId = -1;
 
         private Node(@NotNull DungeonLayout.Rect bounds) {
@@ -524,7 +590,8 @@ public final class DungeonLayoutPlanner {
             int id,
             @NotNull DungeonLayout.Rect bounds,
             @NotNull DungeonRoomShape shape,
-            @NotNull DungeonRoomType type
+            @NotNull DungeonRoomType type,
+            boolean bossReserved
     ) {
     }
 

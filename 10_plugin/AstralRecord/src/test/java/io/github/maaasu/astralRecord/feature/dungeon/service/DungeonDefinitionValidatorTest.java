@@ -175,7 +175,7 @@ class DungeonDefinitionValidatorTest {
                 source.challenge(),
                 new DungeonDefinition.Generation(
                         generation.areaWidth(), generation.areaDepth(), generation.baseY(),
-                        generation.roomCount(), generation.roomSize(), generation.roomHeight(),
+                        generation.roomCount(), generation.roomSize(), generation.bossRoomSize(), generation.roomHeight(),
                         generation.corridorWidth(), generation.corridorHeight(),
                         generation.splitRatioMin(), generation.splitRatioMax(), generation.roomShapes(),
                         List.of(new DungeonDefinition.WeightedRoomType(DungeonRoomType.STANDARD, 0))
@@ -214,6 +214,37 @@ class DungeonDefinitionValidatorTest {
 
         assertTrue(roomFailure.getMessage().contains("generation.roomTypes"));
         assertTrue(decorationFailure.getMessage().contains("theme.decorations.rubble"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: ボス部屋の最小辺は通常部屋の最小辺を下回らず、専用区画の予約を妨げない。
+     */
+    @Test
+    void rejectsBossRoomSizeSmallerThanTheNormalRoomSize() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Generation generation = source.generation();
+        DungeonDefinition invalid = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(), source.challenge(),
+                new DungeonDefinition.Generation(
+                        generation.areaWidth(), generation.areaDepth(), generation.baseY(),
+                        generation.roomCount(), generation.roomSize(), new DungeonDefinition.IntRange(7, 16),
+                        generation.roomHeight(), generation.corridorWidth(), generation.corridorHeight(),
+                        generation.splitRatioMin(), generation.splitRatioMax(), generation.roomShapes(), generation.roomTypes()),
+                source.theme(), source.encounter(), source.clearRewards());
+        Map<String, MobTemplate> mobs = Map.of(
+                "weak", DungeonTestFixtures.mob("weak", 5, MobCategory.ENEMY),
+                "strong", DungeonTestFixtures.mob("strong", 20, MobCategory.ENEMY),
+                "boss", DungeonTestFixtures.mob("boss", 30, MobCategory.BOSS));
+        Map<String, WorldMasterData> worlds = Map.of(
+                source.entry().worldId(), world(source.entry().worldId()));
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> validator.validateAll(List.of(invalid), mobs, worlds));
+
+        assertTrue(failure.getMessage().contains("generation.bossRoomSize.min"));
     }
 
     private DungeonDefinition withChallenge(

@@ -110,6 +110,7 @@ public record DungeonDefinition(
             int baseY,
             @NotNull IntRange roomCount,
             @NotNull IntRange roomSize,
+            @NotNull IntRange bossRoomSize,
             int roomHeight,
             int corridorWidth,
             int corridorHeight,
@@ -121,6 +122,25 @@ public record DungeonDefinition(
         public Generation {
             roomShapes = List.copyOf(roomShapes);
             roomTypes = List.copyOf(roomTypes);
+        }
+
+        /** ボス部屋専用サイズ導入前の呼び出し元向け互換コンストラクタです。 */
+        public Generation(
+                int areaWidth,
+                int areaDepth,
+                int baseY,
+                @NotNull IntRange roomCount,
+                @NotNull IntRange roomSize,
+                int roomHeight,
+                int corridorWidth,
+                int corridorHeight,
+                double splitRatioMin,
+                double splitRatioMax,
+                @NotNull List<WeightedShape> roomShapes,
+                @NotNull List<WeightedRoomType> roomTypes
+        ) {
+            this(areaWidth, areaDepth, baseY, roomCount, roomSize, roomSize, roomHeight,
+                    corridorWidth, corridorHeight, splitRatioMin, splitRatioMax, roomShapes, roomTypes);
         }
 
         /** 部屋タイプ導入前の呼び出し元向け互換コンストラクタです。 */
@@ -137,7 +157,7 @@ public record DungeonDefinition(
                 double splitRatioMax,
                 @NotNull List<WeightedShape> roomShapes
         ) {
-            this(areaWidth, areaDepth, baseY, roomCount, roomSize, roomHeight,
+            this(areaWidth, areaDepth, baseY, roomCount, roomSize, roomSize, roomHeight,
                     corridorWidth, corridorHeight, splitRatioMin, splitRatioMax, roomShapes,
                     List.of(new WeightedRoomType(DungeonRoomType.STANDARD, 1)));
         }
