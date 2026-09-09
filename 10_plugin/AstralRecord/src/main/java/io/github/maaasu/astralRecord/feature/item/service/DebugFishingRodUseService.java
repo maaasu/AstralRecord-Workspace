@@ -59,8 +59,8 @@ public final class DebugFishingRodUseService {
     static final double WATER_SINK_SPEED_PER_TICK = 0.08D;
     static final int ROPE_SEGMENT_COUNT = 20;
     static final int ROPE_NODE_COUNT = ROPE_SEGMENT_COUNT + 1;
-    static final int LINE_PARTICLE_INTERVAL_TICKS = 4;
-    static final int MAX_LINE_POINTS_PER_SEGMENT = 8;
+    static final int LINE_PARTICLE_INTERVAL_TICKS = 1;
+    static final int MAX_LINE_POINTS_PER_SEGMENT = 4;
     private static final double LINE_PARTICLE_SPACING = 0.15D;
     static final double ROPE_GRAVITY_PER_TICK = HOOK_GRAVITY_PER_TICK * 0.4D;
     static final double ROPE_WATER_SINK_SPEED_PER_TICK = WATER_SINK_SPEED_PER_TICK * 0.5D;

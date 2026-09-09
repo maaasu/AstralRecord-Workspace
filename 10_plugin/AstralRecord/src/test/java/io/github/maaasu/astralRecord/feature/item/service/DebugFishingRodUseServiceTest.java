@@ -90,7 +90,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
      */
     @Test
     void renderRopeUsesPhysicalNodePositionsWithBoundedBlackDust() {
-        assertEquals(4, DebugFishingRodUseService.LINE_PARTICLE_INTERVAL_TICKS);
+        assertEquals(1, DebugFishingRodUseService.LINE_PARTICLE_INTERVAL_TICKS);
         FishingFixture fixture = fishingFixture();
         World world = fixture.bukkitPlayer().getWorld();
         when(world.getPlayers()).thenReturn(List.of(fixture.bukkitPlayer()));
@@ -105,12 +105,12 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         verify(fixture.particles()).spawnForNearbyViewers(eq(rod), points.capture(),
             eq(SharedParticleDefinitions.FISHING_ROD_LINE));
         List<Location> rendered = List.copyOf(points.getValue());
-        assertEquals(16, rendered.size());
+        assertEquals(8, rendered.size());
         assertEquals(rod, rendered.getFirst());
-        assertEquals(active.ropeNodes.get(1), rendered.get(8));
-        for (int index = 0; index < 8; index++) {
+        assertEquals(active.ropeNodes.get(1), rendered.get(4));
+        for (int index = 0; index < 4; index++) {
             assertEquals(0, rendered.get(index).getX());
-            assertEquals(60, rendered.get(index + 8).getY());
+            assertEquals(60, rendered.get(index + 4).getY());
         }
         org.bukkit.Particle.DustOptions dust = (org.bukkit.Particle.DustOptions)
             SharedParticleDefinitions.FISHING_ROD_LINE.data();
