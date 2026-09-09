@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -311,6 +312,63 @@ public class ItemService {
         }
 
         return loadedMasterData.items().get(normalizedId);
+    }
+
+    /**
+     * ロード済みアイテムを ID またはプレイヤー向け表示名で検索します。
+     * <p>
+     * ID が一致する場合は ID を優先し、表示名は legacy color code を除去して大小を無視して比較します。
+     * API への追加取得は行いません。
+     *
+     * @param itemIdentifier アイテム ID または表示名
+     * @return 一致したロード済みアイテム。見つからない場合は {@code null}
+     */
+    public @Nullable ItemModel findLoadedByIdOrName(@NotNull String itemIdentifier) {
+        ItemModel byId = findLoadedById(itemIdentifier);
+        if (byId != null) {
+            return byId;
+        }
+
+        String normalizedName = normalize(ColorCodeUtil.toPlainText(itemIdentifier, ""));
+        if (normalizedName.isBlank()) {
+            return null;
+        }
+
+        return getLoadedItems().stream()
+            .filter(item -> normalizedName.equals(
+                normalize(ColorCodeUtil.toPlainText(item.getName(), ""))))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * ロード済みアイテムをカテゴリーとプレイヤー向け表示名で検索します。
+     * <p>
+     * 表示名は legacy color code を除去して大小を無視して比較します。カテゴリーは
+     * {@link ItemCategory} で解決するため、未知のカテゴリーは {@code unknown} として扱います。
+     * API への追加取得は行いません。
+     *
+     * @param category カテゴリーの API 値
+     * @param itemName アイテム表示名
+     * @return 一致したロード済みアイテム。見つからない場合は {@code null}
+     */
+    public @Nullable ItemModel findLoadedByCategoryAndName(
+        @NotNull String category,
+        @NotNull String itemName
+    ) {
+        String normalizedCategory = ItemCategory.fromApiValue(category).getApiValue();
+        String normalizedName = normalize(ColorCodeUtil.toPlainText(itemName, ""));
+        if (normalizedName.isBlank()) {
+            return null;
+        }
+
+        return getLoadedItems().stream()
+            .filter(item -> normalizedCategory.equals(
+                ItemCategory.fromApiValue(item.getCategory()).getApiValue()))
+            .filter(item -> normalizedName.equals(
+                normalize(ColorCodeUtil.toPlainText(item.getName(), ""))))
+            .findFirst()
+            .orElse(null);
     }
 
     private @Nullable ItemModel resolveBuiltinItem(@NotNull String normalizedId) {

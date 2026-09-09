@@ -31,9 +31,9 @@ public class AccountTabCompleter extends AstTabCompleter {
             if (hasAdminPermission(sender)) {
                 return List.of("rename", "mode", "delete", "switch");
             }
-            return List.of("rename");
+            return List.of();
         }
-        if (!hasAdminPermission(sender) && !args[0].equalsIgnoreCase("rename")) {
+        if (!hasAdminPermission(sender)) {
             return List.of();
         }
         if (args.length > 1 && args[0].equalsIgnoreCase("mode")) {

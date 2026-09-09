@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -29,11 +30,15 @@ public final class AccountRenameCommand extends AstCommand {
 
     public AccountRenameCommand() {
         super("accountrename", "アカウント名を変更します。", "/account rename <accountName>", false,
-            AstCommand.PERMISSION_NONE);
+            UserPermission.ADMIN.getValue());
     }
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (!hasAdminPermission(sender)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            return;
+        }
         if (!(sender instanceof Player player)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
             return;
@@ -95,5 +100,13 @@ public final class AccountRenameCommand extends AstCommand {
             current = current.getCause();
         }
         return current;
+    }
+
+    private boolean hasAdminPermission(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            return true;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 }

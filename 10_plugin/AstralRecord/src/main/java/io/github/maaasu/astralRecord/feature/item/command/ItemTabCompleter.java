@@ -1,9 +1,12 @@
 package io.github.maaasu.astralRecord.feature.item.command;
 
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -39,8 +42,12 @@ public class ItemTabCompleter extends AstTabCompleter {
             return subCommands;
         }
 
-        if (args.length == 2 && (args[0].equalsIgnoreCase("load") || args[0].equalsIgnoreCase("get"))) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("load")) {
             return itemService.getLoadedItemIds();
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("get")) {
+            return getLoadedItemNameCompletions();
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("get")) {
@@ -54,6 +61,18 @@ public class ItemTabCompleter extends AstTabCompleter {
         }
 
         return List.of();
+    }
+
+    private List<String> getLoadedItemNameCompletions() {
+        List<String> completions = new ArrayList<>();
+        for (ItemModel item : itemService.getLoadedItems()) {
+            String itemName = ColorCodeUtil.toPlainText(item.getName(), "").trim();
+            if (itemName.isBlank()) {
+                continue;
+            }
+            completions.add("[" + ItemCategory.displayNameJa(item.getCategory()) + "]" + itemName);
+        }
+        return completions;
     }
 
     private boolean hasAdminPermission(@NotNull CommandSender sender) {

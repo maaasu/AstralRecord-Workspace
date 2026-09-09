@@ -34,7 +34,7 @@ public class ItemCommand extends AstCommand {
      * @param itemService アイテムサービス
      */
     public ItemCommand(@NotNull ItemService itemService) {
-        super("item", "アイテムを読み込み、取得します。", "/item [load|get] <itemId> [amount] [player]",
+        super("item", "アイテムを読み込み、取得します。", "/item load <itemId> | get <itemId|itemName> [amount] [player]",
                 false, UserPermission.ADMIN.getValue());
         this.itemService = itemService;
     }
@@ -106,7 +106,7 @@ public class ItemCommand extends AstCommand {
             return;
         }
 
-        var itemId = args[1];
+        var itemIdentifier = args[1];
         int amount = 1;
         String targetName = null;
         if (args.length == 3) {
@@ -131,9 +131,9 @@ public class ItemCommand extends AstCommand {
             return;
         }
 
-        var model = itemService.findLoadedById(itemId);
+        var model = resolveItem(itemIdentifier);
         if (model == null) {
-            PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_5213, itemId);
+            PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_5213, itemIdentifier);
             return;
         }
 
@@ -169,6 +169,31 @@ public class ItemCommand extends AstCommand {
                 granted
             );
         }
+    }
+
+    /**
+     * ID、表示名、またはカテゴリータグ付き表示名からロード済みアイテムを解決します。
+     *
+     * @param itemIdentifier ID、表示名、または {@code [カテゴリー表示名]アイテム名}
+     * @return 一致したロード済みアイテム。見つからない場合は {@code null}
+     */
+    private @Nullable ItemModel resolveItem(@NotNull String itemIdentifier) {
+        String trimmed = itemIdentifier.trim();
+        if (trimmed.startsWith("[")) {
+            int closingBracket = trimmed.indexOf(']');
+            if (closingBracket > 1) {
+                String categoryDisplayName = trimmed.substring(1, closingBracket);
+                for (ItemCategory category : ItemCategory.values()) {
+                    if (category.getDisplayNameJa().equals(categoryDisplayName)) {
+                        return itemService.findLoadedByCategoryAndName(
+                            category.getApiValue(),
+                            trimmed.substring(closingBracket + 1).trim()
+                        );
+                    }
+                }
+            }
+        }
+        return itemService.findLoadedByIdOrName(trimmed);
     }
 
     /**

@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountDeleteResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -15,11 +17,13 @@ import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -422,7 +426,7 @@ class AccountSwitchCommandTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
      * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント補完候補取得
-     * 検証契約: 管理者権限のないプレイヤーにも、自分用の rename 補完だけを返す。
+     * 検証契約: 管理者権限のないプレイヤーにはアカウント管理サブコマンドの補完候補を返さない。
      */
     @Test
     void hidesAccountCompletionFromNonAdmin() {
@@ -433,13 +437,47 @@ class AccountSwitchCommandTest {
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
 
-            assertEquals(List.of("rename"), new AccountTabCompleter().onTabComplete(
+            assertEquals(List.of(), new AccountTabCompleter().onTabComplete(
                 player,
                 null,
                 "account",
                 new String[] {""}
             ));
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
+     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント名変更
+     * 検証契約: 非管理者が親コマンド経由で rename を実行しても権限エラーとなり、アカウント名変更サービスを呼び出さない。
+     */
+    @Test
+    void rejectsRenameFromNonAdminThroughAccountCommand() {
+        UUID userId = UUID.randomUUID();
+        Player player = player(userId, "tester");
+        AstPlayer astPlayer = astPlayer(userId, UUID.randomUUID());
+        when(astPlayer.hasAdminPermission()).thenReturn(false);
+        when(astPlayer.hasPermissionLevel(UserPermission.ADMIN.getValue())).thenReturn(false);
+        Fixture fixture = fixture(player, astPlayer);
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin());
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(fixture.messageService());
+
+            new AccountCommand().executeCommand(player, new String[] {"rename", "Renamed"});
+        }
+
+        verify(fixture.accountService(), never()).renameAccount(any(), any(), any());
+        verify(fixture.messageService()).sendRaw(
+            eq((CommandSender) player),
+            eq(ColorCodeUtil.colorize(
+                ColorCodeUtil.RED,
+                PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId())
+            ))
+        );
     }
 
     private void runCommand(Fixture fixture, Player player, AstPlayer astPlayer, String slot) {
