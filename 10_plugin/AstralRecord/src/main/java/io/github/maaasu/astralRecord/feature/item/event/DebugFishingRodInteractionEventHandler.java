@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** デバッグ釣り竿の発射とキャスト中の入力抑止を共通入力gatewayへ接続します。 */
+/** デバッグ釣り竿の発射と回収を共通入力gatewayへ接続します。 */
 public final class DebugFishingRodInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -81,12 +81,12 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
     }
 
     /**
-     * キャスト中の再入力を消費し、繰り出した糸の巻き取りとバニラ釣りを防ぎます。
+     * キャスト中の再入力を回収へ接続し、バニラ釣りを抑止します。
      *
      * @param snapshot 入力時の状態
      * @param astPlayer キャスト中のプレイヤー
      * @param equipmentInstanceId 現在の釣り竿
-     * @return 同じ釣り竿のキャスト中だけ有効な入力抑止候補
+     * @return 同じ釣り竿のキャスト中だけ有効な回収候補
      */
     private @NotNull Collection<PlayerInputCandidate> resolveActiveCastCandidate(
         @NotNull PlayerInteractionSnapshot snapshot,
@@ -102,7 +102,11 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> useService.isCurrentFishingRod(astPlayer, equipmentInstanceId)
                 && useService.isCasting(astPlayer),
-            () -> { /* 巻き取りは行わず、入力だけを消費する。 */ }
+            () -> runSafely(
+                () -> useService.retract(astPlayer),
+                LogId.E_3002,
+                "debug_fishing_rod_retract:" + snapshot.player().getName()
+            )
         ));
     }
 

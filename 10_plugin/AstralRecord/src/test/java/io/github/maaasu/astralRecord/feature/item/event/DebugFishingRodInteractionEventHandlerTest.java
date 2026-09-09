@@ -66,10 +66,10 @@ class DebugFishingRodInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### デバッグ釣り竿入力候補解決
-     * 検証契約: キャスト中のmain hand右クリックは入力だけをclaimし、再発射・巻き取りを行わない。
+     * 検証契約: キャスト中のmain hand右クリックは回収を開始し、再発射しない。
      */
     @Test
-    void consumesRightClickWithoutRecastingWhileCasting() {
+    void retrievesOnRightClickWithoutRecastingWhileCasting() {
         Fixture fixture = fixture();
         when(fixture.service.findCurrentFishingRodInstanceId(fixture.astPlayer)).thenReturn("rod-instance");
         when(fixture.service.isCasting(fixture.astPlayer)).thenReturn(true);
@@ -86,6 +86,7 @@ class DebugFishingRodInteractionEventHandlerTest {
         assertEquals(InputClaimPolicy.CLAIM_AND_CANCEL, candidate.claimPolicy());
         assertTrue(candidate.executeIfValid());
         verify(fixture.service, never()).cast(fixture.astPlayer);
+        verify(fixture.service).retract(fixture.astPlayer);
         verify(fixture.service, never()).cancel(fixture.playerId);
     }
 

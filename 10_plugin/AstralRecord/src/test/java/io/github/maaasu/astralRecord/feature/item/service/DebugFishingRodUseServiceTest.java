@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -25,6 +26,7 @@ import org.bukkit.SoundCategory;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -36,6 +38,8 @@ import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -48,12 +52,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
@@ -141,6 +147,91 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         fixture.service().renderRope(active);
 
         verify(ropeDisplays.get(1)).teleport(eq(expectedPosition));
+        fixture.service().renderRope(active);
+        verify(ropeDisplays.get(1), times(2)).setInterpolationDelay(0);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 距離ステータス35で35mへ発射し、1tick補間、回収音1回、回収後の全Entity・task解放と再発射を満たす。
+     */
+    @Test
+    void retrievesToRodAndCleansUpBeforeRecasting() {
+        FishingFixture fixture = fishingFixture();
+        when(fixture.status().rollValue(StatusType.CAST_DISTANCE)).thenReturn(35.0D);
+        fixture.service().cast(fixture.astPlayer());
+        ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
+        verify(fixture.scheduler()).runTaskTimer(any(), runnable.capture(), eq(1L), eq(1L));
+        for (BlockDisplay display : fixture.displays()) {
+            verify(display).setTeleportDuration(1);
+            verify(display).setInterpolationDuration(1);
+        }
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(fixture.bukkitPlayer())).thenReturn(fixture.astPlayer());
+            for (int tick = 0; tick < 24; tick++) {
+                runnable.getValue().run();
+            }
+            ArgumentCaptor<Location> hookPositions = ArgumentCaptor.forClass(Location.class);
+            verify(fixture.displays().getFirst(), times(25)).teleport(hookPositions.capture());
+            Location tip = DebugFishingRodUseService.resolveRodTip(fixture.bukkitPlayer().getEyeLocation(),
+                fixture.bukkitPlayer().getEyeLocation().getDirection());
+            assertEquals(35.0D, hookPositions.getValue().distance(tip), 1.0E-6D);
+            fixture.service().retract(fixture.astPlayer());
+            fixture.service().retract(fixture.astPlayer());
+            assertTrue(fixture.service().isCasting(fixture.astPlayer()));
+            for (int tick = 0; tick < 24; tick++) {
+                runnable.getValue().run();
+            }
+        }
+        assertFalse(fixture.service().isCasting(fixture.astPlayer()));
+        assertTrue(fixture.service().canCast(fixture.astPlayer()));
+        for (BlockDisplay display : fixture.displays()) {
+            verify(display).remove();
+        }
+        verify(fixture.task()).cancel();
+        verify(fixture.bukkitPlayer()).playSound(any(Location.class),
+            eq(Sound.ENTITY_FISHING_BOBBER_RETRIEVE), eq(SoundCategory.PLAYERS), anyFloat(), anyFloat());
+        fixture.service().cast(fixture.astPlayer());
+        assertTrue(fixture.service().isCasting(fixture.astPlayer()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 回収は障害物を迂回した糸の経路をたどり、長さを減らして竿先へ戻る。
+     */
+    @Test
+    void retrievalFollowsBentLineAroundBlock() {
+        BoundingBox solid = new BoundingBox(1, -1, -1, 3, 1, 1);
+        World world = scene(solid, false);
+        Location rod = new Location(world, 0, 0, 0);
+        DebugFishingRodUseService.ActiveCast active = new DebugFishingRodUseService.ActiveCast(
+            "rod", rod.clone(), rod.clone(), new Location(world, 4, 0, 0), 8,
+            false, mock(BlockDisplay.class), List.of());
+        active.currentHook = new Location(world, 4, 0, 0);
+        active.ropeNodes.set(0, rod.clone());
+        active.ropeNodes.set(1, new Location(world, 0, 2, 0));
+        active.ropeNodes.set(2, new Location(world, 4, 2, 0));
+        for (int index = 3; index < active.ropeNodes.size(); index++) {
+            active.ropeNodes.set(index, active.currentHook.clone());
+        }
+        active.deployedLineLength = 8;
+        active.phase = DebugFishingRodUseService.CastPhase.RETRACTING;
+        double length = 8;
+        boolean arrived = false;
+        for (int tick = 0; tick < 8 && !arrived; tick++) {
+            Location previous = active.currentHook.clone();
+            arrived = DebugFishingRodUseService.advanceHook(active);
+            DebugFishingRodUseService.advanceRope(active);
+            assertFalse(solid.contains(active.currentHook.toVector()));
+            assertTrue(previous.distance(active.currentHook) <= 2.00001);
+            assertTrue(DebugFishingRodUseService.polylineLength(active.ropeNodes) <= length);
+            length = DebugFishingRodUseService.polylineLength(active.ropeNodes);
+        }
+        assertTrue(arrived);
+        assertEquals(0, active.currentHook.distance(rod), 1.0E-8);
+        assertEquals(0, length, 1.0E-8);
     }
 
     /**
@@ -379,6 +470,54 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 水面の2m上から水平に35をキャストすると、針と糸を同時更新しても35m先まで届き、最大糸長を超えない。
+     */
+    @Test
+    void castDistanceThirtyFiveReachesThirtyFiveMeters() {
+        World world = scene(null, true);
+        Location start = new Location(world, 0, 2, 0);
+        DebugFishingRodUseService.ActiveCast active = activeCast(start, start.clone().add(35, 0, 0));
+        double furthest = 0;
+        for (int tick = 0; tick < 80; tick++) {
+            DebugFishingRodUseService.advanceHook(active);
+            DebugFishingRodUseService.advanceRope(active);
+            furthest = Math.max(furthest, active.currentHook.getX());
+            assertTrue(active.currentHook.distance(active.rodTip) <= 35.001D);
+            assertTrue(DebugFishingRodUseService.polylineLength(active.ropeNodes) <= 35.001D);
+            if (active.inWater) {
+                break;
+            }
+        }
+        assertTrue(furthest >= 34.99D, "35m指定の実到達距離=" + furthest);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 視線変更で竿先が固体内に入り再補正も解けないtickは、竿先を含む直前の安全な糸を保持する。
+     */
+    @Test
+    void unresolvedRodTipCollisionKeepsLastClearRope() {
+        BoundingBox obstacle = new BoundingBox(-0.5, -1, -0.5, 0.5, 0, 0.5);
+        World world = scene(obstacle, false);
+        Location start = new Location(world, -2, 1, 0);
+        DebugFishingRodUseService.ActiveCast active = activeCast(start, start.clone().add(6, 0, 0));
+        for (int tick = 0; tick < 4; tick++) {
+            DebugFishingRodUseService.advanceHook(active);
+            DebugFishingRodUseService.advanceRope(active);
+        }
+        List<Location> previous = active.ropeNodes.stream().map(Location::clone).toList();
+        active.rodTip = new Location(world, 0, -0.2, 0);
+        DebugFishingRodUseService.advanceHook(active);
+        DebugFishingRodUseService.advanceRope(active);
+        assertEquals(previous, active.ropeNodes);
+        assertEquals(previous.getFirst(), active.rodTip);
+        assertEquals(previous.getLast(), active.currentHook);
+    }
+
     /** 幾何学的な固体boxと任意の水面を持つworldを、移動区間に応じて応答させます。 */
     private static World scene(BoundingBox solid, boolean water) {
         World world = mock(World.class);
@@ -388,6 +527,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         Block stone = mock(Block.class);
         when(stone.getType()).thenReturn(Material.STONE);
         when(stone.isPassable()).thenReturn(false);
+        when(stone.getBoundingBox()).thenReturn(solid);
         Block liquid = mock(Block.class);
         when(liquid.getType()).thenReturn(Material.WATER);
         when(liquid.isPassable()).thenReturn(true);
@@ -407,10 +547,10 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
                 Vector origin = ((Location) call.getArgument(0)).toVector();
                 Vector direction = call.getArgument(1);
                 double distance = call.getArgument(2);
-                RayTraceResult hit = solid == null ? null : solid.rayTrace(origin, direction, distance);
+                RayTraceResult hit = solid == null ? null : traceBox(solid, origin, direction, distance);
                 Block hitBlock = stone;
                 if (water && call.getArgument(3) != FluidCollisionMode.NEVER && !waterBox.contains(origin)) {
-                    RayTraceResult waterHit = waterBox.rayTrace(origin, direction, distance);
+                    RayTraceResult waterHit = traceBox(waterBox, origin, direction, distance);
                     if (waterHit != null && (hit == null || origin.distanceSquared(waterHit.getHitPosition())
                         < origin.distanceSquared(hit.getHitPosition()))) {
                         hit = waterHit;
@@ -420,6 +560,44 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
                 return hit == null ? null : new RayTraceResult(hit.getHitPosition(), hitBlock, hit.getHitBlockFace());
             });
         return world;
+    }
+
+    /** 軸と平行かつ面上のrayでもゼロ除算せず、箱の進入・退出位置を求めます。 */
+    private static RayTraceResult traceBox(BoundingBox box, Vector origin, Vector direction, double distance) {
+        double[] minimum = {box.getMinX(), box.getMinY(), box.getMinZ()};
+        double[] maximum = {box.getMaxX(), box.getMaxY(), box.getMaxZ()};
+        double[] position = {origin.getX(), origin.getY(), origin.getZ()};
+        double[] velocity = {direction.getX(), direction.getY(), direction.getZ()};
+        BlockFace[] negative = {BlockFace.WEST, BlockFace.DOWN, BlockFace.NORTH};
+        BlockFace[] positive = {BlockFace.EAST, BlockFace.UP, BlockFace.SOUTH};
+        double near = Double.NEGATIVE_INFINITY;
+        double far = Double.POSITIVE_INFINITY;
+        BlockFace entryFace = null;
+        BlockFace exitFace = null;
+        for (int axis = 0; axis < 3; axis++) {
+            if (Math.abs(velocity[axis]) <= 1.0E-12D) {
+                if (position[axis] < minimum[axis] || position[axis] > maximum[axis]) {
+                    return null;
+                }
+                continue;
+            }
+            double first = (minimum[axis] - position[axis]) / velocity[axis];
+            double second = (maximum[axis] - position[axis]) / velocity[axis];
+            if (Math.min(first, second) > near) {
+                near = Math.min(first, second);
+                entryFace = first < second ? negative[axis] : positive[axis];
+            }
+            if (Math.max(first, second) < far) {
+                far = Math.max(first, second);
+                exitFace = first < second ? positive[axis] : negative[axis];
+            }
+            if (near > far) {
+                return null;
+            }
+        }
+        double hit = near >= 0 ? near : far;
+        return hit < 0 || hit > distance || !Double.isFinite(hit) ? null
+            : new RayTraceResult(origin.clone().add(direction.clone().multiply(hit)), near >= 0 ? entryFace : exitFace);
     }
 
     private static DebugFishingRodUseService.ActiveCast activeCast(Location start, Location target) {
@@ -445,7 +623,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         Player bukkitPlayer = mock(Player.class);
         AstPlayer astPlayer = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
-        World world = mock(World.class);
+        World world = scene(null, false);
         Location eyeLocation = new Location(world, 0.0D, 64.0D, 0.0D, 0.0F, 0.0F);
         Location playerLocation = new Location(world, 0.0D, 64.0D, 0.0D);
         UUID playerId = UUID.randomUUID();
@@ -458,6 +636,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         when(bukkitPlayer.isDead()).thenReturn(false);
         when(bukkitPlayer.getEyeLocation()).thenReturn(eyeLocation);
         when(bukkitPlayer.getLocation()).thenReturn(playerLocation);
+        when(bukkitPlayer.getWorld()).thenReturn(world);
 
         InventoryEntryModel entry = mock(InventoryEntryModel.class);
         ItemReference reference = new ItemReference("debug-fishing-rod", "EQUIPMENT", "rod-instance");
@@ -485,16 +664,24 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
         when(plugin.getServer()).thenReturn(server);
         when(server.getScheduler()).thenReturn(scheduler);
+        when(server.getPlayer(playerId)).thenReturn(bukkitPlayer);
+        BukkitTask task = mock(BukkitTask.class);
         when(scheduler.runTaskTimer(eq(plugin), any(Runnable.class), eq(1L), eq(1L)))
-            .thenReturn(mock(BukkitTask.class));
+            .thenReturn(task);
 
-        BlockDisplay display = mock(BlockDisplay.class);
-        when(display.isValid()).thenReturn(true);
+        List<BlockDisplay> displays = new ArrayList<>();
         when(world.spawn(
             any(Location.class),
             eq(BlockDisplay.class),
             ArgumentMatchers.<Consumer<BlockDisplay>>any()
-        )).thenReturn(display);
+        )).thenAnswer(invocation -> {
+            BlockDisplay display = mock(BlockDisplay.class);
+            when(display.isValid()).thenReturn(true);
+            Consumer<BlockDisplay> initializer = invocation.getArgument(2);
+            initializer.accept(display);
+            displays.add(display);
+            return display;
+        });
 
         DebugFishingRodUseService service = new DebugFishingRodUseService(
             plugin,
@@ -503,7 +690,8 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
             statusService,
             particleDisplayService
         );
-        return new FishingFixture(service, astPlayer, bukkitPlayer, playerLocation, particleDisplayService);
+        return new FishingFixture(service, astPlayer, bukkitPlayer, playerLocation, particleDisplayService,
+            scheduler, displays, task, status);
     }
 
     private record FishingFixture(
@@ -511,7 +699,11 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         AstPlayer astPlayer,
         Player bukkitPlayer,
         Location playerLocation,
-        ParticleDisplayService particles
+        ParticleDisplayService particles,
+        BukkitScheduler scheduler,
+        List<BlockDisplay> displays,
+        BukkitTask task,
+        StatusSnapshot status
     ) {
     }
 }
