@@ -1,0 +1,21 @@
+# design:
+#   motif: "秘術 / 賢者"
+#   progression: 3
+schemaVersion: 1
+id: arc_sage
+type: CLASS
+name: "&dアークセージ"
+order: 3.6
+shortName: "&dACS"
+description: "&7秘術で味方を支える賢者。"
+icon: BLAZE_ROD
+role: SUPPORT
+maxLevel: 100
+unlockLevel: 3
+unlockClassLevel:
+  - class: archmage
+    level: 10
+baseStats: [{ status: MAX_HEALTH, value: 85 }, { status: MAX_MANA, value: 110 }, { status: MAX_ENERGY, value: 30 }, { status: STRENGTH, value: 2 }, { status: DEXTERITY, value: 3 }, { status: INTELLIGENCE, value: 10 }, { status: VITALITY, value: 4 }, { status: AGILITY, value: 4 }, { status: LUCK, value: 4 }, { status: ATTACK, value: 6 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 2 }, { status: DEFENSE, value: 3 }, { status: MAGIC_DEFENSE, value: 7 }, { status: SHIELD_BREAK, value: 1 }, { status: MOVEMENT_SPEED_CAP, value: 160 }]
+growthPerLevel: [{ status: MAX_HEALTH, value: 4 }, { status: MAX_MANA, value: 3 }, { status: MAX_ENERGY, value: 1 }, { status: INTELLIGENCE, value: 1.4 }, { status: VITALITY, value: 0.5 }, { status: AGILITY, value: 0.3 }, { status: ATTACK, value: 0.7 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 0.1 }, { status: MAGIC_DEFENSE, value: 0.8 }, { status: MP_REGEN, value: 0.05 }, { status: SHIELD_BREAK, value: 0.1 }]
+expRate: 220
+usableSkills: [skill:adventurer_mana_burst, skill:adventurer_lightning_bolt, skill:mage_heal_aura]

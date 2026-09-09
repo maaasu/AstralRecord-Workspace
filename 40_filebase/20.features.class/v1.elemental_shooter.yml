@@ -1,0 +1,21 @@
+# design:
+#   motif: "元素 / 属性矢"
+#   progression: 3
+schemaVersion: 1
+id: elemental_shooter
+type: CLASS
+name: "&aエレメンタルシューター"
+order: 3.3
+shortName: "&aESH"
+description: "&7属性矢を操る精密射手。"
+icon: BOW
+role: DEALER
+maxLevel: 100
+unlockLevel: 3
+unlockClassLevel:
+  - class: sharpshooter
+    level: 10
+baseStats: [{ status: MAX_HEALTH, value: 100 }, { status: MAX_MANA, value: 40 }, { status: MAX_ENERGY, value: 60 }, { status: STRENGTH, value: 4 }, { status: DEXTERITY, value: 8 }, { status: INTELLIGENCE, value: 3 }, { status: VITALITY, value: 5 }, { status: AGILITY, value: 8 }, { status: LUCK, value: 6 }, { status: ATTACK, value: 7 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 3 }, { status: DEFENSE, value: 4 }, { status: MAGIC_DEFENSE, value: 4 }, { status: MOVEMENT_SPEED_CAP, value: 175 }]
+growthPerLevel: [{ status: MAX_HEALTH, value: 5 }, { status: MAX_MANA, value: 1 }, { status: MAX_ENERGY, value: 1 }, { status: DEXTERITY, value: 1.2 }, { status: AGILITY, value: 1 }, { status: LUCK, value: 0.4 }, { status: ATTACK, value: 0.9 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 0.2 }, { status: DEFENSE, value: 0.3 }, { status: MAGIC_DEFENSE, value: 0.3 }]
+expRate: 220
+usableSkills: [skill:adventurer_blast_arrow, skill:adventurer_quick_shot, skill:hunter_fade_shot, skill:hunter_arrow_rain]
