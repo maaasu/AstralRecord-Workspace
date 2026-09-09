@@ -21,6 +21,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -75,6 +76,51 @@ class DodgeServiceSpellStepTest extends MockBukkitTestBase {
 
         verify(statusService).consumeEnergy(player, 0.0D);
         verify(statusService).getStatus(player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### ドッジ実行
+     * 検証契約: しゃがみ開始から解除まで座標が変わらない場合、視線の反対方向へドッジする。
+     */
+    @Test
+    void sameStartAndEndLocationDodgeMovesBackward() {
+        PlayerMock bukkitPlayer = server().addPlayer();
+        bukkitPlayer.teleport(new Location(bukkitPlayer.getWorld(), 0.0D, 64.0D, 0.0D, 0.0F, 0.0F));
+        bukkitPlayer.getWorld().getBlockAt(0, 63, 0).setType(Material.STONE);
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+
+        AstralRecord plugin = mock(AstralRecord.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+
+        StatusService statusService = mock(StatusService.class);
+        when(statusService.getStatus(player)).thenReturn(
+                DesignTestFixtures.statusSnapshot(Map.of(), 100.0D, 100.0D, 100.0D)
+        );
+        InventoryService inventoryService = mock(InventoryService.class);
+        when(inventoryService.getItemModelInHand(eq(player), eq(EquipmentSlot.HAND)))
+            .thenReturn(DesignTestFixtures.equipmentItem(
+                "test_weapon",
+                "test_weapon",
+                ItemEquipmentStatType.FLAT
+            ));
+        DodgeService dodgeService = new DodgeService(
+                plugin,
+                statusService,
+                inventoryService,
+                mock(PlayerHudService.class),
+                mock(ParticleDisplayService.class)
+        );
+
+        assertTrue(dodgeService.beginSneakWindow(player));
+        dodgeService.tryTriggerOnSneakRelease(player);
+
+        assertEquals(0.0D, bukkitPlayer.getVelocity().getX(), 1.0E-9D);
+        assertEquals(0.15D, bukkitPlayer.getVelocity().getY(), 1.0E-9D);
+        assertEquals(-1.0D, bukkitPlayer.getVelocity().getZ(), 1.0E-9D);
     }
 
     /**

@@ -195,7 +195,7 @@ public class DodgeService {
      * ドッジを実行します（条件チェック済み前提）。
      *
      * @param astPlayer            対象プレイヤー
-     * @param sneakStartedAtLocation しゃがみ開始時の座標（null の場合は視線方向にフォールバック）
+     * @param sneakStartedAtLocation しゃがみ開始時の座標（null の場合は視線の反対方向にフォールバック）
      * @param energyCost           このドッジで消費するエネルギー量
      */
     private void executeDodge(
@@ -221,7 +221,7 @@ public class DodgeService {
     /**
      * ドッジ方向のベクトルを計算します。
      * しゃがみ開始から解除までのプレイヤー移動方向（XZ 平面）を採用し、
-     * 移動量が小さい場合のみ視線方向へフォールバックします。最後にジャンプ風の上昇成分を僅かに付加します。
+     * 移動量が小さい場合のみ視線の反対方向へフォールバックします。最後にジャンプ風の上昇成分を僅かに付加します。
      *
      * @param player                 対象 Bukkit プレイヤー
      * @param sneakStartedAtLocation しゃがみ開始時の座標
@@ -244,6 +244,7 @@ public class DodgeService {
             } else {
                 direction.normalize();
             }
+            direction.multiply(-1.0D);
         }
         direction.multiply(DODGE_HORIZONTAL_STRENGTH);
         direction.setY(DODGE_VERTICAL_STRENGTH);
