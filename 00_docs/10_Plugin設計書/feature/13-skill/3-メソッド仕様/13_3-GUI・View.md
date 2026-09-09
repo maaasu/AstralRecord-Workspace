@@ -95,3 +95,5 @@ NPC の `SKILL_FORGET` アクションからだけ開く、54 slot・45件/ペ�
 ビームは packet-only の縦長 `BlockDisplay` とし、スキルツリー内で node が通常表示対象なら通常の48ブロック表示距離に関係なく送信する。`VERTICAL` billboard と十分に大きい view range を使うため、プレイヤー方向の yaw へ追従し、pitch は固定する。黄色強調は既定で有効、status 絞り込みは既定で空集合（無効）であり、いずれも viewer ごとのメモリ状態だけで保持して logout 時に破棄する。
 
 `SKILL_TREE_COMPACT_DISPLAY` は user 単位で保存する boolean 設定で、`/setting skill_tree_compact_display <on|off>` とプレイヤー設定 GUI の slot 33 から変更する。既定は `false`。有効時の node ラベルはノード名、状態・条件・lore、`ステータス` / `スキル` の区切りを表示せず、Cost 行、各ステータス補正、解放するスキル名だけを表示する。設定変更と login warmup 完了時は、本人のスキルツリー表示をdirty化して再描画する。
+
+ノードのステータス補正値は、`75.shared.status` 共有カタログの `decimalPlaces` に従って表示し、小数値を整数へ丸めて表示しない。

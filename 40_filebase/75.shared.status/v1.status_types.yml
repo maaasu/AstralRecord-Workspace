@@ -37,7 +37,7 @@ statuses:
   - { id: FINAL_DAMAGE_MULTIPLIER, displayName: "最終ダメージ倍率", description: "各種補正の後に常時適用される最終ダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ACCURACY, displayName: "命中率", description: "攻撃が対象へ命中する確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ATTACK_SPEED, displayName: "攻撃速度", description: "通常攻撃や攻撃行動を行う速さ。", category: OFFENSE, suffix: "%" }
-  - { id: SHIELD_BREAK, displayName: "シールドブレイク", description: "対象のシールドを削る攻撃性能。", category: OFFENSE }
+  - { id: SHIELD_BREAK, displayName: "シールドブレイク", description: "対象のシールドを削る攻撃性能。", category: OFFENSE, decimalPlaces: 2 }
   - { id: FIXED_HEALTH_DAMAGE, displayName: "HP固定ダメージ", description: "直接攻撃の命中時に、防御・会心・属性・最終ダメージ倍率を無視してHPへ加算するダメージ。シールド有効中は発生しない。", category: OFFENSE }
   - { id: SHIELD_RECHARGE_DELAY_CHANCE, displayName: "シールドリチャージ加算率", description: "直接攻撃時に対象のシールドリチャージ時間を延長する確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_DELAY_SECONDS, displayName: "シールドリチャージ加算値", description: "シールドリチャージ加算率の抽選成功時に対象へ追加する基礎秒数。", category: OFFENSE, suffix: "秒", decimalPlaces: 1 }
@@ -89,8 +89,8 @@ statuses:
   - { id: MAGIC_DEFENSE, displayName: "魔法防御力", description: "魔法攻撃から受けるダメージを追加で抑える防御性能。", category: DEFENSE }
   - { id: EVASION, displayName: "回避率", description: "攻撃を回避して無効化する確率。", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: KNOCKBACK_RESISTANCE, displayName: "ノックバック耐性", description: "攻撃を受けたときにノックバックしにくくする補正。", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
-  - { id: HP_REGEN, displayName: "HP回復力", description: "時間経過などでHPを回復する量。", category: UTILITY }
-  - { id: MP_REGEN, displayName: "MP回復力", description: "時間経過などでMPを回復する量。", category: UTILITY }
+  - { id: HP_REGEN, displayName: "HP回復力", description: "時間経過などでHPを回復する量。", category: UTILITY, decimalPlaces: 1 }
+  - { id: MP_REGEN, displayName: "MP回復力", description: "時間経過などでMPを回復する量。", category: UTILITY, decimalPlaces: 1 }
   - { id: ENERGY_REGEN, displayName: "ENG回復力", description: "時間経過などでENGを回復する量。", category: UTILITY }
   - { id: MOVEMENT_SPEED, displayName: "移動速度", description: "フィールド上を移動する速さ。", category: UTILITY }
   - { id: MOVEMENT_SPEED_CAP, displayName: "移動速度上限", description: "通常状態で適用できる移動速度の上限。", category: UTILITY, supportsRange: false }

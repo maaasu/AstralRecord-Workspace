@@ -249,6 +249,47 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: ステータス補正の定義値が小数の場合、スキルツリーのノードラベルへ定義された小数桁を表示する。
+     */
+    @Test
+    void nodeFieldLabelDisplaysFractionalStatusModifiers() {
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Fractional Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition(null, 0),
+                List.of(
+                        new SkillTreeStatusEffect(StatusType.HP_REGEN, StatusModifierType.FLAT, 0.5D),
+                        new SkillTreeStatusEffect(StatusType.SHIELD_BREAK, StatusModifierType.FLAT, 0.25D)
+                )
+        );
+        SkillTreeService service = newService(node);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        String label = PlainTextComponentSerializer.plainText().serialize(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.DETAILED
+                )
+        );
+
+        assertTrue(label.contains("HP回復力 +0.5"));
+        assertTrue(label.contains("シールドブレイク +0.25"));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
      * 検証契約: classId付きCPノードはクラス名付きCostを表示し、コスト値だけを黄色で表示する。
