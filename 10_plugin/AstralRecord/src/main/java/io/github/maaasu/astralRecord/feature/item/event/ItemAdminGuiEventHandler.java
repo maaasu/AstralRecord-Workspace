@@ -115,7 +115,9 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (event.getPlayer() instanceof Player player) {
-            pageByPlayer.remove(player.getUniqueId());
+            UUID playerId = player.getUniqueId();
+            pageByPlayer.remove(playerId);
+            optionsByPlayer.remove(playerId);
         }
     }
 
@@ -226,6 +228,8 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         int normalizedPage = view.normalizePage(requestedPage, filteredItems.size());
         pageByPlayer.put(player.getUniqueId(), normalizedPage);
         view.render(topInventory, filteredItems, options, normalizedPage);
+        // InventoryClickEvent 中の直接描画はクライアントへ自動反映されない場合があるため、表示を再同期する。
+        player.updateInventory();
     }
 
     private @NotNull ItemAdminViewOptions options(@NotNull Player player) {
