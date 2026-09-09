@@ -877,6 +877,36 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 売却GUIの通常アイテム投入はクリック元だけに固定せず、後方slotの同一アイテムを先に消費する。
+     */
+    @Test
+    void guiTransferConsumesMatchingNormalItemsFromTheHighestSlot() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        ItemModel material = DesignTestFixtures.item(
+            "sell_matching_transfer_test", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(material.getId())).thenReturn(material);
+        InventoryEntryModel front = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, material.getId(), 64L);
+        InventoryEntryModel back = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 2, material.getId(), 32L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(front, back));
+
+        ItemStack moved = harness.inventoryService.takeOwnedMatchingItemAmount(astPlayer, 9, 1);
+
+        assertNotNull(moved);
+        assertEquals(1, moved.getAmount());
+        List<InventoryEntryModel> remaining = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(64L, entryAt(remaining, 1).getQuantity());
+        assertEquals(31L, entryAt(remaining, 2).getQuantity());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
      * 検証契約: 収納要求がBAG全体を超える場合はBAGを先に使い切ってからHOTBARの後方slotを消費し、HOTBARを前詰めしない。
@@ -1198,6 +1228,37 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
         assertEquals(2L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
         assertEquals(1L, state.snapshotEntries(storage.getInventoryId()).getFirst().getQuantity());
+        harness.inventoryService.releaseOrbOperationPayment(state.getAccountId(), operationId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: entry割当前のオーブ支払い予約数量は、ストレージ収納とGUI投入の両方から除外する。
+     */
+    @Test
+    void reservedNormalItemCannotMoveToStorageOrGui() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        String itemId = "reserved_gui_transfer_material";
+        ItemModel material = DesignTestFixtures.item(itemId, ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(itemId)).thenReturn(material);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), bag.getInventoryId(), 1, ItemCategory.MATERIAL, itemId, 2L)
+        ));
+        UUID operationId = UUID.randomUUID();
+
+        assertTrue(harness.inventoryService.reserveOrbOperationPayment(
+            state.getAccountId(), operationId, Map.of(itemId, 2L), 0L));
+
+        assertEquals(0, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 9, 1));
+        assertNull(harness.inventoryService.takeOwnedMatchingItemAmount(astPlayer, 9, 1));
+        assertEquals(2L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
+        assertTrue(state.snapshotEntries(storage.getInventoryId()).isEmpty());
+
         harness.inventoryService.releaseOrbOperationPayment(state.getAccountId(), operationId);
     }
 

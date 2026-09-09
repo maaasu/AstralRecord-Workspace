@@ -2696,7 +2696,7 @@ public class InventoryService {
                 ));
             }
             state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
-            removeOwnedItemBatch(state, batch);
+            consumeOwnedItemBatch(state, batch, batch.amount());
             requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
             return batch.amount();
         }
@@ -2906,7 +2906,7 @@ public class InventoryService {
                 return 0;
             }
 
-            removeOwnedItemBatch(state, batch);
+            consumeOwnedItemBatch(state, batch, batch.amount());
             InventoryModel currencyInventory = ensureInventory(state, InventoryType.CURRENCY);
             int added = addStackedItems(
                 state,
@@ -5894,6 +5894,64 @@ public class InventoryService {
     }
 
     /**
+     * BAG またはホットバーから、指定スロットと同じ通常アイテムを共通消費順で取り出します。
+     *
+     * <p>通常アイテムはクリック位置を種類の特定にだけ使い、BAG、HOTBAR の順、
+     * 各 inventory の slotIndex 降順で指定数量を消費します。装備など個体 ID を持つ
+     * アイテムは、指定スロットの entry だけを対象にします。</p>
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 同一アイテムの種類を特定する Bukkit PlayerInventory スロット
+     * @param amount 取り出す数量。0 以下は同一通常アイテムの未予約分全量
+     * @return 取り出した ItemStack。対象がなければ null
+     */
+    public @Nullable ItemStack takeOwnedMatchingItemAmount(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+            InventoryEntryModel sourceEntry = hotbarSlot
+                ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+                : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+            if (sourceEntry == null) {
+                return null;
+            }
+            if (!isNormalItemEntry(sourceEntry)) {
+                return takeOwnedItemAmount(astPlayer, sourceBukkitSlot, amount);
+            }
+            ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
+            if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+                return null;
+            }
+            OwnedItemBatch batch = collectOwnedItemBatch(state, sourceBukkitSlot);
+            if (batch == null) {
+                return null;
+            }
+            int availableAmount = availableOwnedItemBatchAmount(state, batch);
+            int takeAmount = amount <= 0
+                ? availableAmount
+                : Math.min(Math.max(0, amount), availableAmount);
+            if (takeAmount <= 0) {
+                return null;
+            }
+            int consumed = consumeOwnedItemBatch(state, batch, takeAmount);
+            if (consumed != takeAmount) {
+                return null;
+            }
+            requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
+            ItemStack result = sourceItem.clone();
+            result.setAmount(takeAmount);
+            return result;
+        }
+    }
+
+    /**
      * 表示中インベントリの指定スロットから、指定数量だけアイテムを取り出します。
      *
      * @param astPlayer 対象プレイヤー
@@ -7266,25 +7324,31 @@ public class InventoryService {
                 includesHotbar |= inventoryType == InventoryType.HOTBAR;
             }
         }
-        if (entries.isEmpty() || totalAmount <= 0L || totalAmount > Integer.MAX_VALUE) {
+        long spendableAmount = getSpendableNormalItemAmount(
+            state.getAccountId(),
+            sourceEntry.getItemId()
+        );
+        long availableAmount = Math.min(totalAmount, spendableAmount);
+        if (entries.isEmpty() || availableAmount <= 0L || availableAmount > Integer.MAX_VALUE) {
             return null;
         }
         return new OwnedItemBatch(
             sourceEntry,
             orderNormalItemConsumptionEntries(entries, inventoryOrder),
-            (int) totalAmount,
+            (int) availableAmount,
             includesHotbar
         );
     }
 
     /**
-     * 同一通常アイテムを共通消費順で指定数だけ減算し、全量消費した BAG entry を前詰めします。
+     * 同一通常アイテムを予約済み数量を除いた共通消費順で指定数だけ減算し、
+     * 全量消費した BAG entry を前詰めします。
      *
      * @param state 更新対象のインベントリ状態
      * @param batch 後方スロット優先で並んだ同一アイテム群
      * @param amount 減算する数量
      */
-    private void consumeOwnedItemBatch(
+    private int consumeOwnedItemBatch(
         @NotNull PlayerInventoryState state,
         @NotNull OwnedItemBatch batch,
         int amount
@@ -7296,7 +7360,12 @@ public class InventoryService {
             if (remaining <= 0) {
                 break;
             }
-            int available = (int) Math.clamp(entry.getQuantity(), 0L, Integer.MAX_VALUE);
+            long reserved = reservedEntryAmount(state.getAccountId(), entry.getInventoryEntryId());
+            int available = (int) Math.clamp(
+                entry.getQuantity() - reserved,
+                0L,
+                Integer.MAX_VALUE
+            );
             int consumed = Math.min(available, remaining);
             if (consumed <= 0) {
                 continue;
@@ -7312,37 +7381,27 @@ public class InventoryService {
                 reduceDisplayedEntryQuantity(state, entry, entry.getQuantity() - consumed);
             }
         }
+        return amount - remaining;
     }
 
-    private void removeOwnedItemBatch(
+    private int availableOwnedItemBatchAmount(
         @NotNull PlayerInventoryState state,
         @NotNull OwnedItemBatch batch
     ) {
-        Set<UUID> entryIds = batch.entries().stream()
-            .map(InventoryEntryModel::getInventoryEntryId)
-            .collect(Collectors.toSet());
-        for (InventoryType inventoryType : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
-            InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
-            if (inventory == null) {
-                continue;
-            }
-            List<InventoryEntryModel> activeEntries = state.snapshotEntries(inventory.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .toList();
-            if (activeEntries.stream().noneMatch(entry -> entryIds.contains(entry.getInventoryEntryId()))) {
-                continue;
-            }
-            List<InventoryEntryModel> remaining = activeEntries.stream()
-                .filter(entry -> !entryIds.contains(entry.getInventoryEntryId()))
-                .toList();
-            if (inventoryType != InventoryType.BAG) {
-                state.setSelectedHotbarSlot(null);
-            }
-            state.replaceEntries(inventory.getInventoryId(), remaining);
-            if (inventoryType == InventoryType.BAG) {
-                compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
-            }
+        long total = 0L;
+        long spendable = getSpendableNormalItemAmount(
+            state.getAccountId(),
+            batch.sourceEntry().getItemId()
+        );
+        if (spendable <= 0L) {
+            return 0;
         }
+        for (InventoryEntryModel entry : batch.entries()) {
+            long available = entry.getQuantity()
+                - reservedEntryAmount(state.getAccountId(), entry.getInventoryEntryId());
+            total = Math.min(Integer.MAX_VALUE, total + Math.max(0L, available));
+        }
+        return (int) Math.min(total, spendable);
     }
 
     private @Nullable InventoryModel findExistingStorageInventory(@NotNull PlayerInventoryState state) {

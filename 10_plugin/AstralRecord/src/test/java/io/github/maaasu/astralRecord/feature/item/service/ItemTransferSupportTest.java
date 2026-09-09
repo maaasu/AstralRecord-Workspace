@@ -35,4 +35,25 @@ class ItemTransferSupportTest {
         assertFalse(ItemTransferSupport.isAllStacksTransfer(ClickType.SHIFT_LEFT));
         assertFalse(ItemTransferSupport.isAllStacksTransfer(ClickType.RIGHT));
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: ストレージと売却で共通のクリック解釈を使い、Shift+右クリックだけを同一 item 全体の移動として扱う。
+     */
+    @Test
+    void resolvesReusableClickTransferRequest() {
+        var left = ItemTransferSupport.resolveClickTransferRequest(ClickType.LEFT, 64);
+        var right = ItemTransferSupport.resolveClickTransferRequest(ClickType.RIGHT, 64);
+        var shiftLeft = ItemTransferSupport.resolveClickTransferRequest(ClickType.SHIFT_LEFT, 64);
+        var shiftRight = ItemTransferSupport.resolveClickTransferRequest(ClickType.SHIFT_RIGHT, 64);
+
+        assertEquals(1, left.requestedAmount());
+        assertFalse(left.allMatching());
+        assertEquals(32, right.requestedAmount());
+        assertEquals(64, shiftLeft.requestedAmount());
+        assertEquals(0, shiftRight.requestedAmount());
+        assertTrue(shiftRight.allMatching());
+        assertTrue(shiftRight.isValid());
+    }
 }

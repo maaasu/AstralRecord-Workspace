@@ -20,10 +20,12 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -72,6 +74,71 @@ class SellServiceSoundTest {
 
         verify(player).playSound(location, Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.PLAYERS, 0.65F, 1.35F);
         verify(menuView).openSellConfirm(eq(player), anyList(), eq(0));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 売却GUIのプレイヤーインベントリクリックは共通クリック要求を使い、通常アイテム横断取得APIへ要求数を渡す。
+     */
+    @Test
+    void playerInventoryClickUsesSharedTransferRequest() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.getItemService()).thenReturn(mock(ItemService.class));
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuGuiTransitionService transitionService = mock(MenuGuiTransitionService.class);
+        SellService service = new SellService(plugin, menuView, inventoryService, transitionService);
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        PlayerInventory playerInventory = mock(PlayerInventory.class);
+        Inventory topInventory = mock(Inventory.class);
+        InventoryView view = mock(InventoryView.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(location);
+        when(event.getWhoClicked()).thenReturn(player);
+        when(event.getView()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(topInventory.getSize()).thenReturn(MenuView.SIZE);
+        when(event.getRawSlot()).thenReturn(MenuView.SIZE + 10);
+        when(event.getSlot()).thenReturn(10);
+        when(event.getClickedInventory()).thenReturn(playerInventory);
+        ItemStack clickedItem = transferItem(32);
+        when(event.getCurrentItem()).thenReturn(clickedItem);
+        ItemStack movedItem = transferItem(32);
+        when(event.getClick()).thenReturn(ClickType.RIGHT);
+        when(menuView.getMenuScreen(topInventory)).thenReturn(MenuScreen.SELL);
+        when(menuView.getPageIndex(topInventory)).thenReturn(0);
+
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        ItemModel itemModel = mock(ItemModel.class);
+        when(itemModel.getUnSellable()).thenReturn(false);
+        when(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, 10)).thenReturn(itemModel);
+        when(inventoryService.takeOwnedMatchingItemAmount(astPlayer, 10, 32))
+            .thenReturn(movedItem);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            service.handleClick(event);
+        }
+
+        verify(inventoryService).takeOwnedMatchingItemAmount(astPlayer, 10, 32);
+        verify(inventoryService, never()).takeOwnedItemAmount(any(AstPlayer.class), eq(10), eq(32));
+    }
+
+    private ItemStack transferItem(int amount) {
+        ItemStack item = mock(ItemStack.class);
+        when(item.getType()).thenReturn(Material.PAPER);
+        when(item.getAmount()).thenReturn(amount);
+        when(item.getMaxStackSize()).thenReturn(64);
+        when(item.clone()).thenReturn(item);
+        when(item.getItemMeta()).thenReturn(null);
+        return item;
     }
 
     /**

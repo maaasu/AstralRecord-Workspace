@@ -281,19 +281,24 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             return;
         }
-        int moved;
-        if (ItemTransferSupport.isAllStacksTransfer(event.getClick())) {
-            moved = inventoryService.moveAllOwnedMatchingItemsToStorage(astPlayer, event.getSlot());
-        } else {
-            int requested = ItemTransferSupport.resolveStackUnitTransferAmount(
+        ItemTransferSupport.ClickTransferRequest transferRequest =
+            ItemTransferSupport.resolveClickTransferRequest(
                 event.getClick(),
                 clicked.getMaxStackSize()
             );
-            if (requested <= 0) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            moved = inventoryService.moveOwnedItemToStorage(astPlayer, event.getSlot(), requested);
+        if (!transferRequest.isValid()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int moved;
+        if (transferRequest.allMatching()) {
+            moved = inventoryService.moveAllOwnedMatchingItemsToStorage(astPlayer, event.getSlot());
+        } else {
+            moved = inventoryService.moveOwnedItemToStorage(
+                astPlayer,
+                event.getSlot(),
+                transferRequest.requestedAmount()
+            );
         }
         if (moved <= 0) {
             GuiSound.DENY.play(player);

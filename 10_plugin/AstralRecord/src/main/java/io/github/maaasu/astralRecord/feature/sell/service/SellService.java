@@ -386,22 +386,29 @@ public final class SellService {
             sendSellMessage(player, PlayerMsgId.P_5605);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(
-            event.getClick(),
-            clicked.getAmount(),
-            clicked.getMaxStackSize()
+        ItemTransferSupport.ClickTransferRequest transferRequest =
+            ItemTransferSupport.resolveClickTransferRequest(
+                event.getClick(),
+                clicked.getMaxStackSize()
         );
-        if (requested <= 0) {
+        if (!transferRequest.isValid()) {
             GuiSound.DENY.play(player);
             return;
         }
-        int capacity = countSellPlacementCapacity(topInventory, clicked, requested);
+        int desired = transferRequest.allMatching()
+            ? Integer.MAX_VALUE
+            : transferRequest.requestedAmount();
+        int capacity = countSellPlacementCapacity(topInventory, clicked, desired);
         if (capacity <= 0) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
         }
-        ItemStack moved = inventoryService.takeOwnedItemAmount(astPlayer, event.getSlot(), capacity);
+        ItemStack moved = inventoryService.takeOwnedMatchingItemAmount(
+            astPlayer,
+            event.getSlot(),
+            capacity
+        );
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();

@@ -24,6 +24,23 @@ public final class ItemTransferSupport {
     }
 
     /**
+     * プレイヤーインベントリから GUI へアイテムを移動するクリック要求です。
+     *
+     * @param requestedAmount 単一移動時の要求数。同一アイテム全体の移動時は 0
+     * @param allMatching 同一 item の全 entry を対象にする場合は true
+     */
+    public record ClickTransferRequest(int requestedAmount, boolean allMatching) {
+        /**
+         * クリック要求が処理可能かを返します。
+         *
+         * @return 全体移動、または正の要求数なら true
+         */
+        public boolean isValid() {
+            return allMatching || requestedAmount > 0;
+        }
+    }
+
+    /**
      * GUI 上の ItemStack が空扱いかを判定します。
      */
     @FunctionalInterface
@@ -107,6 +124,30 @@ public final class ItemTransferSupport {
      */
     public static boolean isAllStacksTransfer(@NotNull ClickType clickType) {
         return clickType == ClickType.SHIFT_RIGHT;
+    }
+
+    /**
+     * プレイヤーインベントリから同種アイテムを GUI へ移動するクリック要求を解決します。
+     *
+     * <p>左クリック、右クリック、Shift+左クリックは 1 スタック基準の要求数、
+     * Shift+右クリックは同一 item の全 entry 対象として返します。ストレージ、売却、
+     * そのほか同じ移動規則を使う GUI はこの要求を使い、クリック種別の解釈を重複させません。</p>
+     *
+     * @param clickType クリック種別
+     * @param maxStackSize 対象アイテムの 1 スタック上限
+     * @return 共通化されたクリック要求
+     */
+    public static @NotNull ClickTransferRequest resolveClickTransferRequest(
+        @NotNull ClickType clickType,
+        int maxStackSize
+    ) {
+        if (isAllStacksTransfer(clickType)) {
+            return new ClickTransferRequest(0, true);
+        }
+        return new ClickTransferRequest(
+            resolveStackUnitTransferAmount(clickType, maxStackSize),
+            false
+        );
     }
 
     /**
