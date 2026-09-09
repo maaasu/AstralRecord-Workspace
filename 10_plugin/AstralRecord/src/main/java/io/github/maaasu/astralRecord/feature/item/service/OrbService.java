@@ -94,6 +94,8 @@ public final class OrbService {
     private static final int MATERIAL_LIST_GOLD_SLOT = 47;
     private static final int MATERIAL_LIST_BACK_SLOT = 49;
     private static final int MATERIAL_LIST_NEXT_PAGE_SLOT = 53;
+    private static final int MAX_BATCH_USE_AMOUNT = 10;
+    private static final long BATCH_CONTINUATION_DELAY_TICKS = 1L;
     private static final Material PROCESSING_ICON = Material.CLOCK;
     private final Plugin plugin;
     private final InventoryService inventoryService;
@@ -851,7 +853,7 @@ public final class OrbService {
             ORB_USE_COUNT_PLUS_SLOT,
             orbAmountButton(
                 true,
-                batchable && availableOrbAmount > session.selectedOrbAmount
+                batchable && session.selectedOrbAmount < maxSelectableOrbAmount(availableOrbAmount)
             )
         );
         ItemStack info = itemStackFactory.create(orbModel, 1);
@@ -863,7 +865,10 @@ public final class OrbService {
             Component.text("使用数: " + session.selectedOrbAmount, NamedTextColor.YELLOW)
         ));
         infoLore.add(batchable
-            ? Component.text("左右のボタンで使用数を1個ずつ変更", NamedTextColor.GOLD)
+            ? Component.text(
+                "左右のボタンで使用数を1個ずつ変更。加算ボタンのShiftクリックで最大値（最大10個）に設定",
+                NamedTextColor.GOLD
+            )
             : Component.text("この操作は1回のみです", NamedTextColor.GRAY));
         appendLore(info, infoLore);
         inventory.setItem(INFO_SLOT, info);
@@ -876,23 +881,30 @@ public final class OrbService {
         String instruction = enabled
             ? "1個ずつ変更"
             : "これ以上変更できません";
+        List<Component> lore = new ArrayList<>(List.of(Component.text(instruction, NamedTextColor.GRAY)));
+        if (plus && enabled) {
+            lore.add(Component.text("Shiftクリックで最大値に設定", NamedTextColor.GOLD));
+        }
         return GuiItems.create(
             material,
             Component.text(label, enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY),
-            List.of(Component.text(instruction, NamedTextColor.GRAY))
+            lore
         );
     }
 
     /**
-     * ロックされていないGUIの左クリックだけをページ移動または装備操作へ振り分けます。
+     * ロックされていないGUIの左クリック（使用数加算ボタンはShiftクリックを含む）を
+     * ページ移動または装備操作へ振り分けます。
      *
      * @param event 取消済みクリックイベント
      * @param session 現在セッション
      */
     private void handleUnlockedGuiClick(@NotNull InventoryClickEvent event, @NotNull OrbSession session) {
+        boolean shiftMaxClick = event.getClick() == ClickType.SHIFT_LEFT
+            && event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT;
         if (event.getRawSlot() < 0
             || event.getRawSlot() >= event.getView().getTopInventory().getSize()
-            || event.getClick() != ClickType.LEFT) {
+            || (event.getClick() != ClickType.LEFT && !shiftMaxClick)) {
             GuiSound.DENY.play(session.player);
             return;
         }
@@ -936,9 +948,11 @@ public final class OrbService {
             }
             int current = normalizeSelectedOrbAmount(session, orbModel, available);
             int next = event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT
-                ? incrementOrbUseAmount(current, available)
+                ? event.getClick() == ClickType.SHIFT_LEFT
+                    ? maxSelectableOrbAmount(available)
+                    : incrementOrbUseAmount(current, available)
                 : Math.max(1, current - 1);
-            if (next == current) {
+            if (next == current && session.selectedOrbAmount == current) {
                 GuiSound.DENY.play(session.player);
                 return;
             }
@@ -1026,17 +1040,20 @@ public final class OrbService {
         session.batchConsumedAmount = 0;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
+        session.batchLastSuccessfulInstance = null;
         session.batchActive = selected > 1;
     }
 
     /** 複数回適用の状態を初期化します。 */
     private void clearBatch(@NotNull OrbSession session) {
+        cancelBatchContinuation(session);
         session.batchActive = false;
         session.batchTargetId = null;
         session.batchRequestedAmount = 1;
         session.batchConsumedAmount = 0;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
+        session.batchLastSuccessfulInstance = null;
     }
 
     /**
@@ -1277,7 +1294,7 @@ public final class OrbService {
         ));
     }
 
-    /** GUIで選択できる使用数を1個以上かつ現在の所持数以下へ丸めます。 */
+    /** GUIで選択できる使用数を1個以上、現在の所持数以下かつ最大10個へ丸めます。 */
     private int normalizeSelectedOrbAmount(
         @NotNull OrbSession session,
         @NotNull ItemModel orbModel,
@@ -1286,18 +1303,21 @@ public final class OrbService {
         if (!supportsBatchUse(orbModel.getOrb().getEffect().getType())) {
             return 1;
         }
-        int max = availableOrbAmount >= Integer.MAX_VALUE
-            ? Integer.MAX_VALUE
-            : (int) Math.max(1L, availableOrbAmount);
+        int max = maxSelectableOrbAmount(availableOrbAmount);
         return Math.max(1, Math.min(session.selectedOrbAmount, max));
     }
 
-    /** 使用数を上限を越えない範囲で1個増やします。 */
+    /** 使用数を所持数と最大10個の上限を越えない範囲で1個増やします。 */
     private int incrementOrbUseAmount(int current, long availableOrbAmount) {
-        if (current >= Integer.MAX_VALUE || current >= availableOrbAmount) {
+        if (current >= maxSelectableOrbAmount(availableOrbAmount)) {
             return current;
         }
         return current + 1;
+    }
+
+    /** バッチ使用で選択できる最大個数を、所持数と最大10個の小さい方へ丸めます。 */
+    private int maxSelectableOrbAmount(long availableOrbAmount) {
+        return (int) Math.min(MAX_BATCH_USE_AMOUNT, Math.max(1L, availableOrbAmount));
     }
 
     /**
@@ -2188,6 +2208,7 @@ public final class OrbService {
             return;
         }
         session.interactionLock.beginMutation();
+        showProcessingIcon(session);
         session.operationId = operationId;
         completeLocalMutation(session, target, currentOrb, operationId);
     }
@@ -2377,6 +2398,10 @@ public final class OrbService {
             if (session.detached) {
                 return;
             }
+            if (session.batchActive) {
+                finishBatchMutation(session, result);
+                return;
+            }
             // ローカル状態は critical mutation の rollback 済みなので、Bukkit 表示も同じ状態へ戻す。
             inventoryService.refreshManagedInventoryUi(session.astPlayer);
             if (result.status == MutationStatus.TARGET_UNAVAILABLE
@@ -2385,10 +2410,6 @@ public final class OrbService {
                 if (statusService != null) {
                     statusService.refreshStatus(session.astPlayer);
                 }
-            }
-            if (session.batchActive) {
-                finishBatchMutation(session, result);
-                return;
             }
             if (session.player.isOnline()) {
                 PlayerMessageService.getInstance().send(
@@ -2407,16 +2428,16 @@ public final class OrbService {
 
         useSuccessListener.accept(session.astPlayer, session.orbItemId);
 
+        if (session.batchActive) {
+            continueBatchMutation(session, result);
+            return;
+        }
         if (result.instance != null && session.player.isOnline()) {
             inventoryService.refreshManagedInventoryUi(session.astPlayer);
             inventoryService.refreshEquipmentInstanceDisplay(session.astPlayer, result.instance);
             if (statusService != null) {
                 statusService.refreshStatus(session.astPlayer);
             }
-        }
-        if (session.batchActive) {
-            continueBatchMutation(session, result);
-            return;
         }
         if (session.uiClosed
             || !session.player.isOnline()
@@ -2430,7 +2451,7 @@ public final class OrbService {
         finishSuccessfulMutation(session, result);
     }
 
-    /** 複数回適用の成功結果を集計し、次の1個を同じ対象へ開始します。 */
+    /** 複数回適用の成功結果を集計し、次の1個を負荷分散用の遅延後に同じ対象へ開始します。 */
     private void continueBatchMutation(
         @NotNull OrbSession session,
         @NotNull MutationResult result
@@ -2440,25 +2461,46 @@ public final class OrbService {
             || session.detached
             || session.uiClosed
             || !session.player.isOnline()
-            || !isCurrentInventory(session.player, session)) {
+            || !session.reopening && !isCurrentInventory(session.player, session)) {
             finishBatchMutation(session, result);
             return;
         }
-        ItemModel orbModel = resolveCurrentOrb(session);
-        if (orbModel == null || session.batchTargetId == null) {
-            finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
-            return;
-        }
-        OrbCandidate target = collectCandidates(session, orbModel).stream()
-            .filter(candidate -> candidate.instance.getEquipmentInstanceId()
-                .equalsIgnoreCase(session.batchTargetId))
-            .findFirst()
-            .orElse(null);
-        if (target == null) {
-            finishBatchMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
-            return;
-        }
-        executeCandidate(session, orbModel, target);
+        scheduleBatchContinuation(session, result);
+    }
+
+    /** 次のバッチ操作を1tick遅延させ、同一tickへの処理集中を避けます。 */
+    private void scheduleBatchContinuation(
+        @NotNull OrbSession session,
+        @NotNull MutationResult lastResult
+    ) {
+        session.batchContinuationTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            session.batchContinuationTask = null;
+            if (!session.batchActive) {
+                return;
+            }
+            if (session.detached
+                || session.uiClosed
+                || !session.player.isOnline()
+                || !session.reopening && !isCurrentInventory(session.player, session)) {
+                finishBatchMutation(session, lastResult);
+                return;
+            }
+            ItemModel orbModel = resolveCurrentOrb(session);
+            if (orbModel == null || session.batchTargetId == null) {
+                finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
+                return;
+            }
+            OrbCandidate target = collectCandidates(session, orbModel).stream()
+                .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                    .equalsIgnoreCase(session.batchTargetId))
+                .findFirst()
+                .orElse(null);
+            if (target == null) {
+                finishBatchMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
+                return;
+            }
+            executeCandidate(session, orbModel, target);
+        }, BATCH_CONTINUATION_DELAY_TICKS);
     }
 
     /** 1回分の確定結果を複数回適用の成功・失敗件数へ加算します。 */
@@ -2467,10 +2509,41 @@ public final class OrbService {
         @NotNull MutationResult result
     ) {
         session.batchConsumedAmount++;
+        if (result.instance != null) {
+            session.batchLastSuccessfulInstance = result.instance;
+        }
         if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
             session.batchFailureCount++;
         } else {
             session.batchSuccessCount++;
+        }
+    }
+
+    /** 複数回適用の終了時に、遅延中の表示更新を一度だけ反映します。 */
+    private void refreshBatchDisplay(
+        @NotNull OrbSession session,
+        @NotNull MutationResult lastResult
+    ) {
+        if (session.detached || !session.player.isOnline()) {
+            return;
+        }
+        inventoryService.refreshManagedInventoryUi(session.astPlayer);
+        if (lastResult.status == MutationStatus.TARGET_UNAVAILABLE
+            || lastResult.status == MutationStatus.TARGET_CHANGED) {
+            inventoryService.refreshEquipmentDisplaysForSave(session.astPlayer);
+            if (statusService != null) {
+                statusService.refreshStatus(session.astPlayer);
+            }
+            return;
+        }
+        if (session.batchLastSuccessfulInstance != null) {
+            inventoryService.refreshEquipmentInstanceDisplay(
+                session.astPlayer,
+                session.batchLastSuccessfulInstance
+            );
+            if (statusService != null) {
+                statusService.refreshStatus(session.astPlayer);
+            }
         }
     }
 
@@ -2479,6 +2552,8 @@ public final class OrbService {
         @NotNull OrbSession session,
         @NotNull MutationResult lastResult
     ) {
+        cancelBatchContinuation(session);
+        refreshBatchDisplay(session, lastResult);
         int consumed = session.batchConsumedAmount;
         int successes = session.batchSuccessCount;
         int failures = session.batchFailureCount;
@@ -2489,6 +2564,7 @@ public final class OrbService {
         session.batchActive = false;
         session.batchTargetId = null;
         session.batchRequestedAmount = 1;
+        session.batchLastSuccessfulInstance = null;
         session.interactionLock.release();
 
         if (session.player.isOnline()) {
@@ -2717,6 +2793,7 @@ public final class OrbService {
         boolean shouldClose = isCurrentInventory(session.player, session);
         sessions.remove(session.player.getUniqueId(), session);
         cancelReopenTask(session);
+        cancelBatchContinuation(session);
         session.interactionLock.close();
         if (shouldClose) {
             session.player.closeInventory();
@@ -2758,6 +2835,7 @@ public final class OrbService {
         session.detached = true;
         session.uiClosed = true;
         cancelReopenTask(session);
+        cancelBatchContinuation(session);
         session.interactionLock.close();
     }
 
@@ -2771,6 +2849,7 @@ public final class OrbService {
         if (previous != null) {
             previous.detached = true;
             cancelReopenTask(previous);
+            cancelBatchContinuation(previous);
             previous.interactionLock.close();
         }
     }
@@ -2780,6 +2859,15 @@ public final class OrbService {
         BukkitTask task = session.reopenTask;
         session.reopenTask = null;
         session.reopening = false;
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    /** 遅延中の次回バッチ操作を取消します。 */
+    private void cancelBatchContinuation(@NotNull OrbSession session) {
+        BukkitTask task = session.batchContinuationTask;
+        session.batchContinuationTask = null;
         if (task != null) {
             task.cancel();
         }
@@ -3021,6 +3109,7 @@ public final class OrbService {
         private int batchConsumedAmount;
         private int batchSuccessCount;
         private int batchFailureCount;
+        private EquipmentInstance batchLastSuccessfulInstance;
         private final OrbInteractionLock interactionLock = new OrbInteractionLock();
         private boolean transitioning;
         private boolean uiClosed;
@@ -3028,6 +3117,7 @@ public final class OrbService {
         private volatile boolean detached;
         private volatile UUID operationId;
         private int processingSlot = -1;
+        private BukkitTask batchContinuationTask;
         private CompletableFuture<ItemService.EquipmentPreloadResult> preloadFuture;
         private volatile CompletableFuture<MutationResult> operationFuture;
         private BukkitTask reopenTask;

@@ -189,7 +189,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 装備候補GUIの下段中央の左右に使用数変更ボタンを表示し、所持数を上限として1個単位で使用数を変更する。
+     * 検証契約: 装備候補GUIの下段中央の左右に使用数変更ボタンを表示し、所持数と最大10個の小さい方を上限として、通常クリックは1個単位、加算ボタンのShiftクリックは最大値へ変更する。
      */
     @Test
     void orbAmountControlsDisplayInventoryAndSelectedAmount() {
@@ -207,6 +207,17 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
 
         harness.handler.onInventoryClick(harness.guiClick(48));
         assertLoreContains(list.getItem(49), "所持数: 3", "使用数: 1");
+
+        harness.orbQuantity.set(25);
+        harness.handler.onInventoryClick(harness.guiClick(50, ClickType.SHIFT_LEFT));
+        assertLoreContains(list.getItem(49), "所持数: 25", "使用数: 10");
+
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        assertLoreContains(list.getItem(49), "所持数: 25", "使用数: 10");
+
+        harness.orbQuantity.set(4);
+        harness.handler.onInventoryClick(harness.guiClick(50, ClickType.SHIFT_LEFT));
+        assertLoreContains(list.getItem(49), "所持数: 4", "使用数: 4");
     }
 
     /**
@@ -228,6 +239,11 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         );
 
         harness.handler.onInventoryClick(harness.guiClick(0));
+        assertEquals(Material.CLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+        InventoryClickEvent blockedClick = harness.guiClick(50);
+        harness.handler.onInventoryClick(blockedClick);
+        verify(blockedClick).setCancelled(true);
         harness.awaitUsedOrbCount(3);
         assertEquals(3, harness.usedOrbIds.size());
         assertEquals(3, harness.equippedInstance.get().getEnhanceLevel());
@@ -235,8 +251,92 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         verify(harness.inventoryService, times(3)).commitLocalOrbOperationPayment(
             eq(harness.accountId), any(UUID.class), any(Runnable.class));
         verify(harness.inventoryService, times(3)).executeCriticalPlayerMutation(eq(harness.accountId), any());
+        verify(harness.inventoryService, times(1)).refreshManagedInventoryUi(harness.astPlayer);
+        verify(harness.inventoryService, times(1)).refreshEquipmentInstanceDisplay(
+            eq(harness.astPlayer), any(EquipmentInstance.class));
+        verify(harness.statusService, times(1)).refreshStatus(harness.astPlayer);
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: バッチ中にGUIを閉じても次tickに同じGUIを再表示し、確定済みの使用数へ達するまでロックと逐次適用を維持する。
+     */
+    @Test
+    void selectedEnhancementAmountContinuesAfterManualCloseAndReopens() {
+        Harness harness = new Harness(ItemOrbEffectType.ENHANCE);
+        harness.orbQuantity.set(4);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        Inventory operationInventory = harness.player.getOpenInventory().getTopInventory();
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.player.closeInventory();
+        InventoryCloseEvent close = mock(InventoryCloseEvent.class);
+        when(close.getPlayer()).thenReturn(harness.player);
+        when(close.getInventory()).thenReturn(operationInventory);
+        harness.handler.onInventoryClose(close);
+
+        harness.awaitUsedOrbCount(3);
+        assertEquals(3, harness.criticalMutationCalls.get());
+        assertEquals(1, harness.orbQuantity.get());
+        assertSame(operationInventory, harness.player.getOpenInventory().getTopInventory());
+        assertFalse(harness.service.isLocked(harness.player));
+        assertNotEquals(Material.CLOCK, operationInventory.getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_5-例外・ログ・運用.md
+     * 章・見出し: # 04_5-例外・ログ・運用 > ## 2. 主なログポイント
+     * 検証契約: バッチの途中保存が失敗した場合は確定済み回数だけを集計し、未開始回を追加消費・実行しない。
+     */
+    @Test
+    void failedBatchMutationStopsBeforeStartingAnotherAttempt() {
+        Harness harness = new Harness(ItemOrbEffectType.ENHANCE);
+        harness.failCriticalMutationCall = 2;
+        harness.orbQuantity.set(4);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(0));
+
+        harness.awaitCriticalMutationCount(2);
+        harness.awaitUnlocked();
+        assertEquals(1, harness.usedOrbIds.size());
+        assertEquals(3, harness.orbQuantity.get());
+        verify(harness.inventoryService, times(2)).executeCriticalPlayerMutation(
+            eq(harness.accountId), any());
+        assertNotEquals(Material.CLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 予約済みの次回バッチ処理はプレイヤー保存時に取消し、切断後の追加操作を開始しない。
+     */
+    @Test
+    void preparedPlayerSaveCancelsDeferredBatchContinuation() {
+        Harness harness = new Harness(ItemOrbEffectType.ENHANCE);
+        harness.orbQuantity.set(4);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(0));
+
+        harness.awaitUsedOrbCount(1);
+        harness.service.prepareForPlayerSave(harness.player);
+        for (int index = 0; index < 3; index++) {
+            server().getScheduler().performOneTick();
+        }
+
+        assertEquals(1, harness.criticalMutationCalls.get());
+        assertEquals(1, harness.usedOrbIds.size());
+        assertEquals(3, harness.orbQuantity.get());
+        assertFalse(harness.service.isLocked(harness.player));
     }
 
     /**
@@ -877,6 +977,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final AtomicBoolean reservePaymentAvailable = new AtomicBoolean(true);
         private int additionalOrbQuantity;
         private final AtomicBoolean preloadRanOnPrimaryThread = new AtomicBoolean(true);
+        private final AtomicInteger criticalMutationCalls = new AtomicInteger();
+        private int failCriticalMutationCall = -1;
         private final List<String> usedOrbIds = new ArrayList<>();
 
         private Harness(ItemOrbEffectType effectType) {
@@ -988,6 +1090,11 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 anyLong()
             )).thenAnswer(invocation -> reservePaymentAvailable.get());
             doAnswer(invocation -> {
+                int call = criticalMutationCalls.incrementAndGet();
+                if (call == failCriticalMutationCall) {
+                    return CompletableFuture.failedFuture(
+                        new IllegalStateException("test critical mutation failure"));
+                }
                 try {
                     Object supplied = invocation.<java.util.function.Supplier<?>>getArgument(1).get();
                     InventorySaveCoordinator.CriticalMutation<?> mutation =
@@ -1089,6 +1196,30 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 "Orb mutation did not receive its SQL acknowledgement within 2 seconds");
         }
 
+        private void awaitCriticalMutationCount(int expected) {
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (criticalMutationCalls.get() < expected && System.nanoTime() < deadlineNanos) {
+                server().getScheduler().performOneTick();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+                assertFalse(Thread.currentThread().isInterrupted(),
+                    "Interrupted while waiting for the critical mutation");
+            }
+            assertEquals(expected, criticalMutationCalls.get(),
+                "Critical mutation did not start within 2 seconds");
+        }
+
+        private void awaitUnlocked() {
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (service.isLocked(player) && System.nanoTime() < deadlineNanos) {
+                server().getScheduler().performOneTick();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+                assertFalse(Thread.currentThread().isInterrupted(),
+                    "Interrupted while waiting for the orb mutation to finish");
+            }
+            assertFalse(service.isLocked(player),
+                "Orb mutation did not release its interaction lock within 2 seconds");
+        }
+
         private void addOrbTypesForPaging(int count) {
             for (int index = 1; index <= count; index++) {
                 String itemId = "orb.page_test_" + index;
@@ -1151,11 +1282,15 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         }
 
         private InventoryClickEvent guiClick(int rawSlot) {
+            return guiClick(rawSlot, ClickType.LEFT);
+        }
+
+        private InventoryClickEvent guiClick(int rawSlot, ClickType clickType) {
             InventoryClickEvent event = mock(InventoryClickEvent.class);
             when(event.getWhoClicked()).thenReturn(player);
             when(event.getView()).thenReturn(player.getOpenInventory());
             when(event.getRawSlot()).thenReturn(rawSlot);
-            when(event.getClick()).thenReturn(ClickType.LEFT);
+            when(event.getClick()).thenReturn(clickType);
             return event;
         }
 
