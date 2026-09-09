@@ -1,30 +1,58 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Server;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
-class DebugFishingRodUseServiceTest {
+class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
@@ -66,19 +94,78 @@ class DebugFishingRodUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
-     * 検証契約: キャスト距離を100000 block相当へ設定しても表示線の長さを同じ値で保持し、プラグイン側の距離上限で切り詰めない。
+     * 検証契約: キャスト距離を100000 block相当へ設定しても糸表示のサイズは固定の小さい値を保持し、区間長によって引き延ばされない。
      */
     @Test
-    void lineTransformKeepsAValidLongSegmentWithoutCastDistanceClamp() {
+    void lineTransformKeepsFixedSmallDisplaySizeForLongSegment() {
         Transformation transformation = DebugFishingRodUseService.lineTransformation(
             new Location(null, 0.0D, 0.0D, 0.0D),
             new Location(null, 100_000.0D, 0.0D, 0.0D)
         );
 
         assertNotNull(transformation);
-        assertEquals(100_000.0F, transformation.getScale().x, 0.01F);
+        assertEquals(DebugFishingRodUseService.LINE_DISPLAY_LENGTH, transformation.getScale().x, 0.0001F);
         assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().y, 0.0001F);
         assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().z, 0.0001F);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: キャスト成功時は投擲音をプレイヤーへ1回再生する。
+     */
+    @Test
+    void castPlaysThrowSoundOnce() {
+        FishingFixture fixture = fishingFixture();
+
+        fixture.service().cast(fixture.astPlayer());
+
+        verify(fixture.bukkitPlayer(), times(1)).playSound(
+            eq(fixture.playerLocation()),
+            eq(DebugFishingRodUseService.CAST_SOUND),
+            eq(SoundCategory.PLAYERS),
+            anyFloat(),
+            anyFloat()
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 回収開始時は回収音を1回だけ再生し、回収中の再クリックでは重複再生しない。
+     */
+    @Test
+    void retractPlaysRetrieveSoundOnlyWhenRetractionStarts() {
+        FishingFixture fixture = fishingFixture();
+        fixture.service().cast(fixture.astPlayer());
+
+        verify(fixture.bukkitPlayer(), times(0)).playSound(
+            eq(fixture.playerLocation()),
+            eq(DebugFishingRodUseService.RETRACT_SOUND),
+            eq(SoundCategory.PLAYERS),
+            anyFloat(),
+            anyFloat()
+        );
+
+        fixture.service().retract(fixture.astPlayer());
+
+        verify(fixture.bukkitPlayer(), times(1)).playSound(
+            eq(fixture.playerLocation()),
+            eq(DebugFishingRodUseService.RETRACT_SOUND),
+            eq(SoundCategory.PLAYERS),
+            anyFloat(),
+            anyFloat()
+        );
+
+        fixture.service().retract(fixture.astPlayer());
+
+        verify(fixture.bukkitPlayer(), times(1)).playSound(
+            eq(fixture.playerLocation()),
+            eq(DebugFishingRodUseService.RETRACT_SOUND),
+            eq(SoundCategory.PLAYERS),
+            anyFloat(),
+            anyFloat()
+        );
     }
 
     /**
@@ -231,5 +318,83 @@ class DebugFishingRodUseServiceTest {
             eq(FluidCollisionMode.ALWAYS),
             eq(false)
         )).thenReturn(hit);
+    }
+
+    private static FishingFixture fishingFixture() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemService itemService = mock(ItemService.class);
+        StatusService statusService = mock(StatusService.class);
+        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
+        Player bukkitPlayer = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        World world = mock(World.class);
+        Location eyeLocation = new Location(world, 0.0D, 64.0D, 0.0D, 0.0F, 0.0F);
+        Location playerLocation = new Location(world, 0.0D, 64.0D, 0.0D);
+        UUID playerId = UUID.randomUUID();
+
+        when(astPlayer.getBukkit()).thenReturn(bukkitPlayer);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        when(bukkitPlayer.getUniqueId()).thenReturn(playerId);
+        when(bukkitPlayer.isOnline()).thenReturn(true);
+        when(bukkitPlayer.isDead()).thenReturn(false);
+        when(bukkitPlayer.getEyeLocation()).thenReturn(eyeLocation);
+        when(bukkitPlayer.getLocation()).thenReturn(playerLocation);
+
+        InventoryEntryModel entry = mock(InventoryEntryModel.class);
+        ItemReference reference = new ItemReference("debug-fishing-rod", "EQUIPMENT", "rod-instance");
+        ItemModel model = mock(ItemModel.class);
+        ItemEquipment equipment = mock(ItemEquipment.class);
+        EquipmentInstance instance = mock(EquipmentInstance.class);
+        when(inventoryService.getHotbarEntryInHand(astPlayer, org.bukkit.inventory.EquipmentSlot.HAND))
+            .thenReturn(entry);
+        when(inventoryService.getItemReferenceInHand(astPlayer, org.bukkit.inventory.EquipmentSlot.HAND))
+            .thenReturn(reference);
+        when(itemService.findLoadedById(reference.itemId())).thenReturn(model);
+        when(itemService.findEquipmentInstanceById(reference.equipmentInstanceId())).thenReturn(instance);
+        when(model.getEquipment()).thenReturn(equipment);
+        when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.TOOL);
+        when(equipment.getTag()).thenReturn(MasterTagIds.Equipment.FISHING_ROD);
+        when(equipment.getRequiredLevel()).thenReturn(0);
+        when(equipment.getRequiredClasses()).thenReturn(List.of());
+        when(instance.getEquipmentInstanceId()).thenReturn(reference.equipmentInstanceId());
+
+        StatusSnapshot status = mock(StatusSnapshot.class);
+        when(statusService.getStatus(astPlayer)).thenReturn(status);
+        when(status.rollValue(StatusType.CAST_DISTANCE)).thenReturn(4.0D);
+
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskTimer(eq(plugin), any(Runnable.class), eq(1L), eq(1L)))
+            .thenReturn(mock(BukkitTask.class));
+
+        BlockDisplay display = mock(BlockDisplay.class);
+        when(display.isValid()).thenReturn(true);
+        when(world.spawn(
+            any(Location.class),
+            eq(BlockDisplay.class),
+            ArgumentMatchers.<Consumer<BlockDisplay>>any()
+        )).thenReturn(display);
+
+        DebugFishingRodUseService service = new DebugFishingRodUseService(
+            plugin,
+            inventoryService,
+            itemService,
+            statusService,
+            particleDisplayService
+        );
+        return new FishingFixture(service, astPlayer, bukkitPlayer, playerLocation);
+    }
+
+    private record FishingFixture(
+        DebugFishingRodUseService service,
+        AstPlayer astPlayer,
+        Player bukkitPlayer,
+        Location playerLocation
+    ) {
     }
 }

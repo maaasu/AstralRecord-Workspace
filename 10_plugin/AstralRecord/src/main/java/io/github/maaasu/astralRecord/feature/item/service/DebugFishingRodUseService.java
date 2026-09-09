@@ -21,6 +21,8 @@ import org.bukkit.block.Block;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
@@ -57,9 +59,14 @@ public final class DebugFishingRodUseService {
     static final double WATER_SINK_SPEED_PER_TICK = 0.08D;
     static final int ROPE_SEGMENT_COUNT = 20;
     static final float LINE_THICKNESS = 0.035F;
+    static final float LINE_DISPLAY_LENGTH = LINE_THICKNESS;
     static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-8D;
+    static final Sound CAST_SOUND = Sound.ENTITY_FISHING_BOBBER_THROW;
+    static final Sound RETRACT_SOUND = Sound.ENTITY_FISHING_BOBBER_RETRIEVE;
 
     private static final float DISPLAY_VIEW_RANGE = Float.MAX_VALUE;
+    private static final float FISHING_ROD_SOUND_VOLUME = 0.8F;
+    private static final float FISHING_ROD_SOUND_PITCH = 1.0F;
     private static final double MIN_SEGMENT_LENGTH = 0.01D;
     private static final double COLLISION_ADVANCE_EPSILON = 0.001D;
     private static final int MAX_PASSABLE_BLOCK_SKIPS = 32;
@@ -203,6 +210,13 @@ public final class DebugFishingRodUseService {
             1L
         );
         render(bukkitPlayer, active, rodTip);
+        bukkitPlayer.playSound(
+            bukkitPlayer.getLocation(),
+            CAST_SOUND,
+            SoundCategory.PLAYERS,
+            FISHING_ROD_SOUND_VOLUME,
+            FISHING_ROD_SOUND_PITCH
+        );
     }
 
     /**
@@ -219,9 +233,20 @@ public final class DebugFishingRodUseService {
         if (rodTip == null) {
             return;
         }
+        boolean wasRetracting = active.phase == CastPhase.RETRACTING;
         active.target = rodTip;
         active.phase = CastPhase.RETRACTING;
         active.waterImpact = false;
+        if (!wasRetracting) {
+            Player bukkitPlayer = player.getBukkit();
+            bukkitPlayer.playSound(
+                bukkitPlayer.getLocation(),
+                RETRACT_SOUND,
+                SoundCategory.PLAYERS,
+                FISHING_ROD_SOUND_VOLUME,
+                FISHING_ROD_SOUND_PITCH
+            );
+        }
     }
 
     /**
@@ -302,7 +327,7 @@ public final class DebugFishingRodUseService {
         return new Transformation(
             new Vector3f(0.0F, -LINE_THICKNESS * 0.5F, -LINE_THICKNESS * 0.5F),
             new Quaternionf(),
-            new Vector3f((float) length, LINE_THICKNESS, LINE_THICKNESS),
+            new Vector3f(LINE_DISPLAY_LENGTH, LINE_THICKNESS, LINE_THICKNESS),
             rotation
         );
     }
@@ -625,7 +650,7 @@ public final class DebugFishingRodUseService {
                     entity.setTransformation(new Transformation(
                         new Vector3f(0.0F, -LINE_THICKNESS * 0.5F, -LINE_THICKNESS * 0.5F),
                         new Quaternionf(),
-                        new Vector3f((float) MIN_SEGMENT_LENGTH, LINE_THICKNESS, LINE_THICKNESS),
+                        new Vector3f(LINE_DISPLAY_LENGTH, LINE_THICKNESS, LINE_THICKNESS),
                         new Quaternionf()
                     ));
                 });
