@@ -5,6 +5,8 @@ Class（職業）のスキーマ定義。
 本定義は、プレイヤーの職業テンプレート（成長方針・初期ステータス・進行解放要件）を管理するためのものです。
 ステータスの種別は共有カタログで定義されるため、本スキーマではステータスID（`status`）と値（`value`）のペアのみを指定します。
 
+Class マスタのファイル名は `v<schemaVersion>.<ceil(order)>.<classId>.yml` とします。`ceil(order)` は `order` の小数部を繰り上げた整数です。
+
 > **StatusType について**: 使用可能なステータスIDは、共有カタログ[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
 
 ## スキーマ定義

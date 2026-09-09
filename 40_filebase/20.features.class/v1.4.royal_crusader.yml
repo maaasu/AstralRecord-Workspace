@@ -11,10 +11,10 @@ description: "&7守護を極めた王国の聖騎士。"
 icon: IRON_SWORD
 role: TANK
 maxLevel: 100
-unlockLevel: 3
+unlockLevel: 1
 unlockClassLevel:
   - class: paladin
-    level: 10
+    level: 80
 baseStats: [{ status: MAX_HEALTH, value: 120 }, { status: MAX_MANA, value: 30 }, { status: MAX_ENERGY, value: 100 }, { status: MAX_SHIELD, value: 5 }, { status: STRENGTH, value: 8 }, { status: DEXTERITY, value: 4 }, { status: INTELLIGENCE, value: 2 }, { status: VITALITY, value: 8 }, { status: AGILITY, value: 5 }, { status: LUCK, value: 3 }, { status: ATTACK, value: 10 }, { status: ATTACK_SPEED, value: 5 }, { status: BURNING_RESISTANCE, value: 10 }, { status: FROZEN_RESISTANCE, value: 5 }, { status: CHILLED_RESISTANCE, value: 5 }, { status: SHOCKED_RESISTANCE, value: 5 }, { status: POISONED_RESISTANCE, value: 5 }, { status: BLINDNESS_RESISTANCE, value: 5 }, { status: WEAKNESS_RESISTANCE, value: 5 }, { status: HEALING_INHIBITION_RESISTANCE, value: 5 }, { status: DEFENSE, value: 7 }, { status: MAGIC_DEFENSE, value: 4 }, { status: MOVEMENT_SPEED_CAP, value: 150 }]
 growthPerLevel: [{ status: MAX_HEALTH, value: 7 }, { status: MAX_MANA, value: 1 }, { status: STRENGTH, value: 1.2 }, { status: VITALITY, value: 1 }, { status: AGILITY, value: 0.4 }, { status: ATTACK, value: 1.2 }, { status: BURNING_RESISTANCE, value: 0.4 }, { status: FROZEN_RESISTANCE, value: 0.2 }, { status: CHILLED_RESISTANCE, value: 0.2 }, { status: SHOCKED_RESISTANCE, value: 0.2 }, { status: POISONED_RESISTANCE, value: 0.2 }, { status: BLINDNESS_RESISTANCE, value: 0.2 }, { status: WEAKNESS_RESISTANCE, value: 0.2 }, { status: HEALING_INHIBITION_RESISTANCE, value: 0.2 }, { status: DEFENSE, value: 0.8 }, { status: MAGIC_DEFENSE, value: 0.4 }]
 expRate: 220

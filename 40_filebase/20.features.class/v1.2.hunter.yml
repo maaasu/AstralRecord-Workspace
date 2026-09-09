@@ -7,7 +7,7 @@ shortName: "&aHNT"
 description: "&7機動遠距離射手。"
 icon: BOW
 role: DEALER
-maxLevel: 100
+maxLevel: 60
 unlockLevel: 3
 unlockClassLevel:
   - class: adventurer

@@ -19,12 +19,27 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class ClassScreenView extends BaseMenuScreenView {
-    private static final int ADVENTURER_SLOT = 10;
-    private static final int SWORDSMAN_SLOT = 12;
-    private static final int HUNTER_SLOT = 13;
-    private static final int MAGE_SLOT = 14;
+    private static final Map<String, Integer> CLASS_SLOTS = Map.ofEntries(
+        Map.entry("adventurer", 13),
+        Map.entry("swordsman", 20),
+        Map.entry("hunter", 22),
+        Map.entry("mage", 24),
+        Map.entry("paladin", 28),
+        Map.entry("swordmaster", 29),
+        Map.entry("sharpshooter", 30),
+        Map.entry("phantom_archer", 31),
+        Map.entry("wizard", 32),
+        Map.entry("archmage", 33),
+        Map.entry("royal_crusader", 37),
+        Map.entry("grandmaster", 38),
+        Map.entry("elemental_shooter", 39),
+        Map.entry("spectral_archer", 40),
+        Map.entry("astral_wizard", 41),
+        Map.entry("arc_sage", 42)
+    );
 
     private static final String LABEL_ROLE_AND_TYPE =
         "\u30ed\u30fc\u30eb: %s / \u7a2e\u5225: %s";
@@ -145,13 +160,7 @@ public final class ClassScreenView extends BaseMenuScreenView {
     }
 
     private int slotFor(@NotNull String classId) {
-        return switch (classId.toLowerCase(Locale.ROOT)) {
-            case "adventurer" -> ADVENTURER_SLOT;
-            case "swordsman" -> SWORDSMAN_SLOT;
-            case "hunter" -> HUNTER_SLOT;
-            case "mage" -> MAGE_SLOT;
-            default -> -1;
-        };
+        return CLASS_SLOTS.getOrDefault(classId.toLowerCase(Locale.ROOT), -1);
     }
 
     private @NotNull Component legacy(@NotNull String text) {

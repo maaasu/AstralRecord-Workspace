@@ -1,21 +1,21 @@
 # design:
-#   motif: "霊体 / 幻影矢"
-#   progression: 3
+#   motif: "弓術 / 精密射撃"
+#   progression: 2
 schemaVersion: 1
-id: spectral_archer
+id: sharpshooter
 type: CLASS
-name: "&aスペクトラルアーチャー"
-order: 3.4
-shortName: "&aSPA"
-description: "&7霊矢で敵を翻弄する射手。"
+name: "&aシャープシューター"
+order: 2.3
+shortName: "&aSHP"
+description: "&7急所を狙う高火力の射手。"
 icon: BOW
 role: DEALER
 maxLevel: 100
-unlockLevel: 3
+unlockLevel: 15
 unlockClassLevel:
-  - class: phantom_archer
-    level: 10
+  - class: hunter
+    level: 50
 baseStats: [{ status: MAX_HEALTH, value: 100 }, { status: MAX_MANA, value: 40 }, { status: MAX_ENERGY, value: 60 }, { status: STRENGTH, value: 4 }, { status: DEXTERITY, value: 8 }, { status: INTELLIGENCE, value: 3 }, { status: VITALITY, value: 5 }, { status: AGILITY, value: 8 }, { status: LUCK, value: 6 }, { status: ATTACK, value: 7 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 3 }, { status: DEFENSE, value: 4 }, { status: MAGIC_DEFENSE, value: 4 }, { status: MOVEMENT_SPEED_CAP, value: 175 }]
 growthPerLevel: [{ status: MAX_HEALTH, value: 5 }, { status: MAX_MANA, value: 1 }, { status: MAX_ENERGY, value: 1 }, { status: DEXTERITY, value: 1.2 }, { status: AGILITY, value: 1 }, { status: LUCK, value: 0.4 }, { status: ATTACK, value: 0.9 }, { status: NORMAL_ATTACK_DEGRADATION_DELAY, value: 0.2 }, { status: DEFENSE, value: 0.3 }, { status: MAGIC_DEFENSE, value: 0.3 }]
-expRate: 220
+expRate: 185
 usableSkills: [skill:adventurer_blast_arrow, skill:adventurer_quick_shot, skill:hunter_fade_shot, skill:hunter_arrow_rain]

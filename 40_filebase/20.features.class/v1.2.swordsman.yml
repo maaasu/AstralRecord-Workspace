@@ -10,7 +10,7 @@ shortName: "&cSWD"
 description: "&7前線近接戦士。"
 icon: IRON_SWORD
 role: TANK
-maxLevel: 100
+maxLevel: 60
 unlockLevel: 3
 unlockClassLevel:
   - class: adventurer

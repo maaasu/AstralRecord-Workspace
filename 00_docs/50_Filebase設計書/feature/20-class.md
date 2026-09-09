@@ -11,6 +11,7 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - class 単体で全役割を満たさず、equipment と skill に選択余地を残します。
 - 使用可能なステータス一覧は複製せず `StatusType.kt` を参照します。
 - 初期職は `adventurer`、通常の一次派生職は `swordsman` / `hunter` / `mage` とします。3 職はいずれも `adventurer` Lv.10 を転職条件とし、ここからさらに枝分かれできる構造にします。
+- 一次職の最大レベルは `60` とします。二次職は元となる一次職 Lv.50 以上かつプレイヤー Lv.15 以上、三次職は元となる二次職 Lv.80 以上を転職条件とします。二次職・三次職の `usableSkills` と skilltree は、この段階では追加・変更しません。
 - `acolyte` は現行クラス定義に含めません。
 - クラスは `usableSkills` で現在クラスにおける使用許可だけを定義し、スキルの習得・レベル・所持個体は変更しません。
 - `swordsman` / `hunter` / `mage` は、冒険者から引き継ぐ初期攻撃 skill を `usableSkills` に定義する。ソードマンは `adventurer_astral_edge` / `adventurer_smash` と、タンクのシールドを有効化する `swordsman_shield_activate`、ハンターは `adventurer_blast_arrow` / `adventurer_quick_shot`、メイジは `adventurer_mana_burst` / `adventurer_lightning_bolt` とする。加えてハンターは職固有の初期範囲攻撃 `hunter_arrow_rain`、メイジは職固有の即時範囲回復 `mage_heal_aura` を許可する。
@@ -37,6 +38,8 @@ class status bonus = baseStats + growthPerLevel × (classLevel - 1)
 ## order
 
 `order` はクラス一覧の表示順を表す数値です。値が小さいクラスから順に表示し、同値の場合はクラス ID の昇順とします。プレイヤー情報画面の全クラスレベル一覧もこの順序を使用します。
+
+Class マスタのファイル名は `v<schemaVersion>.<ceil(order)>.<classId>.yml` とします。`ceil(order)` は `order` の小数部を繰り上げた整数であり、同じ値になるクラスは class ID で区別します。
 
 ## progression
 

@@ -7,7 +7,7 @@ shortName: "&dMAG"
 description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER
-maxLevel: 100
+maxLevel: 60
 unlockLevel: 3
 unlockClassLevel:
   - class: adventurer
