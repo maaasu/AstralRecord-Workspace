@@ -680,7 +680,7 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
+                + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
         lore.add("");
 
         // ユーザー定義 lore（フレーバーテキスト: イタリック）
@@ -1185,7 +1185,7 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
+                + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
         lore.add("");
 
         if (!model.getLore().isEmpty()) {
@@ -1659,8 +1659,16 @@ public class ItemStackFactory {
         return instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0;
     }
 
-    private @NotNull String displayCategoryName(@NotNull String category) {
-        return ItemCategory.displayNameJa(category);
+    /**
+     * アイテムのカテゴリと管理用 ID を Lore 表示用の文字列へ変換します。
+     * カテゴリは通常の灰色、区切り文字と ID は濃い灰色で表示します。
+     *
+     * @param model 表示対象アイテム
+     * @return カテゴリと ID を含む Lore 文字列
+     */
+    private @NotNull String displayCategoryWithId(@NotNull ItemModel model) {
+        return ColorCodeUtil.GRAY + ItemCategory.displayNameJa(model.getCategory())
+                + ColorCodeUtil.DARK_GRAY + " | " + model.getId();
     }
 
     /**

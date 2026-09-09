@@ -53,7 +53,7 @@
 - `System.out.println` の使用は禁止。ログ出力は既存の logger 経由で行う。
 - ログメッセージの追加・変更は、文字列を直書きせず `LogId` と `logger.properties` をセットで更新する。
 - プレイヤー向けメッセージの追加・変更は、文字列を直書きせず `MsgId` と `player.properties` をセットで更新する。
-- GUI名・GUI lore・プレイヤー向けメッセージでは、item ID・master ID・status ID などの内部識別子を表示してはならない。マスタの表示名を使用し、解決不能時は ID を代替表示せず「未登録の素材」などの汎用表示と操作不可の案内を使う。内部 ID の表示はログまたは管理者向け機能に限定する。
+- 通常の AstralRecord item tooltip では、共通 Lore のカテゴリ表示の右へ ` | <item ID>` を濃い灰色で表示する。それ以外の GUI 名・GUI lore・プレイヤー向けメッセージでは、item ID・master ID・status ID などの内部識別子を表示してはならない。マスタの表示名を使用し、解決不能時は ID を代替表示せず「未登録の素材」などの汎用表示と操作不可の案内を使う。管理者向け機能では必要に応じて内部 ID を表示できる。
 - GUI に共通のプレイヤーインベントリ挙動を追加・変更する場合は、個別 GUI の open/click/close に重複実装せず shared 側の holder / click support / service に寄せる。
 - ホットバーの閉じるアイコンとインベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` を holder に実装し、クリック処理は `HotbarShortcutClickSupport` に委譲する。個別の判定リストや GUI ごとの手作業設定を増やさない。
 
