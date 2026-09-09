@@ -31,7 +31,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -47,8 +46,8 @@ import java.util.UUID;
  * デバッグ釣り竿の仮想キャストを扱います。
  * <p>
  * バニラの {@code FishHook} は生成せず、針を {@link BlockDisplay}、糸を小さい黒色dustとして表示します。
- * 糸は表示Entityへ直接重力を任せず、active state内の物理ノードを毎tick更新します。終点は
- * active state内で可変に保持するため、将来の移動する釣り針にも同じ更新処理を利用できます。
+ * 糸は竿先と針を結ぶ浅い曲線として毎tick描画し、針へ物理的な力を加えません。
+ * 固体へ接触した針は回収まで固定し、水中ではキャスト距離の範囲内で沈下します。
  */
 public final class DebugFishingRodUseService {
     static final double ROD_TIP_RIGHT_OFFSET = 0.35D;
@@ -62,11 +61,7 @@ public final class DebugFishingRodUseService {
     static final int LINE_PARTICLE_INTERVAL_TICKS = 1;
     static final int MAX_LINE_POINTS_PER_SEGMENT = 4;
     private static final double LINE_PARTICLE_SPACING = 0.15D;
-    static final double ROPE_GRAVITY_PER_TICK = HOOK_GRAVITY_PER_TICK * 0.4D;
-    static final double ROPE_WATER_SINK_SPEED_PER_TICK = WATER_SINK_SPEED_PER_TICK * 0.5D;
-    static final double ROPE_VELOCITY_DAMPING = 0.96D;
-    static final int ROPE_CONSTRAINT_ITERATIONS = 2;
-    static final double ROPE_CONSTRAINT_VELOCITY_TRANSFER = 0.25D;
+    private static final double MAX_LINE_SAG = 0.35D;
     static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-8D;
     static final Sound CAST_SOUND = Sound.ENTITY_FISHING_BOBBER_THROW;
     static final double RETRIEVE_SPEED_PER_TICK = 2.0D;
@@ -155,7 +150,7 @@ public final class DebugFishingRodUseService {
      * キャスト距離ステータス分の仮想釣り針を発射します。
      * <p>
      * キャスト距離にプラグイン側の最大値は設けません。値はステータスから取得し、有限かつ正の値で
-     * あることだけを実行条件とします。キャスト中は針と糸を物理更新し、右クリックで回収を開始します。
+     * あることだけを実行条件とします。針の移動はその距離内に制限し、右クリックで回収を開始します。
      */
     public void cast(@NotNull AstPlayer player) {
         if (!canCast(player)) {
@@ -221,7 +216,7 @@ public final class DebugFishingRodUseService {
         );
     }
 
-    /** 同じ釣り竿の糸に沿って回収を開始します。回収中の再入力は開始音を重複させません。 */
+    /** 同じ釣り竿の針を竿先へ直接回収します。回収中の再入力は開始音を重複させません。 */
     public void retract(@NotNull AstPlayer player) {
         ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
         if (active == null || !isCurrentFishingRod(player, active.equipmentInstanceId)
@@ -240,11 +235,11 @@ public final class DebugFishingRodUseService {
      *
      * @param playerId キャスト中プレイヤー
      * @param target 新しい終点
-     * @return 終点を更新できた場合はtrue
+     * @return 終点を更新できた場合はtrue。固体に固定済みの針はfalse
      */
     public boolean moveHook(@NotNull UUID playerId, @NotNull Location target) {
         ActiveCast active = activeCasts.get(playerId);
-        if (active == null || !isFinite(target) || target.getWorld() == null
+        if (active == null || active.phase == CastPhase.GROUNDED || !isFinite(target) || target.getWorld() == null
             || !target.getWorld().equals(active.currentHook.getWorld())) {
             return false;
         }
@@ -317,7 +312,7 @@ public final class DebugFishingRodUseService {
         }
         active.rodTip = rodTip.clone();
 
-        if (active.retrieved) {
+        if (active.retrieved || active.currentHook.distance(rodTip) > active.maxLineLength + 1.0E-8D) {
             cancel(playerId);
             return;
         }
@@ -327,7 +322,7 @@ public final class DebugFishingRodUseService {
     }
 
     /**
-     * 釣り針を1 tick分進めます。発射中は糸を繰り出し、水中では沈下を継続します。
+     * 針を1tick進めます。固体への接触後は固定し、着水後は最大距離まで真下へ沈めます。
      *
      * @param active 更新対象のキャスト状態
      * @return 回収で竿先へ到達した場合はtrue
@@ -336,393 +331,51 @@ public final class DebugFishingRodUseService {
         if (active.phase == CastPhase.RETRACTING) {
             return advanceRetrieval(active);
         }
-        enforceHookLineLimit(active);
+        if (active.phase == CastPhase.GROUNDED) {
+            return false;
+        }
         if (active.phase == CastPhase.SINKING) {
             moveHookWithCollision(active, new Vector(0.0D, -WATER_SINK_SPEED_PER_TICK, 0.0D));
             return false;
         }
-
-        if (active.phase == CastPhase.OUTBOUND) {
-            return advanceOutbound(active);
-        }
-
-        active.velocity.setY(active.velocity.getY() - HOOK_GRAVITY_PER_TICK);
         moveHookWithCollision(active, active.velocity.clone());
-        active.velocity.multiply(ROPE_VELOCITY_DAMPING);
-        return false;
-    }
-
-    /** 既存の糸の折れ曲がりを逆順にたどり、通過済みの終端区間を縮めながら回収します。 */
-    private static boolean advanceRetrieval(@NotNull ActiveCast active) {
-        active.ropeNodes.set(0, active.rodTip.clone());
-        boolean arrived = pullHookAlongRope(active, RETRIEVE_SPEED_PER_TICK, true);
-        active.deployedLineLength = Math.min(active.deployedLineLength, polylineLength(active.ropeNodes));
-        return arrived;
-    }
-
-    /** 糸の終端から指定長を消費し、既存の折れ線に沿う掃引で針と末尾ノードを移動します。 */
-    private static boolean pullHookAlongRope(@NotNull ActiveCast active, double remaining, boolean retrieving) {
-        int last = active.ropeNodes.size() - 1;
-        int index = last - 1;
-        for (int step = 0; step < active.ropeNodes.size() * 2 && index >= 0; step++) {
-            Location destination = active.ropeNodes.get(index);
-            Vector delta = destination.toVector().subtract(active.currentHook.toVector());
-            double distance = delta.length();
-            if (distance <= 1.0E-8D) {
-                index--;
-                continue;
-            }
-            Vector movement = delta.multiply(Math.min(remaining, distance) / distance);
-            BlockImpact impact = rayTraceImpact(active.currentHook, movement, !retrieving && !active.inWater);
-            Location next = impact == null ? active.currentHook.clone().add(movement) : impact.location().clone();
-            remaining -= active.currentHook.distance(next);
-            if (retrieving) {
-                active.currentHook = next;
-            } else {
-                updateHookPosition(active, next, impact);
-            }
-            for (int tail = index + 1; tail <= last; tail++) {
-                active.ropeNodes.set(tail, active.currentHook.clone());
-            }
-            if ((impact != null && !impact.waterImpact()) || remaining <= 1.0E-8D) {
-                return active.currentHook.distanceSquared(active.rodTip) <= 1.0E-16D;
-            }
-        }
-        return index < 0;
-    }
-
-    /**
-     * 糸の物理ノードを1 tick分進めます。針と竿先を両端として、各ノードへ針より弱い重力を適用し、
-     * 隣接ノードの最大距離拘束を反復して糸の張力を表現します。糸の各可動ノードも針と同じblock・水の
-     * ray traceを使い、着水後は水中へゆっくり沈めます。
-     *
-     * @param active 更新対象のキャスト状態
-     */
-    static void advanceRope(@NotNull ActiveCast active) {
-        if (active.phase == CastPhase.RETRACTING) {
-            return;
-        }
-        if (advanceFreePayoutRope(active)) {
-            return;
-        }
-        int lastNodeIndex = active.ropeNodes.size() - 1;
-        if (lastNodeIndex <= 0) {
-            return;
-        }
-        List<Location> previousNodes = active.ropeNodes.stream().map(Location::clone).toList();
-
-        active.ropeSegmentLength = calculateRopeSegmentLength(active.deployedLineLength);
-        if (polylineLength(active.ropeNodes) <= 1.0E-8D) {
-            List<Location> initial = createRopeNodes(active.rodTip, active.currentHook);
-            for (int index = 0; index <= lastNodeIndex; index++) {
-                active.ropeNodes.set(index, initial.get(index));
-            }
-        }
-        active.ropeNodes.set(0, active.rodTip.clone());
-        active.ropeNodes.set(lastNodeIndex, active.currentHook.clone());
-
-        for (int index = 1; index < lastNodeIndex; index++) {
-            advanceRopeNode(active, index);
-        }
-
-        solveRopeConstraints(active);
-        if (!resolveRopeSegmentCollisions(active)) {
-            // 複数区間が同時に角をまたぎ、単点の補正では通せない変位は採用しない。
-            for (int index = 1; index <= lastNodeIndex; index++) {
-                active.ropeNodes.set(index, previousNodes.get(index));
-                active.ropeVelocities.get(index).zero();
-            }
-            updateHookPosition(active, previousNodes.get(lastNodeIndex), null);
-            active.velocity.zero();
-            if (!resolveRopeSegmentCollisions(active)) {
-                restoreClearRope(active, previousNodes);
-                return;
-            }
-        }
-        active.ropeNodes.set(0, active.rodTip.clone());
-        active.ropeNodes.set(lastNodeIndex, active.currentHook.clone());
-        double excess = polylineLength(active.ropeNodes) - active.deployedLineLength;
-        if (excess > 1.0E-8D) {
-            pullHookAlongRope(active, excess, false);
-            for (int index = 0; index < lastNodeIndex; index++) {
-                if (!clearRopePath(active.ropeNodes.get(index), active.ropeNodes.get(index + 1))) {
-                    restoreClearRope(active, previousNodes);
-                    return;
-                }
-            }
-        }
-    }
-
-    /** 解決できない移動では竿先も含めて直前の検証済み状態を保持し、次tickの再計算に委ねます。 */
-    private static void restoreClearRope(@NotNull ActiveCast active, @NotNull List<Location> previousNodes) {
-        for (int index = 0; index < previousNodes.size(); index++) {
-            active.ropeNodes.set(index, previousNodes.get(index).clone());
-            active.ropeVelocities.get(index).zero();
-        }
-        active.rodTip = previousNodes.getFirst().clone();
-        active.currentHook = previousNodes.getLast().clone();
-        active.velocity.zero();
-        active.inWater = isWater(active.currentHook.clone().add(0, -COLLISION_ADVANCE_EPSILON, 0).getBlock().getType());
-        active.phase = active.inWater ? CastPhase.SINKING : CastPhase.DRIFTING;
-        active.pendingWaterImpact = null;
-    }
-
-    /**
-     * 空中で新しい糸を繰り出す間は、障害物のない張った糸へノードを配置します。
-     * 既存区間の等長拘束で発射速度を奪わず、各ノードの移動経路と完成後の糸を先に衝突検証します。
-     * 余長がある場合や障害物に接触する場合は通常の糸物理へ委ねます。
-     */
-    private static boolean advanceFreePayoutRope(@NotNull ActiveCast active) {
-        double distance = active.rodTip.distance(active.currentHook);
-        if (active.phase != CastPhase.OUTBOUND
-            || Math.abs(distance - active.deployedLineLength) > 1.0E-8D) {
-            return false;
-        }
-        List<Location> nodes = createRopeNodes(active.rodTip, active.currentHook);
-        for (int index = 1; index < nodes.size(); index++) {
-            Location previous = nodes.get(index - 1);
-            if (rayTraceImpact(previous, nodes.get(index).toVector().subtract(previous.toVector()), false) != null) {
-                return false;
-            }
-            if (index < nodes.size() - 1) {
-                Location old = active.ropeNodes.get(index);
-                if (rayTraceImpact(old, nodes.get(index).toVector().subtract(old.toVector()), false) != null) {
-                    return false;
-                }
-            }
-        }
-        for (int index = 0; index < nodes.size(); index++) {
-            active.ropeNodes.set(index, nodes.get(index));
-            active.ropeVelocities.get(index).zero();
-        }
-        active.ropeSegmentLength = calculateRopeSegmentLength(active.deployedLineLength);
-        if (distance >= active.maxLineLength - 1.0E-8D) {
-            active.phase = CastPhase.DRIFTING;
-        }
-        return true;
-    }
-
-    /**
-     * 内部糸ノードへ重力または水中沈下を加え、移動経路のblock衝突を解決します。
-     * 固体に当たってもノードを永久固定せず、次tickの張力と重力で再び移動できるようにします。
-     */
-    private static void advanceRopeNode(@NotNull ActiveCast active, int index) {
-        Location current = active.ropeNodes.get(index);
-        Vector velocity = active.ropeVelocities.get(index);
-        if (isWater(current.getBlock().getType())) {
-            velocity.setY(-ROPE_WATER_SINK_SPEED_PER_TICK);
-        } else {
-            velocity.setY(velocity.getY() - ROPE_GRAVITY_PER_TICK);
-        }
-        Vector movement = velocity.clone();
-        BlockImpact impact = rayTraceImpact(current, movement, false);
-        if (impact != null) {
-            active.ropeNodes.set(index, impact.location());
-            velocity.zero();
-            return;
-        }
-
-        active.ropeNodes.set(index, current.clone().add(movement));
-        velocity.multiply(ROPE_VELOCITY_DAMPING);
-    }
-
-    /**
-     * 竿先だけを固定し、針を含む自由端へ距離拘束を伝播します。
-     * 逆向きの平滑化と順向きの長さ制限を交互に行い、接触した点も次の反復で再び動かします。
-     *
-     * @param active 主スレッドで更新するキャスト状態
-     */
-    private static void solveRopeConstraints(@NotNull ActiveCast active) {
-        int last = active.ropeNodes.size() - 1;
-        for (int iteration = 0; iteration < ROPE_CONSTRAINT_ITERATIONS; iteration++) {
-            for (int index = last - 1; index >= 1; index--) {
-                Vector correction = ropeLengthCorrection(active.ropeNodes.get(index),
-                    active.ropeNodes.get(index + 1), active.ropeSegmentLength);
-                if (correction != null) {
-                    shiftRopeNode(active, index, correction);
-                }
-            }
-            for (int index = 0; index < last; index++) {
-                Vector correction = ropeLengthCorrection(active.ropeNodes.get(index),
-                    active.ropeNodes.get(index + 1), active.ropeSegmentLength);
-                if (correction != null) {
-                    shiftRopeNode(active, index + 1, correction.multiply(-1.0D));
-                }
-            }
-            boolean converged = true;
-            for (int index = 0; index < last; index++) {
-                if (Math.abs(active.ropeNodes.get(index).distance(active.ropeNodes.get(index + 1))
-                    - active.ropeSegmentLength) > 1.0E-6D) {
-                    converged = false;
-                    break;
-                }
-            }
-            if (converged) {
-                break;
-            }
-        }
-        active.currentHook = active.ropeNodes.get(last).clone();
-    }
-
-    /** 隣接点の間隔を繰り出した区間長へ合わせ、接近時にも余った糸を折れ曲がりとして残します。 */
-    private static @Nullable Vector ropeLengthCorrection(
-        @NotNull Location left,
-        @NotNull Location right,
-        double maxLength
-    ) {
-        Vector delta = right.toVector().subtract(left.toVector());
-        double distance = delta.length();
-        if (!Double.isFinite(distance) || distance <= 1.0E-8D
-            || Math.abs(distance - maxLength) <= 1.0E-9D) {
-            return null;
-        }
-        return delta.multiply((distance - maxLength) / distance);
-    }
-
-    /**
-     * 拘束による移動にも固体の掃引判定を適用し、移動量を慣性へ返します。
-     *
-     * @param active 対象キャスト
-     * @param index 竿先を除く移動ノード（終端は針）
-     * @param movement 拘束補正量
-     */
-    private static @Nullable BlockImpact shiftRopeNode(
-        @NotNull ActiveCast active,
-        int index,
-        @NotNull Vector movement
-    ) {
-        if (movement.lengthSquared() <= 1.0E-16D) {
-            return null;
-        }
-        Location previous = active.ropeNodes.get(index);
-        boolean hook = index == active.ropeNodes.size() - 1;
-        BlockImpact impact = rayTraceImpact(previous, movement, hook && !active.inWater);
-        Location next = impact == null ? previous.clone().add(movement) : impact.location();
-        Vector actual = next.toVector().subtract(previous.toVector());
-        active.ropeNodes.set(index, next);
-        if (hook) {
-            updateHookPosition(active, next, impact);
-            active.velocity.add(actual.multiply(ROPE_CONSTRAINT_VELOCITY_TRANSFER));
-        } else {
-            active.ropeVelocities.get(index).add(actual.multiply(ROPE_CONSTRAINT_VELOCITY_TRANSFER));
-        }
-        return impact;
-    }
-
-    /**
-     * 制約解決後の隣接線分を検査し、ノードだけでは検出できないblock貫通を近傍ノードの移動で解消します。
-     */
-    private static boolean resolveRopeSegmentCollisions(@NotNull ActiveCast active) {
-        int lastNodeIndex = active.ropeNodes.size() - 1;
-        boolean corrected = false;
-        for (int index = 0; index < lastNodeIndex; index++) {
-            Location start = active.ropeNodes.get(index);
-            Location end = active.ropeNodes.get(index + 1);
-            Vector segment = end.toVector().subtract(start.toVector());
-            BlockImpact impact = rayTraceImpact(start, segment, false);
-            if (impact == null || impact.waterImpact()) {
-                continue;
-            }
-            corrected = true;
-            if (routeRopeAroundCorner(active, index, impact)) {
-                continue;
-            }
-            setRopeNodeAtImpact(active, index + 1, impact.location());
-        }
-        if (corrected) {
-            for (int index = 0; index < lastNodeIndex; index++) {
-                if (!clearRopePath(active.ropeNodes.get(index), active.ropeNodes.get(index + 1))) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /** 貫通区間の可動端を、前後区間と移動経路が通過可能な最寄りのblock外周へ移します。 */
-    private static boolean routeRopeAroundCorner(@NotNull ActiveCast active, int segment, @NotNull BlockImpact impact) {
-        BoundingBox box = impact.bounds();
-        if (box == null) {
-            return false;
-        }
-        double[] min = {box.getMinX() - COLLISION_ADVANCE_EPSILON, box.getMinY() - COLLISION_ADVANCE_EPSILON,
-            box.getMinZ() - COLLISION_ADVANCE_EPSILON};
-        double[] max = {box.getMaxX() + COLLISION_ADVANCE_EPSILON, box.getMaxY() + COLLISION_ADVANCE_EPSILON,
-            box.getMaxZ() + COLLISION_ADVANCE_EPSILON};
-        for (int movable : new int[] {segment, segment + 1}) {
-            if (movable == 0) {
-                continue;
-            }
-            Location current = active.ropeNodes.get(movable);
-            double[] coordinate = {current.getX(), current.getY(), current.getZ()};
-            Location best = null;
-            double bestDistance = Double.POSITIVE_INFINITY;
-            for (int along = 0; along < 3; along++) {
-                for (int edge = 0; edge < 4; edge++) {
-                    double[] candidate = new double[3];
-                    candidate[along] = Math.max(min[along], Math.min(max[along], coordinate[along]));
-                    int first = (along + 1) % 3;
-                    int second = (along + 2) % 3;
-                    candidate[first] = (edge & 1) == 0 ? min[first] : max[first];
-                    candidate[second] = (edge & 2) == 0 ? min[second] : max[second];
-                    Location corner = new Location(current.getWorld(), candidate[0], candidate[1], candidate[2]);
-                    double distance = current.distanceSquared(corner);
-                    if (distance >= bestDistance || !clearRopePath(current, corner)
-                        || !clearRopePath(active.ropeNodes.get(movable - 1), corner)
-                        || (movable + 1 < active.ropeNodes.size()
-                            && !clearRopePath(corner, active.ropeNodes.get(movable + 1)))) {
-                        continue;
-                    }
-                    best = corner;
-                    bestDistance = distance;
-                }
-            }
-            if (best != null) {
-                shiftRopeNode(active, movable, best.toVector().subtract(current.toVector()));
-                active.ropeVelocities.get(movable).zero();
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** 指定区間の全体が固体blockに遮られていないか確認します。 */
-    private static boolean clearRopePath(@NotNull Location start, @NotNull Location end) {
-        return rayTraceImpact(start, end.toVector().subtract(start.toVector()), false) == null;
-    }
-
-    /** 固体面の直前へノードを戻し、別の面に遮られた残りの補正を接触面に沿って滑らせます。 */
-    private static void setRopeNodeAtImpact(
-        @NotNull ActiveCast active,
-        int index,
-        @NotNull Location location
-    ) {
-        Vector movement = location.toVector().subtract(active.ropeNodes.get(index).toVector());
-        BlockImpact obstruction = shiftRopeNode(active, index, movement);
-        for (int slide = 0; slide < 2 && obstruction != null && obstruction.normal() != null; slide++) {
-            Vector remaining = location.toVector().subtract(active.ropeNodes.get(index).toVector());
-            Vector normal = obstruction.normal();
-            remaining.subtract(normal.clone().multiply(remaining.dot(normal)));
-            obstruction = shiftRopeNode(active, index, remaining);
-        }
-        active.ropeVelocities.get(index).zero();
-    }
-
-    /**
-     * 発射中の針を弾道に沿って進め、到達した長さだけ糸を繰り出します。
-     *
-     * @param active 更新対象のキャスト状態
-     * @return 発射中は常にfalse
-     */
-    private static boolean advanceOutbound(@NotNull ActiveCast active) {
-        Vector movement = active.velocity.clone();
-        Location candidate = active.currentHook.clone().add(movement);
-        extendDeployedLine(active, candidate);
-        moveHookWithCollision(active, movement);
         if (active.phase == CastPhase.OUTBOUND) {
             active.velocity.setY(active.velocity.getY() - HOOK_GRAVITY_PER_TICK);
         }
         return false;
+    }
+
+    /** 回収操作では固体への固定を解除し、表示上の針を竿先へ直接戻して終了します。 */
+    private static boolean advanceRetrieval(@NotNull ActiveCast active) {
+        Vector delta = active.rodTip.toVector().subtract(active.currentHook.toVector());
+        double distance = delta.length();
+        if (distance <= RETRIEVE_SPEED_PER_TICK) {
+            active.currentHook = active.rodTip.clone();
+            return true;
+        }
+        active.currentHook.add(delta.multiply(RETRIEVE_SPEED_PER_TICK / distance));
+        return false;
+    }
+
+    /**
+     * 両端だけから浅い放物線を再計算します。糸の慣性・衝突・張力で針を動かしません。
+     * たるみの往復分を残りのキャスト距離内に抑え、描画線の総長も最大距離を超えません。
+     *
+     * @param active 同じworldの竿先・針を保持するキャスト状態
+     */
+    static void advanceRope(@NotNull ActiveCast active) {
+        Vector delta = active.currentHook.toVector().subtract(active.rodTip.toVector());
+        double distance = delta.length();
+        double horizontal = Math.hypot(delta.getX(), delta.getZ());
+        double sag = Math.min(MAX_LINE_SAG, Math.min(horizontal * 0.05D,
+            Math.max(0.0D, active.maxLineLength - distance) * 0.5D));
+        for (int index = 0; index < ROPE_NODE_COUNT; index++) {
+            double progress = (double) index / ROPE_SEGMENT_COUNT;
+            active.ropeNodes.set(index, active.rodTip.clone().add(delta.clone().multiply(progress))
+                .add(0.0D, -4.0D * sag * progress * (1.0D - progress), 0.0D));
+        }
+        active.ropeNodes.set(0, active.rodTip.clone());
+        active.ropeNodes.set(ROPE_SEGMENT_COUNT, active.currentHook.clone());
     }
 
     /**
@@ -749,103 +402,99 @@ public final class DebugFishingRodUseService {
     }
 
     /**
-     * キャスト中に針が到達した距離まで糸を繰り出します。回収操作までは繰り出し済みの長さを減らしません。
+     * 竿先中心の最大距離球を出る移動を、その移動線分と球面の交点で止めます。
+     * 水中沈下時も水平方向へ投影し直さず、同じX/Zを保ちます。
      *
-     * @param active キャスト状態
-     * @param candidate 針の次の候補位置
+     * @param active キャスト距離と現在の竿先
+     * @param start 最大距離以内の移動開始位置
+     * @param candidate 移動候補
+     * @return 候補、または最大距離に達する直前の位置
      */
-    private static void extendDeployedLine(
-        @NotNull ActiveCast active,
-        @NotNull Location candidate
+    private static @NotNull Location constrainHookMovement(
+        @NotNull ActiveCast active, @NotNull Location start, @NotNull Location candidate
     ) {
-        Vector delta = candidate.toVector().subtract(active.rodTip.toVector());
-        double distance = delta.length();
-        if (!Double.isFinite(distance)) {
-            return;
-        }
-        active.deployedLineLength = Math.min(
-            active.maxLineLength,
-            Math.max(active.deployedLineLength, distance)
-        );
-    }
-
-    /**
-     * 竿先の移動で糸が張ったとき、針を繰り出し済みのpolyline上限へ戻します。
-     *
-     * @param active キャスト状態
-     */
-    static void enforceHookLineLimit(@NotNull ActiveCast active) {
-        Location constrained = constrainToDeployedLine(active, active.currentHook);
-        Vector movement = constrained.toVector().subtract(active.currentHook.toVector());
-        if (movement.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED) {
-            moveHookWithCollision(active, movement);
-        }
-    }
-
-    /** 繰り出し済みのpolyline上限を直線距離で超える候補を、竿先中心の上限球面へ戻します。 */
-    private static @NotNull Location constrainToDeployedLine(
-        @NotNull ActiveCast active,
-        @NotNull Location candidate
-    ) {
-        double permittedLength = Math.min(active.maxLineLength, active.deployedLineLength);
-        Vector delta = candidate.toVector().subtract(active.rodTip.toVector());
-        double distance = delta.length();
-        if (!Double.isFinite(distance) || distance <= permittedLength) {
+        if (candidate.distance(active.rodTip) <= active.maxLineLength) {
             return candidate;
         }
-        if (permittedLength <= 0.0D) {
-            return active.rodTip.clone();
+        // 内点と外点の線分を二分し、丸め誤差でも範囲外へ出ない側を採用する。
+        Vector movement = candidate.toVector().subtract(start.toVector());
+        double inside = 0.0D;
+        double outside = 1.0D;
+        for (int step = 0; step < 48; step++) {
+            double middle = (inside + outside) * 0.5D;
+            Location point = start.clone().add(movement.clone().multiply(middle));
+            if (point.distance(active.rodTip) <= active.maxLineLength) {
+                inside = middle;
+            } else {
+                outside = middle;
+            }
         }
-        return active.rodTip.clone().add(delta.multiply(permittedLength / distance));
+        return start.clone().add(movement.multiply(inside));
     }
 
     /**
-     * 針を糸長の範囲内で移動し、着水または固体衝突の位相と速度を更新します。
-     * 着水位置は描画時に一度だけ演出するため、{@link ActiveCast#pendingWaterImpact}へ記録します。
+     * 最大距離以内の移動を掃引し、最初の固体接触で固定、着水で沈下へ移行します。
+     * 着水演出は描画時に一度だけ消費します。
+     *
+     * @param active 更新するキャスト
+     * @param movement 空中移動または真下への沈下量
      */
     private static void moveHookWithCollision(@NotNull ActiveCast active, @NotNull Vector movement) {
-        Location constrained = constrainToDeployedLine(active, active.currentHook.clone().add(movement));
-        Vector constrainedMovement = constrained.toVector().subtract(active.currentHook.toVector());
-        BlockImpact impact = rayTraceImpact(active.currentHook, constrainedMovement, !active.inWater);
-        updateHookPosition(active, impact == null ? constrained : impact.location(), impact);
-        Vector radial = active.currentHook.toVector().subtract(active.rodTip.toVector());
-        double tensionLength = active.phase == CastPhase.OUTBOUND
-            ? active.maxLineLength : active.deployedLineLength;
-        if (radial.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED
-            && radial.length() >= tensionLength - 1.0E-6D) {
-            radial.normalize();
-            double outward = active.velocity.dot(radial);
-            if (outward > 0) {
-                active.velocity.subtract(radial.multiply(outward));
+        Location start = active.currentHook;
+        Location candidate = start.clone().add(movement);
+        Location constrained = active.phase == CastPhase.SINKING
+            ? constrainHookMovement(active, start, candidate) : constrainAirbornePosition(active, candidate);
+        Vector actualMovement = constrained.toVector().subtract(start.toVector());
+        BlockImpact impact = rayTraceImpact(start, actualMovement, !active.inWater);
+        active.currentHook = impact == null ? constrained
+            : constrainHookMovement(active, start, impact.location());
+        if (impact != null && impact.solidImpact()) {
+            active.velocity.zero();
+            active.phase = CastPhase.GROUNDED;
+            return;
+        }
+        boolean water = impact != null && impact.waterImpact()
+            || isWater(active.currentHook.clone().add(0, -COLLISION_ADVANCE_EPSILON, 0).getBlock().getType());
+        if (water) {
+            if (!active.inWater) {
+                active.pendingWaterImpact = active.currentHook.clone();
+            }
+            active.inWater = true;
+            active.velocity.zero();
+            active.phase = CastPhase.SINKING;
+        } else if (active.inWater) {
+            active.inWater = false;
+            active.velocity.zero();
+            active.phase = CastPhase.OUTBOUND;
+        } else if (impact == null && constrained.distanceSquared(candidate) > 1.0E-16D) {
+            Vector radial = active.currentHook.toVector().subtract(active.rodTip.toVector());
+            if (radial.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED) {
+                radial.normalize();
+                double outward = active.velocity.dot(radial);
+                if (outward > 0.0D) {
+                    active.velocity.subtract(radial.multiply(outward));
+                }
             }
         }
     }
 
     /**
-     * 通常移動と糸の終端補正に共通の針位置・接水状態を更新します。
+     * 空中の候補を最大距離球内へ戻し、上限でも接線方向への落下を可能にします。
+     * 水中沈下はこの投影を使わず、移動線分上で止めます。
      *
-     * @param active 対象キャスト
-     * @param next 掃引判定済みの次位置
-     * @param impact 移動中の衝突。衝突がなければnull
+     * @param active 竿先と最大距離
+     * @param candidate 空中の次位置
+     * @return 最大距離以内の位置
      */
-    private static void updateHookPosition(
-        @NotNull ActiveCast active, @NotNull Location next, @Nullable BlockImpact impact
+    private static @NotNull Location constrainAirbornePosition(
+        @NotNull ActiveCast active, @NotNull Location candidate
     ) {
-        active.currentHook = next.clone();
-        if (impact != null) {
-            active.velocity.zero();
-            if (impact.waterImpact()) {
-                if (!active.inWater) {
-                    active.pendingWaterImpact = impact.location().clone();
-                }
-                active.inWater = true;
-            }
-            active.phase = active.inWater ? CastPhase.SINKING : CastPhase.DRIFTING;
-        } else if (active.inWater
-            && !isWater(next.clone().add(0, -COLLISION_ADVANCE_EPSILON, 0).getBlock().getType())) {
-            active.inWater = false;
-            active.phase = CastPhase.DRIFTING;
+        Vector radial = candidate.toVector().subtract(active.rodTip.toVector());
+        double distance = radial.length();
+        if (distance <= active.maxLineLength) {
+            return candidate;
         }
+        return active.rodTip.clone().add(radial.multiply(Math.nextDown(active.maxLineLength) / distance));
     }
 
     /**
@@ -907,10 +556,10 @@ public final class DebugFishingRodUseService {
     }
 
     /**
-     * 物理ノード間に小さい黒色dustを配置します。各区間は最大8点とし、viewer探索をまとめます。
+     * 表示ノード間に小さい黒色dustを配置します。各区間は最大4点とし、viewer探索をまとめます。
      * 長さゼロの区間やviewerのいないworldでは粒子を生成しません。
      *
-     * @param active 表示位置となる物理ノードを保持するキャスト状態
+     * @param active 表示位置となる曲線ノードを保持するキャスト状態
      */
     void renderRope(@NotNull ActiveCast active) {
         World world = active.rodTip.getWorld();
@@ -936,7 +585,7 @@ public final class DebugFishingRodUseService {
 
     /**
      * 移動全区間を最長2 blockずつ調べます。探索予算を使い切った場合は未確認区間の手前で停止します。
-     * 固体面からは接触法線方向へ退避し、接線方向の次の移動を妨げないようにします。
+     * 固体面からは接触法線方向へ退避し、固定する針が固体へ埋まらないようにします。
      *
      * @param start 移動開始位置
      * @param movement 移動ベクトル
@@ -977,7 +626,7 @@ public final class DebugFishingRodUseService {
                         ? direction.clone().multiply(-1.0D) : hit.getHitBlockFace().getDirection();
                     hitLocation.add(normal.clone().multiply(COLLISION_ADVANCE_EPSILON));
                 }
-                return new BlockImpact(hitLocation, water, normal, water ? null : block.getBoundingBox());
+                return new BlockImpact(hitLocation, water, !water);
             }
             double advance = cursor.distance(hitLocation) + COLLISION_ADVANCE_EPSILON;
             if (advance >= remaining) {
@@ -986,7 +635,7 @@ public final class DebugFishingRodUseService {
             cursor.add(direction.clone().multiply(advance));
             remaining -= advance;
         }
-        return new BlockImpact(cursor, false);
+        return new BlockImpact(cursor, false, false);
     }
 
     private static @NotNull List<Location> createRopeNodes(
@@ -1000,20 +649,6 @@ public final class DebugFishingRodUseService {
             nodes.add(rodTip.clone().add(delta.clone().multiply(progress)));
         }
         return nodes;
-    }
-
-    private static @NotNull List<Vector> createRopeVelocities() {
-        List<Vector> velocities = new ArrayList<>(ROPE_NODE_COUNT);
-        for (int index = 0; index < ROPE_NODE_COUNT; index++) {
-            velocities.add(new Vector());
-        }
-        return velocities;
-    }
-
-    /** 繰り出し済みの長さを等分し、短いキャストにも人工的な最小糸長を追加しません。 */
-    private static double calculateRopeSegmentLength(double maxLineLength) {
-        return Double.isFinite(maxLineLength) && maxLineLength > 0.0D
-            ? maxLineLength / ROPE_SEGMENT_COUNT : 0.0D;
     }
 
     private @Nullable BlockDisplay spawnHookDisplay(@NotNull Location location) {
@@ -1039,7 +674,7 @@ public final class DebugFishingRodUseService {
      * @param tag 表示Entityへ付与する識別タグ
      */
     private static void configureDisplay(@NotNull BlockDisplay display, @NotNull String tag) {
-        // 針と糸の重力・衝突はActiveCastで計算し、表示Entityは計算結果を描画するだけにする。
+        // 針の重力・衝突はActiveCastで計算し、表示Entityは計算結果を描画するだけにする。
         display.setGravity(false);
         display.setInvulnerable(true);
         display.setPersistent(false);
@@ -1110,16 +745,12 @@ public final class DebugFishingRodUseService {
     ) {
     }
 
-    private record BlockImpact(@NotNull Location location, boolean waterImpact,
-                               @Nullable Vector normal, @Nullable BoundingBox bounds) {
-        private BlockImpact(@NotNull Location location, boolean waterImpact) {
-            this(location, waterImpact, null, null);
-        }
+    private record BlockImpact(@NotNull Location location, boolean waterImpact, boolean solidImpact) {
     }
 
     enum CastPhase {
         OUTBOUND,
-        DRIFTING,
+        GROUNDED,
         SINKING,
         RETRACTING
     }
@@ -1130,14 +761,11 @@ public final class DebugFishingRodUseService {
         Location currentHook;
         Location target;
         final double maxLineLength;
-        double deployedLineLength;
         Vector velocity;
         boolean inWater;
         @Nullable Location pendingWaterImpact;
         private final BlockDisplay hookDisplay;
-        double ropeSegmentLength;
         final List<Location> ropeNodes;
-        final List<Vector> ropeVelocities;
         CastPhase phase = CastPhase.OUTBOUND;
         private int renderTicks;
         private boolean retrieved;
@@ -1176,7 +804,6 @@ public final class DebugFishingRodUseService {
             this.currentHook = currentHook;
             this.target = target;
             this.maxLineLength = maxLineLength;
-            this.deployedLineLength = Math.min(maxLineLength, rodTip.distance(currentHook));
             this.velocity = velocityTowards(currentHook, target);
             this.inWater = waterImpact;
             if (waterImpact) {
@@ -1184,9 +811,7 @@ public final class DebugFishingRodUseService {
                 this.pendingWaterImpact = currentHook.clone();
             }
             this.hookDisplay = hookDisplay;
-            this.ropeSegmentLength = calculateRopeSegmentLength(deployedLineLength);
             this.ropeNodes = createRopeNodes(rodTip, currentHook);
-            this.ropeVelocities = createRopeVelocities();
         }
     }
 }
