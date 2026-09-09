@@ -34,14 +34,11 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.BoundingBox;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,66 +86,35 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
-     * 検証契約: 縦・横・斜めと長距離の糸表示は、変換後の両端の中心が物理ノードの両端へ一致し、太さを保持する。
+     * 検証契約: 糸は物理ノードの折れ線に沿う小さい黒色dustをまとめて送信し、長距離でも各区間8点以内とする。
      */
     @Test
-    void lineTransformConnectsBothSegmentEndpointsInEveryDirection() {
-        Location start = new Location(null, 3.0D, 8.0D, -2.0D);
-        for (Vector delta : List.of(new Vector(4, 0, 0), new Vector(-4, 0, 0),
-            new Vector(0, 4, 0), new Vector(0, -4, 0), new Vector(0, 0, 4),
-            new Vector(2, -3, -5), new Vector(100_000, 0, 0))) {
-            Transformation transformation = DebugFishingRodUseService.lineTransformation(
-                start, start.clone().add(delta)
-            );
-            assertNotNull(transformation);
-            Matrix4f matrix = new Matrix4f().translate(transformation.getTranslation())
-                .rotate(transformation.getLeftRotation()).scale(transformation.getScale())
-                .rotate(transformation.getRightRotation());
-            Vector3f first = matrix.transformPosition(new Vector3f(0, 0.5F, 0.5F));
-            Vector3f last = matrix.transformPosition(new Vector3f(1, 0.5F, 0.5F));
-            assertEquals(0, first.length(), 0.0001F);
-            assertEquals(delta.getX(), last.x, 0.001D);
-            assertEquals(delta.getY(), last.y, 0.001D);
-            assertEquals(delta.getZ(), last.z, 0.001D);
-            assertEquals(delta.length(), transformation.getScale().x, 0.001D);
-            assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().y, 0.0001F);
-            assertEquals(DebugFishingRodUseService.LINE_THICKNESS, transformation.getScale().z, 0.0001F);
-        }
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
-     * 検証契約: 糸表示はベジェ曲線を再計算せず、物理ノードの位置を毎tickの描画位置へ使用する。
-     */
-    @Test
-    void renderRopeUsesPhysicalNodePositions() {
+    void renderRopeUsesPhysicalNodePositionsWithBoundedBlackDust() {
         FishingFixture fixture = fishingFixture();
-        World world = mock(World.class);
-        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
-        Location hook = new Location(world, 4.5D, 64.5D, 0.5D);
-        List<BlockDisplay> ropeDisplays = new ArrayList<>(DebugFishingRodUseService.ROPE_SEGMENT_COUNT);
-        for (int index = 0; index < DebugFishingRodUseService.ROPE_SEGMENT_COUNT; index++) {
-            ropeDisplays.add(mock(BlockDisplay.class));
+        World world = fixture.bukkitPlayer().getWorld();
+        when(world.getPlayers()).thenReturn(List.of(fixture.bukkitPlayer()));
+        Location rod = new Location(world, 0, 64, 0);
+        DebugFishingRodUseService.ActiveCast active = activeCast(rod, rod);
+        active.ropeNodes.set(1, new Location(world, 0, 60, 0));
+        for (int index = 2; index < active.ropeNodes.size(); index++) {
+            active.ropeNodes.set(index, new Location(world, 100_000, 60, 0));
         }
-        DebugFishingRodUseService.ActiveCast active = new DebugFishingRodUseService.ActiveCast(
-            "test-equipment-instance",
-            rodTip,
-            rodTip,
-            hook,
-            4.0D,
-            false,
-            mock(BlockDisplay.class),
-            ropeDisplays
-        );
-        Location expectedPosition = new Location(world, 1.25D, 63.75D, 0.5D);
-        active.ropeNodes.set(1, expectedPosition);
-
         fixture.service().renderRope(active);
-
-        verify(ropeDisplays.get(1)).teleport(eq(expectedPosition));
-        fixture.service().renderRope(active);
-        verify(ropeDisplays.get(1), times(2)).setInterpolationDelay(0);
+        ArgumentCaptor<java.util.Collection<Location>> points = ArgumentCaptor.captor();
+        verify(fixture.particles()).spawnForNearbyViewers(eq(rod), points.capture(),
+            eq(SharedParticleDefinitions.FISHING_ROD_LINE));
+        List<Location> rendered = List.copyOf(points.getValue());
+        assertEquals(16, rendered.size());
+        assertEquals(rod, rendered.getFirst());
+        assertEquals(active.ropeNodes.get(1), rendered.get(8));
+        for (int index = 0; index < 8; index++) {
+            assertEquals(0, rendered.get(index).getX());
+            assertEquals(60, rendered.get(index + 8).getY());
+        }
+        org.bukkit.Particle.DustOptions dust = (org.bukkit.Particle.DustOptions)
+            SharedParticleDefinitions.FISHING_ROD_LINE.data();
+        assertEquals(org.bukkit.Color.BLACK, dust.getColor());
+        assertEquals(0.35F, dust.getSize());
     }
 
     /**
@@ -161,6 +127,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         FishingFixture fixture = fishingFixture();
         when(fixture.status().rollValue(StatusType.CAST_DISTANCE)).thenReturn(35.0D);
         fixture.service().cast(fixture.astPlayer());
+        assertEquals(1, fixture.displays().size(), "針だけをBlockDisplayとして生成する");
         ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
         verify(fixture.scheduler()).runTaskTimer(any(), runnable.capture(), eq(1L), eq(1L));
         for (BlockDisplay display : fixture.displays()) {
@@ -208,7 +175,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         Location rod = new Location(world, 0, 0, 0);
         DebugFishingRodUseService.ActiveCast active = new DebugFishingRodUseService.ActiveCast(
             "rod", rod.clone(), rod.clone(), new Location(world, 4, 0, 0), 8,
-            false, mock(BlockDisplay.class), List.of());
+            false, mock(BlockDisplay.class));
         active.currentHook = new Location(world, 4, 0, 0);
         active.ropeNodes.set(0, rod.clone());
         active.ropeNodes.set(1, new Location(world, 0, 2, 0));
@@ -439,7 +406,7 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
         World world = scene(null, true);
         DebugFishingRodUseService.ActiveCast active = new DebugFishingRodUseService.ActiveCast(
             "rod", new Location(world, 0, 0, 0), new Location(world, 0, 1, 0),
-            new Location(world, 0, 2, 0), 2, false, mock(BlockDisplay.class), List.of()
+            new Location(world, 0, 2, 0), 2, false, mock(BlockDisplay.class)
         );
         active.deployedLineLength = 2;
         active.rodTip = new Location(world, 0, -3, 0);
@@ -602,15 +569,13 @@ class DebugFishingRodUseServiceTest extends MockBukkitTestBase {
 
     private static DebugFishingRodUseService.ActiveCast activeCast(Location start, Location target) {
         BlockDisplay hookDisplay = mock(BlockDisplay.class);
-        BlockDisplay ropeDisplay = mock(BlockDisplay.class);
         return new DebugFishingRodUseService.ActiveCast(
             "test-equipment-instance",
             start.clone(),
             start.clone(),
             target.clone(),
             false,
-            hookDisplay,
-            List.of(ropeDisplay)
+            hookDisplay
         );
     }
 

@@ -303,6 +303,9 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("hookshot_trail", Particle.ELECTRIC_SPARK, 1, 0.01D, 0.01D, 0.01D, 0.0D);
     public static final SharedParticleDefinition HOOKSHOT_ANCHOR =
         new SharedParticleDefinition("hookshot_anchor", Particle.CRIT, 8, 0.12D, 0.12D, 0.12D, 0.04D);
+    public static final SharedParticleDefinition FISHING_ROD_LINE =
+        new SharedParticleDefinition("fishing_rod_line", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.BLACK, 0.35F));
     public static final SharedParticleDefinition FISHING_ROD_TRAIL =
         new SharedParticleDefinition("fishing_rod_trail", Particle.END_ROD, 1, 0.01D, 0.01D, 0.01D, 0.0D);
     public static final SharedParticleDefinition FISHING_ROD_HOOK =

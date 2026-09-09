@@ -46,7 +46,7 @@ import java.util.UUID;
 /**
  * デバッグ釣り竿の仮想キャストを扱います。
  * <p>
- * バニラの {@code FishHook} は生成せず、針と糸を {@link BlockDisplay} として表示します。
+ * バニラの {@code FishHook} は生成せず、針を {@link BlockDisplay}、糸を小さい黒色dustとして表示します。
  * 糸は表示Entityへ直接重力を任せず、active state内の物理ノードを毎tick更新します。終点は
  * active state内で可変に保持するため、将来の移動する釣り針にも同じ更新処理を利用できます。
  */
@@ -59,7 +59,9 @@ public final class DebugFishingRodUseService {
     static final double WATER_SINK_SPEED_PER_TICK = 0.08D;
     static final int ROPE_SEGMENT_COUNT = 20;
     static final int ROPE_NODE_COUNT = ROPE_SEGMENT_COUNT + 1;
-    static final float LINE_THICKNESS = 0.015F;
+    static final int LINE_PARTICLE_INTERVAL_TICKS = 5;
+    static final int MAX_LINE_POINTS_PER_SEGMENT = 8;
+    private static final double LINE_PARTICLE_SPACING = 0.15D;
     static final double ROPE_GRAVITY_PER_TICK = HOOK_GRAVITY_PER_TICK * 0.4D;
     static final double ROPE_WATER_SINK_SPEED_PER_TICK = WATER_SINK_SPEED_PER_TICK * 0.5D;
     static final double ROPE_VELOCITY_DAMPING = 0.96D;
@@ -72,13 +74,11 @@ public final class DebugFishingRodUseService {
     private static final float DISPLAY_VIEW_RANGE = Float.MAX_VALUE;
     private static final float FISHING_ROD_SOUND_VOLUME = 0.8F;
     private static final float FISHING_ROD_SOUND_PITCH = 1.0F;
-    private static final double MIN_SEGMENT_LENGTH = 0.01D;
     private static final double COLLISION_ADVANCE_EPSILON = 0.001D;
     private static final int MAX_PASSABLE_BLOCK_SKIPS = 32;
     private static final double MAX_RAY_TRACE_DISTANCE = 2.0D;
     private static final int PARTICLE_INTERVAL_TICKS = 2;
     private static final String HOOK_DISPLAY_TAG = "astralrecord_fishing_rod_hook";
-    private static final String LINE_DISPLAY_TAG = "astralrecord_fishing_rod_line";
 
     private final AstralRecord plugin;
     private final InventoryService inventoryService;
@@ -190,10 +190,7 @@ public final class DebugFishingRodUseService {
         }
 
         BlockDisplay hookDisplay = spawnHookDisplay(rodTip);
-        List<BlockDisplay> ropeDisplays = spawnRopeDisplays(rodTip);
-        if (hookDisplay == null || ropeDisplays == null) {
-            removeDisplay(hookDisplay);
-            removeDisplays(ropeDisplays);
+        if (hookDisplay == null) {
             return;
         }
 
@@ -205,8 +202,7 @@ public final class DebugFishingRodUseService {
             target,
             castDistance,
             false,
-            hookDisplay,
-            ropeDisplays
+            hookDisplay
         );
         activeCasts.put(playerId, active);
         active.task = plugin.getServer().getScheduler().runTaskTimer(
@@ -268,7 +264,6 @@ public final class DebugFishingRodUseService {
             active.task.cancel();
         }
         removeDisplay(active.hookDisplay);
-        removeDisplays(active.ropeDisplays);
     }
 
     /** Plugin停止時にすべての仮想キャストを終了します。 */
@@ -296,37 +291,6 @@ public final class DebugFishingRodUseService {
             .add(right.multiply(ROD_TIP_RIGHT_OFFSET))
             .add(up.multiply(ROD_TIP_UP_OFFSET));
         return eye.clone().add(offset);
-    }
-
-    /**
-     * 表示blockのローカルX軸を始点から終点へ一致させ、両端が実際に接続する変換を計算します。
-     * 回転を左回転、長さをscale Xに置くため、断面中心のoffsetも同じ回転でワールド座標へ変換します。
-     */
-    static @Nullable Transformation lineTransformation(
-        @NotNull Location start,
-        @NotNull Location end
-    ) {
-        Vector delta = end.toVector().subtract(start.toVector());
-        double length = delta.length();
-        if (!Double.isFinite(length) || length <= 0.0D || length > Float.MAX_VALUE) {
-            return null;
-        }
-        Vector normalized = delta.multiply(1.0D / length);
-        Quaternionf rotation = new Quaternionf().rotationTo(
-            new Vector3f(1.0F, 0.0F, 0.0F),
-            new Vector3f((float) normalized.getX(), (float) normalized.getY(), (float) normalized.getZ())
-        );
-        Vector3f centerOffset = rotation.transform(new Vector3f(
-            0.0F,
-            -LINE_THICKNESS * 0.5F,
-            -LINE_THICKNESS * 0.5F
-        ));
-        return new Transformation(
-            centerOffset,
-            rotation,
-            new Vector3f((float) length, LINE_THICKNESS, LINE_THICKNESS),
-            new Quaternionf()
-        );
     }
 
     private void tick(@NotNull UUID playerId) {
@@ -904,12 +868,14 @@ public final class DebugFishingRodUseService {
 
     /** 針・糸表示と、一定間隔の軌跡粒子および保留中の着水演出を描画します。 */
     private void render(@NotNull Player player, @NotNull ActiveCast active, @NotNull Location rodTip) {
-        if (!active.hookDisplay.isValid() || active.ropeDisplays.stream().anyMatch(display -> !display.isValid())) {
+        if (!active.hookDisplay.isValid()) {
             cancel(player.getUniqueId());
             return;
         }
         active.hookDisplay.teleport(active.currentHook);
-        renderRope(active);
+        if (active.renderTicks % LINE_PARTICLE_INTERVAL_TICKS == 0) {
+            renderRope(active);
+        }
         emitWaterImpact(active);
         if (active.renderTicks++ % PARTICLE_INTERVAL_TICKS == 0) {
             particleDisplayService.spawnForNearbyViewers(rodTip, SharedParticleDefinitions.FISHING_ROD_TRAIL);
@@ -941,22 +907,31 @@ public final class DebugFishingRodUseService {
     }
 
     /**
-     * 隣接ノードの両端を細い直方体で接続します。長さゼロの区間は表示せず、人工的な糸長を追加しません。
+     * 物理ノード間に小さい黒色dustを配置します。各区間は最大8点とし、viewer探索をまとめます。
+     * 長さゼロの区間やviewerのいないworldでは粒子を生成しません。
      *
-     * @param active 表示と物理ノードを保持するキャスト状態
+     * @param active 表示位置となる物理ノードを保持するキャスト状態
      */
     void renderRope(@NotNull ActiveCast active) {
-        for (int index = 0; index < active.ropeDisplays.size(); index++) {
+        World world = active.rodTip.getWorld();
+        if (world == null || world.getPlayers().isEmpty()) {
+            return;
+        }
+        List<Location> points = new ArrayList<>(ROPE_SEGMENT_COUNT * MAX_LINE_POINTS_PER_SEGMENT);
+        for (int index = 0; index + 1 < active.ropeNodes.size(); index++) {
             Location start = active.ropeNodes.get(index);
             Location end = active.ropeNodes.get(index + 1);
-            BlockDisplay display = active.ropeDisplays.get(index);
-            display.teleport(start);
-            Transformation transformation = lineTransformation(start, end);
-            display.setInterpolationDelay(0);
-            display.setTransformation(transformation == null
-                ? new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(), new Quaternionf())
-                : transformation);
+            Vector delta = end.toVector().subtract(start.toVector());
+            double length = delta.length();
+            if (!Double.isFinite(length) || length <= 0.0D) {
+                continue;
+            }
+            int count = (int) Math.min(MAX_LINE_POINTS_PER_SEGMENT, Math.ceil(length / LINE_PARTICLE_SPACING));
+            for (int point = 0; point < count; point++) {
+                points.add(start.clone().add(delta.clone().multiply((double) point / count)));
+            }
         }
+        particleDisplayService.spawnForNearbyViewers(active.rodTip, points, SharedParticleDefinitions.FISHING_ROD_LINE);
     }
 
     /**
@@ -1057,34 +1032,8 @@ public final class DebugFishingRodUseService {
         });
     }
 
-    private @Nullable List<BlockDisplay> spawnRopeDisplays(@NotNull Location location) {
-        if (location.getWorld() == null) {
-            return null;
-        }
-        List<BlockDisplay> displays = new ArrayList<>(ROPE_SEGMENT_COUNT);
-        try {
-            for (int index = 0; index < ROPE_SEGMENT_COUNT; index++) {
-                BlockDisplay display = location.getWorld().spawn(location, BlockDisplay.class, entity -> {
-                    entity.setBlock(Material.WHITE_WOOL.createBlockData());
-                    configureDisplay(entity, LINE_DISPLAY_TAG);
-                    entity.setTransformation(new Transformation(
-                        new Vector3f(0.0F, -LINE_THICKNESS * 0.5F, -LINE_THICKNESS * 0.5F),
-                        new Quaternionf(),
-                        new Vector3f((float) MIN_SEGMENT_LENGTH, LINE_THICKNESS, LINE_THICKNESS),
-                        new Quaternionf()
-                    ));
-                });
-                displays.add(display);
-            }
-            return displays;
-        } catch (RuntimeException failure) {
-            removeDisplays(displays);
-            return null;
-        }
-    }
-
     /**
-     * 針と糸の表示Entityを、手動の物理・描画更新に適した設定へ初期化します。
+     * 針の表示Entityを、手動の物理・描画更新に適した設定へ初期化します。
      *
      * @param display 初期化対象の表示Entity
      * @param tag 表示Entityへ付与する識別タグ
@@ -1154,15 +1103,6 @@ public final class DebugFishingRodUseService {
         }
     }
 
-    private static void removeDisplays(@Nullable List<BlockDisplay> displays) {
-        if (displays == null) {
-            return;
-        }
-        for (BlockDisplay display : displays) {
-            removeDisplay(display);
-        }
-    }
-
     private record CurrentFishingRod(
         @NotNull ItemReference reference,
         @NotNull ItemModel model,
@@ -1195,7 +1135,6 @@ public final class DebugFishingRodUseService {
         boolean inWater;
         @Nullable Location pendingWaterImpact;
         private final BlockDisplay hookDisplay;
-        private final List<BlockDisplay> ropeDisplays;
         double ropeSegmentLength;
         final List<Location> ropeNodes;
         final List<Vector> ropeVelocities;
@@ -1210,8 +1149,7 @@ public final class DebugFishingRodUseService {
             @NotNull Location currentHook,
             @NotNull Location target,
             boolean waterImpact,
-            @NotNull BlockDisplay hookDisplay,
-            @NotNull List<BlockDisplay> ropeDisplays
+            @NotNull BlockDisplay hookDisplay
         ) {
             this(
                 equipmentInstanceId,
@@ -1220,8 +1158,7 @@ public final class DebugFishingRodUseService {
                 target,
                 currentHook.toVector().distance(target.toVector()),
                 waterImpact,
-                hookDisplay,
-                ropeDisplays
+                hookDisplay
             );
         }
 
@@ -1232,8 +1169,7 @@ public final class DebugFishingRodUseService {
             @NotNull Location target,
             double maxLineLength,
             boolean waterImpact,
-            @NotNull BlockDisplay hookDisplay,
-            @NotNull List<BlockDisplay> ropeDisplays
+            @NotNull BlockDisplay hookDisplay
         ) {
             this.equipmentInstanceId = equipmentInstanceId;
             this.rodTip = rodTip;
@@ -1248,7 +1184,6 @@ public final class DebugFishingRodUseService {
                 this.pendingWaterImpact = currentHook.clone();
             }
             this.hookDisplay = hookDisplay;
-            this.ropeDisplays = ropeDisplays;
             this.ropeSegmentLength = calculateRopeSegmentLength(deployedLineLength);
             this.ropeNodes = createRopeNodes(rodTip, currentHook);
             this.ropeVelocities = createRopeVelocities();
