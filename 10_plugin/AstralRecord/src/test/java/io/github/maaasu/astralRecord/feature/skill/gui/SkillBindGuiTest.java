@@ -85,7 +85,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
-     * 検証契約: 最大レベル未満の習得済み個体は、次のレベルと必要素材を表示し、クリックで詳細画面へ進む案内を表示する。
+     * 検証契約: 最大レベル未満の習得済み個体は、次のレベルと必要素材を表示し、素材所持時は詳細画面、素材不足時はバインドする案内を表示する。
      */
     @Test
     void learnedSkillBelowMaxShowsNextLevelMaterialsAndLevelUpAction() {
@@ -102,7 +102,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         assertTrue(lore.contains("次のレベル: Lv.1 → Lv.2"));
         assertTrue(lore.contains("レベルアップに必要な素材:"));
         assertTrue(lore.contains("• スキルジェムの原石(無印) ×2"));
-        assertTrue(lore.contains("クリック: 詳細画面を開く"));
+        assertTrue(lore.contains("クリック: 詳細画面を開く（素材所持時）／素材不足時はバインド"));
         assertFalse(lore.contains("右クリック: レベルアップ"));
         assertFalse(lore.contains("レベル: MAX"));
     }

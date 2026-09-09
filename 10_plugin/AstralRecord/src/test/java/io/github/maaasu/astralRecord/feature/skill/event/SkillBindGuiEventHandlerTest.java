@@ -661,32 +661,41 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 最大レベル未満の習得済みスキルは、クリック種別によらず詳細画面へ遷移し、選択中バインド枠を保持する。
+     * 検証契約: 最大レベル未満の習得済みスキルは、レベルアップ素材を必要数所持している場合に詳細画面へ遷移し、選択中バインド枠を保持する。
      */
     @Test
     void learnedSkillBelowMaxOpensDetailAndKeepsSelectedBindSlot() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
         SkillBindGui gui = mock(SkillBindGui.class);
         SkillService skillService = mock(SkillService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
         SkillPermissionService permissionService = mock(SkillPermissionService.class);
         LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemService itemService = mock(ItemService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
-            mock(AstralRecord.class), gui, skillService, mock(SkillBindPresetService.class), ownershipService,
-            permissionService, learnedSkillService, mock(PassiveSkillService.class), mock(InventoryService.class)
+            plugin, gui, skillService, presetService, ownershipService,
+            permissionService, learnedSkillService, mock(PassiveSkillService.class), inventoryService
         );
         Player player = mock(Player.class);
         AstPlayer astPlayer = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
+        ItemModel material = mock(ItemModel.class);
+        InventoryEntryModel inventoryEntry = mock(InventoryEntryModel.class);
         InventoryClickEvent event = mock(InventoryClickEvent.class);
         ItemStack skillItem = mock(ItemStack.class);
         UUID accountId = UUID.randomUUID();
         UUID learnedSkillId = UUID.randomUUID();
+        UUID inventoryEntryId = UUID.randomUUID();
         SkillBindSession session = new SkillBindSession(presets(accountId));
         session.selectBindSlot(SkillBindType.ACTIVE, 2);
         LearnedSkillInstance learned = new LearnedSkillInstance(
             learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 1, null, null
         );
-        SkillDefinition definition = skillDefinition();
+        SkillDefinition definition = skillDefinition(
+            List.of(), List.of(new SkillRequiredItemDefinition("skill_gem", 1))
+        );
         SkillRegistry registry = new SkillRegistry();
         registry.replaceDefinitions(Map.of(definition.getId(), definition));
         when(astPlayer.getAccount()).thenReturn(account);
@@ -695,6 +704,15 @@ class SkillBindGuiEventHandlerTest {
         when(skillService.registry()).thenReturn(registry);
         when(ownershipService.findInstance(astPlayer, learnedSkillId.toString())).thenReturn(learned);
         when(permissionService.isPermitted(astPlayer, definition.getId())).thenReturn(true);
+        when(plugin.getItemService()).thenReturn(itemService);
+        when(itemService.findLoadedById("skill_gem")).thenReturn(material);
+        when(material.getId()).thenReturn("skill_gem");
+        when(material.getCategory()).thenReturn("material");
+        when(inventoryEntry.getInventoryEntryId()).thenReturn(inventoryEntryId);
+        when(inventoryEntry.getQuantity()).thenReturn(1L);
+        when(inventoryService.getOwnedStackEntries(astPlayer, "material", "skill_gem"))
+            .thenReturn(List.of(inventoryEntry));
+        when(inventoryService.findOwnedEntry(accountId, inventoryEntryId)).thenReturn(inventoryEntry);
         when(event.getCurrentItem()).thenReturn(skillItem);
         when(gui.learnedSkillId(skillItem)).thenReturn(learnedSkillId.toString());
         when(event.getRawSlot()).thenReturn(1);
@@ -713,6 +731,84 @@ class SkillBindGuiEventHandlerTest {
         verify(learnedSkillService, never()).levelUpFromManagerWithPaymentsAsync(any(), any(), any(), any(), any(), any(), any());
         assertEquals(SkillBindType.ACTIVE, session.selectedBindType());
         assertEquals(2, session.selectedBindSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 最大レベル未満でもレベルアップ素材を必要数所持していない場合は、詳細画面を開かずバインドする。
+     */
+    @Test
+    void learnedSkillBelowMaxWithoutLevelUpMaterialsBindsDirectly() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemService itemService = mock(ItemService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, gui, skillService, presetService, ownershipService, permissionService,
+            learnedSkillService, passiveSkillService, inventoryService
+        );
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        ItemModel material = mock(ItemModel.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        ItemStack skillItem = mock(ItemStack.class);
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        session.selectBindSlot(SkillBindType.ACTIVE, 2);
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 1, null, null
+        );
+        SkillDefinition definition = skillDefinition(
+            List.of(), List.of(new SkillRequiredItemDefinition("skill_gem", 1))
+        );
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(skillService.registry()).thenReturn(registry);
+        when(ownershipService.findInstance(astPlayer, learnedSkillId.toString())).thenReturn(learned);
+        when(permissionService.isPermitted(astPlayer, definition.getId())).thenReturn(true);
+        when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
+        when(plugin.getItemService()).thenReturn(itemService);
+        when(itemService.findLoadedById("skill_gem")).thenReturn(material);
+        when(material.getId()).thenReturn("skill_gem");
+        when(material.getCategory()).thenReturn("material");
+        when(inventoryService.getOwnedStackEntries(astPlayer, "material", "skill_gem"))
+            .thenReturn(List.of());
+        when(event.getCurrentItem()).thenReturn(skillItem);
+        when(gui.learnedSkillId(skillItem)).thenReturn(learnedSkillId.toString());
+        when(event.getRawSlot()).thenReturn(1);
+        when(event.isLeftClick()).thenReturn(false);
+        when(event.isRightClick()).thenReturn(true);
+        when(presetService.saveAsync(any(), anyInt(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(true);
+        putMapValue(handler, "sessions", playerId, session);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "handleMainClick",
+                new Class<?>[] {Player.class, SkillBindSession.class, SkillBindInventoryHolder.class, InventoryClickEvent.class},
+                player, session, new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0), event);
+        }
+
+        verify(gui, never()).createDetailInventory(any(), any(), anyInt());
+        verify(learnedSkillService, never()).levelUpFromManagerWithPaymentsAsync(
+            any(), any(), any(), any(), any(), any(), any()
+        );
+        verify(presetService).saveAsync(eq(accountId), eq(1), any(), any(), any(), eq(accountId), any(), any());
+        assertEquals(learnedSkillId.toString(), session.skillIdAt(SkillBindType.ACTIVE, 2));
+        assertNull(session.selectedBindType());
     }
 
     /**
@@ -1670,12 +1766,19 @@ class SkillBindGuiEventHandlerTest {
     }
 
     private static SkillDefinition skillDefinition(List<SkillRequiredItemDefinition> learnRequiredItems) {
+        return skillDefinition(learnRequiredItems, List.of());
+    }
+
+    private static SkillDefinition skillDefinition(
+        List<SkillRequiredItemDefinition> learnRequiredItems,
+        List<SkillRequiredItemDefinition> levelUpRequiredItems
+    ) {
         return new SkillDefinition(
             "adventurer_smash", "adventurer_smash", "スマッシュ", null, "IRON_SWORD", List.of(),
             60L, 18.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
             SkillResourceType.ENERGY, 18.0D, "adventurer_smash", 3, List.of(),
             List.of(new SkillSigilSlotDefinition(1, 1)), List.of("allowed_sigil"),
-            learnRequiredItems, List.of()
+            learnRequiredItems, levelUpRequiredItems
         );
     }
 

@@ -553,7 +553,7 @@ public final class SkillBindGui {
             lore.add(Component.text(
                 entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()
                     ? "クリック: バインド"
-                    : "クリック: 詳細画面を開く",
+                    : "クリック: 詳細画面を開く（素材所持時）／素材不足時はバインド",
                 NamedTextColor.YELLOW
             ));
         }

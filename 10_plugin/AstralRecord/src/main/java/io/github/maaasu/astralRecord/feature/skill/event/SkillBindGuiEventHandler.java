@@ -398,7 +398,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()) {
+        if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
+            && hasLevelUpMaterials(astPlayer, entry)) {
             openDetail(player, session, entry, page);
             return;
         }
@@ -522,6 +523,20 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
         }
         return null;
+    }
+
+    /**
+     * スキルの次レベルに必要な素材を、現在の BAG/HOTBAR に必要数所持しているか判定します。
+     *
+     * @param player 対象プレイヤー
+     * @param entry 判定対象の習得済みスキル
+     * @return 必要素材が未指定、または必要数を所持している場合は {@code true}
+     */
+    private boolean hasLevelUpMaterials(
+        @NotNull AstPlayer player,
+        @NotNull SkillManagerEntry entry
+    ) {
+        return requiredItemPayments(player, entry.definition().getLevelUpRequiredItems()) != null;
     }
 
     private void handleBindSlotClick(
