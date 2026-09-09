@@ -81,18 +81,17 @@ public class AccountService {
     }
 
     /**
-     * プレイヤーのアカウント一覧を取得します。
+     * プレイヤーのアカウント一覧を取得し、API が返した進行版を次回 snapshot の基準へ反映します。
      *
      * @param userId プレイヤー UUID
-     * @return アカウントモデルのリスト
+     * @return 未ACK進行を重ねたアカウントモデルのリスト
      */
     public List<AccountModel> getAccounts(UUID userId) {
         List<AccountModel> accounts = accountRepository.findByUserId(userId).stream()
-            .map(this::overlayPendingProgress)
+            .map(account -> withProgressLock(account.getUuid(), () -> {
+                return refreshAuthoritativeProgressLocked(account);
+            }))
             .toList();
-        accounts.forEach(account -> acknowledgedProgressVersions.putIfAbsent(
-            account.getUuid(), account.getProgressVersion()
-        ));
         cacheAccountSlotIndexes(userId, accounts);
         return accounts;
     }
@@ -145,10 +144,7 @@ public class AccountService {
     public AccountModel getAccount(UUID accountUuid) {
         return withProgressLock(accountUuid, () -> {
             AccountModel account = accountRepository.findByUuid(accountUuid);
-            if (account != null) {
-                acknowledgedProgressVersions.merge(account.getUuid(), account.getProgressVersion(), Math::max);
-            }
-            return account == null ? null : overlayPendingProgress(account);
+            return account == null ? null : refreshAuthoritativeProgressLocked(account);
         });
     }
 
@@ -268,7 +264,7 @@ public class AccountService {
     public AccountModel switchAccount(UUID userId, UUID accountUuid, UUID updatedBy) {
         AccountModel switched = accountRepository.switchActiveAccount(userId, accountUuid, updatedBy);
         Logger.log(LogId.I_5101, accountUuid, userId);
-        return overlayPendingProgress(switched);
+        return withProgressLock(accountUuid, () -> refreshAuthoritativeProgressLocked(switched));
     }
 
     /**
@@ -682,6 +678,63 @@ public class AccountService {
         AccountModel withClass = classPending == null ? overlaid : withPendingClassProgress(overlaid, classPending.account());
         PendingModeUpdate modePending = pendingModeUpdates.get(account.getUuid());
         return modePending == null ? withClass : withMode(withClass, modePending.account().getMode(), modePending.updatedBy());
+    }
+
+    /**
+     * APIから再読込した進行版を保存基準へ反映し、未ACKの項目だけを最新モデルへ重ね直します。
+     * 呼出元は対象accountの進行ガードを保持します。
+     *
+     * @param authoritative APIが返した最新アカウント
+     * @return API確定済み項目とローカル未保存項目を合成したアカウント
+     */
+    private @NotNull AccountModel refreshAuthoritativeProgressLocked(@NotNull AccountModel authoritative) {
+        UUID accountId = authoritative.getUuid();
+        acknowledgedProgressVersions.merge(accountId, authoritative.getProgressVersion(), Math::max);
+
+        PendingExperienceUpdate experience = pendingExperienceUpdates.get(accountId);
+        PendingClassProgressUpdate classProgress = pendingClassProgressUpdates.get(accountId);
+        PendingModeUpdate mode = pendingModeUpdates.get(accountId);
+        boolean pendingNeedsRebase = experience != null
+                && experience.account().getProgressVersion() < authoritative.getProgressVersion()
+            || classProgress != null
+                && classProgress.account().getProgressVersion() < authoritative.getProgressVersion()
+            || mode != null
+                && mode.account().getProgressVersion() < authoritative.getProgressVersion();
+        if (!pendingNeedsRebase) {
+            return overlayPendingProgressLocked(authoritative);
+        }
+
+        AccountModel rebased = authoritative;
+        AccountModel savedMode = persistedOfflineModes.get(accountId);
+        if (savedMode != null && rebased.getProgressVersion() < savedMode.getProgressVersion()) {
+            rebased = withMode(rebased, savedMode.getMode(), savedMode.getUpdatedBy());
+        }
+
+        if (experience != null) {
+            rebased = withProgress(
+                rebased,
+                experience.account().getLevel(),
+                experience.account().getTotalExperience(),
+                experience.updatedBy()
+            );
+            pendingExperienceUpdates.put(accountId, new PendingExperienceUpdate(rebased, experience.updatedBy()));
+        }
+
+        if (classProgress != null) {
+            rebased = withPendingClassProgress(rebased, classProgress.account());
+            pendingClassProgressUpdates.put(
+                accountId,
+                new PendingClassProgressUpdate(rebased, classProgress.updatedBy())
+            );
+        }
+
+        if (mode != null) {
+            rebased = withMode(rebased, mode.account().getMode(), mode.updatedBy());
+            pendingModeUpdates.put(accountId, new PendingModeUpdate(rebased, mode.updatedBy()));
+        }
+        // 送信中snapshotのACKが、再baseしたpendingを同じ世代として消さないよう新しい世代にする。
+        markProgressDirty(accountId);
+        return rebased;
     }
 
     private <T> T withProgressLock(@NotNull UUID accountId, @NotNull Supplier<T> action) {

@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -250,6 +251,89 @@ class AccountServicePendingProgressTest {
         assertEquals(8, overlaid.getLevel());
         assertEquals(9_900L, overlaid.getTotalExperience());
         assertEquals(6, overlaid.getProgressVersion());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウント一覧取得
+     * 検証契約: 再ログイン時のAPI一覧が新しい進行版を返した場合、未ACKのmodeを保持しつつ次回snapshotの期待版を更新する。
+     */
+    @Test
+    void refreshedAccountListAdvancesSnapshotBaselineWithoutDroppingPendingMode() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        AccountModel firstLoad = account(accountId, userId, 0, AccountMode.PLAYER, 3, 1_500L, 41, userId);
+        AccountModel refreshed = account(accountId, userId, 0, AccountMode.PLAYER, 4, 2_500L, 42, userId);
+        AccountRepository repository = mock(AccountRepository.class);
+        when(repository.findByUserId(userId))
+            .thenReturn(List.of(firstLoad))
+            .thenReturn(List.of(refreshed));
+        Fixture fixture = createFixture(repository);
+
+        AccountModel loaded = fixture.service().getAccounts(userId).getFirst();
+        fixture.service().setMode(loaded, AccountMode.ADMIN, updatedBy);
+        AccountModel overlaid = fixture.service().getAccounts(userId).getFirst();
+        PlayerStateSection snapshot = fixture.service().snapshotPlayerState(accountId);
+
+        assertEquals(AccountMode.ADMIN, overlaid.getMode());
+        assertEquals(4, overlaid.getLevel());
+        assertEquals(2_500L, overlaid.getTotalExperience());
+        assertNotNull(snapshot);
+        assertEquals(42, snapshot.payload().getAsJsonObject().get("expectedProgressVersion").getAsInt());
+        assertEquals(AccountMode.ADMIN.getValue(), snapshot.payload().getAsJsonObject().get("mode").getAsByte());
+        assertEquals(4, snapshot.payload().getAsJsonObject().get("level").getAsInt());
+        assertEquals(2_500L, snapshot.payload().getAsJsonObject().get("totalExperience").getAsLong());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウント一覧取得
+     * 検証契約: snapshot送信中のAPI再読込は再baseを新しいclientRevisionにし、旧ACKでpendingを孤立させない。
+     */
+    @Test
+    void refreshDuringSnapshotKeepsRebasedClassProgressUntilNewAcknowledgement() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        AccountModel firstLoad = account(accountId, userId, 0, AccountMode.PLAYER, 3, 1_500L, 41, userId);
+        AccountModel refreshed = account(accountId, userId, 0, AccountMode.PLAYER, 4, 2_500L, 42, userId);
+        AccountRepository repository = mock(AccountRepository.class);
+        when(repository.findByUserId(userId))
+            .thenReturn(List.of(firstLoad))
+            .thenReturn(List.of(refreshed));
+        Fixture fixture = createFixture(repository);
+
+        AccountModel loaded = fixture.service().getAccounts(userId).getFirst();
+        fixture.service().updateClassProgressCached(loaded, "mage", 2, 300L, userId);
+        PlayerStateSection inFlight = fixture.service().snapshotPlayerState(accountId);
+        assertNotNull(inFlight);
+
+        fixture.service().getAccounts(userId);
+        JsonObject oldAcknowledgement = new JsonObject();
+        oldAcknowledgement.addProperty(
+            "clientRevision",
+            inFlight.payload().getAsJsonObject().get("clientRevision").getAsLong()
+        );
+        oldAcknowledgement.addProperty("progressVersion", 42);
+        inFlight.acknowledge().accept(oldAcknowledgement);
+
+        PlayerStateSection rebased = fixture.service().snapshotPlayerState(accountId);
+        assertNotNull(rebased);
+        assertTrue(fixture.service().hasPendingClassProgress(accountId));
+        assertEquals(42, rebased.payload().getAsJsonObject().get("expectedProgressVersion").getAsInt());
+        assertEquals(4, rebased.payload().getAsJsonObject().get("level").getAsInt());
+        assertEquals(2_500L, rebased.payload().getAsJsonObject().get("totalExperience").getAsLong());
+        assertEquals("mage", rebased.payload().getAsJsonObject().get("classId").getAsString());
+
+        JsonObject rebasedAcknowledgement = new JsonObject();
+        rebasedAcknowledgement.addProperty(
+            "clientRevision",
+            rebased.payload().getAsJsonObject().get("clientRevision").getAsLong()
+        );
+        rebasedAcknowledgement.addProperty("progressVersion", 43);
+        rebased.acknowledge().accept(rebasedAcknowledgement);
+        assertFalse(fixture.service().hasPendingClassProgress(accountId));
+        assertNull(fixture.service().snapshotPlayerState(accountId));
     }
 
     /**
