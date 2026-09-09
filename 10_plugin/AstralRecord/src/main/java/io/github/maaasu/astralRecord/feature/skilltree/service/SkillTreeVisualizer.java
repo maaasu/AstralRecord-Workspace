@@ -30,9 +30,11 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +45,9 @@ final class SkillTreeVisualizer {
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
+    private static final double BEDROCK_EDGE_PARTICLE_SPACING = 1.5D;
+    private static final int BEDROCK_EDGE_PARTICLE_MIN_COUNT = 3;
+    private static final int BEDROCK_EDGE_PARTICLE_MAX_COUNT = 8;
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final double NODE_TEXT_Y_OFFSET = 1.65D;
     private static final float NODE_ITEM_SCALE = 0.72F;
@@ -144,7 +149,7 @@ final class SkillTreeVisualizer {
     }
 
     /**
-     * Bedrock Edition では edge の BlockDisplay を送らず、中点の軽量な粒子だけを再表示します。
+     * Bedrock Edition では edge の BlockDisplay を送らず、edge 上の複数点へ状態色付き粒子を再表示します。
      */
     private void renderBedrockEdgeFallbacks() {
         ParticleDisplayService particles = particleDisplayService;
@@ -161,6 +166,9 @@ final class SkillTreeVisualizer {
                 continue;
             }
             for (EdgeVisual visual : edgeVisuals.values()) {
+                if (visual.bedrockParticleLocations().isEmpty()) {
+                    continue;
+                }
                 Location midpoint = visual.midpoint();
                 if (!isVisibleTo(player, midpoint)) {
                     continue;
@@ -171,7 +179,7 @@ final class SkillTreeVisualizer {
                 }
                 SharedParticleDefinition particle = edgeParticle(state);
                 if (particle != null) {
-                    particles.spawnForViewer(astPlayer, midpoint, particle);
+                    particles.spawnForViewer(astPlayer, visual.bedrockParticleLocations(), particle);
                 }
             }
         }
@@ -476,9 +484,52 @@ final class SkillTreeVisualizer {
         return location.clone().add(0.0D, NODE_TEXT_Y_OFFSET, 0.0D);
     }
 
-    private @NotNull Location interpolate(@NotNull Location left, @NotNull Location right, double t) {
+    private static @NotNull Location interpolate(@NotNull Location left, @NotNull Location right, double t) {
         Vector vector = left.toVector().multiply(1.0D - t).add(right.toVector().multiply(t));
         return vector.toLocation(left.getWorld()).add(0.0D, EDGE_Y_OFFSET, 0.0D);
+    }
+
+    /**
+     * edge の長さに応じた Bedrock 向け粒子数を返します。
+     *
+     * @param edgeLength edge の両端間の距離
+     * @return 表示する粒子点数。無効または長さ0以下の場合は {@code 0}
+     */
+    static int bedrockEdgeParticleCount(double edgeLength) {
+        if (!Double.isFinite(edgeLength) || edgeLength <= 0.0D) {
+            return 0;
+        }
+        return Math.min(
+                BEDROCK_EDGE_PARTICLE_MAX_COUNT,
+                Math.max(
+                        BEDROCK_EDGE_PARTICLE_MIN_COUNT,
+                        (int) Math.ceil(edgeLength / BEDROCK_EDGE_PARTICLE_SPACING)
+                )
+        );
+    }
+
+    /**
+     * edge の両端のノード表示に重ならない Bedrock 向け粒子位置を生成します。
+     *
+     * @param left edge の一方の端点
+     * @param right edge のもう一方の端点
+     * @return edge 内部へ等間隔に配置した粒子位置
+     */
+    static @NotNull List<Location> bedrockEdgeParticleLocations(
+            @NotNull Location left,
+            @NotNull Location right
+    ) {
+        Vector direction = right.toVector().subtract(left.toVector());
+        int count = bedrockEdgeParticleCount(direction.length());
+        if (count == 0) {
+            return List.of();
+        }
+
+        List<Location> locations = new ArrayList<>(count);
+        for (int index = 1; index <= count; index++) {
+            locations.add(interpolate(left, right, (double) index / (count + 1.0D)));
+        }
+        return List.copyOf(locations);
     }
 
     private @NotNull Component component(@NotNull String text) {
@@ -876,6 +927,7 @@ final class SkillTreeVisualizer {
         private Location leftLocation;
         private Location rightLocation;
         private Location midpoint;
+        private List<Location> bedrockParticleLocations;
 
         private EdgeVisual(@NotNull SkillTreeEdge edge, @NotNull Location left, @NotNull Location right) {
             this.edge = edge;
@@ -883,6 +935,7 @@ final class SkillTreeVisualizer {
             this.leftLocation = left.clone();
             this.rightLocation = right.clone();
             this.midpoint = interpolate(left, right, 0.5D);
+            this.bedrockParticleLocations = bedrockEdgeParticleLocations(left, right);
             Logger.log(
                     LogId.I_9002,
                     "edge",
@@ -913,7 +966,12 @@ final class SkillTreeVisualizer {
             Location end = interpolate(left, right, 1.0D);
             packetDisplay.moveBlock(block, start, EdgeState.LOCKED.material, edgeTransform(start, end));
             midpoint = interpolate(left, right, 0.5D);
+            bedrockParticleLocations = bedrockEdgeParticleLocations(left, right);
             showCurrentViewers();
+        }
+
+        private @NotNull List<Location> bedrockParticleLocations() {
+            return bedrockParticleLocations;
         }
 
         private void updateViewer(@NotNull Player player, @NotNull EdgeState nextState) {

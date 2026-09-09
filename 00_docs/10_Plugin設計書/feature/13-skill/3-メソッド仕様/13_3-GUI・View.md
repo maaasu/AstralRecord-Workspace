@@ -84,4 +84,4 @@ NPC の `SKILL_FORGET` アクションからだけ開く、54 slot・45件/ペ�
 
 クラス名: `SkillTreeVisualizer`
 
-`AstPlayer.isBedrock=true` のプレイヤーには edge の `BlockDisplay` packet を送信せず、edge の中点へ状態色付きの共通 particle を10 tick間隔で1個表示する。表示対象は通常の skill tree 表示状態と表示距離判定に従い、管理表示も対象に含める。Java Edition プレイヤーの `BlockDisplay` 表示は変更しない。
+`AstPlayer.isBedrock=true` のプレイヤーには edge の `BlockDisplay` packet を送信せず、edge の両端にある node 表示へ重ならない内部点へ、edge の長さに応じて状態色付きの共通 particle を3〜8個、10 tick間隔で表示する。表示対象は通常の skill tree 表示状態と表示距離判定に従い、管理表示も対象に含める。Java Edition プレイヤーの `BlockDisplay` 表示は変更しない。

@@ -151,6 +151,43 @@ public class ParticleDisplayService {
         );
     }
 
+    /**
+     * 指定した viewer へ複数地点の同じパーティクルを表示します。
+     * <p>
+     * プレイヤーごとのパーティクル密度は呼び出し単位で一度だけ解決し、各地点へ同じ表示個数を適用します。
+     *
+     * @param viewer 表示対象プレイヤー
+     * @param locations パーティクルを表示する地点
+     * @param definition 表示する共通パーティクル定義
+     */
+    public void spawnForViewer(
+        @NotNull AstPlayer viewer,
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition
+    ) {
+        if (locations.isEmpty()) {
+            return;
+        }
+        int count = resolveCount(definition.count(), resolvePlayerDensityScale(viewer));
+        if (count <= 0) {
+            return;
+        }
+        Player bukkitViewer = viewer.getBukkit();
+        for (Location location : locations) {
+            spawnForViewerResolvedCount(
+                bukkitViewer,
+                location,
+                definition.particle(),
+                count,
+                definition.offsetX(),
+                definition.offsetY(),
+                definition.offsetZ(),
+                definition.extra(),
+                definition.data()
+            );
+        }
+    }
+
     public void spawnForViewer(
         @NotNull AstPlayer viewer,
         @NotNull Location location,
