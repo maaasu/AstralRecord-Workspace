@@ -969,7 +969,7 @@ static async Task RestoreTableAsync(
             string.Equals(column.Name, sourceColumn.Name, StringComparison.OrdinalIgnoreCase));
         if (targetColumn is null)
             throw new InvalidOperationException($"Restore target {tableName} is missing preserved column {sourceColumn.Name}.");
-        if (!sourceColumn.HasSameStorageType(targetColumn))
+        if (!CanRestoreColumn(tableName, sourceColumn, targetColumn))
         {
             throw new InvalidOperationException(
                 $"Restore column type changed for {tableName}.{sourceColumn.Name}; backup={sourceColumn.StorageDescription}, " +
@@ -998,10 +998,16 @@ static async Task RestoreTableAsync(
         throw new InvalidOperationException($"No compatible columns were found for release note table {tableName}.");
 
     var columnList = string.Join(", ", restoredColumns.Select(column => QuoteIdentifier(column.Name)));
+    var selectList = string.Join(", ", restoredColumns.Select(targetColumn =>
+    {
+        var sourceColumn = sourceColumns.First(column =>
+            string.Equals(column.Name, targetColumn.Name, StringComparison.OrdinalIgnoreCase));
+        return BuildRestoreSelectExpression(tableName, sourceColumn, targetColumn);
+    }));
     var qualifiedTarget = $"{QuoteIdentifier(targetDatabaseName)}.[dbo].{QuoteIdentifier(tableName)}";
     var qualifiedSource = $"{QuoteIdentifier(backupDatabaseName)}.[dbo].{QuoteIdentifier(tableName)}";
     var hasIdentity = restoredColumns.Any(column => column.IsIdentity);
-    var insertSql = $"INSERT INTO {qualifiedTarget} ({columnList}) SELECT {columnList} FROM {qualifiedSource};";
+    var insertSql = $"INSERT INTO {qualifiedTarget} ({columnList}) SELECT {selectList} FROM {qualifiedSource};";
     var sql = hasIdentity
         ? $"SET IDENTITY_INSERT {qualifiedTarget} ON; {insertSql} SET IDENTITY_INSERT {qualifiedTarget} OFF;"
         : insertSql;
@@ -1012,6 +1018,61 @@ static async Task RestoreTableAsync(
         commandTimeoutSeconds,
         cancellationToken,
         transaction);
+}
+
+static bool CanRestoreColumn(
+    string tableName,
+    ColumnDefinition sourceColumn,
+    ColumnDefinition targetColumn)
+{
+    if (sourceColumn.HasSameStorageType(targetColumn))
+        return true;
+
+    if (!sourceColumn.HasDateTime2Type(targetColumn))
+        return false;
+
+    if (sourceColumn.Scale <= targetColumn.Scale)
+        return true;
+
+    return sourceColumn.Scale == 7
+           && targetColumn.Scale == 3
+           && IsLegacyReleaseTimestampColumn(tableName, sourceColumn.Name);
+}
+
+static bool IsLegacyReleaseTimestampColumn(string tableName, string columnName)
+{
+    if (string.Equals(tableName, "release_note", StringComparison.OrdinalIgnoreCase))
+    {
+        return columnName.Equals("published_at_utc", StringComparison.OrdinalIgnoreCase)
+               || columnName.Equals("created_at_utc", StringComparison.OrdinalIgnoreCase)
+               || columnName.Equals("updated_at_utc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    if (!string.Equals(tableName, "release_notification_outbox", StringComparison.OrdinalIgnoreCase))
+        return false;
+
+    return columnName.Equals("next_attempt_at_utc", StringComparison.OrdinalIgnoreCase)
+           || columnName.Equals("lease_until_utc", StringComparison.OrdinalIgnoreCase)
+           || columnName.Equals("sent_at_utc", StringComparison.OrdinalIgnoreCase)
+           || columnName.Equals("created_at_utc", StringComparison.OrdinalIgnoreCase)
+           || columnName.Equals("updated_at_utc", StringComparison.OrdinalIgnoreCase);
+}
+
+static string BuildRestoreSelectExpression(
+    string tableName,
+    ColumnDefinition sourceColumn,
+    ColumnDefinition targetColumn)
+{
+    var sourceIdentifier = QuoteIdentifier(sourceColumn.Name);
+    if (sourceColumn.HasSameStorageType(targetColumn))
+        return sourceIdentifier;
+
+    if (CanRestoreColumn(tableName, sourceColumn, targetColumn))
+        return $"CONVERT(datetime2({targetColumn.Scale}), {sourceIdentifier})";
+
+    throw new InvalidOperationException(
+        $"Restore expression is unavailable for {sourceColumn.Name}; backup={sourceColumn.StorageDescription}, " +
+        $"target={targetColumn.StorageDescription}.");
 }
 
 static async Task<IReadOnlyList<ColumnDefinition>> LoadColumnsAsync(
@@ -1648,6 +1709,10 @@ internal sealed record ColumnDefinition(
            && MaxLength == other.MaxLength
            && Precision == other.Precision
            && Scale == other.Scale;
+
+    public bool HasDateTime2Type(ColumnDefinition other)
+        => string.Equals(TypeName, "datetime2", StringComparison.OrdinalIgnoreCase)
+           && string.Equals(other.TypeName, "datetime2", StringComparison.OrdinalIgnoreCase);
 
     public string StorageDescription => $"{TypeName}(maxLength={MaxLength}, precision={Precision}, scale={Scale})";
 }

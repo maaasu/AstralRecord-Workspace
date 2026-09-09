@@ -14,7 +14,7 @@
 - `00_docs/40_Database設計書/table-definitions/MasterDataDB/init.sql`
 - `00_docs/40_Database設計書/table-definitions/HistoryDB/init.sql`
 
-`AstralRecord` を削除する前に、保持対象の2表へ排他ロックを取り、同一の `SERIALIZABLE` トランザクション内で同じSQL Server上の一時退避DBへコピーします。3DBの再作成後、`release_note`、`release_notification_outbox` の順で復元し、両表の件数が退避時と一致した場合だけ一時退避DBを削除します。
+`AstralRecord` を削除する前に、保持対象の2表へ排他ロックを取り、同一の `SERIALIZABLE` トランザクション内で同じSQL Server上の一時退避DBへコピーします。3DBの再作成後、`release_note`、`release_notification_outbox` の順で復元し、両表の件数が退避時と一致した場合だけ一時退避DBを削除します。保持列の型は原則として一致を必須とします。`datetime2` の精度拡張は許可し、旧スキーマで `datetime2(7)` だった保持対象8日時列は、現行スキーマの `datetime2(3)` へ明示変換して復元します。精度縮小ではSQL Serverの規則により最も近いミリ秒へ丸められ、秒の境界を繰り上がる場合があります。
 
 再作成した `AstralRecord` は、復元と一時退避DBの削除が終わるまでツール自身の接続で `SINGLE_USER` に保持します。処理が途中で失敗した場合は `AstralRecord` を `OFFLINE` にして不完全なDBへの接続を防ぎ、一時退避DBの名前と退避件数、復旧コマンドを標準エラーへ表示します。
 
@@ -87,7 +87,7 @@ Plugin側でMasterDataをキャッシュしている場合は、既存のMasterD
 
 ## 統合テスト
 
-次のテストは、設定されたSQL Serverにランダムな `_Integration_<識別子>` 付きの3DBだけを作成します。実行排他、保守マーカーの所有権、最新 `init.sql` の実行、Release Noteの退避・復元、一般データの消去、取消receipt列、途中失敗時の `OFFLINE` 隔離、`--restore-backup` による復旧を確認し、最後にテストDBと一時マーカーを削除します。
+次のテストは、設定されたSQL Serverにランダムな `_Integration_<識別子>` 付きの3DBだけを作成します。実行排他、保守マーカーの所有権、最新 `init.sql` の実行、旧 `datetime2(7)` を含むRelease Noteの退避・現行精度への復元、一般データの消去、取消receipt列、途中失敗時の `OFFLINE` 隔離、`--restore-backup` による復旧を確認し、最後にテストDBと一時マーカーを削除します。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\60_tool\db-reset-except-release-notes\tests\db-reset-except-release-notes.integration.ps1

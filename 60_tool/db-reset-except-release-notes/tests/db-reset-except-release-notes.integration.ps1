@@ -254,10 +254,23 @@ try {
 
     $releaseNoteId = [Guid]::NewGuid()
     $outboxId = [Guid]::NewGuid()
+    $nullOutboxId = [Guid]::NewGuid()
     Invoke-NonQuery `
         -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
         -DatabaseName $astralRecordName `
         -Sql @"
+DROP INDEX [IX_release_note_published_at] ON [dbo].[release_note];
+ALTER TABLE [dbo].[release_note] ALTER COLUMN [published_at_utc] DATETIME2(7) NOT NULL;
+ALTER TABLE [dbo].[release_note] ALTER COLUMN [created_at_utc] DATETIME2(7) NOT NULL;
+ALTER TABLE [dbo].[release_note] ALTER COLUMN [updated_at_utc] DATETIME2(7) NOT NULL;
+
+DROP INDEX [IX_release_notification_outbox_due] ON [dbo].[release_notification_outbox];
+ALTER TABLE [dbo].[release_notification_outbox] ALTER COLUMN [next_attempt_at_utc] DATETIME2(7) NOT NULL;
+ALTER TABLE [dbo].[release_notification_outbox] ALTER COLUMN [lease_until_utc] DATETIME2(7) NULL;
+ALTER TABLE [dbo].[release_notification_outbox] ALTER COLUMN [sent_at_utc] DATETIME2(7) NULL;
+ALTER TABLE [dbo].[release_notification_outbox] ALTER COLUMN [created_at_utc] DATETIME2(7) NOT NULL;
+ALTER TABLE [dbo].[release_notification_outbox] ALTER COLUMN [updated_at_utc] DATETIME2(7) NOT NULL;
+
 CREATE TABLE [dbo].[integration_marker] ([value] int NOT NULL);
 INSERT INTO [dbo].[integration_marker] ([value]) VALUES (1);
 
@@ -267,43 +280,39 @@ INSERT INTO [dbo].[release_note] (
 VALUES (
     @releaseNoteId, N'integration-release', N'1.0.0', N'Integration Release', N'preserved',
     N'https://example.invalid/releases/integration', N'integration.md', REPLICATE(N'A', 64),
-    SYSUTCDATETIME(), 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+    CAST(N'2026-09-09T07:49:40.1235000' AS datetime2(7)), 1, 1,
+    CAST(N'2026-09-09T07:49:40.9995000' AS datetime2(7)),
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)));
 
 INSERT INTO [dbo].[release_notification_outbox] (
     [outbox_id], [release_note_id], [channel], [status], [attempt_count], [next_attempt_at_utc],
     [lease_until_utc], [lease_token], [sent_at_utc], [discord_message_id], [last_error],
     [created_at_utc], [updated_at_utc])
 VALUES (
-    @outboxId, @releaseNoteId, N'DISCORD', 2, 3, SYSUTCDATETIME(), NULL, NULL,
-    SYSUTCDATETIME(), N'integration-message-id', NULL, SYSUTCDATETIME(), SYSUTCDATETIME());
+    @outboxId, @releaseNoteId, N'DISCORD', 2, 3,
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)),
+    CAST(N'2026-09-09T07:49:40.1235000' AS datetime2(7)), NEWID(),
+    CAST(N'2026-09-09T07:49:40.9995000' AS datetime2(7)), N'integration-message-id', NULL,
+    CAST(N'2026-09-09T07:49:40.1235000' AS datetime2(7)),
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)));
+
+INSERT INTO [dbo].[release_notification_outbox] (
+    [outbox_id], [release_note_id], [channel], [status], [attempt_count], [next_attempt_at_utc],
+    [lease_until_utc], [lease_token], [sent_at_utc], [discord_message_id], [last_error],
+    [created_at_utc], [updated_at_utc])
+VALUES (
+    @nullOutboxId, @releaseNoteId, N'DISCORD_NULL', 0, 0,
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)), NULL, NULL, NULL, NULL, NULL,
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)),
+    CAST(N'2026-09-09T07:49:40.1234000' AS datetime2(7)));
 "@ `
-        -Parameters @{ "@releaseNoteId" = $releaseNoteId; "@outboxId" = $outboxId }
+        -Parameters @{
+            "@releaseNoteId" = $releaseNoteId
+            "@outboxId" = $outboxId
+            "@nullOutboxId" = $nullOutboxId
+        }
 
-    Write-Host "Testing backup, rebuild, restore, and cleanup..."
-    Invoke-Tool -ExpectSuccess $true
-    Assert-Equal $false (Test-Path -LiteralPath $offlineMarkerPath) "successful rebuild marker cleanup"
-
-    Assert-Equal 1 ([int](Invoke-Scalar `
-        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
-        -DatabaseName $astralRecordName `
-        -Sql "SELECT COUNT(*) FROM [dbo].[release_note] WHERE [release_note_id] = @id;" `
-        -Parameters @{ "@id" = $releaseNoteId })) "release_note row count"
-    Assert-Equal 1 ([int](Invoke-Scalar `
-        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
-        -DatabaseName $astralRecordName `
-        -Sql "SELECT COUNT(*) FROM [dbo].[release_notification_outbox] WHERE [outbox_id] = @id AND [discord_message_id] = N'integration-message-id';" `
-        -Parameters @{ "@id" = $outboxId })) "release_notification_outbox row count"
-    Assert-Equal 0 ([int](Invoke-Scalar `
-        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
-        -DatabaseName $astralRecordName `
-        -Sql "SELECT CASE WHEN OBJECT_ID(N'[dbo].[integration_marker]', N'U') IS NULL THEN 0 ELSE 1 END;")) "non-preserved marker"
-    Assert-Equal 4 ([int](Invoke-Scalar `
-        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
-        -DatabaseName $astralRecordName `
-        -Sql "SELECT COUNT(*) FROM [sys].[columns] WHERE [object_id] = OBJECT_ID(N'[dbo].[market_listing]') AND [name] IN (N'cancel_idempotency_key', N'cancel_request_hash', N'cancel_response_json', N'cancel_completed_at');")) "market cancel receipt columns"
-    Assert-Equal 0 (@(Get-PendingBackupNames).Count) "completed backup cleanup"
-
-    Write-Host "Testing retained backup and recovery mode..."
+    Write-Host "Testing retained legacy-precision backup and recovery mode..."
     Invoke-Tool -AdditionalArguments @("--fail-after-astral-record-rebuild") -ExpectSuccess $false
     Assert-Equal "OFFLINE" ([string](Invoke-Scalar `
         -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
@@ -328,17 +337,77 @@ VALUES (
         -DatabaseName $astralRecordName `
         -Sql "SELECT COUNT(*) FROM [dbo].[release_note] WHERE [release_note_id] = @id;" `
         -Parameters @{ "@id" = $releaseNoteId })) "recovered release_note row count"
+    Assert-Equal 2 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT COUNT(*) FROM [dbo].[release_notification_outbox] WHERE [release_note_id] = @id;" `
+        -Parameters @{ "@id" = $releaseNoteId })) "recovered outbox row count"
     Assert-Equal 1 ([int](Invoke-Scalar `
         -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
         -DatabaseName $astralRecordName `
-        -Sql "SELECT COUNT(*) FROM [dbo].[release_notification_outbox] WHERE [outbox_id] = @id;" `
-        -Parameters @{ "@id" = $outboxId })) "recovered outbox row count"
+        -Sql @"
+SELECT COUNT(*)
+FROM [dbo].[release_note] AS note
+INNER JOIN [dbo].[release_notification_outbox] AS outbox
+    ON outbox.[release_note_id] = note.[release_note_id]
+WHERE note.[release_note_id] = @releaseNoteId
+  AND outbox.[outbox_id] = @outboxId
+  AND CONVERT(varchar(23), note.[published_at_utc], 121) = '2026-09-09 07:49:40.124'
+  AND CONVERT(varchar(23), note.[created_at_utc], 121) = '2026-09-09 07:49:41.000'
+  AND CONVERT(varchar(23), note.[updated_at_utc], 121) = '2026-09-09 07:49:40.123'
+  AND CONVERT(varchar(23), outbox.[next_attempt_at_utc], 121) = '2026-09-09 07:49:40.123'
+  AND CONVERT(varchar(23), outbox.[lease_until_utc], 121) = '2026-09-09 07:49:40.124'
+  AND CONVERT(varchar(23), outbox.[sent_at_utc], 121) = '2026-09-09 07:49:41.000'
+  AND CONVERT(varchar(23), outbox.[created_at_utc], 121) = '2026-09-09 07:49:40.124'
+  AND CONVERT(varchar(23), outbox.[updated_at_utc], 121) = '2026-09-09 07:49:40.123';
+"@ `
+        -Parameters @{ "@releaseNoteId" = $releaseNoteId; "@outboxId" = $outboxId })) "legacy datetime2 rounded values"
+    Assert-Equal 1 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT COUNT(*) FROM [dbo].[release_notification_outbox] WHERE [outbox_id] = @id AND [lease_until_utc] IS NULL AND [sent_at_utc] IS NULL;" `
+        -Parameters @{ "@id" = $nullOutboxId })) "nullable legacy datetime2 values"
+    Assert-Equal 8 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql @"
+SELECT COUNT(*)
+FROM [sys].[columns]
+WHERE [scale] = 3
+  AND (([object_id] = OBJECT_ID(N'[dbo].[release_note]')
+        AND [name] IN (N'published_at_utc', N'created_at_utc', N'updated_at_utc'))
+       OR ([object_id] = OBJECT_ID(N'[dbo].[release_notification_outbox]')
+           AND [name] IN (N'next_attempt_at_utc', N'lease_until_utc', N'sent_at_utc', N'created_at_utc', N'updated_at_utc')));
+"@)) "rebuilt datetime2 scales"
+    Assert-Equal 0 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT CASE WHEN OBJECT_ID(N'[dbo].[integration_marker]', N'U') IS NULL THEN 0 ELSE 1 END;")) "non-preserved marker"
+    Assert-Equal 4 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT COUNT(*) FROM [sys].[columns] WHERE [object_id] = OBJECT_ID(N'[dbo].[market_listing]') AND [name] IN (N'cancel_idempotency_key', N'cancel_request_hash', N'cancel_response_json', N'cancel_completed_at');")) "market cancel receipt columns"
     Assert-Equal 0 (@(Get-PendingBackupNames).Count) "recovery backup cleanup"
     Assert-Equal "MULTI_USER" ([string](Invoke-Scalar `
         -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
         -DatabaseName "master" `
         -Sql "SELECT [user_access_desc] FROM [sys].[databases] WHERE [name] = @name;" `
         -Parameters @{ "@name" = $astralRecordName })) "successful rebuild access mode"
+
+    Write-Host "Testing normal backup, rebuild, restore, and cleanup..."
+    Invoke-Tool -ExpectSuccess $true
+    Assert-Equal $false (Test-Path -LiteralPath $offlineMarkerPath) "successful rebuild marker cleanup"
+    Assert-Equal 1 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT COUNT(*) FROM [dbo].[release_note] WHERE [release_note_id] = @id;" `
+        -Parameters @{ "@id" = $releaseNoteId })) "release_note row count after normal reset"
+    Assert-Equal 2 ([int](Invoke-Scalar `
+        -ConnectionString ([string]$sourceSettings.ConnectionStrings.SqlServer) `
+        -DatabaseName $astralRecordName `
+        -Sql "SELECT COUNT(*) FROM [dbo].[release_notification_outbox] WHERE [release_note_id] = @id;" `
+        -Parameters @{ "@id" = $releaseNoteId })) "outbox row count after normal reset"
+    Assert-Equal 0 (@(Get-PendingBackupNames).Count) "completed backup cleanup"
 
     Write-Host "DB reset integration test passed."
 }
