@@ -8,7 +8,7 @@ name: "&cロイヤルクルセイダー"
 order: 3.1
 shortName: "&cRCR"
 description: "&7守護を極めた王国の聖騎士。"
-icon: IRON_SWORD
+icon: NETHERITE_CHESTPLATE
 role: TANK
 maxLevel: 100
 unlockLevel: 1

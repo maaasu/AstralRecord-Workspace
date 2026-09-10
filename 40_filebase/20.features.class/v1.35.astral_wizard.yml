@@ -8,7 +8,7 @@ name: "&dアストラルウィザード"
 order: 3.5
 shortName: "&dASW"
 description: "&7星の魔術を操る魔術師。"
-icon: BLAZE_ROD
+icon: breeze_rod
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

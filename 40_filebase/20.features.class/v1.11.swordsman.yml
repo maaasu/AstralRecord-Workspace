@@ -8,7 +8,7 @@ name: "&cソードマン"
 order: 1.1
 shortName: "&cSWD"
 description: "&7前線近接戦士。"
-icon: IRON_SWORD
+icon: WOODEN_SWORD
 role: TANK
 maxLevel: 60
 unlockLevel: 3

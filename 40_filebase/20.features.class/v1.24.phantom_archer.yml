@@ -7,8 +7,8 @@ type: CLASS
 name: "&aファントムアーチャー"
 order: 2.4
 shortName: "&aPHA"
-description: "&7属性矢で弱体化を与える射手。"
-icon: BOW
+description: "&7矢で弱体化を与える射手。"
+icon: crossbow
 role: DEALER
 maxLevel: 100
 unlockLevel: 15

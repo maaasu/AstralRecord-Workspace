@@ -7,8 +7,8 @@ type: CLASS
 name: "&aスペクトラルアーチャー"
 order: 3.4
 shortName: "&aSPA"
-description: "&7霊矢で敵を翻弄する射手。"
-icon: BOW
+description: "&7アクロバットな動きで敵を翻弄する射手。"
+icon: firework_rocket
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

@@ -7,8 +7,8 @@ type: CLASS
 name: "&cグランドマスター"
 order: 3.2
 shortName: "&cGMS"
-description: "&7剣技を極めた達人。"
-icon: IRON_SWORD
+description: "&7近接戦闘の天才"
+icon: NETHERITE_SPEAR
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

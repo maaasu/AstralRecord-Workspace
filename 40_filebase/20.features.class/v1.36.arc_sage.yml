@@ -8,7 +8,7 @@ name: "&dアークセージ"
 order: 3.6
 shortName: "&dACS"
 description: "&7秘術で味方を支える賢者。"
-icon: BLAZE_ROD
+icon: diamond_shovel
 role: SUPPORT
 maxLevel: 100
 unlockLevel: 1

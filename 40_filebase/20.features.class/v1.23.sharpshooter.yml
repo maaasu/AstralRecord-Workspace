@@ -8,7 +8,7 @@ name: "&aシャープシューター"
 order: 2.3
 shortName: "&aSHP"
 description: "&7急所を狙う高火力の射手。"
-icon: BOW
+icon: spectral_arrow
 role: DEALER
 maxLevel: 100
 unlockLevel: 15

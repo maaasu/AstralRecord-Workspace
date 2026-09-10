@@ -7,8 +7,8 @@ type: CLASS
 name: "&aエレメンタルシューター"
 order: 3.3
 shortName: "&aESH"
-description: "&7属性矢を操る精密射手。"
-icon: BOW
+description: "&7特殊矢を操る精密射手。"
+icon: tipped_arrow
 role: DEALER
 maxLevel: 100
 unlockLevel: 1
