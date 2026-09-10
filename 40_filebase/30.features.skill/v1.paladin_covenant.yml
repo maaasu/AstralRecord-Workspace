@@ -13,7 +13,7 @@ lore:
   - "&7半径{skill.radius}m・高さ{skill.height}m、視線が通る対象だけに付与する。"
   - "&7守護が失われた瞬間に終了し、守護を再付与してもこの詠唱では復活しない。"
   - "&7最大{skill.durationTicks:seconds}秒間持続する。"
-cooldownTicks: 7200
+cooldownTicks: 360
 resourceType: MANA
 resourceCost: 25
 castTimeTicks: 0

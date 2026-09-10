@@ -49,7 +49,7 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 `paladin` はソードマンLv50・プレイヤーLv15から転職するLv100タンクです。Lv1時点で `MAX_HEALTH +135 / MAX_SHIELD +15 / DEFENSE +12 / MAGIC_DEFENSE +8` を持ち、Lvごとに `MAX_HEALTH +8 / VITALITY +1.6 / DEFENSE +1.1 / MAGIC_DEFENSE +0.7` を成長させます。攻撃成長は `STRENGTH +0.8 / ATTACK +0.8` に抑え、同じ旧値だったソードマスターの `+1.2 / +1.2` を引き継ぎません。
 
-クラス本体の使用許可は `adventurer_astral_edge`、`adventurer_smash`、`swordsman_challenging_roar`、`swordsman_shield_activate` の4つだけです。パラディン固有skillはすべてskilltree nodeから使用許可を得て、skill masterで `10a00019 ×3` を消費して習得・各レベルアップします。
+クラス本体の使用許可は `swordsman_challenging_roar`、`swordsman_shield_activate` の2つだけです。パラディン固有skillはすべてskilltree nodeから使用許可を得て、skill masterで `10a00019 ×3` を消費して習得・各レベルアップします。
 
 ## 正本参照
 

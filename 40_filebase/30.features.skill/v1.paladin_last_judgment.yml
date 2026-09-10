@@ -12,7 +12,7 @@ lore:
   - "&7前方120度、半径{skill.radius}m・高さ{skill.height}mの敵へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
   - "&7最大{skill.maxTargets}体。視線が通る敵だけを対象にする。"
   - "&7アナテマの防御低下中ならダメージを{skill.markedMultiplier}倍にする。"
-cooldownTicks: 4800
+cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 20
 castTimeTicks: 0

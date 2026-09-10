@@ -26,5 +26,5 @@ params:
   modifiers:
     - { status: DEFENSE, type: SCALAR, value: 0.12 }
     - { status: MAGIC_DEFENSE, type: SCALAR, value: 0.12 }
-    - { status: SKILL_DAMAGE_INCREASE, type: SCALAR, value: -0.08 }
+    - { status: SKILL_DAMAGE_INCREASE, type: FLAT, value: -8 }
 tags: [passive, melee]

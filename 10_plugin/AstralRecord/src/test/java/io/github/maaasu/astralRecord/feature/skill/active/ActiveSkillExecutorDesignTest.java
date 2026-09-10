@@ -64,13 +64,19 @@ class ActiveSkillExecutorDesignTest {
         "swordsman_challenging_roar",
         "swordsman_exept_stamp",
         "hunter_arrow_rain",
-        "hunter_build_up"
+        "hunter_build_up",
+        "paladin_anathema",
+        "paladin_last_judgment",
+        "paladin_vesper_aegis",
+        "paladin_covenant",
+        "paladin_requiem",
+        "paladin_black_sanctum"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載20 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載26 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {

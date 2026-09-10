@@ -12,8 +12,8 @@ lore:
   - "&7自身と同じパーティの生存者へ、一時HP吸収の守護を付与する。"
   - "&7半径{skill.radius}m・高さ{skill.height}m、視線が通る対象だけに届く。"
   - "&7守護量は{skill.wardBase}+最大シールド×{skill.shieldRatio}+支援力×{skill.supportRatio}。"
-  - "&7既存の守護より強い場合だけ置き換え、{skill.durationTicks:seconds}秒間持続する。"
-cooldownTicks: 4800
+  - "&7既存の守護残量以上の場合だけ置き換え、{skill.durationTicks:seconds}秒間持続する。"
+cooldownTicks: 240
 resourceType: MANA
 resourceCost: 20
 castTimeTicks: 0

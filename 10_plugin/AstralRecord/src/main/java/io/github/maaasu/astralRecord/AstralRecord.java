@@ -1575,10 +1575,11 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService.clearMob(mobInstanceId);
             bossMechanicService.handleMobDestroyed(mobInstanceId);
         });
-        var activeSkillTargetingService = new SkillTargetingService(mobService);
+        var activeSkillTargetingService = new SkillTargetingService(mobService, partyService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
         activeSkillTaskService = new SkillTaskService(this);
         temporarySkillEffectService = new TemporarySkillEffectService();
+        getServer().getScheduler().runTaskTimer(this, temporarySkillEffectService::pruneExpired, 20L, 20L);
         mobKnockbackService.setAdditionalKnockbackMultiplier(
             temporarySkillEffectService::knockbackMultiplier
         );

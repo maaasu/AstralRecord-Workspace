@@ -4,8 +4,8 @@
     {
       "type": "status",
       "status": "SKILL_DAMAGE_INCREASE",
-      "modifierType": "SCALAR",
-      "value": 0.0388
+      "modifierType": "FLAT",
+      "value": 3.88
     },
     {
       "type": "status",

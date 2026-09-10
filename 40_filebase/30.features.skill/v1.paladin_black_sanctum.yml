@@ -12,7 +12,7 @@ lore:
   - "&7自身の最大シールドを{skill.shieldRecoveryRatio:percent}回復し、近くの敵を挑発する。"
   - "&7{skill.durationTicks:seconds}秒間、受けるダメージを{skill.incomingMultiplier}倍、与えるダメージを{skill.outgoingMultiplier}倍にする。"
   - "&7ノックバックを無効化する。挑発は半径{skill.radius}m・高さ{skill.height}m、視線が通る敵へ行う。"
-cooldownTicks: 10000
+cooldownTicks: 500
 resourceType: ENERGY
 resourceCost: 30
 castTimeTicks: 0

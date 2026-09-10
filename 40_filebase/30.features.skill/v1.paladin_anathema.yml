@@ -13,7 +13,7 @@ lore:
   - "&7最大{skill.maxTargets}体。視線が通る敵だけを対象にする。"
   - "&7命中または防御で受け止められた敵の全防御を{skill.defenseReductionPercent}%低下させる。"
   - "&7防御低下は強い値だけを残し、{skill.durationTicks:seconds}秒間持続する。"
-cooldownTicks: 2400
+cooldownTicks: 120
 resourceType: ENERGY
 resourceCost: 12
 castTimeTicks: 0

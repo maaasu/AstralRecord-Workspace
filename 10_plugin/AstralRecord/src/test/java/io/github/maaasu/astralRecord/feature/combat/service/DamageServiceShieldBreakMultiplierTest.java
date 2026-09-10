@@ -43,6 +43,38 @@ import static org.mockito.Mockito.when;
 class DamageServiceShieldBreakMultiplierTest extends MockBukkitTestBase {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-パラディン.md
+     * 章・見出し: # 13_3-パラディン > ## 3. 時限シールドと聖歌
+     * 検証契約: 通常シールド0のプレイヤーへの実攻撃経路で時限シールドを消費し、吸収した分はHPへ適用しない。
+     */
+    @Test
+    void temporaryWardAbsorbsDamageInActualCombatPipeline() {
+        AstPlayer attacker = attacker(100.0D, 1.0D);
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        StatusSnapshot victimStatus = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 0.0D
+        ), 100.0D, 0.0D, 0.0D);
+        victim.setStatusSnapshot(victimStatus);
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
+        DamageHarness harness = damageHarness(new DamageCalculator(() -> 0.0D, () -> 100.0D));
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        when(harness.statusService.getStatus(victim)).thenReturn(victimStatus);
+        var effects = new io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService();
+        harness.service.setTemporarySkillEffectService(effects);
+        effects.grantWard(victim.getBukkit().getUniqueId(), 100.0D, 100L);
+
+        DamageResult result = harness.service.attack(AstEntity.player(attacker), AstEntity.player(victim),
+                AttackType.MELEE, List.of(DamageComponent.defaultComponent()), DamageSource.SKILL);
+
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertTrue(result.shieldDamage() > 0.0D);
+        assertEquals(100.0D - result.shieldDamage(), effects.wardAmount(victim.getBukkit().getUniqueId()), 0.0001D);
+        verify(harness.statusService, never()).consumeHp(eq(victim), anyDouble());
+        verify(harness.statusService, never()).consumeShield(eq(victim), anyDouble());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
      * 検証契約: 従来attackはShield倍率1倍、専用overloadは3倍を一度だけ適用し、各hitのHP・threat・Shield演出を重複させない。

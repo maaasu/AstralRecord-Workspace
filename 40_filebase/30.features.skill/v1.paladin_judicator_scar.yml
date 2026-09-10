@@ -24,6 +24,6 @@ levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
 passive: { bindRequired: true }
 params:
   modifiers:
-    - { status: SKILL_DAMAGE_INCREASE, type: SCALAR, value: 0.10 }
+    - { status: SKILL_DAMAGE_INCREASE, type: FLAT, value: 10 }
     - { status: MAX_SHIELD, type: SCALAR, value: -0.08 }
 tags: [passive, melee]

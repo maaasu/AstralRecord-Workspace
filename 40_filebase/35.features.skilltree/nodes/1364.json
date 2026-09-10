@@ -4,8 +4,8 @@
     {
       "type": "status",
       "status": "SUPPORT_POWER",
-      "modifierType": "SCALAR",
-      "value": 0.02
+      "modifierType": "FLAT",
+      "value": 2.0
     },
     {
       "type": "status",

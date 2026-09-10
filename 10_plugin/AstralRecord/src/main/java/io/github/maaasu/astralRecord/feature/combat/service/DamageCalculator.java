@@ -85,6 +85,19 @@ public final class DamageCalculator {
             @NotNull DamageContext context,
             double attackerAccuracyBonus
     ) {
+        return calculate(context, attackerAccuracyBonus, 1.0D);
+    }
+
+    /**
+     * 一時防御低下を貫通後の総防御へ適用して計算します。元ステータスは変更しません。
+     * @param context ダメージ入力
+     * @param attackerAccuracyBonus 一撃の命中補正
+     * @param defenseMultiplier 一時防御倍率（0～1）
+     * @return 防御低下を反映した計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context, double attackerAccuracyBonus, double defenseMultiplier
+    ) {
         HitCheck hitCheck = checkHit(context, attackerAccuracyBonus);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
@@ -96,6 +109,9 @@ public final class DamageCalculator {
         double totalRatio = components.stream().mapToDouble(DamageComponent::ratio).sum();
         double resolvedAttackPower = Math.max(0.0D, resolveBaseDamage(context));
         DefenseCalculation defense = defenseCalculation(context.attacker(), context.victim(), context.attackType());
+        double safeDefenseMultiplier = Double.isFinite(defenseMultiplier)
+                ? Math.clamp(defenseMultiplier, 0.0D, 1.0D) : 1.0D;
+        defense = new DefenseCalculation(defense.rawDefense(), defense.effectiveDefense() * safeDefenseMultiplier);
         if (totalRatio <= 0.0D) {
             return new DamageResult(
                     0.0D,

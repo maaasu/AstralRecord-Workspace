@@ -13,7 +13,7 @@ lore:
   - "&7自身の現在の守護を全消費し、倍率は{skill.damageRatio}+min({skill.bonusRatioCap}, 守護÷{skill.wardPerRatio})。"
   - "&7最大{skill.maxTargets}体。視線が通る敵が1体以上いる場合だけ守護を消費する。"
   - "&7守護がない場合は発動に失敗し、消費もクールタイムも発生しない。"
-cooldownTicks: 6000
+cooldownTicks: 300
 resourceType: ENERGY
 resourceCost: 20
 castTimeTicks: 0
