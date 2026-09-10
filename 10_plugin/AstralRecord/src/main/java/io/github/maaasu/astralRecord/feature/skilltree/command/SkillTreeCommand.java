@@ -155,9 +155,26 @@ public class SkillTreeCommand extends AstCommand {
         };
     }
 
+    /**
+     * 英語IDまたは日本語表示名からステータス種別を解決します。
+     *
+     * @param rawStatus コマンド引数のステータス表記
+     * @return 解決したステータス種別。空文字または未定義ならnull
+     */
     private @Nullable StatusType resolveStatusType(@NotNull String rawStatus) {
-        String normalized = rawStatus.trim().replace('-', '_').toUpperCase(Locale.ROOT);
-        return normalized.isBlank() ? null : StatusType.fromId(normalized);
+        String normalized = rawStatus.trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        String statusId = normalized.replace('-', '_').toUpperCase(Locale.ROOT);
+        StatusType byId = StatusType.fromId(statusId);
+        if (byId != null) {
+            return byId;
+        }
+        return java.util.Arrays.stream(StatusType.values())
+                .filter(statusType -> statusType.getDisplayName().equals(normalized))
+                .findFirst()
+                .orElse(null);
     }
 
 }

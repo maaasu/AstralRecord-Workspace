@@ -66,6 +66,33 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
                 )
             ));
         }
+        if (context.family() == InputFamily.LEFT_CLICK
+                && context.source() == InputSource.PRE_PLAYER_ATTACK_ENTITY
+                && snapshot.isMainHandInput()
+                && snapshot.targetEntity() != null
+                && snapshot.player().getLocation().getPitch() <= 0.0F) {
+            UUID challengeId = service.resolveCancelControllerDisplay(snapshot.targetEntity());
+            Double hitDistance = snapshot.hitDistance(snapshot.targetEntity());
+            if (challengeId == null
+                    || hitDistance == null
+                    || !snapshot.isVisible(hitDistance)
+                    || !service.canTeleportToCancelController(snapshot.player(), challengeId)) {
+                return List.of();
+            }
+            return List.of(new PlayerInputCandidate(
+                    "boss-cancel-controller-teleport",
+                    InteractionTier.WORLD_INTERACTION,
+                    hitDistance,
+                    InteractionCandidateOrder.BOSS_CONTROLLER,
+                    challengeId.toString(),
+                    InputClaimPolicy.CLAIM_AND_CANCEL,
+                    () -> runSafely(
+                            () -> service.teleportToCancelController(snapshot.player(), challengeId),
+                            LogId.E_6501,
+                            snapshot.player().getName()
+                    )
+            ));
+        }
         if (context.family() != InputFamily.RIGHT_CLICK
             || (context.source() != InputSource.PLAYER_INTERACT_ENTITY
             && context.source() != InputSource.PLAYER_INTERACT_AT_ENTITY)

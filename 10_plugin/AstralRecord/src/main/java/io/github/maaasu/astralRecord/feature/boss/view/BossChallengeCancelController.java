@@ -11,6 +11,7 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.UUID;
  */
 public final class BossChallengeCancelController {
     private static final double INTERACTION_DISTANCE_SQUARED = 3.5D * 3.5D;
+    private static final double TELEPORT_DISTANCE_SQUARED = 5.0D * 5.0D;
 
     private final UUID challengeId;
     private final Location center;
@@ -107,6 +109,33 @@ public final class BossChallengeCancelController {
      */
     public @NotNull Interaction interaction() {
         return interaction;
+    }
+
+    /**
+     * 装置のBlockDisplayが指定エンティティと一致するか判定します。
+     *
+     * @param entity 左クリック対象エンティティ
+     * @return この装置の台座または強調表示なら {@code true}
+     */
+    public boolean isDisplayEntity(@NotNull Entity entity) {
+        UUID entityId = entity.getUniqueId();
+        return baseDisplay.getUniqueId().equals(entityId) || topDisplay.getUniqueId().equals(entityId);
+    }
+
+    /**
+     * 左クリック移動の対象位置を返します。Y座標と向きは呼出側でプレイヤー現在値を維持します。
+     *
+     * @param player 距離を判定するプレイヤー
+     * @return 同一ワールドかつ中心から5 block以上離れている場合のX/Z対象位置。対象外ならnull
+     */
+    public @Nullable Location teleportTarget(@NotNull Player player) {
+        if (player.getWorld() != center.getWorld()
+                || player.getLocation().distanceSquared(center) < TELEPORT_DISTANCE_SQUARED) {
+            return null;
+        }
+        Location target = center.clone();
+        target.setY(player.getLocation().getY());
+        return target;
     }
 
     /**

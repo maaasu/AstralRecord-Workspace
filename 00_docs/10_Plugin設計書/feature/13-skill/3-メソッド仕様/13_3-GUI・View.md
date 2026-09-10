@@ -90,9 +90,9 @@ NPC の `SKILL_FORGET` アクションからだけ開く、54 slot・45件/ペ�
 
 クラス名: `SkillTreeCommand`、`SkillTreeVisualizer`、`SkillTreeService`
 
-`/skilltree help` は表示設定を含むコマンド説明を表示する。`/skilltree node highlight [true|false]` はスキル使用許可を付与する node の黄色ガラスビームを切り替え、第3引数を省略した場合は現在値を反転する。`/skilltree node filter [STATUS[:STATUS...]]` は status ID を `:` 区切りで受け、指定なし・`off`・`clear` で絞り込みを解除する。status effect の正負や補正種別は判定に影響せず、指定 status を一つでも持つ node は紫、複数指定時にすべて持つ node はマゼンタで表示する。絞り込み色は黄色のスキル node 強調より優先する。
+`/skilltree help` は表示設定を含むコマンド説明を表示する。`/skilltree node highlight [true|false]` はスキル使用許可を付与する node の黄色ガラスビームを切り替え、第3引数を省略した場合は現在値を反転する。`/skilltree node filter [STATUS[:STATUS...]]` は status ID または日本語表示名を `:` 区切りで受け、予測変換では日本語表示名と英語IDの両方を候補に出す。指定なし・`off`・`clear` で絞り込みを解除する。status effect の正負や補正種別は判定に影響せず、指定 status を一つでも持つ node は紫、複数指定時にすべて持つ node はマゼンタで表示する。絞り込み色は黄色のスキル node 強調より優先する。
 
-ビームは packet-only の縦長 `BlockDisplay` とし、スキルツリー内で node が通常表示対象なら通常の48ブロック表示距離に関係なく送信する。`VERTICAL` billboard と十分に大きい view range を使うため、プレイヤー方向の yaw へ追従し、pitch は固定する。黄色強調は既定で有効、status 絞り込みは既定で空集合（無効）であり、いずれも viewer ごとのメモリ状態だけで保持して logout 時に破棄する。
+ビームは packet-only の縦長 `BlockDisplay` とし、最下端は node 基準でY+2.95 blockへ配置する。スキルツリー内で node が通常表示対象なら通常の48ブロック表示距離に関係なく送信する。`VERTICAL` billboard と十分に大きい view range を使うため、プレイヤー方向の yaw へ追従し、pitch は固定する。黄色強調は既定で有効、status 絞り込みは既定で空集合（無効）であり、いずれも viewer ごとのメモリ状態だけで保持して logout 時に破棄する。
 
 `SKILL_TREE_COMPACT_DISPLAY` は user 単位で保存する boolean 設定で、`/setting skill_tree_compact_display <on|off>` とプレイヤー設定 GUI の slot 33 から変更する。既定は `false`。有効時の node ラベルはノード名、状態・条件・lore、`ステータス` / `スキル` の区切りを表示せず、Cost 行、各ステータス補正、解放するスキル名だけを表示する。設定変更と login warmup 完了時は、本人のスキルツリー表示をdirty化して再描画する。
 

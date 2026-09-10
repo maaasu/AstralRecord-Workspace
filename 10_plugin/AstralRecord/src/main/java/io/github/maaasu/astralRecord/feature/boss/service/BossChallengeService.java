@@ -892,6 +892,49 @@ public final class BossChallengeService {
     }
 
     /**
+     * 左クリックされた中止装置のBlockDisplayに対応する挑戦IDを返します。
+     *
+     * @param entity 左クリック対象エンティティ
+     * @return 対応する挑戦ID。中止装置の表示以外ならnull
+     */
+    public @Nullable UUID resolveCancelControllerDisplay(@NotNull org.bukkit.entity.Entity entity) {
+        return cancelControllersByChallengeId.values().stream()
+                .filter(controller -> controller.isDisplayEntity(entity))
+                .map(BossChallengeCancelController::challengeId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * プレイヤーが中止装置のBlockDisplayを左クリックして移動できる距離にいるか判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @param challengeId 中止装置に対応する挑戦ID
+     * @return 有効な装置が存在し、中心から5 block以上離れている場合は {@code true}
+     */
+    public boolean canTeleportToCancelController(@NotNull Player player, @NotNull UUID challengeId) {
+        BossChallengeCancelController controller = cancelControllersByChallengeId.get(challengeId);
+        return controller != null && controller.teleportTarget(player) != null;
+    }
+
+    /**
+     * 中止装置の表示を左クリックしたプレイヤーを、現在Y座標と向きを保って装置中心のX/Zへ移動します。
+     *
+     * @param player テレポート対象プレイヤー
+     * @param challengeId 中止装置に対応する挑戦ID
+     * @return 5 block以上離れた有効な装置へ移動できた場合は {@code true}
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public boolean teleportToCancelController(@NotNull Player player, @NotNull UUID challengeId) {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("Boss cancel controller teleport must run on the main thread");
+        }
+        BossChallengeCancelController controller = cancelControllersByChallengeId.get(challengeId);
+        Location target = controller == null ? null : controller.teleportTarget(player);
+        return target != null && PlayerTeleportService.teleport(player, target);
+    }
+
+    /**
      * 指定プレイヤーの近くにある中止操作装置の挑戦 ID を返します。
      *
      * @param player 判定対象プレイヤー

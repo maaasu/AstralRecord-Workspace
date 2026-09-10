@@ -44,7 +44,7 @@ final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
-    private static final double NODE_BEAM_Y_OFFSET = 1.95D;
+    private static final double NODE_BEAM_Y_OFFSET = 2.95D;
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double BEDROCK_EDGE_PARTICLE_SPACING = 1.5D;

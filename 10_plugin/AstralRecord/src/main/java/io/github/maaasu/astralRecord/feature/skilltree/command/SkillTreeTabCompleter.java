@@ -42,7 +42,9 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
                 : String.join(":", java.util.Arrays.copyOf(segments, segments.length - 1)) + ":";
         Set<String> selected = java.util.Arrays.stream(segments)
                 .limit(Math.max(0, segments.length - 1))
-                .map(value -> value.trim().replace('-', '_').toUpperCase(Locale.ROOT))
+                .map(this::resolveStatusType)
+                .filter(java.util.Objects::nonNull)
+                .map(StatusType::getId)
                 .collect(Collectors.toSet());
         List<String> completions = new java.util.ArrayList<>();
         if (segments.length == 1) {
@@ -52,9 +54,31 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
         for (StatusType statusType : StatusType.values()) {
             String id = statusType.getId().toLowerCase(Locale.ROOT);
             if (!selected.contains(statusType.getId())) {
+                completions.add(prefix + statusType.getDisplayName());
                 completions.add(prefix + id);
             }
         }
         return completions;
+    }
+
+    /**
+     * 英語IDまたは日本語表示名からステータス種別を解決します。
+     *
+     * @param rawStatus コマンド引数のステータス表記
+     * @return 解決したステータス種別。空文字または未定義ならnull
+     */
+    private StatusType resolveStatusType(@NotNull String rawStatus) {
+        String normalized = rawStatus.trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        StatusType byId = StatusType.fromId(normalized.replace('-', '_').toUpperCase(Locale.ROOT));
+        if (byId != null) {
+            return byId;
+        }
+        return java.util.Arrays.stream(StatusType.values())
+                .filter(statusType -> statusType.getDisplayName().equals(normalized))
+                .findFirst()
+                .orElse(null);
     }
 }
