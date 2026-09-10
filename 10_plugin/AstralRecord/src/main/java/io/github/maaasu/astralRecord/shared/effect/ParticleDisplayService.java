@@ -37,18 +37,7 @@ public class ParticleDisplayService {
         @NotNull Location location,
         @NotNull SharedParticleDefinition definition
     ) {
-        spawnWorld(
-            astPlayer,
-            world,
-            location,
-            definition.particle(),
-            definition.count(),
-            definition.offsetX(),
-            definition.offsetY(),
-            definition.offsetZ(),
-            definition.extra(),
-            definition.data()
-        );
+        spawnForNearbyViewers(location, definition);
     }
 
     public <T> void spawnWorld(
@@ -86,6 +75,12 @@ public class ParticleDisplayService {
         @NotNull SharedParticleDefinition definition,
         double playerDensityScale
     ) {
+        if (definition.hideForBedrock()) {
+            for (Player viewer : world.getPlayers()) {
+                spawnForViewer(viewer, location, definition, playerDensityScale);
+            }
+            return;
+        }
         spawnWorld(
             world,
             location,
@@ -138,6 +133,9 @@ public class ParticleDisplayService {
         @NotNull Location location,
         @NotNull SharedParticleDefinition definition
     ) {
+        if (shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
+            return;
+        }
         spawnForViewer(
             viewer,
             location,
@@ -165,7 +163,7 @@ public class ParticleDisplayService {
         @NotNull Collection<Location> locations,
         @NotNull SharedParticleDefinition definition
     ) {
-        if (locations.isEmpty()) {
+        if (locations.isEmpty() || shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
             return;
         }
         int count = resolveCount(definition.count(), resolvePlayerDensityScale(viewer));
@@ -231,6 +229,9 @@ public class ParticleDisplayService {
         @NotNull Location location,
         @NotNull SharedParticleDefinition definition
     ) {
+        if (shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
+            return;
+        }
         spawnForViewer(
             viewer,
             location,
@@ -250,6 +251,9 @@ public class ParticleDisplayService {
         @NotNull SharedParticleDefinition definition,
         double playerDensityScale
     ) {
+        if (shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
+            return;
+        }
         spawnForViewer(
             viewer,
             location,
@@ -333,7 +337,8 @@ public class ParticleDisplayService {
             definition.offsetY(),
             definition.offsetZ(),
             definition.extra(),
-            definition.data()
+            definition.data(),
+            definition.hideForBedrock()
         );
     }
 
@@ -359,6 +364,20 @@ public class ParticleDisplayService {
         double extra,
         @Nullable T data
     ) {
+        spawnForNearbyViewers(location, particle, baseCount, offsetX, offsetY, offsetZ, extra, data, false);
+    }
+
+    private <T> void spawnForNearbyViewers(
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        @Nullable T data,
+        boolean hideForBedrock
+    ) {
         World world = location.getWorld();
         if (world == null) {
             return;
@@ -366,6 +385,9 @@ public class ParticleDisplayService {
 
         for (Player viewer : world.getPlayers()) {
             if (viewer.getLocation().distanceSquared(location) > DEFAULT_VIEWER_DISTANCE_SQUARED) {
+                continue;
+            }
+            if (shouldSkipForBedrock(viewer, hideForBedrock)) {
                 continue;
             }
             spawnForViewer(viewer, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, data);
@@ -396,7 +418,8 @@ public class ParticleDisplayService {
             definition.offsetY(),
             definition.offsetZ(),
             definition.extra(),
-            definition.data()
+            definition.data(),
+            definition.hideForBedrock()
         );
     }
 
@@ -409,7 +432,8 @@ public class ParticleDisplayService {
         double offsetY,
         double offsetZ,
         double extra,
-        @Nullable T data
+        @Nullable T data,
+        boolean hideForBedrock
     ) {
         if (locations.isEmpty()) {
             return;
@@ -421,6 +445,9 @@ public class ParticleDisplayService {
 
         for (Player viewer : world.getPlayers()) {
             if (viewer.getLocation().distanceSquared(center) > DEFAULT_VIEWER_DISTANCE_SQUARED) {
+                continue;
+            }
+            if (shouldSkipForBedrock(viewer, hideForBedrock)) {
                 continue;
             }
             int count = resolveCount(baseCount, resolvePlayerDensityScale(viewer));
@@ -446,6 +473,18 @@ public class ParticleDisplayService {
             return ParticleDensity.NORMAL.getDensityScale();
         }
         return resolvePlayerDensityScale(astPlayer);
+    }
+
+    private boolean shouldSkipForBedrock(@NotNull AstPlayer viewer, boolean hideForBedrock) {
+        return hideForBedrock && viewer.isBedrock();
+    }
+
+    private boolean shouldSkipForBedrock(@NotNull Player viewer, boolean hideForBedrock) {
+        if (!hideForBedrock) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(viewer);
+        return astPlayer != null && astPlayer.isBedrock();
     }
 
     private int resolveCount(int baseCount, double playerDensityScale) {
