@@ -39,6 +39,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<LoginBonusClaimEntity> LoginBonusClaims => Set<LoginBonusClaimEntity>();
     public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<MarketListingCreateReceiptEntity> MarketListingCreateReceipts => Set<MarketListingCreateReceiptEntity>();
     public DbSet<MarketListingSourceEntity> MarketListingSources => Set<MarketListingSourceEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
@@ -899,6 +900,25 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.Status, e.UnitPrice }).HasDatabaseName("IX_market_listing_item_status_price");
             entity.HasIndex(e => new { e.InstanceType, e.InstanceId, e.IsDeleted, e.Status })
                 .HasDatabaseName("IX_market_listing_instance_active_status");
+        });
+
+        modelBuilder.Entity<MarketListingCreateReceiptEntity>(entity =>
+        {
+            entity.ToTable("market_listing_create_receipt", "dbo");
+            entity.HasKey(e => e.OperationId);
+            entity.Property(e => e.OperationId).HasColumnName("operation_id");
+            entity.Property(e => e.SellerAccountId).HasColumnName("seller_account_id");
+            entity.Property(e => e.RequestHash).HasColumnName("request_hash").HasMaxLength(64).IsFixedLength();
+            entity.Property(e => e.ListingId).HasColumnName("listing_id");
+            entity.Property(e => e.ResponseJson).HasColumnName("response_json");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(e => new { e.SellerAccountId, e.OperationId })
+                .HasDatabaseName("IX_market_listing_create_receipt_seller_operation");
+            entity.HasOne<MarketListingEntity>()
+                .WithMany()
+                .HasForeignKey(e => e.ListingId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<MarketListingSourceEntity>(entity =>

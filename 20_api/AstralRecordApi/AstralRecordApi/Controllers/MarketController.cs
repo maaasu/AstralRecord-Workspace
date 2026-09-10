@@ -106,6 +106,22 @@ public class MarketController(
     }
 
     /// <summary>
+    /// 応答を受信できなかった出品作成について、SQL に確定済みの結果を照会します。
+    /// </summary>
+    [HttpGet("listing-create-results/{operationId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetCreateListingResult(
+        Guid operationId,
+        [FromQuery] Guid sellerAccountId)
+    {
+        var result = await marketRepository.GetCreateListingResultAsync(operationId, sellerAccountId);
+        return result.Succeeded ? Ok(result.Value) : Error(result);
+    }
+
+    /// <summary>
     /// マーケット出品を購入確定します。
     /// </summary>
     [HttpPost("listings/{listingId:guid}/purchase")]

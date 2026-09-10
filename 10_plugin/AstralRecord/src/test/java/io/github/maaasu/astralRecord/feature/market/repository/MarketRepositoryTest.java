@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.market.model.MarketCancelRequest;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateRequest;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -87,6 +89,35 @@ class MarketRepositoryTest {
             MarketRequestRejectedException rejected = assertThrows(
                 MarketRequestRejectedException.class,
                 () -> repository.cancel(listingId, request));
+            assertEquals(409, rejected.statusCode());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: 出品作成の4xxは確定拒否、5xxは結果不明として保存境界処理へ返す。
+     */
+    @Test
+    void createListingClassifiesOutcomeUnknownAndDeterministicHttpStatuses() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        MarketListingCreateRequest request = new MarketListingCreateRequest(
+            UUID.randomUUID(), accountId, List.of(new MarketListingSource(UUID.randomUUID(), 1L)),
+            "material", "market_test_material", null, null, 1L, "gold", 100L, null, accountId
+        );
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<String> unavailable = response(503, "busy");
+        HttpResponse<String> conflict = response(409, "conflict");
+        when(client.send(any(HttpRequest.class), anyStringBodyHandler()))
+            .thenReturn(unavailable)
+            .thenReturn(conflict);
+
+        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
+            MarketRepository repository = new MarketRepository();
+            assertThrows(MarketTransportException.class, () -> repository.createListing(request));
+            MarketRequestRejectedException rejected = assertThrows(
+                MarketRequestRejectedException.class,
+                () -> repository.createListing(request));
             assertEquals(409, rejected.statusCode());
         }
     }

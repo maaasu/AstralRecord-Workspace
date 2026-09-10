@@ -51,6 +51,10 @@ public class MarketListingSourceRequest
 
 public class MarketListingCreateRequest
 {
+    /// <summary>
+    /// 出品作成を再送・結果照会するための呼出元採番 ID です。
+    /// </summary>
+    public Guid OperationId { get; set; }
     public Guid SellerAccountId { get; set; }
     /// <summary>出品数量を escrow 化する BAG/HOTBAR entry ごとの確保量です。</summary>
     public List<MarketListingSourceRequest> SourceEntries { get; set; } = [];

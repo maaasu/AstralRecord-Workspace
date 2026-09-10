@@ -157,11 +157,32 @@ public class MarketRepository {
     public @NotNull MarketListing createListing(@NotNull MarketListingCreateRequest request) {
         String path = "/api/market/listings";
         HttpResponse<String> response = post(path, listingBody(request));
-        ensureStatus(response, 201, "POST " + path);
+        ensureReplayableMutationStatus(response, 201, "POST " + path);
         MarketListing listing = parseListing(JsonParser.parseString(response.body()).getAsJsonObject());
         invalidateSeller(listing.sellerAccountId());
         listingCache.put(listing.listingId(), MarketCacheEntry.of(listing, DETAIL_TTL));
         return listing;
+    }
+
+    /**
+     * 応答を受信できなかった出品作成の SQL 確定結果を取得します。
+     *
+     * @param operationId 出品作成操作 ID
+     * @param sellerAccountId 出品者アカウント ID
+     * @return 確定済み出品。未確定なら空
+     */
+    public @NotNull Optional<MarketListing> findCreateListingResult(
+        @NotNull UUID operationId,
+        @NotNull UUID sellerAccountId
+    ) {
+        String path = "/api/market/listing-create-results/" + operationId
+            + "?sellerAccountId=" + sellerAccountId;
+        HttpResponse<String> response = send(ApiRequestUtil.buildRequestBuilder(path).GET().build(), path);
+        if (response.statusCode() == 404) {
+            return Optional.empty();
+        }
+        ensureReplayableMutationStatus(response, 200, "GET " + path);
+        return Optional.of(parseListing(JsonParser.parseString(response.body()).getAsJsonObject()));
     }
 
     /**
@@ -338,6 +359,7 @@ public class MarketRepository {
 
     private JsonObject listingBody(@NotNull MarketListingCreateRequest request) {
         JsonObject body = new JsonObject();
+        body.addProperty("operationId", request.operationId().toString());
         body.addProperty("sellerAccountId", request.sellerAccountId().toString());
         JsonArray sourceEntries = new JsonArray();
         for (MarketListingSource source : request.sourceEntries()) {

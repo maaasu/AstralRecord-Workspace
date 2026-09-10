@@ -83,6 +83,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final DelayedAsyncScheduler cancelRecoveryScheduler;
     private final Map<UUID, MarketSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, MarketCancelRecovery> cancelRecoveries = new ConcurrentHashMap<>();
+    private final Map<UUID, MarketListingCreateRecovery> listingCreateRecoveries = new ConcurrentHashMap<>();
     private volatile boolean closing;
 
     /**
@@ -201,6 +202,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     public void shutdown() {
         closing = true;
         cancelRecoveries.values().forEach(this::stopCancelRecoveryForShutdown);
+        listingCreateRecoveries.values().forEach(this::stopListingCreateRecoveryForShutdown);
         sessions.clear();
     }
 
@@ -674,9 +676,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.screen = MarketScreen.LOADING;
         long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
-        inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
-            List<MarketListingSource> selectedSources = resolveListingSources(astPlayer, draft);
-            MarketListing listing = marketService.createListing(new MarketListingCreateRequest(
+        List<MarketListingSource> selectedSources = resolveListingSources(astPlayer, draft);
+        MarketListingCreateRequest request = new MarketListingCreateRequest(
+            UUID.randomUUID(),
                 accountId,
                 selectedSources,
                 draft.itemCategory(),
@@ -688,14 +690,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 draft.unitPrice(),
                 null,
                 accountId
-            ));
-            inventoryService.reconcileExternalInventoryEntries(
-                accountId,
-                selectedSources.stream().map(MarketListingSource::inventoryEntryId).toList(),
-                baseline
-            );
-            return listing;
-        }).whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+        );
+        inventorySaveCoordinator.prepareExternalOperationAfterSave(accountId)
+            .thenCompose(prepared -> beginPreparedListingCreate(player.getUniqueId(), request, prepared))
+            .whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session, requestVersion)) {
                 return;
@@ -712,6 +710,223 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             GuiSound.SUCCESS.play(player);
             openListings(player, true, 1);
         }));
+    }
+
+    /**
+     * 事前保存済み境界を保持して出品作成の確定または回復を開始します。
+     */
+    private @NotNull CompletableFuture<MarketListing> beginPreparedListingCreate(
+        @NotNull UUID playerId,
+        @NotNull MarketListingCreateRequest request,
+        @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+    ) {
+        try {
+            if (closing) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("Market listing creation is stopping: " + request.operationId())
+                );
+            }
+            MarketListingCreateRecovery recovery = new MarketListingCreateRecovery(
+                playerId,
+                request,
+                prepared
+            );
+            MarketListingCreateRecovery existing = listingCreateRecoveries.putIfAbsent(request.operationId(), recovery);
+            if (existing != null) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("Market listing creation is already being recovered: " + request.operationId())
+                );
+            }
+            attemptListingCreateRecovery(recovery);
+            return recovery.completion();
+        } catch (RuntimeException failure) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    /** API 応答または作成 receipt を取得し、同じ事前保存済み境界で正本同期を完了します。 */
+    private void attemptListingCreateRecovery(@NotNull MarketListingCreateRecovery recovery) {
+        if (closing) {
+            stopListingCreateRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!listingCreateRecoveries.containsKey(recovery.operationId()) || !recovery.beginAttempt()) {
+            return;
+        }
+
+        final MarketListing listing;
+        try {
+            listing = resolveListingCreateResult(recovery);
+        } catch (MarketRequestRejectedException rejected) {
+            recovery.finishAttempt();
+            if (recovery.outcomeMayBeUnknown()) {
+                scheduleListingCreateRecovery(recovery, rejected);
+            } else {
+                rejectListingCreateRecovery(recovery, rejected);
+            }
+            return;
+        } catch (RuntimeException unresolved) {
+            recovery.finishAttempt();
+            scheduleListingCreateRecovery(recovery, unresolved);
+            return;
+        }
+
+        inventorySaveCoordinator.completePreparedExternalOperation(
+            recovery.prepared(),
+            baseline -> {
+                inventoryService.reconcileExternalInventoryEntries(
+                    recovery.request().sellerAccountId(),
+                    recovery.request().sourceEntries().stream()
+                        .map(MarketListingSource::inventoryEntryId)
+                        .toList(),
+                    baseline
+                );
+                return listing;
+            }
+        ).whenComplete((result, throwable) -> {
+            recovery.finishAttempt();
+            if (throwable != null) {
+                scheduleListingCreateRecovery(recovery, throwable);
+                return;
+            }
+            if (listingCreateRecoveries.remove(recovery.operationId(), recovery)) {
+                recovery.completion().complete(result);
+            }
+        });
+    }
+
+    /** 同じ operationId のPOST再送と作成receipt照会を、指数バックオフで継続します。 */
+    private @NotNull MarketListing resolveListingCreateResult(@NotNull MarketListingCreateRecovery recovery) {
+        try {
+            return marketService.createListing(recovery.request());
+        } catch (MarketTransportException mutationFailure) {
+            recovery.markOutcomeMayBeUnknown();
+            final Optional<MarketListing> completed;
+            try {
+                completed = marketService.findCreateListingResult(
+                    recovery.operationId(),
+                    recovery.request().sellerAccountId()
+                );
+            } catch (RuntimeException lookupFailure) {
+                lookupFailure.addSuppressed(mutationFailure);
+                throw lookupFailure;
+            }
+            if (completed.isPresent()) {
+                return completed.get();
+            }
+            throw mutationFailure;
+        }
+    }
+
+    private void scheduleListingCreateRecovery(
+        @NotNull MarketListingCreateRecovery recovery,
+        @NotNull Throwable failure
+    ) {
+        if (closing) {
+            stopListingCreateRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!listingCreateRecoveries.containsKey(recovery.operationId())) {
+            return;
+        }
+        if (recovery.markPendingNotified()) {
+            Logger.log(LogId.E_6320, failure, recovery.playerId(), "listing-create-recovery:" + recovery.operationId());
+            notifyListingCreateRecoveryPending(recovery);
+        }
+        if (!recovery.markScheduled()) {
+            return;
+        }
+        try {
+            cancelRecoveryScheduler.schedule(() -> {
+                recovery.clearScheduled();
+                attemptListingCreateRecovery(recovery);
+            }, recovery.nextDelayTicks());
+        } catch (RuntimeException schedulingFailure) {
+            schedulingFailure.addSuppressed(failure);
+            scheduleListingCreateRecoveryFallback(recovery, schedulingFailure);
+        }
+    }
+
+    private void scheduleListingCreateRecoveryFallback(
+        @NotNull MarketListingCreateRecovery recovery,
+        @NotNull RuntimeException schedulingFailure
+    ) {
+        try {
+            cancelRecoveryExecutor.execute(() -> awaitListingCreateRecoveryFallback(recovery));
+        } catch (RuntimeException executorFailure) {
+            executorFailure.addSuppressed(schedulingFailure);
+            stopUnscheduledListingCreateRecovery(recovery, executorFailure);
+        }
+    }
+
+    private void awaitListingCreateRecoveryFallback(@NotNull MarketListingCreateRecovery recovery) {
+        long remainingMillis = Math.max(1L, recovery.nextDelayTicks() * 50L);
+        try {
+            while (!closing && listingCreateRecoveries.containsKey(recovery.operationId()) && remainingMillis > 0L) {
+                long sleepMillis = Math.min(CANCEL_RECOVERY_FALLBACK_POLL_MILLIS, remainingMillis);
+                TimeUnit.MILLISECONDS.sleep(sleepMillis);
+                remainingMillis -= sleepMillis;
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            stopUnscheduledListingCreateRecovery(recovery, interrupted);
+            return;
+        }
+
+        recovery.clearScheduled();
+        if (closing) {
+            stopListingCreateRecoveryForShutdown(recovery);
+            return;
+        }
+        attemptListingCreateRecovery(recovery);
+    }
+
+    private void notifyListingCreateRecoveryPending(@NotNull MarketListingCreateRecovery recovery) {
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player online = Bukkit.getPlayer(recovery.playerId());
+                if (online != null && online.isOnline()) {
+                    messageService.send(online, PlayerMsgId.P_6311);
+                }
+            });
+        } catch (RuntimeException notificationFailure) {
+            Logger.log(LogId.E_6320, notificationFailure, recovery.playerId(),
+                "listing-create-recovery-notification:" + recovery.operationId());
+        }
+    }
+
+    private void stopUnscheduledListingCreateRecovery(
+        @NotNull MarketListingCreateRecovery recovery,
+        @NotNull Throwable failure
+    ) {
+        recovery.clearScheduled();
+        if (listingCreateRecoveries.remove(recovery.operationId(), recovery)) {
+            Logger.log(LogId.E_6320, failure, recovery.playerId(),
+                "listing-create-recovery-unavailable:" + recovery.operationId());
+            recovery.completion().completeExceptionally(failure);
+        }
+    }
+
+    private void stopListingCreateRecoveryForShutdown(@NotNull MarketListingCreateRecovery recovery) {
+        recovery.clearScheduled();
+        if (listingCreateRecoveries.remove(recovery.operationId(), recovery)) {
+            recovery.completion().completeExceptionally(
+                new IllegalStateException("Market listing creation recovery stopped: " + recovery.operationId())
+            );
+        }
+    }
+
+    private void rejectListingCreateRecovery(
+        @NotNull MarketListingCreateRecovery recovery,
+        @NotNull RuntimeException rejected
+    ) {
+        if (listingCreateRecoveries.remove(recovery.operationId(), recovery)) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(recovery.prepared());
+            recovery.completion().completeExceptionally(rejected);
+        }
     }
 
     /**
@@ -1651,6 +1866,83 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
         private synchronized long nextDelayTicks() {
             long delay = retryDelayTicks + Math.floorMod(listingId.hashCode(), 11);
+            retryDelayTicks = Math.min(CANCEL_RECOVERY_MAX_DELAY_TICKS, retryDelayTicks * 2L);
+            return delay;
+        }
+    }
+
+    /** SQL の出品作成 receipt が確定するまで同じ operationId と保存境界を保持します。 */
+    private static final class MarketListingCreateRecovery {
+        private final UUID playerId;
+        private final MarketListingCreateRequest request;
+        private final InventorySaveCoordinator.PreparedExternalOperation prepared;
+        private final CompletableFuture<MarketListing> completion = new CompletableFuture<>();
+        private final AtomicBoolean attempting = new AtomicBoolean();
+        private final AtomicBoolean scheduled = new AtomicBoolean();
+        private final AtomicBoolean pendingNotified = new AtomicBoolean();
+        private final AtomicBoolean outcomeMayBeUnknown = new AtomicBoolean();
+        private long retryDelayTicks = CANCEL_RECOVERY_INITIAL_DELAY_TICKS;
+
+        private MarketListingCreateRecovery(
+            @NotNull UUID playerId,
+            @NotNull MarketListingCreateRequest request,
+            @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+        ) {
+            this.playerId = playerId;
+            this.request = request;
+            this.prepared = prepared;
+        }
+
+        private @NotNull UUID playerId() {
+            return playerId;
+        }
+
+        private @NotNull UUID operationId() {
+            return request.operationId();
+        }
+
+        private @NotNull MarketListingCreateRequest request() {
+            return request;
+        }
+
+        private @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared() {
+            return prepared;
+        }
+
+        private @NotNull CompletableFuture<MarketListing> completion() {
+            return completion;
+        }
+
+        private boolean beginAttempt() {
+            return attempting.compareAndSet(false, true);
+        }
+
+        private void finishAttempt() {
+            attempting.set(false);
+        }
+
+        private boolean markScheduled() {
+            return scheduled.compareAndSet(false, true);
+        }
+
+        private void clearScheduled() {
+            scheduled.set(false);
+        }
+
+        private boolean markPendingNotified() {
+            return pendingNotified.compareAndSet(false, true);
+        }
+
+        private void markOutcomeMayBeUnknown() {
+            outcomeMayBeUnknown.set(true);
+        }
+
+        private boolean outcomeMayBeUnknown() {
+            return outcomeMayBeUnknown.get();
+        }
+
+        private synchronized long nextDelayTicks() {
+            long delay = retryDelayTicks + Math.floorMod(operationId().hashCode(), 11);
             retryDelayTicks = Math.min(CANCEL_RECOVERY_MAX_DELAY_TICKS, retryDelayTicks * 2L);
             return delay;
         }

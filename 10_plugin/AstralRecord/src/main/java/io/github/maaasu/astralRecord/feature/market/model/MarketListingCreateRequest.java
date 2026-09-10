@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record MarketListingCreateRequest(
+    UUID operationId,
     UUID sellerAccountId,
     List<MarketListingSource> sourceEntries,
     String itemCategory,

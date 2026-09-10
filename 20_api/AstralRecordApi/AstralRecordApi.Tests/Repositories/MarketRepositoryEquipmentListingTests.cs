@@ -16,6 +16,58 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task CreateListing_SameOperationId_ReplaysReceiptWithoutDoubleEscrow()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 10);
+        var request = harness.CreateStackRequest(entryId, quantity: 3);
+
+        var first = await harness.Repository.CreateListingAsync(request);
+        var replay = await harness.Repository.CreateListingAsync(request);
+
+        Assert.True(first.Succeeded);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(first.Value!.ListingId, replay.Value!.ListingId);
+        Assert.Single(await harness.DbContext.MarketListingCreateReceipts.ToListAsync());
+        var entry = await harness.DbContext.InventoryEntries.SingleAsync(value => value.InventoryEntryId == entryId);
+        Assert.Equal(7, entry.Quantity);
+    }
+
+    [Fact]
+    public async Task CreateListing_SameOperationIdWithDifferentRequest_ReturnsConflict()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 10);
+        var request = harness.CreateStackRequest(entryId, quantity: 3);
+        var first = await harness.Repository.CreateListingAsync(request);
+        request.UnitPrice = 200;
+
+        var conflict = await harness.Repository.CreateListingAsync(request);
+
+        Assert.True(first.Succeeded);
+        Assert.False(conflict.Succeeded);
+        Assert.Equal("market.listing_create_idempotency_conflict", conflict.ErrorCode);
+        var entry = await harness.DbContext.InventoryEntries.SingleAsync(value => value.InventoryEntryId == entryId);
+        Assert.Equal(7, entry.Quantity);
+    }
+
+    [Fact]
+    public async Task GetCreateListingResult_ReturnsStoredResponseForSeller()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 3);
+        var request = harness.CreateStackRequest(entryId, quantity: 3);
+        var created = await harness.Repository.CreateListingAsync(request);
+
+        var result = await harness.Repository.GetCreateListingResultAsync(request.OperationId, harness.AccountId);
+
+        Assert.True(created.Succeeded);
+        Assert.True(result.Succeeded);
+        Assert.Equal(created.Value!.ListingId, result.Value!.ListingId);
+        Assert.Equal(created.Value.SourceInventoryEntryIds, result.Value.SourceInventoryEntryIds);
+    }
+
+    [Fact]
     public async Task AccountSummary_IncludesOwnedExpansionTokensWithinPerTypeCaps()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false, maxListingSlots: 3);
@@ -1121,6 +1173,7 @@ public class MarketRepositoryEquipmentListingTests
 
         public MarketListingCreateRequest CreateRequest() => new()
         {
+            OperationId = Guid.NewGuid(),
             SellerAccountId = AccountId,
             SourceEntries =
             [
@@ -1142,6 +1195,7 @@ public class MarketRepositoryEquipmentListingTests
 
         public MarketListingCreateRequest CreateStackRequest(Guid entryId, int quantity) => new()
         {
+            OperationId = Guid.NewGuid(),
             SellerAccountId = AccountId,
             SourceEntries =
             [

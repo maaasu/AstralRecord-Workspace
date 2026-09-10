@@ -125,21 +125,11 @@ public class MarketRepository(
             return MarketOperationResult<MarketListingResponse>.Failure(404, "market.seller_not_found", "Seller account was not found.");
         var sellerAccountIdentity = new SellerAccountIdentity(sellerAccount.AccountName, sellerAccount.SlotIndex);
 
-        var listingId = Guid.NewGuid();
+        var requestHash = ComputeCreateListingRequestHash(request);
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             dbContext.ChangeTracker.Clear();
-            var committedListing = await dbContext.MarketListings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
-            if (committedListing is not null)
-                return MarketOperationResult<MarketListingResponse>.Success(MapListing(
-                    committedListing,
-                    sellerAccountIdentity,
-                    request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
-                    0L));
-
             var now = DateTime.UtcNow;
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
@@ -155,6 +145,33 @@ public class MarketRepository(
                     statusCode,
                     errorCode,
                     detail);
+            }
+
+            var existingReceipt = await FindCreateReceiptForUpdateAsync(request.OperationId);
+            if (existingReceipt is not null)
+            {
+                if (existingReceipt.SellerAccountId != request.SellerAccountId
+                    || !string.Equals(existingReceipt.RequestHash, requestHash, StringComparison.Ordinal))
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.listing_create_idempotency_conflict",
+                        "Operation ID was already used for another listing request.");
+                }
+
+                try
+                {
+                    var replay = ParseCreateReceipt(existingReceipt);
+                    await transaction.CommitAsync();
+                    return MarketOperationResult<MarketListingResponse>.Success(replay);
+                }
+                catch (JsonException)
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.listing_create_receipt_invalid",
+                        "Listing create receipt is invalid.");
+                }
             }
 
             var state = await EnsureAccountStateAsync(request.SellerAccountId, request.CreatedBy);
@@ -204,7 +221,7 @@ public class MarketRepository(
 
             var listing = new MarketListingEntity
             {
-                ListingId = listingId,
+                ListingId = Guid.NewGuid(),
                 SellerAccountId = request.SellerAccountId,
                 SourceInventoryEntryId = request.SourceEntries[0].InventoryEntryId,
                 ItemCategory = request.ItemCategory,
@@ -238,20 +255,74 @@ public class MarketRepository(
             await dbContext.MarketListingSources.AddRangeAsync(request.SourceEntries.Select(source =>
                 new MarketListingSourceEntity
                 {
-                    ListingId = listingId,
+                    ListingId = listing.ListingId,
                     InventoryEntryId = source.InventoryEntryId,
                     Quantity = source.Quantity,
                 }));
             await dbContext.MarketPriceSnapshots.AddAsync(CreateSnapshot(quote, listing.ListingId, null, now));
-            await dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return MarketOperationResult<MarketListingResponse>.Success(MapListing(
+            var response = MapListing(
                 listing,
                 sellerAccountIdentity,
                 request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
-                0L));
+                0L);
+            await dbContext.MarketListingCreateReceipts.AddAsync(new MarketListingCreateReceiptEntity
+            {
+                OperationId = request.OperationId,
+                SellerAccountId = request.SellerAccountId,
+                RequestHash = requestHash,
+                ListingId = listing.ListingId,
+                ResponseJson = JsonSerializer.Serialize(response),
+                CompletedAt = now,
+                CreatedAt = now,
+            });
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return MarketOperationResult<MarketListingResponse>.Success(response);
         });
+    }
+
+    public async Task<MarketOperationResult<MarketListingResponse>> GetCreateListingResultAsync(
+        Guid operationId,
+        Guid sellerAccountId)
+    {
+        if (operationId == Guid.Empty || sellerAccountId == Guid.Empty)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                400,
+                "market.invalid_listing_create_result_request",
+                "Operation ID and seller account ID are required.");
+        }
+
+        var receipt = await dbContext.MarketListingCreateReceipts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(value => value.OperationId == operationId);
+        if (receipt is null)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                404,
+                "market.listing_create_result_not_found",
+                "Listing create result was not found.");
+        }
+        if (receipt.SellerAccountId != sellerAccountId)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                403,
+                "market.listing_create_result_not_seller",
+                "Only the seller can read the listing create result.");
+        }
+
+        try
+        {
+            return MarketOperationResult<MarketListingResponse>.Success(ParseCreateReceipt(receipt));
+        }
+        catch (JsonException)
+        {
+            return MarketOperationResult<MarketListingResponse>.Failure(
+                409,
+                "market.listing_create_receipt_invalid",
+                "Listing create receipt is invalid.");
+        }
     }
 
     public async Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request)
@@ -876,6 +947,20 @@ public class MarketRepository(
             .SingleOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
     }
 
+    private async Task<MarketListingCreateReceiptEntity?> FindCreateReceiptForUpdateAsync(Guid operationId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.MarketListingCreateReceipts.FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[market_listing_create_receipt] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [operation_id] = {operationId}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+        return await dbContext.MarketListingCreateReceipts
+            .SingleOrDefaultAsync(receipt => receipt.OperationId == operationId);
+    }
+
     /// <summary>
     /// 売上受取の再送を処理するため、論理削除済みの受取済み出品も更新ロック付きで取得します。
     /// </summary>
@@ -1432,7 +1517,8 @@ public class MarketRepository(
 
     private static bool IsValidListingPayload(MarketListingCreateRequest request)
     {
-        if (request.Quantity < 1
+        if (request.OperationId == Guid.Empty
+            || request.Quantity < 1
             || request.Quantity > int.MaxValue
             || request.UnitPrice < 1
             || string.IsNullOrWhiteSpace(request.CurrencyId)
@@ -1561,6 +1647,44 @@ public class MarketRepository(
             request.UpdatedBy,
         });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string ComputeCreateListingRequestHash(MarketListingCreateRequest request)
+    {
+        var canonical = JsonSerializer.Serialize(new
+        {
+            request.SellerAccountId,
+            SourceEntries = request.SourceEntries
+                .OrderBy(source => source.InventoryEntryId)
+                .Select(source => new { source.InventoryEntryId, source.Quantity }),
+            request.ItemCategory,
+            request.ItemId,
+            request.InstanceType,
+            request.InstanceId,
+            request.Quantity,
+            request.CurrencyId,
+            request.UnitPrice,
+            request.ExpiresAt,
+            request.CreatedBy,
+        });
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static MarketListingResponse ParseCreateReceipt(MarketListingCreateReceiptEntity receipt)
+    {
+        var replay = JsonSerializer.Deserialize<MarketListingResponse>(receipt.ResponseJson)
+            ?? throw new JsonException("Listing create response is empty.");
+        if (string.IsNullOrWhiteSpace(receipt.RequestHash)
+            || receipt.RequestHash.Length != 64
+            || replay.ListingId != receipt.ListingId
+            || replay.SellerAccountId != receipt.SellerAccountId
+            || replay.SourceInventoryEntryIds is null
+            || replay.SourceInventoryEntryIds.Count == 0
+            || replay.SourceInventoryEntryIds.Any(entryId => entryId == Guid.Empty))
+        {
+            throw new JsonException("Listing create receipt is invalid.");
+        }
+        return replay;
     }
 
     private static MarketListingResponse ParseCancelReceipt(MarketListingEntity listing)

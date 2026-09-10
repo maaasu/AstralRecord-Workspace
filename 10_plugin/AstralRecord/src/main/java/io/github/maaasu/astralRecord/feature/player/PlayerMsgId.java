@@ -1170,6 +1170,8 @@ public enum PlayerMsgId {
     P_6309(6309),
     /** 出品取消の SQL 確定結果を確認中。 */
     P_6310(6310),
+    /** 出品作成の SQL 確定結果を確認中。 */
+    P_6311(6311),
     // endregion
 
     // region /feature/webauth 6400-6409

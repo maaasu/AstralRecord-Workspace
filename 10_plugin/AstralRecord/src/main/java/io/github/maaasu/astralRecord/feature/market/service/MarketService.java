@@ -80,6 +80,20 @@ public class MarketService {
     }
 
     /**
+     * 応答未受信の出品作成について、SQL に確定済みの結果を照会します。
+     *
+     * @param operationId 出品作成操作 ID
+     * @param sellerAccountId 出品者アカウント ID
+     * @return 確定済み出品。未確定なら空
+     */
+    public @NotNull Optional<MarketListing> findCreateListingResult(
+        @NotNull UUID operationId,
+        @NotNull UUID sellerAccountId
+    ) {
+        return repository.findCreateListingResult(operationId, sellerAccountId);
+    }
+
+    /**
      * 出品を購入します。
      *
      * @param listingId 出品 ID

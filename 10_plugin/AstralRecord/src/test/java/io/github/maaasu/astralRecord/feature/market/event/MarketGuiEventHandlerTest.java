@@ -195,6 +195,36 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: API が確定拒否した出品作成は prepared 外部操作境界を解除する。
+     */
+    @Test
+    void rejectedListingCreationAbandonsPreparedExternalOperation() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService, coordinator);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        var baseline = new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        executeMarketMutation(coordinator, baseline);
+        when(inventoryService.getOwnedStackEntries(astPlayer, "material", "market_test_material"))
+            .thenReturn(List.of(stackEntry(accountId, UUID.randomUUID(), 1L)));
+        when(marketService.createListing(any())).thenThrow(
+            new MarketRequestRejectedException(400, "rejected"));
+
+        invoke(handler, "submitListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListingDraft.class },
+            player, newMarketSession(), draft(accountId));
+
+        verify(coordinator).abandonPreparedExternalOperation(
+            any(InventorySaveCoordinator.PreparedExternalOperation.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
      * 検証契約: 出品・購入・取り下げ・売上受取の4確定callbackは成功時だけBukkit所持品表示を一度更新し、失敗時は更新しない。
      */
