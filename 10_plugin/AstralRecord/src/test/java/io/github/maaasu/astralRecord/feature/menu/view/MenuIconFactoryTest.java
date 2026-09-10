@@ -9,8 +9,6 @@ import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -30,7 +28,7 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
      * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
      * 検証契約: 共通icon定義から呼出ごとに独立ItemStackを生成し相互変更を漏らさず、
-     * カレンシーは指定の固定プレイヤーヘッドとメタデータを表示する。
+     * カレンシーは指定の固定プレイヤーヘッドを従来の表示名・説明で表示する。
      */
     @Test
     void createsIndependentItemStacksFromSharedDefinition() {
@@ -47,11 +45,7 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
 
         assertNotSame(first, second);
         assertEquals(Material.PLAYER_HEAD, first.getType());
-        assertEquals("Bag of Seeds", plain(first.getItemMeta().displayName()));
-        assertEquals(NamedTextColor.GOLD, first.getItemMeta().displayName().color());
-        assertEquals(TextDecoration.State.TRUE, first.getItemMeta().displayName().decoration(TextDecoration.BOLD));
-        assertEquals(TextDecoration.State.TRUE, first.getItemMeta().displayName().decoration(TextDecoration.UNDERLINED));
-        assertEquals(TextDecoration.State.FALSE, first.getItemMeta().displayName().decoration(TextDecoration.ITALIC));
+        assertEquals("カレンシー", plain(first.getItemMeta().displayName()));
         assertTrue(first.getItemMeta() instanceof SkullMeta);
         assertEquals(
             io.github.maaasu.astralRecord.shared.gui.GuiItems.CURRENCY_HEAD_TEXTURE,
@@ -60,8 +54,6 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
                 .findFirst().orElseThrow().getValue()
         );
         assertEquals(List.of(
-            "Custom Head ID: 129729",
-            "www.minecraft-heads.com",
             "所持通貨を確認",
             "◆ 合計ゴールド ◆",
             "321 G",

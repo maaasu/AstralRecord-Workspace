@@ -88,7 +88,7 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
         assertEquals(Material.BEACON, matrix[1].getType());
         assertEquals(Material.PLAYER_HEAD, matrix[2].getType());
         assertEquals(
-            "Bag of Seeds",
+            "カレンシー",
             net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                 .serialize(matrix[2].getItemMeta().displayName())
         );

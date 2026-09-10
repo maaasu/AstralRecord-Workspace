@@ -48,14 +48,14 @@ public final class MenuIconFactory {
         @NotNull MenuIconDefinition definition,
         @NotNull List<Component> additionalLore
     ) {
-        List<Component> lore = new ArrayList<>(definition.getIconLore());
+        List<Component> lore = new ArrayList<>();
         if (!definition.getDescriptionJa().isBlank()) {
             lore.add(Component.text(definition.getDescriptionJa(), NamedTextColor.GRAY));
         }
         lore.addAll(additionalLore);
         return GuiItems.create(
             definition.getMaterial(),
-            definition.getDisplayName(),
+            Component.text(definition.getDisplayNameJa(), definition.getColor()),
             lore,
             definition.getIconTexture()
         );
