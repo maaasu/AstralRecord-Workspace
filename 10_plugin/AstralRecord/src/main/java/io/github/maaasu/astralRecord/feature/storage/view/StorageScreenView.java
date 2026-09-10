@@ -238,12 +238,11 @@ public final class StorageScreenView extends BaseMenuScreenView {
         @NotNull StorageViewOptions options,
         int maxPageCount
     ) {
-        if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
-                Component.text("前のページ", NamedTextColor.WHITE),
-                List.of(Component.text(pageIndex + " / " + totalPages(itemCount, maxPageCount), NamedTextColor.GRAY))
-            ));
-        }
+        inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
+            Component.text("前のページ", NamedTextColor.WHITE),
+            List.of(Component.text(pageIndex + " / " + totalPages(itemCount, maxPageCount), NamedTextColor.GRAY)),
+            hasPreviousPage(pageIndex)
+        ));
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
             Material.HOPPER,
             Component.text("カテゴリフィルター", NamedTextColor.AQUA),
@@ -275,15 +274,14 @@ public final class StorageScreenView extends BaseMenuScreenView {
                 Component.text("容量: 最大 " + Math.max(1, maxPageCount) + "ページ", NamedTextColor.AQUA)
             )
         ));
-        if (hasNextPage(pageIndex, itemCount, maxPageCount)) {
-            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
-                Component.text("次のページ", NamedTextColor.WHITE),
-                List.of(Component.text(
-                    (pageIndex + 2) + " / " + totalPages(itemCount, maxPageCount),
-                    NamedTextColor.GRAY
-                ))
-            ));
-        }
+        inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
+            Component.text("次のページ", NamedTextColor.WHITE),
+            List.of(Component.text(
+                (pageIndex + 2) + " / " + totalPages(itemCount, maxPageCount),
+                NamedTextColor.GRAY
+            )),
+            hasNextPage(pageIndex, itemCount, maxPageCount)
+        ));
     }
 
     private static @NotNull Material categoryIcon(@NotNull ItemCategory category) {

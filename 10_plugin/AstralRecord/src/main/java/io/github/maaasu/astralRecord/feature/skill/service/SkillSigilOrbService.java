@@ -808,7 +808,9 @@ public final class SkillSigilOrbService {
     private @NotNull ItemStack pageButton(boolean next, boolean enabled) {
         Component name = Component.text(next ? "次のページ" : "前のページ",
             enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY);
-        return next ? GuiItems.nextPageButton(name, List.of()) : GuiItems.previousPageButton(name, List.of());
+        return next
+            ? GuiItems.nextPageButton(name, List.of(), enabled)
+            : GuiItems.previousPageButton(name, List.of(), enabled);
     }
 
     private void transition(

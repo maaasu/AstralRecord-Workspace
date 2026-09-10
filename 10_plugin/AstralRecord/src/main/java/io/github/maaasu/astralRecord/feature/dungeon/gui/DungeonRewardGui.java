@@ -69,14 +69,12 @@ public final class DungeonRewardGui {
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, rewardItem(rewards.get(index)));
         }
-        if (GuiPagination.hasPreviousPage(page)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
-                    PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()), List.of()));
-        }
-        if (GuiPagination.hasNextPage(page, rewards.size(), CONTENT_SIZE)) {
-            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
-                    PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()), List.of()));
-        }
+        inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()), List.of(),
+                GuiPagination.hasPreviousPage(page)));
+        inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()), List.of(),
+                GuiPagination.hasNextPage(page, rewards.size(), CONTENT_SIZE)));
         GuiOpenSupport.open(player, inventory);
     }
 

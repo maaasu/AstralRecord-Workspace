@@ -131,12 +131,10 @@ public final class TeleporterGui {
         for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
             inventory.setItem(slot, spacer);
         }
-        if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of()));
-        }
-        if (hasNextPage(pageIndex, entries.size())) {
-            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of()));
-        }
+        inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
+            Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of(), hasPreviousPage(pageIndex)));
+        inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
+            Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of(), hasNextPage(pageIndex, entries.size())));
     }
 
     /**

@@ -24,14 +24,16 @@ import java.util.UUID;
  * GUI 用 ItemStack の共通生成処理を提供します。
  */
 public final class GuiItems {
-    private static final String FOREST_GREEN_ARROW_UP_TEXTURE =
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGNlMzZmY2IxZTVmNmIzNjUxN2ZiYmViOWNiZjRiMGMwNWMzMGQ4YmRiNTE1NDgyNGU2MGU2ZDU1MGY1MjhlOSJ9fX0=";
-    private static final String FOREST_GREEN_ARROW_DOWN_TEXTURE =
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzM1YzFlZjEyN2Y1YzUyY2IzODlhOGFjNmRmM2Y2ZmM2NmNkMzdmMjYwOTRiM2UxZTc2ZDAxNzcxMTViYjA4ZiJ9fX0=";
-    private static final String FOREST_GREEN_ARROW_RIGHT_TEXTURE =
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWM5YzY3YTlmMTY4NWNkMWRhNDNlODQxZmU3ZWJiMTdmNmFmNmVhMTJhN2UxZjI3MjJmNWU3ZjA4OThkYjlmMyJ9fX0=";
-    private static final String FOREST_GREEN_ARROW_LEFT_TEXTURE =
-        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWExZWYzOThhMTdmMWFmNzQ3NzAxNDUxN2Y3ZjE0MWQ4ODZkZjQxYTMyYzczOGNjOGE4M2ZiNTAyOTdiZDkyMSJ9fX0=";
+    private static final String OAK_WOOD_ARROW_UP_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzA0MGZlODM2YTZjMmZiZDJjN2E5YzhlYzZiZTUxNzRmZGRmMWFjMjBmNTVlMzY2MTU2ZmE1ZjcxMmUxMCJ9fX0=";
+    private static final String OAK_WOOD_ARROW_DOWN_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzQzNzM0NmQ4YmRhNzhkNTI1ZDE5ZjU0MGE5NWU0ZTc5ZGFlZGE3OTVjYmM1YTEzMjU2MjM2MzEyY2YifX19";
+    private static final String OAK_WOOD_ARROW_RIGHT_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTliZjMyOTJlMTI2YTEwNWI1NGViYTcxM2FhMWIxNTJkNTQxYTFkODkzODgyOWM1NjM2NGQxNzhlZDIyYmYifX19";
+    private static final String OAK_WOOD_ARROW_LEFT_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQ2OWUwNmU1ZGFkZmQ4NGU1ZjNkMWMyMTA2M2YyNTUzYjJmYTk0NWVlMWQ0ZDcxNTJmZGM1NDI1YmMxMmE5In19fQ==";
+    private static final String OAK_WOOD_BLANK_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRiNTMyYjVjY2VkNDZiNGI1MzVlY2UxNmVjZWQ3YmJjNWNhYzU1NTk0ZDYxZThiOGY4ZWFjNDI5OWM5ZmMifX19";
 
     private GuiItems() {
     }
@@ -117,46 +119,83 @@ public final class GuiItems {
     }
 
     /**
-     * 前ページへ移動する Forest Green Arrow Left のボタンを生成します。
+     * 前ページへ移動する Oak Wood Arrow Left のボタンを生成します。
      *
      * @param name 表示名
      * @param lore 説明行
      * @return 前ページボタン
      */
     public static @NotNull ItemStack previousPageButton(@NotNull Component name, @NotNull List<Component> lore) {
-        return texturedHead(name, lore, FOREST_GREEN_ARROW_LEFT_TEXTURE);
+        return previousPageButton(name, lore, true);
     }
 
     /**
-     * 次ページへ移動する Forest Green Arrow Right のボタンを生成します。
+     * 前ページの可否に応じたページングボタンを生成します。
+     *
+     * @param name 表示名
+     * @param lore 説明行
+     * @param enabled 前ページへ移動可能なら {@code true}
+     * @return 有効時は Oak Wood Arrow Left、無効時は Oak Wood Blank
+     */
+    public static @NotNull ItemStack previousPageButton(
+        @NotNull Component name,
+        @NotNull List<Component> lore,
+        boolean enabled
+    ) {
+        return texturedHead(name, lore, enabled ? OAK_WOOD_ARROW_LEFT_TEXTURE : OAK_WOOD_BLANK_TEXTURE);
+    }
+
+    /**
+     * 次ページへ移動する Oak Wood Arrow Right のボタンを生成します。
      *
      * @param name 表示名
      * @param lore 説明行
      * @return 次ページボタン
      */
     public static @NotNull ItemStack nextPageButton(@NotNull Component name, @NotNull List<Component> lore) {
-        return texturedHead(name, lore, FOREST_GREEN_ARROW_RIGHT_TEXTURE);
+        return nextPageButton(name, lore, true);
     }
 
     /**
-     * インベントリ行を上下へ移動する Forest Green Arrow のボタンを生成します。
+     * 次ページの可否に応じたページングボタンを生成します。
+     *
+     * @param name 表示名
+     * @param lore 説明行
+     * @param enabled 次ページへ移動可能なら {@code true}
+     * @return 有効時は Oak Wood Arrow Right、無効時は Oak Wood Blank
+     */
+    public static @NotNull ItemStack nextPageButton(
+        @NotNull Component name,
+        @NotNull List<Component> lore,
+        boolean enabled
+    ) {
+        return texturedHead(name, lore, enabled ? OAK_WOOD_ARROW_RIGHT_TEXTURE : OAK_WOOD_BLANK_TEXTURE);
+    }
+
+    /**
+     * インベントリ行を上下へ移動する Oak Wood Arrow のボタンを生成します。
      *
      * @param up 上方向なら {@code true}
      * @param name 表示名
      * @param lore 説明行
      * @param availableMoves 現在位置から移動可能な行数
+     * @param enabled 移動可能なら {@code true}
      * @return スクロールボタン。スタック数は移動可能行数（0件時は1）
      */
     public static @NotNull ItemStack scrollButton(
         boolean up,
         @NotNull Component name,
         @NotNull List<Component> lore,
-        int availableMoves
+        int availableMoves,
+        boolean enabled
     ) {
+        if (!enabled) {
+            return texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
+        }
         ItemStack itemStack = texturedHead(
             name,
             lore,
-            up ? FOREST_GREEN_ARROW_UP_TEXTURE : FOREST_GREEN_ARROW_DOWN_TEXTURE
+            up ? OAK_WOOD_ARROW_UP_TEXTURE : OAK_WOOD_ARROW_DOWN_TEXTURE
         );
         itemStack.setAmount(Math.max(1, availableMoves));
         return itemStack;

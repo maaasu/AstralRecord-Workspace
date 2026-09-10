@@ -116,9 +116,7 @@ public final class MarketGui {
                 List.of("公開中の出品情報を再取得します。")
             ));
         }
-        if (page > 1) {
-            inventory.setItem(PREVIOUS_SLOT, pageItem("前のページ", page - 1));
-        }
+        inventory.setItem(PREVIOUS_SLOT, pageItem("前のページ", page - 1, page > 1));
         inventory.setItem(BROWSE_SLOT, item(
             Material.COMPASS,
             "出品を探す",
@@ -132,9 +130,7 @@ public final class MarketGui {
             List.of("出品中・売上受取待ちの出品を確認します。")
         ));
         inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
-        if (hasNextPage) {
-            inventory.setItem(NEXT_SLOT, pageItem("次のページ", page + 1));
-        }
+        inventory.setItem(NEXT_SLOT, pageItem("次のページ", page + 1, hasNextPage));
         open(viewer, inventory);
     }
 
@@ -396,12 +392,12 @@ public final class MarketGui {
         );
     }
 
-    private @NotNull ItemStack pageItem(@NotNull String name, int page) {
+    private @NotNull ItemStack pageItem(@NotNull String name, int page, boolean enabled) {
         Component label = Component.text(name, NamedTextColor.YELLOW);
         List<Component> lore = List.of(Component.text("ページ: " + Math.max(1, page), NamedTextColor.GRAY));
         return name.startsWith("次")
-            ? GuiItems.nextPageButton(label, lore)
-            : GuiItems.previousPageButton(label, lore);
+            ? GuiItems.nextPageButton(label, lore, enabled)
+            : GuiItems.previousPageButton(label, lore, enabled);
     }
 
     private @NotNull ItemStack listingItem(@NotNull MarketListing listing, boolean ownListing) {

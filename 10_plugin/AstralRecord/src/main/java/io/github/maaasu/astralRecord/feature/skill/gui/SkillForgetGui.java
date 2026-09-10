@@ -65,8 +65,8 @@ public final class SkillForgetGui {
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, createSkillItem(entries.get(index)));
         }
-        if (page > 0) inventory.setItem(PREVIOUS_PAGE_SLOT, pageItem("前のページ", page, pages));
-        if (page + 1 < pages) inventory.setItem(NEXT_PAGE_SLOT, pageItem("次のページ", page + 2, pages));
+        inventory.setItem(PREVIOUS_PAGE_SLOT, pageItem("前のページ", page, pages, page > 0));
+        inventory.setItem(NEXT_PAGE_SLOT, pageItem("次のページ", page + 2, pages, page + 1 < pages));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -163,12 +163,12 @@ public final class SkillForgetGui {
         return item;
     }
 
-    private @NotNull ItemStack pageItem(@NotNull String name, int page, int pages) {
+    private @NotNull ItemStack pageItem(@NotNull String name, int page, int pages, boolean enabled) {
         Component label = Component.text(name, NamedTextColor.WHITE);
         List<Component> lore = List.of(Component.text(page + " / " + pages, NamedTextColor.GRAY));
         return name.startsWith("次")
-            ? GuiItems.nextPageButton(label, lore)
-            : GuiItems.previousPageButton(label, lore);
+            ? GuiItems.nextPageButton(label, lore, enabled)
+            : GuiItems.previousPageButton(label, lore, enabled);
     }
 
     private @NotNull Material parseMaterial(@Nullable String raw) {

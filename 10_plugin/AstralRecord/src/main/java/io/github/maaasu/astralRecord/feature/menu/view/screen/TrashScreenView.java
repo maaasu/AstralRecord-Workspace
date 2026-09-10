@@ -79,12 +79,11 @@ public final class TrashScreenView extends BaseMenuScreenView {
             inventory.setItem(slot, spacer);
         }
 
-        if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
-                Component.text("前のページ", NamedTextColor.WHITE),
-                List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
-            ));
-        }
+        inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
+            Component.text("前のページ", NamedTextColor.WHITE),
+            List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY)),
+            hasPreviousPage(pageIndex)
+        ));
         inventory.setItem(GUIDE_SLOT, createItem(
             Material.PAPER,
             Component.text("ゴミ箱ガイド", NamedTextColor.YELLOW),
@@ -103,12 +102,11 @@ public final class TrashScreenView extends BaseMenuScreenView {
             Component.text("確認へ", NamedTextColor.RED),
             List.of(Component.text("廃棄前の確認画面を開きます", NamedTextColor.GRAY))
         ));
-        if (hasNextPage(pageIndex, itemCount)) {
-            inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
-                Component.text("次のページ", NamedTextColor.WHITE),
-                List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY))
-            ));
-        }
+        inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
+            Component.text("次のページ", NamedTextColor.WHITE),
+            List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY)),
+            hasNextPage(pageIndex, itemCount)
+        ));
     }
 
     private @NotNull ItemStack createContentPlaceholder() {

@@ -429,12 +429,10 @@ public final class QuestGui {
     }
 
     private void renderPagination(@NotNull Inventory inventory, int pageIndex, int totalPages) {
-        if (pageIndex > 0) {
-            inventory.setItem(PREVIOUS_PAGE_SLOT, GuiItems.previousPageButton(Component.text("前のページ", NamedTextColor.WHITE), List.of()));
-        }
-        if (pageIndex + 1 < totalPages) {
-            inventory.setItem(NEXT_PAGE_SLOT, GuiItems.nextPageButton(Component.text("次のページ", NamedTextColor.WHITE), List.of()));
-        }
+        inventory.setItem(PREVIOUS_PAGE_SLOT, GuiItems.previousPageButton(
+            Component.text("前のページ", NamedTextColor.WHITE), List.of(), pageIndex > 0));
+        inventory.setItem(NEXT_PAGE_SLOT, GuiItems.nextPageButton(
+            Component.text("次のページ", NamedTextColor.WHITE), List.of(), pageIndex + 1 < totalPages));
     }
 
     private void fillFrame(@NotNull Inventory inventory) {

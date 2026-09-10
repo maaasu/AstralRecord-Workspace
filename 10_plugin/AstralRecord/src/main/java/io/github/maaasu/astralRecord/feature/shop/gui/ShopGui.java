@@ -422,22 +422,20 @@ public final class ShopGui {
 
     private void renderPagination(@NotNull Inventory inventory, @NotNull ShopDefinition shop, int pageIndex) {
         int totalPages = totalPages(shop);
-        if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_PAGE_SLOT, GuiItems.previousPageButton(
+        inventory.setItem(PREVIOUS_PAGE_SLOT, GuiItems.previousPageButton(
                 Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD)
                     .decoration(TextDecoration.ITALIC, false),
                 List.of(Component.text(pageIndex + " / " + totalPages, NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false))
-            ));
-        }
-        if (hasNextPage(shop, pageIndex)) {
-            inventory.setItem(NEXT_PAGE_SLOT, GuiItems.nextPageButton(
+                    .decoration(TextDecoration.ITALIC, false)),
+                hasPreviousPage(pageIndex)
+        ));
+        inventory.setItem(NEXT_PAGE_SLOT, GuiItems.nextPageButton(
                 Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD)
                     .decoration(TextDecoration.ITALIC, false),
                 List.of(Component.text((pageIndex + 2) + " / " + totalPages, NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false))
-            ));
-        }
+                    .decoration(TextDecoration.ITALIC, false)),
+                hasNextPage(shop, pageIndex)
+        ));
     }
 
     private void fillFrame(@NotNull Inventory inventory) {

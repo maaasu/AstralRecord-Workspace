@@ -223,17 +223,13 @@ public final class SkillBindGui {
             );
         }
 
-        if (page > 0) {
-            inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages));
-        }
+        inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
         for (int presetIndex = 1; presetIndex <= PRESET_COUNT; presetIndex++) {
             SkillBindPreset preset = session.presets().get(presetIndex - 1);
             inventory.setItem(presetSlot(presetIndex), createPresetItem(preset, presetIndex == session.selectedPresetIndex()));
         }
         inventory.setItem(BACK_SLOT, GuiItems.backButton());
-        if (page + 1 < pages) {
-            inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages));
-        }
+        inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages, page + 1 < pages));
         return inventory;
     }
 
@@ -942,17 +938,19 @@ public final class SkillBindGui {
         ), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
     }
 
-    private ItemStack createPreviousPageItem(int page, int pages) {
+    private ItemStack createPreviousPageItem(int page, int pages, boolean enabled) {
         return GuiItems.previousPageButton(
             Component.text("前のページ " + page + " / " + pages, NamedTextColor.AQUA),
-            List.of(Component.text("クリック: 前のページ", NamedTextColor.YELLOW))
+            List.of(Component.text("クリック: 前のページ", NamedTextColor.YELLOW)),
+            enabled
         );
     }
 
-    private ItemStack createNextPageItem(int page, int pages) {
+    private ItemStack createNextPageItem(int page, int pages, boolean enabled) {
         return GuiItems.nextPageButton(
             Component.text("次のページ " + (page + 2) + " / " + pages, NamedTextColor.AQUA),
-            List.of(Component.text("クリック: 次のページ", NamedTextColor.YELLOW))
+            List.of(Component.text("クリック: 次のページ", NamedTextColor.YELLOW)),
+            enabled
         );
     }
 

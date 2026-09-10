@@ -7956,7 +7956,8 @@ public class InventoryService {
                 enabled ? "クリックで1行移動" : "これ以上スクロールできません",
                 enabled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY
             )),
-            availableMoves
+            availableMoves,
+            enabled
         );
     }
 

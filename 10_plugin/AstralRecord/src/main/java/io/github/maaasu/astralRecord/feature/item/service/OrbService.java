@@ -1597,8 +1597,8 @@ public final class OrbService {
         String name = next ? "次のページ" : "前のページ";
         NamedTextColor color = enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY;
         return next
-            ? GuiItems.nextPageButton(Component.text(name, color), List.of())
-            : GuiItems.previousPageButton(Component.text(name, color), List.of());
+            ? GuiItems.nextPageButton(Component.text(name, color), List.of(), enabled)
+            : GuiItems.previousPageButton(Component.text(name, color), List.of(), enabled);
     }
 
     /**
