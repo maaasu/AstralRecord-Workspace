@@ -20,6 +20,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,6 +69,60 @@ class ParticleDisplayServiceTest {
         verify(javaViewer).spawnParticle(
             eq(Particle.DUST),
             eq(center),
+            eq(1),
+            eq(0.0D),
+            eq(0.0D),
+            eq(0.0D),
+            eq(0.0D),
+            any(Particle.DustOptions.class)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 糸の複数地点送信でも、統合版 viewer だけを除外し、Java版 viewer へ全地点を送る。
+     */
+    @Test
+    void hidesBedrockOnlyParticleDefinitionsInMultiPointOverload() {
+        World world = mock(World.class);
+        Player bedrockViewer = mock(Player.class);
+        Player javaViewer = mock(Player.class);
+        Location center = new Location(world, 0.0D, 64.0D, 0.0D);
+        when(world.getPlayers()).thenReturn(List.of(bedrockViewer, javaViewer));
+        when(bedrockViewer.getLocation()).thenReturn(center);
+        when(javaViewer.getLocation()).thenReturn(center);
+
+        AstPlayer bedrockAstPlayer = mock(AstPlayer.class);
+        AstPlayer javaAstPlayer = mock(AstPlayer.class);
+        when(bedrockAstPlayer.isBedrock()).thenReturn(true);
+        when(javaAstPlayer.isBedrock()).thenReturn(false);
+        List<Location> points = List.of(
+            center.clone().add(1.0D, 0.0D, 0.0D),
+            center.clone().add(2.0D, 0.0D, 0.0D)
+        );
+
+        ParticleDisplayService service = new ParticleDisplayService();
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(bedrockViewer)).thenReturn(bedrockAstPlayer);
+            cache.when(() -> AstPlayerCache.get(javaViewer)).thenReturn(javaAstPlayer);
+
+            service.spawnForNearbyViewers(center, points, SharedParticleDefinitions.FISHING_ROD_LINE);
+        }
+
+        verify(bedrockViewer, never()).spawnParticle(
+            eq(Particle.DUST),
+            any(Location.class),
+            anyInt(),
+            anyDouble(),
+            anyDouble(),
+            anyDouble(),
+            anyDouble(),
+            any(Particle.DustOptions.class)
+        );
+        verify(javaViewer, times(points.size())).spawnParticle(
+            eq(Particle.DUST),
+            any(Location.class),
             eq(1),
             eq(0.0D),
             eq(0.0D),
