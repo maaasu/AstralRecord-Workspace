@@ -42,6 +42,19 @@ public class GeyserHeadRepositoryTests
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, NonHeadPayload, "item", "material");
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, InvalidHeadPayload, "item", "material");
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, InvalidUrlHeadPayload, "item", "material");
+            foreach (var invalid in new[] { "[]", "null", "123" })
+            {
+                var value = Convert.ToBase64String(Encoding.UTF8.GetBytes(invalid));
+                await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup,
+                    JsonSerializer.Serialize(new { schemaVersion = 1, id = "invalid_" + value, icon = "PLAYER_HEAD", iconTexture = value }), "item", "material");
+            }
+            await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup,
+                JsonSerializer.Serialize(new { schemaVersion = 1, id = "spaced", icon = " player_head ", iconTexture = "  " + ItemTexture + "  " }), "item", "material");
+            await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup,
+                JsonSerializer.Serialize(new { schemaVersion = 1, id = "internal_whitespace", icon = "PLAYER_HEAD", iconTexture = ItemTexture.Insert(10, " ") }), "item", "material");
+            await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup,
+                JsonSerializer.Serialize(new { schemaVersion = 1, id = "cleared_level", icon = "STONE", iconTexture = CreateTexture("abc"),
+                    levels = new[] { new { level = 1, icon = "PLAYER_HEAD", iconTexture = (string?)null } } }), "mob.enemy", "ENEMY");
         }
 
         var activeUuid = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -86,7 +99,7 @@ public class GeyserHeadRepositoryTests
     private static readonly string MobLevelTexture = CreateTexture("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
 
     private static string ItemPayload => $$"""
-        { "schemaVersion": 1, "id": "head_item", "category": "material", "name": "head", "icon": "PLAYER_HEAD", "iconTexture": "{{ItemTexture}}", "rarity": "COMMON" }
+        { "schemaVersion": 1, "id": "head_item", "name": "head", "icon": "PLAYER_HEAD", "iconTexture": "{{ItemTexture}}", "rarity": "COMMON" }
         """;
 
     private static string ClassPayload => $$"""

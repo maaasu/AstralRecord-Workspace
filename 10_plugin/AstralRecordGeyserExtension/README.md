@@ -10,6 +10,15 @@ Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドを
 
 テクスチャは `PROFILE`、ユーザーUUIDは `UUID` として `GeyserDefineCustomSkullsEvent` 内で登録する。Geyserが生成するBedrockパックをクライアントが適用すると、RPGから送られた対応するヘッドの見た目が変換される。クリックやスクロールの処理はRPGが引き続き担当する。
 
+マスターの指定例（値は使用するスキンのBase64に置換する）:
+
+```yaml
+icon: PLAYER_HEAD
+iconTexture: "<texturesプロパティのBase64値>"
+```
+
+`iconTexture` は省略可能で、通常素材には適用しない。Mobの `skin.texture` はNPC本体の外観用で、アイコンには流用しない。
+
 ## ビルド・導入
 
 1. ワークスペースの `60_tool/12-build-network-plugins.bat` を実行する。Extension単体は `-Target Extension`。

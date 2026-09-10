@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AstralRecordApi.Repositories;
 
@@ -12,14 +13,16 @@ internal static class GeyserIconTextureValidator
 
     public static bool IsValid(string? iconTexture)
     {
-        if (string.IsNullOrWhiteSpace(iconTexture) || iconTexture.Length > MaxBase64Length)
+        if (string.IsNullOrWhiteSpace(iconTexture) || iconTexture.Length > MaxBase64Length
+            || iconTexture.Any(char.IsWhiteSpace))
             return false;
 
         try
         {
             var json = Encoding.UTF8.GetString(Convert.FromBase64String(iconTexture));
             using var document = JsonDocument.Parse(json);
-            if (!document.RootElement.TryGetProperty("textures", out var textures)
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.TryGetProperty("textures", out var textures)
                 || textures.ValueKind is not JsonValueKind.Object
                 || !textures.TryGetProperty("SKIN", out var skin)
                 || skin.ValueKind is not JsonValueKind.Object
@@ -45,7 +48,9 @@ internal static class GeyserIconTextureValidator
 
     private static bool IsValidTextureUrl(string? rawUrl)
     {
-        if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri)
+        if (rawUrl is null || !Regex.IsMatch(rawUrl,
+                @"\Ahttps?://(?i:textures\.minecraft\.net)/texture/[0-9a-fA-F]{1,64}\z", RegexOptions.CultureInvariant)
+            || !Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri)
             || uri.Scheme is not ("http" or "https")
             || !string.Equals(uri.Host, TextureHost, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(uri.Authority, TextureHost, StringComparison.OrdinalIgnoreCase)

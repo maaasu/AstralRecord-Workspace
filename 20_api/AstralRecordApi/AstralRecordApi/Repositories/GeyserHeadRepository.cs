@@ -48,37 +48,23 @@ public sealed class GeyserHeadRepository(
 
     private static void AddTextures(string masterType, string payloadJson, ISet<string> textures)
     {
-        if (masterType.StartsWith("mob.", StringComparison.Ordinal))
-        {
-            var mob = MasterDataPayloadJson.Deserialize<MobResponse>(payloadJson);
-            if (mob is null)
-                return;
-
-            AddTexture(mob.Icon, mob.IconTexture, textures);
-            foreach (var level in mob.Levels)
-                AddMobLevelTexture(level, mob.Icon, mob.IconTexture, textures);
+        // categoryなどDB列由来のDTO必須値に依存せず、必要なアイコン情報だけを読む。
+        using var document = JsonDocument.Parse(payloadJson);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
             return;
-        }
-
-        switch (masterType)
-        {
-            case "item":
-                var item = MasterDataPayloadJson.Deserialize<ItemResponse>(payloadJson);
-                if (item is not null)
-                    AddTexture(item.Icon, item.IconTexture, textures);
-                break;
-            case "class":
-                var cls = MasterDataPayloadJson.Deserialize<ClassResponse>(payloadJson);
-                if (cls is not null)
-                    AddTexture(cls.Icon, cls.IconTexture, textures);
-                break;
-            case "skill":
-                var skill = MasterDataPayloadJson.Deserialize<SkillResponse>(payloadJson);
-                if (skill is not null)
-                    AddTexture(skill.Icon, skill.IconTexture, textures);
-                break;
-        }
+        var icon = ReadString(root, "icon");
+        var texture = ReadString(root, "iconTexture");
+        AddTexture(icon, texture, textures);
+        if (masterType.StartsWith("mob.", StringComparison.Ordinal)
+            && root.TryGetProperty("levels", out var levels) && levels.ValueKind == JsonValueKind.Array)
+            foreach (var level in levels.EnumerateArray())
+                AddMobLevelTexture(level, icon, texture, textures);
     }
+
+    private static string? ReadString(JsonElement value, string key)
+        => value.TryGetProperty(key, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString() : null;
 
     private static void AddMobLevelTexture(
         JsonElement level,
@@ -89,21 +75,20 @@ public sealed class GeyserHeadRepository(
         if (level.ValueKind is not JsonValueKind.Object)
             return;
 
-        var icon = level.TryGetProperty("icon", out var iconValue)
-            && iconValue.ValueKind is JsonValueKind.String
-            ? iconValue.GetString()
+        var icon = level.TryGetProperty("icon", out _)
+            ? ReadString(level, "icon")
             : baseIcon;
-        var iconTexture = level.TryGetProperty("iconTexture", out var textureValue)
-            && textureValue.ValueKind is JsonValueKind.String
-            ? textureValue.GetString()
+        var iconTexture = level.TryGetProperty("iconTexture", out _)
+            ? ReadString(level, "iconTexture")
             : baseIconTexture;
         AddTexture(icon, iconTexture, textures);
     }
 
     private static void AddTexture(string? icon, string? iconTexture, ISet<string> textures)
     {
-        if (string.Equals(icon, PlayerHead, StringComparison.OrdinalIgnoreCase)
-            && GeyserIconTextureValidator.IsValid(iconTexture))
-            textures.Add(iconTexture!);
+        var normalizedTexture = iconTexture?.Trim();
+        if (string.Equals(icon?.Trim(), PlayerHead, StringComparison.OrdinalIgnoreCase)
+            && GeyserIconTextureValidator.IsValid(normalizedTexture))
+            textures.Add(normalizedTexture!);
     }
 }
