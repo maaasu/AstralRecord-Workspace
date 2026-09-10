@@ -18,6 +18,8 @@ public class ConfigProperties {
     private static final int DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS = 3;
     private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS = 250L;
     private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS = 2_000L;
+    private static final String DEFAULT_CHAT_GOOGLE_IME_ENDPOINT = "https://www.google.com/transliterate";
+    private static final int DEFAULT_CHAT_GOOGLE_IME_TIMEOUT_MILLIS = 1_500;
 
     private static ConfigProperties instance;
 
@@ -83,6 +85,13 @@ public class ConfigProperties {
     private boolean discordEnabled;
     private String discordGlobalChannelId;
     private int discordMaxMessageLength;
+
+    // ローマ字チャット変換設定
+    private boolean chatRomajiConversionEnabled = true;
+    private boolean chatKanjiConversionEnabled = true;
+    private String chatGoogleImeEndpoint = DEFAULT_CHAT_GOOGLE_IME_ENDPOINT;
+    private int chatGoogleImeTimeoutMillis = DEFAULT_CHAT_GOOGLE_IME_TIMEOUT_MILLIS;
+    private String chatRomajiBypassMarker = "$";
 
     private ConfigProperties() {
         // private constructor for singleton
@@ -230,6 +239,31 @@ public class ConfigProperties {
         this.discordMaxMessageLength = Math.max(
                 1,
                 configManager.getConfig().getInt(ConfigKeys.DISCORD_MAX_MESSAGE_LENGTH, 256)
+        );
+
+        // ローマ字チャット変換設定
+        this.chatRomajiConversionEnabled = configManager.getConfig().getBoolean(
+                ConfigKeys.CHAT_ROMAJI_CONVERSION_ENABLED,
+                true
+        );
+        this.chatKanjiConversionEnabled = configManager.getConfig().getBoolean(
+                ConfigKeys.CHAT_KANJI_CONVERSION_ENABLED,
+                true
+        );
+        this.chatGoogleImeEndpoint = configManager.getConfig().getString(
+                ConfigKeys.CHAT_GOOGLE_IME_ENDPOINT,
+                DEFAULT_CHAT_GOOGLE_IME_ENDPOINT
+        );
+        this.chatGoogleImeTimeoutMillis = Math.max(
+                100,
+                configManager.getConfig().getInt(
+                        ConfigKeys.CHAT_GOOGLE_IME_TIMEOUT_MILLIS,
+                        DEFAULT_CHAT_GOOGLE_IME_TIMEOUT_MILLIS
+                )
+        );
+        this.chatRomajiBypassMarker = configManager.getConfig().getString(
+                ConfigKeys.CHAT_ROMAJI_BYPASS_MARKER,
+                "$"
         );
     }
 
@@ -524,6 +558,52 @@ public class ConfigProperties {
 
     public int getDiscordMaxMessageLength() {
         return discordMaxMessageLength;
+    }
+
+    /**
+     * ローマ字チャット変換が有効かを返します。
+     *
+     * @return ローマ字変換が有効なら true
+     */
+    public boolean isChatRomajiConversionEnabled() {
+        return chatRomajiConversionEnabled;
+    }
+
+    /**
+     * Google CGI APIによるかな漢字変換が有効かを返します。
+     *
+     * @return かな漢字変換が有効なら true
+     */
+    public boolean isChatKanjiConversionEnabled() {
+        return chatKanjiConversionEnabled;
+    }
+
+    /**
+     * Google CGI APIの変換先URLを返します。
+     *
+     * @return 変換先URL
+     */
+    public String getChatGoogleImeEndpoint() {
+        return chatGoogleImeEndpoint == null || chatGoogleImeEndpoint.isBlank()
+            ? DEFAULT_CHAT_GOOGLE_IME_ENDPOINT : chatGoogleImeEndpoint;
+    }
+
+    /**
+     * Google CGI APIへの接続タイムアウトをミリ秒で返します。
+     *
+     * @return 接続タイムアウト（ミリ秒）
+     */
+    public int getChatGoogleImeTimeoutMillis() {
+        return chatGoogleImeTimeoutMillis;
+    }
+
+    /**
+     * ローマ字変換を一時的に無効化する発言先頭文字列を返します。
+     *
+     * @return 変換を無効化する発言先頭文字列。未設定時は空文字
+     */
+    public String getChatRomajiBypassMarker() {
+        return chatRomajiBypassMarker == null ? "" : chatRomajiBypassMarker;
     }
 
     private Set<UUID> parseConfiguredUsers(List<String> configuredUsers) {

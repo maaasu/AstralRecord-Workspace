@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -18,6 +20,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
@@ -28,6 +35,8 @@ import java.util.regex.Pattern;
  */
 public final class PlayerMessageService {
     private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
+    private final ChatMessageConverter chatMessageConverter;
+    private final ConcurrentMap<UUID, CompletableFuture<Void>> chatDeliveryTails = new ConcurrentHashMap<>();
     private @Nullable GlobalChatBridge globalChatBridge;
     private @Nullable NetworkChatBridge networkChatBridge;
 
@@ -35,6 +44,16 @@ public final class PlayerMessageService {
      * PlayerMessageService を初期化する。
      */
     public PlayerMessageService() {
+        this(new GoogleImeChatMessageConverter());
+    }
+
+    /**
+     * 指定したチャット変換器を使うメッセージサービスを初期化します。
+     *
+     * @param chatMessageConverter ローマ字チャット本文の変換器
+     */
+    PlayerMessageService(@NotNull ChatMessageConverter chatMessageConverter) {
+        this.chatMessageConverter = chatMessageConverter;
     }
 
     /**
@@ -275,6 +294,13 @@ public final class PlayerMessageService {
      */
     public void broadcastGlobalChat(@NotNull Player sender, @NotNull String message) {
         String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (normalizedMessage.isBlank()) {
+            return;
+        }
+        deliverConvertedChat(sender, normalizedMessage, convertedMessage -> broadcastGlobalChatNow(sender, convertedMessage));
+    }
+
+    private void broadcastGlobalChatNow(@NotNull Player sender, @NotNull String normalizedMessage) {
         if (!normalizedMessage.isBlank() && networkChatBridge != null
             && networkChatBridge.publish(sender, normalizedMessage)) {
             return;
@@ -286,9 +312,8 @@ public final class PlayerMessageService {
         Component component = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
-            displayName,
-            ""
-        ).append(Component.text(normalizedMessage));
+            displayName
+        ).append(chatBodyComponent(normalizedMessage));
         if (astPlayer != null) {
             component = replaceAccountDisplay(component, astPlayer);
         }
@@ -378,6 +403,23 @@ public final class PlayerMessageService {
         @NotNull String partyName,
         @NotNull String message
     ) {
+        String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (normalizedMessage.isBlank()) {
+            return;
+        }
+        deliverConvertedChat(
+            sender,
+            normalizedMessage,
+            convertedMessage -> broadcastPartyChatNow(recipients, sender, partyName, convertedMessage)
+        );
+    }
+
+    private void broadcastPartyChatNow(
+        @NotNull Collection<Player> recipients,
+        @NotNull Player sender,
+        @NotNull String partyName,
+        @NotNull String message
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(sender);
         String displayName = astPlayer == null
             ? sender.getName()
@@ -385,9 +427,8 @@ public final class PlayerMessageService {
         Component component = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5942.getId(),
             resolvePlayerLevel(sender),
-            displayName,
-            message
-        );
+            displayName
+        ).append(chatBodyComponent(message));
         if (astPlayer != null) {
             component = replaceAccountDisplay(component, astPlayer);
         }
@@ -411,6 +452,14 @@ public final class PlayerMessageService {
      * @param message メッセージ本文
      */
     public void sendDirectMessage(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
+        String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (normalizedMessage.isBlank()) {
+            return;
+        }
+        deliverConvertedChat(sender, normalizedMessage, convertedMessage -> sendDirectMessageNow(sender, target, convertedMessage));
+    }
+
+    private void sendDirectMessageNow(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
         AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
         AstPlayer targetAstPlayer = AstPlayerCache.get(target);
         String senderDisplayName = senderAstPlayer == null
@@ -424,17 +473,15 @@ public final class PlayerMessageService {
             resolvePlayerLevel(sender),
             senderDisplayName,
             resolvePlayerLevel(target),
-            targetDisplayName,
-            message
-        );
+            targetDisplayName
+        ).append(chatBodyComponent(message));
         Component received = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5944.getId(),
             resolvePlayerLevel(sender),
             senderDisplayName,
             resolvePlayerLevel(target),
-            targetDisplayName,
-            message
-        );
+            targetDisplayName
+        ).append(chatBodyComponent(message));
         if (senderAstPlayer != null) {
             sent = replaceAccountDisplay(sent, senderAstPlayer);
             received = replaceAccountDisplay(received, senderAstPlayer);
@@ -453,6 +500,64 @@ public final class PlayerMessageService {
         if (bridge != null) {
             bridge.publishDirectMessage(sender, senderDisplayName, targetDisplayName, message);
         }
+    }
+
+    /**
+     * チャット本文を変換し、Bukkit操作は必ずメインスレッドで実行します。
+     *
+     * @param message 正規化済み本文
+     * @param delivery 変換済み本文の配信処理
+     */
+    private void deliverConvertedChat(
+        @NotNull Player sender,
+        @NotNull String message,
+        @NotNull Consumer<String> delivery
+    ) {
+        UUID senderId = sender.getUniqueId();
+        CompletableFuture<Void> next = chatDeliveryTails.compute(senderId, (ignored, previous) -> {
+            CompletableFuture<Void> preceding = previous == null
+                ? CompletableFuture.completedFuture(null)
+                : previous.exceptionally(throwable -> null);
+            return preceding.thenCompose(unused -> convertAndDeliver(message, delivery));
+        });
+        next.whenComplete((unused, throwable) -> chatDeliveryTails.remove(senderId, next));
+    }
+
+    private @NotNull CompletableFuture<Void> convertAndDeliver(
+        @NotNull String message,
+        @NotNull Consumer<String> delivery
+    ) {
+        try {
+            return chatMessageConverter.convert(message)
+                .exceptionally(ignored -> message)
+                .thenCompose(converted -> runOnMainThread(
+                    () -> delivery.accept(ChatMessageSanitizer.normalize(converted))
+                ));
+        } catch (RuntimeException ignored) {
+            return runOnMainThread(() -> delivery.accept(message));
+        }
+    }
+
+    private @NotNull CompletableFuture<Void> runOnMainThread(@NotNull Runnable action) {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null) {
+            action.run();
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<Void> delivered = new CompletableFuture<>();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            try {
+                action.run();
+                delivered.complete(null);
+            } catch (RuntimeException exception) {
+                delivered.completeExceptionally(exception);
+            }
+        });
+        return delivered;
+    }
+
+    private @NotNull Component chatBodyComponent(@NotNull String message) {
+        return Component.text(message, NamedTextColor.GOLD, TextDecoration.ITALIC);
     }
 
     private @NotNull Component systemPrefix() {

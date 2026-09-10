@@ -120,6 +120,16 @@ network:
   # Proxy側 serverAuthorityUsers の同期周期。正本はProxy configです。
   authorityRefreshTicks: 100
 
+# ローマ字入力をかな・漢字へ変換するチャット設定。
+# bypassMarker を先頭に付けた発言は、マーカーを除いて変換せずに送信する。
+chat:
+  romajiConversion:
+    enabled: true
+    kanjiConversionEnabled: true
+    googleImeEndpoint: "https://www.google.com/transliterate"
+    googleImeTimeoutMillis: 1500
+    bypassMarker: "$"
+
 
 # Logging Settings
 logging:

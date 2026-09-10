@@ -77,4 +77,11 @@ public final class ConfigKeys {
     public static final String DISCORD_GLOBAL_CHANNEL_ID = "discord.globalChannelId";
     public static final String DISCORD_MAX_MESSAGE_LENGTH = "discord.maxMessageLength";
 
+    // ローマ字チャット変換設定
+    public static final String CHAT_ROMAJI_CONVERSION_ENABLED = "chat.romajiConversion.enabled";
+    public static final String CHAT_KANJI_CONVERSION_ENABLED = "chat.romajiConversion.kanjiConversionEnabled";
+    public static final String CHAT_GOOGLE_IME_ENDPOINT = "chat.romajiConversion.googleImeEndpoint";
+    public static final String CHAT_GOOGLE_IME_TIMEOUT_MILLIS = "chat.romajiConversion.googleImeTimeoutMillis";
+    public static final String CHAT_ROMAJI_BYPASS_MARKER = "chat.romajiConversion.bypassMarker";
+
 }

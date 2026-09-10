@@ -7,7 +7,10 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -18,12 +21,17 @@ import org.mockito.MockedStatic;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +45,7 @@ class PlayerMessageServiceTest {
     @Test
     void systemMessagePlacesSpaceAfterCommonTag() {
         Player player = onlinePlayer();
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
@@ -57,7 +65,7 @@ class PlayerMessageServiceTest {
     @Test
     void clickableMessageKeepsGuiCommand() {
         Player player = onlinePlayer();
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
@@ -76,7 +84,7 @@ class PlayerMessageServiceTest {
      */
     @Test
     void playerPresenceMessageMakesPlayerNameOpenInfo() {
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         Component join = service.formatInteractivePlayerMessage(PlayerMsgId.P_5076, "Alice");
         Component quit = service.formatInteractivePlayerMessage(PlayerMsgId.P_5077, "Alice");
@@ -103,7 +111,7 @@ class PlayerMessageServiceTest {
         Player player = onlinePlayer();
         Player inviter = onlinePlayer();
         when(inviter.getName()).thenReturn("Alice");
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
@@ -132,7 +140,7 @@ class PlayerMessageServiceTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getAccount()).thenReturn(account);
         when(astPlayer.getBukkit()).thenReturn(target);
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -164,7 +172,7 @@ class PlayerMessageServiceTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getAccount()).thenReturn(account);
         when(astPlayer.getBukkit()).thenReturn(sender);
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -177,6 +185,115 @@ class PlayerMessageServiceTest {
                 "[全体] [Lv.12] Alice#0: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
+     * 検証契約: 全体・party・DMは共通変換結果を表示とProxy中継へ使い、本文を金色斜体で表示する。
+     */
+    @Test
+    void managedChatsUseConvertedBodyForEveryChannelAndBridge() {
+        Player globalRecipient = onlinePlayer();
+        Player partyRecipient = onlinePlayer();
+        Player sender = onlinePlayer();
+        Player target = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        when(target.getName()).thenReturn("Bob");
+        NetworkChatBridge bridge = mock(NetworkChatBridge.class);
+        PlayerMessageService service = new PlayerMessageService(
+            ignored -> java.util.concurrent.CompletableFuture.completedFuture("変換済み")
+        );
+        service.setNetworkChatBridge(bridge);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(globalRecipient));
+            service.broadcastGlobalChat(sender, "gakkou");
+            service.broadcastPartyChat(Set.of(partyRecipient), sender, "Aliceのパーティー", "gakkou");
+            service.sendDirectMessage(sender, target, "gakkou");
+
+            Component global = captureMessage(globalRecipient);
+            assertEquals("[全体] [Lv.---] Alice: 変換済み", PlainTextComponentSerializer.plainText().serialize(global));
+            Component convertedBody = findText(global, "変換済み");
+            assertNotNull(convertedBody);
+            assertEquals(NamedTextColor.GOLD, convertedBody.style().color());
+            assertEquals(TextDecoration.State.TRUE, convertedBody.style().decoration(TextDecoration.ITALIC));
+            assertEquals(
+                "[パーティー] [Lv.---] Alice: 変換済み",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(partyRecipient))
+            );
+            assertEquals(
+                "[DM送信] [Lv.---] Alice -> [Lv.---] Bob: 変換済み",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
+            assertEquals(
+                "[DM受信] [Lv.---] Alice -> [Lv.---] Bob: 変換済み",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
+            );
+        }
+
+        verify(bridge).publish(sender, "変換済み");
+        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", "変換済み");
+        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", "変換済み");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
+     * 検証契約: 同一送信者の連続発言は、先行するかな漢字変換と配信の完了後に次の変換を開始し、発言順を維持する。
+     */
+    @Test
+    void serializesConvertedChatsPerSenderInSubmissionOrder() {
+        Player sender = onlinePlayer();
+        Player recipient = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        CompletableFuture<String> firstConversion = new CompletableFuture<>();
+        AtomicInteger conversionCount = new AtomicInteger();
+        PlayerMessageService service = new PlayerMessageService(message -> conversionCount.getAndIncrement() == 0
+            ? firstConversion : CompletableFuture.completedFuture("second"));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(recipient));
+            service.broadcastGlobalChat(sender, "first");
+            service.broadcastGlobalChat(sender, "second");
+
+            assertEquals(1, conversionCount.get());
+            firstConversion.complete("first");
+            assertEquals(2, conversionCount.get());
+
+            ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
+            verify(recipient, times(2)).sendMessage(captor.capture());
+            assertEquals(
+                "[全体] [Lv.---] Alice: first",
+                PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(0))
+            );
+            assertEquals(
+                "[全体] [Lv.---] Alice: second",
+                PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(1))
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
+     * 検証契約: 同期完了する変換でも、送信者単位の直列化キューに完了済みFutureを残さない。
+     */
+    @Test
+    void removesCompletedSenderQueueEntryAfterSynchronousConversion() throws ReflectiveOperationException {
+        Player sender = onlinePlayer();
+        Player recipient = onlinePlayer();
+        PlayerMessageService service = messageServiceWithoutConversion();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(recipient));
+            service.broadcastGlobalChat(sender, "message");
+
+            java.lang.reflect.Field field = PlayerMessageService.class.getDeclaredField("chatDeliveryTails");
+            field.setAccessible(true);
+            assertEquals(0, ((Map<?, ?>) field.get(service)).size());
         }
     }
 
@@ -197,7 +314,7 @@ class PlayerMessageServiceTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getAccount()).thenReturn(account);
         when(astPlayer.getBukkit()).thenReturn(sender);
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -239,7 +356,7 @@ class PlayerMessageServiceTest {
         when(targetAstPlayer.getAccount()).thenReturn(targetAccount);
         when(targetAstPlayer.getBukkit()).thenReturn(target);
 
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -271,7 +388,7 @@ class PlayerMessageServiceTest {
         when(sender.getName()).thenReturn("Alice");
         when(target.getName()).thenReturn("Bob");
         NetworkChatBridge bridge = mock(NetworkChatBridge.class);
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
         service.setNetworkChatBridge(bridge);
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -293,7 +410,7 @@ class PlayerMessageServiceTest {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         GlobalChatBridge bridge = mock(GlobalChatBridge.class);
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
         service.setGlobalChatBridge(bridge);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -317,7 +434,7 @@ class PlayerMessageServiceTest {
     @Test
     void discordGlobalChatKeepsAmpersandColorCodeLiteral() {
         Player recipient = onlinePlayer();
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(recipient));
@@ -340,7 +457,7 @@ class PlayerMessageServiceTest {
     void globalItemChatMakesWholeItemNameCopyable() {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
-        PlayerMessageService service = new PlayerMessageService();
+        PlayerMessageService service = messageServiceWithoutConversion();
         ItemStack itemTooltip = mock(ItemStack.class);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -358,10 +475,27 @@ class PlayerMessageServiceTest {
         return player;
     }
 
+    private PlayerMessageService messageServiceWithoutConversion() {
+        return new PlayerMessageService(message -> java.util.concurrent.CompletableFuture.completedFuture(message));
+    }
+
     private Component captureMessage(Player player) {
         ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
         verify(player).sendMessage(captor.capture());
         return captor.getValue();
+    }
+
+    private Component findText(Component component, String expectedContent) {
+        if (component instanceof TextComponent textComponent && expectedContent.equals(textComponent.content())) {
+            return component;
+        }
+        for (Component child : component.children()) {
+            Component found = findText(child, expectedContent);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     private boolean hasRunCommand(Component component, String command) {
