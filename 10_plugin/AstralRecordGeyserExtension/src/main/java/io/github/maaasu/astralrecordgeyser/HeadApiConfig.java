@@ -17,11 +17,17 @@ final class HeadApiConfig {
     final URI endpoint;
     final String apiKey;
     final Duration timeout;
+    final boolean allowInsecureTls;
 
     HeadApiConfig(URI endpoint, String apiKey, Duration timeout) {
+        this(endpoint, apiKey, timeout, false);
+    }
+
+    HeadApiConfig(URI endpoint, String apiKey, Duration timeout, boolean allowInsecureTls) {
         this.endpoint = endpoint;
         this.apiKey = apiKey;
         this.timeout = timeout;
+        this.allowInsecureTls = allowInsecureTls;
     }
 
     /** 初回のみ設定を配置し、API接続先とキーを検証して読む。 */
@@ -53,7 +59,8 @@ final class HeadApiConfig {
             if (key == null || key.isBlank()) throw new IOException("Configure api.apiKey or its environment variable");
             int seconds = Integer.parseInt(value(api, "timeoutSeconds"));
             if (seconds < 1 || seconds > 120) throw new IOException("timeoutSeconds must be between 1 and 120");
-            return new HeadApiConfig(URI.create(base + "/api/geyser/heads"), key, Duration.ofSeconds(seconds));
+            boolean allowInsecureTls = bool(api, "allowInsecureTls", false);
+            return new HeadApiConfig(URI.create(base + "/api/geyser/heads"), key, Duration.ofSeconds(seconds), allowInsecureTls);
         } catch (IllegalArgumentException exception) {
             throw new IOException("Invalid API configuration");
         }
@@ -62,5 +69,11 @@ final class HeadApiConfig {
     private static String value(Map<?, ?> values, String key) {
         Object value = values.get(key);
         return value == null ? "" : value.toString().trim();
+    }
+
+    private static boolean bool(Map<?, ?> values, String key, boolean fallback) {
+        Object value = values.get(key);
+        if (value instanceof Boolean flag) return flag;
+        return value == null ? fallback : Boolean.parseBoolean(value.toString().trim());
     }
 }

@@ -18,7 +18,11 @@ public final class AstralRecordGeyserExtension implements Extension {
         LinkedHashSet<String> textures = new LinkedHashSet<>(BuiltinHeadTextures.ALL);
         for (String texture : textures) event.register(texture, SkullTextureType.PROFILE);
         try {
-            HeadCatalog catalog = HeadApiClient.fetch(HeadApiConfig.load(dataFolder()));
+            HeadApiConfig config = HeadApiConfig.load(dataFolder());
+            if (config.allowInsecureTls) {
+                logger().warning("AstralRecord head API TLS certificate and hostname verification are disabled; use only in a trusted local or private network.");
+            }
+            HeadCatalog catalog = HeadApiClient.fetch(config);
             for (String texture : catalog.textures()) {
                 if (textures.add(texture)) event.register(texture, SkullTextureType.PROFILE);
             }

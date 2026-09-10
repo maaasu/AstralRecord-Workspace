@@ -5,3 +5,5 @@ api:
   apiKey: ""
   apiKeyEnvironmentVariable: "ASTRALRECORD_API_KEY"
   timeoutSeconds: 15
+  # 開発・閉域環境で証明書とホスト名の検証を無効化する場合だけtrue。本番ではfalseにする。
+  allowInsecureTls: false
