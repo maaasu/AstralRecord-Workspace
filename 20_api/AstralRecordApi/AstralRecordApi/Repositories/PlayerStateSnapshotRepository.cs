@@ -1811,14 +1811,14 @@ public sealed class PlayerStateSnapshotRepository(
                 || (string.Equals(entry.InstanceType?.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
                     && entry.InstanceId.HasValue && entry.InstanceId != Guid.Empty && entry.Quantity == 1));
 
+    /// <summary>
+    /// 新規・既存装備の完成状態を検証します。初回保存前のローカル強化や装着も受理し、
+    /// 新規個体だけに必要な作成属性と、全個体共通の値・child 制約を照合します。
+    /// </summary>
     private static bool IsValidEquipment(PlayerStateEquipmentSnapshot snapshot)
         => (snapshot.IsNew
                 ? !snapshot.ExpectedUpdatedAt.HasValue
                     && ValidText(snapshot.ItemId, 100)
-                    && snapshot.EnhanceLevel == 0
-                    && snapshot.TranscendenceRank == 0
-                    && snapshot.Enchants.Count == 0
-                    && snapshot.Runes.Count == 0
                     && snapshot.StatRolls.All(statRoll => statRoll is not null
                         && statRoll.StatRollId != Guid.Empty
                         && statRoll.SortOrder >= 0
