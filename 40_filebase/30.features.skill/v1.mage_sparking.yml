@@ -49,11 +49,11 @@ tags:
 params:
   damageRatio: 1.2
   projectileCount: 5
-  range: 16.0
-  projectileSpeed: 1.45
+  range: 32.0
+  projectileSpeed: 2.45
   spiralRadiusGrowth: 0.14
   spiralDegreesPerTick: 3.0
-  projectileHitRadius: 0.60
+  projectileHitRadius: 1.60
   durationTicks: 50
   shockChance: 25.0
   shockDurationTicks: 100
