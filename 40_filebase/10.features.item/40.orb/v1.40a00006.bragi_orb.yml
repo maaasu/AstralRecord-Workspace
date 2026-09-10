@@ -5,7 +5,8 @@ schemaVersion: 1
 id: 40a00006
 category: orb
 name: "&aブラギのオーブ"
-icon: ENCHANTED_BOOK
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2I5NDJiOWYzODY4MWJmOTZjODRkMTgxYmFkOWVmMGFjYzA0NzYzNWQyNTRlMzQ4OWZjODExODg2NzgxY2E1ZCJ9fX0=
 rarity: UNCOMMON
 lore:
   - "&7習得済みスキルを選択し、所持シジルを一つ装着する。"

@@ -5,7 +5,8 @@ schemaVersion: 1
 id: 40a00015
 category: orb
 name: "&9シンドリのオーブ(上級)"
-icon: CHISELED_SANDSTONE
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTFiYjc4ZDNlZTBjOWZiMWUyMDBiOGFkNWI1MjJlZDkyMjVhODYyODU3YjEzNWIwYjU2YjBlYTYwZDdmYTc3MCJ9fX0=
 rarity: RARE
 maxStack: 64
 saleValue: 240

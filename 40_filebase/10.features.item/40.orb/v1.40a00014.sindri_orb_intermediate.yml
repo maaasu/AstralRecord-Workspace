@@ -5,7 +5,8 @@ schemaVersion: 1
 id: 40a00014
 category: orb
 name: "&bシンドリのオーブ(中級)"
-icon: CUT_SANDSTONE
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzE3Njc4YjE2ODk0ZWRkNzRkMjk2NzJhNGRhMzQ0Y2I4NjhlZDFiZjRhODM0MGMwY2FiNjNjMjA2NDk0N2Q1ZSJ9fX0=
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 120

@@ -5,7 +5,8 @@ schemaVersion: 1
 id: 40a00001
 category: orb
 name: "&9イージスのオーブ"
-icon: HEART_OF_THE_SEA
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTY3OTliZmFhM2EyYzYzYWQ4NWRkMzc4ZTY2ZDU3ZDlhOTdhM2Y4NmQwZDlmNjgzYzQ5ODYzMmY0ZjVjIn19fQ==
 rarity: RARE
 maxStack: 64
 saleValue: 80
