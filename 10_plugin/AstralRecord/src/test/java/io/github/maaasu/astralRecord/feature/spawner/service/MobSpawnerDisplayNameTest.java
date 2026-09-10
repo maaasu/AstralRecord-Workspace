@@ -77,6 +77,7 @@ class MobSpawnerDisplayNameTest extends MockBukkitTestBase {
                 null,
                 null,
                 null,
+                null,
                 null
         )));
         when(mobService.findTemplate("midgard_grassboar")).thenReturn(template);
