@@ -112,7 +112,7 @@ public final class PotionUseService {
 
     /**
      * 消耗品の使用待機を開始し、待機完了後に効果適用とアイテム消費を行います。
-     * 待機完了後の消費保存が確定するまでも、同じプレイヤーの使用を受け付けません。
+     * 消費と回復効果はローカルで確定し、SQL保存の待機を使用時間へ加えません。
      *
      * @param astPlayer 使用プレイヤー
      * @param hand 使用した手
@@ -275,7 +275,7 @@ public final class PotionUseService {
         pendingConsumptions.add(playerId);
         CompletableFuture<Boolean> persistence;
         try {
-            persistence = inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            persistence = inventoryService.executeResponsivePlayerMutation(accountId, () -> {
                 InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
                 if (inventoryBefore == null) throw new PotionMutationRejectedException();
                 try {

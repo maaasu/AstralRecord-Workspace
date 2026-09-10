@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepos
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -57,6 +58,7 @@ public final class InventoryPersistence {
     private final Map<UUID, PlayerInventoryState> liveStates = new ConcurrentHashMap<>();
     private final Set<UUID> blockedSnapshots = ConcurrentHashMap.newKeySet();
     private final Set<UUID> acknowledgementBlockedSnapshots = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> outcomeUnknownSnapshots = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> snapshotAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
     private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
@@ -315,13 +317,18 @@ public final class InventoryPersistence {
             pendingSnapshots.remove(accountId, snapshot);
             blockedSnapshots.remove(snapshot.snapshotId);
             acknowledgementBlockedSnapshots.remove(snapshot.snapshotId);
+            outcomeUnknownSnapshots.remove(snapshot.snapshotId);
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
         } catch (RuntimeException failure) {
+            if (failure instanceof PlayerStateOutcomeUnknownException) {
+                outcomeUnknownSnapshots.add(snapshot.snapshotId);
+            }
             if (failure instanceof PlayerStateAcknowledgementException) {
                 blockedSnapshots.add(snapshot.snapshotId);
                 acknowledgementBlockedSnapshots.add(snapshot.snapshotId);
-            } else if (failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
+            } else if (!outcomeUnknownSnapshots.contains(snapshot.snapshotId)
+                    && failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
                     && api.getStatusCode() != 408 && api.getStatusCode() != 425
                     && api.getStatusCode() != 429) {
                 blockedSnapshots.add(snapshot.snapshotId);
@@ -450,21 +457,26 @@ public final class InventoryPersistence {
     }
 
     /**
-     * 重要操作の完成状態を保存します。通信失敗または確定した保存失敗は後から再送せず、
-     * {@code false} を返して呼び出し側の補償処理へ渡します。SQL 完了後に ACK だけを確定できない場合は
+     * 重要操作の完成状態を保存します。確定した拒否だけは後から再送せず、
+     * {@code false} を返して呼び出し側の補償処理へ渡します。通信結果不明では同じsnapshotを保持して
+     * {@link PlayerStateOutcomeUnknownException} を返し、呼出元が排他を維持したまま再試行します。
+     * SQL 完了後に ACK だけを確定できない場合は
      * snapshot を保持して例外を投げ、二重適用を避けるため補償処理を実行させません。
      * 先行する通常保存が残っていない状態で、account 保存 lane から呼び出してください。
      */
     public boolean saveCriticalNow(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
         synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
-            state.markDirty();
+            if (!pendingSnapshots.containsKey(accountId)) state.markDirty();
             savePlayerStateLocked(state, null);
             PlayerStateSnapshot failed = pendingSnapshots.get(accountId);
             if (failed == null) return true;
             if (acknowledgementBlockedSnapshots.contains(failed.snapshotId)) {
                 throw new PlayerStateAcknowledgementException(
                     new IllegalStateException("Critical snapshot acknowledgement is unresolved"));
+            }
+            if (outcomeUnknownSnapshots.contains(failed.snapshotId)) {
+                throw new PlayerStateOutcomeUnknownException(null);
             }
             pendingSnapshots.remove(accountId, failed);
             blockedSnapshots.remove(failed.snapshotId);

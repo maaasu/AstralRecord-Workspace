@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistenc
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -903,6 +904,43 @@ public final class InventorySaveCoordinator {
     }
 
     /**
+     * ローカル消費と結果を同一state lockで即時確定し、保存完了を待たずに返します。
+     * 外部取引中・保存競合時は変更を拒否し、確定後の通信失敗ではローカル結果を取り消しません。
+     * @param accountId 対象アカウント
+     * @param mutation 通信・Bukkit APIを含まず、失敗時は自身で部分変更を復元する処理
+     * @param <T> 結果型
+     * @return ローカル確定済み結果、またはローカル検証失敗のfuture
+     */
+    public <T> @NotNull CompletableFuture<T> executeResponsiveMutation(
+        @NotNull UUID accountId, @NotNull Supplier<T> mutation
+    ) {
+        PlayerInventoryState state = stateRegistry.get(accountId);
+        if (state == null) return rejectedExternalOperation(accountId);
+        final T result;
+        try {
+            synchronized (state) {
+                result = executeLocalMutation(accountId, () -> {
+                    if (stateRegistry.get(accountId) != state) {
+                        throw new IllegalStateException("Player state generation changed: " + accountId);
+                    }
+                    T value = mutation.get();
+                    state.markDirty();
+                    return value;
+                });
+            }
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
+        try {
+            saveAuto(state);
+        } catch (RuntimeException schedulingFailure) {
+            // 完成した状態はdirtyのまま保持し、次の保存境界へ渡す。
+            Logger.warn(LogId.W_5252, accountId, failureReason(schedulingFailure));
+        }
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
      * 重要操作を account lane で排他実行し、完成状態の SQL ACK 後にだけ結果を返します。
      * 通信失敗または確定した保存失敗では mutation が返した補償処理を同じ排他境界内で実行します。
      * SQL 完了後に ACK だけを確定できない場合は状態を維持して account を保留し、補償処理を実行しません。
@@ -943,7 +981,7 @@ public final class InventorySaveCoordinator {
                 if (change == null) {
                     throw new IllegalStateException("Critical mutation did not return a result");
                 }
-                if (!persistence.saveCriticalNow(expectedState)) {
+                if (!saveCriticalUntilResolved(expectedState)) {
                     change.rollback().run();
                     throw new CriticalPlayerStateSaveException(accountId, "commit save failed");
                 }
@@ -951,7 +989,8 @@ public final class InventorySaveCoordinator {
                 return true;
             } catch (RuntimeException | Error failure) {
                 if (change != null && !(failure instanceof CriticalPlayerStateSaveException)
-                    && !(failure instanceof PlayerStateAcknowledgementException)) {
+                    && !(failure instanceof PlayerStateAcknowledgementException)
+                    && !(failure instanceof PlayerStateOutcomeUnknownException)) {
                     try {
                         change.rollback().run();
                     } catch (RuntimeException rollbackFailure) {
@@ -964,13 +1003,32 @@ public final class InventorySaveCoordinator {
             }
         });
         laneResult.whenComplete((succeeded, failure) -> {
-            releaseExternalBoundary(accountId, boundaryToken);
+            if (!(failure instanceof PlayerStateOutcomeUnknownException)) {
+                releaseExternalBoundary(accountId, boundaryToken);
+            }
             if (failure != null) result.completeExceptionally(failure);
             else if (!Boolean.TRUE.equals(succeeded)) {
                 result.completeExceptionally(new CriticalPlayerStateSaveException(accountId, "lane rejected"));
             } else result.complete(completed.get());
         });
         return result;
+    }
+
+    /** 結果不明では同一snapshotを保持し、保存laneと外部操作境界を解放せず確定結果を回収します。 */
+    private boolean saveCriticalUntilResolved(@NotNull PlayerInventoryState state) {
+        while (true) {
+            try {
+                return persistence.saveCriticalNow(state);
+            } catch (PlayerStateOutcomeUnknownException unresolved) {
+                if (closing || Thread.currentThread().isInterrupted()) throw unresolved;
+                try {
+                    TimeUnit.MILLISECONDS.sleep(EXTERNAL_SAVE_RETRY_MAX_MILLIS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new PlayerStateOutcomeUnknownException(interrupted);
+                }
+            }
+        }
     }
 
     private void scheduleBackgroundSave(UUID accountId) {

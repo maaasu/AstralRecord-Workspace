@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mutation.repository;
 
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +26,27 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PlayerStateRepositoryTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: 同じPOSTの再送後も照会が404の場合は、確定拒否と区別して結果不明を返す。
+     */
+    @Test
+    void preservesUnknownOutcomeAfterBothPostsAndLookupsFail() throws Exception {
+        UUID snapshotId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<String> unavailable = response(503, "busy");
+        HttpResponse<String> notFound = response(404, "");
+        when(client.send(any(HttpRequest.class), anyStringBodyHandler()))
+            .thenReturn(unavailable).thenReturn(notFound).thenReturn(unavailable).thenReturn(notFound);
+        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
+            assertThrows(PlayerStateOutcomeUnknownException.class,
+                () -> new PlayerStateRepository().saveSnapshot(payload(snapshotId, accountId)));
+        }
+        verify(client, times(4)).send(any(HttpRequest.class), anyStringBodyHandler());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md

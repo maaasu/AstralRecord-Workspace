@@ -2163,8 +2163,8 @@ public final class OrbService {
     }
 
     /**
-     * オーブと対象を再検証し、API の単一 transaction へ冪等 operation を送ります。
-     * 支払いはローカル state から先行消費せず、API が装備更新と同時に確定します。
+     * オーブと対象を再検証し、支払いと装備更新をローカルで一体確定します。
+     * 完成状態の保存は非同期で集約し、操作結果は通信を待たず表示します。
      */
     private void executeCandidate(
         @NotNull OrbSession session,
@@ -2253,7 +2253,7 @@ public final class OrbService {
 
     /**
      * 予約済み支払いと全種類のオーブ結果を同一player state lockで確定します。
-     * 完成スナップショットの SQL ACK 後だけ成功結果を通知します。
+     * ローカル確定直後に結果を通知し、完成スナップショットの保存は非同期で継続します。
      */
     private void completeLocalMutation(
         @NotNull OrbSession session,
@@ -2265,7 +2265,7 @@ public final class OrbService {
             new java.util.concurrent.atomic.AtomicReference<>();
         java.util.concurrent.atomic.AtomicBoolean rejected = new java.util.concurrent.atomic.AtomicBoolean();
         try {
-            var persistence = inventoryService.executeCriticalPlayerMutation(session.accountId, () -> {
+            var persistence = inventoryService.executeResponsivePlayerMutation(session.accountId, () -> {
                 InventoryService.InventoryStateSnapshot inventoryBefore =
                     inventoryService.snapshotState(session.accountId);
                 Runnable equipmentRollback = itemService.captureEquipmentStateRollback(session.accountId);
@@ -2403,7 +2403,7 @@ public final class OrbService {
                 finishBatchMutation(session, result);
                 return;
             }
-            // ローカル状態は critical mutation の rollback 済みなので、Bukkit 表示も同じ状態へ戻す。
+            // ローカル検証失敗で部分変更を復元済みなので、Bukkit表示も同じ状態へ戻す。
             inventoryService.refreshManagedInventoryUi(session.astPlayer);
             if (result.status == MutationStatus.TARGET_UNAVAILABLE
                 || result.status == MutationStatus.TARGET_CHANGED) {
@@ -2628,7 +2628,7 @@ public final class OrbService {
     }
 
     /**
-     * API と正本照合が完了した成功結果を同じ tick で表示へ反映します。
+     * ローカルで確定した成功結果を同じ tick で表示へ反映します。
      *
      * @param session 操作セッション
      * @param result 成功した装備処理結果

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistenc
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -38,6 +39,94 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class InventorySaveCoordinatorTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ローカル操作の即時応答
+     * 検証契約: 先行保存が未実行でも強化・回復のローカル結果を即時に返し、DB保存失敗で補償しない。
+     */
+    @Test
+    void responsiveMutationCompletesWhileEarlierSaveIsQueued() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+        var earlierSave = coordinator.saveNow(accountId);
+        AtomicInteger value = new AtomicInteger(10);
+
+        var first = coordinator.executeResponsiveMutation(accountId, () -> value.addAndGet(5));
+        var second = coordinator.executeResponsiveMutation(accountId, () -> value.addAndGet(5));
+
+        assertTrue(first.isDone());
+        assertEquals(15, first.join());
+        assertEquals(20, second.join());
+        assertFalse(earlierSave.isDone());
+        assertTrue(state.isDirty());
+        verify(persistence, never()).saveNow(state);
+        verify(persistence, never()).saveCriticalNow(state);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ローカル操作の即時応答
+     * 検証契約: 外部取引が保留中のアカウントでは即時操作も消費・計算を実行しない。
+     */
+    @Test
+    void responsiveMutationRejectsPendingExternalBoundary() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(
+            mock(InventoryPersistence.class), registry, new ManualExecutor());
+        coordinator.executeExclusiveAfterSave(accountId, ignored -> true);
+        AtomicBoolean changed = new AtomicBoolean();
+
+        var result = coordinator.executeResponsiveMutation(accountId, () -> changed.compareAndSet(false, true));
+
+        assertThrows(CompletionException.class, result::join);
+        assertFalse(changed.get());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
+     * 検証契約: 重要操作の結果不明では補償・再計算・排他解除を行わず、同一保存の確定後に成功する。
+     */
+    @Test
+    void criticalUnknownOutcomeKeepsMutationAndBoundaryUntilAcknowledged() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNowWithBaseline(state)).thenReturn(
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+        AtomicInteger mutationCalls = new AtomicInteger();
+        AtomicBoolean rolledBack = new AtomicBoolean();
+        AtomicInteger saveCalls = new AtomicInteger();
+        when(persistence.saveCriticalNow(state)).thenAnswer(ignored -> {
+            assertTrue(coordinator.hasUnresolvedExternalOperation(accountId));
+            assertFalse(rolledBack.get());
+            if (saveCalls.incrementAndGet() == 1) throw new PlayerStateOutcomeUnknownException(null);
+            return true;
+        });
+
+        var result = coordinator.executeCriticalMutation(accountId, () ->
+            new InventorySaveCoordinator.CriticalMutation<>(mutationCalls.incrementAndGet(), () -> rolledBack.set(true)));
+        executor.runAll();
+
+        assertEquals(1, result.join());
+        assertEquals(1, mutationCalls.get());
+        assertEquals(2, saveCalls.get());
+        assertFalse(rolledBack.get());
+        assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md

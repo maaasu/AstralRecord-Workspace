@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -39,22 +40,20 @@ public class PlayerStateRepository {
 
                 InventoryApiException failure = new InventoryApiException(
                     "POST", path, response.statusCode(), response.body());
-                if (!isOutcomeUnknown(response.statusCode())) throw failure;
+                if (!isOutcomeUnknown(response.statusCode()) && unresolvedFailure == null) throw failure;
                 JsonObject recovered = findCompleted(snapshotId, accountId, failure);
                 if (recovered != null) return recovered;
                 unresolvedFailure = failure;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
-                throw new IllegalStateException("Player snapshot save interrupted", interrupted);
+                throw new PlayerStateOutcomeUnknownException(interrupted);
             } catch (IOException failure) {
                 JsonObject recovered = findCompleted(snapshotId, accountId, failure);
                 if (recovered != null) return recovered;
                 unresolvedFailure = new UncheckedIOException(failure);
             }
         }
-        throw unresolvedFailure == null
-            ? new IllegalStateException("Player snapshot outcome could not be resolved")
-            : unresolvedFailure;
+        throw new PlayerStateOutcomeUnknownException(unresolvedFailure);
     }
 
     /**

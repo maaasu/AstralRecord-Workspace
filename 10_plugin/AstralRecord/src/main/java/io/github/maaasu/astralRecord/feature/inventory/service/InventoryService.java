@@ -552,6 +552,21 @@ public class InventoryService {
         return saveCoordinator.executeCriticalMutation(accountId, mutation);
     }
 
+    /**
+     * 強化・回復の消費と結果をローカルで一体確定し、通信完了を待たずに返します。
+     * @param accountId 対象アカウント
+     * @param mutation 通信やBukkit APIを含まず、部分失敗を自身で復元するローカル変更
+     * @param <T> 結果型
+     * @return ローカル確定結果。後続の保存失敗では完成状態を補償しません
+     */
+    public <T> @NotNull CompletableFuture<T> executeResponsivePlayerMutation(
+        @NotNull UUID accountId,
+        @NotNull java.util.function.Supplier<InventorySaveCoordinator.CriticalMutation<T>> mutation
+    ) {
+        return saveCoordinator.executeResponsiveMutation(accountId, () ->
+            java.util.Objects.requireNonNull(mutation.get(), "Local mutation result").result());
+    }
+
     /** チャンネル移動などの境界で、登録済み全 section を含む完成状態を確定します。 */
     public @NotNull CompletableFuture<Boolean> saveForBoundary(@NotNull UUID accountId) {
         return saveCoordinator.saveForBoundary(accountId);
