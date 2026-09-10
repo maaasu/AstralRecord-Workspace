@@ -13,6 +13,7 @@ public class MailRepository(
 {
     private const string MasterTypeMail = "mail";
     private const string MailMasterCacheKey = "mail-masters";
+    private static readonly SemaphoreSlim MailMasterCacheFillGate = new(1, 1);
 
     public async Task<IReadOnlyList<MailResponse>> GetAvailableByAccountIdAsync(Guid accountId, string? filter)
     {
@@ -136,21 +137,32 @@ public class MailRepository(
 
     private async Task<IReadOnlyList<MailResponse>> GetMailMastersAsync()
     {
-        return await cache.GetOrCreateAsync(MailMasterCacheKey, async entry =>
+        if (cache.TryGetValue<IReadOnlyList<MailResponse>>(MailMasterCacheKey, out var cached))
+            return cached!;
+
+        await MailMasterCacheFillGate.WaitAsync();
+        try
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+            if (cache.TryGetValue<IReadOnlyList<MailResponse>>(MailMasterCacheKey, out cached))
+                return cached!;
             var payloads = await masterDataDbContext.Entries
                 .AsNoTracking()
                 .Where(source => !source.IsDeleted && source.MasterType == MasterTypeMail)
                 .OrderBy(source => source.MasterId)
                 .Select(source => source.PayloadJson)
                 .ToArrayAsync();
-            return (IReadOnlyList<MailResponse>)payloads
+            var masters = (IReadOnlyList<MailResponse>)payloads
                 .Select(MasterDataPayloadJson.Deserialize<MailResponse>)
                 .Where(mail => mail is not null)
                 .Select(mail => mail!)
                 .ToArray();
-        }) ?? Array.Empty<MailResponse>();
+            cache.Set(MailMasterCacheKey, masters, TimeSpan.FromMinutes(1));
+            return masters;
+        }
+        finally
+        {
+            MailMasterCacheFillGate.Release();
+        }
     }
 
     private async Task<MailResponse?> GetMailMasterByIdAsync(string mailId)
