@@ -20,6 +20,9 @@ public class ClassResponse
 
     public string? Icon { get; init; }
 
+    /// <summary>アイコンが <c>PLAYER_HEAD</c> の場合に使用する Base64 テクスチャ。</summary>
+    public string? IconTexture { get; init; }
+
     public required string Role { get; init; }
 
     public int MaxLevel { get; init; } = 100;

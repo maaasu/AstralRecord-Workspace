@@ -85,6 +85,7 @@ builder.Services.AddScoped<IWorldRepository, WorldRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
 builder.Services.AddScoped<IGuideRepository, GuideRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IGeyserHeadRepository, GeyserHeadRepository>();
 builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository>();
 builder.Services.AddScoped<IAccountSkillTreeStateRepository, AccountSkillTreeStateRepository>();

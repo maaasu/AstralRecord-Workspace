@@ -12,6 +12,9 @@ public class ItemResponse
 
     public required string Icon { get; init; }
 
+    /// <summary>アイコンが <c>PLAYER_HEAD</c> の場合に使用する Base64 テクスチャ。</summary>
+    public string? IconTexture { get; init; }
+
     public required string Rarity { get; init; }
 
     public int SaleValue { get; init; }

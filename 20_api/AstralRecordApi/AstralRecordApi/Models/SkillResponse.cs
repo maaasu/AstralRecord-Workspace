@@ -16,6 +16,9 @@ public class SkillResponse
 
     public string? Icon { get; init; }
 
+    /// <summary>アイコンが <c>PLAYER_HEAD</c> の場合に使用する Base64 テクスチャ。</summary>
+    public string? IconTexture { get; init; }
+
     public IReadOnlyList<string> Lore { get; init; } = [];
 
     public long CooldownTicks { get; init; }
