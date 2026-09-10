@@ -146,6 +146,15 @@ public final class PlayerSettingService {
     public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
     public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
     public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }
+    /**
+     * ナイトビジョン設定を、ロード済み cache から参照します。
+     *
+     * @param userId 設定を所有するユーザー UUID
+     * @return ナイトビジョン設定が有効なら {@code true}。cache 未読込または型不正時は {@code false}
+     */
+    public boolean isNightVisionEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.NIGHT_VISION, false);
+    }
     public boolean isArmorDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ARMOR_DISPLAY, true); }
     public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, false); }
 

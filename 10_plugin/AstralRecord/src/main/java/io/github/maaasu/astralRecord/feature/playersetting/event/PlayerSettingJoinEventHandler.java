@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
     private final AstralRecord plugin;
     private final PlayerSettingService playerSettingService;
+    private final PlayerSettingEffectService playerSettingEffectService;
     private final ItemStackPacketAdapter itemStackPacketAdapter;
 
     /**
@@ -26,15 +28,18 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
      *
      * @param plugin プラグインインスタンス
      * @param playerSettingService プレイヤー設定サービス
+     * @param playerSettingEffectService プレイヤー設定由来の効果同期サービス
      * @param itemStackPacketAdapter 装備表示を再同期するパケットアダプタ
      */
     public PlayerSettingJoinEventHandler(
         @NotNull AstralRecord plugin,
         @NotNull PlayerSettingService playerSettingService,
+        @NotNull PlayerSettingEffectService playerSettingEffectService,
         @NotNull ItemStackPacketAdapter itemStackPacketAdapter
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
+        this.playerSettingEffectService = playerSettingEffectService;
         this.itemStackPacketAdapter = itemStackPacketAdapter;
     }
 
@@ -50,6 +55,7 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
                 if (player != null
                     && player.isOnline()
                     && playerSettingService.captureSessionToken(userId) == sessionToken) {
+                    playerSettingEffectService.synchronizeNightVision(player);
                     itemStackPacketAdapter.refreshEquipmentView(player);
                     plugin.getSkillTreeService().markViewerContextDirty(player);
                 }

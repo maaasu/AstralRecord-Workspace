@@ -21,6 +21,7 @@ public enum PlayerSettingKey {
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
+    NIGHT_VISION("NIGHT_VISION", "ナイトビジョン", false),
     ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
     ACTION_RING_HOLD_SELECT("ACTION_RING_HOLD_SELECT", "アクションリング長押し選択", false),
     SKILL_TREE_COMPACT_DISPLAY("SKILL_TREE_COMPACT_DISPLAY", "スキルツリーノード簡易表示", false),

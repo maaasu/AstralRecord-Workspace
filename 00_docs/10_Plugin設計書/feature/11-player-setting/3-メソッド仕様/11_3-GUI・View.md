@@ -5,7 +5,7 @@
 クラス名: `PlayerSettingGui`
 物理名: `open`, `refresh`
 
-54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24` と 4 行目の `29〜33` に配置する。
+54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24`、4 行目の `29〜33`、5 行目の `38` に配置する。
 
 | slot | key / 操作 |
 |---:|---|
@@ -19,12 +19,15 @@
 | 31 | `ARMOR_DISPLAY` |
 | 32 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
 | 33 | `SKILL_TREE_COMPACT_DISPLAY`（`BOOK` icon） |
+| 38 | `NIGHT_VISION`（`SPYGLASS` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 
 `TEMP_DROP_DISPLAY` と `TEMP_BLOCK_DISPLAY` は GUI に表示せず、コマンドから変更する。
 
 `ACTION_RING_HOLD_SELECT` は既定 `false` で、`true` のときだけ右クリック長押し選択を使う。保存後は inventory を再送し、選択中 hotbar 主武器だけをクライアント専用トライデント表示へ直ちに切り替える。ホットバースロット切り替え時も選択中 slot の表示を再同期する。
+
+`NIGHT_VISION` は既定 `false` で、`true` のときだけ無期限・粒子なしの暗視効果を付与する。`false` へ変更した場合は暗視効果を除去する。
 
 ## 2. GUI 識別・slot 解決
 

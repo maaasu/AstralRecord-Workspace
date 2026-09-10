@@ -37,6 +37,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int ARMOR_DISPLAY_SLOT = 31;
     public static final int ACTION_RING_HOLD_SELECT_SLOT = 32;
     public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 33;
+    public static final int NIGHT_VISION_SLOT = 38;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -82,6 +83,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
             case SKILL_TREE_COMPACT_DISPLAY_SLOT -> PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY;
+            case NIGHT_VISION_SLOT -> PlayerSettingKey.NIGHT_VISION;
             default -> null;
         };
     }
@@ -152,6 +154,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, draftValues),
             List.of(Component.text("ノード名と区切り見出しを省略して表示します。", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(NIGHT_VISION_SLOT, createBooleanItem(
+            Material.SPYGLASS,
+            PlayerSettingKey.NIGHT_VISION,
+            (Boolean) resolveValue(userId, PlayerSettingKey.NIGHT_VISION, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

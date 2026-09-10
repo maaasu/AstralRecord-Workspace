@@ -29,6 +29,7 @@ class PlayerSettingGuiTest {
         assertEquals(31, PlayerSettingGui.ARMOR_DISPLAY_SLOT);
         assertEquals(32, PlayerSettingGui.ACTION_RING_HOLD_SELECT_SLOT);
         assertEquals(33, PlayerSettingGui.SKILL_TREE_COMPACT_DISPLAY_SLOT);
+        assertEquals(38, PlayerSettingGui.NIGHT_VISION_SLOT);
         assertEquals(
             PlayerSettingKey.AUTO_SAVE_MESSAGE,
             gui.getKeyAtSlot(PlayerSettingGui.AUTO_SAVE_MESSAGE_SLOT)
@@ -48,6 +49,10 @@ class PlayerSettingGuiTest {
         assertEquals(
             PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
             gui.getKeyAtSlot(PlayerSettingGui.SKILL_TREE_COMPACT_DISPLAY_SLOT)
+        );
+        assertEquals(
+            PlayerSettingKey.NIGHT_VISION,
+            gui.getKeyAtSlot(PlayerSettingGui.NIGHT_VISION_SLOT)
         );
         assertNull(gui.getKeyAtSlot(26));
         assertNull(gui.getKeyAtSlot(27));

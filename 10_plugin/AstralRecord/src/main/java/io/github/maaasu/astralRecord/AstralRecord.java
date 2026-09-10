@@ -194,6 +194,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingJo
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingDefaults;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
@@ -414,6 +415,7 @@ public final class AstralRecord extends JavaPlugin {
     private WaystoneHitBoxResolver waystoneHitBoxResolver;
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
+    private PlayerSettingEffectService playerSettingEffectService;
     private PlayerSettingGui playerSettingGui;
     private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
@@ -1057,6 +1059,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingCache(),
             playerStateExecutor
         );
+        playerSettingEffectService = new PlayerSettingEffectService(playerSettingService);
         playerSettingService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
         inventoryPersistence.registerStateParticipant(playerSettingService::snapshotPlayerState);
         skillTreeService.setPlayerSettingService(playerSettingService);
@@ -2040,6 +2043,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingJoinEventHandler(
                 this,
                 playerSettingService,
+                playerSettingEffectService,
                 itemStackPacketAdapter
             ),
             getServer().getPluginManager()
@@ -2048,6 +2052,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingGuiEventHandler(
                 playerSettingGui,
                 playerSettingService,
+                playerSettingEffectService,
                 inventoryService,
                 itemStackPacketAdapter
             ),
@@ -2457,6 +2462,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerSettingService getPlayerSettingService() {
         return playerSettingService;
+    }
+
+    /**
+     * プレイヤー設定由来の Bukkit 効果同期サービスを取得します。
+     *
+     * @return プレイヤー設定効果サービス
+     */
+    public PlayerSettingEffectService getPlayerSettingEffectService() {
+        return playerSettingEffectService;
     }
 
     public PlayerSettingGui getPlayerSettingGui() {

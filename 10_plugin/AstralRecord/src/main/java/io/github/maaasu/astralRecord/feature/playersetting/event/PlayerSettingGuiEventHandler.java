@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -44,6 +45,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
+    private final PlayerSettingEffectService playerSettingEffectService;
     private final InventoryService inventoryService;
     private final ItemStackPacketAdapter itemStackPacketAdapter;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
@@ -54,17 +56,20 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
      *
      * @param gui プレイヤー設定 GUI
      * @param playerSettingService プレイヤー設定サービス
+     * @param playerSettingEffectService プレイヤー設定由来の効果同期サービス
      * @param inventoryService hotbar shortcut 用 inventory サービス
      * @param itemStackPacketAdapter 装備表示を再同期するパケットアダプタ
      */
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
         @NotNull PlayerSettingService playerSettingService,
+        @NotNull PlayerSettingEffectService playerSettingEffectService,
         @NotNull InventoryService inventoryService,
         @NotNull ItemStackPacketAdapter itemStackPacketAdapter
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
+        this.playerSettingEffectService = playerSettingEffectService;
         this.inventoryService = inventoryService;
         this.itemStackPacketAdapter = itemStackPacketAdapter;
     }
@@ -245,6 +250,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         );
         if (skillTreeCompactDisplaySynchronized) {
             plugin.getSkillTreeService().markViewerContextDirty(player);
+        }
+        boolean nightVisionSynchronized = results.stream().anyMatch(persisted ->
+            persisted.key() == PlayerSettingKey.NIGHT_VISION
+                && persisted.result().success()
+        );
+        if (nightVisionSynchronized) {
+            playerSettingEffectService.synchronizeNightVision(player);
         }
     }
 

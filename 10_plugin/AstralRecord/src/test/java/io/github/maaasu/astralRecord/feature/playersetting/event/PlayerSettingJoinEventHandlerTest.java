@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
@@ -36,6 +37,7 @@ class PlayerSettingJoinEventHandlerTest {
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
+        PlayerSettingEffectService playerSettingEffectService = mock(PlayerSettingEffectService.class);
         ItemStackPacketAdapter itemStackPacketAdapter = mock(ItemStackPacketAdapter.class);
         Player player = mock(Player.class);
         PlayerJoinEvent event = mock(PlayerJoinEvent.class);
@@ -65,6 +67,7 @@ class PlayerSettingJoinEventHandlerTest {
         PlayerSettingJoinEventHandler handler = new PlayerSettingJoinEventHandler(
             plugin,
             playerSettingService,
+            playerSettingEffectService,
             itemStackPacketAdapter
         );
 
@@ -77,6 +80,7 @@ class PlayerSettingJoinEventHandlerTest {
 
         syncTask.get().run();
 
+        verify(playerSettingEffectService).synchronizeNightVision(player);
         verify(itemStackPacketAdapter).refreshEquipmentView(player);
     }
 }

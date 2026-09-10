@@ -87,6 +87,9 @@ public final class PlayerSettingCommand extends AstCommand {
         if (result.staleSession()) {
             return;
         }
+        if (key == PlayerSettingKey.NIGHT_VISION && result.success()) {
+            plugin.getPlayerSettingEffectService().synchronizeNightVision(player.getBukkit());
+        }
         if (key == PlayerSettingKey.ARMOR_DISPLAY) {
             plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
         }
