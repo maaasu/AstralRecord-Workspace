@@ -467,7 +467,7 @@ public final class InventoryPersistence {
     public boolean saveCriticalNow(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
         synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
-            if (!pendingSnapshots.containsKey(accountId)) state.markDirty();
+            if (!pendingSnapshots.containsKey(accountId) && !hasPendingChanges(state)) state.markDirty();
             savePlayerStateLocked(state, null);
             PlayerStateSnapshot failed = pendingSnapshots.get(accountId);
             if (failed == null) return true;

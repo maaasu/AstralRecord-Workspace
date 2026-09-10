@@ -923,9 +923,7 @@ public final class InventorySaveCoordinator {
                     if (stateRegistry.get(accountId) != state) {
                         throw new IllegalStateException("Player state generation changed: " + accountId);
                     }
-                    T value = mutation.get();
-                    state.markDirty();
-                    return value;
+                    return mutation.get();
                 });
             }
         } catch (RuntimeException failure) {
