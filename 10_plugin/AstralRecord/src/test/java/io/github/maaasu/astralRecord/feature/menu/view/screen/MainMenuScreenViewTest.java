@@ -62,7 +62,8 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         assertMaterial(inventory, 10, Material.PLAYER_HEAD);
         assertMaterial(inventory, 12, Material.NETHERITE_CHESTPLATE);
         assertMaterial(inventory, 13, Material.ENCHANTING_TABLE);
-        assertMaterial(inventory, 14, Material.BUNDLE);
+        assertMaterial(inventory, 14, Material.PLAYER_HEAD);
+        assertDisplayNameContains(inventory, 14, "Bag of Seeds");
         assertMaterial(inventory, 16, Material.COMPARATOR);
         assertMaterial(inventory, 20, Material.SPYGLASS);
         assertMaterial(inventory, 22, Material.KNOWLEDGE_BOOK);

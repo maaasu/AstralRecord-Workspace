@@ -19,6 +19,9 @@ import java.util.List;
  * GUI 用 ItemStack の共通生成処理を提供します。
  */
 public final class GuiItems {
+    /** カレンシーアイコンに使用する Bag of Seeds の textures 値。 */
+    public static final String CURRENCY_HEAD_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmY5NmZmYjk5NzhlNTM2NGQxODkzMjA0ZWY0NzkxNjJjZjU2ZTE5NWRhN2NhYzE0MTBlYmEwNjkzMDUzOTViOCJ9fX0=";
     private static final String OAK_WOOD_ARROW_UP_TEXTURE =
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzA0MGZlODM2YTZjMmZiZDJjN2E5YzhlYzZiZTUxNzRmZGRmMWFjMjBmNTVlMzY2MTU2ZmE1ZjcxMmUxMCJ9fX0=";
     private static final String OAK_WOOD_ARROW_DOWN_TEXTURE =

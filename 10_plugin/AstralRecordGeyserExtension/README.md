@@ -4,7 +4,7 @@ Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドを
 
 ## 登録元
 
-- `BuiltinHeadTextures` のJava定数: RPGの `GuiItems` と同じ上下左右矢印・無効ボタンの5テクスチャ。
+- `BuiltinHeadTextures` のJava定数: RPGの `GuiItems` と同じカレンシー、上下左右矢印・無効ボタンの6テクスチャ。
 - 認証付き `GET /api/geyser/heads` の `textures`: item / mob / skill / classマスターの `icon: PLAYER_HEAD` と `iconTexture`（Base64のtexturesプロパティ）。
 - 同レスポンスの `playerUuids`: 削除されていない登録ユーザーのMinecraft UUID。オンライン一覧やアカウントIDではない。
 

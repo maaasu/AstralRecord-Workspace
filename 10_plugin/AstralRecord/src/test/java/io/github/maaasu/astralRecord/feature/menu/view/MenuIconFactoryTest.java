@@ -8,11 +8,12 @@ import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
-import io.papermc.paper.datacomponent.DataComponentTypes;
-import io.papermc.paper.datacomponent.item.TooltipDisplay;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -29,7 +30,7 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
      * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
      * 検証契約: 共通icon定義から呼出ごとに独立ItemStackを生成し相互変更を漏らさず、
-     * カレンシーのBUNDLE内容量を表示しない。
+     * カレンシーは指定の固定プレイヤーヘッドとメタデータを表示する。
      */
     @Test
     void createsIndependentItemStacksFromSharedDefinition() {
@@ -45,12 +46,22 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
         );
 
         assertNotSame(first, second);
-        assertEquals(Material.BUNDLE, first.getType());
-        TooltipDisplay tooltipDisplay = first.getData(DataComponentTypes.TOOLTIP_DISPLAY);
-        assertNotNull(tooltipDisplay);
-        assertTrue(tooltipDisplay.hiddenComponents().contains(DataComponentTypes.BUNDLE_CONTENTS));
-        assertEquals("カレンシー", plain(first.getItemMeta().displayName()));
+        assertEquals(Material.PLAYER_HEAD, first.getType());
+        assertEquals("Bag of Seeds", plain(first.getItemMeta().displayName()));
+        assertEquals(NamedTextColor.GOLD, first.getItemMeta().displayName().color());
+        assertEquals(TextDecoration.State.TRUE, first.getItemMeta().displayName().decoration(TextDecoration.BOLD));
+        assertEquals(TextDecoration.State.TRUE, first.getItemMeta().displayName().decoration(TextDecoration.UNDERLINED));
+        assertEquals(TextDecoration.State.FALSE, first.getItemMeta().displayName().decoration(TextDecoration.ITALIC));
+        assertTrue(first.getItemMeta() instanceof SkullMeta);
+        assertEquals(
+            io.github.maaasu.astralRecord.shared.gui.GuiItems.CURRENCY_HEAD_TEXTURE,
+            ((SkullMeta) first.getItemMeta()).getPlayerProfile().getProperties().stream()
+                .filter(property -> property.getName().equals("textures"))
+                .findFirst().orElseThrow().getValue()
+        );
         assertEquals(List.of(
+            "Custom Head ID: 129729",
+            "www.minecraft-heads.com",
             "所持通貨を確認",
             "◆ 合計ゴールド ◆",
             "321 G",
@@ -118,15 +129,16 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_1-モデル定義.md
      * 章・見出し: # 09_1-モデル定義 > ## 3. 共通アイコン
-     * 検証契約: メインメニューの共通アイコンは用途ごとに異なる Material を使用する。
+     * 検証契約: メインメニューの共通アイコンは用途に応じた Material を使用し、CURRENCY は固定 PLAYER_HEAD とする。
      */
     @Test
-    void usesDistinctMaterialsForEachMenuIconDefinition() {
+    void usesExpectedMaterialsForMenuIconDefinitions() {
         List<Material> materials = java.util.Arrays.stream(MenuIconDefinition.values())
             .map(MenuIconDefinition::getMaterial)
             .toList();
 
-        assertEquals(materials.size(), new java.util.HashSet<>(materials).size());
+        assertEquals(Material.PLAYER_HEAD, MenuIconDefinition.CURRENCY.getMaterial());
+        assertEquals(materials.size() - 1, new java.util.HashSet<>(materials).size());
     }
 
     /**
