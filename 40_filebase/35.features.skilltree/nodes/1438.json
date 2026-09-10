@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "SCALAR",
+      "value": 0.0424
+    },
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": -0.013
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1438",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "resource",
+    "light"
+  ],
+  "name": "&d宵の結び目",
+  "icon": "GLOW_BERRIES"
+}

@@ -1,0 +1,37 @@
+# design:
+#   motif: "血盟 / 聖歌"
+#   progression: 2
+schemaVersion: 1
+id: paladin_covenant
+type: SKILL
+implementationId: paladin_covenant
+name: "&dセラフィム・血盟聖歌"
+description: "&7聖柩に守られた仲間へ、血盟の戦歌を響かせる。"
+icon: GOAT_HORN
+lore:
+  - "&7自身と同じパーティの守護を持つ生存者の与ダメージを{skill.outgoingMultiplier}倍にする。"
+  - "&7半径{skill.radius}m・高さ{skill.height}m、視線が通る対象だけに付与する。"
+  - "&7守護が失われた瞬間に終了し、守護を再付与してもこの詠唱では復活しない。"
+  - "&7最大{skill.durationTicks:seconds}秒間持続する。"
+cooldownTicks: 7200
+resourceType: MANA
+resourceCost: 25
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { outgoingMultiplier: 0.02 } }
+  - { level: 3, paramDeltas: { outgoingMultiplier: 0.02 } }
+  - { level: 4, paramDeltas: { outgoingMultiplier: 0.02 } }
+  - { level: 5, paramDeltas: { outgoingMultiplier: 0.02 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+onCast: { sound: block.note_block.chime }
+params:
+  radius: 8.0
+  height: 4.0
+  outgoingMultiplier: 1.12
+  durationTicks: 120
+tags: [active, support]

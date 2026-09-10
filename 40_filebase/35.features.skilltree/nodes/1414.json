@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "SCALAR",
+      "value": 0.0232
+    },
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": -0.007
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1414",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "resource",
+    "light"
+  ],
+  "name": "&d盟約の綴り",
+  "icon": "GLOW_BERRIES"
+}

@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "SCALAR",
+      "value": 0.0371
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "SCALAR",
+      "value": -0.0106
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1404",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "offense",
+    "shield"
+  ],
+  "name": "&d沈黙の装甲",
+  "icon": "BLAZE_POWDER"
+}

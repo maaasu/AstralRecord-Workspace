@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 18.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 15
+  },
+  "nodeId": "1489",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の息吹",
+  "icon": "HEART_OF_THE_SEA"
+}

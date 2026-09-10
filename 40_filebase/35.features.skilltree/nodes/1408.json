@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "SCALAR",
+      "value": 0.0399
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "SCALAR",
+      "value": -0.0114
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1408",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "offense",
+    "shield"
+  ],
+  "name": "&d万象の被告",
+  "icon": "BLAZE_POWDER"
+}

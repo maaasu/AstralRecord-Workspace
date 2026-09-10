@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 1.8
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": -0.0185
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1406",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "offense",
+    "defense"
+  ],
+  "name": "&d審判者の飢え",
+  "icon": "ANVIL"
+}

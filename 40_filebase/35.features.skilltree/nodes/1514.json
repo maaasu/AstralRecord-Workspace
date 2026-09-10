@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1514",
+  "name": "&d旅人の滋養",
+  "icon": "GOLDEN_APPLE",
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 15.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 52
+  }
+}

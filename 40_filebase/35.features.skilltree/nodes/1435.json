@@ -1,0 +1,23 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_covenant"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1435",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "defense",
+    "shield",
+    "light"
+  ],
+  "name": "&dセラフィム・血盟聖歌",
+  "icon": "BEACON"
+}

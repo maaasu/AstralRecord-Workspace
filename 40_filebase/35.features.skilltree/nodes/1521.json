@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1521",
+  "name": "&d旅人の静寂",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 55
+  }
+}

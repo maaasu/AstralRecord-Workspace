@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "SCALAR",
+      "value": 0.036
+    },
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": -0.011
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1430",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "resource",
+    "light"
+  ],
+  "name": "&d白百合の隔壁",
+  "icon": "GLOW_BERRIES"
+}

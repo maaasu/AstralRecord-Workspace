@@ -1,0 +1,23 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_requiem"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1456",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "defense",
+    "shield",
+    "dark"
+  ],
+  "name": "&dレクイエム・聖柩葬送",
+  "icon": "CRYING_OBSIDIAN"
+}

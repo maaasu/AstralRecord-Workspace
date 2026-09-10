@@ -1,0 +1,39 @@
+# design:
+#   motif: "鎮魂 / 聖柩葬送"
+#   progression: 2
+schemaVersion: 1
+id: paladin_requiem
+type: SKILL
+implementationId: paladin_requiem
+name: "&5レクイエム・聖柩葬送"
+description: "&7自らの聖柩を葬り、敵へ鎮魂の一撃を返す。"
+icon: WITHER_ROSE
+lore:
+  - "&7前方120度、半径{skill.radius}m・高さ{skill.height}mの敵へ近接攻撃を行う。"
+  - "&7自身の現在の守護を全消費し、倍率は{skill.damageRatio}+min({skill.bonusRatioCap}, 守護÷{skill.wardPerRatio})。"
+  - "&7最大{skill.maxTargets}体。視線が通る敵が1体以上いる場合だけ守護を消費する。"
+  - "&7守護がない場合は発動に失敗し、消費もクールタイムも発生しない。"
+cooldownTicks: 6000
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.10 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+onCast: { sound: block.respawn_anchor.deplete }
+params:
+  radius: 5.0
+  height: 3.0
+  maxTargets: 6
+  damageRatio: 0.50
+  wardPerRatio: 100.0
+  bonusRatioCap: 2.0
+tags: [active, melee]

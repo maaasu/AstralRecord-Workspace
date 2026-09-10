@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 3.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 45
+  },
+  "nodeId": "1495",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の加護",
+  "icon": "PRISMARINE_CRYSTALS"
+}

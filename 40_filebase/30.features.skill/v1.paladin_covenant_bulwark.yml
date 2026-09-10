@@ -1,0 +1,29 @@
+# design:
+#   motif: "血盟 / 城壁"
+#   progression: 2
+schemaVersion: 1
+id: paladin_covenant_bulwark
+type: SKILL
+implementationId: status_passive
+name: "&bコヴナント・ブルワーク"
+description: "&7仲間を囲う城壁となり、手数を差し出す。"
+icon: SHIELD
+lore:
+  - "&7バインド中、最大シールドを10%上げ、攻撃速度を5%下げる。"
+  - "&7パッシブスキル枠を1つ使用する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+passive: { bindRequired: true }
+params:
+  modifiers:
+    - { status: MAX_SHIELD, type: SCALAR, value: 0.10 }
+    - { status: ATTACK_SPEED, type: SCALAR, value: -0.05 }
+tags: [passive, support]

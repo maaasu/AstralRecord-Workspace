@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1502",
+  "name": "&d旅人の還流",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 50
+  }
+}

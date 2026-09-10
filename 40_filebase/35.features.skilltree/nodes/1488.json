@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 10
+  },
+  "nodeId": "1488",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の護り",
+  "icon": "SHIELD"
+}

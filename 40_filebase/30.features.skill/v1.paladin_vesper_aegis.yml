@@ -1,0 +1,39 @@
+# design:
+#   motif: "聖柩 / 宵の守護"
+#   progression: 2
+schemaVersion: 1
+id: paladin_vesper_aegis
+type: SKILL
+implementationId: paladin_vesper_aegis
+name: "&bヴェスパー・不落の聖柩"
+description: "&7宵の聖柩で仲間を包む、儚く強い守護。"
+icon: BEACON
+lore:
+  - "&7自身と同じパーティの生存者へ、一時HP吸収の守護を付与する。"
+  - "&7半径{skill.radius}m・高さ{skill.height}m、視線が通る対象だけに届く。"
+  - "&7守護量は{skill.wardBase}+最大シールド×{skill.shieldRatio}+支援力×{skill.supportRatio}。"
+  - "&7既存の守護より強い場合だけ置き換え、{skill.durationTicks:seconds}秒間持続する。"
+cooldownTicks: 4800
+resourceType: MANA
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { wardBase: 5.0 } }
+  - { level: 3, paramDeltas: { wardBase: 5.0 } }
+  - { level: 4, paramDeltas: { wardBase: 5.0 } }
+  - { level: 5, paramDeltas: { wardBase: 5.0 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+onCast: { sound: block.beacon.power_select }
+params:
+  radius: 8.0
+  height: 4.0
+  wardBase: 30.0
+  shieldRatio: 0.30
+  supportRatio: 0.80
+  durationTicks: 160
+tags: [active, support]

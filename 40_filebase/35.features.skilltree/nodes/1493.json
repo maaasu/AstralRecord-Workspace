@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 35
+  },
+  "nodeId": "1493",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の冴え",
+  "icon": "SPYGLASS"
+}

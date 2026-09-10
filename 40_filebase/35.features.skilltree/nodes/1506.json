@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1506",
+  "name": "&dジャッジケイター・スカー",
+  "icon": "GLOW_INK_SAC",
+  "tags": [
+    "defense",
+    "status"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_judicator_scar"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

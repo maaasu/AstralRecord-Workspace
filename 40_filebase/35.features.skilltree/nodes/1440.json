@@ -1,0 +1,31 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "SCALAR",
+      "value": 0.032
+    },
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "SCALAR",
+      "value": -0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1440",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shield",
+    "defense"
+  ],
+  "name": "&d盟約の星図",
+  "icon": "SHIELD"
+}

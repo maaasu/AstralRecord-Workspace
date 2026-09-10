@@ -1,0 +1,32 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.037
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "SCALAR",
+      "value": -0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1479",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "defense",
+    "mana",
+    "dark"
+  ],
+  "name": "&d深淵の盟約",
+  "icon": "WITHER_ROSE"
+}

@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 12.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 20
+  },
+  "nodeId": "1490",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の泉",
+  "icon": "AMETHYST_SHARD"
+}

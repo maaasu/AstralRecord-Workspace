@@ -1,0 +1,29 @@
+# design:
+#   motif: "宵祷 / 聖柩"
+#   progression: 2
+schemaVersion: 1
+id: paladin_vesper_litany
+type: SKILL
+implementationId: status_passive
+name: "&bヴェスパー・リタニー"
+description: "&7宵の祈りで支援を増幅し、剣を鈍らせる。"
+icon: BEACON
+lore:
+  - "&7バインド中、支援力を15%上げ、攻撃力を7%下げる。"
+  - "&7パッシブスキル枠を1つ使用する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+passive: { bindRequired: true }
+params:
+  modifiers:
+    - { status: SUPPORT_POWER, type: SCALAR, value: 0.15 }
+    - { status: ATTACK, type: SCALAR, value: -0.07 }
+tags: [passive, support]

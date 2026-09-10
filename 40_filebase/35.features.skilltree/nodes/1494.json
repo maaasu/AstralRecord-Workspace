@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 3.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 41
+  },
+  "nodeId": "1494",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の不屈",
+  "icon": "GOLDEN_APPLE"
+}

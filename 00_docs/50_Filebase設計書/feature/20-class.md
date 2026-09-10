@@ -45,6 +45,12 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 クラスそのものの解放段階を記載します。初期選択可能なクラスは同じ progression を基準とし、上位・派生クラスは解放条件となるクラスやコンテンツより後に置きます。
 
+## パラディン
+
+`paladin` はソードマンLv50・プレイヤーLv15から転職するLv100タンクです。Lv1時点で `MAX_HEALTH +135 / MAX_SHIELD +15 / DEFENSE +12 / MAGIC_DEFENSE +8` を持ち、Lvごとに `MAX_HEALTH +8 / VITALITY +1.6 / DEFENSE +1.1 / MAGIC_DEFENSE +0.7` を成長させます。攻撃成長は `STRENGTH +0.8 / ATTACK +0.8` に抑え、同じ旧値だったソードマスターの `+1.2 / +1.2` を引き継ぎません。
+
+クラス本体の使用許可は `adventurer_astral_edge`、`adventurer_smash`、`swordsman_challenging_roar`、`swordsman_shield_activate` の4つだけです。パラディン固有skillはすべてskilltree nodeから使用許可を得て、skill masterで `10a00019 ×3` を消費して習得・各レベルアップします。
+
 ## 正本参照
 
 - 戦闘・ゲームバランス: ステータス成長、職業間の性能配分、skill・equipmentとの役割分担を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。

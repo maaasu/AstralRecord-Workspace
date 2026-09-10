@@ -1,0 +1,25 @@
+{
+  "pointType": "PP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 4.0
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 50
+  },
+  "nodeId": "1496",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "shared",
+    "core"
+  ],
+  "name": "&d旅人の極星",
+  "icon": "NETHER_STAR"
+}

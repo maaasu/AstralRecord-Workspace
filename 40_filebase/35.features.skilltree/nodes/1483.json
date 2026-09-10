@@ -1,0 +1,32 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.0398
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "SCALAR",
+      "value": -0.0108
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1483",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "status",
+    "defense",
+    "mana",
+    "dark"
+  ],
+  "name": "&d葬送の星痕",
+  "icon": "WITHER_ROSE"
+}

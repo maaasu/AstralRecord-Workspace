@@ -1,0 +1,23 @@
+{
+  "pointType": "CP",
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_vesper_aegis"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  },
+  "nodeId": "1417",
+  "pointCost": 1,
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "tags": [
+    "defense",
+    "shield",
+    "light"
+  ],
+  "name": "&dヴェスパー・不落の聖柩",
+  "icon": "BEACON"
+}
