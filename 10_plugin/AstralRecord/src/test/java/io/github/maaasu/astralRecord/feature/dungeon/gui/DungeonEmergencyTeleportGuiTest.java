@@ -56,7 +56,7 @@ class DungeonEmergencyTeleportGuiTest extends MockBukkitTestBase {
         assertEquals(1, holder.pageIndex());
         assertEquals(145, holder.roomIdAt(0));
         assertEquals(163, holder.roomIdAt(18));
-        assertEquals(Material.ARROW, player.getOpenInventory().getTopInventory()
+        assertEquals(Material.PLAYER_HEAD, player.getOpenInventory().getTopInventory()
                 .getItem(DungeonEmergencyTeleportGui.PREVIOUS_SLOT).getType());
     }
 }

@@ -86,6 +86,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final Object joinLoadQueueLock = new Object();
     private final ArrayDeque<QueuedJoinLoad> queuedJoinLoads = new ArrayDeque<>();
     private final Set<JoinAttempt> activeJoinLoads = new HashSet<>();
+    private boolean dispatchingJoinLoads;
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
     private Consumer<AstPlayer> playerQuitListener = ignored -> { };
@@ -872,12 +873,24 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private void startQueuedJoinLoads() {
-        int maxConcurrentLoads = ConfigProperties.getInstance().getPlayerJoinMaxConcurrentLoads();
-        while (activeJoinLoads.size() < maxConcurrentLoads && !queuedJoinLoads.isEmpty()) {
-            QueuedJoinLoad queued = queuedJoinLoads.removeFirst();
-            if (!isJoinLoading(queued.attempt())) continue;
-            activeJoinLoads.add(queued.attempt());
-            scheduleAsync(queued.start(), 0L);
+        if (dispatchingJoinLoads) return;
+        dispatchingJoinLoads = true;
+        try {
+            int maxConcurrentLoads = ConfigProperties.getInstance().getPlayerJoinMaxConcurrentLoads();
+            while (activeJoinLoads.size() < maxConcurrentLoads && !queuedJoinLoads.isEmpty()) {
+                QueuedJoinLoad queued = queuedJoinLoads.removeFirst();
+                if (!isJoinLoading(queued.attempt())) continue;
+                activeJoinLoads.add(queued.attempt());
+                try {
+                    scheduleAsync(queued.start(), 0L);
+                } catch (RuntimeException schedulingFailure) {
+                    activeJoinLoads.remove(queued.attempt());
+                    Logger.log(LogId.E_5070, schedulingFailure, queued.attempt().player().getName());
+                    finishJoinLoading(queued.attempt(), false);
+                }
+            }
+        } finally {
+            dispatchingJoinLoads = false;
         }
     }
 

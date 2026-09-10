@@ -225,6 +225,69 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: 出品予定品が保存待機中に不足した場合はAPIを呼ばず、prepared境界を解除して失敗完了する。
+     */
+    @Test
+    void staleListingSourcesAbandonPreparedBoundaryWithoutPosting() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService, coordinator);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        executeMarketMutation(coordinator, new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+
+        invoke(handler, "submitListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListingDraft.class },
+            player, newMarketSession(), draft(accountId));
+
+        verify(coordinator).abandonPreparedExternalOperation(any(InventorySaveCoordinator.PreparedExternalOperation.class));
+        verify(marketService, never()).createListing(any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: 作成結果取得後の正本照合が失敗した場合、後の4xxでもprepared境界を破棄しない。
+     */
+    @Test
+    void committedListingWithFailedReconciliationRemainsPendingAfterLaterRejection() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        AtomicReference<Runnable> retry = new AtomicReference<>();
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class), mock(ItemService.class), mock(MarketGui.class), marketService,
+            inventoryService, coordinator, mock(CurrencyService.class), mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class), retry::set, (task, ticks) -> retry.set(task));
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        executeMarketMutation(coordinator, new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+        when(inventoryService.getOwnedStackEntries(astPlayer, "material", "market_test_material"))
+            .thenReturn(List.of(stackEntry(accountId, UUID.randomUUID(), 1L)));
+        when(marketService.createListing(any())).thenReturn(listing(accountId, "ACTIVE", 0L))
+            .thenThrow(new MarketRequestRejectedException(403, "authorization unavailable"));
+        org.mockito.Mockito.doThrow(new IllegalStateException("lookup unavailable"))
+            .when(inventoryService).reconcileExternalInventoryEntries(eq(accountId), any(), any());
+
+        invoke(handler, "submitListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListingDraft.class },
+            player, newMarketSession(), draft(accountId));
+        org.junit.jupiter.api.Assertions.assertNotNull(retry.get());
+        retry.get().run();
+
+        verify(marketService, times(2)).createListing(any());
+        verify(coordinator, never()).abandonPreparedExternalOperation(any());
+        handler.shutdown();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
      * 検証契約: 出品・購入・取り下げ・売上受取の4確定callbackは成功時だけBukkit所持品表示を一度更新し、失敗時は更新しない。
      */

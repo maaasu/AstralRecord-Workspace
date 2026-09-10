@@ -158,7 +158,15 @@ public class MarketRepository {
         String path = "/api/market/listings";
         HttpResponse<String> response = post(path, listingBody(request));
         ensureReplayableMutationStatus(response, 201, "POST " + path);
-        MarketListing listing = parseListing(JsonParser.parseString(response.body()).getAsJsonObject());
+        final MarketListing listing;
+        try {
+            listing = parseListing(JsonParser.parseString(response.body()).getAsJsonObject());
+            if (!request.sellerAccountId().equals(listing.sellerAccountId())) {
+                throw new IllegalStateException("Listing seller acknowledgement mismatch");
+            }
+        } catch (RuntimeException invalidResponse) {
+            throw new MarketTransportException("POST " + path + " returned an invalid acknowledgement", invalidResponse);
+        }
         invalidateSeller(listing.sellerAccountId());
         listingCache.put(listing.listingId(), MarketCacheEntry.of(listing, DETAIL_TTL));
         return listing;

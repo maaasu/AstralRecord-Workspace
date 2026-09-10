@@ -858,6 +858,30 @@ class PlayerJoinEventHandlerTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 非同期dispatchの受付拒否でも読込制御と枠を解放し、後続参加者を開始できる。
+     */
+    @Test
+    void rejectedDispatchReleasesLoadingControlAndConcurrentSlot() {
+        try (JoinLoadQueueFixture fixture = new JoinLoadQueueFixture()) {
+            AtomicInteger dispatches = new AtomicInteger();
+            doAnswer(invocation -> {
+                if (dispatches.incrementAndGet() == 1) throw new IllegalStateException("scheduler rejected");
+                fixture.asyncTasks.add(invocation.getArgument(1));
+                return mock(BukkitTask.class);
+            }).when(fixture.scheduler).runTaskLaterAsynchronously(eq(fixture.plugin), any(Runnable.class), anyLong());
+
+            fixture.joinFivePlayers();
+
+            assertEquals(4, fixture.asyncTasks.size());
+            assertTrue(!fixture.handler.isLoading(fixture.players.getFirst()));
+            assertTrue(fixture.handler.isLoading(fixture.players.get(4)));
+            verify(fixture.players.getFirst()).clearTitle();
+        }
+    }
+
     private void runNormalJoin(SuccessfulJoinFixture fixture) {
         fixture.handler.onPlayerJoin(fixture.joinEvent);
         fixture.delayedTasks.get(0).run();

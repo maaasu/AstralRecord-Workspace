@@ -11,6 +11,42 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed partial class PlayerStateSnapshotRepositoryTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData(1)]
+    public async Task SaveAsync_DeltaDeletionReleasesUniquePositionBeforeReplacement(int? slot)
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var old = await fixture.DbContext.InventoryEntries.SingleAsync();
+        old.SlotIndex = slot;
+        await fixture.DbContext.SaveChangesAsync();
+        var replacementId = Guid.NewGuid();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId, EntryMode = "DELTA",
+                    ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                    DeletedEntryIds = [fixture.EntryId],
+                    Entries = [new PlayerStateInventoryEntrySnapshot
+                    {
+                        InventoryEntryId = replacementId, ItemCategory = "CURRENCY", ItemId = "gold",
+                        Quantity = 5, SlotIndex = slot,
+                    }],
+                },
+            ],
+        });
+
+        Assert.True(result.Succeeded, result.Detail);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.True((await fixture.DbContext.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == fixture.EntryId)).IsDeleted);
+        Assert.Equal(replacementId, (await fixture.DbContext.InventoryEntries.SingleAsync(entry => !entry.IsDeleted)).InventoryEntryId);
+        Assert.Equal(2, result.Ack!.Entries.Count);
+    }
+
     [Fact]
     public async Task FindCompletedAsync_ReturnsOnlyMatchingCommittedSnapshot()
     {

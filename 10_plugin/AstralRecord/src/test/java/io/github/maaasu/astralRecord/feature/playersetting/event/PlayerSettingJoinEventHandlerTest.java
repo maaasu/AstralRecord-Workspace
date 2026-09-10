@@ -43,6 +43,8 @@ class PlayerSettingJoinEventHandlerTest {
         AtomicReference<Runnable> syncTask = new AtomicReference<>();
 
         when(plugin.getServer()).thenReturn(server);
+        when(plugin.getSkillTreeService()).thenReturn(mock(
+            io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.class));
         when(server.getScheduler()).thenReturn(scheduler);
         when(event.getPlayer()).thenReturn(player);
         when(player.getUniqueId()).thenReturn(userId);

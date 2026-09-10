@@ -82,7 +82,7 @@ class MarketGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
      * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
-     * 検証契約: 前後ページボタンは存在するページだけに紙アイコンで表示し、存在しない側は表示しない。
+     * 検証契約: 前後ページボタンは存在するページだけに共通矢印ヘッドで表示し、存在しない側は表示しない。
      */
     @Test
     void rendersOnlyExistingPageNavigationItems() {
@@ -92,14 +92,14 @@ class MarketGuiTest extends MockBukkitTestBase {
         gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 1, 0L, true);
 
         Inventory firstPage = player.getOpenInventory().getTopInventory();
-        assertItemName(firstPage, MarketGui.NEXT_SLOT, Material.PAPER, "次のページ");
+        assertItemName(firstPage, MarketGui.NEXT_SLOT, Material.PLAYER_HEAD, "次のページ");
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(firstPage.getItem(MarketGui.PREVIOUS_SLOT)).getType());
 
         var lastPagePlayer = server().addPlayer();
         gui.openListings(lastPagePlayer, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 2, 0L, false);
 
         Inventory lastPage = lastPagePlayer.getOpenInventory().getTopInventory();
-        assertItemName(lastPage, MarketGui.PREVIOUS_SLOT, Material.PAPER, "前のページ");
+        assertItemName(lastPage, MarketGui.PREVIOUS_SLOT, Material.PLAYER_HEAD, "前のページ");
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(lastPage.getItem(MarketGui.NEXT_SLOT)).getType());
     }
 

@@ -123,6 +123,25 @@ class MarketRepositoryTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: 出品APIの201成功本文が不正でも確定拒否にせず、同一操作の結果照会を要求する。
+     */
+    @Test
+    void malformedListingSuccessRemainsOutcomeUnknown() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        MarketListingCreateRequest request = new MarketListingCreateRequest(
+            UUID.randomUUID(), accountId, List.of(new MarketListingSource(UUID.randomUUID(), 1L)),
+            "material", "market_test_material", null, null, 1L, "gold", 100L, null, accountId);
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<String> invalid = response(201, "{}");
+        when(client.send(any(HttpRequest.class), anyStringBodyHandler())).thenReturn(invalid);
+        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
+            assertThrows(MarketTransportException.class, () -> new MarketRepository().createListing(request));
+        }
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
      * 章・見出し: # 23_3-メソッド仕様 > ## Cancel
      * 検証契約: 取消結果の404は未確定、200は厳密に検証したSQL receiptとして返す。

@@ -221,7 +221,7 @@ public sealed class PlayerStateSnapshotRepository(
 
         var requestedEntries = request.Inventories.SelectMany(snapshot => snapshot.Entries
             .Select(entry => (snapshot.InventoryId, Entry: entry))).ToArray();
-        var entriesToDisable = request.Inventories.Any(snapshot => !UsesEntryDelta(snapshot))
+        var entriesToDisable = (request.Inventories.Any(snapshot => !UsesEntryDelta(snapshot))
             ? accountEntries.Where(entry => !entry.IsDeleted && request.Inventories.Any(snapshot =>
                 !UsesEntryDelta(snapshot) && snapshot.InventoryId == entry.InventoryId))
                 .Concat(requestedEntries.Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId)).OfType<InventoryEntryEntity>())
@@ -231,6 +231,9 @@ public sealed class PlayerStateSnapshotRepository(
             .OfType<InventoryEntryEntity>()
             .Where(entry => !entry.IsDeleted && requestedEntries.Any(value => value.Entry.InventoryEntryId == entry.InventoryEntryId
                 && (entry.InventoryId != value.InventoryId || entry.SlotIndex != value.Entry.SlotIndex)))
+            .DistinctBy(entry => entry.InventoryEntryId).ToArray())
+            .Concat(request.Inventories.Where(UsesEntryDelta).SelectMany(snapshot => snapshot.DeletedEntryIds)
+                .Select(entryId => entriesById[entryId]))
             .DistinctBy(entry => entry.InventoryEntryId).ToArray();
         foreach (var entry in entriesToDisable)
         {
@@ -240,14 +243,6 @@ public sealed class PlayerStateSnapshotRepository(
         }
         if (entriesToDisable.Length > 0)
             await dbContext.SaveChangesAsync();
-
-        foreach (var entryId in request.Inventories.Where(UsesEntryDelta).SelectMany(snapshot => snapshot.DeletedEntryIds))
-        {
-            var entry = entriesById[entryId];
-            entry.IsDeleted = true;
-            entry.UpdatedAt = AdvanceUpdatedAt(entry.UpdatedAt, now);
-            entry.UpdatedBy = request.UpdatedBy;
-        }
 
         foreach (var inventorySnapshot in request.Inventories)
         {

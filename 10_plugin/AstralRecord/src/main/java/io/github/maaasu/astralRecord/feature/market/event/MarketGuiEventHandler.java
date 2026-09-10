@@ -676,23 +676,29 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.screen = MarketScreen.LOADING;
         long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
-        List<MarketListingSource> selectedSources = resolveListingSources(astPlayer, draft);
-        MarketListingCreateRequest request = new MarketListingCreateRequest(
-            UUID.randomUUID(),
-                accountId,
-                selectedSources,
-                draft.itemCategory(),
-                draft.itemId(),
-                draft.instanceType(),
-                draft.instanceId(),
-                draft.quantity(),
-                MARKET_CURRENCY_ID,
-                draft.unitPrice(),
-                null,
-                accountId
-        );
         inventorySaveCoordinator.prepareExternalOperationAfterSave(accountId)
-            .thenCompose(prepared -> beginPreparedListingCreate(player.getUniqueId(), request, prepared))
+            .thenCompose(prepared -> {
+                try {
+                    MarketListingCreateRequest request = new MarketListingCreateRequest(
+                        UUID.randomUUID(),
+                        accountId,
+                        resolveListingSources(astPlayer, draft),
+                        draft.itemCategory(),
+                        draft.itemId(),
+                        draft.instanceType(),
+                        draft.instanceId(),
+                        draft.quantity(),
+                        MARKET_CURRENCY_ID,
+                        draft.unitPrice(),
+                        null,
+                        accountId
+                    );
+                    return beginPreparedListingCreate(player.getUniqueId(), request, prepared);
+                } catch (RuntimeException validationFailure) {
+                    inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                    return CompletableFuture.<MarketListing>failedFuture(validationFailure);
+                }
+            })
             .whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session, requestVersion)) {
@@ -774,6 +780,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
+        recovery.markOutcomeMayBeUnknown();
         inventorySaveCoordinator.completePreparedExternalOperation(
             recovery.prepared(),
             baseline -> {
