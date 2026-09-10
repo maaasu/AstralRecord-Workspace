@@ -41,6 +41,7 @@ public class MobRepository(MasterDataDbContext dbContext) : IMobRepository
                 Level = ResolveDefaultLevel(mob),
                 EntityType = mob.EntityType,
                 Icon = mob.Icon,
+                IconTexture = mob.IconTexture,
                 Tags = mob.Tags,
             })
             .ToArray();

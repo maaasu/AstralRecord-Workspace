@@ -83,6 +83,9 @@ public class MobSummaryResponse
 
     public string? Icon { get; init; }
 
+    /// <summary>PLAYER_HEAD アイコン用の Base64 テクスチャ。</summary>
+    public string? IconTexture { get; init; }
+
     public IReadOnlyList<string> Tags { get; init; } = [];
 }
 

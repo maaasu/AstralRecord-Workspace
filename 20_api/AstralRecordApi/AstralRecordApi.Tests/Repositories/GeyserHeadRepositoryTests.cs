@@ -76,6 +76,8 @@ public class GeyserHeadRepositoryTests
                 .Order(StringComparer.Ordinal),
             result.Textures);
         Assert.Equal([activeUuid], result.PlayerUuids);
+        Assert.Equal(SkillTexture, new SkillRepository(masterDataDbContext).GetAllSummaries().Single().IconTexture);
+        Assert.Equal(MobBaseTexture, new MobRepository(masterDataDbContext).GetAllSummaries("NPC").Single().IconTexture);
     }
 
     private static UserEntity CreateUser(Guid uuid, bool isDeleted) => new()
