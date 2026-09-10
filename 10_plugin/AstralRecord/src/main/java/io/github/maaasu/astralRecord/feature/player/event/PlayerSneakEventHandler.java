@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
-import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskUseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
@@ -28,16 +27,13 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final AirActionService airActionService;
     private final DodgeService dodgeService;
-    private final CastDiskUseService castDiskUseService;
 
     public PlayerSneakEventHandler(
         AirActionService airActionService,
-        DodgeService dodgeService,
-        CastDiskUseService castDiskUseService
+        DodgeService dodgeService
     ) {
         this.airActionService = airActionService;
         this.dodgeService = dodgeService;
-        this.castDiskUseService = castDiskUseService;
     }
 
     @Override
@@ -77,9 +73,6 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
             return;
         }
         if (airActionService.releaseWallCling(astPlayer)) {
-            return;
-        }
-        if (castDiskUseService.tryTriggerDodgeOnSneakRelease(astPlayer)) {
             return;
         }
         dodgeService.tryTriggerOnSneakRelease(astPlayer);

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.castdisk;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -18,37 +19,73 @@ import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Location;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /** スキルキャストディスクとドッジキャストディスクの個体状態、使用、耐久を扱います。 */
 public final class CastDiskUseService {
-    public static final long DODGE_WINDOW_MS = 250L;
+    public static final long DODGE_DELAY_TICKS = 5L;
     public static final long DODGE_COOLDOWN_MS = 3_000L;
 
+    private final CastDiskTaskScheduler taskScheduler;
+    private final Function<UUID, AstPlayer> playerLookup;
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final ItemReferenceResolver referenceResolver;
     private final SkillActionRingService actionRingService;
     private final DodgeService dodgeService;
     private final CastDiskGui gui;
-    private final Map<UUID, DodgeRequest> dodgeRequests = new ConcurrentHashMap<>();
+    private final Map<UUID, CastDiskTaskScheduler.CastDiskTask> pendingDodgeTasks = new ConcurrentHashMap<>();
+    private final DodgeCastDiskReservation dodgeReservation = new DodgeCastDiskReservation();
     private final DodgeCastDiskCooldown dodgeCooldown = new DodgeCastDiskCooldown();
 
     public CastDiskUseService(
+        @NotNull AstralRecord plugin,
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService,
         @NotNull SkillActionRingService actionRingService,
         @NotNull DodgeService dodgeService,
         @NotNull CastDiskGui gui
     ) {
+        this(
+            (action, delayTicks) -> {
+                BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, action, delayTicks);
+                return task::cancel;
+            },
+            playerId -> {
+                Player bukkit = Bukkit.getPlayer(playerId);
+                return bukkit == null ? null
+                    : io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(bukkit);
+            },
+            inventoryService,
+            itemService,
+            actionRingService,
+            dodgeService,
+            gui
+        );
+    }
+
+    CastDiskUseService(
+        @NotNull CastDiskTaskScheduler taskScheduler,
+        @NotNull Function<UUID, AstPlayer> playerLookup,
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemService itemService,
+        @NotNull SkillActionRingService actionRingService,
+        @NotNull DodgeService dodgeService,
+        @NotNull CastDiskGui gui
+    ) {
+        this.taskScheduler = taskScheduler;
+        this.playerLookup = playerLookup;
         this.inventoryService = inventoryService;
         this.itemService = itemService;
         this.referenceResolver = new ItemReferenceResolver(itemService);
@@ -96,29 +133,6 @@ public final class CastDiskUseService {
         }
     }
 
-    /** ドッジキャストディスク使用後のスニーク解除を処理します。 */
-    public boolean tryTriggerDodgeOnSneakRelease(@NotNull AstPlayer player) {
-        DodgeRequest request = dodgeRequests.remove(player.getBukkit().getUniqueId());
-        if (request == null) return false;
-        long now = System.currentTimeMillis();
-        if (!isWithinDodgeWindow(request.startedAtMs(), now)) {
-            return false;
-        }
-        if (dodgeCooldown.isActive(player.getBukkit().getUniqueId(), now)) {
-            return true;
-        }
-        CurrentDisk disk = findDiskByInstance(player, request.equipmentInstanceId());
-        if (disk == null || !isDodgeDisk(disk.model()) || !hasRemainingDurability(disk)) {
-            return true;
-        }
-        if (dodgeService.tryTriggerCastDiskDodge(player, request.startedAtLocation())) {
-            if (consumeDurability(player, disk)) {
-                dodgeCooldown.start(player.getBukkit().getUniqueId(), now);
-            }
-        }
-        return true;
-    }
-
     /** スキルキャストディスク設定 GUI のクリックを保存して再描画します。 */
     public void handleConfigurationClick(@NotNull Player player, @NotNull CastDiskInventoryHolder holder, int rawSlot) {
         var astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
@@ -150,7 +164,9 @@ public final class CastDiskUseService {
     }
 
     public void clear(@NotNull UUID playerId) {
-        dodgeRequests.remove(playerId);
+        dodgeReservation.clear(playerId);
+        CastDiskTaskScheduler.CastDiskTask pending = pendingDodgeTasks.remove(playerId);
+        if (pending != null) pending.cancel();
         dodgeCooldown.clear(playerId);
     }
 
@@ -165,7 +181,40 @@ public final class CastDiskUseService {
         if (dodgeCooldown.isActive(playerId, now) || !hasRemainingDurability(disk)) return;
         if (!dodgeService.canBeginCastDiskDodge(player)) return;
         Player bukkit = player.getBukkit();
-        dodgeRequests.put(playerId, new DodgeRequest(disk.reference().equipmentInstanceId(), bukkit.getLocation(), now));
+        long generation = dodgeReservation.replace(playerId);
+        DodgeRequest request = new DodgeRequest(
+            generation,
+            player.getAccount().getUuid(),
+            disk.reference().equipmentInstanceId(),
+            bukkit.getLocation()
+        );
+        CastDiskTaskScheduler.CastDiskTask previous = pendingDodgeTasks.remove(playerId);
+        if (previous != null) previous.cancel();
+        CastDiskTaskScheduler.CastDiskTask task = taskScheduler.schedule(
+            () -> executeScheduledDodgeCast(playerId, request), DODGE_DELAY_TICKS);
+        pendingDodgeTasks.put(playerId, task);
+    }
+
+    /**
+     * 右クリックから5tick後に、予約時と同じディスク個体で通常ドッジを実行します。
+     *
+     * @param playerId 予約したプレイヤー UUID
+     * @param request 右クリック時に固定したディスク個体と始点座標
+     */
+    private void executeScheduledDodgeCast(@NotNull UUID playerId, @NotNull DodgeRequest request) {
+        if (!dodgeReservation.consumeIfCurrent(playerId, request.generation())) return;
+        pendingDodgeTasks.remove(playerId);
+        AstPlayer player = playerLookup.apply(playerId);
+        if (player == null || !request.accountId().equals(player.getAccount().getUuid())) return;
+        long now = System.currentTimeMillis();
+        if (dodgeCooldown.isActive(playerId, now)) return;
+        CurrentDisk disk = findCurrentDisk(player);
+        if (disk == null || !request.equipmentInstanceId().equals(disk.reference().equipmentInstanceId())
+            || !isDodgeDisk(disk.model()) || !hasRemainingDurability(disk)) return;
+        if (dodgeService.tryTriggerCastDiskDodge(player, request.startedAtLocation())
+            && consumeDurability(player, disk)) {
+            dodgeCooldown.start(playerId, now);
+        }
     }
 
     private boolean hasUsableWeapon(@NotNull AstPlayer player, int hotbarSlot) {
@@ -205,19 +254,6 @@ public final class CastDiskUseService {
         return currentDisk(reference, entry == null ? null : entry.getMetadataJson());
     }
 
-    private @Nullable CurrentDisk findDiskByInstance(@NotNull AstPlayer player, @NotNull String equipmentInstanceId) {
-        for (int slot = 0; slot < 9; slot++) {
-            ItemStack stack = player.getBukkit().getInventory().getItem(slot);
-            ItemReference reference = referenceResolver.resolve(stack);
-            if (reference == null || !equipmentInstanceId.equals(reference.equipmentInstanceId())) continue;
-            ItemModel model = referenceResolver.resolveItemModel(reference);
-            if (model == null) return null;
-            InventoryEntryModel entry = inventoryService.getHotbarEntryInHand(player, EquipmentSlot.HAND);
-            return new CurrentDisk(reference, model, entry == null ? null : entry.getMetadataJson());
-        }
-        return null;
-    }
-
     private @Nullable CurrentDisk currentDisk(@Nullable ItemReference reference, @Nullable String metadataJson) {
         if (reference == null || !reference.hasEquipmentInstanceId()) return null;
         ItemModel model = referenceResolver.resolveItemModel(reference);
@@ -233,10 +269,11 @@ public final class CastDiskUseService {
         return MasterTagIds.Equipment.DODGE_CAST_DISK.equalsIgnoreCase(model.getEquipment().getTag());
     }
 
-    static boolean isWithinDodgeWindow(long startedAtMs, long nowMs) {
-        return nowMs >= startedAtMs && nowMs - startedAtMs < DODGE_WINDOW_MS;
-    }
-
     private record CurrentDisk(@NotNull ItemReference reference, @NotNull ItemModel model, @Nullable String metadataJson) { }
-    private record DodgeRequest(@NotNull String equipmentInstanceId, @NotNull Location startedAtLocation, long startedAtMs) { }
+    private record DodgeRequest(
+        long generation,
+        @NotNull UUID accountId,
+        @NotNull String equipmentInstanceId,
+        @NotNull Location startedAtLocation
+    ) { }
 }

@@ -1689,6 +1689,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         skillActionRingService.setCloseListener(skillActionRingHoldService::cancel);
         castDiskUseService = new CastDiskUseService(
+            this,
             inventoryService,
             itemService,
             skillActionRingService,
@@ -2141,7 +2142,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerInputEventHandler(airActionService),
             getServer().getPluginManager()
         );
-        var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService, castDiskUseService);
+        var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService);
         var castDiskInteractionEventHandler = new CastDiskInteractionEventHandler(castDiskUseService);
         eventManager.registerHandler(castDiskInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
