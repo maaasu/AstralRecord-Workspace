@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerDefinition;
@@ -201,9 +202,32 @@ public class MobSpawnerService {
     }
 
     /**
+     * 管理者向けに表示するスポナー名を、出現対象 Mob の日本語表示名から生成します。
+     *
+     * @param spawnerId スポナー ID
+     * @return 出現対象の表示名一覧。定義がない、または対象がない場合は汎用表示
+     */
+    @NotNull
+    public String getSpawnerDisplayName(@NotNull String spawnerId) {
+        MobSpawnerDefinition definition = definitions.get(spawnerId);
+        if (definition == null || definition.spawnMobs().isEmpty()) {
+            return "出現対象なし";
+        }
+
+        List<String> names = new ArrayList<>();
+        for (MobSpawnerEntry entry : definition.spawnMobs()) {
+            String name = resolveMobDisplayName(entry.mobId(), entry.level());
+            if (!names.contains(name)) {
+                names.add(name);
+            }
+        }
+        return names.isEmpty() ? "出現対象なし" : String.join("、", names);
+    }
+
+    /**
      * 管理者用の Mob スポナー設置アイテムを作成します。
-     * lore には定義 ID、スポーン対象、時間帯、半径、判定間隔、上限値など、設置前に確認できる
-     * スポナー情報を日本語で表示します。
+     * lore には種別、スポーン対象の日本語表示名、時間帯、半径、判定間隔、上限値など、
+     * 設置前に確認できるスポナー情報を表示します。
      *
      * @param spawnerId スポナー ID
      * @param amount    作成個数。1 未満の場合は 1 として扱います。
@@ -218,7 +242,10 @@ public class MobSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(PlayerMsgResource.formatComponent(PlayerMsgId.P_5730.getId(), spawnerId));
+            meta.displayName(PlayerMsgResource.formatComponent(
+                    PlayerMsgId.P_5730.getId(),
+                    getSpawnerDisplayName(spawnerId)
+            ));
             meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
@@ -233,7 +260,6 @@ public class MobSpawnerService {
         lore.add("&7モブスポナー設置アイテム");
         lore.add("");
         lore.add("&e基本情報");
-        lore.add("&7ID: &f" + definition.id());
         lore.add("&7種別: &fモブスポナー");
         lore.add("&7地域: &f" + (definition.region() == null ? "未設定" : definition.region()));
         lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
@@ -249,7 +275,8 @@ public class MobSpawnerService {
         } else {
             for (MobSpawnerEntry entry : definition.spawnMobs()) {
                 String level = entry.level() == null ? "最低レベル" : "Lv." + entry.level();
-                lore.add("&7 - &f" + entry.mobId() + " &7(" + level + ", 重み " + entry.weight() + ")");
+                lore.add("&7 - &f" + resolveMobDisplayName(entry.mobId(), entry.level())
+                        + " &7(" + level + ", 重み " + entry.weight() + ")");
             }
         }
         lore.add("");
@@ -260,6 +287,27 @@ public class MobSpawnerService {
         return lore.stream()
                 .map(line -> ColorCodeUtil.toComponent(line, ""))
                 .toList();
+    }
+
+    @NotNull
+    private String resolveMobDisplayName(@NotNull String mobId, @Nullable Integer level) {
+        MobTemplate template = mobService.findTemplate(mobId);
+        if (template == null && mobId.indexOf(':') >= 0) {
+            template = mobService.findTemplate(mobId.substring(mobId.indexOf(':') + 1).trim());
+        }
+        if (template == null) {
+            return "未登録のモブ";
+        }
+
+        MobTemplate displayTemplate = template.resolveLevel(level);
+        String plainName = ColorCodeUtil.toPlainText(displayTemplate.displayName(), "").trim();
+        String normalizedMobId = mobId.indexOf(':') >= 0
+                ? mobId.substring(mobId.indexOf(':') + 1).trim()
+                : mobId;
+        if (plainName.isBlank() || plainName.equalsIgnoreCase(normalizedMobId)) {
+            return "未登録のモブ";
+        }
+        return ColorCodeUtil.toLegacyText(displayTemplate.displayName(), "未登録のモブ");
     }
 
     @NotNull

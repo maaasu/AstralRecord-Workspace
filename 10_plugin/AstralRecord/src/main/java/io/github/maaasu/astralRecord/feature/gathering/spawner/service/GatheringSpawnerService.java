@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.gathering.spawner.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerDefinition;
@@ -153,9 +154,31 @@ public class GatheringSpawnerService {
     }
 
     /**
+     * 管理者向けに表示するスポナー名を、出現対象採集物の日本語表示名から生成します。
+     *
+     * @param spawnerId スポナー ID
+     * @return 出現対象の表示名一覧。定義がない、または対象がない場合は汎用表示
+     */
+    public @NotNull String getSpawnerDisplayName(@NotNull String spawnerId) {
+        GatheringSpawnerDefinition definition = definitions.get(spawnerId);
+        if (definition == null || definition.spawnGatherings().isEmpty()) {
+            return "出現対象なし";
+        }
+
+        List<String> names = new ArrayList<>();
+        for (GatheringSpawnerEntry entry : definition.spawnGatherings()) {
+            String name = resolveGatheringDisplayName(entry.gatheringId());
+            if (!names.contains(name)) {
+                names.add(name);
+            }
+        }
+        return names.isEmpty() ? "出現対象なし" : String.join("、", names);
+    }
+
+    /**
      * 管理者用の採集スポナー設置アイテムを作成します。
-     * lore には定義 ID、採集対象、時間帯、半径、判定間隔、上限値、足元ブロック条件など、
-     * 設置前に確認できるスポナー情報を日本語で表示します。
+     * lore には種別、採集対象の日本語表示名、時間帯、半径、判定間隔、上限値、足元ブロック条件など、
+     * 設置前に確認できるスポナー情報を表示します。
      *
      * @param spawnerId スポナー ID
      * @param amount    作成個数。1 未満の場合は 1 として扱います。
@@ -169,7 +192,10 @@ public class GatheringSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(ColorCodeUtil.toComponent("&b採集スポナー: &f" + spawnerId, spawnerId));
+            meta.displayName(ColorCodeUtil.toComponent(
+                    "&b採集スポナー: &f" + getSpawnerDisplayName(spawnerId),
+                    "採集スポナー"
+            ));
             meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
@@ -183,7 +209,6 @@ public class GatheringSpawnerService {
         lore.add("&7採集スポナー設置アイテム");
         lore.add("");
         lore.add("&e基本情報");
-        lore.add("&7ID: &f" + definition.id());
         lore.add("&7種別: &f採集スポナー");
         lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
         lore.add("");
@@ -198,7 +223,8 @@ public class GatheringSpawnerService {
             lore.add("&7 - なし");
         } else {
             for (GatheringSpawnerEntry entry : definition.spawnGatherings()) {
-                lore.add("&7 - &f" + entry.gatheringId() + " &7(重み " + entry.weight() + ")");
+                lore.add("&7 - &f" + resolveGatheringDisplayName(entry.gatheringId())
+                        + " &7(重み " + entry.weight() + ")");
             }
         }
         lore.add("");
@@ -209,6 +235,21 @@ public class GatheringSpawnerService {
         return lore.stream()
                 .map(line -> ColorCodeUtil.toComponent(line, ""))
                 .toList();
+    }
+
+    private @NotNull String resolveGatheringDisplayName(@NotNull String gatheringId) {
+        GatheringDefinition definition = gatheringService.findDefinition(gatheringId);
+        if (definition == null) {
+            return "未登録の採集物";
+        }
+        String plainName = ColorCodeUtil.toPlainText(definition.name(), "").trim();
+        String normalizedGatheringId = gatheringId.indexOf(':') >= 0
+                ? gatheringId.substring(gatheringId.indexOf(':') + 1).trim()
+                : gatheringId;
+        if (plainName.isBlank() || plainName.equalsIgnoreCase(normalizedGatheringId)) {
+            return "未登録の採集物";
+        }
+        return ColorCodeUtil.toLegacyText(definition.name(), "未登録の採集物");
     }
 
     private @NotNull String formatMeters(double meters) {

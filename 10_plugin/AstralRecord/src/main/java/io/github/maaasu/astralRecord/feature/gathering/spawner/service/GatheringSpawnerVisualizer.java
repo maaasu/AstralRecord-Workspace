@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** ADMIN モードのプレイヤーに採集スポナーの位置と ID を表示します。 */
+/** ADMIN モードのプレイヤーに採集スポナーの位置と出現対象名を表示します。 */
 final class GatheringSpawnerVisualizer {
     private static final long INTERVAL_TICKS = 40L;
     private static final int RESPAWN_CYCLES = 5;
@@ -141,7 +141,7 @@ final class GatheringSpawnerVisualizer {
     private Component label(@NotNull GatheringSpawnerLocation spawnerLocation) {
         return PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5729.getId(),
-            spawnerLocation.spawnerId()
+            spawnerService.getSpawnerDisplayName(spawnerLocation.spawnerId())
         );
     }
 

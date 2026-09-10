@@ -176,7 +176,11 @@ public class MobCommand extends AstCommand {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5241.getId()));
             return;
         }
-        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5714.getId(), args[2], amount));
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5714.getId(),
+                spawnerService.getSpawnerDisplayName(args[2]),
+                amount
+        ));
     }
 
     private void handleNpc(@NotNull AstPlayer player, @NotNull String[] args) {

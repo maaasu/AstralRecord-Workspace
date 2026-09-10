@@ -191,6 +191,16 @@ public class GatheringService {
     }
 
     /**
+     * 採集定義を ID から取得します。
+     *
+     * @param gatheringId 採集定義 ID。namespace prefix を許可します。
+     * @return 採集定義。未登録の場合は {@code null}
+     */
+    public @Nullable GatheringDefinition findDefinition(@NotNull String gatheringId) {
+        return definitions.get(stripPrefix(gatheringId));
+    }
+
+    /**
      * 公開済み採集定義へ切り替えるため、旧定義に属する実体を破棄します。
      * Bukkit Entity を操作するためメインスレッドから呼び出してください。
      */

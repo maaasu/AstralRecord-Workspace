@@ -111,7 +111,11 @@ public class GatheringCommand extends AstCommand {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5241.getId()));
             return;
         }
-        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5714.getId(), args[2], amount));
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5714.getId(),
+                spawnerService.getSpawnerDisplayName(args[2]),
+                amount
+        ));
     }
 
     private int parseAmount(@NotNull String value) {

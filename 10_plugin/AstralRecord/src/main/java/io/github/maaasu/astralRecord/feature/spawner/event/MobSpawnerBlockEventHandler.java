@@ -122,10 +122,18 @@ public final class MobSpawnerBlockEventHandler
         }
         if (!spawnerService.registerLocation(spawnerId, event.getBlockPlaced().getLocation())) {
             event.setCancelled(true);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5711, spawnerId);
+            PlayerMessageService.getInstance().send(
+                    event.getPlayer(),
+                    PlayerMsgId.P_5711,
+                    spawnerService.getSpawnerDisplayName(spawnerId)
+            );
             return;
         }
-        PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5709, spawnerId);
+        PlayerMessageService.getInstance().send(
+                event.getPlayer(),
+                PlayerMsgId.P_5709,
+                spawnerService.getSpawnerDisplayName(spawnerId)
+        );
     }
 
     private void breakSpawner(BlockBreakEvent event) {

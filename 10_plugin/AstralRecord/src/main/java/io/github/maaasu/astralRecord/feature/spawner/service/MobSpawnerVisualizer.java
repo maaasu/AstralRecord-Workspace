@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * AccountMode.ADMIN の viewer にだけスポナー位置と ID を表示します。表示可否は user.permission に依存しません。
+ * AccountMode.ADMIN の viewer にだけスポナー位置と出現対象名を表示します。表示可否は user.permission に依存しません。
  */
 final class MobSpawnerVisualizer {
 
@@ -136,7 +136,10 @@ final class MobSpawnerVisualizer {
 
     @NotNull
     private Component label(@NotNull MobSpawnerLocation spawnerLocation) {
-        return PlayerMsgResource.formatComponent(PlayerMsgId.P_5730.getId(), spawnerLocation.spawnerId());
+        return PlayerMsgResource.formatComponent(
+                PlayerMsgId.P_5730.getId(),
+                spawnerService.getSpawnerDisplayName(spawnerLocation.spawnerId())
+        );
     }
 
     private record ViewerSpawnerKey(@NotNull UUID viewerId, @NotNull String locationKey, @NotNull String spawnerId) {
