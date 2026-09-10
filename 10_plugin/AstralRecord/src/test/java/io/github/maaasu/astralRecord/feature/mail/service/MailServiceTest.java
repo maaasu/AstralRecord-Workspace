@@ -54,6 +54,22 @@ import static org.mockito.Mockito.when;
 class MailServiceTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: ログイン通知用の件数取得はメール一覧を復元せず、専用の軽量repository呼出を使う。
+     */
+    @Test
+    void countUnreadUsesDedicatedRepositoryEndpoint() {
+        TestContext context = new TestContext();
+        when(context.repository.countUnread(context.accountId)).thenReturn(7);
+
+        assertEquals(7, context.service.countUnread(context.accountId));
+
+        verify(context.repository).countUnread(context.accountId);
+        verify(context.repository, never()).findAvailable(any(), any());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
      * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
      * 検証契約: 未読化と報酬entryはmailClaim sectionを含むcritical snapshotで確定し、旧markRead APIを呼ばない。

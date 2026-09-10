@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
@@ -43,8 +44,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -62,12 +66,9 @@ import java.util.function.Consumer;
  */
 public class PlayerJoinEventHandler extends AbstractEventHandler {
 
-    private static final long NANOS_PER_TICK = 50_000_000L;
-    private static final long JOIN_START_SPACING_TICKS = 20L;
     private static final long JOIN_STEP_DELAY_TICKS = 10L;
     private static final long JOIN_LOADING_TITLE_INTERVAL_TICKS = 100L;
     private static final long INITIAL_GUIDE_TITLE_INTERVAL_TICKS = 100L;
-    private static final long JOIN_LOADING_RETRY_MILLIS = 500L;
 
     private final PlayerService playerService;
     private final SkillTreeService skillTreeService;
@@ -82,8 +83,10 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> initialGuideTitleTasks = new ConcurrentHashMap<>();
+    private final Object joinLoadQueueLock = new Object();
+    private final ArrayDeque<QueuedJoinLoad> queuedJoinLoads = new ArrayDeque<>();
+    private final Set<JoinAttempt> activeJoinLoads = new HashSet<>();
     private final AtomicLong joinAttemptSequence = new AtomicLong();
-    private final AtomicLong nextJoinStartNanos = new AtomicLong();
     private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
     private Consumer<AstPlayer> playerQuitListener = ignored -> { };
 
@@ -244,10 +247,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
         JoinAttempt attempt = startJoinLoading(player);
         String playerName = player.getName();
-        scheduleAsync(
-            () -> loadAccountSwitchStep(attempt, playerName, account, completionListener),
-            0L
-        );
+        enqueueJoinLoad(attempt, () -> loadAccountSwitchStep(attempt, playerName, account, completionListener));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -260,7 +260,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         event.joinMessage(null);
 
         JoinAttempt attempt = startJoinLoading(player);
-        scheduleAsync(() -> loadUserStep(attempt, playerName), reserveJoinStartDelayTicks());
+        enqueueJoinLoad(attempt, () -> loadUserStep(attempt, playerName));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -804,6 +804,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         if (!joinAttempts.remove(attempt.playerUuid(), attempt)) {
             return;
         }
+        releaseJoinLoad(attempt);
         LoadingControl loadingControl = loadingControls.remove(attempt.playerUuid());
 
         Player player = plugin.getServer().getPlayer(attempt.playerUuid());
@@ -831,25 +832,53 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID accountId,
         UUID userId
     ) {
-        boolean loggedFailure = false;
-        while (isJoinLoading(attempt)) {
+        int maxAttempts = ConfigProperties.getInstance().getPlayerJoinSkillTreeRetryMaxAttempts();
+        long delayMillis = ConfigProperties.getInstance().getPlayerJoinSkillTreeRetryInitialDelayMillis();
+        long maxDelayMillis = ConfigProperties.getInstance().getPlayerJoinSkillTreeRetryMaxDelayMillis();
+        for (int attemptNumber = 1; attemptNumber <= maxAttempts && isJoinLoading(attempt); attemptNumber++) {
             try {
                 return skillTreeService.loadInitialPlayerState(accountId);
             } catch (RuntimeException e) {
-                if (!loggedFailure) {
+                if (attemptNumber == 1) {
                     Logger.log(LogId.W_9002, accountId, e.getMessage());
-                    loggedFailure = true;
                 }
+                if (attemptNumber == maxAttempts) return null;
                 try {
-                    Thread.sleep(JOIN_LOADING_RETRY_MILLIS);
+                    Thread.sleep(delayMillis);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
                     Logger.error(LogId.E_5073, interrupted, playerName);
                     return null;
                 }
+                delayMillis = Math.min(maxDelayMillis, Math.max(delayMillis, 1L) * 2L);
             }
         }
         return null;
+    }
+
+    private void enqueueJoinLoad(@NotNull JoinAttempt attempt, @NotNull Runnable start) {
+        synchronized (joinLoadQueueLock) {
+            queuedJoinLoads.addLast(new QueuedJoinLoad(attempt, start));
+            startQueuedJoinLoads();
+        }
+    }
+
+    private void releaseJoinLoad(@NotNull JoinAttempt attempt) {
+        synchronized (joinLoadQueueLock) {
+            queuedJoinLoads.removeIf(queued -> queued.attempt() == attempt);
+            activeJoinLoads.remove(attempt);
+            startQueuedJoinLoads();
+        }
+    }
+
+    private void startQueuedJoinLoads() {
+        int maxConcurrentLoads = ConfigProperties.getInstance().getPlayerJoinMaxConcurrentLoads();
+        while (activeJoinLoads.size() < maxConcurrentLoads && !queuedJoinLoads.isEmpty()) {
+            QueuedJoinLoad queued = queuedJoinLoads.removeFirst();
+            if (!isJoinLoading(queued.attempt())) continue;
+            activeJoinLoads.add(queued.attempt());
+            scheduleAsync(queued.start(), 0L);
+        }
     }
 
     private void runJoinStep(JoinAttempt attempt, String playerName, Runnable action) {
@@ -1043,19 +1072,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         restoreAttributeBaseValue(player, Attribute.JUMP_STRENGTH, loadingControl.jumpStrength());
     }
 
-    private long reserveJoinStartDelayTicks() {
-        long now = System.nanoTime();
-        long spacingNanos = JOIN_START_SPACING_TICKS * NANOS_PER_TICK;
-        while (true) {
-            long current = nextJoinStartNanos.get();
-            long scheduled = Math.max(now, current);
-            if (nextJoinStartNanos.compareAndSet(current, scheduled + spacingNanos)) {
-                long delayNanos = scheduled - now;
-                return (delayNanos + NANOS_PER_TICK - 1L) / NANOS_PER_TICK;
-            }
-        }
-    }
-
     /**
      * 指定した単調時計の開始時刻から現在までの経過時間をミリ秒で返します。
      *
@@ -1092,5 +1108,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private record JoinAttempt(UUID playerUuid, long generation, Player player, long startedAtNanos) {
+    }
+
+    private record QueuedJoinLoad(JoinAttempt attempt, Runnable start) {
     }
 }

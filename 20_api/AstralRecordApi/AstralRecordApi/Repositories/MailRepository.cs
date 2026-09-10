@@ -2,12 +2,17 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AstralRecordApi.Repositories;
 
-public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext masterDataDbContext) : IMailRepository
+public class MailRepository(
+    AstralRecordDbContext dbContext,
+    MasterDataDbContext masterDataDbContext,
+    IMemoryCache cache) : IMailRepository
 {
     private const string MasterTypeMail = "mail";
+    private const string MailMasterCacheKey = "mail-masters";
 
     public async Task<IReadOnlyList<MailResponse>> GetAvailableByAccountIdAsync(Guid accountId, string? filter)
     {
@@ -40,6 +45,26 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
             .ThenByDescending(mail => mail.PublishFrom)
             .ThenBy(mail => mail.Id)
             .ToArray();
+    }
+
+    public async Task<int> CountUnreadByAccountIdAsync(Guid accountId)
+    {
+        var now = DateTime.UtcNow;
+        var accountCreatedAt = await dbContext.Accounts.AsNoTracking()
+            .Where(account => account.Uuid == accountId && !account.IsDeleted)
+            .Select(account => (DateTime?)account.CreatedAt)
+            .SingleOrDefaultAsync();
+        var masters = await GetMailMastersAsync();
+        var deliveries = await GetPlayerDeliveriesAsync(accountId);
+        var states = await dbContext.PlayerMailStates.AsNoTracking()
+            .Where(state => state.AccountId == accountId)
+            .ToDictionaryAsync(state => state.MailId);
+
+        return masters.Concat(deliveries)
+            .Select(mail => Merge(mail, states.GetValueOrDefault(mail.Id)))
+            .Count(mail => mail.PublishFrom <= now && (mail.PublishTo is null || mail.PublishTo >= now)
+                && (!mail.FirstLoginOnly || (accountCreatedAt is not null && accountCreatedAt >= mail.PublishFrom))
+                && !mail.IsDeleted && !mail.IsRead);
     }
 
     public async Task<MailResponse?> MarkReadAsync(string mailId, MailActionRequest request)
@@ -111,18 +136,21 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
 
     private async Task<IReadOnlyList<MailResponse>> GetMailMastersAsync()
     {
-        var payloads = await masterDataDbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == MasterTypeMail)
-            .OrderBy(entry => entry.MasterId)
-            .Select(entry => entry.PayloadJson)
-            .ToArrayAsync();
-
-        return payloads
-            .Select(MasterDataPayloadJson.Deserialize<MailResponse>)
-            .Where(mail => mail is not null)
-            .Select(mail => mail!)
-            .ToArray();
+        return await cache.GetOrCreateAsync(MailMasterCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+            var payloads = await masterDataDbContext.Entries
+                .AsNoTracking()
+                .Where(source => !source.IsDeleted && source.MasterType == MasterTypeMail)
+                .OrderBy(source => source.MasterId)
+                .Select(source => source.PayloadJson)
+                .ToArrayAsync();
+            return (IReadOnlyList<MailResponse>)payloads
+                .Select(MasterDataPayloadJson.Deserialize<MailResponse>)
+                .Where(mail => mail is not null)
+                .Select(mail => mail!)
+                .ToArray();
+        }) ?? Array.Empty<MailResponse>();
     }
 
     private async Task<MailResponse?> GetMailMasterByIdAsync(string mailId)

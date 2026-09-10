@@ -18,6 +18,16 @@ playerCapacity:
   donorExtraPlayers: 5
   adminExtraPlayers: 1
 
+# Player join loading
+playerJoin:
+  # 同時に外部データ読込を開始できる参加処理数。超過分は完了順に開始する。
+  maxConcurrentLoads: 4
+  skillTreeRetry:
+    # 初期読込は一時的な障害だけをこの回数まで再試行する。
+    maxAttempts: 3
+    initialDelayMillis: 250
+    maxDelayMillis: 2000
+
 skilltree:
   worldName: "plugins/AstralRecord/worlds/hub/skill_tree"
   structureId: "starter"

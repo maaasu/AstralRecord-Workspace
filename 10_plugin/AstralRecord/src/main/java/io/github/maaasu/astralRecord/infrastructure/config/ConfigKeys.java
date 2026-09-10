@@ -21,6 +21,12 @@ public final class ConfigKeys {
     public static final String PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS = "playerCapacity.donorExtraPlayers";
     public static final String PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS = "playerCapacity.adminExtraPlayers";
 
+    // プレイヤー参加ロード
+    public static final String PLAYER_JOIN_MAX_CONCURRENT_LOADS = "playerJoin.maxConcurrentLoads";
+    public static final String PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS = "playerJoin.skillTreeRetry.maxAttempts";
+    public static final String PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS = "playerJoin.skillTreeRetry.initialDelayMillis";
+    public static final String PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS = "playerJoin.skillTreeRetry.maxDelayMillis";
+
     // Boss／Dungeon インスタンス作成枠
     public static final String INSTANCE_LIMITS_BOSS = "instanceLimits.boss";
     public static final String INSTANCE_LIMITS_DUNGEON = "instanceLimits.dungeon";

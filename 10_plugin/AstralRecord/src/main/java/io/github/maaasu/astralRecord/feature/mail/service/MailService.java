@@ -131,7 +131,7 @@ public final class MailService {
      * @return 未読メール件数
      */
     public int countUnread(@NotNull UUID accountId) {
-        return list(accountId, MailFilter.UNREAD).size();
+        return mailRepository.countUnread(accountId);
     }
 
     /**

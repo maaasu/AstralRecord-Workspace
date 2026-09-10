@@ -22,6 +22,12 @@ public class MailController(IMailRepository mailRepository) : ControllerBase
         return Ok(await mailRepository.GetAvailableByAccountIdAsync(accountId, filter));
     }
 
+    /// <summary>表示可能な未読メール件数だけを取得する</summary>
+    [HttpGet("unread-count")]
+    [ProducesResponseType(typeof(MailUnreadCountResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUnreadCount([FromQuery(Name = "account_id")] Guid accountId)
+        => Ok(new MailUnreadCountResponse(await mailRepository.CountUnreadByAccountIdAsync(accountId)));
+
     /// <summary>メールを既読にする</summary>
     /// <param name="mailId">メール ID</param>
     /// <param name="request">更新者情報</param>

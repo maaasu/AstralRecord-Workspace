@@ -55,6 +55,25 @@ public class MailRepository {
         }
     }
 
+    /** 表示可能な未読メールの件数だけを取得します。 */
+    public int countUnread(@NotNull UUID accountId) {
+        String path = "/api/mail/unread-count?account_id=" + accountId;
+        try {
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                JsonObject body = JsonParser.parseString(response.body()).getAsJsonObject();
+                return Math.max(0, body.get("count").getAsInt());
+            }
+            throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException | RuntimeException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private @NotNull List<MailEntry> parseList(@NotNull String json) {
         JsonArray array = JsonParser.parseString(json).getAsJsonArray();
         List<MailEntry> mails = new ArrayList<>();

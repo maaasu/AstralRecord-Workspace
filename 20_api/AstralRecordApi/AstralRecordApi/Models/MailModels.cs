@@ -29,3 +29,5 @@ public class MailActionRequest
     public Guid AccountId { get; set; }
     public Guid UpdatedBy { get; set; }
 }
+
+public sealed record MailUnreadCountResponse(int Count);

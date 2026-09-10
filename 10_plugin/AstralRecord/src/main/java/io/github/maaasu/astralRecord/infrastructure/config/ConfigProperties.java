@@ -14,6 +14,10 @@ public class ConfigProperties {
     private static final int DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS = 30;
     private static final int DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS = 5;
     private static final int DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS = 1;
+    private static final int DEFAULT_PLAYER_JOIN_MAX_CONCURRENT_LOADS = 4;
+    private static final int DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS = 3;
+    private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS = 250L;
+    private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS = 2_000L;
 
     private static ConfigProperties instance;
 
@@ -27,6 +31,12 @@ public class ConfigProperties {
     private volatile int playerCapacityMaxPlayers;
     private volatile int playerCapacityDonorExtraPlayers;
     private volatile int playerCapacityAdminExtraPlayers;
+
+    // プレイヤー参加ロード
+    private volatile int playerJoinMaxConcurrentLoads = DEFAULT_PLAYER_JOIN_MAX_CONCURRENT_LOADS;
+    private volatile int playerJoinSkillTreeRetryMaxAttempts = DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS;
+    private volatile long playerJoinSkillTreeRetryInitialDelayMillis = DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS;
+    private volatile long playerJoinSkillTreeRetryMaxDelayMillis = DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS;
 
     // SQL Server 関連
     private boolean sqlserverEnabled;
@@ -128,6 +138,34 @@ public class ConfigProperties {
                 configManager.getConfig().getInt(
                         ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS,
                         DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS
+                )
+        );
+        this.playerJoinMaxConcurrentLoads = Math.max(
+                1,
+                configManager.getConfig().getInt(
+                        ConfigKeys.PLAYER_JOIN_MAX_CONCURRENT_LOADS,
+                        DEFAULT_PLAYER_JOIN_MAX_CONCURRENT_LOADS
+                )
+        );
+        this.playerJoinSkillTreeRetryMaxAttempts = Math.max(
+                1,
+                configManager.getConfig().getInt(
+                        ConfigKeys.PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS,
+                        DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS
+                )
+        );
+        this.playerJoinSkillTreeRetryInitialDelayMillis = Math.max(
+                1L,
+                configManager.getConfig().getLong(
+                        ConfigKeys.PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS,
+                        DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS
+                )
+        );
+        this.playerJoinSkillTreeRetryMaxDelayMillis = Math.max(
+                this.playerJoinSkillTreeRetryInitialDelayMillis,
+                configManager.getConfig().getLong(
+                        ConfigKeys.PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS,
+                        DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS
                 )
         );
 
@@ -292,6 +330,26 @@ public class ConfigProperties {
      */
     public int getPlayerCapacityAdminExtraPlayers() {
         return playerCapacityAdminExtraPlayers;
+    }
+
+    /** 同時に外部データを読み込める参加処理数を返します。 */
+    public int getPlayerJoinMaxConcurrentLoads() {
+        return playerJoinMaxConcurrentLoads;
+    }
+
+    /** スキルツリー初期読込の最大試行回数を返します。 */
+    public int getPlayerJoinSkillTreeRetryMaxAttempts() {
+        return playerJoinSkillTreeRetryMaxAttempts;
+    }
+
+    /** スキルツリー初期読込の再試行初回待機時間をミリ秒で返します。 */
+    public long getPlayerJoinSkillTreeRetryInitialDelayMillis() {
+        return playerJoinSkillTreeRetryInitialDelayMillis;
+    }
+
+    /** スキルツリー初期読込の再試行最大待機時間をミリ秒で返します。 */
+    public long getPlayerJoinSkillTreeRetryMaxDelayMillis() {
+        return playerJoinSkillTreeRetryMaxDelayMillis;
     }
 
     // SQL Server 関連のゲッター

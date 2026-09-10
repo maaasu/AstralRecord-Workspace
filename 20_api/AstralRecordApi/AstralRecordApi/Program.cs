@@ -126,6 +126,7 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
