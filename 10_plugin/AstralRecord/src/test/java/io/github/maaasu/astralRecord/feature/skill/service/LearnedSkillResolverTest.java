@@ -32,7 +32,7 @@ class LearnedSkillResolverTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体の解決
-     * 検証契約: 各レベルの前レベル差分と有効シジルの補正を累積し、重複groupや不正slotを除外する。
+     * 検証契約: 各レベルの前レベル差分と有効シジルの補正を累積し、重複groupや不正slotを除外し、表示用テクスチャを保持する。
      */
     @Test
     void resolveAccumulatesLevelDeltasAndOnlyEffectiveSigils() {
@@ -55,7 +55,7 @@ class LearnedSkillResolverTest {
             "adventurer_smash",
             "ファイアボール",
             null,
-            "FIRE_CHARGE",
+            "PLAYER_HEAD",
             List.of(),
             100L,
             10.0D,
@@ -81,7 +81,8 @@ class LearnedSkillResolverTest {
             List.of(new SkillSigilSlotDefinition(1, 1), new SkillSigilSlotDefinition(3, 2)),
             List.of("cooldown_sigil", "cooldown_sigil_ii"),
             List.of(new SkillRequiredItemDefinition("skill_gem_raw", 1)),
-            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 2))
+            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 2)),
+            "head-texture-fixture"
         );
         UUID accountId = UUID.randomUUID();
         LearnedSkillInstance learned = new LearnedSkillInstance(
@@ -102,6 +103,7 @@ class LearnedSkillResolverTest {
         ResolvedLearnedSkill resolved = new LearnedSkillResolver(itemService).resolve(definition, learned);
 
         assertEquals(70L, resolved.definition().getCooldownTicks());
+        assertEquals("head-texture-fixture", resolved.definition().getIconTexture());
         assertEquals(7.0D, resolved.definition().getResourceCost(), 0.0001D);
         assertEquals(15L, resolved.definition().getCastTimeTicks());
         assertEquals(9.0D, ((Number) resolved.definition().getParams().get("damage")).doubleValue(), 0.0001D);

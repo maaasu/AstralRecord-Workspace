@@ -1864,8 +1864,8 @@ public class ItemStackFactory {
             @NotNull ItemModel model
     ) {
         pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
-        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
-        if ("PLAYER_HEAD".equalsIgnoreCase(model.getIcon())
+        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().trim().toUpperCase(Locale.ROOT));
+        if (Material.PLAYER_HEAD.name().equalsIgnoreCase(model.getIcon().trim())
                 && model.getIconTexture() != null
                 && !model.getIconTexture().isBlank()) {
             pdc.set(KEY_ICON_TEXTURE, PersistentDataType.STRING, model.getIconTexture().trim());
