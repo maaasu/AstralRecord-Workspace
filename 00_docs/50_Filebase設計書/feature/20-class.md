@@ -39,7 +39,7 @@ class status bonus = baseStats + growthPerLevel × (classLevel - 1)
 
 `order` はクラス一覧の表示順を表す数値です。値が小さいクラスから順に表示し、同値の場合はクラス ID の昇順とします。プレイヤー情報画面の全クラスレベル一覧もこの順序を使用します。
 
-Class マスタのファイル名は `v<schemaVersion>.<ceil(order)>.<classId>.yml` とします。`ceil(order)` は `order` の小数部を繰り上げた整数であり、同じ値になるクラスは class ID で区別します。
+Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml` とします。`order×10` は `order` を10倍した整数であり、例えば `order: 1.1` は `11` になります。`administrator` だけは例外として `9999` を使用します。
 
 ## progression
 
