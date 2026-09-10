@@ -70,11 +70,34 @@ public final class ItemWeaponAttackService {
         this.attackAttemptListener = attackAttemptListener;
     }
 
+    /**
+     * 主手武器の通常攻撃を実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param castLocation 発動位置
+     */
     public void handleLeftClick(
             @NotNull AstPlayer player,
             @NotNull Location castLocation
     ) {
-        handleAttack(player, castLocation);
+        handleAttack(player, castLocation, null);
+    }
+
+    /**
+     * 主手武器の通常攻撃を実行し、実際のスキル実行完了時に結果を通知します。
+     * 詠唱時間がある場合、戻り値は詠唱開始の結果であり、完了通知は後から呼び出されます。
+     *
+     * @param player 対象プレイヤー
+     * @param castLocation 発動位置
+     * @param completionListener 実行結果の通知先。不要なら null
+     * @return 発動開始または即時実行の結果
+     */
+    public @NotNull SkillCastResult handleLeftClick(
+            @NotNull AstPlayer player,
+            @NotNull Location castLocation,
+            @Nullable Consumer<SkillCastResult> completionListener
+    ) {
+        return handleAttack(player, castLocation, completionListener);
     }
 
     /**
@@ -142,38 +165,39 @@ public final class ItemWeaponAttackService {
         return skillService.getRemainingCooldownTicks(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID);
     }
 
-    private void handleAttack(
+    private @NotNull SkillCastResult handleAttack(
             @NotNull AstPlayer player,
-            @NotNull Location castLocation
+            @NotNull Location castLocation,
+            @Nullable Consumer<SkillCastResult> completionListener
     ) {
         ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
         if (itemModel == null || itemModel.getEquipment() == null) {
-            return;
+            return SkillCastResult.failure(null);
         }
 
         ItemEquipment equipment = itemModel.getEquipment();
         if (equipment.getSlot() != ItemEquipmentSlot.WEAPON) {
-            return;
+            return SkillCastResult.failure(null);
         }
         if (!EquipmentRequirementService.checkAndNotify(player, equipment)) {
-            return;
+            return SkillCastResult.failure(null);
         }
         if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(player)) {
-            return;
+            return SkillCastResult.failure(null);
         }
 
         WeaponAttackDefinition attack = resolveAttack(equipment.getTag());
-        if (attack == null) return;
+        if (attack == null) return SkillCastResult.failure(null);
         String skillId = attack.skillId();
         long cooldownTicks = attack.cooldownTicks();
         var caster = new PlayerSkillCaster(player);
         if (cooldownTicks > 0 && skillService.isOnCooldown(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID)) {
-            return;
+            return SkillCastResult.failure(null);
         }
 
         NormalAttackDegradationService.AttackTicket degradationTicket =
                 normalAttackDegradationService == null ? null : normalAttackDegradationService.beginNormalAttack(player);
-        var result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player);
+        var result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player, completionListener);
         if (result.success() && cooldownTicks > 0) {
             if (degradationTicket == null) {
                 skillService.startAttackCooldown(caster, skillId, cooldownTicks);
@@ -187,6 +211,7 @@ public final class ItemWeaponAttackService {
             }
         }
         attackAttemptListener.accept(player);
+        return result;
     }
 
     private @NotNull SkillCastResult castNormalAttack(
@@ -194,17 +219,28 @@ public final class ItemWeaponAttackService {
             @NotNull String skillId,
             @NotNull Location castLocation,
             @Nullable NormalAttackDegradationService.AttackTicket degradationTicket,
-            @NotNull AstPlayer player
+            @NotNull AstPlayer player,
+            @Nullable Consumer<SkillCastResult> completionListener
     ) {
         try {
-            var result = skillService.castSkill(
+            var result = completionListener == null
+                ? skillService.castSkill(
                     caster,
                     skillId,
                     SkillCastTrigger.AUTO_ATTACK,
                     castLocation,
                     null,
                     List.of()
-            );
+                )
+                : skillService.castSkill(
+                    caster,
+                    skillId,
+                    SkillCastTrigger.AUTO_ATTACK,
+                    castLocation,
+                    null,
+                    List.of(),
+                    completionListener
+                );
             if (!result.success() && degradationTicket != null) {
                 normalAttackDegradationService.rollbackNormalAttack(player, degradationTicket);
             }

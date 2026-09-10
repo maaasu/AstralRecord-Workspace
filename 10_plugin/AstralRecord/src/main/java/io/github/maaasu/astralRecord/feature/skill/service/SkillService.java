@@ -59,6 +59,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
@@ -562,11 +563,37 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
+        return castSkill(caster, skillId, trigger, castLocation, primaryTarget, targets, null);
+    }
+
+    /**
+     * スキルを発動し、実際の実行が終了した時点で結果を通知します。
+     * 詠唱時間がある場合、戻り値は詠唱開始の成功を表し、完了通知は後から一度だけ呼び出します。
+     *
+     * @param caster 発動者
+     * @param skillId スキル ID
+     * @param trigger 発動契機
+     * @param castLocation 発動位置
+     * @param primaryTarget 主対象（任意）
+     * @param targets 範囲・複数対象（変更不可）
+     * @param completionListener 実行結果の通知先。不要なら null
+     * @return 発動開始または即時実行の結果
+     */
+    @NotNull
+    public SkillCastResult castSkill(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable Consumer<SkillCastResult> completionListener
+    ) {
         SkillDefinition definition = registry.getDefinition(skillId);
         if (definition == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5803);
             notifyIfFailed(caster, failure, skillId);
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
         PlayerMsgId ownershipFailure = requiresOwnershipCheck(caster, trigger)
             ? ownershipFailure((PlayerSkillCaster) caster, skillId)
@@ -574,22 +601,22 @@ public class SkillService {
         if (ownershipFailure != null) {
             SkillCastResult failure = SkillCastResult.failure(ownershipFailure);
             notifyIfFailed(caster, failure, skillId);
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
 
         SkillCastResult guard = canCast(caster, definition);
         if (!guard.success()) {
             notifyIfFailed(caster, guard, skillId);
-            return guard;
+            return notifyCompletion(completionListener, guard);
         }
 
         notifyPlayerSkillUse(caster, definition);
 
         if (resolveCastTimeTicks(caster, definition) > 0L) {
-            return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets);
+            return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, null, completionListener);
         }
 
-        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, null, completionListener);
     }
 
     /**
@@ -604,25 +631,50 @@ public class SkillService {
         @Nullable LivingEntity primaryTarget,
         @NotNull List<LivingEntity> targets
     ) {
+        return castLearnedSkill(caster, learnedSkillId, trigger, castLocation, primaryTarget, targets, null);
+    }
+
+    /**
+     * 習得個体のスキルを発動し、実際の実行が終了した時点で結果を通知します。
+     * 詠唱キャンセルや実行失敗も失敗結果として通知します。
+     *
+     * @param caster 発動主体
+     * @param learnedSkillId 習得済みスキル個体 ID
+     * @param trigger 発動契機
+     * @param castLocation 発動位置
+     * @param primaryTarget 主対象（任意）
+     * @param targets 範囲・複数対象（変更不可）
+     * @param completionListener 実行結果の通知先。不要なら null
+     * @return 発動開始または即時実行の結果
+     */
+    public @NotNull SkillCastResult castLearnedSkill(
+        @NotNull PlayerSkillCaster caster,
+        @NotNull String learnedSkillId,
+        @NotNull SkillCastTrigger trigger,
+        @NotNull Location castLocation,
+        @Nullable LivingEntity primaryTarget,
+        @NotNull List<LivingEntity> targets,
+        @Nullable Consumer<SkillCastResult> completionListener
+    ) {
         LearnedSkillInstance learned = ownershipService == null
             ? null
             : ownershipService.findInstance(caster.player(), learnedSkillId);
         if (learned == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
             notifyIfFailed(caster, failure, learnedSkillId);
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
         if (permissionService != null && !permissionService.isPermitted(caster.player(), learned.getSkillId())) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5863);
             notifyIfFailed(caster, failure, learned.getSkillId());
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
 
         ResolvedLearnedSkill resolved = resolveLearnedSkill(learned);
         if (resolved == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5803);
             notifyIfFailed(caster, failure, learned.getSkillId());
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
         LearnedCast runtime = new LearnedCast(
             learned,
@@ -633,13 +685,15 @@ public class SkillService {
         SkillCastResult guard = canCast(caster, definition, runtime.statusSnapshot());
         if (!guard.success()) {
             notifyIfFailed(caster, guard, definition.getId());
-            return guard;
+            return notifyCompletion(completionListener, guard);
         }
         notifyPlayerSkillUse(caster, definition);
         if (resolveCastTimeTicks(caster, definition, runtime.statusSnapshot()) > 0L) {
-            return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+            return beginCast(
+                caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
         }
-        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+        return executeSkillNow(
+            caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
     }
 
     private @NotNull SkillCastResult executeSkillNow(
@@ -650,7 +704,7 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, null);
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, null, null);
     }
 
     private @NotNull SkillCastResult executeSkillNow(
@@ -662,18 +716,31 @@ public class SkillService {
             @NotNull List<LivingEntity> targets,
             @Nullable LearnedCast runtime
     ) {
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime, null);
+    }
+
+    private @NotNull SkillCastResult executeSkillNow(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime,
+            @Nullable Consumer<SkillCastResult> completionListener
+    ) {
         StatusSnapshot effectiveStatus = runtime == null ? caster.statusSnapshot() : runtime.statusSnapshot();
         SkillCastResult guard = canCast(caster, definition, effectiveStatus);
         if (!guard.success()) {
             notifyIfFailed(caster, guard, definition.getId());
-            return guard;
+            return notifyCompletion(completionListener, guard);
         }
 
         SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
         if (executor == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5804);
             notifyIfFailed(caster, failure, definition.getId());
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
 
         SkillCastContext context = new SkillCastContext(
@@ -696,7 +763,7 @@ public class SkillService {
             Logger.log(LogId.E_5802, e, definition.getId(), definition.getImplementationId());
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5805);
             notifyIfFailed(caster, failure, definition.getId());
-            return failure;
+            return notifyCompletion(completionListener, failure);
         }
 
         if (result.success()) {
@@ -719,6 +786,16 @@ public class SkillService {
         } else {
             notifyIfFailed(caster, result, definition.getId());
         }
+        return notifyCompletion(completionListener, result);
+    }
+
+    private @NotNull SkillCastResult notifyCompletion(
+            @Nullable Consumer<SkillCastResult> completionListener,
+            @NotNull SkillCastResult result
+    ) {
+        if (completionListener != null) {
+            completionListener.accept(result);
+        }
         return result;
     }
 
@@ -739,7 +816,7 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, null);
+        return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, null, null);
     }
 
     private @NotNull SkillCastResult beginCast(
@@ -751,16 +828,32 @@ public class SkillService {
             @NotNull List<LivingEntity> targets,
             @Nullable LearnedCast runtime
     ) {
+        return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, runtime, null);
+    }
+
+    private @NotNull SkillCastResult beginCast(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime,
+            @Nullable Consumer<SkillCastResult> completionListener
+    ) {
         if (plugin == null) {
-            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+            return executeSkillNow(
+                caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
         }
 
         if (caster instanceof MobSkillCaster mobCaster) {
-            return beginMobCast(mobCaster, definition, trigger, castLocation, primaryTarget, targets);
+            return beginMobCast(
+                mobCaster, definition, trigger, castLocation, primaryTarget, targets, completionListener);
         }
 
         if (!(caster instanceof PlayerSkillCaster playerCaster)) {
-            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+            return executeSkillNow(
+                caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
         }
 
         var astPlayer = playerCaster.player();
@@ -782,13 +875,17 @@ public class SkillService {
             @Override
             public void run() {
                 if (!player.isOnline() || player.isDead()) {
-                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+                    finishCast(
+                        player, astPlayer, false, playerCaster, definition, trigger, castLocation,
+                        primaryTarget, targets, runtime, completionListener);
                     cancel();
                     return;
                 }
                 if (conditionService != null
                         && !conditionService.canCastSkill(AstEntity.player(astPlayer))) {
-                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+                    finishCast(
+                        player, astPlayer, false, playerCaster, definition, trigger, castLocation,
+                        primaryTarget, targets, runtime, completionListener);
                     cancel();
                     return;
                 }
@@ -800,17 +897,23 @@ public class SkillService {
                 }
                 elapsedTicks++;
                 if (elapsedTicks >= castTimeTicks) {
-                    finishCast(player, astPlayer, true, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+                    finishCast(
+                        player, astPlayer, true, playerCaster, definition, trigger, castLocation,
+                        primaryTarget, targets, runtime, completionListener);
                     cancel();
                 }
             }
         };
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
-        castingSessions.put(player.getUniqueId(), new CastingSession(task, () -> {
-            astPlayer.setSkillCastingUntilMs(0L);
-            movementSpeedCleanup.run();
-            stopPlayerCastFeedback(astPlayer);
-        }));
+        castingSessions.put(player.getUniqueId(), new CastingSession(
+            task,
+            () -> {
+                astPlayer.setSkillCastingUntilMs(0L);
+                movementSpeedCleanup.run();
+                stopPlayerCastFeedback(astPlayer);
+            },
+            () -> notifyCompletion(completionListener, SkillCastResult.failure(null))
+        ));
         return SkillCastResult.succeeded();
     }
 
@@ -845,7 +948,8 @@ public class SkillService {
             @NotNull SkillCastTrigger trigger,
             @NotNull Location castLocation,
             @Nullable LivingEntity primaryTarget,
-            @NotNull List<LivingEntity> targets
+            @NotNull List<LivingEntity> targets,
+            @Nullable Consumer<SkillCastResult> completionListener
     ) {
         long castTimeTicks = resolveCastTimeTicks(caster, definition);
         caster.mob().startSkillCasting(SkillPresentationUtil.legacyName(definition, definition.getId()), castTimeTicks);
@@ -857,13 +961,17 @@ public class SkillService {
             @Override
             public void run() {
                 if (caster.mob().state() == io.github.maaasu.astralRecord.feature.mob.model.MobState.DEAD) {
-                    finishMobCast(caster, false, definition, trigger, castLocation, primaryTarget, targets);
+                    finishMobCast(
+                        caster, false, definition, trigger, castLocation, primaryTarget, targets,
+                        completionListener);
                     cancel();
                     return;
                 }
                 if (conditionService != null
                         && !conditionService.canCastSkill(AstEntity.mob(caster.mob()))) {
-                    finishMobCast(caster, false, definition, trigger, castLocation, primaryTarget, targets);
+                    finishMobCast(
+                        caster, false, definition, trigger, castLocation, primaryTarget, targets,
+                        completionListener);
                     cancel();
                     return;
                 }
@@ -872,13 +980,19 @@ public class SkillService {
                 caster.mob().updateSkillCastingRemaining(remainingTicks);
                 elapsedTicks++;
                 if (elapsedTicks >= castTimeTicks) {
-                    finishMobCast(caster, true, definition, trigger, castLocation, primaryTarget, targets);
+                    finishMobCast(
+                        caster, true, definition, trigger, castLocation, primaryTarget, targets,
+                        completionListener);
                     cancel();
                 }
             }
         };
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
-        castingSessions.put(caster.casterId(), new CastingSession(task, caster.mob()::clearSkillCasting));
+        castingSessions.put(caster.casterId(), new CastingSession(
+            task,
+            caster.mob()::clearSkillCasting,
+            () -> notifyCompletion(completionListener, SkillCastResult.failure(null))
+        ));
         return SkillCastResult.succeeded();
     }
 
@@ -920,7 +1034,8 @@ public class SkillService {
             @NotNull SkillCastTrigger trigger,
             @NotNull Location castLocation,
             @Nullable LivingEntity primaryTarget,
-            @NotNull List<LivingEntity> targets
+            @NotNull List<LivingEntity> targets,
+            @Nullable Consumer<SkillCastResult> completionListener
     ) {
         CastingSession session = castingSessions.remove(caster.casterId());
         if (session != null) {
@@ -929,7 +1044,9 @@ public class SkillService {
             caster.mob().clearSkillCasting();
         }
         if (execute) {
-            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, null, completionListener);
+        } else {
+            notifyCompletion(completionListener, SkillCastResult.failure(null));
         }
     }
 
@@ -943,7 +1060,8 @@ public class SkillService {
             @NotNull Location castLocation,
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets,
-            @Nullable LearnedCast runtime
+            @Nullable LearnedCast runtime,
+            @Nullable Consumer<SkillCastResult> completionListener
     ) {
         CastingSession session = castingSessions.remove(player.getUniqueId());
         if (session != null) {
@@ -951,8 +1069,15 @@ public class SkillService {
         } else {
             astPlayer.setSkillCastingUntilMs(0L);
         }
-        if (execute && canStillUseAtCastCompletion(caster, definition, trigger, runtime)) {
-            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+        if (!execute) {
+            notifyCompletion(completionListener, SkillCastResult.failure(null));
+            return;
+        }
+        if (canStillUseAtCastCompletion(caster, definition, trigger, runtime)) {
+            executeSkillNow(
+                caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
+        } else {
+            notifyCompletion(completionListener, SkillCastResult.failure(null));
         }
     }
 
@@ -1309,6 +1434,7 @@ public class SkillService {
 
         session.task().cancel();
         session.cleanup().run();
+        session.cancelCompletion().run();
     }
 
     /**
@@ -1540,6 +1666,13 @@ public class SkillService {
     ) {
     }
 
-    private record CastingSession(@NotNull BukkitTask task, @NotNull Runnable cleanup) {
+    private record CastingSession(
+            @NotNull BukkitTask task,
+            @NotNull Runnable cleanup,
+            @NotNull Runnable cancelCompletion
+    ) {
+        private CastingSession(@NotNull BukkitTask task, @NotNull Runnable cleanup) {
+            this(task, cleanup, () -> { });
+        }
     }
 }

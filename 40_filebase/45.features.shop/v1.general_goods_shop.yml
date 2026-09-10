@@ -155,3 +155,20 @@ items:
     page: 1
     slot: 27
     priceGold: 6000
+
+  - id: 20a00067
+    itemId:
+      ref: item:20a00067
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 100
+  - id: 20a00068
+    itemId:
+      ref: item:20a00068
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 13
+    priceGold: 100

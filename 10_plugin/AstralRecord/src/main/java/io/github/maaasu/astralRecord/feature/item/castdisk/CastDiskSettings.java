@@ -8,12 +8,18 @@ import org.jetbrains.annotations.Nullable;
 
 /** スキルキャストディスク個体へ保存する設定値を扱います。 */
 public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
+    /** スキルキャストディスクが参照できるアクションスロット数です。 */
+    public static final int ACTION_SLOT_COUNT = 6;
+    /** スキルキャストディスクが参照できる武器ホットバー枠数です。 */
+    public static final int WEAPON_HOTBAR_SLOT_COUNT = 9;
+
     private static final String ROOT_KEY = "castDisk";
     private static final String ACTION_SLOT_KEY = "actionSlot";
     private static final String WEAPON_SLOT_KEY = "weaponHotbarSlot";
 
     public boolean isComplete() {
-        return actionSlotIndex >= 0 && actionSlotIndex < 6 && weaponHotbarSlot >= 0 && weaponHotbarSlot < 9;
+        return actionSlotIndex >= 0 && actionSlotIndex < ACTION_SLOT_COUNT
+            && weaponHotbarSlot >= 0 && weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT;
     }
 
     public static @NotNull CastDiskSettings read(@Nullable String metadataJson) {
@@ -44,10 +50,10 @@ public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
             root = new JsonObject();
         }
         JsonObject disk = new JsonObject();
-        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < 6) {
+        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < ACTION_SLOT_COUNT) {
             disk.addProperty(ACTION_SLOT_KEY, settings.actionSlotIndex);
         }
-        if (settings.weaponHotbarSlot >= 0 && settings.weaponHotbarSlot < 9) {
+        if (settings.weaponHotbarSlot >= 0 && settings.weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT) {
             disk.addProperty(WEAPON_SLOT_KEY, settings.weaponHotbarSlot);
         }
         if (disk.isEmpty()) {

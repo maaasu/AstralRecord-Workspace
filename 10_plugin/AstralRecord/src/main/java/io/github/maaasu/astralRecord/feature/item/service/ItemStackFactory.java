@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.buff.repository.BuffRepository;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskSettings;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
@@ -339,12 +340,14 @@ public class ItemStackFactory {
 
     /**
      * {@link ItemModel} と {@link EquipmentInstance}、inventory entry metadata から ItemStack を生成します。
-     * インスタンス固有のステータスロール値とフックショットの装填状態を Lore / PDC に反映します。
+     * インスタンス固有のステータスロール値、フックショットの装填状態、
+     * スキルキャストディスクの現在設定を Lore / PDC に反映します。
      *
      * @param model        アイテムマスタ定義
      * @param instance     装備インスタンス
      * @param amount       個数
-     * @param metadataJson inventory entry の metadata。フックショット以外では無視します
+     * @param metadataJson inventory entry の metadata。フックショットの装填状態と
+     *                    スキルキャストディスクの現在設定へ使用します
      * @return 生成された ItemStack
      */
     public @NotNull ItemStack create(
@@ -397,7 +400,7 @@ public class ItemStackFactory {
                 visibleName + enhanceSuffix + ColorCodeUtil.RESET));
 
         var loreStrings = buildLoreForEquipmentInstance(
-                model, instance, hookshotLoaded, equippedSetCounts);
+                model, instance, hookshotLoaded, metadataJson, equippedSetCounts);
         meta.lore(loreStrings.stream()
                 .map(ColorCodeUtil::translateAlternateColorCodes)
                 .map(LEGACY_SERIALIZER::deserialize)
@@ -1178,7 +1181,7 @@ public class ItemStackFactory {
      */
     private @NotNull List<String> buildLoreForEquipmentInstance(
             @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
-        return buildLoreForEquipmentInstance(model, instance, false);
+        return buildLoreForEquipmentInstance(model, instance, false, null, null);
     }
 
     private @NotNull List<String> buildLoreForEquipmentInstance(
@@ -1186,13 +1189,23 @@ public class ItemStackFactory {
             @NotNull EquipmentInstance instance,
             boolean hookshotLoaded
     ) {
-        return buildLoreForEquipmentInstance(model, instance, hookshotLoaded, null);
+        return buildLoreForEquipmentInstance(model, instance, hookshotLoaded, null, null);
     }
 
     private @NotNull List<String> buildLoreForEquipmentInstance(
             @NotNull ItemModel model,
             @NotNull EquipmentInstance instance,
             boolean hookshotLoaded,
+            @Nullable Map<String, Integer> equippedSetCounts
+    ) {
+        return buildLoreForEquipmentInstance(model, instance, hookshotLoaded, null, equippedSetCounts);
+    }
+
+    private @NotNull List<String> buildLoreForEquipmentInstance(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            boolean hookshotLoaded,
+            @Nullable String metadataJson,
             @Nullable Map<String, Integer> equippedSetCounts
     ) {
         List<String> lore = new ArrayList<>();
@@ -1234,6 +1247,9 @@ public class ItemStackFactory {
             if (!eq.getRequiredClasses().isEmpty()) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
                         + formatRequiredClasses(eq));
+            }
+            if (isSkillCastDiskEquipment(model)) {
+                appendSkillCastDiskSettingsLore(lore, metadataJson);
             }
             if (hookshotLoaded && isHookshotEquipment(model)) {
                 lore.add(ColorCodeUtil.GREEN + " ▸ フック装填済み");
@@ -1652,6 +1668,32 @@ public class ItemStackFactory {
         return equipment != null
                 && equipment.getSlot() == ItemEquipmentSlot.TOOL
                 && MasterTagIds.Equipment.HOOKSHOT.equalsIgnoreCase(equipment.getTag());
+    }
+
+    /** スキルキャストディスクの個体か判定します。 */
+    private boolean isSkillCastDiskEquipment(@NotNull ItemModel model) {
+        ItemEquipment equipment = model.getEquipment();
+        return equipment != null
+                && equipment.getSlot() == ItemEquipmentSlot.TOOL
+                && MasterTagIds.Equipment.SKILL_CAST_DISK.equalsIgnoreCase(equipment.getTag());
+    }
+
+    /** スキルキャストディスク個体へ保存された現在設定を Lore へ追加します。 */
+    private void appendSkillCastDiskSettingsLore(
+            @NotNull List<String> lore,
+            @Nullable String metadataJson
+    ) {
+        CastDiskSettings settings = CastDiskSettings.read(metadataJson);
+        lore.add("");
+        lore.add(ColorCodeUtil.AQUA + "❖ 現在の設定");
+        lore.add(ColorCodeUtil.GRAY + " ▸ スキル枠: " + ColorCodeUtil.WHITE
+                + formatCastDiskSlot(settings.actionSlotIndex(), CastDiskSettings.ACTION_SLOT_COUNT));
+        lore.add(ColorCodeUtil.GRAY + " ▸ 武器枠: " + ColorCodeUtil.WHITE
+                + formatCastDiskSlot(settings.weaponHotbarSlot(), CastDiskSettings.WEAPON_HOTBAR_SLOT_COUNT));
+    }
+
+    private @NotNull String formatCastDiskSlot(int slotIndex, int slotCount) {
+        return slotIndex >= 0 && slotIndex < slotCount ? Integer.toString(slotIndex + 1) : "未設定";
     }
 
     private static @NotNull String durabilityBarColor(double durabilityRate, int max) {

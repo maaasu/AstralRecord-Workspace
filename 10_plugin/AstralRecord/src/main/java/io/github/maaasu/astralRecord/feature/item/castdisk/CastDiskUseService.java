@@ -128,9 +128,16 @@ public final class CastDiskUseService {
             GuiSound.DENY.play(player.getBukkit());
             return;
         }
-        if (actionRingService.castActionSlotWithHotbarWeapon(player, settings.actionSlotIndex(), settings.weaponHotbarSlot())) {
-            consumeDurability(player, disk);
-        }
+        actionRingService.castActionSlotWithHotbarWeapon(
+            player,
+            settings.actionSlotIndex(),
+            settings.weaponHotbarSlot(),
+            result -> {
+                if (result.success()) {
+                    consumeDurability(player, disk);
+                }
+            }
+        );
     }
 
     /** スキルキャストディスク設定 GUI のクリックを保存して再描画します。 */
@@ -145,9 +152,11 @@ public final class CastDiskUseService {
         }
         CastDiskSettings current = CastDiskSettings.read(disk.metadataJson());
         CastDiskSettings updated;
-        if (rawSlot >= CastDiskGui.ACTION_SLOT_START && rawSlot < CastDiskGui.ACTION_SLOT_START + 6) {
+        if (rawSlot >= CastDiskGui.ACTION_SLOT_START
+            && rawSlot < CastDiskGui.ACTION_SLOT_START + CastDiskSettings.ACTION_SLOT_COUNT) {
             updated = new CastDiskSettings(rawSlot - CastDiskGui.ACTION_SLOT_START, current.weaponHotbarSlot());
-        } else if (rawSlot >= CastDiskGui.WEAPON_SLOT_START && rawSlot < CastDiskGui.WEAPON_SLOT_START + 9) {
+        } else if (rawSlot >= CastDiskGui.WEAPON_SLOT_START
+            && rawSlot < CastDiskGui.WEAPON_SLOT_START + CastDiskSettings.WEAPON_HOTBAR_SLOT_COUNT) {
             updated = new CastDiskSettings(current.actionSlotIndex(), rawSlot - CastDiskGui.WEAPON_SLOT_START);
         } else {
             return;
@@ -159,6 +168,7 @@ public final class CastDiskUseService {
             GuiSound.DENY.play(player);
             return;
         }
+        inventoryService.refreshManagedInventoryUi(astPlayer);
         GuiSound.SELECT.play(player);
         GuiOpenSupport.open(player, gui.create(player, holder.equipmentInstanceId(), updated));
     }

@@ -50,7 +50,7 @@ public final class CastDiskGui {
             inventory.setItem(slot, item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
         }
         List<String> actionSlots = activeSlots(player);
-        for (int index = 0; index < SkillBindPreset.ACTION_RING_SLOT_COUNT; index++) {
+        for (int index = 0; index < CastDiskSettings.ACTION_SLOT_COUNT; index++) {
             String skillId = index < actionSlots.size() ? actionSlots.get(index) : null;
             inventory.setItem(ACTION_SLOT_START + index, actionItem(player, index, skillId, settings.actionSlotIndex() == index));
         }
@@ -59,7 +59,7 @@ public final class CastDiskGui {
             Component.text(settings.weaponHotbarSlot() < 0 ? "武器枠: 未設定" : "武器枠: " + (settings.weaponHotbarSlot() + 1), NamedTextColor.YELLOW),
             Component.text("上段でスキル枠、下段で武器枠を選択", NamedTextColor.GRAY)
         )));
-        for (int index = 0; index < 9; index++) {
+        for (int index = 0; index < CastDiskSettings.WEAPON_HOTBAR_SLOT_COUNT; index++) {
             inventory.setItem(WEAPON_SLOT_START + index, weaponItem(player, index, settings.weaponHotbarSlot() == index));
         }
         return inventory;

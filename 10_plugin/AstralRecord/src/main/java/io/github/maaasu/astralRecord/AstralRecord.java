@@ -1671,6 +1671,7 @@ public final class AstralRecord extends JavaPlugin {
         skillActionRingService = new SkillActionRingService(
             this, skillBindPresetService, skillService, skillOwnershipService, skillPermissionService
         );
+        skillActionRingService.setStatusService(statusService);
         skillActionRingService.setOpenListener(player ->
             guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
         );

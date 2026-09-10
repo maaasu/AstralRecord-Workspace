@@ -14,6 +14,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -64,6 +66,7 @@ public final class SkillActionRingService {
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private ItemWeaponAttackService itemWeaponAttackService;
+    private @Nullable StatusService statusService;
     private Consumer<AstPlayer> openListener = player -> { };
     private Consumer<Player> closeListener = player -> { };
     private BukkitTask task;
@@ -96,6 +99,15 @@ public final class SkillActionRingService {
      */
     public void setItemWeaponAttackService(@NotNull ItemWeaponAttackService itemWeaponAttackService) {
         this.itemWeaponAttackService = itemWeaponAttackService;
+    }
+
+    /**
+     * キャストディスクが一時的に切り替える武器をステータスへ反映するサービスを設定します。
+     *
+     * @param statusService 主手切替前後のステータス再計算に使用するサービス
+     */
+    public void setStatusService(@NotNull StatusService statusService) {
+        this.statusService = statusService;
     }
 
     /**
@@ -500,16 +512,41 @@ public final class SkillActionRingService {
         int actionSlotIndex,
         int weaponHotbarSlot
     ) {
+        return castActionSlotWithHotbarWeapon(astPlayer, actionSlotIndex, weaponHotbarSlot, null);
+    }
+
+    /**
+     * 指定したアクションスロットを武器で発動し、実際のスキル実行完了時に結果を通知します。
+     * 詠唱時間がある場合、戻り値は詠唱開始の結果であり、完了通知は後から呼び出されます。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param actionSlotIndex アクションスロット番号（0始まり）
+     * @param weaponHotbarSlot 使用武器を置いたホットバー番号（0始まり）
+     * @param completionListener 実行結果の通知先。不要なら null
+     * @return スキル発動が開始または即時成功した場合は {@code true}
+     */
+    public boolean castActionSlotWithHotbarWeapon(
+        @NotNull AstPlayer astPlayer,
+        int actionSlotIndex,
+        int weaponHotbarSlot,
+        @Nullable Consumer<SkillCastResult> completionListener
+    ) {
         if (actionSlotIndex < 0 || actionSlotIndex >= SLOT_COUNT
             || weaponHotbarSlot < 0 || weaponHotbarSlot > 8) {
             return false;
         }
         Player player = astPlayer.getBukkit();
         int originalHotbarSlot = player.getInventory().getHeldItemSlot();
+        StatusSnapshot originalStatus = statusService == null ? null : astPlayer.getStatusSnapshot();
+        StatusSnapshot temporaryWeaponStatus = null;
         player.getInventory().setHeldItemSlot(weaponHotbarSlot);
         try {
             if (!hasUsableMainHandWeapon(astPlayer)) {
                 return false;
+            }
+            if (statusService != null) {
+                statusService.refreshStatus(astPlayer);
+                temporaryWeaponStatus = astPlayer.getStatusSnapshot();
             }
             SkillBindPreset preset = selectedPreset(astPlayer);
             if (preset == null || actionSlotIndex >= preset.getActiveSkillSlots().size()) {
@@ -523,22 +560,76 @@ public final class SkillActionRingService {
                 if (itemWeaponAttackService == null) {
                     return false;
                 }
-                itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
-                return true;
+                SkillCastResult result = itemWeaponAttackService.handleLeftClick(
+                    astPlayer, player.getEyeLocation(), completionListener);
+                return result.success();
             }
-            SkillCastResult result = skillService.castLearnedSkill(
-                new PlayerSkillCaster(astPlayer),
-                skillId,
-                SkillCastTrigger.PLAYER_COMMAND,
-                player.getEyeLocation(),
-                null,
-                List.of()
-            );
+            PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+            SkillCastResult result = completionListener == null
+                ? skillService.castLearnedSkill(
+                    caster,
+                    skillId,
+                    SkillCastTrigger.PLAYER_COMMAND,
+                    player.getEyeLocation(),
+                    null,
+                    List.of()
+                )
+                : skillService.castLearnedSkill(
+                    caster,
+                    skillId,
+                    SkillCastTrigger.PLAYER_COMMAND,
+                    player.getEyeLocation(),
+                    null,
+                    List.of(),
+                    completionListener
+                );
             return result.success();
         } finally {
             player.getInventory().setHeldItemSlot(originalHotbarSlot);
+            if (statusService != null) {
+                statusService.refreshStatus(astPlayer);
+                restoreTemporarilyClampedResources(astPlayer, originalStatus, temporaryWeaponStatus);
+            }
             player.updateInventory();
         }
+    }
+
+    /**
+     * 一時武器の最大値クランプで失われた現在リソースだけを、主手復帰後のスナップショットへ戻します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param originalStatus 切替前のステータス
+     * @param temporaryWeaponStatus 一時武器へ切替後、発動前のステータス
+     */
+    private void restoreTemporarilyClampedResources(
+        @NotNull AstPlayer astPlayer,
+        @Nullable StatusSnapshot originalStatus,
+        @Nullable StatusSnapshot temporaryWeaponStatus
+    ) {
+        if (originalStatus == null || temporaryWeaponStatus == null) {
+            return;
+        }
+        double hpLoss = positiveDifference(originalStatus.getCurrentHp(), temporaryWeaponStatus.getCurrentHp());
+        double mpLoss = positiveDifference(originalStatus.getCurrentMp(), temporaryWeaponStatus.getCurrentMp());
+        double energyLoss = positiveDifference(
+            originalStatus.getCurrentEnergy(), temporaryWeaponStatus.getCurrentEnergy());
+        double shieldLoss = positiveDifference(
+            originalStatus.getCurrentShield(), temporaryWeaponStatus.getCurrentShield());
+        if (hpLoss == 0.0D && mpLoss == 0.0D && energyLoss == 0.0D && shieldLoss == 0.0D) {
+            return;
+        }
+
+        StatusSnapshot restored = astPlayer.getStatusSnapshot();
+        astPlayer.setStatusSnapshot(restored.withCurrentValues(
+            restored.getCurrentHp() + hpLoss,
+            restored.getCurrentMp() + mpLoss,
+            restored.getCurrentEnergy() + energyLoss,
+            restored.getCurrentShield() + shieldLoss
+        ));
+    }
+
+    private double positiveDifference(double original, double temporary) {
+        return Math.max(0.0D, original - temporary);
     }
 
     private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {

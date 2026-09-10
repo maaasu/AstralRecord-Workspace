@@ -35,6 +35,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.util.logging.Logger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -229,6 +230,85 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
         assertFalse(result.success());
         assertEquals(20.0D, caster.currentMana(), 0.0001D);
         assertFalse(service.isOnCooldown(caster, definition.getId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: 完了通知は即時実行のexecutor結果を一度だけ通知する。
+     */
+    @Test
+    void castSkillCompletionListenerReceivesImmediateExecutionResult() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        SkillDefinition definition = skill("completion_skill", "completion_impl", 0.0D, 0L, Map.of());
+        registry.registerExecutor(new TestExecutor("completion_impl"));
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        TestCaster caster = new TestCaster(1, 20.0D, 0.0D);
+        List<SkillCastResult> completions = new ArrayList<>();
+
+        SkillCastResult result = service.castSkill(
+            caster,
+            definition.getId(),
+            SkillCastTrigger.SYSTEM,
+            new Location(null, 0.0D, 0.0D, 0.0D),
+            null,
+            List.of(),
+            completions::add
+        );
+
+        assertTrue(result.success());
+        assertEquals(1, completions.size());
+        assertTrue(completions.getFirst().success());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: 詠唱キャンセル時は完了通知を失敗として一度だけ通知し、executorを実行しない。
+     */
+    @Test
+    void castSkillCompletionListenerReceivesCancellationWithoutExecuting() {
+        var player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        SkillRegistry registry = new SkillRegistry();
+        TestExecutor executor = new TestExecutor("cancel_completion_impl");
+        SkillDefinition definition = skill(
+            "cancel_completion_skill",
+            "cancel_completion_impl",
+            0.0D,
+            0L,
+            Map.of(),
+            SkillKind.ACTIVE,
+            5L,
+            1,
+            null,
+            null
+        );
+        registry.registerExecutor(executor);
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.isEnabled()).thenReturn(true);
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, plugin);
+        List<SkillCastResult> completions = new ArrayList<>();
+
+        SkillCastResult result = service.castSkill(
+            caster,
+            definition.getId(),
+            SkillCastTrigger.SYSTEM,
+            player.getLocation(),
+            null,
+            List.of(),
+            completions::add
+        );
+
+        assertTrue(result.success());
+        service.cancelCasting(caster.casterId());
+
+        assertEquals(1, completions.size());
+        assertFalse(completions.getFirst().success());
+        assertNull(executor.lastContext);
     }
 
     /**
