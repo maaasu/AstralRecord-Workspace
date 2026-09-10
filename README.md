@@ -39,6 +39,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/trade/commit`（[Trade API 設計](00_docs/20_API設計書/feature/22-trade/22_README.md)）
 - `POST /api/market/listings/{listingId}/claim-proceeds`（[Market API 設計](00_docs/20_API設計書/feature/23-market/23_README.md)）
+- `GET /api/market/listing-create-results/{operationId}`（出品作成の冪等結果照会、[Market API 設計](00_docs/20_API設計書/feature/23-market/23_README.md)）
+- `GET /api/mail/unread-count?account_id={account_id}`（ログイン通知用の未読件数のみを取得）
 - `POST /api/inventory/accounts/{accountId}/repair-equipment-entry-item-ids`（[Inventory API 設計](00_docs/20_API設計書/feature/13-inventory/13_README.md)）
 - `POST /api/account-skilltree/{accountId}/repair-invalid-state`（[SkillTree API 設計](00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md)）
 - `POST /api/release-notes/publish`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）

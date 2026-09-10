@@ -64,6 +64,7 @@
 | POST `/api/web-auth/challenges` | Web ログインチャレンジ発行 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | POST `/api/web-auth/challenges/consume` | Web ログインチャレンジ消費 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| GET `/api/market/listing-create-results/{operationId}` | 出品作成の冪等結果照会 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.02-登録系.md` |
 | GET `/api/market/listings/{listingId}` | マーケット出品取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/market/accounts/{accountId}/summary` | アカウント単位のマーケット利用状態取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | POST `/api/market/price-quote` | マーケット相場見積 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
@@ -133,6 +134,7 @@
 | GET `/api/account-guide/{accountId}` | アカウント単位のガイド進行取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | POST `/api/account-guide/{accountId}/steps/complete` | ガイド手順達成の冪等登録 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | GET `/api/mail?user_id={user_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
+| GET `/api/mail/unread-count?account_id={account_id}` | アカウント単位の未読メール件数取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/read` | メール既読更新 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/delete` | プレイヤー単位メール削除 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
