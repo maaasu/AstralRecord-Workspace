@@ -9,14 +9,23 @@ name: "&eビルドアップ"
 description: "&7狩猟の構えを整え、間接攻撃を強化する。"
 icon: TIPPED_ARROW
 lore:
-  - "&7発動後、20秒間だけ間接攻撃力が10%上昇する。"
-cooldownTicks: 600
-resourceType: ENERGY
-resourceCost: 10
-manaCost: 6
+  - "&7発動後{skill.buffDurationTicks:seconds}秒間、間接攻撃力が{skill.rangedAttackIncreaseRatio:percent}%上昇する。"
+  - "&7効果中、毎秒最大ENGの{skill.energyRecoveryRatio:percent}%を回復する。"
+cooldownTicks: 300
+resourceType: MANA
+resourceCost: 6
 castTimeTicks: 0
 requiredLevel: 1
-maxLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { energyRecoveryRatio: 0.01, rangedAttackIncreaseRatio: 0.01 }
+  - level: 3
+    paramDeltas: { energyRecoveryRatio: 0.01, rangedAttackIncreaseRatio: 0.01 }
+  - level: 4
+    paramDeltas: { energyRecoveryRatio: 0.01, rangedAttackIncreaseRatio: 0.01 }
+  - level: 5
+    paramDeltas: { energyRecoveryRatio: 0.01, rangedAttackIncreaseRatio: 0.01 }
 sigilSlotsByLevel: []
 allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
@@ -25,6 +34,9 @@ onCast:
   sound: block.beacon.power_select
 params:
   buffId: buff:hunter_build_up
+  buffDurationTicks: 200
+  energyRecoveryRatio: 0.01
+  rangedAttackIncreaseRatio: 0.11
 tags:
   - active
   - ranged

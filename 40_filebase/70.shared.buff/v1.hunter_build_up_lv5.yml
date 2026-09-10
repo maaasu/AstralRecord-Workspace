@@ -2,15 +2,15 @@
 #   motif: "狩猟術 / 矢束の強化"
 #   progression: 2
 schemaVersion: 1
-id: hunter_build_up
+id: hunter_build_up_lv5
 type: BUFF
 name: "&eビルドアップ"
 lore:
-  - "&7間接攻撃力が11%上昇する。"
+  - "&7間接攻撃力が15%上昇する。"
 durationTicks: 200 # 10秒
 isDebuff: false
 stackGroup: hunter_build_up
 modifiers:
   - status: RANGED_ATTACK
     type: SCALAR
-    value: 0.11 # +11%
+    value: 0.15 # +15%
