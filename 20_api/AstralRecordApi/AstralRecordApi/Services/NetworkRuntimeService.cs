@@ -18,7 +18,10 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
     private readonly Dictionary<Guid, NetworkChatMessageResponse> chatsById = [];
     private readonly Queue<NetworkChatMessageResponse> chats = new();
     private readonly object chatLock = new();
+    private readonly object authorityLock = new();
     private readonly Guid generationId = Guid.NewGuid();
+    private HashSet<Guid> authorities = [];
+    private DateTime? authoritiesUpdatedAtUtc;
     private long nextChatSequence;
 
     public NetworkPlayerPresenceResponse UpsertPlayer(NetworkPlayerHeartbeatRequest request)
@@ -86,6 +89,7 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
                 request.SourceServerId.Trim(),
                 request.AuthorName.Trim(),
                 request.Message.Trim(),
+                request.Kind.Trim().ToLowerInvariant(),
                 timeProvider.GetUtcNow().UtcDateTime);
             chats.Enqueue(published);
             chatsById[published.MessageId] = published;
@@ -95,6 +99,34 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
                 chatsById.Remove(removed.MessageId);
             }
             return published;
+        }
+    }
+
+    public IReadOnlyList<Guid> ReplaceAuthorities(NetworkAuthorityUpdateRequest request)
+    {
+        lock (authorityLock)
+        {
+            authorities = request.Uuids.Where(uuid => uuid != Guid.Empty).ToHashSet();
+            authoritiesUpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            return authorities.Order().ToArray();
+        }
+    }
+
+    public IReadOnlyList<Guid> GetAuthorities()
+    {
+        lock (authorityLock)
+        {
+            PurgeExpiredAuthorities();
+            return authorities.Order().ToArray();
+        }
+    }
+
+    public bool IsAuthority(Guid uuid)
+    {
+        lock (authorityLock)
+        {
+            PurgeExpiredAuthorities();
+            return authorities.Contains(uuid);
         }
     }
 
@@ -128,6 +160,16 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
         {
             if (pair.Value.LastSeenUtc < cutoff)
                 servers.TryRemove(pair.Key, out _);
+        }
+    }
+
+    private void PurgeExpiredAuthorities()
+    {
+        if (authoritiesUpdatedAtUtc is null
+            || authoritiesUpdatedAtUtc < timeProvider.GetUtcNow().UtcDateTime - PresenceTtl)
+        {
+            authorities.Clear();
+            authoritiesUpdatedAtUtc = null;
         }
     }
 }

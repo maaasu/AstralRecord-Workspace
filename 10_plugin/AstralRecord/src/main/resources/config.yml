@@ -117,6 +117,8 @@ network:
   enabled: true
   channelName: "dev"
   lobbyServer: "lobby"
+  # Proxy側 serverAuthorityUsers の同期周期。正本はProxy configです。
+  authorityRefreshTicks: 100
 
 
 # Logging Settings

@@ -11,6 +11,8 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransit
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -34,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** RPGサーバーとVelocity Proxy間の転送・チャット・Tabメタデータを管理します。 */
 public final class NetworkBridgeService implements NetworkChatBridge, Listener {
@@ -46,7 +49,11 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     private final String channelName;
     private final String lobbyServer;
     private final Set<UUID> transfers = ConcurrentHashMap.newKeySet();
+    private final NetworkAuthorityClient authorityClient = new NetworkAuthorityClient();
+    private final AtomicBoolean authorityRefreshRunning = new AtomicBoolean();
+    private final AtomicBoolean authorityWarningLogged = new AtomicBoolean();
     private BukkitTask metadataTask;
+    private BukkitTask authorityTask;
 
     public NetworkBridgeService(
         @NotNull AstralRecord plugin,
@@ -75,11 +82,17 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             this::publishNetworkState,
             20L,
             100L);
+        long authorityRefreshTicks = Math.max(20L,
+            plugin.getConfig().getLong("network.authorityRefreshTicks", 100L));
+        authorityTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
+            plugin, this::refreshAuthorityUsers, 0L, authorityRefreshTicks);
     }
 
     public void stop() {
         if (metadataTask != null) metadataTask.cancel();
         metadataTask = null;
+        if (authorityTask != null) authorityTask.cancel();
+        authorityTask = null;
         if (enabled) {
             plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, BackendProtocol.CHANNEL);
             HandlerList.unregisterAll(this);
@@ -87,6 +100,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         transfers.forEach(playerId ->
             transitionGuard.end(playerId, PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER));
         transfers.clear();
+        NetworkAuthorityRegistry.clear();
         playerClassService.setPlayerListNameUpdatesEnabled(true);
     }
 
@@ -106,6 +120,32 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             BackendProtocol.sendChat(plugin, sender, channelName, sender.getName(), 0, "", message);
         }
         return true;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void publishDirectMessage(
+        @NotNull Player sender,
+        @NotNull String senderName,
+        @NotNull String targetName,
+        @NotNull String message
+    ) {
+        if (!enabled || !sender.isOnline()) return;
+        BackendProtocol.sendPrivateChat(
+            plugin, sender, "direct", senderName, targetName, "", message);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void publishPartyMessage(
+        @NotNull Player sender,
+        @NotNull String senderName,
+        @NotNull String partyName,
+        @NotNull String message
+    ) {
+        if (!enabled || !sender.isOnline()) return;
+        BackendProtocol.sendPrivateChat(
+            plugin, sender, "party", senderName, "", partyName, message);
     }
 
     /** 全保存の成功後にだけProxyへロビー接続を要求します。 */
@@ -267,6 +307,32 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         }
         if (metricsSender != null) {
             BackendProtocol.sendServerMetrics(plugin, metricsSender, Bukkit.getServer().getAverageTickTime());
+        }
+    }
+
+    /** Network APIの最高権限一覧を非同期取得し、オンラインプレイヤーのOP状態へ反映する。 */
+    private void refreshAuthorityUsers() {
+        if (!authorityRefreshRunning.compareAndSet(false, true)) return;
+        try {
+            Set<UUID> authorities = authorityClient.getAuthorities();
+            NetworkAuthorityRegistry.replace(authorities);
+            authorityWarningLogged.set(false);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            logAuthorityWarningOnce(exception);
+        } catch (RuntimeException | java.io.IOException exception) {
+            logAuthorityWarningOnce(exception);
+        } finally {
+            authorityRefreshRunning.set(false);
+            plugin.getServer().getScheduler().runTask(plugin, () ->
+                AstPlayerCache.getAll().forEach(AstPlayer::refreshEffectivePermission));
+        }
+    }
+
+    /** 最高権限一覧の連続取得失敗を一度だけログへ記録する。 */
+    private void logAuthorityWarningOnce(Throwable failure) {
+        if (authorityWarningLogged.compareAndSet(false, true)) {
+            Logger.log(LogId.W_7120, failure, failure.getClass().getSimpleName());
         }
     }
 

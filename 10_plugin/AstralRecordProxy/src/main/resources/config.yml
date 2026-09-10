@@ -28,6 +28,8 @@ serverCapacities:
 transferCooldownSeconds: 30
 tabRefreshSeconds: 2
 presenceHeartbeatSeconds: 10
+# Proxy全体で最高権限として扱うプレイヤーUUID。Lobby/RPGのローカル設定より優先されます。
+serverAuthorityUsers: []
 discord:
   # ここに指定したbackendのMinecraftチャットは、Proxy内には配信するがDiscord中継用APIへ登録しない。
   excludedSourceServers:
@@ -35,6 +37,8 @@ discord:
 api:
   baseUrl: "http://127.0.0.1:5261"
   apiKey: "your_api_key"
+  # 最高権限UUID一覧のPUTだけに使うProxy専用キー。API側 Network:AuthoritySyncKey と一致させる。
+  authoritySyncKey: "your_authority_sync_key"
   timeoutMillis: 3000
   discordPollMillis: 500
   # 開発環境で証明書とホスト名の検証を無効化する場合だけ使用する。本番では必ず false にする。

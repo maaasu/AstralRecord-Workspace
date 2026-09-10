@@ -92,6 +92,7 @@ public final class AstralRecordProxyPlugin {
             .repeat(Duration.ofSeconds(config.presenceHeartbeatSeconds())).schedule();
         proxy.getScheduler().buildTask(this, this::pollDiscordChat)
             .repeat(Duration.ofMillis(config.discordPollMillis())).schedule();
+        refreshAuthorities();
         logger.info("AstralRecordProxy enabled. lobby={}, gameServers={}", config.lobbyServer(), config.gameServers());
     }
 
@@ -142,6 +143,17 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onServerPostConnect(ServerPostConnectEvent event) {
+        String currentServer = event.getPlayer().getCurrentServer()
+            .map(connection -> connection.getServerInfo().getName()).orElse(config.lobbyServer());
+        String previousServer = event.getPreviousServer() == null
+            ? null : event.getPreviousServer().getServerInfo().getName();
+        String message = lifecycleMessage(event.getPlayer().getUsername(), previousServer, currentServer, config);
+        if (message != null) {
+            api.publishLifecycleMessage(currentServer, message).exceptionally(failure -> {
+                logger.warn("Failed to publish player lifecycle message", failure);
+                return null;
+            });
+        }
         if (event.getPreviousServer() != null
             && config.isGameServer(event.getPreviousServer().getServerInfo().getName())) {
             lastGameConnectMillis.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
@@ -152,6 +164,19 @@ public final class AstralRecordProxyPlugin {
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         UUID playerId = event.getPlayer().getUniqueId();
+        String currentServer = event.getPlayer().getCurrentServer()
+            .map(connection -> connection.getServerInfo().getName())
+            .orElseGet(() -> {
+                PlayerMetadata current = metadata.get(playerId);
+                return current == null ? null : current.serverId();
+            });
+        String lifecycleMessage = disconnectMessage(event.getPlayer().getUsername(), currentServer, config);
+        if (lifecycleMessage != null) {
+            api.publishLifecycleMessage(currentServer, lifecycleMessage).exceptionally(failure -> {
+                logger.warn("Failed to publish player disconnect message", failure);
+                return null;
+            });
+        }
         boolean disconnectedFromGame = event.getPlayer().getCurrentServer()
             .map(connection -> config.isGameServer(connection.getServerInfo().getName()))
             .orElseGet(() -> {
@@ -217,6 +242,9 @@ public final class AstralRecordProxyPlugin {
                 serverMspt.put(
                     connection.getServerInfo().getName().toLowerCase(Locale.ROOT),
                     new ServerMetric(metrics.mspt(), System.nanoTime()));
+            } else if (incoming instanceof BackendProtocol.PrivateChat privateChat
+                && connection.getPlayer().getUniqueId().equals(privateChat.playerId())) {
+                broadcastPrivateChat(connection.getServerInfo().getName(), privateChat);
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
@@ -239,6 +267,39 @@ public final class AstralRecordProxyPlugin {
     }
 
     /**
+     * Proxy接続またはbackend切替のDiscord通知本文を生成する。
+     *
+     * @param playerName プレイヤー名
+     * @param previousServer 切替元backend。初回接続ではnull
+     * @param currentServer 接続先backend
+     * @param config Proxy設定
+     * @return 通知本文。通知対象外ならnull
+     */
+    static String lifecycleMessage(String playerName, String previousServer, String currentServer, ProxyConfig config) {
+        if (previousServer == null) {
+            return currentServer == null ? null : playerName + "さんがサーバーに参加しました";
+        }
+        if (currentServer == null || config.isDiscordSourceServerExcluded(currentServer)) return null;
+        if (previousServer.equalsIgnoreCase(currentServer)
+            || config.isDiscordSourceServerExcluded(previousServer)) return null;
+        return playerName + "さんが" + config.channelName(previousServer)
+            + "から" + config.channelName(currentServer) + "へ接続しました";
+    }
+
+    /**
+     * Proxyからの実切断のDiscord通知本文を生成する。
+     *
+     * @param playerName プレイヤー名
+     * @param currentServer 切断元backend
+     * @param config Proxy設定
+     * @return 通知本文。通知対象外ならnull
+     */
+    static String disconnectMessage(String playerName, String currentServer, ProxyConfig config) {
+        if (currentServer == null || config.isDiscordSourceServerExcluded(currentServer)) return null;
+        return playerName + "さんがサーバーから退出しました";
+    }
+
+    /**
      * Backendから要求されたサーバー接続を検証して実行する。
      *
      * @param player 接続するプレイヤー
@@ -247,6 +308,7 @@ public final class AstralRecordProxyPlugin {
      * @param permission LobbyがAPI admissionから取得した権限
      */
     private void requestConnection(Player player, String sourceServer, String targetServer, int permission) {
+        int effectivePermission = config.isServerAuthority(player.getUniqueId()) ? 99 : permission;
         RegisteredServer target = proxy.getServer(targetServer).orElse(null);
         if (target == null || (!config.isGameServer(targetServer)
             && !targetServer.equalsIgnoreCase(config.lobbyServer()))) {
@@ -275,7 +337,7 @@ public final class AstralRecordProxyPlugin {
                 return;
             }
             ProxyConfig.ServerCapacity capacity = config.capacity(targetServer);
-            int connectionLimit = capacity.limitFor(permission);
+            int connectionLimit = capacity.limitFor(effectivePermission);
             if (connectionLimit > 0 && !reserveServerSlot(targetServer, target, connectionLimit)) {
                 pendingGameConnections.remove(player.getUniqueId());
                 player.sendMessage(Component.text("このチャンネルは満員です。", NamedTextColor.YELLOW));
@@ -355,6 +417,24 @@ public final class AstralRecordProxyPlugin {
         proxy.getAllPlayers().forEach(player -> player.sendMessage(completedMessage));
     }
 
+    /** Proxy最高権限UUIDに一致するプレイヤーだけへプライベートチャット監視を配信する。 */
+    private void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
+        Component message = Component.text("[監視] [" + config.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
+        if ("direct".equalsIgnoreCase(chat.type())) {
+            message = message.append(Component.text(
+                "[DM] " + chat.senderName() + " → " + chat.targetName() + ": ", NamedTextColor.LIGHT_PURPLE));
+        } else if ("party".equalsIgnoreCase(chat.type())) {
+            message = message.append(Component.text(
+                "[パーティー: " + chat.partyName() + "] " + chat.senderName() + ": ", NamedTextColor.AQUA));
+        } else {
+            return;
+        }
+        Component completed = message.append(Component.text(chat.message(), NamedTextColor.WHITE));
+        proxy.getAllPlayers().stream()
+            .filter(player -> config.isServerAuthority(player.getUniqueId()))
+            .forEach(player -> player.sendMessage(completed));
+    }
+
     private void pollDiscordChat() {
         if (!discordPollRunning.compareAndSet(false, true)) return;
         api.getDiscordChat(discordSequence.get()).whenComplete((batch, failure) -> {
@@ -380,6 +460,7 @@ public final class AstralRecordProxyPlugin {
     }
 
     private void refreshPresence() {
+        refreshAuthorities();
         long cooldownCutoff = System.currentTimeMillis()
             - TimeUnit.SECONDS.toMillis(config.transferCooldownSeconds());
         lastGameConnectMillis.entrySet().removeIf(entry -> entry.getValue() <= cooldownCutoff
@@ -398,6 +479,14 @@ public final class AstralRecordProxyPlugin {
         for (RegisteredServer server : proxy.getAllServers()) {
             refreshServerPresence(server);
         }
+    }
+
+    /** Proxy設定の最高権限UUID一覧をNetwork APIへ全置換送信する。 */
+    private void refreshAuthorities() {
+        api.updateAuthorities(config.serverAuthorityUsers()).exceptionally(failure -> {
+            logger.warn("Failed to synchronize server authority users", failure);
+            return null;
+        });
     }
 
     /**

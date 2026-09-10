@@ -99,4 +99,28 @@ class BackendProtocolTest {
 
         assertEquals(0, metadata.permission());
     }
+
+    @Test
+    void decodesPrivateChatMonitorMessage() throws Exception {
+        UUID playerId = UUID.randomUUID();
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("private_chat");
+            output.writeUTF(playerId.toString());
+            output.writeUTF("direct");
+            output.writeUTF("Sender");
+            output.writeUTF("Target");
+            output.writeUTF("");
+            output.writeUTF("secret");
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.PrivateChat chat = (BackendProtocol.PrivateChat) BackendProtocol.decode(payload);
+
+        assertEquals(playerId, chat.playerId());
+        assertEquals("direct", chat.type());
+        assertEquals("Target", chat.targetName());
+        assertEquals("secret", chat.message());
+    }
 }

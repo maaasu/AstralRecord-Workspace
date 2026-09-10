@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.whitelist.service;
 
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigKeys;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mockStatic;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WhitelistServiceTest {
 
@@ -84,6 +86,28 @@ class WhitelistServiceTest {
             verify(debugPlayer, never()).kick(any(Component.class));
             verify(whitelistPlayer, never()).kick(any(Component.class));
             verify(globalChatBridge).setMaintenanceMode(true);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
+     * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
+     * 検証契約: ローカルdebugUsers/whitelistUsersに未登録でもProxy最高権限UUIDはwhitelist中の接続を許可する。
+     */
+    @Test
+    void allowsProxyAuthorityDuringWhitelistMaintenance() {
+        UUID authorityId = UUID.randomUUID();
+        ConfigProperties configProperties = mock(ConfigProperties.class);
+        when(configProperties.isPluginWhitelistEnabled()).thenReturn(true);
+        when(configProperties.isDebugUser(authorityId)).thenReturn(false);
+        when(configProperties.isWhitelistUser(authorityId)).thenReturn(false);
+
+        try (MockedStatic<ConfigProperties> properties = mockStatic(ConfigProperties.class);
+             MockedStatic<NetworkAuthorityRegistry> authorities = mockStatic(NetworkAuthorityRegistry.class)) {
+            properties.when(ConfigProperties::getInstance).thenReturn(configProperties);
+            authorities.when(() -> NetworkAuthorityRegistry.isAuthority(authorityId)).thenReturn(true);
+
+            assertTrue(WhitelistService.getInstance().isAllowed(authorityId));
         }
     }
 

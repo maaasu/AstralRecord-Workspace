@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.user.command;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,7 @@ final class UserPermissionCommandAccess {
     }
 
     private static boolean isDebugUser(@NotNull Player player) {
-        return ConfigProperties.getInstance().isDebugUser(player.getUniqueId());
+        return ConfigProperties.getInstance().isDebugUser(player.getUniqueId())
+            || NetworkAuthorityRegistry.isAuthority(player.getUniqueId());
     }
 }

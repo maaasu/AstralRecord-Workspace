@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -89,5 +90,33 @@ class ProxyConfigTest {
 
         assertEquals(40, capacity.limitFor(0));
         assertEquals(40, capacity.limitFor(99));
+    }
+
+    @Test
+    void authorityUsersIgnoreInvalidValuesAndMatchUuid() throws Exception {
+        UUID authority = UUID.randomUUID();
+        Files.writeString(
+            dataDirectory.resolve("config.yml"),
+            "serverAuthorityUsers:\n  - ' " + authority + " '\n  - invalid\n  - ''\n",
+            StandardCharsets.UTF_8);
+
+        ProxyConfig config = ProxyConfig.load(dataDirectory);
+
+        assertEquals(1, config.serverAuthorityUsers().size());
+        assertTrue(config.isServerAuthority(authority));
+        assertFalse(config.isServerAuthority(UUID.randomUUID()));
+    }
+
+    @Test
+    void authoritySyncKeyIsLoadedSeparatelyFromSharedApiKey() throws Exception {
+        Files.writeString(
+            dataDirectory.resolve("config.yml"),
+            "api:\n  apiKey: shared\n  authoritySyncKey: proxy-only\n",
+            StandardCharsets.UTF_8);
+
+        ProxyConfig config = ProxyConfig.load(dataDirectory);
+
+        assertEquals("shared", config.apiKey());
+        assertEquals("proxy-only", config.authoritySyncKey());
     }
 }

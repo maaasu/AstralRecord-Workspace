@@ -53,6 +53,47 @@ public sealed class NetworkRuntimeServiceTests
     }
 
     [Fact]
+    public void ChatKindIsNormalizedAndReturned()
+    {
+        var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero));
+        var service = new NetworkRuntimeService(time);
+
+        var message = service.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "lobby", "AstralRecord", "参加しました", "LIFECYCLE"));
+
+        Assert.Equal("lifecycle", message.Kind);
+    }
+
+    [Fact]
+    public void AuthorityReplacementRemovesOldEntries()
+    {
+        var service = new NetworkRuntimeService(TimeProvider.System);
+        var oldAuthority = Guid.NewGuid();
+        var newAuthority = Guid.NewGuid();
+        service.ReplaceAuthorities(new NetworkAuthorityUpdateRequest([oldAuthority]));
+
+        var result = service.ReplaceAuthorities(new NetworkAuthorityUpdateRequest([newAuthority, newAuthority]));
+
+        Assert.False(service.IsAuthority(oldAuthority));
+        Assert.True(service.IsAuthority(newAuthority));
+        Assert.Equal([newAuthority], result);
+    }
+
+    [Fact]
+    public void AuthorityStateExpiresWithoutProxyHeartbeat()
+    {
+        var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero));
+        var service = new NetworkRuntimeService(time);
+        var authority = Guid.NewGuid();
+        service.ReplaceAuthorities(new NetworkAuthorityUpdateRequest([authority]));
+
+        time.Advance(TimeSpan.FromSeconds(31));
+
+        Assert.False(service.IsAuthority(authority));
+        Assert.Empty(service.GetAuthorities());
+    }
+
+    [Fact]
     public void ChatCursorAheadOfRestartedSequenceReadsNewMessages()
     {
         var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero));

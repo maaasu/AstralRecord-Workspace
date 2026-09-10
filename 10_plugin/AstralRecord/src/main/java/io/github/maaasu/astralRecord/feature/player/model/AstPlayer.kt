@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot
 import io.github.maaasu.astralRecord.feature.user.model.UserModel
 import io.github.maaasu.astralRecord.feature.resourcepack.service.BedrockPlayerDetector
@@ -221,14 +222,30 @@ data class AstPlayer(
     fun applyPermission(newUser: UserModel) {
         user = newUser
         isBedrock = BedrockPlayerDetector.isBedrockMcid(newUser.mcid)
-        if (newUser.permission >= OP_PERMISSION_THRESHOLD) {
+        val effectivePermission = getEffectivePermissionLevel()
+        if (effectivePermission >= OP_PERMISSION_THRESHOLD) {
             bukkit.isOp = true
-            Logger.log(LogId.I_5070, bukkit.name, newUser.permission)
-            PlayerMessageService.getInstance().send(this, PlayerMsgId.P_5070, newUser.permission)
+            Logger.log(LogId.I_5070, bukkit.name, effectivePermission)
+            PlayerMessageService.getInstance().send(this, PlayerMsgId.P_5070, effectivePermission)
         } else {
             bukkit.isOp = false
         }
     }
+
+    /**
+     * Proxy最高権限を含む現在の実効permissionにMinecraft OP状態を同期する。
+     */
+    fun refreshEffectivePermission() {
+        bukkit.isOp = getEffectivePermissionLevel() >= OP_PERMISSION_THRESHOLD
+    }
+
+    /**
+     * Proxy最高権限を反映した実効permissionを返す。
+     *
+     * @return Proxy最高権限の場合は99以上、それ以外はuser.permission
+     */
+    fun getEffectivePermissionLevel(): Int =
+        NetworkAuthorityRegistry.effectivePermission(bukkit.uniqueId, user.permission)
 
     /**
      * 指定した権限レベル以上を保持しているか判定する。
@@ -237,12 +254,12 @@ data class AstPlayer(
      * @return 現在の user.permission が要求値以上なら true
      */
     fun hasPermissionLevel(requiredPermissionLevel: Int): Boolean =
-        user.permission >= requiredPermissionLevel
+        getEffectivePermissionLevel() >= requiredPermissionLevel
 
     /**
      * 管理者権限を保持しているか判定する。
      *
-     * @return user.permission が 99 以上なら true
+     * @return user.permission またはProxy最高権限が 99 以上なら true
      */
     fun hasAdminPermission(): Boolean = hasPermissionLevel(OP_PERMISSION_THRESHOLD)
 

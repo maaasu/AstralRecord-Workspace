@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordlobby;
 
 import github.scarsz.discordsrv.DiscordSRV;
+import github.scarsz.configuralize.DynamicConfig;
 import github.scarsz.discordsrv.api.ListenerPriority;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.events.DiscordGuildMessagePreProcessEvent;
@@ -14,6 +15,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 final class DiscordNetworkBridge {
+    private static final java.util.List<String> PLAYER_LIFECYCLE_KEYS = java.util.List.of(
+        "MinecraftPlayerJoinMessage.Enabled",
+        "MinecraftPlayerFirstJoinMessage.Enabled",
+        "MinecraftPlayerLeaveMessage.Enabled"
+    );
     private final AstralRecordLobbyPlugin plugin;
     private final LobbyApiClient api;
     private final AtomicBoolean polling = new AtomicBoolean();
@@ -61,6 +67,7 @@ final class DiscordNetworkBridge {
                 if (subscribed) return;
                 channelWarningLogged = false;
                 gameChannelId = destination.getId();
+                suppressStandardPlayerLifecycleMessages(DiscordSRV.config());
                 DiscordSRV.api.subscribe(this);
                 subscribed = true;
                 initializationWarningLogged = false;
@@ -178,8 +185,10 @@ final class DiscordNetworkBridge {
                 }
                 for (LobbyApiClient.ChatMessage message : batch.messages()) {
                     if (!isActive(generation)) return;
-                    DiscordUtil.sendMessage(destination,
-                        "[" + message.sourceServerId() + "] " + message.authorName() + ": " + message.message());
+                    String formatted = "lifecycle".equalsIgnoreCase(message.kind())
+                        ? message.message()
+                        : "[" + message.sourceServerId() + "] " + message.authorName() + ": " + message.message();
+                    DiscordUtil.sendMessage(destination, formatted);
                     if (!isActive(generation)) return;
                     minecraftSequence.set(message.sequence());
                 }
@@ -195,5 +204,17 @@ final class DiscordNetworkBridge {
 
     private boolean isActive(long generation) {
         return subscribed && lifecycleGeneration.get() == generation;
+    }
+
+    /**
+     * Proxyがネットワーク単位の通知を送るため、Lobby単位のDiscordSRV参加・退出通知を停止する。
+     *
+     * @param config DiscordSRVの動的設定
+     */
+    @SuppressWarnings("deprecation")
+    static void suppressStandardPlayerLifecycleMessages(DynamicConfig config) {
+        for (String key : PLAYER_LIFECYCLE_KEYS) {
+            config.setRuntimeValue(key, false);
+        }
     }
 }

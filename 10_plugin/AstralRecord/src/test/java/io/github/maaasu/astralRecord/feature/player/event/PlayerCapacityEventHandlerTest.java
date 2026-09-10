@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -16,6 +17,7 @@ import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mockStatic;
 
 class PlayerCapacityEventHandlerTest {
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
@@ -56,6 +59,32 @@ class PlayerCapacityEventHandlerTest {
                 PLAIN_TEXT.serialize(PlayerMsgResource.getComponent(PlayerMsgId.P_7140.getId())),
                 PLAIN_TEXT.serialize(messageCaptor.getValue())
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
+     * 検証契約: Proxy最高権限UUIDの接続前人数判定には保存permissionではなく実効permission 99を使用する。
+     */
+    @Test
+    void reservesAdminCapacityForProxyAuthority() {
+        UUID playerUuid = UUID.randomUUID();
+        UserService userService = mock(UserService.class);
+        PlayerCapacityService capacityService = mock(PlayerCapacityService.class);
+        UserModel user = mock(UserModel.class);
+        AsyncPlayerPreLoginEvent event = mock(AsyncPlayerPreLoginEvent.class);
+        when(event.getLoginResult()).thenReturn(AsyncPlayerPreLoginEvent.Result.ALLOWED);
+        when(event.getUniqueId()).thenReturn(playerUuid);
+        when(userService.getUser(playerUuid)).thenReturn(user);
+        when(user.getPermission()).thenReturn(UserPermission.PLAYER.getValue());
+        try (MockedStatic<NetworkAuthorityRegistry> authorities = mockStatic(NetworkAuthorityRegistry.class)) {
+            authorities.when(() -> NetworkAuthorityRegistry.effectivePermission(
+                playerUuid, UserPermission.PLAYER.getValue())).thenReturn(UserPermission.ADMIN.getValue());
+
+            new PlayerCapacityEventHandler(userService, capacityService).onAsyncPreLogin(event);
+        }
+
+        verify(capacityService).tryReserve(playerUuid, UserPermission.ADMIN.getValue());
     }
 
     /**

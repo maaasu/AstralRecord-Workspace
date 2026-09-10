@@ -16,6 +16,7 @@
 - `ConnectionStrings:MasterData`: MasterDataDB 接続文字列
 - `ConnectionStrings:History`: HistoryDB 接続文字列
 - `FileDatabase:RootPath`: 静的データファイルのルートパス
+- `Network:AuthoritySyncKey`: Proxyだけが最高権限UUID一覧をPUTするための専用キー
 
 ## API 実装ルール
 
@@ -143,6 +144,8 @@
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/network/admissions/{uuid}` | Lobby参加可否・権限取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
 | GET `/api/network/servers` | サーバー人数・権限別定員一覧取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
+| PUT / GET `/api/network/authorities` | Proxy最高権限UUIDの同期・取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
+| POST / GET `/api/network/chat` | Minecraft／Discordチャット・接続通知の短期中継 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
 
 ## テスト運用ルール
 

@@ -2,6 +2,8 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AstralRecordApi.Controllers;
 
@@ -11,8 +13,10 @@ namespace AstralRecordApi.Controllers;
 public sealed class NetworkController(
     IUserRepository userRepository,
     INetworkRuntimeService runtimeService,
-    TimeProvider timeProvider) : ControllerBase
+    TimeProvider timeProvider,
+    IConfiguration configuration) : ControllerBase
 {
+    private const string AuthoritySyncHeader = "X-Authority-Sync-Key";
     [HttpGet("admissions/{uuid:guid}")]
     [ProducesResponseType<NetworkAdmissionResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdmission(Guid uuid)
@@ -22,7 +26,8 @@ public sealed class NetworkController(
         if (user is null)
         {
             return Ok(new NetworkAdmissionResponse(
-                uuid, string.Empty, false, true, null, 0, false, null, null,
+                uuid, string.Empty, false, true, null, runtimeService.IsAuthority(uuid) ? 99 : 0,
+                false, null, null,
                 timeProvider.GetUtcNow().UtcDateTime));
         }
 
@@ -33,7 +38,7 @@ public sealed class NetworkController(
             true,
             !banned,
             banned ? "banned" : null,
-            user.Permission,
+            runtimeService.IsAuthority(uuid) ? 99 : user.Permission,
             user.BanIndefinite,
             user.BanDate,
             user.AccountId,
@@ -96,6 +101,7 @@ public sealed class NetworkController(
             || string.IsNullOrWhiteSpace(request.SourceServerId)
             || string.IsNullOrWhiteSpace(request.AuthorName)
             || string.IsNullOrWhiteSpace(request.Message)
+            || request.Kind is not ("chat" or "lifecycle")
             || request.AuthorName.Length > 64 || request.Message.Length > 512)
             return BadRequest();
 
@@ -109,5 +115,40 @@ public sealed class NetworkController(
         if (afterSequence < 0 || source is not null && source is not ("minecraft" or "discord"))
             return BadRequest();
         return Ok(runtimeService.GetChatAfter(afterSequence, source));
+    }
+
+    /// <summary>Proxy設定を正本とするサーバー最高権限UUID一覧を置き換えます。</summary>
+    [HttpPut("authorities")]
+    [ProducesResponseType<IReadOnlyList<Guid>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult ReplaceAuthorities([FromBody] NetworkAuthorityUpdateRequest request)
+    {
+        if (!HasAuthoritySyncCredential())
+            return Unauthorized();
+        if (request.Uuids is null || request.Uuids.Any(uuid => uuid == Guid.Empty))
+            return BadRequest();
+        return Ok(runtimeService.ReplaceAuthorities(request));
+    }
+
+    /// <summary>現在のサーバー最高権限UUID一覧を返します。</summary>
+    [HttpGet("authorities")]
+    [ProducesResponseType<IReadOnlyList<Guid>>(StatusCodes.Status200OK)]
+    public IActionResult GetAuthorities() => Ok(runtimeService.GetAuthorities());
+
+    private bool HasAuthoritySyncCredential()
+    {
+        var expected = configuration["Network:AuthoritySyncKey"];
+        var sharedApiKey = configuration["ApiKey:Key"];
+        var provided = Request.Headers[AuthoritySyncHeader].FirstOrDefault();
+        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(provided))
+            return false;
+        if (!string.IsNullOrEmpty(sharedApiKey)
+            && string.Equals(expected, sharedApiKey, StringComparison.Ordinal))
+            return false;
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        return expectedBytes.Length == providedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 }

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.spawner.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
@@ -12,11 +13,16 @@ import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
+import org.bukkit.entity.Player;
+import org.mockito.MockedStatic;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mockStatic;
 
 class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
@@ -93,6 +99,32 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
         assertTrue(service.canViewSpawnerVisual(futurePermissionPlayer));
         assertFalse(service.canRemoveSpawner(futurePermissionPlayer));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
+     * 検証契約: Proxy最高権限UUIDは保存permissionが0でもAccountMode.ADMIN時にMob spawnerを削除できる。
+     */
+    @Test
+    void proxyAuthorityCanRemoveSpawnerInAdminAccountMode() {
+        MobSpawnerService service = service();
+        AstPlayer authority = playerWithPermission(UserPermission.PLAYER.getValue());
+        Player bukkit = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        AccountModel adminAccount = mock(AccountModel.class);
+        when(authority.getBukkit()).thenReturn(bukkit);
+        when(bukkit.getUniqueId()).thenReturn(playerId);
+        when(authority.getAccount()).thenReturn(adminAccount);
+        when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
+
+        try (MockedStatic<NetworkAuthorityRegistry> authorities = mockStatic(NetworkAuthorityRegistry.class)) {
+            authorities.when(() -> NetworkAuthorityRegistry.isAuthority(playerId)).thenReturn(true);
+
+            assertTrue(service.canRemoveSpawner(authority));
+        }
     }
 
     private AstPlayer playerWithPermission(int permission) {

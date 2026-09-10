@@ -57,7 +57,8 @@ public sealed record NetworkChatPublishRequest(
     string Source,
     string SourceServerId,
     string AuthorName,
-    string Message);
+    string Message,
+    string Kind = "chat");
 
 public sealed record NetworkChatMessageResponse(
     long Sequence,
@@ -66,8 +67,12 @@ public sealed record NetworkChatMessageResponse(
     string SourceServerId,
     string AuthorName,
     string Message,
+    string Kind,
     DateTime CreatedAtUtc);
 
 public sealed record NetworkChatBatchResponse(
     Guid GenerationId,
     IReadOnlyList<NetworkChatMessageResponse> Messages);
+
+public sealed record NetworkAuthorityUpdateRequest(
+    IReadOnlyList<Guid> Uuids);

@@ -369,9 +369,15 @@ public final class PlayerMessageService {
      *
      * @param recipients 受信者一覧
      * @param sender 発言者
+     * @param partyName 監視表示に使うパーティー識別名
      * @param message チャット本文
      */
-    public void broadcastPartyChat(@NotNull Collection<Player> recipients, @NotNull Player sender, @NotNull String message) {
+    public void broadcastPartyChat(
+        @NotNull Collection<Player> recipients,
+        @NotNull Player sender,
+        @NotNull String partyName,
+        @NotNull String message
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(sender);
         String displayName = astPlayer == null
             ? sender.getName()
@@ -389,6 +395,10 @@ public final class PlayerMessageService {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
             }
+        }
+        NetworkChatBridge bridge = networkChatBridge;
+        if (bridge != null) {
+            bridge.publishPartyMessage(sender, displayName, partyName, message);
         }
     }
 
@@ -438,6 +448,10 @@ public final class PlayerMessageService {
         }
         if (target.isOnline()) {
             target.sendMessage(received);
+        }
+        NetworkChatBridge bridge = networkChatBridge;
+        if (bridge != null) {
+            bridge.publishDirectMessage(sender, senderDisplayName, targetDisplayName, message);
         }
     }
 

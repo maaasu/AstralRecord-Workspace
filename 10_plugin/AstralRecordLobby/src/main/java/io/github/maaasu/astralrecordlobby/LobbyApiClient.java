@@ -78,7 +78,8 @@ final class LobbyApiClient {
                 value.get("sequence").getAsLong(),
                 value.get("sourceServerId").getAsString(),
                 value.get("authorName").getAsString(),
-                value.get("message").getAsString()));
+                value.get("message").getAsString(),
+                value.has("kind") ? value.get("kind").getAsString() : "chat"));
         });
         return new ChatBatch(generationId, messages);
     }
@@ -202,7 +203,7 @@ final class LobbyApiClient {
     record Admission(boolean admitted, int permission, String denyReason) {
     }
 
-    record ChatMessage(long sequence, String sourceServerId, String authorName, String message) {
+    record ChatMessage(long sequence, String sourceServerId, String authorName, String message, String kind) {
     }
 
     record ChatBatch(String generationId, List<ChatMessage> messages) {

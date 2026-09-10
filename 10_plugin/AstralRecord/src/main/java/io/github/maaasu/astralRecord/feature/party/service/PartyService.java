@@ -398,7 +398,8 @@ public final class PartyService {
     }
 
     /**
-     * 指定プレイヤーのパーティーチャットを、パーティーメンバーと管理者へ配信します。
+     * 指定プレイヤーのパーティーチャットをパーティーメンバーへ配信し、
+     * Proxy最高権限ユーザー向け監視経路へ転送します。
      *
      * @param sender 発言者
      * @param message チャット本文
@@ -419,14 +420,12 @@ public final class PartyService {
                 recipients.put(member.getUniqueId(), member);
             }
         }
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            AstPlayer onlineAstPlayer = AstPlayerCache.get(onlinePlayer);
-            if (onlineAstPlayer != null && onlineAstPlayer.hasAdminPermission()) {
-                recipients.putIfAbsent(onlinePlayer.getUniqueId(), onlinePlayer);
-            }
-        }
-
-        PlayerMessageService.getInstance().broadcastPartyChat(recipients.values(), sender, message);
+        Player leader = Bukkit.getPlayer(party.getLeaderId());
+        String partyName = leader == null
+            ? party.getPartyId().toString()
+            : leader.getName() + "のパーティー";
+        PlayerMessageService.getInstance().broadcastPartyChat(
+            recipients.values(), sender, partyName, message);
     }
 
     /**

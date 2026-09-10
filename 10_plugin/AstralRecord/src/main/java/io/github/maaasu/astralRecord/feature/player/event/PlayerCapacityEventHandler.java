@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -61,6 +62,7 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
         int permission = user == null
                 ? UserPermission.PLAYER.getValue()
                 : user.getPermission();
+        permission = NetworkAuthorityRegistry.effectivePermission(playerUuid, permission);
         if (!playerCapacityService.tryReserve(playerUuid, permission)) {
             event.disallow(
                     AsyncPlayerPreLoginEvent.Result.KICK_FULL,

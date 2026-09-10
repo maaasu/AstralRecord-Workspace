@@ -15,6 +15,7 @@ import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -28,11 +29,13 @@ final class NetworkApiClient {
     private final Gson gson = new Gson();
     private final String baseUrl;
     private final String apiKey;
+    private final String authoritySyncKey;
     private final Duration timeout;
 
     NetworkApiClient(ProxyConfig config) {
         baseUrl = config.apiBaseUrl().replaceAll("/+$", "");
         apiKey = config.apiKey();
+        authoritySyncKey = config.authoritySyncKey();
         timeout = Duration.ofMillis(Math.max(500, config.apiTimeoutMillis()));
         HttpClient.Builder builder = HttpClient.newBuilder()
             .connectTimeout(timeout)
@@ -95,7 +98,41 @@ final class NetworkApiClient {
         body.addProperty("sourceServerId", sourceServerId);
         body.addProperty("authorName", chat.displayName());
         body.addProperty("message", chat.message());
+        body.addProperty("kind", "chat");
         return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
+    }
+
+    /**
+     * Minecraft由来のネットワーク接続通知を登録する。
+     *
+     * @param sourceServerId 通知発生元backend
+     * @param message Discordへ表示する本文
+     * @return API送信完了future
+     */
+    CompletableFuture<Void> publishLifecycleMessage(String sourceServerId, String message) {
+        JsonObject body = new JsonObject();
+        body.addProperty("messageId", UUID.randomUUID().toString());
+        body.addProperty("source", "minecraft");
+        body.addProperty("sourceServerId", sourceServerId);
+        body.addProperty("authorName", "AstralRecord");
+        body.addProperty("message", message);
+        body.addProperty("kind", "lifecycle");
+        return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
+    }
+
+    /**
+     * Proxy設定の最高権限UUID一覧をAPIへ全置換送信する。
+     *
+     * @param authorityUsers 最高権限UUID集合
+     * @return API送信完了future
+     */
+    CompletableFuture<Void> updateAuthorities(Set<UUID> authorityUsers) {
+        JsonObject body = new JsonObject();
+        JsonArray uuids = new JsonArray();
+        authorityUsers.stream().map(UUID::toString).sorted().forEach(uuids::add);
+        body.add("uuids", uuids);
+        return send("PUT", "/api/network/authorities", body.toString(), authoritySyncKey)
+            .thenApply(ignored -> null);
     }
 
     CompletableFuture<DiscordChatBatch> getDiscordChat(long afterSequence) {
@@ -119,10 +156,17 @@ final class NetworkApiClient {
     }
 
     private CompletableFuture<String> send(String method, String path, String body) {
+        return send(method, path, body, null);
+    }
+
+    private CompletableFuture<String> send(String method, String path, String body, String syncKey) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(timeout)
             .header("X-Api-Key", apiKey)
             .header("Accept", "application/json");
+        if (syncKey != null && !syncKey.isBlank()) {
+            builder.header("X-Authority-Sync-Key", syncKey);
+        }
         if (body == null) {
             builder.method(method, HttpRequest.BodyPublishers.noBody());
         } else {

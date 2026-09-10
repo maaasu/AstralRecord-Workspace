@@ -11,4 +11,7 @@ public interface INetworkRuntimeService
     IReadOnlyList<NetworkServerPresenceResponse> GetServers();
     NetworkChatMessageResponse PublishChat(NetworkChatPublishRequest request);
     NetworkChatBatchResponse GetChatAfter(long afterSequence, string? source);
+    IReadOnlyList<Guid> ReplaceAuthorities(NetworkAuthorityUpdateRequest request);
+    IReadOnlyList<Guid> GetAuthorities();
+    bool IsAuthority(Guid uuid);
 }

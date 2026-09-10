@@ -40,7 +40,7 @@ final class BackendProtocol {
             output.writeInt(player.getClassLevel());
             output.writeUTF(className);
             output.writeBoolean(afk);
-            output.writeInt(player.getUser().getPermission());
+            output.writeInt(player.getEffectivePermissionLevel());
         });
     }
 
@@ -106,6 +106,37 @@ final class BackendProtocol {
         send(plugin, player, output -> {
             output.writeUTF("server_metrics");
             output.writeDouble(mspt);
+        });
+    }
+
+    /**
+     * プライベートチャットの監視情報をProxyへ送る。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player Proxy接続に利用する発言者
+     * @param type directまたはparty
+     * @param senderName 発言者表示名
+     * @param targetName DM受信者表示名。partyでは空文字
+     * @param partyName party識別名。DMでは空文字
+     * @param message 本文
+     */
+    static void sendPrivateChat(
+        @NotNull Plugin plugin,
+        @NotNull Player player,
+        @NotNull String type,
+        @NotNull String senderName,
+        @NotNull String targetName,
+        @NotNull String partyName,
+        @NotNull String message
+    ) {
+        send(plugin, player, output -> {
+            output.writeUTF("private_chat");
+            output.writeUTF(player.getUniqueId().toString());
+            output.writeUTF(type);
+            output.writeUTF(senderName);
+            output.writeUTF(targetName);
+            output.writeUTF(partyName);
+            output.writeUTF(message);
         });
     }
 

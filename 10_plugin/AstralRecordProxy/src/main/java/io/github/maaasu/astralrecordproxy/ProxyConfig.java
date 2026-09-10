@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 record ProxyConfig(
     String lobbyServer,
@@ -21,10 +24,12 @@ record ProxyConfig(
     long presenceHeartbeatSeconds,
     String apiBaseUrl,
     String apiKey,
+    String authoritySyncKey,
     int apiTimeoutMillis,
     long discordPollMillis,
     boolean allowInsecureTls,
-    List<String> discordExcludedSourceServers
+    List<String> discordExcludedSourceServers,
+    Set<UUID> serverAuthorityUsers
 ) {
     static ProxyConfig load(Path dataDirectory) throws IOException {
         Files.createDirectories(dataDirectory);
@@ -65,10 +70,12 @@ record ProxyConfig(
             Math.max(5L, number(root, "presenceHeartbeatSeconds", 10L)),
             text(api, "baseUrl", "http://127.0.0.1:5261"),
             text(api, "apiKey", ""),
+            text(api, "authoritySyncKey", ""),
             (int) number(api, "timeoutMillis", 3000L),
             Math.max(250L, number(api, "discordPollMillis", 500L)),
             bool(api, "allowInsecureTls", false),
-            textList(discord, "excludedSourceServers")
+            textList(discord, "excludedSourceServers"),
+            uuidSet(root, "serverAuthorityUsers")
         );
     }
 
@@ -83,6 +90,11 @@ record ProxyConfig(
     boolean isDiscordSourceServerExcluded(String serverId) {
         return serverId != null
             && discordExcludedSourceServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
+    }
+
+    /** 指定UUIDがProxy最高権限設定に含まれる場合trueを返す。 */
+    boolean isServerAuthority(UUID playerId) {
+        return playerId != null && serverAuthorityUsers.contains(playerId);
     }
 
     ServerCapacity capacity(String serverId) {
@@ -136,6 +148,20 @@ record ProxyConfig(
             .map(String::trim)
             .filter(item -> !item.isEmpty())
             .toList();
+    }
+
+    /** UUIDリスト設定を解析し、空値と不正値を除外した集合を返す。 */
+    private static Set<UUID> uuidSet(Map<String, Object> source, String key) {
+        return textList(source, key).stream()
+            .map(value -> {
+                try {
+                    return UUID.fromString(value);
+                } catch (IllegalArgumentException ignored) {
+                    return null;
+                }
+            })
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     /**

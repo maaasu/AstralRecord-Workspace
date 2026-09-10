@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.whitelist.service;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigKeys;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -48,12 +49,13 @@ public final class WhitelistService {
      * whitelist 有効時に接続を許可する UUID か判定します。
      *
      * @param playerUuid 判定対象 UUID
-     * @return whitelist が無効、または debugUsers / whitelistUsers のいずれかに含まれる場合は {@code true}
+     * @return whitelistが無効、またはdebugUsers / whitelistUsers / Proxy最高権限のいずれかならtrue
      */
     public boolean isAllowed(@Nullable UUID playerUuid) {
         return !isEnabled()
             || ConfigProperties.getInstance().isDebugUser(playerUuid)
-            || ConfigProperties.getInstance().isWhitelistUser(playerUuid);
+            || ConfigProperties.getInstance().isWhitelistUser(playerUuid)
+            || NetworkAuthorityRegistry.isAuthority(playerUuid);
     }
 
     /**
@@ -72,7 +74,7 @@ public final class WhitelistService {
     /**
      * whitelist 状態を変更して config.yml へ保存します。
      * このメソッドはサーバーのメインスレッドから呼び出してください。
-     * 有効化時は debugUsers / whitelistUsers のいずれにも含まれない接続中プレイヤーを即時にキックします。
+     * 有効化時はdebugUsers / whitelistUsers / Proxy最高権限のいずれにも含まれない接続中プレイヤーを即時にキックします。
      *
      * @param enabled 更新後の状態
      * @throws IllegalStateException メインスレッド以外から呼び出した場合

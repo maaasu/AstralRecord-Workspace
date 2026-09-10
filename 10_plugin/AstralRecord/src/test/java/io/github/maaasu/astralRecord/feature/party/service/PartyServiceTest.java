@@ -270,10 +270,10 @@ class PartyServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_2-ユースケース.md
      * 章・見出し: # 19_2-ユースケース > ## UC-19-05 party chat
-     * 検証契約: パーティーチャットは party member と party 外の Admin へ配信し、通常プレイヤーには配信しない。
+     * 検証契約: パーティーチャットのローカル受信者はparty memberだけとし、権限99の自動追加を廃止する。
      */
     @Test
-    void broadcastsPartyChatToMembersAndAdmins() {
+    void broadcastsPartyChatOnlyToMembers() {
         AstralRecord plugin = mock(AstralRecord.class);
         UserService userService = mock(UserService.class);
         Server server = mock(Server.class);
@@ -294,6 +294,7 @@ class PartyServiceTest {
         when(plugin.getServer()).thenReturn(server);
         when(server.getScheduler()).thenReturn(scheduler);
         when(sender.getUniqueId()).thenReturn(senderId);
+        when(sender.getName()).thenReturn("Sender");
         when(member.getUniqueId()).thenReturn(memberId);
         when(admin.getUniqueId()).thenReturn(adminId);
         when(regular.getUniqueId()).thenReturn(regularId);
@@ -324,9 +325,10 @@ class PartyServiceTest {
         }
 
         verify(messageService).broadcastPartyChat(
-            argThat(recipients -> recipients.size() == 3
-                && recipients.containsAll(java.util.Set.of(sender, member, admin))),
+            argThat(recipients -> recipients.size() == 2
+                && recipients.containsAll(java.util.Set.of(sender, member))),
             eq(sender),
+            eq("Senderのパーティー"),
             eq("hello")
         );
     }

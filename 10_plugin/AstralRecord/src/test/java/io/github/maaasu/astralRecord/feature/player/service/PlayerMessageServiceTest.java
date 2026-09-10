@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.network.NetworkChatBridge;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -202,7 +203,7 @@ class PlayerMessageServiceTest {
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(sender)).thenReturn(astPlayer);
 
-            service.broadcastPartyChat(Set.of(recipient), sender, "party");
+            service.broadcastPartyChat(Set.of(recipient), sender, "Aliceのパーティー", "party");
 
             assertEquals(
                 "[パーティー] [Lv.12] Alice#0: party",
@@ -256,6 +257,30 @@ class PlayerMessageServiceTest {
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
+     * 検証契約: DM監視には送信者・受信者、party監視にはparty識別名をProxyへ渡す。
+     */
+    @Test
+    void privateChatsPublishIdentifiableMonitorMessages() {
+        Player sender = onlinePlayer();
+        Player target = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        when(target.getName()).thenReturn("Bob");
+        NetworkChatBridge bridge = mock(NetworkChatBridge.class);
+        PlayerMessageService service = new PlayerMessageService();
+        service.setNetworkChatBridge(bridge);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            service.sendDirectMessage(sender, target, "direct");
+            service.broadcastPartyChat(Set.of(sender), sender, "Aliceのパーティー", "party");
+        }
+
+        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", "direct");
+        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", "party");
     }
 
     /**
