@@ -78,12 +78,13 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     [Fact]
-    public async Task SaveAsync_RejectsInventoryWhenExpectedEntrySetOmitsConcurrentAddition()
+    public async Task SaveAsync_PreservesUnchangedEntryWhenDeltaOmitsIt()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();
+        var untouchedEntryId = Guid.NewGuid();
         fixture.DbContext.InventoryEntries.Add(new InventoryEntryEntity
         {
-            InventoryEntryId = Guid.NewGuid(),
+            InventoryEntryId = untouchedEntryId,
             InventoryId = fixture.FirstInventoryId,
             ItemCategory = "CURRENCY",
             ItemId = "silver",
@@ -98,8 +99,10 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         var result = await new PlayerStateSnapshotRepository(fixture.DbContext)
             .SaveAsync(fixture.CreateMoveRequest(Guid.NewGuid()));
 
-        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
-        Assert.Contains("baseline", result.Detail!, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.Succeeded, result.Detail);
+        var untouched = await fixture.DbContext.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == untouchedEntryId);
+        Assert.False(untouched.IsDeleted);
+        Assert.Equal(fixture.FirstInventoryId, untouched.InventoryId);
     }
 
     [Fact]

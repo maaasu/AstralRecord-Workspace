@@ -11,11 +11,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +43,12 @@ public final class PlayerInventoryState {
     private final List<EquipmentLoadoutModel> loadouts = new ArrayList<>();
     /** metadataJson の API 保存が必要な inventoryId。 */
     private final Set<UUID> dirtyMetadataInventoryIds = new HashSet<>();
+    /** entry または metadata の差分を持つ inventoryId。 */
+    private final Set<UUID> dirtyInventoryIds = new HashSet<>();
+    /** inventory ごとの変更・削除候補 entry ID。 */
+    private final Map<UUID, Set<UUID>> dirtyEntryIdsByInventoryId = new HashMap<>();
+    /** slot 差分を持つ loadoutId。 */
+    private final Set<UUID> dirtyLoadoutIds = new HashSet<>();
 
     /** GUI 表示中のインベントリ種別。所持品統合後は BAG 固定。非永続。 */
     private @NotNull InventoryType displayedType = InventoryType.BAG;
@@ -221,6 +229,7 @@ public final class PlayerInventoryState {
             );
             inventories.set(i, updated);
             dirtyMetadataInventoryIds.add(inventoryId);
+            dirtyInventoryIds.add(inventoryId);
             markDirty();
             return updated;
         }
@@ -243,6 +252,29 @@ public final class PlayerInventoryState {
             }
         }
         return List.copyOf(result);
+    }
+
+    /** 差分保存が必要な inventory ID を返します。 */
+    synchronized @NotNull Set<UUID> snapshotDirtyInventoryIds() {
+        return Set.copyOf(dirtyInventoryIds);
+    }
+
+    /** 差分保存が必要な loadout ID を返します。 */
+    synchronized @NotNull Set<UUID> snapshotDirtyLoadoutIds() {
+        return Set.copyOf(dirtyLoadoutIds);
+    }
+
+    /** 指定 inventory で変更または削除された entry ID を返します。 */
+    synchronized @NotNull Set<UUID> snapshotDirtyEntryIds(@NotNull UUID inventoryId) {
+        return Set.copyOf(dirtyEntryIdsByInventoryId.getOrDefault(inventoryId, Set.of()));
+    }
+
+    /** ACK 済み snapshot の領域だけを dirty 集合から除去します。 */
+    synchronized void acknowledgeDirtyScopes(@NotNull Collection<UUID> inventoryIds,
+                                             @NotNull Collection<UUID> loadoutIds) {
+        dirtyInventoryIds.removeAll(inventoryIds);
+        inventoryIds.forEach(dirtyEntryIdsByInventoryId::remove);
+        dirtyLoadoutIds.removeAll(loadoutIds);
     }
 
     /**
@@ -279,7 +311,17 @@ public final class PlayerInventoryState {
         @NotNull UUID inventoryId,
         @NotNull List<InventoryEntryModel> entries
     ) {
+        List<InventoryEntryModel> previous = entriesByInventoryId.getOrDefault(inventoryId, List.of());
+        Map<UUID, InventoryEntryModel> previousById = new HashMap<>();
+        previous.forEach(entry -> previousById.put(entry.getInventoryEntryId(), entry));
+        Map<UUID, InventoryEntryModel> nextById = new HashMap<>();
+        entries.forEach(entry -> nextById.put(entry.getInventoryEntryId(), entry));
+        Set<UUID> changed = new HashSet<>(previousById.keySet());
+        changed.addAll(nextById.keySet());
+        changed.removeIf(entryId -> Objects.equals(previousById.get(entryId), nextById.get(entryId)));
+        dirtyEntryIdsByInventoryId.computeIfAbsent(inventoryId, ignored -> new HashSet<>()).addAll(changed);
         entriesByInventoryId.put(inventoryId, new ArrayList<>(entries));
+        dirtyInventoryIds.add(inventoryId);
         markDirty();
     }
 
@@ -717,6 +759,7 @@ public final class PlayerInventoryState {
             active.isDeleted()
         );
         putLoadout(updated);
+        dirtyLoadoutIds.add(active.getEquipmentLoadoutId());
         markDirty();
     }
 

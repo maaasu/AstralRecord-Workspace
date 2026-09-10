@@ -159,14 +159,8 @@ public sealed class PlayerStateSnapshotRepository(
         foreach (var inventorySnapshot in request.Inventories)
         {
             var inventory = inventoriesById[inventorySnapshot.InventoryId];
-            var currentEntries = accountEntries.Where(entry => entry.InventoryId == inventory.InventoryId && !entry.IsDeleted)
-                .OrderBy(entry => entry.InventoryEntryId).ToArray();
-            var expectedEntries = inventorySnapshot.ExpectedEntries.OrderBy(entry => entry.InventoryEntryId).ToArray();
-            if (expectedEntries.GroupBy(entry => entry.InventoryEntryId).Any(group => group.Count() != 1)
-                || currentEntries.Length != expectedEntries.Length
-                || currentEntries.Zip(expectedEntries).Any(pair =>
-                    pair.First.InventoryEntryId != pair.Second.InventoryEntryId
-                    || pair.First.UpdatedAt != pair.Second.UpdatedAt))
+            if (inventorySnapshot.ExpectedEntries.Any(expected => !entriesById.TryGetValue(expected.InventoryEntryId, out var entry)
+                    || entry.InventoryId != inventory.InventoryId || entry.IsDeleted || entry.UpdatedAt != expected.UpdatedAt))
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry baseline snapshot is stale.");
             if (inventorySnapshot.MetadataDirty && !inventorySnapshot.IsNew)
             {
@@ -199,6 +193,10 @@ public sealed class PlayerStateSnapshotRepository(
                     return Failure(PlayerStateSnapshotSaveFailure.Invalid, "New inventory entry must not specify expectedUpdatedAt.");
                 }
             }
+            if (inventorySnapshot.DeletedEntryIds.Any(entryId => !expectedEntriesById.ContainsKey(entryId)
+                    || request.Inventories.SelectMany(snapshot => snapshot.Entries)
+                        .Any(entry => entry.InventoryEntryId == entryId)))
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "Deleted inventory entry is not an expected baseline row.");
         }
 
         var equipmentById = request.Equipment.Count == 0
@@ -212,9 +210,13 @@ public sealed class PlayerStateSnapshotRepository(
         if (!loadoutResult)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Loadout ownership or expectedUpdatedAt conflict.");
 
-        var entriesToDisable = accountEntries
-            .Where(entry => !entry.IsDeleted && request.Inventories.Any(snapshot => snapshot.InventoryId == entry.InventoryId))
-            .Concat(requestedEntryIds.Select(entryId => entriesById.GetValueOrDefault(entryId)).OfType<InventoryEntryEntity>())
+        var requestedEntries = request.Inventories.SelectMany(snapshot => snapshot.Entries
+            .Select(entry => (snapshot.InventoryId, Entry: entry))).ToArray();
+        var entriesToDisable = requestedEntries
+            .Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId))
+            .OfType<InventoryEntryEntity>()
+            .Where(entry => !entry.IsDeleted && requestedEntries.Any(value => value.Entry.InventoryEntryId == entry.InventoryEntryId
+                && (entry.InventoryId != value.InventoryId || entry.SlotIndex != value.Entry.SlotIndex)))
             .DistinctBy(entry => entry.InventoryEntryId)
             .ToArray();
         foreach (var entry in entriesToDisable)
@@ -225,6 +227,14 @@ public sealed class PlayerStateSnapshotRepository(
         }
         if (entriesToDisable.Length > 0)
             await dbContext.SaveChangesAsync();
+
+        foreach (var entryId in request.Inventories.SelectMany(snapshot => snapshot.DeletedEntryIds))
+        {
+            var entry = entriesById[entryId];
+            entry.IsDeleted = true;
+            entry.UpdatedAt = AdvanceUpdatedAt(entry.UpdatedAt, now);
+            entry.UpdatedBy = request.UpdatedBy;
+        }
 
         foreach (var inventorySnapshot in request.Inventories)
         {
@@ -1669,12 +1679,14 @@ public sealed class PlayerStateSnapshotRepository(
     {
         detail = "Snapshot structure is invalid.";
         if (request.Inventories is null || request.Loadouts is null || request.Equipment is null
-            || request.Inventories.Any(i => i is null || i.ExpectedEntries is null || i.Entries is null)
+            || request.Inventories.Any(i => i is null || i.ExpectedEntries is null || i.DeletedEntryIds is null || i.Entries is null)
             || request.Loadouts.Any(l => l is null || l.Slots is null)
             || request.Equipment.Any(e => e is null || e.StatRolls is null || e.Enchants is null || e.Runes is null))
             return false;
         if (request.Inventories.Any(i => !IsValidInventorySnapshot(i)
                 || i.ExpectedEntries.Any(e => e is null || e.InventoryEntryId == Guid.Empty)
+                || i.DeletedEntryIds.Any(id => id == Guid.Empty)
+                || HasDuplicates(i.DeletedEntryIds)
                 || i.Entries.Any(e => e is null || !IsValidEntry(e) || !IsJsonOrNull(e.MetadataJson))
                 || (i.MetadataDirty && !IsJsonOrNull(i.MetadataJson))
                 || HasDuplicates(i.Entries.Where(e => e.SlotIndex.HasValue).Select(e => e.SlotIndex))

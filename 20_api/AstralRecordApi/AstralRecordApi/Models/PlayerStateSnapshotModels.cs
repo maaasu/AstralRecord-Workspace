@@ -41,6 +41,8 @@ public sealed class PlayerStateInventorySnapshot
     public string? MetadataJson { get; init; }
     /// <summary>ロード時点の当該 inventory の有効 entry 全集合と timestamp。省略削除、並行追加・更新を検出する。</summary>
     public IReadOnlyList<PlayerStateExpectedInventoryEntry> ExpectedEntries { get; init; } = [];
+    /// <summary>この inventory を保存済み parent とする entry の明示削除です。各 ID は ExpectedEntries に含めます。</summary>
+    public IReadOnlyList<Guid> DeletedEntryIds { get; init; } = [];
     public IReadOnlyList<PlayerStateInventoryEntrySnapshot> Entries { get; init; } = [];
 }
 

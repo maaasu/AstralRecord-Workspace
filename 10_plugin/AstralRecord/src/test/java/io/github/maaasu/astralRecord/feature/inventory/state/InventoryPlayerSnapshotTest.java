@@ -91,7 +91,7 @@ class InventoryPlayerSnapshotTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: 捕捉後の変更で送信本文を変えず、旧entry集合と移動後の配置を別々に保持する。
+     * 検証契約: 捕捉後の削除は初回payloadへ混ぜず、次便の明示削除とbaselineで保存する。
      */
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
@@ -99,7 +99,7 @@ class InventoryPlayerSnapshotTest {
      * 検証契約: 未保存の装備作成を完成スナップショットへ直列化する。
      */
     @Test
-    void freezesPayloadAndCarriesOriginalEntrySetForDeletion() {
+    void freezesPayloadAndCarriesDeletionBaselineToNextSnapshot() {
         PlayerInventoryState state = new PlayerInventoryState(account);
         state.putInventory(inventory());
         state.replaceEntries(inventoryId, List.of(entry(10, originalTime)));
@@ -118,6 +118,7 @@ class InventoryPlayerSnapshotTest {
         assertTrue(inventory.getAsJsonArray("entries").isEmpty());
         assertEquals(entryId.toString(), inventory.getAsJsonArray("expectedEntries").get(0)
             .getAsJsonObject().get("inventoryEntryId").getAsString());
+        assertEquals(entryId.toString(), inventory.getAsJsonArray("deletedEntryIds").get(0).getAsString());
     }
 
     /**

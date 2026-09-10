@@ -306,13 +306,16 @@ public final class InventoryPersistence {
                 }
                 Map<UUID, Set<UUID>> savedIds = new HashMap<>(persistedEntryIds.getOrDefault(accountId, Map.of()));
                 Map<UUID, java.time.LocalDateTime> savedVersions = new HashMap<>(persistedEntryVersions.getOrDefault(accountId, Map.of()));
-                snapshot.entries.keySet().forEach(id -> savedIds.getOrDefault(id, Set.of()).forEach(savedVersions::remove));
-                snapshot.entries.forEach((inventoryId, rows) -> savedIds.put(inventoryId, rows.stream()
+                snapshot.fullEntries.keySet().forEach(id -> savedIds.getOrDefault(id, Set.of()).forEach(savedVersions::remove));
+                snapshot.fullEntries.forEach((inventoryId, rows) -> savedIds.put(inventoryId, rows.stream()
                     .map(InventoryEntryModel::getInventoryEntryId).collect(java.util.stream.Collectors.toCollection(HashSet::new))));
                 persistedEntryIds.put(accountId, savedIds);
-                snapshot.entries.values().forEach(rows -> rows.forEach(row -> savedVersions.put(row.getInventoryEntryId(), entryVersions.get(row.getInventoryEntryId()))));
-                 persistedEntryVersions.put(accountId, savedVersions);
-                 if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
+                snapshot.fullEntries.values().forEach(rows -> rows.forEach(row -> savedVersions.put(
+                    row.getInventoryEntryId(), entryVersions.getOrDefault(row.getInventoryEntryId(), row.getUpdatedAt()))));
+                persistedEntryVersions.put(accountId, savedVersions);
+                if (!state.isDirty()) state.acknowledgeDirtyScopes(snapshot.inventories.stream()
+                    .map(InventoryModel::getInventoryId).toList(), snapshot.loadoutIds);
+                if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
             }
             pendingSnapshots.remove(accountId, snapshot);
             blockedSnapshots.remove(snapshot.snapshotId);

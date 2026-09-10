@@ -17,6 +17,8 @@ final class PlayerStateSnapshot {
     final List<InventoryModel> inventories;
     final Set<UUID> loadoutIds = new HashSet<>();
     final Map<UUID, List<InventoryEntryModel>> entries = new LinkedHashMap<>();
+    /** 選択 inventory の保存後完全状態。次回差分の baseline 更新にだけ使う。 */
+    final Map<UUID, List<InventoryEntryModel>> fullEntries = new LinkedHashMap<>();
     final List<EquipmentInstance> equipment;
     final List<PlayerStateSection> sections;
     final String payload;
@@ -58,9 +60,27 @@ final class PlayerStateSnapshot {
         this.accountId = state.getAccountId();
         this.equipment = List.copyOf(equipment);
         this.sections = List.copyOf(sections);
-        boolean inventoryDirty = state.isDirty() || includePendingInventories;
-        this.inventories = inventoryDirty ? state.snapshotInventories().stream()
-            .filter(value -> value.isEnabled() && !value.isDeleted()).toList() : List.of();
+        Set<UUID> selectedInventoryIds = new LinkedHashSet<>(state.snapshotDirtyInventoryIds());
+        state.snapshotDirtyMetadataInventories().forEach(value -> selectedInventoryIds.add(value.getInventoryId()));
+        boolean forceFullInventories = includePendingInventories || state.isDirty() && selectedInventoryIds.isEmpty();
+        if (forceFullInventories) {
+            state.snapshotInventories().forEach(value -> selectedInventoryIds.add(value.getInventoryId()));
+        }
+        Map<UUID, UUID> persistedEntryOwners = new HashMap<>();
+        persistedEntries.forEach((inventoryId, ids) -> ids.forEach(entryId -> persistedEntryOwners.put(entryId, inventoryId)));
+        Map<UUID, InventoryEntryModel> currentEntries = new HashMap<>();
+        state.snapshotInventories().forEach(inventory -> state.snapshotEntries(inventory.getInventoryId())
+            .stream().filter(entry -> !entry.isDeleted()).forEach(entry -> currentEntries.put(entry.getInventoryEntryId(), entry)));
+        for (UUID inventoryId : List.copyOf(selectedInventoryIds)) {
+            for (UUID entryId : persistedEntries.getOrDefault(inventoryId, Set.of())) {
+                InventoryEntryModel current = currentEntries.get(entryId);
+                if (current != null && !current.getInventoryId().equals(inventoryId)) {
+                    selectedInventoryIds.add(current.getInventoryId());
+                }
+            }
+        }
+        this.inventories = state.snapshotInventories().stream()
+            .filter(value -> selectedInventoryIds.contains(value.getInventoryId()) && value.isEnabled() && !value.isDeleted()).toList();
         JsonObject body = new JsonObject();
         body.addProperty("snapshotId", snapshotId.toString());
         body.addProperty("accountId", accountId.toString());
@@ -87,20 +107,37 @@ final class PlayerStateSnapshot {
             }
             object.addProperty("metadataDirty", !isNew && metadataDirty.contains(inventory.getInventoryId()));
             object.addProperty("metadataJson", inventory.getMetadataJson());
+            List<InventoryEntryModel> captured = state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(value -> !value.isDeleted()).toList();
+            fullEntries.put(inventory.getInventoryId(), captured);
+            Set<UUID> dirtyEntryIds = state.snapshotDirtyEntryIds(inventory.getInventoryId());
+            Set<UUID> expectedIds = new TreeSet<>();
+            for (UUID id : persistedEntries.getOrDefault(inventory.getInventoryId(), Set.of())) {
+                InventoryEntryModel current = currentEntries.get(id);
+                if (forceFullInventories || dirtyEntryIds.contains(id) || current == null || !inventory.getInventoryId().equals(current.getInventoryId())
+                    || !Objects.equals(current.getUpdatedAt(), persistedVersions.get(id))) {
+                    expectedIds.add(id);
+                }
+            }
             JsonArray expectedRows = new JsonArray();
-            persistedEntries.getOrDefault(inventory.getInventoryId(), Set.of()).stream().sorted()
-                .forEach(id -> {
+            expectedIds.forEach(id -> {
                     JsonObject expected = new JsonObject();
                     expected.addProperty("inventoryEntryId", id.toString());
                     expected.addProperty("updatedAt", Objects.requireNonNull(persistedVersions.get(id), "Missing entry baseline version").toString());
                     expectedRows.add(expected);
                 });
             object.add("expectedEntries", expectedRows);
-            List<InventoryEntryModel> captured = state.snapshotEntries(inventory.getInventoryId()).stream()
-                .filter(value -> !value.isDeleted()).toList();
-            entries.put(inventory.getInventoryId(), captured);
+            JsonArray deletedRows = new JsonArray();
+            expectedIds.stream().filter(id -> !currentEntries.containsKey(id)).forEach(id -> deletedRows.add(id.toString()));
+            object.add("deletedEntryIds", deletedRows);
+            List<InventoryEntryModel> changed = captured.stream().filter(entry -> {
+                UUID owner = persistedEntryOwners.get(entry.getInventoryEntryId());
+                return forceFullInventories || dirtyEntryIds.contains(entry.getInventoryEntryId()) || owner == null || !owner.equals(inventory.getInventoryId())
+                    || !Objects.equals(entry.getUpdatedAt(), persistedVersions.get(entry.getInventoryEntryId()));
+            }).toList();
+            entries.put(inventory.getInventoryId(), changed);
             JsonArray entryArray = new JsonArray();
-            for (InventoryEntryModel entry : captured) {
+            for (InventoryEntryModel entry : changed) {
                 JsonObject row = new JsonObject();
                 row.addProperty("inventoryEntryId", entry.getInventoryEntryId().toString());
                 row.addProperty("expectedUpdatedAt", persistedEntryIds.contains(entry.getInventoryEntryId())
@@ -118,8 +155,13 @@ final class PlayerStateSnapshot {
             inventoryArray.add(object);
         }
         body.add("inventories", inventoryArray);
+        Set<UUID> selectedLoadoutIds = new LinkedHashSet<>(state.snapshotDirtyLoadoutIds());
+        if (includePendingInventories || state.isDirty() && selectedLoadoutIds.isEmpty()) {
+            state.snapshotLoadouts(InventoryProfile.GAME).forEach(value -> selectedLoadoutIds.add(value.getEquipmentLoadoutId()));
+        }
         JsonArray loadouts = new JsonArray();
-        for (EquipmentLoadoutModel loadout : inventoryDirty ? state.snapshotLoadouts(InventoryProfile.GAME) : List.<EquipmentLoadoutModel>of()) {
+        for (EquipmentLoadoutModel loadout : state.snapshotLoadouts(InventoryProfile.GAME)) {
+            if (!selectedLoadoutIds.contains(loadout.getEquipmentLoadoutId())) continue;
             if (loadout.isDeleted()) continue;
             loadoutIds.add(loadout.getEquipmentLoadoutId());
             boolean isNew = !persistedLoadoutIds.contains(loadout.getEquipmentLoadoutId());
@@ -471,11 +513,11 @@ final class PlayerStateSnapshot {
     InventoryPersistence.PersistedInventoryBaseline baseline(JsonObject ack) {
         Map<UUID, LocalDateTime> versions = versions(ack, "entries", "inventoryEntryId");
         Map<UUID, List<InventoryEntryModel>> result = new LinkedHashMap<>();
-        entries.forEach((inventoryId, captured) -> result.put(inventoryId, captured.stream().map(entry ->
+        fullEntries.forEach((inventoryId, captured) -> result.put(inventoryId, captured.stream().map(entry ->
             new InventoryEntryModel(entry.getInventoryEntryId(), entry.getInventoryId(), entry.getSlotIndex(),
                 entry.getItemCategory(), entry.getItemId(), entry.getInstanceType(), entry.getInstanceId(),
                 entry.getQuantity(), entry.getMetadataJson(), entry.getCreatedAt(),
-                versions.get(entry.getInventoryEntryId()), entry.getCreatedBy(), entry.getUpdatedBy(), false)).toList()));
+                versions.getOrDefault(entry.getInventoryEntryId(), entry.getUpdatedAt()), entry.getCreatedBy(), entry.getUpdatedBy(), false)).toList()));
         return new InventoryPersistence.PersistedInventoryBaseline(accountId, result);
     }
 
