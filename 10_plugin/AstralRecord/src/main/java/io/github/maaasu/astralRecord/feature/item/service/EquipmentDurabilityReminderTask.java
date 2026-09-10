@@ -48,7 +48,7 @@ public final class EquipmentDurabilityReminderTask {
         }
         task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            this::notifyDamagedEquipment,
+            this::notifyBrokenEquipment,
             intervalTicks,
             intervalTicks
         );
@@ -64,17 +64,17 @@ public final class EquipmentDurabilityReminderTask {
         }
     }
 
-    void notifyDamagedEquipment() {
+    void notifyBrokenEquipment() {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
-            List<String> damagedNames = equipmentDurabilityService
-                .getDamagedArmorAndAccessoryDisplayNames(astPlayer);
-            if (damagedNames.isEmpty()) {
+            List<String> brokenNames = equipmentDurabilityService
+                .getBrokenArmorAndAccessoryDisplayNames(astPlayer);
+            if (brokenNames.isEmpty()) {
                 continue;
             }
             playerMessageService.send(
                 astPlayer,
                 PlayerMsgId.P_5283,
-                String.join("、", damagedNames)
+                String.join("、", brokenNames)
             );
         }
     }

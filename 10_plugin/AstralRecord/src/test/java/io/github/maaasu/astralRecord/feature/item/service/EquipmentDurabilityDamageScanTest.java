@@ -83,7 +83,7 @@ class EquipmentDurabilityDamageScanTest {
 
             assertEquals(
                 List.of("§c壊れた兜", "§e傷ついた指輪"),
-                service.getDamagedArmorAndAccessoryDisplayNames(player)
+                service.getBrokenArmorAndAccessoryDisplayNames(player)
             );
         }
     }

@@ -199,7 +199,7 @@ public final class EquipmentDurabilityService {
      * @param player 判定対象プレイヤー
      * @return 破損がある装備の表示名一覧。該当しない場合は空のリスト
      */
-    public @NotNull List<String> getDamagedArmorAndAccessoryDisplayNames(@NotNull AstPlayer player) {
+    public @NotNull List<String> getBrokenArmorAndAccessoryDisplayNames(@NotNull AstPlayer player) {
         PlayerInventory inventory = player.getBukkit().getInventory();
         List<ItemStack> equippedItems = new ArrayList<>();
         equippedItems.add(inventory.getHelmet());
@@ -209,7 +209,7 @@ public final class EquipmentDurabilityService {
         equippedItems.addAll(inventoryService.getEquippedAccessorySnapshotItems(player));
 
         Set<String> inspectedInstanceIds = new HashSet<>();
-        List<String> damagedNames = new ArrayList<>();
+        List<String> brokenNames = new ArrayList<>();
         for (ItemStack itemStack : equippedItems) {
             ItemReference reference = itemReferenceResolver.resolveLoaded(itemStack);
             if (reference == null
@@ -226,9 +226,9 @@ public final class EquipmentDurabilityService {
                 || !isBroken(instance)) {
                 continue;
             }
-            damagedNames.add(ColorCodeUtil.toLegacyText(model.getName(), model.getId()));
+            brokenNames.add(ColorCodeUtil.toLegacyText(model.getName(), model.getId()));
         }
-        return List.copyOf(damagedNames);
+        return List.copyOf(brokenNames);
     }
 
     private void consumeAccessories(

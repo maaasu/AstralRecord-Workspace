@@ -23,11 +23,11 @@ class EquipmentDurabilityReminderTaskTest {
      * 検証契約: 周期実行時は破損した防具・アクセサリがあるプレイヤーへ装備名をまとめて1通通知する。
      */
     @Test
-    void sendsOneSummaryMessageForEachPlayerWithDamagedEquipment() {
+    void sendsOneSummaryMessageForEachPlayerWithBrokenEquipment() {
         EquipmentDurabilityService durabilityService = mock(EquipmentDurabilityService.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
         AstPlayer player = mock(AstPlayer.class);
-        when(durabilityService.getDamagedArmorAndAccessoryDisplayNames(player))
+        when(durabilityService.getBrokenArmorAndAccessoryDisplayNames(player))
             .thenReturn(List.of("&c壊れた兜", "&e傷ついた指輪"));
         EquipmentDurabilityReminderTask task = new EquipmentDurabilityReminderTask(
             durabilityService,
@@ -37,7 +37,7 @@ class EquipmentDurabilityReminderTaskTest {
         try (MockedStatic<AstPlayerCache> players = mockStatic(AstPlayerCache.class)) {
             players.when(AstPlayerCache::getAll).thenReturn(List.of(player));
 
-            task.notifyDamagedEquipment();
+            task.notifyBrokenEquipment();
         }
 
         verify(messageService).send(
@@ -53,11 +53,11 @@ class EquipmentDurabilityReminderTaskTest {
      * 検証契約: 破損した装備がない周期はプレイヤー向けメッセージを送信しない。
      */
     @Test
-    void doesNotSendWhenNoDamagedEquipmentExists() {
+    void doesNotSendWhenNoBrokenEquipmentExists() {
         EquipmentDurabilityService durabilityService = mock(EquipmentDurabilityService.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
         AstPlayer player = mock(AstPlayer.class);
-        when(durabilityService.getDamagedArmorAndAccessoryDisplayNames(player)).thenReturn(List.of());
+        when(durabilityService.getBrokenArmorAndAccessoryDisplayNames(player)).thenReturn(List.of());
         EquipmentDurabilityReminderTask task = new EquipmentDurabilityReminderTask(
             durabilityService,
             messageService
@@ -66,7 +66,7 @@ class EquipmentDurabilityReminderTaskTest {
         try (MockedStatic<AstPlayerCache> players = mockStatic(AstPlayerCache.class)) {
             players.when(AstPlayerCache::getAll).thenReturn(List.of(player));
 
-            task.notifyDamagedEquipment();
+            task.notifyBrokenEquipment();
         }
 
         verifyNoInteractions(messageService);
