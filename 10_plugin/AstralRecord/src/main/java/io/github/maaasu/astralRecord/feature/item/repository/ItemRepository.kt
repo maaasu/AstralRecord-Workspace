@@ -214,6 +214,7 @@ class ItemRepository {
             category = category,
             name = obj.get("name").asString,
             icon = obj.get("icon").asString,
+            iconTexture = obj.get("iconTexture")?.takeIf { !it.isJsonNull }?.asString,
             rarity = obj.get("rarity").asString,
             maxStack = obj.get("maxStack")?.asInt ?: 64,
             saleValue = obj.get("saleValue")?.asInt ?: 0,

@@ -31,7 +31,8 @@ public record MobLevelProfile(
         @Nullable MobTargetingConfig targeting,
         @Nullable MobCombatConfig combat,
         @Nullable MobDropConfig drops,
-        @Nullable BossChallengeConfig challenge
+        @Nullable BossChallengeConfig challenge,
+        @Nullable String iconTexture
 ) {
 
     public MobLevelProfile {
@@ -68,7 +69,8 @@ public record MobLevelProfile(
                 template.targeting(),
                 template.combat(),
                 template.drops(),
-                template.challenge()
+                template.challenge(),
+                template.iconTexture()
         );
     }
 }

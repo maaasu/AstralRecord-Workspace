@@ -832,9 +832,13 @@ public final class SkillActionRingService {
             }
             for (int index = 0; index < SLOT_COUNT; index++) {
                 Location location = baseCenter.clone();
+                ItemStack itemStack = new ItemStack(slots.get(index).material());
+                SkillDefinition definition = slots.get(index).definition();
+                io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(
+                    itemStack, definition == null ? null : definition.getIconTexture());
                 SkillActionRingDisplay.DisplayEntity icon = actionRingDisplay.item(
                     location,
-                    new ItemStack(slots.get(index).material()),
+                    itemStack,
                     false
                 );
                 SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(location, Component.empty(), 0.60F);

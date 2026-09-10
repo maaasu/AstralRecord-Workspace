@@ -449,10 +449,12 @@ public class AdventureRecordGui {
             lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
         }
         appendDrops(lore, template.drops());
-        return createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
+        ItemStack itemStack = createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
             mobDisplayName(template),
             NamedTextColor.WHITE
         ), lore);
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
+        return itemStack;
     }
 
     private void renderMobDetail(
@@ -514,11 +516,13 @@ public class AdventureRecordGui {
                 .map(line -> ColorCodeUtil.toPlainText(line, line))
                 .forEach(line -> lore.add(Component.text("- " + line, NamedTextColor.WHITE)));
         }
-        return createItem(
+        ItemStack itemStack = createItem(
             resolveMaterial(template.icon(), Material.ZOMBIE_HEAD),
             Component.text(mobDisplayName(template), NamedTextColor.WHITE),
             lore
         );
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
+        return itemStack;
     }
 
     private @NotNull ItemStack mobCategoryItem(

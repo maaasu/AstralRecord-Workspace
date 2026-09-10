@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.model
 /**
  * アイテム定義。
  */
-data class ItemModel(
+data class ItemModel @JvmOverloads constructor(
     val schemaVersion: Int,
     val id: String,
     val category: String,
@@ -24,4 +24,5 @@ data class ItemModel(
     val consumable: ItemConsumable?,
     val sigil: ItemSigil? = null,
     val orb: ItemOrb? = null,
+    val iconTexture: String? = null,
 )

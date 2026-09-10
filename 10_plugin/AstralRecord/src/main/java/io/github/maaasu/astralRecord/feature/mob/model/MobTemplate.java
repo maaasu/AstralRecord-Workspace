@@ -64,8 +64,28 @@ public record MobTemplate(
         @Nullable MobCombatConfig combat,
         @Nullable MobDropConfig drops,
         @Nullable BossChallengeConfig challenge,
-        @NotNull List<MobLevelProfile> levelProfiles
+        @NotNull List<MobLevelProfile> levelProfiles,
+        @Nullable String iconTexture
 ) {
+
+    /** iconTexture 導入前の完全コンストラクタ互換。 */
+    public MobTemplate(
+            int schemaVersion, @NotNull String id, @NotNull MobCategory category,
+            @NotNull String displayName, @Nullable String title, int level,
+            @NotNull EntityType entityType, @Nullable String requestedEntityType,
+            @Nullable Material blockMaterial, boolean nameVisible, @Nullable String icon,
+            @NotNull List<String> lore, @NotNull List<String> tags, @Nullable MobSkin skin,
+            @NotNull MobVariantConfig variant, @NotNull MobEquipmentConfig equipment,
+            @NotNull List<MobBaseStat> baseStats, @NotNull MobShieldConfig shield,
+            @NotNull MobIdleConfig idle, boolean damageImmune,
+            @NotNull MobInteractionsConfig interactions, @Nullable MobTargetingConfig targeting,
+            @Nullable MobCombatConfig combat, @Nullable MobDropConfig drops,
+            @Nullable BossChallengeConfig challenge, @NotNull List<MobLevelProfile> levelProfiles
+    ) {
+        this(schemaVersion, id, category, displayName, title, level, entityType, requestedEntityType,
+                blockMaterial, nameVisible, icon, lore, tags, skin, variant, equipment, baseStats, shield,
+                idle, damageImmune, interactions, targeting, combat, drops, challenge, levelProfiles, null);
+    }
 
     /** 既存コード向けの従来 canonical constructor。 */
     public MobTemplate(
@@ -241,6 +261,7 @@ public record MobTemplate(
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparingInt(MobLevelProfile::level))
                 .toList();
+        iconTexture = iconTexture == null || iconTexture.isBlank() ? null : iconTexture.trim();
     }
 
     /**
@@ -294,7 +315,7 @@ public record MobTemplate(
                 schemaVersion, id, category, displayName, title, level, entityType,
                 requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
                 variant, equipment, baseStats, shield, idle, damageImmune, interactions,
-                targeting, combat, drops, challenge, profiles
+                targeting, combat, drops, challenge, profiles, iconTexture
         );
     }
 
@@ -305,7 +326,7 @@ public record MobTemplate(
                 profile.lore(), profile.tags(), profile.skin(), profile.variant(), profile.equipment(),
                 profile.baseStats(), profile.shield(), profile.idle(), profile.damageImmune(),
                 profile.interactions(), profile.targeting(), profile.combat(), profile.drops(),
-                profile.challenge(), levelProfiles
+                profile.challenge(), levelProfiles, profile.iconTexture()
         );
     }
 }

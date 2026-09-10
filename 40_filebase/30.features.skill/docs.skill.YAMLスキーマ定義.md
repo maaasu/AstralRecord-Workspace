@@ -17,6 +17,7 @@
 | `name` | String | 必須 | - | 表示名 |
 | `description` | String | 任意 | `null` | 主目的を伝える抽象的で簡潔な一文。原則として目安40文字以内とし、具体的な効果詳細や数値は `lore` に記載する |
 | `icon` | String | 任意 | `null` | Material 名 |
+| `iconTexture` | String | 任意 | `null` | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定する |
 | `lore` | List<String> | 任意 | `[]` | 効果、条件、対象、数値などの詳細表示。1行1要素を基本とする |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
 | `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |

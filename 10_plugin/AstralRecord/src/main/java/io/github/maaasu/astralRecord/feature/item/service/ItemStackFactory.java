@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
@@ -89,6 +90,8 @@ public class ItemStackFactory {
     /** PDC キー: プレイヤーへ表示する icon Material 名 */
     private static final NamespacedKey KEY_ICON =
             new NamespacedKey("astralrecord", "icon");
+    private static final NamespacedKey KEY_ICON_TEXTURE =
+            new NamespacedKey("astralrecord", "icon_texture");
 
     /** PDC キー: カスタムモデルデータ */
     private static final NamespacedKey KEY_CUSTOM_MODEL_DATA =
@@ -240,6 +243,9 @@ public class ItemStackFactory {
         ItemStack replaced = iconMaterial == null || iconMaterial == item.getType()
                 ? item.clone()
                 : applyDisplayIcon(item, iconMaterial);
+        if (iconMaterial == Material.PLAYER_HEAD) {
+            HeadTextureItemStackSupport.apply(replaced, getIconTexture(item));
+        }
         hideBundleContentsTooltip(replaced);
         applyAppearance(replaced);
         applyDurabilityVisual(replaced);
@@ -471,6 +477,15 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_ICON, PersistentDataType.STRING);
+    }
+
+    /** ItemStack に埋め込まれた PLAYER_HEAD 用 textures 値を取得します。 */
+    public static @Nullable String getIconTexture(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_ICON_TEXTURE, PersistentDataType.STRING);
     }
 
     /**
@@ -1850,6 +1865,11 @@ public class ItemStackFactory {
     ) {
         pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
         pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
+        if ("PLAYER_HEAD".equalsIgnoreCase(model.getIcon())
+                && model.getIconTexture() != null
+                && !model.getIconTexture().isBlank()) {
+            pdc.set(KEY_ICON_TEXTURE, PersistentDataType.STRING, model.getIconTexture().trim());
+        }
         if (model.getCustomModelData() != null) {
             pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
         }

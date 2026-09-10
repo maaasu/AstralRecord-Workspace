@@ -801,7 +801,8 @@ public final class SkillSigilOrbService {
         return GuiItems.create(
             icon == null ? DEFAULT_SKILL_ICON : icon,
             SkillPresentationUtil.skillNameComponent(target.definition, "未登録のスキル", NamedTextColor.WHITE),
-            lore
+            lore,
+            target.definition.getIconTexture()
         );
     }
 

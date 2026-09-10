@@ -122,6 +122,7 @@ public final class ClassScreenView extends BaseMenuScreenView {
         addList(lore, "使用許可スキル", entry.getUsableSkills(), NamedTextColor.LIGHT_PURPLE);
 
         ItemStack itemStack = createItem(material, className(entry, selected), lore);
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, entry.getIconTexture());
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(classIdKey, PersistentDataType.STRING, entry.getId());

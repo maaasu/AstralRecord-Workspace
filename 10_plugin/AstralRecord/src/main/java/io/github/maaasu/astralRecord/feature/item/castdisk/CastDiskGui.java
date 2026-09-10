@@ -77,6 +77,7 @@ public final class CastDiskGui {
     private @NotNull ItemStack actionItem(@NotNull Player player, int index, String skillId, boolean selected) {
         Material material = Material.BARRIER;
         String name = "未設定";
+        String iconTexture = null;
         if (skillId != null && !skillId.isBlank()) {
             var astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
             LearnedSkillInstance learned = astPlayer == null ? null : ownershipService.findInstance(astPlayer, skillId);
@@ -88,13 +89,16 @@ public final class CastDiskGui {
                 Material resolvedMaterial = MaterialNameResolver.match(definition.getIcon());
                 material = resolvedMaterial == null ? Material.AMETHYST_SHARD : resolvedMaterial;
                 name = SkillPresentationUtil.plainName(definition, "未定義スキル");
+                iconTexture = definition.getIconTexture();
             } else {
                 name = "未習得スキル";
             }
         }
-        return item(material, "アクション枠 " + (index + 1) + ": " + name, List.of(
+        ItemStack itemStack = item(material, "アクション枠 " + (index + 1) + ": " + name, List.of(
             Component.text(selected ? "選択中" : "クリックして設定", selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW)
         ));
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, iconTexture);
+        return itemStack;
     }
 
     private @NotNull ItemStack weaponItem(@NotNull Player player, int index, boolean selected) {

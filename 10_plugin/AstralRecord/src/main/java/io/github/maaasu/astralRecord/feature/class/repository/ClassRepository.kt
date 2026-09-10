@@ -110,6 +110,7 @@ class ClassRepository {
             shortName = obj.get("shortName").asString,
             description = parseStringOrNull(obj, "description"),
             icon = parseStringOrNull(obj, "icon"),
+            iconTexture = parseStringOrNull(obj, "iconTexture"),
             role = obj.get("role").asString,
             maxLevel = obj.get("maxLevel")?.asInt ?: 100,
             commandOnly = obj.get("commandOnly")?.asBoolean ?: false,

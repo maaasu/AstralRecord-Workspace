@@ -1,24 +1,19 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
-import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * GUI 用 ItemStack の共通生成処理を提供します。
@@ -60,6 +55,26 @@ public final class GuiItems {
             itemStack.setItemMeta(meta);
         }
         ItemStackFactory.hideBundleContentsTooltip(itemStack);
+        return itemStack;
+    }
+
+    /**
+     * master 指定の PLAYER_HEAD textures を必要時だけ適用して GUI ItemStack を生成します。
+     *
+     * @param material アイテム種別
+     * @param name 表示名
+     * @param lore 説明行
+     * @param iconTexture Base64 textures 値
+     * @return GUI 表示用 ItemStack
+     */
+    public static @NotNull ItemStack create(
+        @NotNull Material material,
+        @NotNull Component name,
+        @NotNull List<Component> lore,
+        @Nullable String iconTexture
+    ) {
+        ItemStack itemStack = create(material, name, lore);
+        HeadTextureItemStackSupport.apply(itemStack, iconTexture);
         return itemStack;
     }
 
@@ -207,15 +222,7 @@ public final class GuiItems {
         @NotNull String texture
     ) {
         ItemStack itemStack = create(Material.PLAYER_HEAD, name, lore);
-        if (!(itemStack.getItemMeta() instanceof SkullMeta skullMeta)) {
-            return itemStack;
-        }
-        PlayerProfile profile = Bukkit.createProfile(
-            UUID.nameUUIDFromBytes(texture.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-        );
-        profile.setProperty(new ProfileProperty("textures", texture));
-        skullMeta.setPlayerProfile(profile);
-        itemStack.setItemMeta(skullMeta);
+        HeadTextureItemStackSupport.apply(itemStack, texture);
         return itemStack;
     }
 

@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.playerclass.model
 /**
  * Java GUI から扱いやすい形に整形したクラス表示情報です。
  */
-data class ClassViewEntry(
+data class ClassViewEntry @JvmOverloads constructor(
     val id: String,
     val typeDisplay: String,
     val name: String,
@@ -16,4 +16,5 @@ data class ClassViewEntry(
     val baseStats: List<String>,
     val growthPerLevel: List<String>,
     val usableSkills: List<String>,
+    val iconTexture: String? = null,
 )

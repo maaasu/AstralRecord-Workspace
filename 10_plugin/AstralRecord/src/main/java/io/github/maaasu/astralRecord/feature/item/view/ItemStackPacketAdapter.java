@@ -10,6 +10,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
@@ -514,6 +515,7 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer
     ) {
         var iconName = ItemStackFactory.getIconName(original);
+        var iconTexture = ItemStackFactory.getIconTexture(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
@@ -522,6 +524,7 @@ public class ItemStackPacketAdapter {
 
         if (!virtualWeapon
             && iconName == null
+            && iconTexture == null
             && customModelData == null
             && appearanceColor == null
             && potionType == null) {
@@ -543,6 +546,9 @@ public class ItemStackPacketAdapter {
                 replaced = ItemStackFactory.applyDisplayIcon(original, displayIconMaterial);
                 modified = true;
             }
+        }
+        if (replaced.getType() == Material.PLAYER_HEAD) {
+            modified |= HeadTextureItemStackSupport.apply(replaced, iconTexture);
         }
 
         modified |= applyHookshotChargedIcon(replaced, hookshotLoaded);

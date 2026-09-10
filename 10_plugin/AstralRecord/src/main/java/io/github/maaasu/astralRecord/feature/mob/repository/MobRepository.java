@@ -58,7 +58,7 @@ public class MobRepository {
 
     /** レベルプロファイルで上書きを許可する共通 Mob 項目です。 */
     private static final Set<String> LEVEL_PROFILE_FIELDS = Set.of(
-            "name", "title", "nameVisible", "icon", "lore", "tags", "skin", "variant",
+            "name", "title", "nameVisible", "icon", "iconTexture", "lore", "tags", "skin", "variant",
             "equipment", "baseStats", "shield", "ai", "damageImmune", "interactions",
             "drops", "challenge"
     );
@@ -197,7 +197,9 @@ public class MobRepository {
                 category == MobCategory.NPC ? null : parseTargeting(getObject(getObject(obj, "ai"), "targeting")),
                 category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),
                 category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops")),
-                category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null
+                category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null,
+                List.of(),
+                optionalString(obj, "iconTexture")
         );
     }
 

@@ -33,6 +33,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |
 | `nameVisible`   | Boolean      | ×  | true      | ネームタグ表示の有無                                              |
 | `icon`          | String       | ×  | Null      | UI/図鑑表示用アイコン（Bukkit Material名）                          |
+| `iconTexture`   | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定し、`levels[]`でも上書き可能 |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
 | `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
 | `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |

@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.`class`.model
 /**
  * クラス定義。
  */
-data class ClassModel(
+data class ClassModel @JvmOverloads constructor(
     val schemaVersion: Int,
     val id: String,
     val type: String,
@@ -22,4 +22,5 @@ data class ClassModel(
     val expRate: Int,
     val usableSkills: List<String>,
     val tags: List<String>,
+    val iconTexture: String? = null,
 )

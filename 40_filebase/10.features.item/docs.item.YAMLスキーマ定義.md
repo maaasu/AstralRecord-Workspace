@@ -11,6 +11,7 @@ ITEMの基本的なスキーマ定義。
 | `category`        | String       | ○  | -         | 論理カテゴリを入力。採番済みカテゴリフォルダとの一致を確認する                       |
 | `name`            | String       | ○  | -         | ゲーム内に表示される名前                                           |
 | `icon`            | String       | ○  | -         | Bukkit Material名（例: `IRON_INGOT`）                      |
+| `iconTexture`     | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は`http(s)://textures.minecraft.net/texture/[hex 1..64]`に一致する必要がある |
 | `rarity`          | String       | ○  | -         | rarityヘッダ参照                                            |
 | `saleValue`       | Integer      | ×  | 0         | 売却した際に得られるお金                                           |
 | `customModelData` | Integer      | ×  | Null      | クライアント側リソースパック用のモデルデータID (未実装予定)                       |

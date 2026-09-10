@@ -605,8 +605,10 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         }
         lore.add(Component.empty());
         lore.add(noItalic(Component.text("スキルID: " + definition.getId(), NamedTextColor.DARK_GRAY)));
-        return createItem(material == null ? Material.BOOK : material,
+        ItemStack itemStack = createItem(material == null ? Material.BOOK : material,
             SkillPresentationUtil.skillNameComponent(definition, definition.getId(), NamedTextColor.WHITE), lore);
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, definition.getIconTexture());
+        return itemStack;
     }
 
     private @NotNull ItemStack playerHead(
@@ -678,11 +680,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                     .append(Component.text(" Lv." + progress.getLevel(), NamedTextColor.WHITE))));
             }
         }
-        return createItem(
+        ItemStack itemStack = createItem(
             material,
             noItalic(Component.text("クラス情報", NamedTextColor.AQUA, TextDecoration.BOLD)),
             lore
         );
+        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(
+            itemStack, current == null ? null : current.getIconTexture());
+        return itemStack;
     }
 
     private @NotNull List<StatusType> statusesInCategory(

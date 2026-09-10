@@ -1507,7 +1507,8 @@ public class SkillService {
                 definition.getSigilSlotsByLevel(),
                 definition.getAllowedSigilIds(),
                 definition.getLearnRequiredItems(),
-                definition.getLevelUpRequiredItems()
+                definition.getLevelUpRequiredItems(),
+                definition.getIconTexture()
         );
     }
 

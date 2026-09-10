@@ -155,7 +155,8 @@ public final class SkillForgetGui {
             SkillPresentationUtil.skillNameComponent(
                 entry.definition(), entry.definition().getId(), NamedTextColor.WHITE
             ).append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD)),
-            lore
+            lore,
+            entry.definition().getIconTexture()
         );
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(learnedSkillIdKey, PersistentDataType.STRING, entry.bindingId());

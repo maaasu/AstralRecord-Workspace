@@ -46,6 +46,7 @@ data class SkillDefinition @JvmOverloads constructor(
     val allowedSigilIds: List<String> = emptyList(),
     val learnRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
     val levelUpRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
+    val iconTexture: String? = null,
 )
 
 data class SkillRequiredItemDefinition(

@@ -10,10 +10,11 @@ package io.github.maaasu.astralRecord.feature.skill.model
  * @property icon             一覧表示用アイコン（未指定可）
  * @property tags             分類タグ
  */
-data class SkillSummary(
+data class SkillSummary @JvmOverloads constructor(
     val id: String,
     val name: String,
     val implementationId: String,
     val icon: String?,
     val tags: List<String> = emptyList(),
+    val iconTexture: String? = null,
 )

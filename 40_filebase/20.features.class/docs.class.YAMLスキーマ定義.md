@@ -21,6 +21,7 @@ Class マスタのファイル名は `v<schemaVersion>.<ceil(order)>.<classId>.y
 | `shortName`                | String       | ○  | -         | クラスの短縮表示に使うASCII英大文字3文字の職業短縮名。色・装飾コードと前後空白を除いた表示文字をクラス間で一意にする |
 | `description`              | String       | ×  | Null      | 職業説明文                                            |
 | `icon`                     | String       | ×  | Null      | 表示アイコン（任意。表現は実装側に委ねる）                            |
+| `iconTexture`              | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定する |
 | `role`                     | String       | ○  | -         | 職業ロール（後述）                                        |
 | `maxLevel`                 | Integer      | ×  | `100`     | この職業のクラスレベル上限。`1` 以上を指定する              |
 | `commandOnly`              | Boolean      | ×  | `false`   | `true` の職業は職業 GUI・通常転職では選択せず、管理コマンドだけで変更する |

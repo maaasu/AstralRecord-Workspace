@@ -560,7 +560,8 @@ public final class SkillBindGui {
                 : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
                 .append(skillLevelDisplay(entry.learnedSkill().getLevel(), skill.getMaxLevel(), NamedTextColor.GOLD)),
-            lore
+            lore,
+            skill.getIconTexture()
         );
         return withBindingId(item, entry.bindingId());
     }
@@ -579,7 +580,8 @@ public final class SkillBindGui {
         appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材");
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
         ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore);
+            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore,
+            skill.getIconTexture());
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(unlearnedSkillIdKey, PersistentDataType.STRING, skill.getId());
         item.setItemMeta(meta);
@@ -975,7 +977,8 @@ public final class SkillBindGui {
         return createItem(
             parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
             SkillPresentationUtil.itemNameComponent(material, material.getId(), NamedTextColor.WHITE),
-            lore
+            lore,
+            material.getIconTexture()
         );
     }
 
@@ -988,7 +991,8 @@ public final class SkillBindGui {
         return createItem(
             parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
             SkillPresentationUtil.itemNameComponent(material, material.getId(), NamedTextColor.WHITE),
-            lore
+            lore,
+            material.getIconTexture()
         );
     }
 
@@ -1044,7 +1048,8 @@ public final class SkillBindGui {
             parseMaterial(preview.definition().getIcon(), DEFAULT_SKILL_ICON),
                 SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
                     .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
-            lore
+            lore,
+            preview.definition().getIconTexture()
         );
     }
 
@@ -1109,6 +1114,10 @@ public final class SkillBindGui {
 
     private ItemStack createItem(Material material, Component name, List<Component> lore) {
         return GuiItems.create(material, name, lore);
+    }
+
+    private ItemStack createItem(Material material, Component name, List<Component> lore, @Nullable String iconTexture) {
+        return GuiItems.create(material, name, lore, iconTexture);
     }
 
     private ItemStack withBindingId(ItemStack item, String bindingId) {

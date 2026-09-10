@@ -129,6 +129,7 @@ class SkillRepository {
             allowedSigilIds = parseStringList(obj.getAsJsonArray("allowedSigilIds")),
             learnRequiredItems = parseRequiredItems(obj.getAsJsonArray("learnRequiredItems")),
             levelUpRequiredItems = parseRequiredItems(obj.getAsJsonArray("levelUpRequiredItems")),
+            iconTexture = obj.get("iconTexture")?.takeIf { !it.isJsonNull }?.asString,
         )
     }
 
@@ -236,6 +237,7 @@ class SkillRepository {
                 implementationId = obj.get("implementationId").asString,
                 icon = obj.get("icon")?.takeIf { !it.isJsonNull }?.asString,
                 tags = parseStringList(obj.getAsJsonArray("tags")),
+                iconTexture = obj.get("iconTexture")?.takeIf { !it.isJsonNull }?.asString,
             )
         }
         return result
