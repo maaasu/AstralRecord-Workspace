@@ -20,6 +20,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -38,7 +40,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.InOrder;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -762,6 +768,96 @@ class PlayerJoinEventHandlerTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 上限4件の参加ロード中に5人目が待機した場合、先頭の反映完了でのみ待機先頭を非同期開始する。
+     */
+    @Test
+    void completedJoinLoadReleasesFifoWaiterAtConcurrentLimit() throws Exception {
+        try (JoinLoadQueueFixture fixture = new JoinLoadQueueFixture()) {
+            fixture.joinFivePlayers();
+
+            assertEquals(4, fixture.asyncTasks.size());
+            fixture.finish(fixture.players.getFirst(), true);
+
+            assertEquals(5, fixture.asyncTasks.size());
+            fixture.asyncTasks.get(4).run();
+            verify(fixture.playerService).loadPlayerJoinUser(
+                fixture.players.get(4).getUniqueId(),
+                fixture.players.get(4).getName()
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 上限4件の参加ロード中に先頭プレイヤーが退出した場合、キャンセルで枠を解放して待機先頭を開始する。
+     */
+    @Test
+    void cancelledJoinLoadReleasesFifoWaiterAtConcurrentLimit() {
+        try (JoinLoadQueueFixture fixture = new JoinLoadQueueFixture()) {
+            fixture.joinFivePlayers();
+
+            fixture.quit(fixture.players.getFirst());
+
+            assertEquals(5, fixture.asyncTasks.size());
+            fixture.asyncTasks.get(4).run();
+            verify(fixture.playerService).loadPlayerJoinUser(
+                fixture.players.get(4).getUniqueId(),
+                fixture.players.get(4).getName()
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 上限4件の参加ロードで先頭の非同期読込が例外終了した場合、失敗確定後に待機先頭を開始する。
+     */
+    @Test
+    void failedJoinLoadReleasesFifoWaiterAtConcurrentLimit() {
+        try (JoinLoadQueueFixture fixture = new JoinLoadQueueFixture()) {
+            fixture.joinFivePlayers();
+            Player first = fixture.players.getFirst();
+            when(fixture.playerService.loadPlayerJoinUser(first.getUniqueId(), first.getName()))
+                .thenThrow(new IllegalStateException("test failure"));
+
+            fixture.asyncTasks.getFirst().run();
+            assertEquals(1, fixture.mainThreadTasks.size());
+            fixture.mainThreadTasks.getFirst().run();
+
+            assertEquals(5, fixture.asyncTasks.size());
+            fixture.asyncTasks.get(4).run();
+            verify(fixture.playerService).loadPlayerJoinUser(
+                fixture.players.get(4).getUniqueId(),
+                fixture.players.get(4).getName()
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_5-例外・ログ・運用.md
+     * 章・見出し: # 03_5-例外・ログ・運用 > ## 7. 参加ロード運用
+     * 検証契約: スキルツリー初期読込が継続して失敗した場合、設定した最大試行回数で停止して失敗状態を返す。
+     */
+    @Test
+    void skillTreeInitialLoadStopsAtConfiguredRetryLimit() throws Exception {
+        try (JoinLoadQueueFixture fixture = new JoinLoadQueueFixture();
+             SkillTreeRetryConfigOverride ignored = new SkillTreeRetryConfigOverride(3, 1L, 2L)) {
+            fixture.joinFivePlayers();
+            UUID accountId = UUID.randomUUID();
+            when(fixture.skillTreeService.loadInitialPlayerState(accountId))
+                .thenThrow(new IllegalStateException("temporary failure"));
+
+            Object result = fixture.loadInitialSkillTreeState(fixture.players.getFirst(), accountId);
+
+            assertNull(result);
+            verify(fixture.skillTreeService, times(3)).loadInitialPlayerState(accountId);
+        }
+    }
+
     private void runNormalJoin(SuccessfulJoinFixture fixture) {
         fixture.handler.onPlayerJoin(fixture.joinEvent);
         fixture.delayedTasks.get(0).run();
@@ -938,5 +1034,148 @@ class PlayerJoinEventHandlerTest {
         when(player.getName()).thenReturn(name);
         when(player.getLocation()).thenReturn(new Location(null, 0.0D, 64.0D, 0.0D));
         return player;
+    }
+
+    private static final class JoinLoadQueueFixture implements AutoCloseable {
+        private final AstralRecord plugin = mock(AstralRecord.class);
+        private final Server server = mock(Server.class);
+        private final BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        private final PlayerService playerService = mock(PlayerService.class);
+        private final SkillTreeService skillTreeService = mock(SkillTreeService.class);
+        private final PlayerJoinEventHandler handler;
+        private final List<Player> players = new ArrayList<>();
+        private final List<Runnable> asyncTasks = new ArrayList<>();
+        private final List<Runnable> mainThreadTasks = new ArrayList<>();
+        private final MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+        private final MockedStatic<PlayerMessageService> playerMessages = mockStatic(PlayerMessageService.class);
+        private final MockedStatic<AstPlayerCache> playerCache = mockStatic(AstPlayerCache.class);
+        private final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+        private final MockedStatic<Logger> logger = mockStatic(Logger.class);
+
+        private JoinLoadQueueFixture() {
+            PlayerMessageService messageService = mock(PlayerMessageService.class);
+            when(plugin.getServer()).thenReturn(server);
+            when(plugin.getPlayerMessageService()).thenReturn(messageService);
+            when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getLogger(getClass().getName()));
+            when(server.getScheduler()).thenReturn(scheduler);
+            when(server.getPlayer(any(UUID.class))).thenAnswer(invocation -> players.stream()
+                .filter(player -> player.getUniqueId().equals(invocation.getArgument(0)))
+                .findFirst()
+                .orElse(null));
+            doAnswer(invocation -> mock(BukkitTask.class))
+                .when(scheduler).runTaskTimer(eq(plugin), any(Runnable.class), anyLong(), anyLong());
+            doAnswer(invocation -> {
+                asyncTasks.add(invocation.getArgument(1));
+                return mock(BukkitTask.class);
+            }).when(scheduler).runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong());
+            doAnswer(invocation -> {
+                mainThreadTasks.add(invocation.getArgument(1));
+                return mock(BukkitTask.class);
+            }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+            doAnswer(invocation -> mock(BukkitTask.class))
+                .when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(plugin);
+            playerMessages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            handler = new PlayerJoinEventHandler(
+                plugin,
+                playerService,
+                skillTreeService,
+                mock(QuestService.class),
+                mock(SkillBindPresetService.class),
+                mock(LearnedSkillService.class),
+                mock(LoginBonusService.class),
+                mock(MailService.class)
+            );
+        }
+
+        private void joinFivePlayers() {
+            for (int index = 1; index <= 5; index++) {
+                Player player = mock(Player.class);
+                when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+                when(player.getName()).thenReturn("queue-player-" + index);
+                when(player.getLocation()).thenReturn(new Location(null, 0.0D, 64.0D, 0.0D));
+                when(player.isOnline()).thenReturn(true);
+                players.add(player);
+                PlayerJoinEvent event = mock(PlayerJoinEvent.class);
+                when(event.getPlayer()).thenReturn(player);
+                handler.onPlayerJoin(event);
+            }
+        }
+
+        private void quit(Player player) {
+            PlayerQuitEvent event = mock(PlayerQuitEvent.class);
+            when(event.getPlayer()).thenReturn(player);
+            handler.onPlayerQuit(event);
+        }
+
+        private void finish(Player player, boolean successful) throws Exception {
+            Method currentAttempt = PlayerJoinEventHandler.class.getDeclaredMethod("currentJoinAttempt", Player.class);
+            currentAttempt.setAccessible(true);
+            Object attempt = currentAttempt.invoke(handler, player);
+            Method finish = Arrays.stream(PlayerJoinEventHandler.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("finishJoinLoading") && method.getParameterCount() == 2)
+                .findFirst()
+                .orElseThrow();
+            finish.setAccessible(true);
+            finish.invoke(handler, attempt, successful);
+        }
+
+        private Object loadInitialSkillTreeState(Player player, UUID accountId) throws Exception {
+            Method currentAttempt = PlayerJoinEventHandler.class.getDeclaredMethod("currentJoinAttempt", Player.class);
+            currentAttempt.setAccessible(true);
+            Object attempt = currentAttempt.invoke(handler, player);
+            Method load = Arrays.stream(PlayerJoinEventHandler.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("loadInitialSkillTreeState"))
+                .findFirst()
+                .orElseThrow();
+            load.setAccessible(true);
+            return load.invoke(handler, attempt, player.getName(), accountId, UUID.randomUUID());
+        }
+
+        @Override
+        public void close() {
+            bukkit.close();
+            playerCache.close();
+            playerMessages.close();
+            pluginInstance.close();
+            logger.close();
+        }
+    }
+
+    private static final class SkillTreeRetryConfigOverride implements AutoCloseable {
+        private final ConfigProperties config = ConfigProperties.getInstance();
+        private final int maxAttempts;
+        private final long initialDelayMillis;
+        private final long maxDelayMillis;
+
+        private SkillTreeRetryConfigOverride(int maxAttempts, long initialDelayMillis, long maxDelayMillis)
+            throws ReflectiveOperationException {
+            this.maxAttempts = (int) read("playerJoinSkillTreeRetryMaxAttempts");
+            this.initialDelayMillis = (long) read("playerJoinSkillTreeRetryInitialDelayMillis");
+            this.maxDelayMillis = (long) read("playerJoinSkillTreeRetryMaxDelayMillis");
+            write("playerJoinSkillTreeRetryMaxAttempts", maxAttempts);
+            write("playerJoinSkillTreeRetryInitialDelayMillis", initialDelayMillis);
+            write("playerJoinSkillTreeRetryMaxDelayMillis", maxDelayMillis);
+        }
+
+        @Override
+        public void close() throws ReflectiveOperationException {
+            write("playerJoinSkillTreeRetryMaxAttempts", maxAttempts);
+            write("playerJoinSkillTreeRetryInitialDelayMillis", initialDelayMillis);
+            write("playerJoinSkillTreeRetryMaxDelayMillis", maxDelayMillis);
+        }
+
+        private Object read(String fieldName) throws ReflectiveOperationException {
+            Field field = ConfigProperties.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(config);
+        }
+
+        private void write(String fieldName, Object value) throws ReflectiveOperationException {
+            Field field = ConfigProperties.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(config, value);
+        }
     }
 }
