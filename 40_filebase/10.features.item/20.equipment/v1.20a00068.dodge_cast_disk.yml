@@ -1,0 +1,24 @@
+# design:
+#   motif: "音楽レコード / 回避起動盤"
+#   progression: 1
+schemaVersion: 1
+id: 20a00068
+category: equipment
+name: "&aドッジキャストディスク"
+icon: MUSIC_DISC_13
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ホットバーへ設定して使う回避用レコード。"
+  - "&e右クリック後、0.25秒以内にスニークを解除"
+  - "&e解除時の移動方向へドッジを発動"
+  - "&7使用クールタイム: 3秒"
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: DODGE_CAST_DISK
+  requiredLevel: 0
+  durability:
+    max: 200
+    consume: 1

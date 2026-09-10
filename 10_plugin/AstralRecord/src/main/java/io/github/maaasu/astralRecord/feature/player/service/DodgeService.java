@@ -192,6 +192,51 @@ public class DodgeService {
     }
 
     /**
+     * キャストディスクが記録した開始座標からドッジを実行します。
+     *
+     * <p>ディスク固有のクールダウン・耐久消費は呼び出し元が管理します。
+     * このメソッドは通常ドッジと同じ生存、地上、詠唱、ENG の条件および演出を適用します。</p>
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param startedAtLocation ディスクを使用した瞬間の座標
+     * @return ドッジを実行した場合は {@code true}
+     */
+    public boolean tryTriggerCastDiskDodge(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Location startedAtLocation
+    ) {
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()) {
+            return false;
+        }
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline() || player.isDead() || !isGrounded(player)) {
+            return false;
+        }
+        double energyCost = resolveEnergyCost(astPlayer);
+        StatusSnapshot snapshot = statusService.getStatus(astPlayer);
+        if (snapshot.getCurrentEnergy() < energyCost) {
+            playDenied(player);
+            return false;
+        }
+        executeDodge(astPlayer, startedAtLocation, energyCost);
+        return true;
+    }
+
+    /**
+     * キャストディスクのドッジ受付を開始できる状態か確認します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return プレイヤーモードで、生存中かつ地上にいる場合は {@code true}
+     */
+    public boolean canBeginCastDiskDodge(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()) {
+            return false;
+        }
+        Player player = astPlayer.getBukkit();
+        return player.isOnline() && !player.isDead() && isGrounded(player);
+    }
+
+    /**
      * ドッジを実行します（条件チェック済み前提）。
      *
      * @param astPlayer            対象プレイヤー

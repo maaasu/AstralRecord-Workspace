@@ -1620,6 +1620,11 @@ public enum PlayerMsgId {
     P_7160(7160),
     // endregion
 
+    // region /feature/item/castdisk 7170-7179
+    /** スキルキャストディスクの指定武器がホットバーにない。 */
+    P_7170(7170),
+    // endregion
+
     ;
 
     private final String id;

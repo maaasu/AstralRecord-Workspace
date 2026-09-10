@@ -52,6 +52,10 @@ public static class MasterTagIds
         public const string CARTOGRAPH = "CARTOGRAPH";
         /// <summary>フックショット。</summary>
         public const string HOOKSHOT = "HOOKSHOT";
+        /// <summary>スキルキャストディスク。</summary>
+        public const string SKILL_CAST_DISK = "SKILL_CAST_DISK";
+        /// <summary>ドッジキャストディスク。</summary>
+        public const string DODGE_CAST_DISK = "DODGE_CAST_DISK";
         /// <summary>釣り竿。</summary>
         public const string FISHING_ROD = "FISHING_ROD";
     }
@@ -80,6 +84,10 @@ public static class MasterTagIds
         public const string RANGED = "ranged";
         /// <summary>魔法。</summary>
         public const string MAGIC = "magic";
+        /// <summary>魔術師。</summary>
+        public const string MAGE = "mage";
+        /// <summary>支援。</summary>
+        public const string SUPPORT = "support";
         /// <summary>タンク。</summary>
         public const string TANK = "tank";
         /// <summary>アタッカー。</summary>
@@ -214,6 +222,8 @@ public static class MasterTagIds
         public const string WOLF = "wolf";
         /// <summary>NPC。</summary>
         public const string NPC = "npc";
+        /// <summary>クモ。</summary>
+        public const string SPIDER = "spider";
     }
     /// <summary>地域・環境タグ。</summary>
     public static class Location
@@ -230,6 +240,8 @@ public static class MasterTagIds
         public const string SAVANNA = "savanna";
         /// <summary>アカシア。</summary>
         public const string ACACIA = "acacia";
+        /// <summary>ダンジョン。</summary>
+        public const string DUNGEON = "dungeon";
     }
     /// <summary>NPC役割タグ。</summary>
     public static class NpcRole
@@ -244,6 +256,8 @@ public static class MasterTagIds
         public const string WEAPON_SHOP = "weapon_shop";
         /// <summary>店舗。</summary>
         public const string SHOP = "shop";
+        /// <summary>溶鉱炉。</summary>
+        public const string BLAST_FURNACE = "blast_furnace";
         /// <summary>買取。</summary>
         public const string SELL = "sell";
         /// <summary>倉庫。</summary>
@@ -290,6 +304,8 @@ public static class MasterTagIds
         public const string WINDWAIT = "windwait";
         /// <summary>黄昏。</summary>
         public const string TWILIGHT = "twilight";
+        /// <summary>デバッグ。</summary>
+        public const string DEBUG = "debug";
         /// <summary>苔。</summary>
         public const string MOSS = "moss";
         /// <summary>鉄。</summary>
@@ -333,6 +349,8 @@ public static class MasterTags
                 ["MAIN_MENU"] = new("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["CARTOGRAPH"] = new("CARTOGRAPH", "カルトグラフ", "ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["HOOKSHOT"] = new("HOOKSHOT", "フックショット", "フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。", "EQUIPMENT", ["EQUIPMENT"]),
+                ["SKILL_CAST_DISK"] = new("SKILL_CAST_DISK", "スキルキャストディスク", "アクションスロットとホットバー武器を指定してスキルを発動する道具。", "EQUIPMENT", ["EQUIPMENT"]),
+                ["DODGE_CAST_DISK"] = new("DODGE_CAST_DISK", "ドッジキャストディスク", "スニーク解除で通常のドッジを発動する道具。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["FISHING_ROD"] = new("FISHING_ROD", "釣り竿", "釣り針を射出する道具。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["active"] = new("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", ["SKILL"]),
                 ["passive"] = new("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", ["SKILL"]),
@@ -343,6 +361,8 @@ public static class MasterTags
                 ["melee"] = new("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
                 ["ranged"] = new("ranged", "遠隔", "遠隔攻撃を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
                 ["magic"] = new("magic", "魔法", "魔法攻撃または魔法系統の分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
+                ["mage"] = new("mage", "魔術師", "魔術師系統に属する分類。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
+                ["support"] = new("support", "支援", "回復または補助を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
                 ["tank"] = new("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["dealer"] = new("dealer", "アタッカー", "ダメージ出力を主とするクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["balanced"] = new("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", ["CLASS"]),
@@ -402,17 +422,20 @@ public static class MasterTags
                 ["goat"] = new("goat", "ヤギ", "ヤギ種の Mob。", "CREATURE", ["MOB"]),
                 ["wolf"] = new("wolf", "オオカミ", "オオカミ種の Mob。", "CREATURE", ["MOB"]),
                 ["npc"] = new("npc", "NPC", "NPCとして扱う Mob。", "CREATURE", ["MOB"]),
+                ["spider"] = new("spider", "クモ", "クモ種の Mob。", "CREATURE", ["MOB"]),
                 ["midgard"] = new("midgard", "ミズガルズ", "ミズガルズ地域に属する分類。", "LOCATION", ["MOB", "RECIPE"]),
                 ["forest"] = new("forest", "森林", "森林地域に属する分類。", "LOCATION", ["MOB"]),
                 ["grassland"] = new("grassland", "草原", "草原地域に属する分類。", "LOCATION", ["MOB"]),
                 ["mountain"] = new("mountain", "山岳", "山岳地域に属する分類。", "LOCATION", ["SKILL", "MOB"]),
                 ["savanna"] = new("savanna", "サバンナ", "サバンナ地域に属する分類。", "LOCATION", ["SKILL", "MOB"]),
                 ["acacia"] = new("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", ["MOB"]),
+                ["dungeon"] = new("dungeon", "ダンジョン", "ダンジョン用に配置する Mob。", "LOCATION", ["MOB"]),
                 ["class_guide"] = new("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", ["MOB"]),
                 ["currency_exchange"] = new("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", ["MOB"]),
                 ["armor_shop"] = new("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", ["MOB"]),
                 ["weapon_shop"] = new("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", ["MOB"]),
                 ["shop"] = new("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", ["MOB"]),
+                ["blast_furnace"] = new("blast_furnace", "溶鉱炉", "溶鉱炉の加工交換を提供する NPC。", "NPC_ROLE", ["MOB"]),
                 ["sell"] = new("sell", "買取", "アイテム買取を提供する NPC。", "NPC_ROLE", ["MOB"]),
                 ["storage"] = new("storage", "倉庫", "倉庫機能を提供する NPC。", "NPC_ROLE", ["MOB"]),
                 ["login_bonus"] = new("login_bonus", "ログインボーナス", "ログインボーナスを提供する NPC。", "NPC_ROLE", ["MOB"]),
@@ -432,6 +455,7 @@ public static class MasterTags
                 ["wind"] = new("wind", "風", "風をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
                 ["windwait"] = new("windwait", "風待ち", "風待ちをモチーフとするスキルまたはMobの分類。", "THEME", ["SKILL", "MOB"]),
                 ["twilight"] = new("twilight", "黄昏", "黄昏をモチーフとする分類。", "THEME", ["MOB"]),
+                ["debug"] = new("debug", "デバッグ", "開発時の確認専用として扱う分類。", "THEME", ["MOB"]),
                 ["moss"] = new("moss", "苔", "苔をモチーフとする分類。", "THEME", ["MOB"]),
                 ["iron"] = new("iron", "鉄", "鉄をモチーフとする分類。", "THEME", ["MOB"]),
                 ["stone"] = new("stone", "石", "石をモチーフとする分類。", "THEME", ["SKILLTREE_NODE", "MOB"]),

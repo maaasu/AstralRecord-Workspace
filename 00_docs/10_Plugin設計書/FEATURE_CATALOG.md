@@ -82,6 +82,7 @@
 ### [[04_0-概要|04-item]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/command/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/castdisk/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/event/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/executor/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/gui/*`

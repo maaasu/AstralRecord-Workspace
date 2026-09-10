@@ -70,6 +70,9 @@ import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEven
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemChatShareEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskInteractionEventHandler;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskGui;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskUseService;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
@@ -454,6 +457,7 @@ public final class AstralRecord extends JavaPlugin {
     private EquipmentDurabilityReminderTask equipmentDurabilityReminderTask;
     private DebugFishingRodUseService debugFishingRodUseService;
     private HookshotUseService hookshotUseService;
+    private CastDiskUseService castDiskUseService;
     private OrbService orbService;
     private WorldService worldService;
     private AdminWorldTeleportItemService adminWorldTeleportItemService;
@@ -1681,6 +1685,13 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService
         );
         skillActionRingService.setCloseListener(skillActionRingHoldService::cancel);
+        castDiskUseService = new CastDiskUseService(
+            inventoryService,
+            itemService,
+            skillActionRingService,
+            dodgeService,
+            new CastDiskGui(skillBindPresetService, skillOwnershipService, skillService)
+        );
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -2125,7 +2136,9 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerInputEventHandler(airActionService),
             getServer().getPluginManager()
         );
-        var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService);
+        var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService, castDiskUseService);
+        var castDiskInteractionEventHandler = new CastDiskInteractionEventHandler(castDiskUseService);
+        eventManager.registerHandler(castDiskInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new PlayerVanillaDamageBlockEventHandler(worldService),
             getServer().getPluginManager()
@@ -2186,6 +2199,7 @@ public final class AstralRecord extends JavaPlugin {
                     baseWorldSpawnTeleportEventHandler,
                     overworldSpawnReturnEventHandler,
                     hookshotInteractionEventHandler,
+                    castDiskInteractionEventHandler,
                     debugFishingRodInteractionEventHandler,
                     adminWorldTeleportItemEventHandler,
                     itemInteractionBlockEventHandler,

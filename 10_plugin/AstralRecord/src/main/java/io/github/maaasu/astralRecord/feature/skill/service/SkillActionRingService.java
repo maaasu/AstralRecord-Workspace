@@ -484,6 +484,63 @@ public final class SkillActionRingService {
         return definition != null && definition.getKind() == SkillKind.ACTIVE;
     }
 
+    /**
+     * 指定したアクションスロットを、指定ホットバー枠の武器を主手として発動します。
+     *
+     * <p>発動中だけ Bukkit の選択枠を切り替え、必ず元の枠へ復帰します。スキルの解決値は
+     * 呼び出し時点の選択プリセットから読み取るため、ディスクにはスキル ID を保存しません。</p>
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param actionSlotIndex アクションスロット番号（0始まり）
+     * @param weaponHotbarSlot 使用武器を置いたホットバー番号（0始まり）
+     * @return スキル発動が成功した場合は {@code true}
+     */
+    public boolean castActionSlotWithHotbarWeapon(
+        @NotNull AstPlayer astPlayer,
+        int actionSlotIndex,
+        int weaponHotbarSlot
+    ) {
+        if (actionSlotIndex < 0 || actionSlotIndex >= SLOT_COUNT
+            || weaponHotbarSlot < 0 || weaponHotbarSlot > 8) {
+            return false;
+        }
+        Player player = astPlayer.getBukkit();
+        int originalHotbarSlot = player.getInventory().getHeldItemSlot();
+        player.getInventory().setHeldItemSlot(weaponHotbarSlot);
+        try {
+            if (!hasUsableMainHandWeapon(astPlayer)) {
+                return false;
+            }
+            SkillBindPreset preset = selectedPreset(astPlayer);
+            if (preset == null || actionSlotIndex >= preset.getActiveSkillSlots().size()) {
+                return false;
+            }
+            String skillId = preset.getActiveSkillSlots().get(actionSlotIndex);
+            if (skillId == null || skillId.isBlank()) {
+                return false;
+            }
+            if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
+                if (itemWeaponAttackService == null) {
+                    return false;
+                }
+                itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
+                return true;
+            }
+            SkillCastResult result = skillService.castLearnedSkill(
+                new PlayerSkillCaster(astPlayer),
+                skillId,
+                SkillCastTrigger.PLAYER_COMMAND,
+                player.getEyeLocation(),
+                null,
+                List.of()
+            );
+            return result.success();
+        } finally {
+            player.getInventory().setHeldItemSlot(originalHotbarSlot);
+            player.updateInventory();
+        }
+    }
+
     private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {
         UUID accountId = astPlayer.getAccount().getUuid();
         int selectedPresetIndex = presetService.selectedPresetIndex(accountId);

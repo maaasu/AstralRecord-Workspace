@@ -157,6 +157,16 @@ tags:
     description: フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。
     category: EQUIPMENT
     appliesTo: [EQUIPMENT]
+  - id: SKILL_CAST_DISK
+    displayName: スキルキャストディスク
+    description: アクションスロットとホットバー武器を指定してスキルを発動する道具。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: DODGE_CAST_DISK
+    displayName: ドッジキャストディスク
+    description: スニーク解除で通常のドッジを発動する道具。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
   - id: FISHING_ROD
     displayName: 釣り竿
     description: 釣り針を射出する道具。
@@ -207,6 +217,16 @@ tags:
   - id: magic
     displayName: 魔法
     description: 魔法攻撃または魔法系統の分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL, MOB]
+  - id: mage
+    displayName: 魔術師
+    description: 魔術師系統に属する分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL]
+  - id: support
+    displayName: 支援
+    description: 回復または補助を主とする分類。
     category: COMBAT_ROLE
     appliesTo: [CLASS, SKILL, MOB]
   - id: tank
@@ -508,6 +528,11 @@ tags:
     description: NPCとして扱う Mob。
     category: CREATURE
     appliesTo: [MOB]
+  - id: spider
+    displayName: クモ
+    description: クモ種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
 
   - id: midgard
     displayName: ミズガルズ
@@ -539,6 +564,11 @@ tags:
     description: アカシアをモチーフとする分類。
     category: LOCATION
     appliesTo: [MOB]
+  - id: dungeon
+    displayName: ダンジョン
+    description: ダンジョン用に配置する Mob。
+    category: LOCATION
+    appliesTo: [MOB]
 
   - id: class_guide
     displayName: クラス案内
@@ -563,6 +593,11 @@ tags:
   - id: shop
     displayName: 店舗
     description: 店舗機能を持つ NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: blast_furnace
+    displayName: 溶鉱炉
+    description: 溶鉱炉の加工交換を提供する NPC。
     category: NPC_ROLE
     appliesTo: [MOB]
   - id: sell
@@ -660,6 +695,11 @@ tags:
   - id: twilight
     displayName: 黄昏
     description: 黄昏をモチーフとする分類。
+    category: THEME
+    appliesTo: [MOB]
+  - id: debug
+    displayName: デバッグ
+    description: 開発時の確認専用として扱う分類。
     category: THEME
     appliesTo: [MOB]
   - id: moss

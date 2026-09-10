@@ -74,6 +74,12 @@ public final class MasterTagIds {
         /** フックショット: フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。 */
         public static final String HOOKSHOT = "HOOKSHOT";
 
+        /** スキルキャストディスク: アクションスロットとホットバー武器を指定してスキルを発動する道具。 */
+        public static final String SKILL_CAST_DISK = "SKILL_CAST_DISK";
+
+        /** ドッジキャストディスク: スニーク解除で通常のドッジを発動する道具。 */
+        public static final String DODGE_CAST_DISK = "DODGE_CAST_DISK";
+
         /** 釣り竿: 釣り針を射出する道具。 */
         public static final String FISHING_ROD = "FISHING_ROD";
     }
@@ -115,6 +121,12 @@ public final class MasterTagIds {
 
         /** 魔法: 魔法攻撃または魔法系統の分類。 */
         public static final String MAGIC = "magic";
+
+        /** 魔術師: 魔術師系統に属する分類。 */
+        public static final String MAGE = "mage";
+
+        /** 支援: 回復または補助を主とする分類。 */
+        public static final String SUPPORT = "support";
 
         /** タンク: 防御と敵対維持を主とするクラスロール。 */
         public static final String TANK = "tank";
@@ -316,6 +328,9 @@ public final class MasterTagIds {
 
         /** NPC: NPCとして扱う Mob。 */
         public static final String NPC = "npc";
+
+        /** クモ: クモ種の Mob。 */
+        public static final String SPIDER = "spider";
     }
 
     /** 地域・環境タグです。 */
@@ -340,6 +355,9 @@ public final class MasterTagIds {
 
         /** アカシア: アカシアをモチーフとする分類。 */
         public static final String ACACIA = "acacia";
+
+        /** ダンジョン: ダンジョン用に配置する Mob。 */
+        public static final String DUNGEON = "dungeon";
     }
 
     /** NPC役割タグです。 */
@@ -361,6 +379,9 @@ public final class MasterTagIds {
 
         /** 店舗: 店舗機能を持つ NPC。 */
         public static final String SHOP = "shop";
+
+        /** 溶鉱炉: 溶鉱炉の加工交換を提供する NPC。 */
+        public static final String BLAST_FURNACE = "blast_furnace";
 
         /** 買取: アイテム買取を提供する NPC。 */
         public static final String SELL = "sell";
@@ -431,6 +452,9 @@ public final class MasterTagIds {
         /** 黄昏: 黄昏をモチーフとする分類。 */
         public static final String TWILIGHT = "twilight";
 
+        /** デバッグ: 開発時の確認専用として扱う分類。 */
+        public static final String DEBUG = "debug";
+
         /** 苔: 苔をモチーフとする分類。 */
         public static final String MOSS = "moss";
 
@@ -471,6 +495,8 @@ public final class MasterTagIds {
         Map.entry("MAIN_MENU", new Definition("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("CARTOGRAPH", new Definition("CARTOGRAPH", "カルトグラフ", "ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("HOOKSHOT", new Definition("HOOKSHOT", "フックショット", "フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("SKILL_CAST_DISK", new Definition("SKILL_CAST_DISK", "スキルキャストディスク", "アクションスロットとホットバー武器を指定してスキルを発動する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("DODGE_CAST_DISK", new Definition("DODGE_CAST_DISK", "ドッジキャストディスク", "スニーク解除で通常のドッジを発動する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("FISHING_ROD", new Definition("FISHING_ROD", "釣り竿", "釣り針を射出する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("active", new Definition("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
@@ -481,6 +507,8 @@ public final class MasterTagIds {
         Map.entry("melee", new Definition("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
         Map.entry("ranged", new Definition("ranged", "遠隔", "遠隔攻撃を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
         Map.entry("magic", new Definition("magic", "魔法", "魔法攻撃または魔法系統の分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
+        Map.entry("mage", new Definition("mage", "魔術師", "魔術師系統に属する分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL"))),
+        Map.entry("support", new Definition("support", "支援", "回復または補助を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
         Map.entry("tank", new Definition("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("dealer", new Definition("dealer", "アタッカー", "ダメージ出力を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("balanced", new Definition("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", List.of("CLASS"))),
@@ -540,17 +568,20 @@ public final class MasterTagIds {
         Map.entry("goat", new Definition("goat", "ヤギ", "ヤギ種の Mob。", "CREATURE", List.of("MOB"))),
         Map.entry("wolf", new Definition("wolf", "オオカミ", "オオカミ種の Mob。", "CREATURE", List.of("MOB"))),
         Map.entry("npc", new Definition("npc", "NPC", "NPCとして扱う Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("spider", new Definition("spider", "クモ", "クモ種の Mob。", "CREATURE", List.of("MOB"))),
         Map.entry("midgard", new Definition("midgard", "ミズガルズ", "ミズガルズ地域に属する分類。", "LOCATION", List.of("MOB", "RECIPE"))),
         Map.entry("forest", new Definition("forest", "森林", "森林地域に属する分類。", "LOCATION", List.of("MOB"))),
         Map.entry("grassland", new Definition("grassland", "草原", "草原地域に属する分類。", "LOCATION", List.of("MOB"))),
         Map.entry("mountain", new Definition("mountain", "山岳", "山岳地域に属する分類。", "LOCATION", List.of("SKILL", "MOB"))),
         Map.entry("savanna", new Definition("savanna", "サバンナ", "サバンナ地域に属する分類。", "LOCATION", List.of("SKILL", "MOB"))),
         Map.entry("acacia", new Definition("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", List.of("MOB"))),
+        Map.entry("dungeon", new Definition("dungeon", "ダンジョン", "ダンジョン用に配置する Mob。", "LOCATION", List.of("MOB"))),
         Map.entry("class_guide", new Definition("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("currency_exchange", new Definition("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("armor_shop", new Definition("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("weapon_shop", new Definition("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("shop", new Definition("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("blast_furnace", new Definition("blast_furnace", "溶鉱炉", "溶鉱炉の加工交換を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("sell", new Definition("sell", "買取", "アイテム買取を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("storage", new Definition("storage", "倉庫", "倉庫機能を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("login_bonus", new Definition("login_bonus", "ログインボーナス", "ログインボーナスを提供する NPC。", "NPC_ROLE", List.of("MOB"))),
@@ -570,6 +601,7 @@ public final class MasterTagIds {
         Map.entry("wind", new Definition("wind", "風", "風をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
         Map.entry("windwait", new Definition("windwait", "風待ち", "風待ちをモチーフとするスキルまたはMobの分類。", "THEME", List.of("SKILL", "MOB"))),
         Map.entry("twilight", new Definition("twilight", "黄昏", "黄昏をモチーフとする分類。", "THEME", List.of("MOB"))),
+        Map.entry("debug", new Definition("debug", "デバッグ", "開発時の確認専用として扱う分類。", "THEME", List.of("MOB"))),
         Map.entry("moss", new Definition("moss", "苔", "苔をモチーフとする分類。", "THEME", List.of("MOB"))),
         Map.entry("iron", new Definition("iron", "鉄", "鉄をモチーフとする分類。", "THEME", List.of("MOB"))),
         Map.entry("stone", new Definition("stone", "石", "石をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE", "MOB")))

@@ -1,0 +1,23 @@
+# design:
+#   motif: "音楽レコード / 魔導起動盤"
+#   progression: 1
+schemaVersion: 1
+id: 20a00067
+category: equipment
+name: "&bスキルキャストディスク"
+icon: MUSIC_DISC_11
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ホットバーへ設定して使う魔導レコード。"
+  - "&e右クリック: スキル枠と武器枠を設定"
+  - "&e左クリック: 設定したスキルを発動"
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: SKILL_CAST_DISK
+  requiredLevel: 0
+  durability:
+    max: 200
+    consume: 1

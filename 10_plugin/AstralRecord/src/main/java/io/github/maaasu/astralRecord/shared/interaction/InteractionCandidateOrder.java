@@ -21,6 +21,7 @@ public final class InteractionCandidateOrder {
     public static final int GATHERING_SPAWNER = 70;
     public static final int HOOKSHOT = 80;
     public static final int FISHING_ROD = 81;
+    public static final int CAST_DISK = 82;
     public static final int PLAYER_MODE_ENTITY_INTERACTION_GUARD = 85;
     public static final int VANILLA_INTERACTION = 90;
     public static final int MENU_SHORTCUT = 90;

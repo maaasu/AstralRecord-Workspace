@@ -459,7 +459,7 @@ items:
     amount: 1
     page: 1
     row: 1
-    column: 7
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId:
@@ -481,7 +481,7 @@ items:
     amount: 1
     page: 1
     row: 2
-    column: 7
+    column: 5
     priceGold: 0
     requiredItems:
       - itemId:
@@ -518,6 +518,50 @@ items:
           ref: item:10a00043
         category: material
         amount: 8
+  - id: 20a00067
+    itemId:
+      ref: item:20a00067
+    category: equipment
+    amount: 1
+    page: 1
+    row: 1
+    column: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00050
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00043
+        category: material
+        amount: 12
+      - itemId:
+          ref: item:10a00039
+        category: material
+        amount: 6
+  - id: 20a00068
+    itemId:
+      ref: item:20a00068
+    category: equipment
+    amount: 1
+    page: 1
+    row: 2
+    column: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00042
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:10a00026
+        category: material
+        amount: 12
+      - itemId:
+          ref: item:10a00041
+        category: material
+        amount: 2
   - id: 20a00047
     itemId:
       ref: item:20a00047
