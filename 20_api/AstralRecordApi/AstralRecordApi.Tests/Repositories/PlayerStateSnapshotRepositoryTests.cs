@@ -1426,12 +1426,13 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
                 new PlayerStateInventorySnapshot
                 {
                     InventoryId = FirstInventoryId,
+                    EntryMode = "DELTA",
                     ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = EntryId, UpdatedAt = BaseTime }],
                     Entries = [],
                 },
                 new PlayerStateInventorySnapshot
                 {
-                    InventoryId = SecondInventoryId, ExpectedEntries = [],
+                    InventoryId = SecondInventoryId, EntryMode = "DELTA", ExpectedEntries = [],
                     Entries = [new PlayerStateInventoryEntrySnapshot { InventoryEntryId = EntryId, ExpectedUpdatedAt = BaseTime, ItemCategory = "CURRENCY", ItemId = "gold", Quantity = quantity }],
                 },
             ],

@@ -49,6 +49,8 @@ public final class PlayerInventoryState {
     private final Map<UUID, Set<UUID>> dirtyEntryIdsByInventoryId = new HashMap<>();
     /** slot 差分を持つ loadoutId。 */
     private final Set<UUID> dirtyLoadoutIds = new HashSet<>();
+    /** loadout ごとの変更・削除された slot key（slotType + slotIndex）。 */
+    private final Map<UUID, Set<String>> dirtyLoadoutSlotKeys = new HashMap<>();
 
     /** GUI 表示中のインベントリ種別。所持品統合後は BAG 固定。非永続。 */
     private @NotNull InventoryType displayedType = InventoryType.BAG;
@@ -269,12 +271,17 @@ public final class PlayerInventoryState {
         return Set.copyOf(dirtyEntryIdsByInventoryId.getOrDefault(inventoryId, Set.of()));
     }
 
+    synchronized @NotNull Set<String> snapshotDirtyLoadoutSlotKeys(@NotNull UUID loadoutId) {
+        return Set.copyOf(dirtyLoadoutSlotKeys.getOrDefault(loadoutId, Set.of()));
+    }
+
     /** ACK 済み snapshot の領域だけを dirty 集合から除去します。 */
     synchronized void acknowledgeDirtyScopes(@NotNull Collection<UUID> inventoryIds,
                                              @NotNull Collection<UUID> loadoutIds) {
         dirtyInventoryIds.removeAll(inventoryIds);
         inventoryIds.forEach(dirtyEntryIdsByInventoryId::remove);
         dirtyLoadoutIds.removeAll(loadoutIds);
+        loadoutIds.forEach(dirtyLoadoutSlotKeys::remove);
     }
 
     /**
@@ -758,9 +765,22 @@ public final class PlayerInventoryState {
             updatedBy,
             active.isDeleted()
         );
+        Map<String, EquipmentLoadoutSlotModel> previousByKey = new HashMap<>();
+        currentSlots.forEach(slot -> previousByKey.put(loadoutSlotKey(slot), slot));
+        Map<String, EquipmentLoadoutSlotModel> nextByKey = new HashMap<>();
+        nextSlots.forEach(slot -> nextByKey.put(loadoutSlotKey(slot), slot));
+        Set<String> changedSlotKeys = new HashSet<>(previousByKey.keySet());
+        changedSlotKeys.addAll(nextByKey.keySet());
+        changedSlotKeys.removeIf(key -> Objects.equals(previousByKey.get(key), nextByKey.get(key)));
+        dirtyLoadoutSlotKeys.computeIfAbsent(active.getEquipmentLoadoutId(), ignored -> new HashSet<>())
+            .addAll(changedSlotKeys);
         putLoadout(updated);
         dirtyLoadoutIds.add(active.getEquipmentLoadoutId());
         markDirty();
+    }
+
+    private static @NotNull String loadoutSlotKey(@NotNull EquipmentLoadoutSlotModel slot) {
+        return slot.getSlotType().trim().toUpperCase(java.util.Locale.ROOT) + '\u001f' + slot.getSlotIndex();
     }
 
     // ---------------------------------------------------------------

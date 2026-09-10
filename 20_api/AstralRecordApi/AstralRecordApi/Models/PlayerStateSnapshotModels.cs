@@ -37,6 +37,8 @@ public sealed class PlayerStateInventorySnapshot
     /// <summary>新規 inventory の必須属性。既存 inventory では null。</summary>
     public bool? IsEnabled { get; init; }
     public bool MetadataDirty { get; init; }
+    /// <summary>DELTA の場合だけ entries/deletedEntryIds を差分として適用する。未指定は旧クライアント互換の完全置換。</summary>
+    public string? EntryMode { get; init; }
     public DateTime? ExpectedUpdatedAt { get; init; }
     public string? MetadataJson { get; init; }
     /// <summary>ロード時点の当該 inventory の有効 entry 全集合と timestamp。省略削除、並行追加・更新を検出する。</summary>
@@ -76,7 +78,10 @@ public sealed class PlayerStateLoadoutSnapshot
     public bool? IsActive { get; init; }
     public string? MetadataJson { get; init; }
     public DateTime? ExpectedUpdatedAt { get; init; }
+    /// <summary>DELTA の場合だけ slots/deletedSlots を差分として適用する。未指定は旧クライアント互換の完全置換。</summary>
+    public string? SlotMode { get; init; }
     public IReadOnlyList<PlayerStateLoadoutSlotSnapshot> Slots { get; init; } = [];
+    public IReadOnlyList<PlayerStateLoadoutSlotKeySnapshot> DeletedSlots { get; init; } = [];
 }
 
 public sealed class PlayerStateLoadoutSlotSnapshot
@@ -84,6 +89,12 @@ public sealed class PlayerStateLoadoutSlotSnapshot
     public required string SlotType { get; init; }
     public int SlotIndex { get; init; }
     public Guid EquipmentInstanceId { get; init; }
+}
+
+public sealed class PlayerStateLoadoutSlotKeySnapshot
+{
+    public required string SlotType { get; init; }
+    public int SlotIndex { get; init; }
 }
 
 public sealed class PlayerStateEquipmentSnapshot

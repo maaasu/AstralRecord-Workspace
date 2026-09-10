@@ -159,7 +159,16 @@ public sealed class PlayerStateSnapshotRepository(
         foreach (var inventorySnapshot in request.Inventories)
         {
             var inventory = inventoriesById[inventorySnapshot.InventoryId];
-            if (inventorySnapshot.ExpectedEntries.Any(expected => !entriesById.TryGetValue(expected.InventoryEntryId, out var entry)
+            if (!UsesEntryDelta(inventorySnapshot))
+            {
+                var currentEntries = accountEntries.Where(entry => entry.InventoryId == inventory.InventoryId && !entry.IsDeleted)
+                    .OrderBy(entry => entry.InventoryEntryId).ToArray();
+                var expectedEntries = inventorySnapshot.ExpectedEntries.OrderBy(entry => entry.InventoryEntryId).ToArray();
+                if (currentEntries.Length != expectedEntries.Length || currentEntries.Zip(expectedEntries).Any(pair =>
+                    pair.First.InventoryEntryId != pair.Second.InventoryEntryId || pair.First.UpdatedAt != pair.Second.UpdatedAt))
+                    return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry baseline snapshot is stale.");
+            }
+            else if (inventorySnapshot.ExpectedEntries.Any(expected => !entriesById.TryGetValue(expected.InventoryEntryId, out var entry)
                     || entry.InventoryId != inventory.InventoryId || entry.IsDeleted || entry.UpdatedAt != expected.UpdatedAt))
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry baseline snapshot is stale.");
             if (inventorySnapshot.MetadataDirty && !inventorySnapshot.IsNew)
@@ -193,7 +202,7 @@ public sealed class PlayerStateSnapshotRepository(
                     return Failure(PlayerStateSnapshotSaveFailure.Invalid, "New inventory entry must not specify expectedUpdatedAt.");
                 }
             }
-            if (inventorySnapshot.DeletedEntryIds.Any(entryId => !expectedEntriesById.ContainsKey(entryId)
+            if (UsesEntryDelta(inventorySnapshot) && inventorySnapshot.DeletedEntryIds.Any(entryId => !expectedEntriesById.ContainsKey(entryId)
                     || request.Inventories.SelectMany(snapshot => snapshot.Entries)
                         .Any(entry => entry.InventoryEntryId == entryId)))
                 return Failure(PlayerStateSnapshotSaveFailure.Invalid, "Deleted inventory entry is not an expected baseline row.");
@@ -212,13 +221,17 @@ public sealed class PlayerStateSnapshotRepository(
 
         var requestedEntries = request.Inventories.SelectMany(snapshot => snapshot.Entries
             .Select(entry => (snapshot.InventoryId, Entry: entry))).ToArray();
-        var entriesToDisable = requestedEntries
+        var entriesToDisable = request.Inventories.Any(snapshot => !UsesEntryDelta(snapshot))
+            ? accountEntries.Where(entry => !entry.IsDeleted && request.Inventories.Any(snapshot =>
+                !UsesEntryDelta(snapshot) && snapshot.InventoryId == entry.InventoryId))
+                .Concat(requestedEntries.Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId)).OfType<InventoryEntryEntity>())
+                .DistinctBy(entry => entry.InventoryEntryId).ToArray()
+            : requestedEntries
             .Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId))
             .OfType<InventoryEntryEntity>()
             .Where(entry => !entry.IsDeleted && requestedEntries.Any(value => value.Entry.InventoryEntryId == entry.InventoryEntryId
                 && (entry.InventoryId != value.InventoryId || entry.SlotIndex != value.Entry.SlotIndex)))
-            .DistinctBy(entry => entry.InventoryEntryId)
-            .ToArray();
+            .DistinctBy(entry => entry.InventoryEntryId).ToArray();
         foreach (var entry in entriesToDisable)
         {
             entry.IsDeleted = true;
@@ -228,7 +241,7 @@ public sealed class PlayerStateSnapshotRepository(
         if (entriesToDisable.Length > 0)
             await dbContext.SaveChangesAsync();
 
-        foreach (var entryId in request.Inventories.SelectMany(snapshot => snapshot.DeletedEntryIds))
+        foreach (var entryId in request.Inventories.Where(UsesEntryDelta).SelectMany(snapshot => snapshot.DeletedEntryIds))
         {
             var entry = entriesById[entryId];
             entry.IsDeleted = true;
@@ -469,7 +482,12 @@ public sealed class PlayerStateSnapshotRepository(
             var existingSlots = await dbContext.EquipmentLoadoutSlots
                 .Where(slot => slot.EquipmentLoadoutId == loadout.EquipmentLoadoutId && !slot.IsDeleted)
                 .ToListAsync();
-            foreach (var slot in existingSlots)
+            var changedSlotKeys = snapshot.Slots.Select(slot => (slot.SlotType.Trim().ToUpperInvariant(), slot.SlotIndex))
+                .Concat(snapshot.DeletedSlots.Select(slot => (slot.SlotType.Trim().ToUpperInvariant(), slot.SlotIndex))).ToHashSet();
+            var slotsToDisable = UsesLoadoutSlotDelta(snapshot)
+                ? existingSlots.Where(slot => changedSlotKeys.Contains((slot.SlotType.Trim().ToUpperInvariant(), slot.SlotIndex))).ToList()
+                : existingSlots;
+            foreach (var slot in slotsToDisable)
             {
                 slot.IsDeleted = true;
                 slot.UpdatedAt = AdvanceUpdatedAt(slot.UpdatedAt, now);
@@ -477,7 +495,7 @@ public sealed class PlayerStateSnapshotRepository(
             }
             // Filtered unique indexes only release the old positions after this flush. Without it,
             // a same-request slot/equipment swap can be ordered as conflicting UPDATE statements.
-            if (existingSlots.Count > 0)
+            if (slotsToDisable.Count > 0)
                 await dbContext.SaveChangesAsync();
             foreach (var slotSnapshot in snapshot.Slots)
             {
@@ -1680,13 +1698,14 @@ public sealed class PlayerStateSnapshotRepository(
         detail = "Snapshot structure is invalid.";
         if (request.Inventories is null || request.Loadouts is null || request.Equipment is null
             || request.Inventories.Any(i => i is null || i.ExpectedEntries is null || i.DeletedEntryIds is null || i.Entries is null)
-            || request.Loadouts.Any(l => l is null || l.Slots is null)
+            || request.Loadouts.Any(l => l is null || l.Slots is null || l.DeletedSlots is null)
             || request.Equipment.Any(e => e is null || e.StatRolls is null || e.Enchants is null || e.Runes is null))
             return false;
         if (request.Inventories.Any(i => !IsValidInventorySnapshot(i)
                 || i.ExpectedEntries.Any(e => e is null || e.InventoryEntryId == Guid.Empty)
                 || i.DeletedEntryIds.Any(id => id == Guid.Empty)
                 || HasDuplicates(i.DeletedEntryIds)
+                || (i.EntryMode is not null && !string.Equals(i.EntryMode, "DELTA", StringComparison.OrdinalIgnoreCase))
                 || i.Entries.Any(e => e is null || !IsValidEntry(e) || !IsJsonOrNull(e.MetadataJson))
                 || (i.MetadataDirty && !IsJsonOrNull(i.MetadataJson))
                 || HasDuplicates(i.Entries.Where(e => e.SlotIndex.HasValue).Select(e => e.SlotIndex))
@@ -1699,6 +1718,11 @@ public sealed class PlayerStateSnapshotRepository(
                 || l.Slots.Any(s => s is null || s.EquipmentInstanceId == Guid.Empty
                     || s.SlotIndex < 0 || !ValidText(s.SlotType, 30))
                 || HasDuplicates(l.Slots.Select(s => (s.SlotType.Trim().ToUpperInvariant(), s.SlotIndex)))
+                || l.DeletedSlots.Any(s => s is null || s.SlotIndex < 0 || !ValidText(s.SlotType, 30))
+                || HasDuplicates(l.DeletedSlots.Select(s => (s.SlotType.Trim().ToUpperInvariant(), s.SlotIndex)))
+                || l.DeletedSlots.Any(deleted => l.Slots.Any(slot => string.Equals(slot.SlotType, deleted.SlotType, StringComparison.OrdinalIgnoreCase)
+                    && slot.SlotIndex == deleted.SlotIndex))
+                || (l.SlotMode is not null && !string.Equals(l.SlotMode, "DELTA", StringComparison.OrdinalIgnoreCase))
                 || HasDuplicates(l.Slots.Select(s => s.EquipmentInstanceId)))
             || HasDuplicates(request.Equipment.Select(e => e.EquipmentInstanceId))
             || request.Equipment.Any(e => !IsValidEquipment(e))
@@ -1745,6 +1769,12 @@ public sealed class PlayerStateSnapshotRepository(
         detail = null;
         return true;
     }
+
+    private static bool UsesEntryDelta(PlayerStateInventorySnapshot snapshot)
+        => string.Equals(snapshot.EntryMode, "DELTA", StringComparison.OrdinalIgnoreCase);
+
+    private static bool UsesLoadoutSlotDelta(PlayerStateLoadoutSnapshot snapshot)
+        => string.Equals(snapshot.SlotMode, "DELTA", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsValidInventorySnapshot(PlayerStateInventorySnapshot snapshot)
         => snapshot.IsNew

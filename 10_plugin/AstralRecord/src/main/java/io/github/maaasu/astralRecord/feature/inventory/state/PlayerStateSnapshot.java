@@ -95,6 +95,7 @@ final class PlayerStateSnapshot {
             JsonObject object = new JsonObject();
             object.addProperty("inventoryId", inventory.getInventoryId().toString());
             object.addProperty("isNew", isNew);
+            object.addProperty("entryMode", "DELTA");
             if (isNew) {
                 object.add("expectedUpdatedAt", JsonNull.INSTANCE);
                 object.addProperty("inventoryType", inventory.getInventoryType().getCode());
@@ -156,7 +157,7 @@ final class PlayerStateSnapshot {
         }
         body.add("inventories", inventoryArray);
         Set<UUID> selectedLoadoutIds = new LinkedHashSet<>(state.snapshotDirtyLoadoutIds());
-        if (includePendingInventories || state.isDirty() && selectedLoadoutIds.isEmpty()) {
+        if (forceFullInventories) {
             state.snapshotLoadouts(InventoryProfile.GAME).forEach(value -> selectedLoadoutIds.add(value.getEquipmentLoadoutId()));
         }
         JsonArray loadouts = new JsonArray();
@@ -168,6 +169,7 @@ final class PlayerStateSnapshot {
             JsonObject object = new JsonObject();
             object.addProperty("equipmentLoadoutId", loadout.getEquipmentLoadoutId().toString());
             object.addProperty("isNew", isNew);
+            object.addProperty("slotMode", "DELTA");
             if (isNew) {
                 object.add("expectedUpdatedAt", JsonNull.INSTANCE);
                 object.addProperty("loadoutProfile", loadout.getLoadoutProfile());
@@ -178,9 +180,12 @@ final class PlayerStateSnapshot {
             } else {
                 object.addProperty("expectedUpdatedAt", loadout.getUpdatedAt().toString());
             }
+            Set<String> dirtySlotKeys = state.snapshotDirtyLoadoutSlotKeys(loadout.getEquipmentLoadoutId());
             JsonArray slots = new JsonArray();
             for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
                 if (slot.isDeleted()) continue;
+                String slotKey = slot.getSlotType().trim().toUpperCase(Locale.ROOT) + '\u001f' + slot.getSlotIndex();
+                if (!isNew && !forceFullInventories && !dirtySlotKeys.contains(slotKey)) continue;
                 JsonObject row = new JsonObject();
                 row.addProperty("slotType", slot.getSlotType());
                 row.addProperty("slotIndex", slot.getSlotIndex());
@@ -188,6 +193,19 @@ final class PlayerStateSnapshot {
                 slots.add(row);
             }
             object.add("slots", slots);
+            JsonArray deletedSlots = new JsonArray();
+            for (String slotKey : dirtySlotKeys) {
+                boolean exists = loadout.getSlots().stream().filter(slot -> !slot.isDeleted()).anyMatch(slot ->
+                    (slot.getSlotType().trim().toUpperCase(Locale.ROOT) + '\u001f' + slot.getSlotIndex()).equals(slotKey));
+                if (!exists) {
+                    int separator = slotKey.indexOf('\u001f');
+                    JsonObject row = new JsonObject();
+                    row.addProperty("slotType", slotKey.substring(0, separator));
+                    row.addProperty("slotIndex", Integer.parseInt(slotKey.substring(separator + 1)));
+                    deletedSlots.add(row);
+                }
+            }
+            object.add("deletedSlots", deletedSlots);
             loadouts.add(object);
         }
         body.add("loadouts", loadouts);
