@@ -973,6 +973,49 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task PurchaseListing_MergesSlotlessStackWithDifferentCategoryAndReplaysOnce()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        var created = await harness.Repository.CreateListingAsync(harness.CreateStackRequest(sourceEntryId, quantity: 1));
+        Assert.True(created.Succeeded);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var now = DateTime.UtcNow;
+        var destinationId = Guid.NewGuid();
+        var slottedId = Guid.NewGuid();
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = slottedId, InventoryId = buyer.BagInventoryId, SlotIndex = 1,
+            ItemCategory = "material", ItemId = "market_material", Quantity = 2,
+            CreatedAt = now, UpdatedAt = now, CreatedBy = buyer.AccountId, UpdatedBy = buyer.AccountId,
+        });
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = destinationId, InventoryId = buyer.BagInventoryId,
+            ItemCategory = "MATERIAL", ItemId = "market_material", Quantity = 2,
+            CreatedAt = now, UpdatedAt = now, CreatedBy = buyer.AccountId, UpdatedBy = buyer.AccountId,
+        });
+        await harness.DbContext.SaveChangesAsync();
+        var request = new MarketPurchaseRequest
+        {
+            BuyerAccountId = buyer.AccountId, Quantity = 1,
+            IdempotencyKey = Guid.NewGuid().ToString(), UpdatedBy = buyer.AccountId,
+        };
+
+        Assert.True((await harness.Repository.PurchaseListingAsync(created.Value!.ListingId, request)).Succeeded);
+        Assert.True((await harness.Repository.PurchaseListingAsync(created.Value.ListingId, request)).Succeeded);
+
+        var destination = await harness.DbContext.InventoryEntries.AsNoTracking().SingleAsync(entry =>
+            entry.InventoryId == buyer.BagInventoryId && entry.ItemId == "market_material"
+            && entry.SlotIndex == null && !entry.IsDeleted);
+        Assert.Equal(destinationId, destination.InventoryEntryId);
+        Assert.Equal(3, destination.Quantity);
+        Assert.Equal(2, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == slottedId)).Quantity);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+    }
+
+    [Fact]
     public async Task PurchaseListing_RejectsDestinationQuantityOverflowWithoutChangingBalances()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

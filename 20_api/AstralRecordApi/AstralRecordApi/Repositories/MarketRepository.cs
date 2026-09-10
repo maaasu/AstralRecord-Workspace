@@ -1146,12 +1146,15 @@ public class MarketRepository(
         }
 
         var now = DateTime.UtcNow;
-        var existing = await dbContext.InventoryEntries.FirstOrDefaultAsync(entry =>
+        var existing = await dbContext.InventoryEntries.Where(entry =>
             entry.InventoryId == inventory.InventoryId
-            && entry.ItemCategory == listing.ItemCategory
             && entry.ItemId == listing.ItemId
+            && entry.InstanceType == null
             && entry.InstanceId == null
-            && !entry.IsDeleted);
+            && !entry.IsDeleted)
+            .OrderBy(entry => entry.SlotIndex.HasValue)
+            .ThenBy(entry => entry.InventoryEntryId)
+            .FirstOrDefaultAsync();
         if (existing is not null)
         {
             try

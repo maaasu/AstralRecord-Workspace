@@ -10,6 +10,87 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class TradeRepositoryTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CommitAsync_MergesMultipleSourceStacksBeforeSavingAndReplaysOnce(bool sendFromPlayerB)
+    {
+        await using var harness = await TradeHarness.CreateAsync();
+        var source = await harness.DbContext.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == harness.MaterialEntryId);
+        var second = (InventoryEntryEntity)harness.DbContext.Entry(source).CurrentValues.ToObject();
+        second.InventoryEntryId = Guid.NewGuid();
+        second.SlotIndex = 4;
+        harness.DbContext.InventoryEntries.Add(second);
+        await harness.DbContext.SaveChangesAsync();
+        var request = harness.Request(includeMaterial: true);
+        request.PlayerAItems = [.. request.PlayerAItems, new() { SourceInventoryEntryId = second.InventoryEntryId, Quantity = 2 }];
+        if (sendFromPlayerB)
+        {
+            (request.PlayerAAccountId, request.PlayerBAccountId) = (request.PlayerBAccountId, request.PlayerAAccountId);
+            (request.PlayerAItems, request.PlayerBItems) = (request.PlayerBItems, request.PlayerAItems);
+            (request.PlayerAGold, request.PlayerBGold) = (request.PlayerBGold, request.PlayerAGold);
+        }
+
+        var result = await harness.Repository.CommitAsync(request);
+        Assert.True(result.Succeeded);
+        Assert.True((await harness.Repository.CommitAsync(request)).Succeeded);
+        var destination = await harness.DbContext.InventoryEntries.AsNoTracking().SingleAsync(entry =>
+            entry.InventoryId == harness.PlayerBBagId && entry.ItemId == "trade_material" && !entry.IsDeleted);
+        Assert.Equal(4, destination.Quantity);
+        Assert.Equal(1, await harness.DbContext.TradeCommits.CountAsync());
+    }
+
+    [Fact]
+    public async Task CommitAsync_MergesExistingStackRegardlessOfCategorySpelling()
+    {
+        await using var harness = await TradeHarness.CreateAsync();
+        var source = await harness.DbContext.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == harness.MaterialEntryId);
+        var destination = (InventoryEntryEntity)harness.DbContext.Entry(source).CurrentValues.ToObject();
+        destination.InventoryEntryId = Guid.NewGuid();
+        destination.InventoryId = harness.PlayerBBagId;
+        destination.ItemCategory = "MATERIAL";
+        destination.SlotIndex = null;
+        harness.DbContext.InventoryEntries.Add(destination);
+        await harness.DbContext.SaveChangesAsync();
+
+        var result = await harness.Repository.CommitAsync(harness.Request(includeMaterial: true));
+
+        Assert.True(result.Succeeded);
+        var saved = await harness.DbContext.InventoryEntries.AsNoTracking().SingleAsync(entry =>
+            entry.InventoryId == harness.PlayerBBagId && entry.ItemId == "trade_material" && !entry.IsDeleted);
+        Assert.Equal(destination.InventoryEntryId, saved.InventoryEntryId);
+        Assert.Equal(4, saved.Quantity);
+    }
+
+    [Fact]
+    public async Task CommitAsync_RollsBackAllTransfersWhenMergedQuantityOverflows()
+    {
+        await using var harness = await TradeHarness.CreateAsync();
+        var source = await harness.DbContext.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == harness.MaterialEntryId);
+        var second = (InventoryEntryEntity)harness.DbContext.Entry(source).CurrentValues.ToObject();
+        second.InventoryEntryId = Guid.NewGuid();
+        second.SlotIndex = 4;
+        second.Quantity = long.MaxValue;
+        harness.DbContext.InventoryEntries.Add(second);
+        await harness.DbContext.SaveChangesAsync();
+        var request = harness.Request(includeMaterial: true);
+        request.PlayerAItems = [.. request.PlayerAItems, new() { SourceInventoryEntryId = second.InventoryEntryId, Quantity = long.MaxValue }];
+
+        var result = await harness.Repository.CommitAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("trade.destination_quantity_overflow", result.ErrorCode);
+        Assert.Equal(0, await harness.DbContext.TradeCommits.CountAsync());
+        Assert.Equal(100, await harness.TotalGoldAsync(harness.PlayerAAccountId));
+        Assert.Equal(0, await harness.TotalGoldAsync(harness.PlayerBAccountId));
+        Assert.Equal(harness.PlayerABagId, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == harness.EquipmentEntryId)).InventoryId);
+        Assert.Equal(2, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == harness.MaterialEntryId)).Quantity);
+        Assert.False(await harness.DbContext.InventoryEntries.AnyAsync(entry =>
+            entry.InventoryId == harness.PlayerBBagId && entry.ItemId == "trade_material"));
+    }
+
     [Fact]
     public async Task CommitAsync_TransfersEquipmentOwnershipMembershipAndGoldAtomically()
     {

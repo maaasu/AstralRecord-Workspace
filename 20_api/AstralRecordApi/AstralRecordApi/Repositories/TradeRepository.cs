@@ -171,12 +171,23 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
             if (source.Quantity == 0)
                 source.IsDeleted = true;
 
-            var target = await dbContext.InventoryEntries.FirstOrDefaultAsync(entry =>
+            // DB クエリだけでは同じ transaction 内で追加した受取 stack が見えない。
+            // 保存済み候補を追跡へ読み込み、削除・移動を含む現在値から受取先を選ぶ。
+            await dbContext.InventoryEntries.Where(entry =>
                 entry.InventoryId == destinationBag.InventoryId
                 && !entry.IsDeleted
-                && entry.ItemCategory == source.ItemCategory
                 && entry.ItemId == source.ItemId
-                && entry.InstanceId == null);
+                && entry.InstanceType == null
+                && entry.InstanceId == null).LoadAsync();
+            var target = dbContext.InventoryEntries.Local
+                .Where(entry => entry.InventoryId == destinationBag.InventoryId
+                    && !entry.IsDeleted
+                    && string.Equals(entry.ItemId, source.ItemId, StringComparison.OrdinalIgnoreCase)
+                    && entry.InstanceType == null
+                    && entry.InstanceId == null)
+                .OrderBy(entry => entry.SlotIndex.HasValue)
+                .ThenBy(entry => entry.InventoryEntryId)
+                .FirstOrDefault();
             if (target is null)
             {
                 target = new InventoryEntryEntity
