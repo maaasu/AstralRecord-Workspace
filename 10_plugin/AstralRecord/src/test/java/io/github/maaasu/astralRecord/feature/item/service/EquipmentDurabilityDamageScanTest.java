@@ -27,10 +27,10 @@ class EquipmentDurabilityDamageScanTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 装備中防具・アクセサリの破損通知
-     * 検証契約: 防具・アクセサリの現在耐久値が最大値未満なら対象とし、満タン・武器・重複個体は除外する。
+     * 検証契約: 防具・アクセサリの現在耐久値が0以下なら対象とし、満タン・部分消耗・武器・重複個体は除外する。
      */
     @Test
-    void findsDamagedArmorAndAccessoryOnlyOnce() {
+    void findsBrokenArmorAndAccessoryOnlyOnce() {
         InventoryService inventoryService = mock(InventoryService.class);
         ItemService itemService = mock(ItemService.class);
         EquipmentDurabilityService service = new EquipmentDurabilityService(inventoryService, itemService);
@@ -45,13 +45,14 @@ class EquipmentDurabilityDamageScanTest {
         ItemStack damagedHelmet = stack();
         ItemStack fullChestplate = stack();
         ItemStack damagedAccessory = stack();
+        ItemStack partiallyDamagedAccessory = stack();
         ItemStack weapon = stack();
         when(inventory.getHelmet()).thenReturn(damagedHelmet);
         when(inventory.getChestplate()).thenReturn(fullChestplate);
         when(inventory.getLeggings()).thenReturn(null);
         when(inventory.getBoots()).thenReturn(null);
         when(inventoryService.getEquippedAccessorySnapshotItems(player)).thenReturn(
-            List.of(damagedAccessory, damagedHelmet, weapon)
+            List.of(damagedAccessory, partiallyDamagedAccessory, damagedHelmet, weapon)
         );
 
         ItemModel helmetModel = model("helmet", "&c壊れた兜", ItemEquipmentSlot.HEAD);
@@ -67,7 +68,9 @@ class EquipmentDurabilityDamageScanTest {
         when(itemService.findLoadedEquipmentInstanceById("chestplate-instance"))
             .thenReturn(instance("chestplate-instance", "chestplate", 50, 50));
         when(itemService.findLoadedEquipmentInstanceById("ring-instance"))
-            .thenReturn(instance("ring-instance", "ring", 100, 99));
+            .thenReturn(instance("ring-instance", "ring", 100, 0));
+        when(itemService.findLoadedEquipmentInstanceById("ring-partial-instance"))
+            .thenReturn(instance("ring-partial-instance", "ring", 100, 99));
         when(itemService.findLoadedEquipmentInstanceById("sword-instance"))
             .thenReturn(instance("sword-instance", "sword", 100, 1));
 
@@ -75,6 +78,7 @@ class EquipmentDurabilityDamageScanTest {
             stubStack(factory, damagedHelmet, "helmet", "helmet-instance");
             stubStack(factory, fullChestplate, "chestplate", "chestplate-instance");
             stubStack(factory, damagedAccessory, "ring", "ring-instance");
+            stubStack(factory, partiallyDamagedAccessory, "ring", "ring-partial-instance");
             stubStack(factory, weapon, "sword", "sword-instance");
 
             assertEquals(

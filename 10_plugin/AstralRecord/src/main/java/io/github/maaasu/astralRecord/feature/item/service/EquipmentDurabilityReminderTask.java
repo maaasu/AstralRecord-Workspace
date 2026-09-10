@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * 装備中の防具・アクセサリの耐久低下を定期的に通知するタスク。
+ * 装備中の防具・アクセサリの破損を定期的に通知するタスク。
  */
 public final class EquipmentDurabilityReminderTask {
     /** 3 分間隔。 */

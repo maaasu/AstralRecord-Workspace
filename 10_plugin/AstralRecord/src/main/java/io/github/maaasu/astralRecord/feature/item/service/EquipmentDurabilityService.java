@@ -191,7 +191,7 @@ public final class EquipmentDurabilityService {
     }
 
     /**
-     * 装備中の防具およびアクセサリのうち、最大耐久値を下回っている装備名を返します。
+     * 装備中の防具およびアクセサリのうち、耐久値が 0 以下になっている装備名を返します。
      * <p>
      * Bukkit の防具スロットと仮想アクセサリスロットを走査し、同じ装備個体は一度だけ扱います。
      * 武器・補助装備・道具、最大耐久値を持たない装備は対象外です。
@@ -223,7 +223,7 @@ public final class EquipmentDurabilityService {
             if (model == null
                 || model.getEquipment() == null
                 || !isArmorOrAccessory(model.getEquipment().getSlot())
-                || !isDamaged(instance)) {
+                || !isBroken(instance)) {
                 continue;
             }
             damagedNames.add(ColorCodeUtil.toLegacyText(model.getName(), model.getId()));
@@ -247,12 +247,6 @@ public final class EquipmentDurabilityService {
             || slot == ItemEquipmentSlot.LEGS
             || slot == ItemEquipmentSlot.FEET
             || slot == ItemEquipmentSlot.ACCESSORY;
-    }
-
-    private boolean isDamaged(@Nullable EquipmentInstance instance) {
-        return instance != null
-            && instance.getDurabilityMax() > 0
-            && instance.getDurabilityValue() < instance.getDurabilityMax();
     }
 
     private void consumeStack(
