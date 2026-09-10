@@ -292,10 +292,17 @@ public class AccountLearnedSkillRepository(
                 .OrderBy(entry => entry.SlotIndex ?? int.MaxValue)
                 .ThenBy(entry => entry.CreatedAt)
                 .ToArrayAsync();
+            // slot 未指定の通常 entry は DB の (inventory_id, item_id) 一意キーで集約する。
+            // item_category は同キーに含まれないため、既存行の選択条件に使用しない。
             var returnedEntry = bagEntries.FirstOrDefault(entry =>
-                entry.Quantity < maxStack
-                && IdEquals(entry.ItemCategory, SigilCategory)
-                && IdEquals(entry.ItemId, attached.SigilId));
+                    entry.SlotIndex is null
+                    && IdEquals(entry.ItemId, attached.SigilId))
+                ?? bagEntries.FirstOrDefault(entry =>
+                    entry.SlotIndex.HasValue
+                    && entry.Quantity < maxStack
+                    && IdEquals(entry.ItemId, attached.SigilId));
+            if (returnedEntry?.Quantity == long.MaxValue)
+                return Failure(AccountLearnedSkillMutationFailure.InventoryQuantityOverflow);
             if (returnedEntry is null)
             {
                 returnedEntry = new InventoryEntryEntity
@@ -316,7 +323,7 @@ public class AccountLearnedSkillRepository(
             }
             else
             {
-                returnedEntry.Quantity += 1;
+                returnedEntry.Quantity = checked(returnedEntry.Quantity + 1);
                 returnedEntry.UpdatedAt = now;
                 returnedEntry.UpdatedBy = request.UpdatedBy;
             }

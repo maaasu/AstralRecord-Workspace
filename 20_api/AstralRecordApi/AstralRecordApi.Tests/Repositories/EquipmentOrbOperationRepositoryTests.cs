@@ -323,6 +323,51 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     [Fact]
+    public async Task RuneDetach_AggregatesIntoFullSlotlessBagEntryRegardlessOfCategory()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        harness.RegisterRune("full_slotless_detached_rune", ["WEAPON"], []);
+        await harness.EquipRuneAsync("full_slotless_detached_rune", 0);
+        var existingEntryId = await harness.AddNormalEntryAsync(
+            "full_slotless_detached_rune", "material", 64);
+        var orb = await harness.AddOrbAsync("full_slotless_rune_detach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_DETACH",
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "full_slotless_rune_detach_orb", orb);
+        request.RuneSlotIndex = 0;
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal(65, await harness.GetEntryQuantityAsync(existingEntryId));
+        Assert.Contains(existingEntryId, result.AffectedInventoryEntryIds);
+    }
+
+    [Fact]
+    public async Task RuneDetach_RejectsSlotlessBagEntryAtLongMaximumWithoutConsumingPayment()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        harness.RegisterRune("overflow_detached_rune", ["WEAPON"], []);
+        await harness.EquipRuneAsync("overflow_detached_rune", 0);
+        var existingEntryId = await harness.AddNormalEntryAsync(
+            "overflow_detached_rune", "material", long.MaxValue);
+        var orb = await harness.AddOrbAsync("overflow_rune_detach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_DETACH",
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "overflow_rune_detach_orb", orb);
+        request.RuneSlotIndex = 0;
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("PAYMENT_UNAVAILABLE", result.Result);
+        Assert.Equal(long.MaxValue, await harness.GetEntryQuantityAsync(existingEntryId));
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+        Assert.Equal(1, await harness.GetAttachedRuneCountAsync());
+    }
+
+    [Fact]
     public async Task RuneDetach_DoesNotMergeIntoHotbarStackAndReturnsToBag()
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
@@ -1314,6 +1359,13 @@ public class EquipmentOrbOperationRepositoryTests
                     && entry.ItemId == itemId)
                 .OrderBy(entry => entry.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<int> GetAttachedRuneCountAsync()
+        {
+            dbContext.ChangeTracker.Clear();
+            return await dbContext.EquipmentInstanceRunes.CountAsync(rune =>
+                rune.EquipmentInstanceId == EquipmentInstanceId);
         }
 
         public async Task<EquipmentInstanceEntity> GetEquipmentAsync()

@@ -106,6 +106,7 @@ public enum AccountLearnedSkillMutationFailure
     NoSigilSlot,
     SigilNotAllowed,
     DuplicateSigilGroup,
+    InventoryQuantityOverflow,
     IdempotencyConflict,
 }
 

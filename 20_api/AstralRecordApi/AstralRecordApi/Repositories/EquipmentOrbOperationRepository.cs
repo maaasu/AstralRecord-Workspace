@@ -364,7 +364,13 @@ public class EquipmentOrbOperationRepository(
                 await RewriteGoldBalanceAsync(request.AccountId, requiredGold, request.AccountId, now, affectedEntryIds);
             if (returnedRuneItemId is not null)
             {
-                await ReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId, now, affectedEntryIds);
+                if (!await ReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId, now, affectedEntryIds))
+                {
+                    // 支払い後に返却先のlong上限へ到達していた場合も、追跡状態を破棄して
+                    // 支払い・装備変更を確定せず失敗台帳だけを残す。
+                    dbContext.ChangeTracker.Clear();
+                    return await CompleteAsync("PAYMENT_UNAVAILABLE");
+                }
             }
 
             instance.UpdatedAt = AdvanceParentUpdatedAt(instance.UpdatedAt, now);
@@ -839,23 +845,33 @@ public class EquipmentOrbOperationRepository(
             && inventory.InventoryProfile == GameProfile
             && inventory.InventoryType == "BAG");
 
-    private async Task ReturnRuneAsync(Guid accountId, ICollection<InventoryEntryEntity> entries, string itemId,
+    private async Task<bool> ReturnRuneAsync(Guid accountId, ICollection<InventoryEntryEntity> entries, string itemId,
         DateTime now, ISet<Guid> affectedEntryIds)
     {
         var maxStack = Math.Max(1, itemRepository.GetById(itemId)?.MaxStack ?? 64);
         var inventory = await dbContext.Inventories.FirstAsync(candidate => candidate.AccountId == accountId
             && !candidate.IsDeleted && candidate.IsEnabled && candidate.InventoryProfile == GameProfile
             && candidate.InventoryType == "BAG");
+        // slot 未指定の通常 entry は DB の (inventory_id, item_id) 一意キーで集約する。
+        // item_category は同キーに含まれないため、既存行の選択条件に使用しない。
         var existing = entries.FirstOrDefault(entry => entry.InventoryId == inventory.InventoryId
             && IsNormalStackEntry(entry)
-            && entry.Quantity < maxStack && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, itemId));
+            && entry.SlotIndex is null
+            && IdEquals(entry.ItemId, itemId))
+            ?? entries.FirstOrDefault(entry => entry.InventoryId == inventory.InventoryId
+                && IsNormalStackEntry(entry)
+                && entry.SlotIndex.HasValue
+                && entry.Quantity < maxStack
+                && IdEquals(entry.ItemId, itemId));
         if (existing is not null)
         {
-            existing.Quantity++;
+            if (existing.Quantity == long.MaxValue)
+                return false;
+            existing.Quantity = checked(existing.Quantity + 1);
             existing.UpdatedAt = now;
             existing.UpdatedBy = accountId;
             affectedEntryIds.Add(existing.InventoryEntryId);
-            return;
+            return true;
         }
         var created = new InventoryEntryEntity
         {
@@ -866,6 +882,7 @@ public class EquipmentOrbOperationRepository(
         await dbContext.InventoryEntries.AddAsync(created);
         entries.Add(created);
         affectedEntryIds.Add(created.InventoryEntryId);
+        return true;
     }
 
     private static int NextRuneSlot(IReadOnlyCollection<EquipmentInstanceRuneEntity> runes, int maxSlots)

@@ -374,7 +374,7 @@ public class AccountLearnedSkillRepositoryTests
     /// 検証契約: 装着済みシジルの指定行だけを論理削除し、同一 transaction で BAG へ1個返却する。
     /// </summary>
     [Fact]
-    public async Task DetachSigilAsync_DeletesAttachmentAndReturnsSigilToBag()
+    public async Task DetachSigilAsync_AggregatesIntoFullSlotlessBagEntryRegardlessOfCategory()
     {
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
@@ -410,6 +410,8 @@ public class AccountLearnedSkillRepositoryTests
                 });
         }
         var attached = attachedResult.Skill!;
+        var returnedEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "cooldown_sigil", 64);
 
         AccountLearnedSkillMutationResult detached;
         await using (var requestDb = fixture.CreatePlayerDb())
@@ -428,7 +430,7 @@ public class AccountLearnedSkillRepositoryTests
 
         Assert.True(detached.Succeeded);
         Assert.Empty(detached.Skill!.Sigils);
-        Assert.NotNull(detached.ReturnedInventoryEntryId);
+        Assert.Equal(returnedEntryId, detached.ReturnedInventoryEntryId);
         Assert.NotNull(attachedResult.InventorySnapshot);
         Assert.Equal(
             new[] { sigilEntryId, bragiOrb }.Order(),
@@ -438,20 +440,81 @@ public class AccountLearnedSkillRepositoryTests
             new[] { mimirOrb, detached.ReturnedInventoryEntryId!.Value }.Order(),
             detached.InventorySnapshot!.CoveredEntryIds.Order());
         Assert.Contains(detached.InventorySnapshot.Entries,
-            entry => entry.InventoryEntryId == detached.ReturnedInventoryEntryId.Value
-                && entry.Quantity == 1);
+            entry => entry.InventoryEntryId == returnedEntryId
+                && entry.Quantity == 65);
         Assert.True((await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
             .SingleAsync(sigil => sigil.LearnedSkillSigilId == attached.Sigils.Single().LearnedSkillSigilId)).IsDeleted);
         var returned = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
-            .SingleAsync(entry => entry.InventoryEntryId == detached.ReturnedInventoryEntryId);
+            .SingleAsync(entry => entry.InventoryEntryId == returnedEntryId);
         Assert.False(returned.IsDeleted);
-        Assert.Equal("sigil", returned.ItemCategory);
+        Assert.Equal("material", returned.ItemCategory);
         Assert.Equal("cooldown_sigil", returned.ItemId);
-        Assert.Equal(1, returned.Quantity);
+        Assert.Equal(65, returned.Quantity);
         Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == bragiOrb)).Quantity);
         Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == mimirOrb)).Quantity);
+    }
+
+    [Fact]
+    public async Task DetachSigilAsync_RejectsSlotlessBagEntryAtLongMaximumWithoutConsumingOrb()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
+        await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
+        await fixture.SeedMasterAsync("mimir_orb", "item", "orb");
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
+        var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 1);
+        var mimirOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "mimir_orb", 1);
+
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "adventurer_smash",
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+        AccountLearnedSkillMutationResult attached;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            attached = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "cooldown_sigil",
+                    SigilInventoryEntryId = sigilEntryId,
+                    OrbInventoryEntryId = bragiOrb,
+                    UpdatedBy = accountId,
+                });
+        }
+        var existingEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "cooldown_sigil", long.MaxValue);
+
+        AccountLearnedSkillMutationResult detached;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            detached = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .DetachSigilAsync(accountId, learned.LearnedSkillId, attached.Skill!.Sigils.Single().LearnedSkillSigilId,
+                    new AccountLearnedSkillDetachSigilRequest
+                    {
+                        OrbInventoryEntryId = mimirOrb,
+                        UpdatedBy = accountId,
+                    });
+        }
+
+        Assert.False(detached.Succeeded);
+        Assert.Equal(AccountLearnedSkillMutationFailure.InventoryQuantityOverflow, detached.Failure);
+        Assert.Equal(long.MaxValue, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == existingEntryId)).Quantity);
+        Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == mimirOrb)).Quantity);
+        Assert.False((await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
+            .SingleAsync(sigil => sigil.LearnedSkillSigilId == attached.Skill.Sigils.Single().LearnedSkillSigilId)).IsDeleted);
     }
 
     /// <summary>
