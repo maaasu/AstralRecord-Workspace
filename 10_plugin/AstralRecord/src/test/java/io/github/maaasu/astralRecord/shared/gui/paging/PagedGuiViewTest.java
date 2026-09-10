@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PagedGuiViewTest extends MockBukkitTestBase {
@@ -61,7 +62,7 @@ class PagedGuiViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 7. 共通 page GUI
-     * 検証契約: 移動不能な前後ページ操作は Oak Wood Blank のプレイヤーヘッドを表示する。
+     * 検証契約: 移動不能な前後ページ操作はページ番号なしの Oak Wood Blank プレイヤーヘッドを表示する。
      */
     @Test
     void rendersOakWoodBlankForUnavailablePageNavigation() {
@@ -73,6 +74,8 @@ class PagedGuiViewTest extends MockBukkitTestBase {
         assertEquals(Material.PLAYER_HEAD, inventory.getItem(PagedGuiView.NEXT_SLOT).getType());
         assertEquals(blankTexture(), textureOf(inventory.getItem(PagedGuiView.PREVIOUS_SLOT)));
         assertEquals(blankTexture(), textureOf(inventory.getItem(PagedGuiView.NEXT_SLOT)));
+        assertFalse(inventory.getItem(PagedGuiView.PREVIOUS_SLOT).getItemMeta().hasLore());
+        assertFalse(inventory.getItem(PagedGuiView.NEXT_SLOT).getItemMeta().hasLore());
     }
 
     private static @NotNull String textureOf(@NotNull org.bukkit.inventory.ItemStack itemStack) {
