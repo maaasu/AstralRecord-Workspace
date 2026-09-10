@@ -22,7 +22,6 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -252,11 +251,12 @@ class DamageServiceShieldBreakMultiplierTest extends MockBukkitTestBase {
         return attacker;
     }
 
+    /** LocationがWorldを弱参照するため、サーバーが保持するWorldへシールド付きMobを配置します。 */
     private MobInstance shieldedMob(double shield) {
         MobInstance mob = DesignTestFixtures.mobInstance(
                 100.0D, 0.0D, 0.0D, new MobShieldConfig(true, shield)
         );
-        mob.currentLocation(new Location(mock(World.class), 0.0D, 64.0D, 0.0D));
+        mob.currentLocation(new Location(server().addSimpleWorld("shield-" + java.util.UUID.randomUUID()), 0.0D, 64.0D, 0.0D));
         return mob;
     }
 
