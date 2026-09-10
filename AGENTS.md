@@ -5,6 +5,7 @@
 | 対象 | 判定 | Read Next |
 |:--|:--|:--|
 | `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` / `$astralrecord-code` |
+| `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` / `$astralrecord-code` |
 | `10_plugin/AstralArchitect/` | AI建築 / Java・Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
 | `20_api/AstralRecordApi/` | REST API / C# | `API_GUIDE.md` / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |

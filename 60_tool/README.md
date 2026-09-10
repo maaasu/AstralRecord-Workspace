@@ -17,7 +17,7 @@
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
 | 10 | `10-release-management-deploy.bat` | Release Note 用の API / Web だけをビルド・デプロイ |
 | 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して最新 `init.sql` から3 DBを再作成 |
-| 12 | `12-build-network-plugins.bat` | Lobby / Velocity Proxyプラグインをビルドし、ローカル出力フォルダへJARを生成 |
+| 12 | `12-build-network-plugins.bat` | Lobby / Velocity Proxy / Geyser Extensionをビルドし、ローカル出力フォルダへJARを生成 |
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
@@ -121,7 +121,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-debug\tests\release
 powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tests\astralarchitect-deploy.integration.ps1
 ```
 
-`12-build-network-plugins.bat`は`AstralRecordLobby`と`AstralRecordProxy`をビルドし、既定では`network-plugin-build/output`へ`AstralRecordLobby.jar`と`AstralRecordProxy.jar`を生成します。サーバーへの配置は行いません。片方だけをビルドする場合は`-Target Lobby`または`-Target Proxy`、テストのコンパイルと実行を省略する場合は`-SkipTests`、出力先を変更する場合は`-OutputDirectory <path>`を指定します。
+`12-build-network-plugins.bat`は`AstralRecordLobby`、`AstralRecordProxy`、`AstralRecordGeyserExtension`をビルドし、既定では`network-plugin-build/output`へ同名の3つのJARを生成します。サーバーへの配置は行いません。個別ビルドは`-Target Lobby`、`-Target Proxy`、`-Target Extension`、テストのコンパイルと実行を省略する場合は`-SkipTests`、出力先を変更する場合は`-OutputDirectory <path>`を指定します。Extensionの配置先はVelocityの`plugins/Geyser-Velocity/extensions/`です。API接続設定と起動時登録の制約は[Extension README](../10_plugin/AstralRecordGeyserExtension/README.md)を参照してください。
 
 ```powershell
 .\12-build-network-plugins.bat

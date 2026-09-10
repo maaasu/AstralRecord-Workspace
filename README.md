@@ -9,6 +9,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 | `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) / `$astralrecord-code` |
 | `10_plugin/AstralRecordLobby/` | Lobby Plugin | Java, Paper, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
 | `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | Java, Velocity, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
+| `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド登録 | Java, Geyser API, Maven | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) / `$astralrecord-code` |
 | `10_plugin/AstralArchitect/` | AI-assisted Minecraft building Plugin | Java, Paper, FAWE, Maven, Python | [AstralArchitect README](10_plugin/AstralArchitect/README.md) / `$astralarchitect-builder` |
 | `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | [API_GUIDE.md](API_GUIDE.md) / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | この README の「AstralRecord Web」 |
@@ -46,6 +47,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/release-notes/publish`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `POST /api/release-notes/{slug}/retry-notification`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `GET /api/network/servers`（Lobbyのサーバー選択GUI向け人数・権限別定員）
+- `GET /api/geyser/heads`（Extension起動時のマスターヘッドテクスチャ・登録プレイヤーUUID一覧）
 
 ## AstralRecord Plugin
 

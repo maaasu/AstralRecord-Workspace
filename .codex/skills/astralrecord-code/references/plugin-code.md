@@ -24,6 +24,13 @@ After applying README rules, verify:
 11. GUI の共通挙動は各 GUI に重複実装せず shared 側へ寄せる。ホットバーの閉じるアイコン / インベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` と `HotbarShortcutClickSupport` を使い、GUI ごとの個別 open/click/close 分岐を増やさない。
 12. 通常の AstralRecord item tooltip では、共通 Lore のカテゴリ表示の右へ ` | <item ID>` を濃い灰色で表示する。それ以外の GUI名・lore・メッセージへ item ID・master ID・status ID などの内部識別子を出さない。マスタの表示名を使い、解決できない場合は ID を fallback にせず「未登録の素材」などの汎用表示と操作不可の案内を使う。管理者向け画面では必要に応じて内部 ID を表示できる。
 
+## 固定プレイヤーヘッドとGeyserの同期
+
+- RPGプラグインでGUIなどの固定 `PLAYER_HEAD` スキンをプログラム定数として追加・変更する場合、`10_plugin/AstralRecordGeyserExtension/src/main/java/io/github/maaasu/astralrecordgeyser/BuiltinHeadTextures.java` の定数と登録一覧も同じtaskで同期する。削除時は他用途の参照がないことを確認してから登録を除去する。
+- 登録する値は `textures` プロパティのBase64値で、Geyserの `PROFILE` 登録を使う。RPGで生成する仮のProfile UUIDを実プレイヤーUUIDとして登録しない。
+- マスター由来の `iconTexture` はAPIカタログから取得するため、Extensionの固定定数へ複製しない。実プレイヤーのスキンやNPC全身スキンも固定GUI定数と区別する。
+- Geyserのヘッド定義は起動時登録であり、プレイ中のアイコン描画から未知のテクスチャを動的登録する設計にしない。APIとExtensionの契約・起動時の取得失敗・再起動による反映条件を確認する。
+
 ## Language Selection
 
 - Match the language of the existing file first.

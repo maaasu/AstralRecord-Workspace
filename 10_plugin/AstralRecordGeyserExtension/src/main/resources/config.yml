@@ -1,0 +1,7 @@
+# Geyser起動時に読み取る。変更・新規ヘッド反映にはProxyの再起動が必要。
+api:
+  baseUrl: "https://device_server:444"
+  # 空の場合はapiKeyEnvironmentVariableの環境変数を参照する。
+  apiKey: ""
+  apiKeyEnvironmentVariable: "ASTRALRECORD_API_KEY"
+  timeoutSeconds: 15

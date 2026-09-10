@@ -1,0 +1,6 @@
+id: astralrecordgeyser
+name: AstralRecordGeyserExtension
+main: io.github.maaasu.astralrecordgeyser.AstralRecordGeyserExtension
+api: 2.11.2
+version: 1.0.0
+authors: [AstralRecord]

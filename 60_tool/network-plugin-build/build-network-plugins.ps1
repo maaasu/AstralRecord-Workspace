@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('All', 'Lobby', 'Proxy')]
+    [ValidateSet('All', 'Lobby', 'Proxy', 'Extension')]
     [string]$Target = 'All',
     [switch]$SkipTests,
     [string]$OutputDirectory = ''
@@ -76,6 +76,14 @@ if ($Target -in @('All', 'Proxy')) {
         ArtifactId = 'AstralRecordProxy'
         Directory = Join-Path $workspaceRoot '10_plugin\AstralRecordProxy'
         OutputName = 'AstralRecordProxy.jar'
+    }
+}
+
+if ($Target -in @('All', 'Extension')) {
+    $projects += [PSCustomObject]@{
+        ArtifactId = 'AstralRecordGeyserExtension'
+        Directory = Join-Path $workspaceRoot '10_plugin\AstralRecordGeyserExtension'
+        OutputName = 'AstralRecordGeyserExtension.jar'
     }
 }
 
