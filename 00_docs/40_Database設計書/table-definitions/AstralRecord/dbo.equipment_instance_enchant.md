@@ -113,10 +113,10 @@ GO
 
 ---
 
-## 旧スキーマからの移行
+## 既存の互換行
 
-`20260810_orb_enchant_effect_id.sql` は既存行を削除せず、`enchant_master_id = legacy`、
-`effect_id = legacy_{enchant_id}` として付与済みのステータス値を保持します。旧 `pool_index` だけから
+過去に移行済みの `enchant_master_id = legacy`、`effect_id = legacy_{enchant_id}` 行は
+付与済みのステータス値を保持します。旧スキーマ向けmigrationは保持せず、新規DBは現行 `init.sql` を使用します。旧 `pool_index` だけから
 共通マスタの安定した `effect_id` 自体は復元できません。runtimeの候補判定では `legacy_` 行に限り
 `status` / `type` が一致し、保存済み `value` が候補定義の固定値または範囲内にある場合を意味的重複として除外します。
 これにより既存行を保持したまま同義効果の再付与を防ぎます。

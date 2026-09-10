@@ -35,4 +35,4 @@ Web に公開するリリースノートのメタデータと、正本 Markdown 
 ## 関連
 
 - `[[dbo.release_notification_outbox]]`
-- `[[20260824_release_note]]`
+- [現行DB定義](init.sql)

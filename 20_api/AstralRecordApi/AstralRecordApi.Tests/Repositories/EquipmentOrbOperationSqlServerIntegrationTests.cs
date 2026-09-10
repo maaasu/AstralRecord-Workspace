@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
-using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -182,48 +180,6 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
         Assert.Equal(orbResult.Result == "APPLIED", orbResult.PaymentConsumed);
         Assert.Equal(orbResult.PaymentConsumed, await harness.IsEntryDeletedAsync(orb));
         Assert.Equal(1, await harness.CountActiveEquipmentListingsAsync());
-    }
-
-    [Fact]
-    public async Task EnchantEffectMigration_FailureRollsBackEverySchemaChange()
-    {
-        if (!SqlServerIntegrationEnabled()) return;
-        await using var harness = await SqlServerHarness.CreateAsync();
-        await harness.PrepareFailingLegacyEnchantSchemaAsync();
-
-        await Assert.ThrowsAsync<SqlException>(() => harness.ApplyEnchantEffectMigrationAsync());
-
-        var state = await harness.ReadLegacyEnchantSchemaStateAsync();
-        Assert.True(state.HasPoolIndex);
-        Assert.False(state.HasEnchantMasterId);
-        Assert.False(state.HasEffectId);
-        Assert.True(state.HasLegacyUniqueConstraint);
-        Assert.Equal(1, state.RowCount);
-    }
-
-    [Fact]
-    public async Task LegacyEnhancementMaterialMarketRows_MigrateCategorySignatureAndSnapshotTogether()
-    {
-        if (!SqlServerIntegrationEnabled()) return;
-        await using var harness = await SqlServerHarness.CreateAsync();
-        await harness.SeedLegacyMarketRowsAsync();
-
-        await harness.ApplyOrbMigrationAsync();
-
-        var rows = await harness.ReadMarketMigrationRowsAsync();
-        Assert.All(rows, row =>
-        {
-            Assert.Equal("orb", row.Category);
-            Assert.StartsWith("orb|", row.Signature, StringComparison.Ordinal);
-        });
-        Assert.Equal("orb", rows[0].SnapshotCategory);
-        Assert.StartsWith("orb|", rows[0].SnapshotSignature, StringComparison.Ordinal);
-        Assert.Null(rows[0].CamelCaseSnapshotCategory);
-        Assert.Null(rows[0].CamelCaseSnapshotSignature);
-        Assert.Equal("orb", rows[1].SnapshotCategory);
-        Assert.StartsWith("orb|", rows[1].SnapshotSignature, StringComparison.Ordinal);
-        Assert.Null(rows[1].CamelCaseSnapshotCategory);
-        Assert.Null(rows[1].CamelCaseSnapshotSignature);
     }
 
     private static ItemEquipmentResponse CreateEquipment(int maxEnchantSlots = 2) => new()
@@ -570,170 +526,6 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
             return Convert.ToInt32(await command.ExecuteScalarAsync());
         }
 
-        public async Task PrepareFailingLegacyEnchantSchemaAsync()
-        {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            await EquipmentOrbOperationSqlServerIntegrationTests.ExecuteAsync(connection, """
-                DROP TABLE [dbo].[equipment_instance_enchant];
-                CREATE TABLE [dbo].[equipment_instance_enchant] (
-                    [enchant_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-                    [equipment_instance_id] UNIQUEIDENTIFIER NOT NULL,
-                    [pool_index] INT NOT NULL,
-                    CONSTRAINT [UQ_equipment_instance_enchant_pool_index]
-                        UNIQUE ([equipment_instance_id], [pool_index])
-                );
-                INSERT INTO [dbo].[equipment_instance_enchant]
-                    ([enchant_id], [equipment_instance_id], [pool_index])
-                VALUES (NEWID(), NEWID(), 0);
-                EXEC(N'CREATE TRIGGER [dbo].[TR_fail_orb_enchant_migration]
-                    ON [dbo].[equipment_instance_enchant]
-                    AFTER UPDATE AS
-                    THROW 51001, N''forced migration failure'', 1;');
-                """);
-        }
-
-        public async Task ApplyEnchantEffectMigrationAsync()
-        {
-            var migrationPath = FindWorkspaceFile(
-                "00_docs",
-                "40_Database設計書",
-                "table-definitions",
-                "AstralRecord",
-                "migrations",
-                "20260810_orb_enchant_effect_id.sql");
-            var script = await File.ReadAllTextAsync(migrationPath);
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            foreach (var batch in Regex.Split(
-                         script,
-                         @"^\s*GO\s*$",
-                         RegexOptions.Multiline | RegexOptions.IgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(batch))
-                    await EquipmentOrbOperationSqlServerIntegrationTests.ExecuteAsync(connection, batch);
-            }
-        }
-
-        public async Task<LegacyEnchantSchemaState> ReadLegacyEnchantSchemaStateAsync()
-        {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            await using var command = new SqlCommand("""
-                SELECT
-                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'pool_index') IS NULL THEN 0 ELSE 1 END,
-                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'enchant_master_id') IS NULL THEN 0 ELSE 1 END,
-                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'effect_id') IS NULL THEN 0 ELSE 1 END,
-                    CASE WHEN EXISTS (
-                        SELECT 1 FROM sys.key_constraints
-                        WHERE [name] = N'UQ_equipment_instance_enchant_pool_index'
-                          AND [parent_object_id] = OBJECT_ID(N'dbo.equipment_instance_enchant')
-                    ) THEN 1 ELSE 0 END,
-                    (SELECT COUNT(*) FROM dbo.equipment_instance_enchant);
-                """, connection);
-            await using var reader = await command.ExecuteReaderAsync();
-            Assert.True(await reader.ReadAsync());
-            return new LegacyEnchantSchemaState(
-                reader.GetInt32(0) == 1,
-                reader.GetInt32(1) == 1,
-                reader.GetInt32(2) == 1,
-                reader.GetInt32(3) == 1,
-                reader.GetInt32(4));
-        }
-
-        public async Task SeedLegacyMarketRowsAsync()
-        {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            var snapshot = JsonSerializer.Serialize(new MarketPriceQuoteResponse
-            {
-                ItemCategory = "enhancement_material",
-                ItemId = "legacy_orb",
-                ValuationSignature = "enhancement_material|legacy_orb|STACK",
-            });
-            await using var command = new SqlCommand("""
-                INSERT INTO dbo.market_listing
-                    (listing_id, item_category, valuation_signature, valuation_snapshot_json, version, updated_at)
-                VALUES
-                    (@listing_id, N'enhancement_material', N'enhancement_material|legacy_orb|STACK', @snapshot, 1, SYSUTCDATETIME());
-                INSERT INTO dbo.market_transaction
-                    (transaction_id, item_category, valuation_signature, valuation_snapshot_json)
-                VALUES
-                    (@transaction_id, N'enhancement_material', N'enhancement_material|legacy_orb|STACK', @snapshot);
-                INSERT INTO dbo.market_price_snapshot
-                    (market_price_snapshot_id, item_category, valuation_signature)
-                VALUES
-                    (@price_id, N'enhancement_material', N'enhancement_material|legacy_orb|STACK');
-                """, connection);
-            command.Parameters.AddWithValue("@listing_id", Guid.NewGuid());
-            command.Parameters.AddWithValue("@transaction_id", Guid.NewGuid());
-            command.Parameters.AddWithValue("@price_id", Guid.NewGuid());
-            command.Parameters.AddWithValue("@snapshot", snapshot);
-            await command.ExecuteNonQueryAsync();
-        }
-
-        public async Task ApplyOrbMigrationAsync()
-        {
-            var migrationPath = FindWorkspaceFile(
-                "00_docs",
-                "40_Database設計書",
-                "table-definitions",
-                "AstralRecord",
-                "migrations",
-                "20260811_equipment_orb_operation.sql");
-            var script = await File.ReadAllTextAsync(migrationPath);
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            foreach (var batch in Regex.Split(
-                         script,
-                         @"^\s*GO\s*$",
-                         RegexOptions.Multiline | RegexOptions.IgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(batch))
-                    await EquipmentOrbOperationSqlServerIntegrationTests.ExecuteAsync(connection, batch);
-            }
-        }
-
-        public async Task<IReadOnlyList<MarketMigrationRow>> ReadMarketMigrationRowsAsync()
-        {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            await using var command = new SqlCommand("""
-                SELECT item_category, valuation_signature,
-                    JSON_VALUE(valuation_snapshot_json, '$.ItemCategory'),
-                    JSON_VALUE(valuation_snapshot_json, '$.ValuationSignature'),
-                    JSON_VALUE(valuation_snapshot_json, '$.itemCategory'),
-                    JSON_VALUE(valuation_snapshot_json, '$.valuationSignature'),
-                    0 AS sort_order
-                FROM dbo.market_listing
-                UNION ALL
-                SELECT item_category, valuation_signature,
-                    JSON_VALUE(valuation_snapshot_json, '$.ItemCategory'),
-                    JSON_VALUE(valuation_snapshot_json, '$.ValuationSignature'),
-                    JSON_VALUE(valuation_snapshot_json, '$.itemCategory'),
-                    JSON_VALUE(valuation_snapshot_json, '$.valuationSignature'),
-                    1 AS sort_order
-                FROM dbo.market_transaction
-                UNION ALL
-                SELECT item_category, valuation_signature, NULL, NULL, NULL, NULL, 2 AS sort_order
-                FROM dbo.market_price_snapshot
-                ORDER BY sort_order;
-                """, connection);
-            await using var reader = await command.ExecuteReaderAsync();
-            var rows = new List<MarketMigrationRow>();
-            while (await reader.ReadAsync())
-            {
-                rows.Add(new MarketMigrationRow(
-                    reader.GetString(0),
-                    reader.GetString(1),
-                    reader.IsDBNull(2) ? null : reader.GetString(2),
-                    reader.IsDBNull(3) ? null : reader.GetString(3),
-                    reader.IsDBNull(4) ? null : reader.GetString(4),
-                    reader.IsDBNull(5) ? null : reader.GetString(5)));
-            }
-            return rows;
-        }
-
         public async ValueTask DisposeAsync() => await DropDatabaseAsync(databaseName);
     }
 
@@ -982,19 +774,6 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
             columns);
     }
 
-    private static string FindWorkspaceFile(params string[] relativeParts)
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            var candidate = relativeParts.Aggregate(current.FullName, Path.Combine);
-            if (File.Exists(candidate))
-                return candidate;
-            current = current.Parent;
-        }
-        throw new FileNotFoundException("Workspace migration file was not found.");
-    }
-
     private static string BuildConnectionString(string databaseName)
     {
         EnsureLocalSqlServerInstance(LocalSqlServerInstance);
@@ -1037,18 +816,4 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
         await command.ExecuteNonQueryAsync();
     }
 
-    private sealed record MarketMigrationRow(
-        string Category,
-        string Signature,
-        string? SnapshotCategory,
-        string? SnapshotSignature,
-        string? CamelCaseSnapshotCategory,
-        string? CamelCaseSnapshotSignature);
-
-    private sealed record LegacyEnchantSchemaState(
-        bool HasPoolIndex,
-        bool HasEnchantMasterId,
-        bool HasEffectId,
-        bool HasLegacyUniqueConstraint,
-        int RowCount);
 }

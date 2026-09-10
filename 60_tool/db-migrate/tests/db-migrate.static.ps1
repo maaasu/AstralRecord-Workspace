@@ -22,6 +22,12 @@ if (@($registeredFiles | Sort-Object -Unique).Count -ne $registeredFiles.Count) 
     throw "Migration manifest contains duplicate file names."
 }
 
+$receiptMigration = @($config.migrations | Where-Object { $_.id -eq "20260910_market_listing_create_receipt" })
+if ($receiptMigration.Count -ne 1 -or $receiptMigration[0].fileName -ne "20260910_market_listing_create_receipt.sql" -or
+    $receiptMigration[0].expectation.table -ne "market_listing_create_receipt") {
+    throw "Listing creation receipt migration must be registered for execution and schema validation."
+}
+
 $program = Get-Content -Raw -Encoding UTF8 -LiteralPath $programPath
 foreach ($requiredText in @(
     "EnsureMigrationHistoryTableAsync",

@@ -22,18 +22,12 @@
 
 | DB | migration | 内容 |
 |:--|:--|:--|
-| `AstralRecord` | `AstralRecord/migrations/20260802_add_learned_skills.sql` | 習得スキル個体、装着シジル、6プリセット、動的補償メールの追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260810_orb_enchant_effect_id.sql` | 装備エンチャントを共通マスタ effect ID 参照へ原子的に移行 |
-| `AstralRecord` | `AstralRecord/migrations/20260811_equipment_orb_operation.sql` | オーブ操作台帳、個体出品range-lock索引、旧カテゴリデータ移行 |
-| `AstralRecord` | `AstralRecord/migrations/20260812_account_dungeon_record.sql` | アカウント単位のダンジョン踏破記録を追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260815_trade_commit.sql` | プレイヤー間トレードの冪等確定台帳を追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260819_add_donor_permission.sql` | `dbo.user.permission` に DONOR(5) を追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260830_market_purchase_receipt.sql` | 購入再送用の更新 inventory entry ID receipt を追加。対応 API 配置前に適用 |
-| `AstralRecord` | `AstralRecord/migrations/20260901_account_delete_receipt.sql` | アカウント削除の確定応答台帳を追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260904_add_inventory_entry_lookup_index.sql` | inventory entry 一括置換の inventory 単位検索用インデックスを追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260910_market_listing_create_receipt.sql` | 出品作成の冪等結果台帳を追加。対応 API 配置前に適用 |
 
 本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
+
+開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記2件だけをmigrationとして管理する。
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 

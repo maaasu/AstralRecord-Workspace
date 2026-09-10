@@ -34,8 +34,7 @@
 ## 運用メモ
 
 - バインド操作直後の自動保存で行を作成する。
-- 既存DBへ導入する場合は、API 配置前に [`migrations/20260801_add_left_click_skill_id.sql`](migrations/20260801_add_left_click_skill_id.sql) を `AstralRecord` DB へ実行する。このSQLは列の追加と既存行の予約値初期化を冪等に行う。
-- 既存DBへ導入する場合は、API 配置前に [`migrations/20260829_add_selected_skill_bind_preset.sql`](migrations/20260829_add_selected_skill_bind_preset.sql) を `AstralRecord` DB へ実行する。既存行は未選択で導入され、未保存アカウントはAPIがプリセット1を既定選択として返す。
+- 開発DBの作成時は現行 `init.sql` の列・制約を使用する。使い終えた旧スキーマ向けmigrationは保持しない。未保存アカウントはAPIがプリセット1を既定選択として返す。
 - 旧 active 7・8 番は API 正規化時に除外する。
 - 各文字列にはスキルマスタ ID ではなく `learned_skill_id` を保存する。通常攻撃予約値だけは例外とする。
 - 使用許可を失ったスキル個体が保存済みスロットに残っていても自動削除せず、発動時だけ無効にする。

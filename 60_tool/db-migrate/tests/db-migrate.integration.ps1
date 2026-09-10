@@ -7,7 +7,8 @@ $sqlcmd = (Get-Command sqlcmd -ErrorAction Stop).Source
 
 $serverName = "tcp:localhost,1433"
 $serverConnectionString = "Server=$serverName;Database=master;Integrated Security=True;TrustServerCertificate=True;"
-$databaseName = "AstralRecordDbMigrateTest_$PID"
+$databaseName = "AstralRecordDbMigrateTest_" + [Guid]::NewGuid().ToString("N")
+$databaseCreated = $false
 $databaseConnectionString = "Server=$serverName;Database=$databaseName;Integrated Security=True;TrustServerCertificate=True;Connection Timeout=60;"
 $tempConfigPath = Join-Path ([IO.Path]::GetTempPath()) "$databaseName.json"
 
@@ -39,6 +40,13 @@ function Invoke-MigrationTool {
 
 try {
     Invoke-DbNonQuery -ConnectionString $serverConnectionString -CommandText "CREATE DATABASE [$databaseName];"
+    $databaseCreated = $true
+    # The production migrations extend an existing game database. Seed only the
+    # parent keys required by the new receipt's foreign keys in this isolated DB.
+    Invoke-DbNonQuery -ConnectionString $databaseConnectionString -CommandText @"
+CREATE TABLE dbo.account (uuid UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+"@
 
     $config = Get-Content -Raw -Encoding UTF8 -LiteralPath $sourceConfigPath | ConvertFrom-Json
     $config.sourceApiAppsettingsPath = $null
@@ -52,11 +60,20 @@ try {
     if ([int]$tableCount -ne 1 -or [int]$historyCount -ne 1) {
         throw "Initial migration did not create the target schema and history row."
     }
+    $receiptTableCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM sys.tables WHERE name = N'market_listing_create_receipt';"
+    $receiptHistoryCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260910_market_listing_create_receipt';"
+    if ([int]$receiptTableCount -ne 1 -or [int]$receiptHistoryCount -ne 1) {
+        throw "Listing creation receipt migration did not create its schema and history row."
+    }
 
     Invoke-MigrationTool
     $historyCountAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260905_account_learned_skill_operation';"
     if ([int]$historyCountAfterRerun -ne 1) {
         throw "Migration rerun changed the applied history."
+    }
+    $receiptHistoryAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260910_market_listing_create_receipt';"
+    if ([int]$receiptHistoryAfterRerun -ne 1) {
+        throw "Listing creation receipt migration was not idempotent."
     }
 
     $config.migrations[0].expectation.columns[0].sqlType = "int"
@@ -74,7 +91,9 @@ try {
 finally {
     Remove-Item -LiteralPath $tempConfigPath -Force -ErrorAction SilentlyContinue
     try {
-        Invoke-DbNonQuery -ConnectionString $serverConnectionString -CommandText "IF DB_ID(N'$databaseName') IS NOT NULL BEGIN ALTER DATABASE [$databaseName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$databaseName]; END;"
+        if ($databaseCreated) {
+            Invoke-DbNonQuery -ConnectionString $serverConnectionString -CommandText "IF DB_ID(N'$databaseName') IS NOT NULL BEGIN ALTER DATABASE [$databaseName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$databaseName]; END;"
+        }
     }
     catch {
         Write-Warning "Could not clean up local integration-test database ${databaseName}: $($_.Exception.Message)"

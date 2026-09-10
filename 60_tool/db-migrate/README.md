@@ -13,3 +13,7 @@ E:\AstralRecord-Workspace\60_tool\13-db-migrate.bat
 同じDBに対する並行実行は `sp_getapplock` で直列化し、最大120秒待機する。`dbo.schema_migration` にmigration IDとSQL本文のSHA-256を記録するため、適用済みSQLは再実行せず、適用済みIDの内容変更は失敗させる。migration SQL は `GO` バッチに分割して実行するが、各SQLのトランザクション境界はmigration自身の定義に従う。
 
 manifestの `preExistingMigrationFileNames` には、過去に適用済みでこのrunnerから再実行しないSQLを明示する。migrationディレクトリに未登録のSQLがあれば終了コード1で停止するため、新規SQLのmanifest登録漏れを検出できる。このツールはDBを削除せず、適用またはスキーマ検査が失敗した場合は終了コード1を返す。`--validate-only` はDBへ接続せず、manifestとSQLファイルだけを検査する。
+
+新しい本番SQLを追加するときは、同じ変更で `migrations` に実行順と `expectation` を登録する。未適用のSQLを `preExistingMigrationFileNames` に入れて検査だけを通してはいけない。現在の適用対象はスキル操作台帳と出品作成結果台帳で、後者は既存の `dbo.account` と `dbo.market_listing` を参照する。
+
+登録漏れ・実行対象の取り違えは `tests/db-migrate.static.ps1`、初回適用・履歴付き再実行・スキーマ不一致の拒否は `tests/db-migrate.integration.ps1` で確認する。統合テストはローカルSQL Serverに一意名の使い捨てDBと必要最小限の親テーブルを作り、本番DBには接続しない。
