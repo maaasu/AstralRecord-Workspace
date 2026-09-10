@@ -297,12 +297,13 @@ public final class PlayerMessageService {
         if (normalizedMessage.isBlank()) {
             return;
         }
-        deliverConvertedChat(sender, normalizedMessage, convertedMessage -> broadcastGlobalChatNow(sender, convertedMessage));
+        deliverConvertedChat(sender, normalizedMessage, conversion -> broadcastGlobalChatNow(sender, conversion));
     }
 
-    private void broadcastGlobalChatNow(@NotNull Player sender, @NotNull String normalizedMessage) {
-        if (!normalizedMessage.isBlank() && networkChatBridge != null
-            && networkChatBridge.publish(sender, normalizedMessage)) {
+    private void broadcastGlobalChatNow(@NotNull Player sender, @NotNull ChatMessageConversion conversion) {
+        String chatText = conversion.asPlainText();
+        if (!chatText.isBlank() && networkChatBridge != null
+            && networkChatBridge.publish(sender, conversion)) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(sender);
@@ -313,7 +314,7 @@ public final class PlayerMessageService {
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
             displayName
-        ).append(chatBodyComponent(normalizedMessage));
+        ).append(chatBodyComponent(conversion));
         if (astPlayer != null) {
             component = replaceAccountDisplay(component, astPlayer);
         }
@@ -322,8 +323,8 @@ public final class PlayerMessageService {
                 recipient.sendMessage(component);
             }
         }
-        if (!normalizedMessage.isBlank() && globalChatBridge != null) {
-            globalChatBridge.publishMinecraftGlobalChat(sender, normalizedMessage);
+        if (!chatText.isBlank() && globalChatBridge != null) {
+            globalChatBridge.publishMinecraftGlobalChat(sender, chatText);
         }
     }
 
@@ -410,7 +411,7 @@ public final class PlayerMessageService {
         deliverConvertedChat(
             sender,
             normalizedMessage,
-            convertedMessage -> broadcastPartyChatNow(recipients, sender, partyName, convertedMessage)
+            conversion -> broadcastPartyChatNow(recipients, sender, partyName, conversion)
         );
     }
 
@@ -418,8 +419,9 @@ public final class PlayerMessageService {
         @NotNull Collection<Player> recipients,
         @NotNull Player sender,
         @NotNull String partyName,
-        @NotNull String message
+        @NotNull ChatMessageConversion conversion
     ) {
+        String chatText = conversion.asPlainText();
         AstPlayer astPlayer = AstPlayerCache.get(sender);
         String displayName = astPlayer == null
             ? sender.getName()
@@ -428,7 +430,7 @@ public final class PlayerMessageService {
             PlayerMsgId.P_5942.getId(),
             resolvePlayerLevel(sender),
             displayName
-        ).append(chatBodyComponent(message));
+        ).append(chatBodyComponent(conversion));
         if (astPlayer != null) {
             component = replaceAccountDisplay(component, astPlayer);
         }
@@ -439,7 +441,7 @@ public final class PlayerMessageService {
         }
         NetworkChatBridge bridge = networkChatBridge;
         if (bridge != null) {
-            bridge.publishPartyMessage(sender, displayName, partyName, message);
+            bridge.publishPartyMessage(sender, displayName, partyName, conversion);
         }
     }
 
@@ -456,10 +458,15 @@ public final class PlayerMessageService {
         if (normalizedMessage.isBlank()) {
             return;
         }
-        deliverConvertedChat(sender, normalizedMessage, convertedMessage -> sendDirectMessageNow(sender, target, convertedMessage));
+        deliverConvertedChat(sender, normalizedMessage, conversion -> sendDirectMessageNow(sender, target, conversion));
     }
 
-    private void sendDirectMessageNow(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
+    private void sendDirectMessageNow(
+        @NotNull Player sender,
+        @NotNull Player target,
+        @NotNull ChatMessageConversion conversion
+    ) {
+        String chatText = conversion.asPlainText();
         AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
         AstPlayer targetAstPlayer = AstPlayerCache.get(target);
         String senderDisplayName = senderAstPlayer == null
@@ -474,14 +481,14 @@ public final class PlayerMessageService {
             senderDisplayName,
             resolvePlayerLevel(target),
             targetDisplayName
-        ).append(chatBodyComponent(message));
+        ).append(chatBodyComponent(conversion));
         Component received = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5944.getId(),
             resolvePlayerLevel(sender),
             senderDisplayName,
             resolvePlayerLevel(target),
             targetDisplayName
-        ).append(chatBodyComponent(message));
+        ).append(chatBodyComponent(conversion));
         if (senderAstPlayer != null) {
             sent = replaceAccountDisplay(sent, senderAstPlayer);
             received = replaceAccountDisplay(received, senderAstPlayer);
@@ -498,7 +505,7 @@ public final class PlayerMessageService {
         }
         NetworkChatBridge bridge = networkChatBridge;
         if (bridge != null) {
-            bridge.publishDirectMessage(sender, senderDisplayName, targetDisplayName, message);
+            bridge.publishDirectMessage(sender, senderDisplayName, targetDisplayName, conversion);
         }
     }
 
@@ -511,7 +518,7 @@ public final class PlayerMessageService {
     private void deliverConvertedChat(
         @NotNull Player sender,
         @NotNull String message,
-        @NotNull Consumer<String> delivery
+        @NotNull Consumer<ChatMessageConversion> delivery
     ) {
         UUID senderId = sender.getUniqueId();
         CompletableFuture<Void> next = chatDeliveryTails.compute(senderId, (ignored, previous) -> {
@@ -525,16 +532,16 @@ public final class PlayerMessageService {
 
     private @NotNull CompletableFuture<Void> convertAndDeliver(
         @NotNull String message,
-        @NotNull Consumer<String> delivery
+        @NotNull Consumer<ChatMessageConversion> delivery
     ) {
         try {
             return chatMessageConverter.convert(message)
-                .exceptionally(ignored -> message)
-                .thenCompose(converted -> runOnMainThread(
-                    () -> delivery.accept(ChatMessageSanitizer.normalize(converted))
+                .exceptionally(ignored -> new ChatMessageConversion(message, message))
+                .thenCompose(conversion -> runOnMainThread(
+                    () -> delivery.accept(normalizeConversion(conversion))
                 ));
         } catch (RuntimeException ignored) {
-            return runOnMainThread(() -> delivery.accept(message));
+            return runOnMainThread(() -> delivery.accept(new ChatMessageConversion(message, message)));
         }
     }
 
@@ -556,8 +563,25 @@ public final class PlayerMessageService {
         return delivered;
     }
 
-    private @NotNull Component chatBodyComponent(@NotNull String message) {
-        return Component.text(message, NamedTextColor.GOLD, TextDecoration.ITALIC);
+    private @NotNull ChatMessageConversion normalizeConversion(@NotNull ChatMessageConversion conversion) {
+        return new ChatMessageConversion(
+            ChatMessageSanitizer.normalize(conversion.original()),
+            ChatMessageSanitizer.normalize(conversion.converted())
+        );
+    }
+
+    private @NotNull Component chatBodyComponent(@NotNull ChatMessageConversion conversion) {
+        Component original = Component.text(conversion.original(), NamedTextColor.WHITE)
+            .decoration(TextDecoration.ITALIC, false);
+        if (!conversion.hasConvertedText()) {
+            return original;
+        }
+        Component bracket = Component.text("[", NamedTextColor.GRAY)
+            .decoration(TextDecoration.ITALIC, false);
+        Component converted = Component.text(conversion.converted(), NamedTextColor.GOLD, TextDecoration.ITALIC);
+        return original.append(bracket).append(converted).append(
+            Component.text("]", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+        );
     }
 
     private @NotNull Component systemPrefix() {

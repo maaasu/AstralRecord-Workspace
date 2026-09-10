@@ -28,19 +28,20 @@ public final class GoogleImeChatMessageConverter implements ChatMessageConverter
      * @return 変換済み本文を返すFuture
      */
     @Override
-    public @NotNull CompletableFuture<String> convert(@NotNull String message) {
+    public @NotNull CompletableFuture<ChatMessageConversion> convert(@NotNull String message) {
         ConfigProperties config = ConfigProperties.getInstance();
         String bypassMarker = config.getChatRomajiBypassMarker();
         if (!bypassMarker.isEmpty() && message.startsWith(bypassMarker)) {
-            return CompletableFuture.completedFuture(message.substring(bypassMarker.length()).trim());
+            String bypassedMessage = message.substring(bypassMarker.length()).trim();
+            return CompletableFuture.completedFuture(new ChatMessageConversion(bypassedMessage, bypassedMessage));
         }
         if (!config.isChatRomajiConversionEnabled() || containsJapanese(message) || !containsAsciiLetter(message)) {
-            return CompletableFuture.completedFuture(message);
+            return CompletableFuture.completedFuture(new ChatMessageConversion(message, message));
         }
 
         String kana = RomajiKanaConverter.convert(message);
         if (!config.isChatKanjiConversionEnabled() || !containsHiragana(kana)) {
-            return CompletableFuture.completedFuture(kana);
+            return CompletableFuture.completedFuture(new ChatMessageConversion(message, kana));
         }
         try {
             HttpRequest request = HttpRequest.newBuilder(buildRequestUri(config.getChatGoogleImeEndpoint(), kana))
@@ -49,10 +50,13 @@ public final class GoogleImeChatMessageConverter implements ChatMessageConverter
                 .header("Accept", "application/json")
                 .build();
             return HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> response.statusCode() == 200 ? parseFirstCandidates(response.body()) : kana)
-                .exceptionally(ignored -> kana);
+                .thenApply(response -> new ChatMessageConversion(
+                    message,
+                    response.statusCode() == 200 ? parseFirstCandidates(response.body()) : kana
+                ))
+                .exceptionally(ignored -> new ChatMessageConversion(message, kana));
         } catch (IllegalArgumentException ignored) {
-            return CompletableFuture.completedFuture(kana);
+            return CompletableFuture.completedFuture(new ChatMessageConversion(message, kana));
         }
     }
 

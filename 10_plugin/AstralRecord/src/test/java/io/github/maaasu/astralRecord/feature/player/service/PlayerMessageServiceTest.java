@@ -203,7 +203,9 @@ class PlayerMessageServiceTest {
         when(target.getName()).thenReturn("Bob");
         NetworkChatBridge bridge = mock(NetworkChatBridge.class);
         PlayerMessageService service = new PlayerMessageService(
-            ignored -> java.util.concurrent.CompletableFuture.completedFuture("変換済み")
+            ignored -> java.util.concurrent.CompletableFuture.completedFuture(
+                new ChatMessageConversion("gakkou", "変換済み")
+            )
         );
         service.setNetworkChatBridge(bridge);
 
@@ -215,28 +217,36 @@ class PlayerMessageServiceTest {
             service.sendDirectMessage(sender, target, "gakkou");
 
             Component global = captureMessage(globalRecipient);
-            assertEquals("[全体] [Lv.---] Alice: 変換済み", PlainTextComponentSerializer.plainText().serialize(global));
+            assertEquals("[全体] [Lv.---] Alice: gakkou[変換済み]", PlainTextComponentSerializer.plainText().serialize(global));
+            Component originalBody = findText(global, "gakkou");
+            assertNotNull(originalBody);
+            assertEquals(NamedTextColor.WHITE, originalBody.style().color());
+            assertEquals(TextDecoration.State.FALSE, originalBody.style().decoration(TextDecoration.ITALIC));
+            Component openBracket = findText(global, "[");
+            assertNotNull(openBracket);
+            assertEquals(NamedTextColor.GRAY, openBracket.style().color());
             Component convertedBody = findText(global, "変換済み");
             assertNotNull(convertedBody);
             assertEquals(NamedTextColor.GOLD, convertedBody.style().color());
             assertEquals(TextDecoration.State.TRUE, convertedBody.style().decoration(TextDecoration.ITALIC));
             assertEquals(
-                "[パーティー] [Lv.---] Alice: 変換済み",
+                "[パーティー] [Lv.---] Alice: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(partyRecipient))
             );
             assertEquals(
-                "[DM送信] [Lv.---] Alice -> [Lv.---] Bob: 変換済み",
+                "[DM送信] [Lv.---] Alice -> [Lv.---] Bob: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             assertEquals(
-                "[DM受信] [Lv.---] Alice -> [Lv.---] Bob: 変換済み",
+                "[DM受信] [Lv.---] Alice -> [Lv.---] Bob: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }
 
-        verify(bridge).publish(sender, "変換済み");
-        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", "変換済み");
-        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", "変換済み");
+        ChatMessageConversion expectedConversion = new ChatMessageConversion("gakkou", "変換済み");
+        verify(bridge).publish(sender, expectedConversion);
+        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", expectedConversion);
+        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", expectedConversion);
     }
 
     /**
@@ -249,10 +259,10 @@ class PlayerMessageServiceTest {
         Player sender = onlinePlayer();
         Player recipient = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
-        CompletableFuture<String> firstConversion = new CompletableFuture<>();
+        CompletableFuture<ChatMessageConversion> firstConversion = new CompletableFuture<>();
         AtomicInteger conversionCount = new AtomicInteger();
         PlayerMessageService service = new PlayerMessageService(message -> conversionCount.getAndIncrement() == 0
-            ? firstConversion : CompletableFuture.completedFuture("second"));
+            ? firstConversion : CompletableFuture.completedFuture(new ChatMessageConversion(message, "second-converted")));
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(recipient));
@@ -260,17 +270,17 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "second");
 
             assertEquals(1, conversionCount.get());
-            firstConversion.complete("first");
+            firstConversion.complete(new ChatMessageConversion("first", "first-converted"));
             assertEquals(2, conversionCount.get());
 
             ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
             verify(recipient, times(2)).sendMessage(captor.capture());
             assertEquals(
-                "[全体] [Lv.---] Alice: first",
+                "[全体] [Lv.---] Alice: first[first-converted]",
                 PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(0))
             );
             assertEquals(
-                "[全体] [Lv.---] Alice: second",
+                "[全体] [Lv.---] Alice: second[second-converted]",
                 PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(1))
             );
         }
@@ -396,8 +406,10 @@ class PlayerMessageServiceTest {
             service.broadcastPartyChat(Set.of(sender), sender, "Aliceのパーティー", "party");
         }
 
-        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", "direct");
-        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", "party");
+        verify(bridge).publishDirectMessage(
+            sender, "Alice", "Bob", new ChatMessageConversion("direct", "direct"));
+        verify(bridge).publishPartyMessage(
+            sender, "Alice", "Aliceのパーティー", new ChatMessageConversion("party", "party"));
     }
 
     /**
@@ -476,7 +488,9 @@ class PlayerMessageServiceTest {
     }
 
     private PlayerMessageService messageServiceWithoutConversion() {
-        return new PlayerMessageService(message -> java.util.concurrent.CompletableFuture.completedFuture(message));
+        return new PlayerMessageService(message -> java.util.concurrent.CompletableFuture.completedFuture(
+            new ChatMessageConversion(message, message)
+        ));
     }
 
     private Component captureMessage(Player player) {

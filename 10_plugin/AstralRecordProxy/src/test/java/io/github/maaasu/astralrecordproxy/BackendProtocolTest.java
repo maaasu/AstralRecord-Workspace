@@ -112,7 +112,8 @@ class BackendProtocolTest {
             output.writeUTF("Sender");
             output.writeUTF("Target");
             output.writeUTF("");
-            output.writeUTF("secret");
+            output.writeUTF("romaji");
+            output.writeUTF("秘密");
             payload = bytes.toByteArray();
         }
 
@@ -121,6 +122,36 @@ class BackendProtocolTest {
         assertEquals(playerId, chat.playerId());
         assertEquals("direct", chat.type());
         assertEquals("Target", chat.targetName());
-        assertEquals("secret", chat.message());
+        assertEquals("romaji", chat.original());
+        assertEquals("秘密", chat.converted());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 全体チャット
+     * 検証契約: backendの全体チャットは原文と変換後本文を別フィールドでProxyへ渡す。
+     */
+    @Test
+    void decodesChatWithOriginalAndConvertedText() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("chat");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("Sender");
+            output.writeUTF("rpg");
+            output.writeUTF("Sender#0");
+            output.writeInt(10);
+            output.writeUTF("Mage");
+            output.writeUTF("gakkou");
+            output.writeUTF("学校");
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.Chat chat = (BackendProtocol.Chat) BackendProtocol.decode(payload);
+
+        assertEquals("gakkou", chat.original());
+        assertEquals("学校", chat.converted());
     }
 }

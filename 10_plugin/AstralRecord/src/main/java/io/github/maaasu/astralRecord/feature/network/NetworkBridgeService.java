@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.player.service.ChatMessageConversion;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -109,7 +110,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     }
 
     @Override
-    public boolean publish(@NotNull Player sender, @NotNull String message) {
+    public boolean publish(@NotNull Player sender, @NotNull ChatMessageConversion message) {
         if (!enabled || !sender.isOnline()) return false;
         AstPlayer player = AstPlayerCache.get(sender);
         if (player != null) {
@@ -128,7 +129,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String targetName,
-        @NotNull String message
+        @NotNull ChatMessageConversion message
     ) {
         if (!enabled || !sender.isOnline()) return;
         BackendProtocol.sendPrivateChat(
@@ -141,7 +142,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String partyName,
-        @NotNull String message
+        @NotNull ChatMessageConversion message
     ) {
         if (!enabled || !sender.isOnline()) return;
         BackendProtocol.sendPrivateChat(

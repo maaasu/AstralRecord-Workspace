@@ -31,13 +31,29 @@ final class BackendProtocol {
                     UUID.fromString(input.readUTF()), input.readUTF(), input.readUTF(), input.readUTF(),
                     input.readInt(), input.readUTF(), input.readBoolean(),
                     input.available() >= Integer.BYTES ? input.readInt() : 0);
-                case CHAT -> new Chat(
-                    UUID.fromString(input.readUTF()), UUID.fromString(input.readUTF()), input.readUTF(),
-                    input.readUTF(), input.readUTF(), input.readInt(), input.readUTF(), input.readUTF());
+                case CHAT -> {
+                    UUID messageId = UUID.fromString(input.readUTF());
+                    UUID playerId = UUID.fromString(input.readUTF());
+                    String authorName = input.readUTF();
+                    String channel = input.readUTF();
+                    String displayName = input.readUTF();
+                    int level = input.readInt();
+                    String className = input.readUTF();
+                    String original = input.readUTF();
+                    String converted = input.available() > 0 ? input.readUTF() : original;
+                    yield new Chat(messageId, playerId, authorName, channel, displayName, level, className, original, converted);
+                }
                 case SERVER_METRICS -> new ServerMetrics(input.readDouble());
-                case PRIVATE_CHAT -> new PrivateChat(
-                    UUID.fromString(input.readUTF()), input.readUTF(), input.readUTF(),
-                    input.readUTF(), input.readUTF(), input.readUTF());
+                case PRIVATE_CHAT -> {
+                    UUID playerId = UUID.fromString(input.readUTF());
+                    String chatType = input.readUTF();
+                    String senderName = input.readUTF();
+                    String targetName = input.readUTF();
+                    String partyName = input.readUTF();
+                    String original = input.readUTF();
+                    String converted = input.available() > 0 ? input.readUTF() : original;
+                    yield new PrivateChat(playerId, chatType, senderName, targetName, partyName, original, converted);
+                }
                 default -> throw new IOException("Unknown plugin message type: " + type);
             };
         }
@@ -81,7 +97,8 @@ final class BackendProtocol {
         String displayName,
         int level,
         String className,
-        String message
+        String original,
+        String converted
     ) implements Incoming {
     }
 
@@ -94,7 +111,8 @@ final class BackendProtocol {
         String senderName,
         String targetName,
         String partyName,
-        String message
+        String original,
+        String converted
     ) implements Incoming {
     }
 }

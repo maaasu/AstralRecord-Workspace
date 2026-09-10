@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.network;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.ChatMessageConversion;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,7 @@ final class BackendProtocol {
         @NotNull String channel,
         @NotNull String displayName,
         @NotNull String className,
-        @NotNull String message
+        @NotNull ChatMessageConversion message
     ) {
         sendChat(
             plugin,
@@ -80,7 +81,7 @@ final class BackendProtocol {
         @NotNull String displayName,
         int level,
         @NotNull String className,
-        @NotNull String message
+        @NotNull ChatMessageConversion message
     ) {
         send(plugin, player, output -> {
             output.writeUTF("chat");
@@ -91,7 +92,8 @@ final class BackendProtocol {
             output.writeUTF(displayName);
             output.writeInt(level);
             output.writeUTF(className);
-            output.writeUTF(message);
+            output.writeUTF(message.original());
+            output.writeUTF(message.converted());
         });
     }
 
@@ -127,7 +129,7 @@ final class BackendProtocol {
         @NotNull String senderName,
         @NotNull String targetName,
         @NotNull String partyName,
-        @NotNull String message
+        @NotNull ChatMessageConversion message
     ) {
         send(plugin, player, output -> {
             output.writeUTF("private_chat");
@@ -136,7 +138,8 @@ final class BackendProtocol {
             output.writeUTF(senderName);
             output.writeUTF(targetName);
             output.writeUTF(partyName);
-            output.writeUTF(message);
+            output.writeUTF(message.original());
+            output.writeUTF(message.converted());
         });
     }
 

@@ -14,7 +14,7 @@ public interface ChatMessageConverter {
      * チャット本文を非同期で変換します。
      *
      * @param message 正規化済みのチャット本文
-     * @return 変換後本文を返す完了可能なFuture。変換不能時も配信可能な本文を返す
+     * @return 変換前後の本文を返す完了可能なFuture。変換不能時も配信可能な本文を返す
      */
-    @NotNull CompletableFuture<String> convert(@NotNull String message);
+    @NotNull CompletableFuture<ChatMessageConversion> convert(@NotNull String message);
 }

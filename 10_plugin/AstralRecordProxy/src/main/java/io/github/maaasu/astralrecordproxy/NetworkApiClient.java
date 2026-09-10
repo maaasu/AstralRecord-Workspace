@@ -97,7 +97,10 @@ final class NetworkApiClient {
         body.addProperty("source", "minecraft");
         body.addProperty("sourceServerId", sourceServerId);
         body.addProperty("authorName", chat.displayName());
-        body.addProperty("message", chat.message());
+        body.addProperty(
+            "message",
+            chat.original().equals(chat.converted()) ? chat.original() : chat.original() + "[" + chat.converted() + "]"
+        );
         body.addProperty("kind", "chat");
         return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
     }

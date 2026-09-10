@@ -412,7 +412,7 @@ public final class AstralRecordProxyPlugin {
         }
         message = message
             .append(Component.text(chat.displayName() + ": ", NamedTextColor.WHITE))
-            .append(Component.text(chat.message(), NamedTextColor.WHITE));
+            .append(chatBodyComponent(chat.original(), chat.converted()));
         Component completedMessage = message;
         proxy.getAllPlayers().forEach(player -> player.sendMessage(completedMessage));
     }
@@ -429,10 +429,22 @@ public final class AstralRecordProxyPlugin {
         } else {
             return;
         }
-        Component completed = message.append(Component.text(chat.message(), NamedTextColor.WHITE));
+        Component completed = message.append(chatBodyComponent(chat.original(), chat.converted()));
         proxy.getAllPlayers().stream()
             .filter(player -> config.isServerAuthority(player.getUniqueId()))
             .forEach(player -> player.sendMessage(completed));
+    }
+
+    static Component chatBodyComponent(String original, String converted) {
+        Component source = Component.text(original, NamedTextColor.WHITE)
+            .decoration(TextDecoration.ITALIC, false);
+        if (original.equals(converted)) {
+            return source;
+        }
+        return source
+            .append(Component.text("[", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
+            .append(Component.text(converted, NamedTextColor.GOLD, TextDecoration.ITALIC))
+            .append(Component.text("]", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
     }
 
     private void pollDiscordChat() {
