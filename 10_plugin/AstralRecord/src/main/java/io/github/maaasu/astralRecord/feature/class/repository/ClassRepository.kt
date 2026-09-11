@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.`class`.repository
 
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
@@ -122,7 +123,7 @@ class ClassRepository {
             expRate = obj.get("expRate")?.asInt ?: 100,
             usableSkills = parseStringList(obj.getAsJsonArray("usableSkills")),
             tags = parseStringList(obj.getAsJsonArray("tags")),
-            classGui = parseClassGui(obj.getAsJsonObject("classGui")),
+            classGui = parseClassGui(optionalObject(obj, "classGui")),
             adminChangeOnly = obj.get("adminChangeOnly")?.asBoolean ?: false,
         )
     }
@@ -132,6 +133,20 @@ class ClassRepository {
         return ClassGuiSetting(
             slot = obj.get("slot")?.takeUnless { it.isJsonNull }?.asInt,
         )
+    }
+
+    /**
+     * 任意のJSONオブジェクト項目を取得します。
+     *
+     * @param obj 取得元のJSONオブジェクト
+     * @param key 項目名
+     * @return 項目がJSONオブジェクトの場合はその値。未指定・nullなら null
+     * @throws IllegalStateException 項目がJSONオブジェクト以外の型の場合
+     */
+    private fun optionalObject(obj: JsonObject, key: String): JsonObject? {
+        val element: JsonElement = obj.get(key) ?: return null
+        if (element.isJsonNull) return null
+        return element.asJsonObject
     }
 
     private fun parseUnlockClassLevelList(array: JsonArray?): List<ClassUnlockClassLevel> {
