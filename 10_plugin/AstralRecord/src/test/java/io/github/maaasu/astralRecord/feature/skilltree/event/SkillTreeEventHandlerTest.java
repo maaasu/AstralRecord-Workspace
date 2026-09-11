@@ -24,6 +24,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
@@ -52,6 +53,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillTreeEventHandlerTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: skilltreeのchunk読込・解放は静止viewerを含む構造再同期を要求し、他worldでは要求しない。
+     */
+    @Test
+    void chunkLifecycleRequestsStructuralResyncOnlyInSkillTreeWorld() {
+        World world = mock(World.class);
+        var load = mock(org.bukkit.event.world.ChunkLoadEvent.class);
+        var unload = mock(org.bukkit.event.world.ChunkUnloadEvent.class);
+        when(load.getWorld()).thenReturn(world);
+        when(unload.getWorld()).thenReturn(world);
+        when(service.isSkillTreeWorld(world)).thenReturn(true);
+        var handler = new SkillTreeEventHandler(service);
+        handler.onChunkLoad(load);
+        handler.onChunkUnload(unload);
+        verify(service, org.mockito.Mockito.times(2)).markStructureDirty();
+        org.mockito.Mockito.clearInvocations(service);
+        when(service.isSkillTreeWorld(world)).thenReturn(false);
+        handler.onChunkLoad(load);
+        handler.onChunkUnload(unload);
+        verify(service, never()).markStructureDirty();
+    }
+
     private SkillTreeService service;
     private Player player;
     private PlayerInteractionSnapshot snapshot;
@@ -597,6 +622,23 @@ class SkillTreeEventHandlerTest {
         verify(service).refreshPlayerVisibility(player);
         verify(service).clearPlayerPresentation(player);
         verify(service).markViewerContextDirty(player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: 移動dirtyはプレイヤーの未反映位置ではなく、イベントで確定した移動先を基準に判定する。
+     */
+    @Test
+    void movementRefreshPassesEventDestinationToTheService() {
+        PlayerMoveEvent event = mock(PlayerMoveEvent.class);
+        Location destination = new Location(mock(World.class), 1.0D, 64.0D, 0.0D);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getTo()).thenReturn(destination);
+
+        new SkillTreeEventHandler(service).onPlayerMove(event);
+
+        verify(service).markViewerMoved(player, destination);
     }
 
     private void allowSnapshotRefresh() {

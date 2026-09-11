@@ -30,6 +30,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -640,14 +642,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         if (!shouldRefreshSkillTreeVisuals(event.getPlayer()) || event.getTo() == null) {
             return;
         }
-        Location from = event.getFrom();
-        Location to = event.getTo();
-        if (from.getWorld() != to.getWorld()
-                || Double.compare(from.getX(), to.getX()) != 0
-                || Double.compare(from.getY(), to.getY()) != 0
-                || Double.compare(from.getZ(), to.getZ()) != 0) {
-            service.markViewerContextDirty(event.getPlayer());
-        }
+        service.markViewerMoved(event.getPlayer(), event.getTo());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -661,6 +656,23 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         relockConfirmationSuppressed.remove(event.getPlayer().getUniqueId());
         service.restorePlayerVisibility(event.getPlayer());
         service.clearPlayerPresentation(event.getPlayer());
+        service.removeViewerPresentation(event.getPlayer());
+    }
+
+    /** スキルツリー構造を含むchunkの読込後に、停止中viewerにもpacketを再送します。 */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChunkLoad(@NotNull ChunkLoadEvent event) {
+        if (service.isSkillTreeWorld(event.getWorld())) {
+            service.markStructureDirty();
+        }
+    }
+
+    /** スキルツリー構造を含むchunkの解放後に、残ったpacket表示を同期します。 */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChunkUnload(@NotNull ChunkUnloadEvent event) {
+        if (service.isSkillTreeWorld(event.getWorld())) {
+            service.markStructureDirty();
+        }
     }
 
     private void playUnlock(@NotNull Player player) {

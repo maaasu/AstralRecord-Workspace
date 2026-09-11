@@ -42,7 +42,10 @@ import java.util.Set;
 import java.util.UUID;
 
 final class SkillTreeVisualizer {
-    private static final long INTERVAL_TICKS = 10L;
+    /** Bedrock edge粒子の従来再表示周期です。 */
+    static final long MAINTENANCE_INTERVAL_TICKS = 10L;
+    /** node・label・edgeの通常再描画周期です。 */
+    static final long VIEWER_REFRESH_INTERVAL_TICKS = 20L;
     private static final long BEAM_SCALE_INTERVAL_TICKS = 2L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
@@ -78,9 +81,14 @@ final class SkillTreeVisualizer {
     private final Set<String> loggedInvalidPositions = new HashSet<>();
     private final Set<String> loggedInvalidEdges = new HashSet<>();
     private final Set<UUID> dirtyViewers = new HashSet<>();
+    /** 部分更新より常に優先する全体更新要求です。 */
+    private final Set<UUID> fullDirtyViewers = new HashSet<>();
     private final Map<UUID, Set<String>> dirtyNodeStateNodeIds = new HashMap<>();
     private final Map<UUID, ViewerEmphasisState> viewerEmphasisStates = new HashMap<>();
+    /** 前回実際にviewerを描画した位置。微小移動を累積して判定します。 */
+    private final Map<UUID, Location> lastViewerRefreshLocations = new HashMap<>();
     private boolean structureDirty = true;
+    private int maintenanceTicksSinceViewerRefresh = (int) (VIEWER_REFRESH_INTERVAL_TICKS / MAINTENANCE_INTERVAL_TICKS) - 1;
     private BukkitTask task;
     private BukkitTask beamScaleTask;
 
@@ -103,7 +111,12 @@ final class SkillTreeVisualizer {
         if (task != null) {
             return;
         }
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
+        task = plugin.getServer().getScheduler().runTaskTimer(
+                plugin,
+                this::tick,
+                1L,
+                MAINTENANCE_INTERVAL_TICKS
+        );
         beamScaleTask = plugin.getServer().getScheduler().runTaskTimer(
                 plugin,
                 this::refreshVisibleBeamScales,
@@ -128,20 +141,60 @@ final class SkillTreeVisualizer {
         adminPositionVisuals.clear();
         edgeVisuals.clear();
         viewerEmphasisStates.clear();
+        lastViewerRefreshLocations.clear();
     }
 
     void markStructureDirty() {
         structureDirty = true;
-        dirtyViewers.addAll(currentOnlineViewerIds());
+        currentOnlineViewerIds().forEach(this::markViewerDirty);
     }
 
     void markViewerDirty(@NotNull UUID viewerId) {
         dirtyViewers.add(viewerId);
+        fullDirtyViewers.add(viewerId);
+        dirtyNodeStateNodeIds.remove(viewerId);
+    }
+
+    /**
+     * 前回描画位置から1 block以上移動したviewerだけを通常再描画対象へ加えます。
+     * teleportや状態変更は {@link #markViewerDirty(UUID)} を使い、ここで抑止しません。
+     *
+     * @param player 移動したviewer
+     * @param current イベントで確定した移動先
+     */
+    void markViewerMoved(@NotNull Player player, @NotNull Location current) {
+        UUID viewerId = player.getUniqueId();
+        Location previous = lastViewerRefreshLocations.get(viewerId);
+        if (shouldRefreshForMovement(previous, current)) {
+            dirtyViewers.add(viewerId);
+        }
+    }
+
+    /** 前回描画位置から1 block以上の累積移動かを判定します。 */
+    static boolean shouldRefreshForMovement(@Nullable Location previous, @NotNull Location current) {
+        if (previous == null || previous.getWorld() != current.getWorld()) {
+            return true;
+        }
+        double deltaX = previous.getX() - current.getX();
+        double deltaY = previous.getY() - current.getY();
+        double deltaZ = previous.getZ() - current.getZ();
+        return deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ >= 1.0D;
+    }
+
+    /** 退出したviewerに紐づく一時表示状態を破棄します。 */
+    void removeViewer(@NotNull UUID viewerId) {
+        dirtyViewers.remove(viewerId);
+        fullDirtyViewers.remove(viewerId);
+        dirtyNodeStateNodeIds.remove(viewerId);
+        viewerEmphasisStates.remove(viewerId);
+        lastViewerRefreshLocations.remove(viewerId);
     }
 
     void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> nodeIds) {
         dirtyViewers.add(viewerId);
-        dirtyNodeStateNodeIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(nodeIds);
+        if (!fullDirtyViewers.contains(viewerId)) {
+            dirtyNodeStateNodeIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(nodeIds);
+        }
     }
 
     boolean isSkillNodeHighlightEnabled(@NotNull UUID viewerId) {
@@ -204,10 +257,18 @@ final class SkillTreeVisualizer {
     }
 
     private void tick() {
-        if (structureDirty || !dirtyViewers.isEmpty()) {
+        if (structureDirty) {
             syncVisuals();
             structureDirty = false;
+            currentOnlineViewerIds().forEach(this::markViewerDirty);
         }
+
+        maintenanceTicksSinceViewerRefresh++;
+        if (maintenanceTicksSinceViewerRefresh < VIEWER_REFRESH_INTERVAL_TICKS / MAINTENANCE_INTERVAL_TICKS) {
+            cleanupAndRenderBedrockEdges();
+            return;
+        }
+        maintenanceTicksSinceViewerRefresh = 0;
 
         Set<UUID> onlineViewerIds = currentOnlineViewerIds();
         Set<UUID> viewersToRefresh = new HashSet<>(dirtyViewers);
@@ -218,12 +279,28 @@ final class SkillTreeVisualizer {
             if (player == null) {
                 continue;
             }
-            refreshViewer(player, dirtyNodeStateNodeIds.remove(viewerId));
+            boolean fullRefresh = fullDirtyViewers.remove(viewerId);
+            if (refreshViewer(player, fullRefresh ? null : dirtyNodeStateNodeIds.remove(viewerId))) {
+                lastViewerRefreshLocations.put(viewerId, player.getLocation().clone());
+            }
         }
 
         dirtyViewers.removeAll(viewersToRefresh);
         dirtyNodeStateNodeIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        fullDirtyViewers.removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
         viewerEmphasisStates.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        renderBedrockEdgeFallbacks();
+    }
+
+    private void cleanupAndRenderBedrockEdges() {
+        Set<UUID> onlineViewerIds = currentOnlineViewerIds();
+        dirtyNodeStateNodeIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        fullDirtyViewers.removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        viewerEmphasisStates.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        lastViewerRefreshLocations.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
         nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
@@ -249,12 +326,11 @@ final class SkillTreeVisualizer {
             return;
         }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !astPlayer.isBedrock()) {
+            ViewerRenderContext context = createViewerRenderContext(player);
+            if (context.astPlayer() == null || !context.astPlayer().isBedrock()) {
                 continue;
             }
-            RenderMode mode = resolveMode(player);
-            if (mode == RenderMode.HIDDEN) {
+            if (context.mode() == RenderMode.HIDDEN) {
                 continue;
             }
             for (EdgeVisual visual : edgeVisuals.values()) {
@@ -265,13 +341,13 @@ final class SkillTreeVisualizer {
                 if (!isVisibleTo(player, midpoint)) {
                     continue;
                 }
-                EdgeState state = resolveEdgeState(player, visual.edge(), mode);
+                EdgeState state = resolveEdgeState(context, visual.edge());
                 if (state == EdgeState.HIDDEN) {
                     continue;
                 }
                 SharedParticleDefinition particle = edgeParticle(state);
                 if (particle != null) {
-                    particles.spawnForViewer(astPlayer, visual.bedrockParticleLocations(), particle);
+                    particles.spawnForViewer(context.astPlayer(), visual.bedrockParticleLocations(), particle);
                 }
             }
         }
@@ -285,25 +361,26 @@ final class SkillTreeVisualizer {
         return onlineViewerIds;
     }
 
-    private void refreshViewer(@NotNull Player player, @Nullable Set<String> dirtyPositions) {
-        RenderMode mode = resolveMode(player);
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        boolean partialNodeRefresh = dirtyPositions != null && !dirtyPositions.isEmpty() && mode == RenderMode.PLAYER;
+    private boolean refreshViewer(@NotNull Player player, @Nullable Set<String> dirtyPositions) {
+        ViewerRenderContext context = createViewerRenderContext(player);
+        boolean partialNodeRefresh = dirtyPositions != null
+                && !dirtyPositions.isEmpty()
+                && context.mode() == RenderMode.PLAYER;
 
         for (AdminPositionVisual visual : adminPositionVisuals.values()) {
-            boolean visible = mode == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
+            boolean visible = context.mode() == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
             visual.updateViewer(player, visible);
         }
         for (NodeVisual visual : nodeVisuals.values()) {
             if (partialNodeRefresh && !dirtyPositions.contains(visual.node().nodeId())) {
                 continue;
             }
-            boolean nodeAvailableToViewer = mode == RenderMode.PLAYER
-                    && astPlayer != null
-                    && service.isNodeVisible(astPlayer, visual.node());
+            boolean nodeAvailableToViewer = context.mode() == RenderMode.PLAYER
+                    && context.astPlayer() != null
+                    && service.isNodeVisible(context.astPlayer(), visual.node());
             boolean visible = nodeAvailableToViewer && isVisibleTo(player, visual.baseLocation());
             SkillTreeService.NodePresentationState nodeState = visible
-                    ? resolveNodeState(player, visual.node())
+                    ? service.nodePresentationState(context.nodePresentationSnapshot(), visual.node())
                     : SkillTreeService.NodePresentationState.BLOCKED;
             SkillTreeService.NodeLabelDetail labelDetail = visible
                     ? service.nodeLabelDetail(player, visual.baseLocation())
@@ -323,10 +400,15 @@ final class SkillTreeVisualizer {
                     && !dirtyPositions.contains(visual.edge().targetNodeId())) {
                 continue;
             }
-            EdgeState state = resolveEdgeState(player, visual.edge(), mode);
-            boolean visible = state != EdgeState.HIDDEN && isVisibleTo(player, visual.midpoint());
+            if (!isVisibleTo(player, visual.midpoint())) {
+                visual.updateViewer(player, EdgeState.HIDDEN);
+                continue;
+            }
+            EdgeState state = resolveEdgeState(context, visual.edge());
+            boolean visible = state != EdgeState.HIDDEN;
             visual.updateViewer(player, visible ? state : EdgeState.HIDDEN);
         }
+        return !partialNodeRefresh;
     }
 
     private void syncVisuals() {
@@ -475,7 +557,10 @@ final class SkillTreeVisualizer {
     }
 
     private @NotNull RenderMode resolveMode(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return resolveMode(player, AstPlayerCache.get(player));
+    }
+
+    private @NotNull RenderMode resolveMode(@NotNull Player player, @Nullable AstPlayer astPlayer) {
         if (service.isAdminMode(astPlayer)) {
             return RenderMode.ADMIN;
         }
@@ -485,15 +570,20 @@ final class SkillTreeVisualizer {
         return RenderMode.HIDDEN;
     }
 
+    private @NotNull ViewerRenderContext createViewerRenderContext(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        RenderMode mode = resolveMode(player, astPlayer);
+        return new ViewerRenderContext(mode, astPlayer);
+    }
+
     private @NotNull EdgeState resolveEdgeState(
-            @NotNull Player player,
-            @NotNull SkillTreeEdge edge,
-            @NotNull RenderMode mode
+            @NotNull ViewerRenderContext context,
+            @NotNull SkillTreeEdge edge
     ) {
-        if (mode == RenderMode.ADMIN) {
+        if (context.mode() == RenderMode.ADMIN) {
             return EdgeState.ADMIN;
         }
-        if (mode != RenderMode.PLAYER) {
+        if (context.mode() != RenderMode.PLAYER || context.astPlayer() == null) {
             return EdgeState.HIDDEN;
         }
 
@@ -502,15 +592,14 @@ final class SkillTreeVisualizer {
         if (leftNode == null || rightNode == null) {
             return EdgeState.HIDDEN;
         }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null
-                || !service.isNodeVisible(astPlayer, leftNode)
-                || !service.isNodeVisible(astPlayer, rightNode)) {
+        if (!service.isNodeVisible(context.astPlayer(), leftNode)
+                || !service.isNodeVisible(context.astPlayer(), rightNode)) {
             return EdgeState.HIDDEN;
         }
 
-        boolean leftUnlocked = resolveNodeState(player, leftNode) == SkillTreeService.NodePresentationState.UNLOCKED;
-        boolean rightUnlocked = resolveNodeState(player, rightNode) == SkillTreeService.NodePresentationState.UNLOCKED;
+        SkillTreeService.NodePresentationSnapshot snapshot = context.nodePresentationSnapshot();
+        boolean leftUnlocked = snapshot.activeUnlockedNodeIds().contains(leftNode.nodeId());
+        boolean rightUnlocked = snapshot.activeUnlockedNodeIds().contains(rightNode.nodeId());
         if (leftUnlocked && rightUnlocked) {
             return EdgeState.UNLOCKED;
         }
@@ -518,17 +607,6 @@ final class SkillTreeVisualizer {
             return EdgeState.CONNECTED;
         }
         return EdgeState.LOCKED;
-    }
-
-    private @NotNull SkillTreeService.NodePresentationState resolveNodeState(
-            @NotNull Player player,
-            @NotNull SkillTreeNodeDefinition node
-    ) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return SkillTreeService.NodePresentationState.BLOCKED;
-        }
-        return service.nodePresentationState(astPlayer, node);
     }
 
     private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
@@ -798,6 +876,36 @@ final class SkillTreeVisualizer {
                 new Vector3f(NODE_BEAM_WIDTH * scale, NODE_BEAM_HEIGHT * scale, NODE_BEAM_DEPTH * scale),
                 new Quaternionf()
         );
+    }
+
+    /** 一回のviewer更新で共有する表示モードとノード状態です。 */
+    private final class ViewerRenderContext {
+        private final @NotNull RenderMode mode;
+        private final @Nullable AstPlayer astPlayer;
+        private @Nullable SkillTreeService.NodePresentationSnapshot nodePresentationSnapshot;
+
+        private ViewerRenderContext(@NotNull RenderMode mode, @Nullable AstPlayer astPlayer) {
+            this.mode = mode;
+            this.astPlayer = astPlayer;
+        }
+
+        private @NotNull RenderMode mode() {
+            return mode;
+        }
+
+        private @Nullable AstPlayer astPlayer() {
+            return astPlayer;
+        }
+
+        private @NotNull SkillTreeService.NodePresentationSnapshot nodePresentationSnapshot() {
+            if (nodePresentationSnapshot == null) {
+                if (astPlayer == null) {
+                    throw new IllegalStateException("Player render context has no AstPlayer.");
+                }
+                nodePresentationSnapshot = service.createNodePresentationSnapshot(astPlayer);
+            }
+            return nodePresentationSnapshot;
+        }
     }
 
     private enum RenderMode {

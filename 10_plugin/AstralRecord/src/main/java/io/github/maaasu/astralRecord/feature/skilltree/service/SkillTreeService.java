@@ -286,6 +286,10 @@ public class SkillTreeService {
     private final Map<String, SkillTreeNodeDefinition> nodesById = new LinkedHashMap<>();
     private final Map<String, SkillTreePosition> positionsByNodeId = new LinkedHashMap<>();
     private final Map<String, SkillTreeEdge> edgesByKey = new LinkedHashMap<>();
+    /** 構造公開時に作る無向隣接表。表示・入力中にedge全件を再走査しません。 */
+    private final Map<String, Set<String>> adjacentNodeIdsByNodeId = new LinkedHashMap<>();
+    /** 構造公開時に作るnode IDの数値順キー。 */
+    private final Map<String, Long> nodeIdSortValues = new LinkedHashMap<>();
     private final Map<String, ItemStack> lockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, ItemStack> unlockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> blockedNodeFieldLabels = new LinkedHashMap<>();
@@ -465,11 +469,21 @@ public class SkillTreeService {
 
         positionsByNodeId.clear();
         edgesByKey.clear();
+        adjacentNodeIdsByNodeId.clear();
+        nodeIdSortValues.clear();
         for (SkillTreePosition position : snapshot.positions()) {
             positionsByNodeId.put(position.nodeId(), position);
         }
+        for (String nodeId : nodesById.keySet()) {
+            adjacentNodeIdsByNodeId.put(nodeId, new LinkedHashSet<>());
+            nodeIdSortValues.put(nodeId, parseNodeIdSortValue(nodeId));
+        }
         for (SkillTreeEdge edge : snapshot.edges()) {
             edgesByKey.put(edge.key(), edge);
+            adjacentNodeIdsByNodeId.computeIfAbsent(edge.sourceNodeId(), ignored -> new LinkedHashSet<>())
+                    .add(edge.targetNodeId());
+            adjacentNodeIdsByNodeId.computeIfAbsent(edge.targetNodeId(), ignored -> new LinkedHashSet<>())
+                    .add(edge.sourceNodeId());
         }
         rootNodeId = snapshot.rootNodeId();
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
@@ -1274,12 +1288,22 @@ public class SkillTreeService {
     }
 
     private long nodeIdSortValue(@NotNull String nodeId) {
-        String digits = nodeId.replaceAll("\\D+", "");
-        if (digits.isBlank()) {
+        return nodeIdSortValues.computeIfAbsent(nodeId, this::parseNodeIdSortValue);
+    }
+
+    private long parseNodeIdSortValue(@NotNull String nodeId) {
+        StringBuilder digits = new StringBuilder(nodeId.length());
+        for (int index = 0; index < nodeId.length(); index++) {
+            char character = nodeId.charAt(index);
+            if (Character.isDigit(character)) {
+                digits.append(character);
+            }
+        }
+        if (digits.isEmpty()) {
             return Long.MIN_VALUE;
         }
         try {
-            return Long.parseLong(digits);
+            return Long.parseLong(digits.toString());
         } catch (NumberFormatException ignored) {
             return Long.MAX_VALUE;
         }
@@ -1300,10 +1324,7 @@ public class SkillTreeService {
                 || !removedSkillIds.isEmpty();
         refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, statusAffected);
         if (visualizer != null) {
-            visualizer.markNodeStateDirty(
-                    astPlayer.getBukkit().getUniqueId(),
-                    affectedNodeIds(changedNode.nodeId())
-            );
+            // point残高の変化は離れた未解放nodeのAVAILABLE状態にも影響するため全体更新にする。
             visualizer.markViewerDirty(astPlayer.getBukkit().getUniqueId());
         }
     }
@@ -1326,6 +1347,33 @@ public class SkillTreeService {
     public void markViewerContextDirty(@NotNull Player player) {
         if (visualizer != null) {
             visualizer.markViewerDirty(player.getUniqueId());
+        }
+    }
+
+    /**
+     * 移動による表示更新を、前回描画位置からの累積距離で要求します。
+     * teleportや状態変更は {@link #markViewerContextDirty(Player)} を使用します。
+     *
+     * @param player 移動したviewer
+     * @param current 移動イベントで確定した移動先
+     */
+    public void markViewerMoved(@NotNull Player player, @NotNull Location current) {
+        if (visualizer != null) {
+            visualizer.markViewerMoved(player, current);
+        }
+    }
+
+    /** chunk load/unload等で構造packetの再同期が必要になったことを通知します。 */
+    public void markStructureDirty() {
+        if (visualizer != null) {
+            visualizer.markStructureDirty();
+        }
+    }
+
+    /** 退出したviewerに紐づく一時表示状態を破棄します。 */
+    public void removeViewerPresentation(@NotNull Player player) {
+        if (visualizer != null) {
+            visualizer.removeViewer(player.getUniqueId());
         }
     }
 
@@ -2508,15 +2556,126 @@ public class SkillTreeService {
     }
 
     private @NotNull Set<String> adjacentNodeIds(@NotNull String nodeId) {
-        Set<String> result = new LinkedHashSet<>();
-        for (SkillTreeEdge edge : edgesByKey.values()) {
-            if (nodeId.equals(edge.sourceNodeId())) {
-                result.add(edge.targetNodeId());
-            } else if (nodeId.equals(edge.targetNodeId())) {
-                result.add(edge.sourceNodeId());
+        return adjacentNodeIdsByNodeId.getOrDefault(nodeId, Set.of());
+    }
+
+    /**
+     * 一回のviewer再描画で共有するノード表示判定値を作ります。
+     * 解放済み有効ノード・PP/CP残高・隣接表をこの時点で確定し、edgeごとの全体走査を避けます。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @return 当該再描画だけで使用する不変スナップショット
+     */
+    @NotNull NodePresentationSnapshot createNodePresentationSnapshot(@NotNull AstPlayer astPlayer) {
+        SkillTreePlayerState state = state(astPlayer);
+        Set<String> knownUnlockedNodeIds = knownUnlockedNodeIds(state);
+        Set<String> activeUnlockedNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        Set<String> inactiveUnlockedNodeIds = new LinkedHashSet<>(state.unlockedNodeIds());
+        inactiveUnlockedNodeIds.removeAll(activeUnlockedNodeIds);
+        Map<String, Integer> availableClassPointsByClassId = new LinkedHashMap<>();
+        for (var progress : astPlayer.getAllClassProgresses()) {
+            String classId = normalizeClassId(progress.getClassId());
+            availableClassPointsByClassId.put(classId, availableClassPoints(astPlayer, classId));
+        }
+        for (SkillTreeNodeDefinition node : nodesById.values()) {
+            String requiredClassId = node.unlockCondition().classId();
+            if (requiredClassId != null) {
+                String classId = normalizeClassId(requiredClassId);
+                availableClassPointsByClassId.computeIfAbsent(
+                        classId,
+                        ignored -> availableClassPoints(astPlayer, classId)
+                );
             }
         }
-        return result;
+        return new NodePresentationSnapshot(
+                astPlayer,
+                state,
+                knownUnlockedNodeIds.isEmpty(),
+                Set.copyOf(activeUnlockedNodeIds),
+                Set.copyOf(inactiveUnlockedNodeIds),
+                availablePassivePoints(astPlayer),
+                Map.copyOf(availableClassPointsByClassId)
+        );
+    }
+
+    @NotNull NodePresentationState nodePresentationState(
+            @NotNull NodePresentationSnapshot snapshot,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        if (snapshot.state().isUnlocked(node.nodeId())) {
+            if (!isNodeUnlockConditionMet(snapshot.astPlayer(), node)) {
+                return NodePresentationState.INACTIVE_CONDITION;
+            }
+            return snapshot.inactiveUnlockedNodeIds().contains(node.nodeId())
+                    ? NodePresentationState.INACTIVE
+                    : NodePresentationState.UNLOCKED;
+        }
+        if (!isNodeUnlockConditionMet(snapshot.astPlayer(), node)) {
+            return NodePresentationState.CONDITION_BLOCKED;
+        }
+        return canUnlockNode(snapshot, node) ? NodePresentationState.AVAILABLE : NodePresentationState.BLOCKED;
+    }
+
+    private boolean canUnlockNode(
+            @NotNull NodePresentationSnapshot snapshot,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        if (snapshot.state().isUnlocked(node.nodeId())) {
+            return false;
+        }
+        if (requiresCpSourceSelection(node)) {
+            for (Map.Entry<String, Integer> entry : snapshot.availableClassPointsByClassId().entrySet()) {
+                if (entry.getValue() >= node.pointCost()
+                        && (snapshot.hasNoKnownUnlockedNodeIds()
+                        ? rootNodeId.equals(node.nodeId())
+                        : isAdjacentToActiveNode(snapshot.activeUnlockedNodeIds(), node.nodeId()))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (!hasRequiredPoints(snapshot, node, node.pointType() == SkillTreePointType.CLASS_POINT
+                ? node.unlockCondition().classId()
+                : null)) {
+            return false;
+        }
+        return snapshot.hasNoKnownUnlockedNodeIds()
+                ? rootNodeId.equals(node.nodeId())
+                : isAdjacentToActiveNode(snapshot.activeUnlockedNodeIds(), node.nodeId());
+    }
+
+    private boolean hasRequiredPoints(
+            @NotNull NodePresentationSnapshot snapshot,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable String consumedClassId
+    ) {
+        if (node.pointType() == SkillTreePointType.PASSIVE_POINT) {
+            return consumedClassId == null && snapshot.availablePassivePoints() >= node.pointCost();
+        }
+        String requiredClassId = node.unlockCondition().classId();
+        String normalizedSource = consumedClassId == null ? null : normalizeClassId(consumedClassId);
+        if (requiredClassId != null) {
+            String normalizedRequired = normalizeClassId(requiredClassId);
+            if (normalizedSource == null) {
+                normalizedSource = normalizedRequired;
+            }
+            return normalizedRequired.equals(normalizedSource)
+                    && snapshot.availableClassPointsByClassId().getOrDefault(normalizedRequired, 0) >= node.pointCost();
+        }
+        if (node.pointCost() == 0) {
+            return normalizedSource == null || snapshot.availableClassPointsByClassId().containsKey(normalizedSource);
+        }
+        return normalizedSource != null
+                && snapshot.availableClassPointsByClassId().getOrDefault(normalizedSource, 0) >= node.pointCost();
+    }
+
+    private boolean isAdjacentToActiveNode(@NotNull Set<String> activeNodeIds, @NotNull String nodeId) {
+        for (String adjacentNodeId : adjacentNodeIds(nodeId)) {
+            if (activeNodeIds.contains(adjacentNodeId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull
@@ -2559,6 +2718,18 @@ public class SkillTreeService {
         UNLOCKED,
         INACTIVE,
         INACTIVE_CONDITION
+    }
+
+    /** viewer再描画中だけ共有する、プレイヤー由来のノード表示状態です。 */
+    record NodePresentationSnapshot(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state,
+            boolean hasNoKnownUnlockedNodeIds,
+            @NotNull Set<String> activeUnlockedNodeIds,
+            @NotNull Set<String> inactiveUnlockedNodeIds,
+            int availablePassivePoints,
+            @NotNull Map<String, Integer> availableClassPointsByClassId
+    ) {
     }
 
     public enum NodeLabelDetail {

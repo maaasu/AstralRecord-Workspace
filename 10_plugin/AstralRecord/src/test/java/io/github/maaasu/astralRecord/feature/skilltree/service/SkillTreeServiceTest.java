@@ -76,6 +76,89 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: PP/CP・条件未達・ポイント不足の表示は従来判定と一致し、共有snapshotの参照中は残高を再計算しない。
+     */
+    @Test
+    void sharedSnapshotMatchesLegacyStatesWithoutRepeatingPointCalculations() {
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = astPlayer(accountId);
+        when(player.getAllClassProgresses()).thenReturn(List.of(
+                new ClassProgressModel("adventurer", 2, 0L),
+                new ClassProgressModel("hunter", 1, 0L)));
+        var root = node("2");
+        var low = presentationNode("9", SkillTreePointType.PASSIVE_POINT, null, 0);
+        var high = presentationNode("10", SkillTreePointType.PASSIVE_POINT, null, 0);
+        var classNode = presentationNode("20", SkillTreePointType.CLASS_POINT, "adventurer", 0);
+        var selectableCp = presentationNode("21", SkillTreePointType.CLASS_POINT, null, 0);
+        var levelNode = presentationNode("22", SkillTreePointType.PASSIVE_POINT, null, 4);
+        var nodes = List.of(root, low, high, classNode, selectableCp, levelNode);
+        SkillTreeService service = org.mockito.Mockito.spy(newService(null));
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                root.nodeId(), nodes,
+                nodes.stream().map(n -> new SkillTreePosition(n.nodeId(), "skill_tree",
+                        Integer.parseInt(n.nodeId()), 64, 0)).toList(),
+                nodes.stream().filter(n -> n != root).map(n -> new SkillTreeEdge(root.nodeId(), n.nodeId())).toList()));
+        for (int level : List.of(1, 2, 5)) {
+            for (String currentClass : List.of("adventurer", "hunter")) {
+                when(player.getAccount().getLevel()).thenReturn(level);
+                when(player.getClassId()).thenReturn(currentClass);
+                service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("2", "9", "10")));
+                var snapshot = service.createNodePresentationSnapshot(player);
+                org.mockito.Mockito.clearInvocations(service);
+                var actual = nodes.stream().map(n -> service.nodePresentationState(snapshot, n)).toList();
+                verify(service, never()).availableClassPoints(any(), any());
+                verify(service, never()).availablePassivePoints(any());
+                for (int index = 0; index < nodes.size(); index++) {
+                    assertEquals(service.nodePresentationState(player, nodes.get(index)), actual.get(index),
+                            "level=" + level + " class=" + currentClass + " node=" + nodes.get(index).nodeId());
+                }
+                if (level == 2) {
+                    assertTrue(snapshot.activeUnlockedNodeIds().contains("9"));
+                    assertFalse(snapshot.activeUnlockedNodeIds().contains("10"));
+                }
+            }
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: 構造差替えで隣接表を更新し、以前接続していたnodeの解放可否を残さない。
+     */
+    @Test
+    void replacingStructureRebuildsAdjacencyUsedByPresentation() {
+        var root = node("2");
+        var oldChild = node("9");
+        var newChild = node("10");
+        var nodes = List.of(root, oldChild, newChild);
+        var positions = nodes.stream().map(n -> new SkillTreePosition(n.nodeId(), "skill_tree",
+                Integer.parseInt(n.nodeId()), 64, 0)).toList();
+        UUID accountId = UUID.randomUUID();
+        var player = astPlayer(accountId);
+        var service = newService(null);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot("2", nodes, positions,
+                List.of(new SkillTreeEdge("2", "9"), new SkillTreeEdge("9", "10"))));
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("2")));
+        assertEquals(SkillTreeService.NodePresentationState.AVAILABLE,
+                service.nodePresentationState(service.createNodePresentationSnapshot(player), oldChild));
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot("2", nodes, positions,
+                List.of(new SkillTreeEdge("2", "10"), new SkillTreeEdge("10", "9"))));
+        var updated = service.createNodePresentationSnapshot(player);
+        assertEquals(Set.of("2", "10"), service.affectedNodeIds("2"));
+        assertEquals(SkillTreeService.NodePresentationState.BLOCKED, service.nodePresentationState(updated, oldChild));
+        assertEquals(SkillTreeService.NodePresentationState.AVAILABLE, service.nodePresentationState(updated, newChild));
+    }
+
+    /** ポイント・条件の等価性を比較する固定fixtureを返します。 */
+    private SkillTreeNodeDefinition presentationNode(String id, SkillTreePointType type, String classId, int level) {
+        return new SkillTreeNodeDefinition(id, "Node", Material.STONE, List.of(), List.of(), type, 1,
+                new SkillTreeUnlockCondition(classId, level), List.of());
+    }
+
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
      * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、ローカルで全解除しsnapshot保存対象にする。
      */
     @Test
@@ -767,6 +850,50 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 service.nodePresentationState(player, conditionedNode)
         );
         assertEquals(5.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 既知の解放nodeがすべて無効でも、表示用snapshotは旧解放APIと同じく差し替えrootを解放可能にしない。
+     */
+    @Test
+    void presentationSnapshotMatchesUnlockApiWhenKnownNodesAreInactiveAfterRootReplacement() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition inactiveOldNode = new SkillTreeNodeDefinition(
+                "old",
+                "Old Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition(null, 99),
+                List.of()
+        );
+        SkillTreeNodeDefinition replacementRoot = new SkillTreeNodeDefinition(
+                "new",
+                "New Root",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                List.of()
+        );
+        SkillTreeService service = newService(inactiveOldNode);
+        putNode(service, replacementRoot);
+        putRootNodeId(service, replacementRoot.nodeId());
+        AstPlayer player = astPlayer(accountId);
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of(inactiveOldNode.nodeId())));
+
+        SkillTreeService.NodePresentationSnapshot snapshot = service.createNodePresentationSnapshot(player);
+
+        assertFalse(service.canUnlockNode(player, replacementRoot));
+        assertEquals(
+                SkillTreeService.NodePresentationState.BLOCKED,
+                service.nodePresentationState(snapshot, replacementRoot)
+        );
     }
 
     /**
