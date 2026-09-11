@@ -69,9 +69,11 @@ final class LobbyApiClient {
             send("GET", "/api/network/chat?source=minecraft&afterSequence=" + Math.max(0L, afterSequence), null),
             JsonObject.class);
         String generationId = batch.get("generationId").getAsString();
+        Long latestSequence = batch.has("latestSequence") && !batch.get("latestSequence").isJsonNull()
+            ? Math.max(0L, batch.get("latestSequence").getAsLong()) : null;
         JsonArray array = batch.getAsJsonArray("messages");
         List<ChatMessage> messages = new ArrayList<>();
-        if (array == null) return new ChatBatch(generationId, messages);
+        if (array == null) return new ChatBatch(generationId, latestSequence, messages);
         array.forEach(element -> {
             JsonObject value = element.getAsJsonObject();
             messages.add(new ChatMessage(
@@ -81,7 +83,7 @@ final class LobbyApiClient {
                 value.get("message").getAsString(),
                 value.has("kind") ? value.get("kind").getAsString() : "chat"));
         });
-        return new ChatBatch(generationId, messages);
+        return new ChatBatch(generationId, latestSequence, messages);
     }
 
     /**
@@ -206,7 +208,7 @@ final class LobbyApiClient {
     record ChatMessage(long sequence, String sourceServerId, String authorName, String message, String kind) {
     }
 
-    record ChatBatch(String generationId, List<ChatMessage> messages) {
+    record ChatBatch(String generationId, Long latestSequence, List<ChatMessage> messages) {
     }
 
     record ServerPresence(

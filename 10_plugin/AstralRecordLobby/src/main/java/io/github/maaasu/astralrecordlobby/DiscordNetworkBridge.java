@@ -28,11 +28,13 @@ final class DiscordNetworkBridge {
     private final ReentrantReadWriteLock lifecycleLock = new ReentrantReadWriteLock(true);
     private String minecraftGenerationId;
     private volatile String gameChannelId;
+    private volatile DiscordSRV subscribedDiscordSrv;
     private volatile boolean subscribed;
     private BukkitTask initializationTask;
     private BukkitTask minecraftPollTask;
     private boolean channelWarningLogged;
     private boolean initializationWarningLogged;
+    private boolean minecraftRelayCompatibilityWarningLogged;
 
     DiscordNetworkBridge(AstralRecordLobbyPlugin plugin, LobbyApiClient api) {
         this.plugin = plugin;
@@ -51,10 +53,10 @@ final class DiscordNetworkBridge {
             deactivateForDependencyRestart();
             return;
         }
-        if (subscribed) return;
         try {
+            DiscordSRV activeDiscordSrv = DiscordSRV.getPlugin();
             String gameChannel = plugin.getConfig().getString("discord.gameChannel", "global");
-            var destination = DiscordSRV.getPlugin().getDestinationTextChannelForGameChannelName(gameChannel);
+            var destination = activeDiscordSrv.getDestinationTextChannelForGameChannelName(gameChannel);
             if (destination == null) {
                 if (!channelWarningLogged) {
                     plugin.getLogger().warning("DiscordSRV game channel is not configured: " + gameChannel);
@@ -64,12 +66,14 @@ final class DiscordNetworkBridge {
             }
             lifecycleLock.writeLock().lock();
             try {
-                if (subscribed) return;
+                if (subscribed && subscribedDiscordSrv == activeDiscordSrv) return;
+                deactivateForDependencyRestartLocked();
                 channelWarningLogged = false;
                 gameChannelId = destination.getId();
-                suppressStandardPlayerLifecycleMessages(DiscordSRV.config());
+                suppressStandardPlayerLifecycleMessages(activeDiscordSrv.config());
                 DiscordSRV.api.subscribe(this);
                 subscribed = true;
+                subscribedDiscordSrv = activeDiscordSrv;
                 initializationWarningLogged = false;
                 long period = Math.max(5L, plugin.getConfig().getLong("discord.minecraftPollTicks", 10L));
                 minecraftPollTask = Bukkit.getScheduler().runTaskTimerAsynchronously(
@@ -86,37 +90,35 @@ final class DiscordNetworkBridge {
     }
 
     void stop() {
-        boolean wasSubscribed;
         lifecycleLock.writeLock().lock();
         try {
-            wasSubscribed = subscribed;
-            subscribed = false;
-            gameChannelId = null;
-            lifecycleGeneration.incrementAndGet();
             if (initializationTask != null) initializationTask.cancel();
-            if (minecraftPollTask != null) minecraftPollTask.cancel();
             initializationTask = null;
-            minecraftPollTask = null;
+            deactivateForDependencyRestartLocked();
         } finally {
             lifecycleLock.writeLock().unlock();
         }
-        if (wasSubscribed) DiscordSRV.api.unsubscribe(this);
     }
 
     private void deactivateForDependencyRestart() {
-        boolean wasActive;
         lifecycleLock.writeLock().lock();
         try {
-            wasActive = subscribed || minecraftPollTask != null;
-            subscribed = false;
-            gameChannelId = null;
-            if (wasActive) lifecycleGeneration.incrementAndGet();
-            if (minecraftPollTask != null) minecraftPollTask.cancel();
-            minecraftPollTask = null;
+            deactivateForDependencyRestartLocked();
         } finally {
             lifecycleLock.writeLock().unlock();
         }
-        if (wasActive) DiscordSRV.api.unsubscribe(this);
+    }
+
+    /** DiscordSRV購読をlock内で解除し、古い停止処理が再購読を解除しないようにする。 */
+    private void deactivateForDependencyRestartLocked() {
+        boolean wasActive = subscribed || minecraftPollTask != null;
+        if (subscribed) DiscordSRV.api.unsubscribe(this);
+        subscribed = false;
+        subscribedDiscordSrv = null;
+        gameChannelId = null;
+        if (wasActive) lifecycleGeneration.incrementAndGet();
+        if (minecraftPollTask != null) minecraftPollTask.cancel();
+        minecraftPollTask = null;
     }
 
     @Subscribe
@@ -178,9 +180,20 @@ final class DiscordNetworkBridge {
             lifecycleLock.readLock().lock();
             try {
                 if (!isActive(generation)) return;
-                if (!batch.generationId().equals(minecraftGenerationId)) {
-                    minecraftGenerationId = batch.generationId();
-                    minecraftSequence.set(0L);
+                MinecraftCursorTransition transition = resolveMinecraftCursorTransition(
+                    minecraftGenerationId, minecraftSequence.get(), batch);
+                if (!transition.relayEnabled()) {
+                    if (!minecraftRelayCompatibilityWarningLogged) {
+                        plugin.getLogger().warning(
+                            "Minecraft chat Discord relay is waiting for an API response with latestSequence.");
+                        minecraftRelayCompatibilityWarningLogged = true;
+                    }
+                    return;
+                }
+                minecraftRelayCompatibilityWarningLogged = false;
+                minecraftGenerationId = transition.generationId();
+                minecraftSequence.set(transition.sequence());
+                if (transition.skipBatch()) {
                     return;
                 }
                 for (LobbyApiClient.ChatMessage message : batch.messages()) {
@@ -204,6 +217,36 @@ final class DiscordNetworkBridge {
 
     private boolean isActive(long generation) {
         return subscribed && lifecycleGeneration.get() == generation;
+    }
+
+    /**
+     * Minecraft中継カーソルの世代遷移を決定する。
+     * 初回接続ではAPIに残っている履歴を送らず、応答時点の最新シーケンスから中継を開始する。
+     * API再起動後はgenerationIdの変更を検知して次回pollで新世代のメッセージを取得する。
+     *
+     * @param currentGenerationId 現在保持しているAPI世代ID。初回接続前はnull
+     * @param currentSequence 現在保持している取得カーソル
+     * @param batch APIから取得したメッセージバッチ
+     * @return 次に保持するカーソルと、このバッチをDiscordへ送らないかの判定
+     */
+    static MinecraftCursorTransition resolveMinecraftCursorTransition(
+        String currentGenerationId,
+        long currentSequence,
+        LobbyApiClient.ChatBatch batch
+    ) {
+        if (batch.latestSequence() == null) {
+            return new MinecraftCursorTransition(currentGenerationId, currentSequence, true, false);
+        }
+        if (currentGenerationId == null) {
+            return new MinecraftCursorTransition(batch.generationId(), batch.latestSequence(), true, true);
+        }
+        if (!batch.generationId().equals(currentGenerationId)) {
+            return new MinecraftCursorTransition(batch.generationId(), 0L, true, true);
+        }
+        return new MinecraftCursorTransition(currentGenerationId, currentSequence, false, true);
+    }
+
+    record MinecraftCursorTransition(String generationId, long sequence, boolean skipBatch, boolean relayEnabled) {
     }
 
     /**

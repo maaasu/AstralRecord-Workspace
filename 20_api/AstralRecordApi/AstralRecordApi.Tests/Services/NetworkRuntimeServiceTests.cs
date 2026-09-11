@@ -117,6 +117,21 @@ public sealed class NetworkRuntimeServiceTests
         Assert.NotEqual(first.GenerationId, restarted.GenerationId);
     }
 
+    [Fact]
+    public void ChatBatchReportsLatestSequenceBeyondTheSourceFilter()
+    {
+        var service = new NetworkRuntimeService(TimeProvider.System);
+        service.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "ch1", "FirstPlayer", "参加しました", "lifecycle"));
+        service.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "discord", "lobby", "DiscordUser", "こんにちは"));
+
+        var batch = service.GetChatAfter(0, "minecraft");
+
+        Assert.Single(batch.Messages);
+        Assert.Equal(2, batch.LatestSequence);
+    }
+
     private sealed class MutableTimeProvider(DateTimeOffset value) : TimeProvider
     {
         private DateTimeOffset current = value;

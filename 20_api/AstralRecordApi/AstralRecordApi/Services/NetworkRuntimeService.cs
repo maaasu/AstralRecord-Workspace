@@ -144,7 +144,7 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
                     && (normalizedSource is null || value.Source == normalizedSource))
                 .Take(200)
                 .ToArray();
-            return new NetworkChatBatchResponse(generationId, messages);
+            return new NetworkChatBatchResponse(generationId, nextChatSequence, messages);
         }
     }
 

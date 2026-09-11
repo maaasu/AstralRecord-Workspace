@@ -72,6 +72,7 @@ public sealed record NetworkChatMessageResponse(
 
 public sealed record NetworkChatBatchResponse(
     Guid GenerationId,
+    long LatestSequence,
     IReadOnlyList<NetworkChatMessageResponse> Messages);
 
 public sealed record NetworkAuthorityUpdateRequest(
