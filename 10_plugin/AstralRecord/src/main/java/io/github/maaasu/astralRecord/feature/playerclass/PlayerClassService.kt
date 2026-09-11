@@ -352,7 +352,7 @@ class PlayerClassService @JvmOverloads constructor(
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
         return classService.getLoadedClasses().map { model ->
             val changeAvailability = evaluateChangeRequirements(astPlayer, model)
-            val adjustmentInProgress = model.adminChangeOnly && !astPlayer.hasAdminPermission()
+            val adjustmentInProgress = model.adminChangeOnly
             ClassViewEntry(
                 id = model.id,
                 typeDisplay = resolveTypeDisplay(model.type),

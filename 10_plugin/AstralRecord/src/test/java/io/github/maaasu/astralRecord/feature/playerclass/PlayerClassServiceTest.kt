@@ -380,6 +380,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
             pluginInstance.`when`<AstralRecord> { AstralRecord.getInstance() }.thenReturn(plugin)
 
             assertTrue(service.getClassViewEntries(normalAstPlayer).single().adjustmentInProgress)
+            assertTrue(service.getClassViewEntries(adminAstPlayer).single().adjustmentInProgress)
         }
     }
 
