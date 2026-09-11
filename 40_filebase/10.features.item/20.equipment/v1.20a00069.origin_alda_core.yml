@@ -19,7 +19,9 @@ equipment:
   slot: ACCESSORY
   tag: CORE
   requiredLevel: 15
-  stats: []
+  stats:
+    - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+    - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
   enhance:
     maxLevel: 10
     levels:
