@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.playerclass
 
+import io.github.maaasu.astralRecord.AstralRecord
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassUnlockClassLevel
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockStatic
 import java.util.Locale
 
 class PlayerClassServiceTest : MockBukkitTestBase() {
@@ -372,7 +375,12 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
 
         assertFalse(service.canChangeClass(normalAstPlayer, "paladin"))
         assertTrue(service.canChangeClass(adminAstPlayer, "paladin"))
-        assertTrue(service.getClassViewEntries(normalAstPlayer).single().adjustmentInProgress)
+        val plugin = mock(AstralRecord::class.java)
+        mockStatic(AstralRecord::class.java).use { pluginInstance ->
+            pluginInstance.`when`<AstralRecord> { AstralRecord.getInstance() }.thenReturn(plugin)
+
+            assertTrue(service.getClassViewEntries(normalAstPlayer).single().adjustmentInProgress)
+        }
     }
 
     private fun classModel(
