@@ -99,6 +99,7 @@ public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
     private static final double TARGET_DISTANCE = 8.0D;
+    public static final double NODE_BEACON_TARGET_DISTANCE = 80.0D;
     private static final double TARGET_RADIUS = 0.9D;
     static final String NODE_INTERACTION_TAG = "astralrecord:skilltree:node-interaction";
     private static final long SAVE_INTERVAL_TICKS = 20L;
@@ -1699,7 +1700,7 @@ public class SkillTreeService {
     }
 
     /**
-     * 左クリック対象となる、表示中のノード強調ビームを視線またはノードhitboxから解決します。
+     * 左クリック対象となる、表示中のノード強調ビームを視線から解決します。
      * 通常ノードの解放・解除対象とは異なり、本人に実際に表示されるビームだけを候補にします。
      *
      * @param snapshot 判定対象の入力snapshot
@@ -1709,7 +1710,14 @@ public class SkillTreeService {
     public Optional<SkillTreePositionHit> findTargetedBeaconPositionHit(
             @NotNull PlayerInteractionSnapshot snapshot
     ) {
-        return findTargetedBeaconPositionHit(snapshot.player(), snapshot.ray());
+        PlayerInteractionRayTrace beaconRay = PlayerInteractionRayTrace.create(
+                snapshot.rayOrigin(),
+                snapshot.ray().direction(),
+                NODE_BEACON_TARGET_DISTANCE
+        );
+        return beaconRay == null
+                ? Optional.empty()
+                : findTargetedBeaconPositionHit(snapshot.player(), beaconRay);
     }
 
     /**

@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -132,16 +133,16 @@ class SkillTreeEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
-     * 検証契約: 表示中のビームを5m以上離れて左クリックすると、Y・yaw・pitchを維持し、ノードのX/Zへ移動する。
+     * 検証契約: 表示中のビームを80m離れて左クリックすると、Y・yaw・pitchを維持し、ノードのX/Zへ移動する。
      */
     @Test
     void leftClickingDistantBeaconTeleportsToItsXAndZWithoutUnlocking() {
         World world = mock(World.class);
-        SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 10, 64, 20);
+        SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 80, 64, 20);
         SkillTreeService.SkillTreePositionHit hit =
                 new SkillTreeService.SkillTreePositionHit(position, 5.0D);
-        Location current = new Location(world, 1.0D, 72.0D, 2.0D, 135.0F, -20.0F);
-        Location eye = new Location(world, 1.0D, 73.62D, 2.0D);
+        Location current = new Location(world, 0.5D, 72.0D, 20.5D, 135.0F, -20.0F);
+        Location eye = new Location(world, 0.5D, 73.62D, 20.5D);
         eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
 
         when(service.findTargetedBeaconPositionHit(any(PlayerInteractionSnapshot.class))).thenReturn(Optional.of(hit));
@@ -173,13 +174,26 @@ class SkillTreeEventHandlerTest {
 
         ArgumentCaptor<Location> target = ArgumentCaptor.forClass(Location.class);
         verify(player).teleport(target.capture(), org.mockito.ArgumentMatchers.eq(PlayerTeleportEvent.TeleportCause.PLUGIN));
-        assertEquals(10.5D, target.getValue().getX());
+        assertEquals(80.5D, target.getValue().getX());
         assertEquals(72.0D, target.getValue().getY());
         assertEquals(20.5D, target.getValue().getZ());
         assertEquals(135.0F, target.getValue().getYaw());
         assertEquals(-20.0F, target.getValue().getPitch());
         verify(service, never()).preloadState(any());
         verify(service, never()).unlockNodeAsync(any(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: ビーム移動はXZ距離5m以上80m以下だけを許可する。
+     */
+    @Test
+    void beaconTeleportDistanceAllowsOnlyFiveThroughEightyBlocks() {
+        assertFalse(SkillTreeEventHandler.isBeaconTeleportDistance(4.99D));
+        assertTrue(SkillTreeEventHandler.isBeaconTeleportDistance(5.0D));
+        assertTrue(SkillTreeEventHandler.isBeaconTeleportDistance(80.0D));
+        assertFalse(SkillTreeEventHandler.isBeaconTeleportDistance(80.01D));
     }
 
     /**

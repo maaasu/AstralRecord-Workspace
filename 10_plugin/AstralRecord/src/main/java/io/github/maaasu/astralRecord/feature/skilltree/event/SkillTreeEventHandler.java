@@ -55,9 +55,7 @@ import java.util.UUID;
 /** スキルツリーの通常プレイヤー操作と表示ライフサイクルを扱います。 */
 public class SkillTreeEventHandler extends AbstractEventHandler
         implements PlayerInputResolver<PlayerInteractionSnapshot> {
-    private static final double NODE_BEACON_TELEPORT_DISTANCE = 5.0D;
-    private static final double NODE_BEACON_TELEPORT_DISTANCE_SQUARED =
-            NODE_BEACON_TELEPORT_DISTANCE * NODE_BEACON_TELEPORT_DISTANCE;
+    private static final double NODE_BEACON_TELEPORT_MIN_DISTANCE = 5.0D;
     private static final int RELOCK_CONFIRMATION_SIZE = 27;
     private static final int RELOCK_CONFIRM_SLOT = 11;
     private static final int RELOCK_CONFIRMATION_OPTION_SLOT = 13;
@@ -161,7 +159,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
     }
 
     /**
-     * 5m以上離れたノード強調ビームへ、現在の高さと視線方向を維持して移動します。
+     * 5m以上80m以下にあるノード強調ビームへ、現在の高さと視線方向を維持して移動します。
      *
      * @param player 移動するプレイヤー
      * @param position 移動先となるノード位置
@@ -173,7 +171,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         if (beaconLocation == null
                 || beaconLocation.getWorld() == null
                 || beaconLocation.getWorld() != currentLocation.getWorld()
-                || !isAtLeastBeaconTeleportDistance(currentLocation, beaconLocation)) {
+                || !isBeaconTeleportDistance(currentLocation, beaconLocation)) {
             return false;
         }
         Location target = new Location(
@@ -187,19 +185,31 @@ public class SkillTreeEventHandler extends AbstractEventHandler
     }
 
     /**
-     * プレイヤーのXZ平面上の距離が、ノードビーム移動の開始距離以上かを判定します。
+     * プレイヤーのXZ平面上の距離が、ノードビーム移動を許可する5m以上80m以下かを判定します。
      *
      * @param playerLocation プレイヤー現在位置
      * @param beaconLocation ノードビーム基準位置
-     * @return 水平距離が5m以上なら {@code true}
+     * @return 水平距離が5m以上80m以下なら {@code true}
      */
-    private boolean isAtLeastBeaconTeleportDistance(
+    static boolean isBeaconTeleportDistance(
             @NotNull Location playerLocation,
             @NotNull Location beaconLocation
     ) {
         double deltaX = playerLocation.getX() - beaconLocation.getX();
         double deltaZ = playerLocation.getZ() - beaconLocation.getZ();
-        return deltaX * deltaX + deltaZ * deltaZ >= NODE_BEACON_TELEPORT_DISTANCE_SQUARED;
+        return isBeaconTeleportDistance(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ));
+    }
+
+    /**
+     * ノード強調ビーム移動を許可するXZ平面上の距離かを判定します。
+     *
+     * @param horizontalDistance ノードまでの水平距離
+     * @return 5m以上80m以下なら {@code true}
+     */
+    static boolean isBeaconTeleportDistance(double horizontalDistance) {
+        return Double.isFinite(horizontalDistance)
+                && horizontalDistance >= NODE_BEACON_TELEPORT_MIN_DISTANCE
+                && horizontalDistance <= SkillTreeService.NODE_BEACON_TARGET_DISTANCE;
     }
 
     private void unlockNode(Player player, AstPlayer astPlayer, SkillTreeNodeDefinition node) {

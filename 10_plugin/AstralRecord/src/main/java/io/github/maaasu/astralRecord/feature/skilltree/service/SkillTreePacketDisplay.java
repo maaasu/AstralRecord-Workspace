@@ -38,6 +38,7 @@ import java.util.UUID;
 final class SkillTreePacketDisplay {
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
     private static final float BEAM_VIEW_RANGE = 512.0F;
+    static final int BEAM_TRANSFORMATION_INTERPOLATION_TICKS = 10;
     private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
@@ -205,7 +206,8 @@ final class SkillTreePacketDisplay {
                 transform.scale(),
                 transform.rotation(),
                 Display.Billboard.VERTICAL,
-                BEAM_VIEW_RANGE
+                BEAM_VIEW_RANGE,
+                BEAM_TRANSFORMATION_INTERPOLATION_TICKS
         );
         metadata.add(blockValue(material));
         return metadata;
@@ -218,9 +220,24 @@ final class SkillTreePacketDisplay {
             Display.Billboard billboard,
             float viewRange
     ) {
+        return baseDisplayMetadata(translation, scale, leftRotation, billboard, viewRange, 0);
+    }
+
+    private List<WrappedDataValue> baseDisplayMetadata(
+            Vector3f translation,
+            Vector3f scale,
+            Quaternionf leftRotation,
+            Display.Billboard billboard,
+            float viewRange,
+            int interpolationDurationTicks
+    ) {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
+        values.add(value(
+                DISPLAY_INTERPOLATION_DURATION_INDEX,
+                serializer(Integer.class),
+                interpolationDurationTicks
+        ));
         values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_TRANSLATION_INDEX, vectorSerializer(), translation));
         values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), scale));
