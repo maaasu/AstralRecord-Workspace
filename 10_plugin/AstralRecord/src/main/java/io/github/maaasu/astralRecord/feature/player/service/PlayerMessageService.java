@@ -461,6 +461,30 @@ public final class PlayerMessageService {
         deliverConvertedChat(sender, normalizedMessage, conversion -> sendDirectMessageNow(sender, target, conversion));
     }
 
+    /**
+     * 別backendに接続中のプレイヤーへDMの配送を要求します。
+     *
+     * @param sender 送信者
+     * @param targetName 受信者のMCID
+     * @param message メッセージ本文
+     */
+    public void sendRemoteDirectMessage(
+        @NotNull Player sender,
+        @NotNull String targetName,
+        @NotNull String message
+    ) {
+        String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (normalizedMessage.isBlank()) {
+            return;
+        }
+        deliverConvertedChat(sender, normalizedMessage, conversion -> {
+            NetworkChatBridge bridge = networkChatBridge;
+            if (bridge == null || !bridge.publishRemoteDirectMessage(sender, targetName, conversion)) {
+                send(sender, PlayerMsgId.P_5905, targetName);
+            }
+        });
+    }
+
     private void sendDirectMessageNow(
         @NotNull Player sender,
         @NotNull Player target,

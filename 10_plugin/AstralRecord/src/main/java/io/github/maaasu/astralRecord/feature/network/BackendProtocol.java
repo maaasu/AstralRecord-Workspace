@@ -143,6 +143,35 @@ final class BackendProtocol {
         });
     }
 
+    /**
+     * 別backendに接続中のプレイヤーへ配送するDMをProxyへ要求します。
+     *
+     * @param plugin 送信元プラグイン
+     * @param sender 送信者
+     * @param targetName 受信者のMCID
+     * @param senderName 送信者表示名
+     * @param senderLevel 送信者レベル
+     * @param message 変換前後を保持する本文
+     */
+    static void sendDirectMessage(
+        @NotNull Plugin plugin,
+        @NotNull Player sender,
+        @NotNull String targetName,
+        @NotNull String senderName,
+        int senderLevel,
+        @NotNull ChatMessageConversion message
+    ) {
+        send(plugin, sender, output -> {
+            output.writeUTF("direct_message");
+            output.writeUTF(sender.getUniqueId().toString());
+            output.writeUTF(targetName);
+            output.writeUTF(senderName);
+            output.writeInt(senderLevel);
+            output.writeUTF(message.original());
+            output.writeUTF(message.converted());
+        });
+    }
+
     private static void send(@NotNull Plugin plugin, @NotNull Player player, @NotNull Writer writer) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();

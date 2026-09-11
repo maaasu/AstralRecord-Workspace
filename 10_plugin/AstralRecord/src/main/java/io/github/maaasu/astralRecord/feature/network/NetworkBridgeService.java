@@ -138,6 +138,22 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
 
     /** {@inheritDoc} */
     @Override
+    public boolean publishRemoteDirectMessage(
+        @NotNull Player sender,
+        @NotNull String targetName,
+        @NotNull ChatMessageConversion message
+    ) {
+        if (!enabled || !sender.isOnline()) return false;
+        AstPlayer player = AstPlayerCache.get(sender);
+        String displayName = player == null ? sender.getName() : displayName(player);
+        int level = player == null ? 0 : player.getClassLevel();
+        BackendProtocol.sendDirectMessage(
+            plugin, sender, targetName, displayName, level, message);
+        return true;
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void publishPartyMessage(
         @NotNull Player sender,
         @NotNull String senderName,

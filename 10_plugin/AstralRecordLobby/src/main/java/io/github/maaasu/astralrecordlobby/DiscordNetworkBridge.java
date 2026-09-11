@@ -126,8 +126,6 @@ final class DiscordNetworkBridge {
         if (event.isCancelled() || !subscribed || gameChannelId == null
             || !gameChannelId.equals(event.getChannel().getId())) return;
         if (event.getAuthor().isBot()) return;
-        var accountLinkManager = DiscordSRV.getPlugin().getAccountLinkManager();
-        if (accountLinkManager == null || accountLinkManager.getUuid(event.getAuthor().getId()) == null) return;
         String author = event.getMember() == null
             ? event.getAuthor().getName() : event.getMember().getEffectiveName();
         String message = event.getMessage().getContentDisplay().trim();

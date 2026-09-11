@@ -29,6 +29,22 @@ public interface NetworkChatBridge {
     }
 
     /**
+     * 別backendに接続中のプレイヤーへDMを配送します。
+     *
+     * @param sender 送信元プレイヤー
+     * @param targetName 受信者のMCID
+     * @param message 変換前後を保持する本文
+     * @return Proxyへの配送要求を送信した場合true
+     */
+    default boolean publishRemoteDirectMessage(
+        @NotNull Player sender,
+        @NotNull String targetName,
+        @NotNull ChatMessageConversion message
+    ) {
+        return false;
+    }
+
+    /**
      * Proxyの最高権限ユーザーへパーティーチャット監視メッセージを送ります。
      *
      * @param sender 送信元プレイヤー

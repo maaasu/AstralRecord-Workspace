@@ -1,6 +1,8 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -128,7 +130,7 @@ class BackendProtocolTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 全体チャット
+     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
      * 検証契約: backendの全体チャットは原文と変換後本文を別フィールドでProxyへ渡す。
      */
     @Test
@@ -153,5 +155,37 @@ class BackendProtocolTest {
 
         assertEquals("gakkou", chat.original());
         assertEquals("学校", chat.converted());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
+     * 検証契約: 別backend宛DMの送信者・宛先・変換前後本文をProxyが欠損なく復元する。
+     */
+    @Test
+    void decodesCrossBackendDirectMessage() throws Exception {
+        UUID senderId = UUID.fromString("7c72cb6c-8cfd-4d74-8c67-6f39a4b4b9ca");
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF(BackendProtocol.DIRECT_MESSAGE);
+            output.writeUTF(senderId.toString());
+            output.writeUTF("target");
+            output.writeUTF("sender#0");
+            output.writeInt(7);
+            output.writeUTF("original");
+            output.writeUTF("converted");
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.DirectMessage message = assertInstanceOf(
+            BackendProtocol.DirectMessage.class, BackendProtocol.decode(payload));
+
+        assertEquals(senderId, message.playerId());
+        assertEquals("target", message.targetName());
+        assertEquals("sender#0", message.senderName());
+        assertEquals(7, message.senderLevel());
+        assertEquals("original", message.original());
+        assertEquals("converted", message.converted());
     }
 }

@@ -28,7 +28,16 @@ public final class DirectMessageCommand extends AstCommand {
 
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5905, args[0]);
+            if (player.getBukkit().getName().equalsIgnoreCase(args[0])) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5947);
+                return;
+            }
+            String message = joinArgs(args, 1).trim();
+            if (message.isBlank()) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5946);
+                return;
+            }
+            PlayerMessageService.getInstance().sendRemoteDirectMessage(player.getBukkit(), args[0], message);
             return;
         }
         if (target.getUniqueId().equals(player.getBukkit().getUniqueId())) {

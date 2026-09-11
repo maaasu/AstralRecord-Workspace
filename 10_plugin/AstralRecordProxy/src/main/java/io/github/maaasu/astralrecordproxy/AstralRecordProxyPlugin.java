@@ -245,6 +245,16 @@ public final class AstralRecordProxyPlugin {
             } else if (incoming instanceof BackendProtocol.PrivateChat privateChat
                 && connection.getPlayer().getUniqueId().equals(privateChat.playerId())) {
                 broadcastPrivateChat(connection.getServerInfo().getName(), privateChat);
+            } else if (incoming instanceof BackendProtocol.DirectMessage directMessage
+                && connection.getPlayer().getUniqueId().equals(directMessage.playerId())) {
+                String sourceServerId = connection.getServerInfo().getName();
+                String currentServerId = connection.getPlayer().getCurrentServer()
+                    .map(current -> current.getServerInfo().getName())
+                    .orElse(null);
+                if (!isCurrentBackend(currentServerId, sourceServerId)) {
+                    return;
+                }
+                deliverDirectMessage(sourceServerId, connection.getPlayer(), directMessage);
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
@@ -433,6 +443,68 @@ public final class AstralRecordProxyPlugin {
         proxy.getAllPlayers().stream()
             .filter(player -> config.isServerAuthority(player.getUniqueId()))
             .forEach(player -> player.sendMessage(completed));
+    }
+
+    /**
+     * 異なるbackendにいるオンラインプレイヤーへDMを配送します。
+     *
+     * @param sourceServerId 送信元backend ID
+     * @param sender 送信者
+     * @param message 送信元backendから検証済みのDM
+     */
+    void deliverDirectMessage(
+        String sourceServerId,
+        Player sender,
+        BackendProtocol.DirectMessage message
+    ) {
+        Player target = proxy.getAllPlayers().stream()
+            .filter(player -> player.getUsername().equalsIgnoreCase(message.targetName()))
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            sender.sendMessage(Component.text(
+                "指定したプレイヤーが見つかりません: " + message.targetName(), NamedTextColor.RED));
+            return;
+        }
+        if (sender.getUniqueId().equals(target.getUniqueId())) {
+            sender.sendMessage(Component.text("自分自身にはDMを送信できません。", NamedTextColor.RED));
+            return;
+        }
+        PlayerMetadata targetMetadata = metadata.get(target.getUniqueId());
+        String targetName = targetMetadata == null ? target.getUsername() : targetMetadata.displayName();
+        int targetLevel = targetMetadata == null || targetMetadata.level() == null
+            ? 0 : targetMetadata.level();
+        Component sent = directMessageComponent(
+            "DM送信", message.senderLevel(), message.senderName(), targetLevel, targetName, message);
+        Component received = directMessageComponent(
+            "DM受信", message.senderLevel(), message.senderName(), targetLevel, targetName, message);
+        sender.sendMessage(sent);
+        target.sendMessage(received);
+        broadcastPrivateChat(sourceServerId, new BackendProtocol.PrivateChat(
+            sender.getUniqueId(), "direct", message.senderName(), targetName, "",
+            message.original(), message.converted()));
+    }
+
+    /** Proxyから直接配送するDMの表示Componentを生成します。 */
+    private static Component directMessageComponent(
+        String direction,
+        int senderLevel,
+        String senderName,
+        int targetLevel,
+        String targetName,
+        BackendProtocol.DirectMessage message
+    ) {
+        return Component.text("[", NamedTextColor.GRAY)
+            .append(Component.text(direction, NamedTextColor.LIGHT_PURPLE))
+            .append(Component.text("] [Lv." + directMessageLevel(senderLevel) + "] ", NamedTextColor.GRAY))
+            .append(Component.text(senderName, NamedTextColor.WHITE))
+            .append(Component.text(" -> [Lv." + directMessageLevel(targetLevel) + "] ", NamedTextColor.WHITE))
+            .append(Component.text(targetName + ": ", NamedTextColor.WHITE))
+            .append(chatBodyComponent(message.original(), message.converted()));
+    }
+
+    private static String directMessageLevel(int level) {
+        return level > 0 ? String.valueOf(level) : "---";
     }
 
     static Component chatBodyComponent(String original, String converted) {

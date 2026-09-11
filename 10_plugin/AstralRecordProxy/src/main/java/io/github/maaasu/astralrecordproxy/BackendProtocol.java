@@ -14,6 +14,7 @@ final class BackendProtocol {
     static final String CHAT = "chat";
     static final String SERVER_METRICS = "server_metrics";
     static final String PRIVATE_CHAT = "private_chat";
+    static final String DIRECT_MESSAGE = "direct_message";
     static final String OPEN_MENU = "open_menu";
 
     private BackendProtocol() {
@@ -54,6 +55,15 @@ final class BackendProtocol {
                     String converted = input.available() > 0 ? input.readUTF() : original;
                     yield new PrivateChat(playerId, chatType, senderName, targetName, partyName, original, converted);
                 }
+                case DIRECT_MESSAGE -> {
+                    UUID playerId = UUID.fromString(input.readUTF());
+                    String targetName = input.readUTF();
+                    String senderName = input.readUTF();
+                    int senderLevel = input.readInt();
+                    String original = input.readUTF();
+                    String converted = input.available() > 0 ? input.readUTF() : original;
+                    yield new DirectMessage(playerId, targetName, senderName, senderLevel, original, converted);
+                }
                 default -> throw new IOException("Unknown plugin message type: " + type);
             };
         }
@@ -71,7 +81,7 @@ final class BackendProtocol {
         }
     }
 
-    sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat {
+    sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {
@@ -111,6 +121,16 @@ final class BackendProtocol {
         String senderName,
         String targetName,
         String partyName,
+        String original,
+        String converted
+    ) implements Incoming {
+    }
+
+    record DirectMessage(
+        UUID playerId,
+        String targetName,
+        String senderName,
+        int senderLevel,
         String original,
         String converted
     ) implements Incoming {
