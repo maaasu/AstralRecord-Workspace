@@ -9,6 +9,8 @@ order: 2.2
 shortName: "&cSTM"
 description: "&7攻防を使い分ける剣の達人。"
 icon: IRON_SWORD
+classGui: { slot: 29 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 15

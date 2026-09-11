@@ -16,5 +16,7 @@ data class ClassViewEntry @JvmOverloads constructor(
     val baseStats: List<String>,
     val growthPerLevel: List<String>,
     val usableSkills: List<String>,
+    val adjustmentInProgress: Boolean = false,
     val iconTexture: String? = null,
+    val guiSlot: Int? = null,
 )

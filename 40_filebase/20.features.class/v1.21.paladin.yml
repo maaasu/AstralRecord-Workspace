@@ -9,6 +9,8 @@ order: 2.1
 shortName: "&cPAL"
 description: "&7守護と支援を担う聖騎士。"
 icon: SHIELD
+classGui: { slot: 28 }
+adminChangeOnly: true
 role: TANK
 maxLevel: 100
 unlockLevel: 15

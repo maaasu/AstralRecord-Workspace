@@ -9,6 +9,8 @@ order: 3.4
 shortName: "&aSPA"
 description: "&7アクロバットな動きで敵を翻弄する射手。"
 icon: firework_rocket
+classGui: { slot: 40 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

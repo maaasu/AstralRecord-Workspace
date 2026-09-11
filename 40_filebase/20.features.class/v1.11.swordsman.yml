@@ -9,6 +9,7 @@ order: 1.1
 shortName: "&cSWD"
 description: "&7前線近接戦士。"
 icon: WOODEN_SWORD
+classGui: { slot: 20 }
 role: TANK
 maxLevel: 60
 unlockLevel: 3

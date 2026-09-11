@@ -161,6 +161,8 @@ internal static class MasterDataTestFixtures
           "order": 1.3,
           "shortName": "&bMAG",
           "role": "DEALER",
+          "classGui": { "slot": 24 },
+          "adminChangeOnly": true,
           "baseStats": []
         }
         """;

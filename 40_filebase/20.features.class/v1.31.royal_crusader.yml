@@ -9,6 +9,8 @@ order: 3.1
 shortName: "&cRCR"
 description: "&7守護を極めた王国の聖騎士。"
 icon: NETHERITE_CHESTPLATE
+classGui: { slot: 37 }
+adminChangeOnly: true
 role: TANK
 maxLevel: 100
 unlockLevel: 1

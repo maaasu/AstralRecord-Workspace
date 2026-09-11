@@ -6,6 +6,7 @@ order: 1.2
 shortName: "&aHNT"
 description: "&7機動遠距離射手。"
 icon: BOW
+classGui: { slot: 22 }
 role: DEALER
 maxLevel: 60
 unlockLevel: 3

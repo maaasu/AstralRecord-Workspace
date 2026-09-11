@@ -25,6 +25,9 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 | `role`                     | String       | ○  | -         | 職業ロール（後述）                                        |
 | `maxLevel`                 | Integer      | ×  | `100`     | この職業のクラスレベル上限。`1` 以上を指定する              |
 | `commandOnly`              | Boolean      | ×  | `false`   | `true` の職業は職業 GUI・通常転職では選択せず、管理コマンドだけで変更する |
+| `classGui`                 | Object       | ×  | Null      | クラス選択 GUI の表示設定。未指定時は GUI に表示しない |
+| `classGui.slot`            | Integer      | ×  | Null      | クラス選択 GUI の配置先 Bukkit スロット。`0` 以上 `53` 以下 |
+| `adminChangeOnly`          | Boolean      | ×  | `false`   | `true` の職業は管理者だけが通常転職でき、一般プレイヤーには調整中として表示する |
 | `unlockLevel`              | Integer      | ×  | 1         | 解放に必要な最低プレイヤーレベル                                 |
 | `unlockClassLevel[]`       | List         | ×  | -         | 解放に必要な素材クラスとレベルを指定                               |
 | `unlockClassLevel[].class` | String       | ×  | -         | 解放に必要な素材クラスを指定                                   |
@@ -43,6 +46,11 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 - `maxLevel` は職業ごとのクラスレベル上限で、省略時は `100` です。`1` 未満はプラグイン側で `1` に補正します。
 - `commandOnly: true` の職業は職業 GUI・NPC 転職から選択できず、ADMIN の `/class change <classId>` だけで変更できます。
+
+### classGui / adminChangeOnly
+
+- `classGui.slot` を指定した職業だけをクラス選択 GUI の該当 Bukkit スロットへ表示します。`0` 以上 `53` 以下の範囲外、または同じスロットを複数職業へ指定した場合は、マスター読み込み時に拒否します。
+- `adminChangeOnly: true` の職業は、一般プレイヤーの通常転職を拒否します。一般プレイヤーのクラス選択 GUI には赤文字で「現在調整中のためこのクラスへの転職はできません」と表示します。管理者の通常転職は既存の管理者権限判定に従います。
 
 ### shortName
 

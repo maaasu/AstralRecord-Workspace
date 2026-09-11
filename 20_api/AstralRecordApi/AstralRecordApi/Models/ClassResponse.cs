@@ -29,6 +29,12 @@ public class ClassResponse
 
     public bool CommandOnly { get; init; }
 
+    /// <summary>クラス選択 GUI の表示設定。未指定時は GUI に表示しない。</summary>
+    public ClassGuiResponse? ClassGui { get; init; }
+
+    /// <summary>一般プレイヤーの通常転職を禁止し、管理者だけに許可するか。</summary>
+    public bool AdminChangeOnly { get; init; }
+
     public int UnlockLevel { get; init; } = 1;
 
     public IReadOnlyList<ClassUnlockClassLevelResponse> UnlockClassLevel { get; init; } = [];
@@ -64,6 +70,12 @@ public class ClassUnlockClassLevelResponse
     public required string ClassId { get; init; }
 
     public int Level { get; init; }
+}
+
+public class ClassGuiResponse
+{
+    /// <summary>クラス選択 GUI の Bukkit スロット番号。</summary>
+    public int? Slot { get; init; }
 }
 
 public class ClassStatResponse

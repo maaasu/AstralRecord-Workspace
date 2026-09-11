@@ -9,6 +9,8 @@ order: 2.4
 shortName: "&aPHA"
 description: "&7矢で弱体化を与える射手。"
 icon: crossbow
+classGui: { slot: 31 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 15

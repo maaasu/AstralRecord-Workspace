@@ -354,6 +354,27 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: adminChangeOnly のclass masterは一般プレイヤーの通常転職を拒否し、管理者の通常転職は既存の管理者権限判定に従う。
+     */
+    @Test
+    fun restrictsAdminOnlyClassChangesAndShowsAdjustmentNotice() {
+        val player = server().addPlayer()
+        val administrator = server().addPlayer()
+        val normalAstPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        val adminAstPlayer = DesignTestFixtures.astPlayer(administrator, AccountMode.ADMIN, 99)
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf("paladin" to classModel("paladin", "Paladin", adminChangeOnly = true)),
+        )
+
+        assertFalse(service.canChangeClass(normalAstPlayer, "paladin"))
+        assertTrue(service.canChangeClass(adminAstPlayer, "paladin"))
+        assertTrue(service.getClassViewEntries(normalAstPlayer).single().adjustmentInProgress)
+    }
+
     private fun classModel(
         id: String,
         name: String,
@@ -362,6 +383,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         order: Double = 0.0,
         baseStats: List<ClassStat> = emptyList(),
         growthPerLevel: List<ClassStat> = emptyList(),
+        adminChangeOnly: Boolean = false,
     ) = ClassModel(
         schemaVersion = 1,
         id = id,
@@ -381,5 +403,6 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         expRate = 100,
         usableSkills = emptyList(),
         tags = emptyList(),
+        adminChangeOnly = adminChangeOnly,
     )
 }

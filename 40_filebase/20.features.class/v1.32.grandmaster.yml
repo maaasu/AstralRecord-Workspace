@@ -9,6 +9,8 @@ order: 3.2
 shortName: "&cGMS"
 description: "&7近接戦闘の天才"
 icon: NETHERITE_SPEAR
+classGui: { slot: 38 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

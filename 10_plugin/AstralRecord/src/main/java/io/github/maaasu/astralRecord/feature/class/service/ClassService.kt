@@ -100,6 +100,7 @@ class ClassService {
 
     private fun validateSnapshot(snapshot: Map<String, ClassModel>) {
         val classIdByShortName = LinkedHashMap<String, String>()
+        val classIdByGuiSlot = LinkedHashMap<Int, String>()
         for (model in snapshot.values) {
             val visibleShortName = ColorCodeUtil.toPlainText(model.shortName, "").trim()
             require(visibleShortName.length == 3 && visibleShortName.all { it in 'A'..'Z' }) {
@@ -109,6 +110,16 @@ class ClassService {
             val existingClassId = classIdByShortName.putIfAbsent(normalizedShortName, model.id)
             require(existingClassId == null) {
                 "class shortName '$visibleShortName' is duplicated by '$existingClassId' and '${model.id}'"
+            }
+
+            val classGui = model.classGui ?: continue
+            require(classGui.hasValidSlot()) {
+                "class '${model.id}' classGui.slot must be between 0 and 53"
+            }
+            val slot = requireNotNull(classGui.slot)
+            val existingClassIdBySlot = classIdByGuiSlot.putIfAbsent(slot, model.id)
+            require(existingClassIdBySlot == null) {
+                "classGui.slot '$slot' is duplicated by '$existingClassIdBySlot' and '${model.id}'"
             }
         }
     }

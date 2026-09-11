@@ -9,6 +9,8 @@ order: 3.3
 shortName: "&aESH"
 description: "&7特殊矢を操る精密射手。"
 icon: tipped_arrow
+classGui: { slot: 39 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

@@ -6,6 +6,7 @@ order: 0
 shortName: "&fADV"
 description: "&7基礎を学びながら進路を決める見習い冒険者。"
 icon: COMPASS
+classGui: { slot: 13 }
 role: DEALER
 maxLevel: 30
 unlockLevel: 1

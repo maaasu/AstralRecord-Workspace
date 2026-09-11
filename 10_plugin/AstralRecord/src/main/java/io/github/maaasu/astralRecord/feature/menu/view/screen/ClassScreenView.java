@@ -19,28 +19,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public final class ClassScreenView extends BaseMenuScreenView {
-    private static final Map<String, Integer> CLASS_SLOTS = Map.ofEntries(
-        Map.entry("adventurer", 13),
-        Map.entry("swordsman", 20),
-        Map.entry("hunter", 22),
-        Map.entry("mage", 24),
-        Map.entry("paladin", 28),
-        Map.entry("swordmaster", 29),
-        Map.entry("sharpshooter", 30),
-        Map.entry("phantom_archer", 31),
-        Map.entry("wizard", 32),
-        Map.entry("archmage", 33),
-        Map.entry("royal_crusader", 37),
-        Map.entry("grandmaster", 38),
-        Map.entry("elemental_shooter", 39),
-        Map.entry("spectral_archer", 40),
-        Map.entry("astral_wizard", 41),
-        Map.entry("arc_sage", 42)
-    );
-
     private static final String LABEL_ROLE_AND_TYPE =
         "\u30ed\u30fc\u30eb: %s / \u7a2e\u5225: %s";
     private static final String LABEL_UNLOCK_CONDITIONS = "\u8ee2\u8077\u6761\u4ef6";
@@ -48,6 +28,8 @@ public final class ClassScreenView extends BaseMenuScreenView {
     private static final String LABEL_CHANGE_AVAILABLE = "\u30af\u30ea\u30c3\u30af\u3067\u8ee2\u8077";
     private static final String LABEL_CHANGE_BLOCKED =
         "\u8ee2\u8077\u6761\u4ef6\u3092\u6e80\u305f\u3057\u3066\u3044\u307e\u305b\u3093";
+    private static final String LABEL_ADJUSTMENT_IN_PROGRESS =
+        "\u73fe\u5728\u8abf\u6574\u4e2d\u306e\u305f\u3081\u3053\u306e\u30af\u30e9\u30b9\u3078\u306e\u8ee2\u8077\u306f\u3067\u304d\u307e\u305b\u3093";
     private static final String LABEL_BLOCKED_REASONS = "\u672a\u9054\u6210\u6761\u4ef6";
     private static final String LABEL_DESCRIPTION = "\u8aac\u660e";
     private static final String LABEL_BASE_STATS = "\u57fa\u672c\u30b9\u30c6\u30fc\u30bf\u30b9";
@@ -72,8 +54,8 @@ public final class ClassScreenView extends BaseMenuScreenView {
     ) {
         fill(inventory);
         for (ClassViewEntry entry : classes) {
-            int slot = slotFor(entry.getId());
-            if (slot >= 0) {
+            Integer slot = entry.getGuiSlot();
+            if (slot != null && slot >= 0 && slot < inventory.getSize()) {
                 inventory.setItem(slot, classItem(entry, astPlayer));
             }
         }
@@ -109,6 +91,9 @@ public final class ClassScreenView extends BaseMenuScreenView {
         } else {
             lore.add(noItalic(Component.text(LABEL_CHANGE_BLOCKED, NamedTextColor.RED, TextDecoration.BOLD)));
             addList(lore, LABEL_BLOCKED_REASONS, entry.getChangeBlockedReasons(), NamedTextColor.RED);
+        }
+        if (entry.getAdjustmentInProgress()) {
+            lore.add(noItalic(Component.text(LABEL_ADJUSTMENT_IN_PROGRESS, NamedTextColor.RED, TextDecoration.BOLD)));
         }
 
         if (entry.getDescription() != null && !entry.getDescription().isBlank()) {
@@ -158,10 +143,6 @@ public final class ClassScreenView extends BaseMenuScreenView {
             : entry.getChangeAvailable() ? NamedTextColor.GRAY : NamedTextColor.RED;
         Component prefix = Component.text(prefixText, prefixColor);
         return noItalic(prefix.append(legacy(entry.getName()).decorate(TextDecoration.BOLD)));
-    }
-
-    private int slotFor(@NotNull String classId) {
-        return CLASS_SLOTS.getOrDefault(classId.toLowerCase(Locale.ROOT), -1);
     }
 
     private @NotNull Component legacy(@NotNull String text) {

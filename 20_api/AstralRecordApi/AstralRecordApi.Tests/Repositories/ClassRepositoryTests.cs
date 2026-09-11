@@ -38,6 +38,8 @@ public class ClassRepositoryTests
         Assert.Equal("&bMAG", summary.ShortName);
         Assert.NotNull(detail);
         Assert.Equal("&bMAG", detail!.ShortName);
+        Assert.Equal(24, detail.ClassGui!.Slot);
+        Assert.True(detail.AdminChangeOnly);
     }
 
 }

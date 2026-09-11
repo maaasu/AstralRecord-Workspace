@@ -4,6 +4,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
+import io.github.maaasu.astralRecord.feature.`class`.model.ClassGuiSetting
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassSummary
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassUnlockClassLevel
@@ -121,6 +122,15 @@ class ClassRepository {
             expRate = obj.get("expRate")?.asInt ?: 100,
             usableSkills = parseStringList(obj.getAsJsonArray("usableSkills")),
             tags = parseStringList(obj.getAsJsonArray("tags")),
+            classGui = parseClassGui(obj.getAsJsonObject("classGui")),
+            adminChangeOnly = obj.get("adminChangeOnly")?.asBoolean ?: false,
+        )
+    }
+
+    private fun parseClassGui(obj: JsonObject?): ClassGuiSetting? {
+        if (obj == null || obj.isJsonNull) return null
+        return ClassGuiSetting(
+            slot = obj.get("slot")?.takeUnless { it.isJsonNull }?.asInt,
         )
     }
 

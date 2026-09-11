@@ -9,6 +9,8 @@ order: 2.3
 shortName: "&aSHP"
 description: "&7急所を狙う高火力の射手。"
 icon: spectral_arrow
+classGui: { slot: 30 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 15

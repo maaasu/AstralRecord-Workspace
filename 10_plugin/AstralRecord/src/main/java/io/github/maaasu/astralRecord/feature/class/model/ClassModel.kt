@@ -23,4 +23,6 @@ data class ClassModel @JvmOverloads constructor(
     val usableSkills: List<String>,
     val tags: List<String>,
     val iconTexture: String? = null,
+    val classGui: ClassGuiSetting? = null,
+    val adminChangeOnly: Boolean = false,
 )

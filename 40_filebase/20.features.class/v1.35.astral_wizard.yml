@@ -9,6 +9,8 @@ order: 3.5
 shortName: "&dASW"
 description: "&7星の魔術を操る魔術師。"
 icon: breeze_rod
+classGui: { slot: 41 }
+adminChangeOnly: true
 role: DEALER
 maxLevel: 100
 unlockLevel: 1

@@ -352,6 +352,7 @@ class PlayerClassService @JvmOverloads constructor(
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
         return classService.getLoadedClasses().map { model ->
             val changeAvailability = evaluateChangeRequirements(astPlayer, model)
+            val adjustmentInProgress = model.adminChangeOnly && !astPlayer.hasAdminPermission()
             ClassViewEntry(
                 id = model.id,
                 typeDisplay = resolveTypeDisplay(model.type),
@@ -369,6 +370,8 @@ class PlayerClassService @JvmOverloads constructor(
                     val skillId = reference.trim().removePrefix("skill:")
                     SkillPresentationUtil.legacyName(skillRegistry?.getDefinition(skillId), skillId)
                 },
+                adjustmentInProgress = adjustmentInProgress,
+                guiSlot = model.classGui?.slot,
             )
         }
     }
@@ -426,7 +429,14 @@ class PlayerClassService @JvmOverloads constructor(
             }
         }
 
-        return ChangeAvailability(blockedReasons.isEmpty(), blockedReasons)
+        return ChangeAvailability(
+            available = if (model.adminChangeOnly && !astPlayer.hasAdminPermission()) {
+                false
+            } else {
+                blockedReasons.isEmpty()
+            },
+            blockedReasons = blockedReasons,
+        )
     }
 
     private fun buildUnlockConditionLines(astPlayer: AstPlayer, model: ClassModel): List<String> {

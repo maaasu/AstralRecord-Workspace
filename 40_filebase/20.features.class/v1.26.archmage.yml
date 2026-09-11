@@ -9,6 +9,8 @@ order: 2.6
 shortName: "&dAMG"
 description: "&7広範囲の支援魔術師。"
 icon: GOLDEN_SHOVEL
+classGui: { slot: 33 }
+adminChangeOnly: true
 role: SUPPORT
 maxLevel: 100
 unlockLevel: 15
