@@ -4,7 +4,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertIs
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import java.lang.reflect.InvocationTargetException
@@ -43,7 +43,7 @@ class ClassRepositoryTest {
         val exception = assertThrows(InvocationTargetException::class.java) {
             parseClass(repository, invalidPayload)
         }
-        assertIs<IllegalStateException>(exception.cause)
+        assertInstanceOf(IllegalStateException::class.java, exception.cause)
     }
 
     private fun parseClass(repository: ClassRepository, payload: JsonObject): ClassModel {
