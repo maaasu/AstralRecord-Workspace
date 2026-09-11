@@ -116,6 +116,20 @@ public sealed class PlayerStateSnapshotRepository(
         IReadOnlyList<InventoryEntryEntity> accountEntries,
         DateTime now)
     {
+        var newEquipmentIds = request.Equipment.Where(row => row.IsNew)
+            .Select(row => row.EquipmentInstanceId).ToHashSet();
+        var referencedEquipmentIds = request.Loadouts.SelectMany(row => row.Slots)
+            .Select(row => row.EquipmentInstanceId).ToArray();
+        var equipmentById = await PlayerStateUpdateLocks.EquipmentAsync(dbContext,
+            request.Equipment.Select(row => row.EquipmentInstanceId).Concat(referencedEquipmentIds)
+                .Concat(request.Inventories.SelectMany(row => row.Entries)
+                    .Where(row => string.Equals(row.InstanceType?.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                        && row.InstanceId.HasValue).Select(row => row.InstanceId!.Value)),
+            request.Equipment.Where(row => !row.IsNew).Select(row => row.EquipmentInstanceId)
+                .Concat(referencedEquipmentIds.Where(id => !newEquipmentIds.Contains(id))));
+        if (equipmentById is null)
+            return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Equipment is listed on the market.");
+
         var inventoriesById = accountInventories.ToDictionary(inventory => inventory.InventoryId);
         foreach (var snapshot in request.Inventories.Where(snapshot => snapshot.IsNew))
         {
@@ -208,9 +222,9 @@ public sealed class PlayerStateSnapshotRepository(
                 return Failure(PlayerStateSnapshotSaveFailure.Invalid, "Deleted inventory entry is not an expected baseline row.");
         }
 
-        var equipmentById = request.Equipment.Count == 0
-            ? new Dictionary<Guid, EquipmentInstanceEntity>()
-            : await ApplyEquipmentAsync(request, now);
+        equipmentById = request.Equipment.Count == 0
+            ? equipmentById
+            : await ApplyEquipmentAsync(request, now, equipmentById);
         if (equipmentById is null)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Equipment ownership or expectedUpdatedAt conflict.");
 
@@ -261,7 +275,7 @@ public sealed class PlayerStateSnapshotRepository(
                     entriesById.Add(entry.InventoryEntryId, entry);
                 }
 
-                var itemId = await ResolveEntryItemIdAsync(entrySnapshot, request.AccountId, equipmentById);
+                var itemId = ResolveEntryItemId(entrySnapshot, request.AccountId, equipmentById);
                 if (itemId is null)
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory equipment entry does not match owned equipment.");
 
@@ -288,25 +302,18 @@ public sealed class PlayerStateSnapshotRepository(
 
     private async Task<Dictionary<Guid, EquipmentInstanceEntity>?> ApplyEquipmentAsync(
         PlayerStateSnapshotSaveRequest request,
-        DateTime now)
+        DateTime now,
+        Dictionary<Guid, EquipmentInstanceEntity> byId)
     {
         var ids = request.Equipment.Select(equipment => equipment.EquipmentInstanceId).ToArray();
         if (ids.Distinct().Count() != ids.Length)
             return null;
 
-        var entities = await dbContext.EquipmentInstances
-            .Where(entity => ids.Contains(entity.EquipmentInstanceId))
-            .ToListAsync();
-        var byId = entities.ToDictionary(entity => entity.EquipmentInstanceId);
         foreach (var snapshot in request.Equipment)
         {
             if ((snapshot.IsNew && byId.ContainsKey(snapshot.EquipmentInstanceId))
                 || (!snapshot.IsNew && (!byId.TryGetValue(snapshot.EquipmentInstanceId, out var current)
                     || current.AccountId != request.AccountId || current.IsDeleted)))
-                return null;
-            if (!snapshot.IsNew
-                && await MarketListingRangeLock.HasActiveOrSuspendedAsync(
-                    dbContext, "EQUIPMENT", snapshot.EquipmentInstanceId))
                 return null;
         }
 
@@ -463,16 +470,11 @@ public sealed class PlayerStateSnapshotRepository(
                     && dbContext.Entry(equipment).State == EntityState.Added)
                 .ToHashSet();
             var persistedEquipmentIds = equipmentIds.Where(id => !pendingEquipmentIds.Contains(id)).ToArray();
-            var ownedEquipmentCount = await dbContext.EquipmentInstances.AsNoTracking()
-                .CountAsync(equipment => persistedEquipmentIds.Contains(equipment.EquipmentInstanceId)
-                    && equipment.AccountId == request.AccountId && !equipment.IsDeleted);
+            var ownedEquipmentCount = persistedEquipmentIds.Count(id =>
+                equipmentById.TryGetValue(id, out var equipment)
+                && equipment.AccountId == request.AccountId && !equipment.IsDeleted);
             if (ownedEquipmentCount != persistedEquipmentIds.Length)
                 return false;
-            foreach (var equipmentId in persistedEquipmentIds)
-            {
-                if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(dbContext, "EQUIPMENT", equipmentId))
-                    return false;
-            }
 
             var existingSlots = await dbContext.EquipmentLoadoutSlots
                 .Where(slot => slot.EquipmentLoadoutId == loadout.EquipmentLoadoutId && !slot.IsDeleted)
@@ -993,9 +995,7 @@ public sealed class PlayerStateSnapshotRepository(
         DateTime now)
     {
         var mobIds = section.MobDefeatDeltas.Select(delta => delta.MobId.Trim()).ToArray();
-        var mobs = await dbContext.AccountMobRecords
-            .Where(record => record.AccountId == request.AccountId && mobIds.Contains(record.MobId))
-            .ToListAsync();
+        var mobs = await PlayerStateUpdateLocks.MobsAsync(dbContext, request.AccountId, mobIds);
         var mobsById = mobs.ToDictionary(record => record.MobId, StringComparer.OrdinalIgnoreCase);
         foreach (var delta in section.MobDefeatDeltas)
         {
@@ -1025,9 +1025,7 @@ public sealed class PlayerStateSnapshotRepository(
         }
 
         var dungeonIds = section.DungeonClearDeltas.Select(delta => delta.DungeonId.Trim()).ToArray();
-        var dungeons = await dbContext.AccountDungeonRecords
-            .Where(record => record.AccountId == request.AccountId && dungeonIds.Contains(record.DungeonId))
-            .ToListAsync();
+        var dungeons = await PlayerStateUpdateLocks.DungeonsAsync(dbContext, request.AccountId, dungeonIds);
         var dungeonsById = dungeons.ToDictionary(record => record.DungeonId, StringComparer.OrdinalIgnoreCase);
         foreach (var delta in section.DungeonClearDeltas)
         {
@@ -1615,7 +1613,8 @@ public sealed class PlayerStateSnapshotRepository(
             .OrderBy(loadout => loadout.EquipmentLoadoutId).ToListAsync();
     }
 
-    private async Task<string?> ResolveEntryItemIdAsync(
+    /// <summary>事前にロックした装備と今回作成した装備からitem IDを解決し、後出しの共有読み取りを行わない。</summary>
+    private static string? ResolveEntryItemId(
         PlayerStateInventoryEntrySnapshot entry,
         Guid accountId,
         IReadOnlyDictionary<Guid, EquipmentInstanceEntity> equipmentById)
@@ -1624,19 +1623,8 @@ public sealed class PlayerStateSnapshotRepository(
             return entry.ItemId;
         if (!string.Equals(entry.InstanceType.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase))
             return null;
-        string? authoritativeItemId;
-        if (equipmentById.TryGetValue(entry.InstanceId.Value, out var captured)
-            && captured.AccountId == accountId && !captured.IsDeleted)
-        {
-            authoritativeItemId = captured.ItemId;
-        }
-        else
-        {
-            authoritativeItemId = await dbContext.EquipmentInstances.AsNoTracking()
-                .Where(instance => instance.EquipmentInstanceId == entry.InstanceId.Value
-                    && instance.AccountId == accountId && !instance.IsDeleted)
-                .Select(instance => instance.ItemId).FirstOrDefaultAsync();
-        }
+        var authoritativeItemId = equipmentById.TryGetValue(entry.InstanceId.Value, out var captured)
+            && captured.AccountId == accountId && !captured.IsDeleted ? captured.ItemId : null;
         return string.IsNullOrWhiteSpace(authoritativeItemId)
             || (!string.IsNullOrWhiteSpace(entry.ItemId)
                 && !string.Equals(entry.ItemId, authoritativeItemId, StringComparison.OrdinalIgnoreCase))
