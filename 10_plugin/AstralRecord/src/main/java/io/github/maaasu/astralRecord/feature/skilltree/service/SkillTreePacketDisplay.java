@@ -148,27 +148,48 @@ final class SkillTreePacketDisplay {
     }
 
     PacketEntity beam(Location location, Material material, BeamTransform transform) {
-        List<WrappedDataValue> metadata = baseDisplayMetadata(
-                transform.translation(),
-                transform.scale(),
-                transform.rotation(),
-                Display.Billboard.VERTICAL,
-                BEAM_VIEW_RANGE
-        );
-        metadata.add(blockValue(material));
-        return new PacketEntity(EntityType.BLOCK_DISPLAY, location, metadata);
+        return new PacketEntity(EntityType.BLOCK_DISPLAY, location, beamMetadata(material, transform));
     }
 
     void moveBeam(PacketEntity entity, Location location, Material material, BeamTransform transform) {
-        List<WrappedDataValue> metadata = baseDisplayMetadata(
-                transform.translation(),
-                transform.scale(),
-                transform.rotation(),
-                Display.Billboard.VERTICAL,
-                BEAM_VIEW_RANGE
-        );
-        metadata.add(blockValue(material));
-        entity.move(location, metadata);
+        entity.move(location, beamMetadata(material, transform));
+    }
+
+    /**
+     * プレイヤーごとの変形を反映したノード強調ビームを生成します。
+     *
+     * @param player 送信先プレイヤー
+     * @param entity 生成するpacket entity
+     * @param material ビームのブロック材質
+     * @param transform プレイヤー向け変形
+     */
+    void spawnBeam(
+            @NotNull Player player,
+            @NotNull PacketEntity entity,
+            @NotNull Material material,
+            @NotNull BeamTransform transform
+    ) {
+        entity.spawn(player, beamMetadata(material, transform));
+    }
+
+    /**
+     * プレイヤーごとの変形を反映してノード強調ビームを更新します。
+     *
+     * @param player 送信先プレイヤー
+     * @param entity 更新するpacket entity
+     * @param material ビームのブロック材質
+     * @param transform プレイヤー向け変形
+     */
+    void updateBeam(
+            @NotNull Player player,
+            @NotNull PacketEntity entity,
+            @NotNull Material material,
+            @NotNull BeamTransform transform
+    ) {
+        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().writeSafely(0, entity.entityId);
+        packet.getDataValueCollectionModifier().writeSafely(0, beamMetadata(material, transform));
+        send(player, packet);
     }
 
     void updateBlock(Player player, PacketEntity entity, Material material) {
@@ -176,6 +197,18 @@ final class SkillTreePacketDisplay {
         packet.getIntegers().writeSafely(0, entity.entityId);
         packet.getDataValueCollectionModifier().writeSafely(0, List.of(blockValue(material)));
         send(player, packet);
+    }
+
+    private List<WrappedDataValue> beamMetadata(Material material, BeamTransform transform) {
+        List<WrappedDataValue> metadata = baseDisplayMetadata(
+                transform.translation(),
+                transform.scale(),
+                transform.rotation(),
+                Display.Billboard.VERTICAL,
+                BEAM_VIEW_RANGE
+        );
+        metadata.add(blockValue(material));
+        return metadata;
     }
 
     private List<WrappedDataValue> baseDisplayMetadata(
@@ -273,6 +306,10 @@ final class SkillTreePacketDisplay {
         }
 
         void spawn(Player player) {
+            spawn(player, metadata);
+        }
+
+        private void spawn(Player player, List<WrappedDataValue> spawnMetadata) {
             PacketContainer spawn = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
             spawn.getIntegers().writeSafely(0, entityId);
             spawn.getUUIDs().writeSafely(0, uuid);
@@ -284,7 +321,7 @@ final class SkillTreePacketDisplay {
 
             PacketContainer metadataPacket = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
             metadataPacket.getIntegers().writeSafely(0, entityId);
-            metadataPacket.getDataValueCollectionModifier().writeSafely(0, metadata);
+            metadataPacket.getDataValueCollectionModifier().writeSafely(0, spawnMetadata);
             send(player, metadataPacket);
         }
 

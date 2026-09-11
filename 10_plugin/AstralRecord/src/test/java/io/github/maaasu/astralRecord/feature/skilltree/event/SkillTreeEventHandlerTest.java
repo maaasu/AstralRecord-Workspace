@@ -24,10 +24,12 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.Collection;
@@ -125,6 +127,106 @@ class SkillTreeEventHandlerTest {
         assertEquals("skill-tree-player-control", candidate.id());
         assertEquals("1000", candidate.targetKey());
         assertEquals(2.5D, candidate.hitDistance());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: 表示中のビームを5m以上離れて左クリックすると、Y・yaw・pitchを維持し、ノードのX/Zへ移動する。
+     */
+    @Test
+    void leftClickingDistantBeaconTeleportsToItsXAndZWithoutUnlocking() {
+        World world = mock(World.class);
+        SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 10, 64, 20);
+        SkillTreeService.SkillTreePositionHit hit =
+                new SkillTreeService.SkillTreePositionHit(position, 5.0D);
+        Location current = new Location(world, 1.0D, 72.0D, 2.0D, 135.0F, -20.0F);
+        Location eye = new Location(world, 1.0D, 73.62D, 2.0D);
+        eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
+
+        when(service.findTargetedBeaconPositionHit(any(PlayerInteractionSnapshot.class))).thenReturn(Optional.of(hit));
+        when(service.getNode("1000")).thenReturn(node("1000"));
+        when(player.getLocation()).thenReturn(current);
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(player.getWorld()).thenReturn(world);
+        when(world.rayTraceBlocks(
+                any(Location.class),
+                any(Vector.class),
+                anyDouble(),
+                any(FluidCollisionMode.class),
+                anyBoolean()
+        )).thenReturn(null);
+        when(player.teleport(any(Location.class), any(PlayerTeleportEvent.TeleportCause.class))).thenReturn(true);
+
+        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+                .resolve(new PlayerInputContext<>(
+                        player.getUniqueId(), 7L, InputFamily.LEFT_CLICK,
+                        InputSource.PRE_PLAYER_ATTACK_ENTITY, snapshot
+                ))
+                .iterator()
+                .next();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getWorld("skill_tree")).thenReturn(world);
+            assertTrue(candidate.executeIfValid());
+        }
+
+        ArgumentCaptor<Location> target = ArgumentCaptor.forClass(Location.class);
+        verify(player).teleport(target.capture(), org.mockito.ArgumentMatchers.eq(PlayerTeleportEvent.TeleportCause.PLUGIN));
+        assertEquals(10.5D, target.getValue().getX());
+        assertEquals(72.0D, target.getValue().getY());
+        assertEquals(20.5D, target.getValue().getZ());
+        assertEquals(135.0F, target.getValue().getYaw());
+        assertEquals(-20.0F, target.getValue().getPitch());
+        verify(service, never()).preloadState(any());
+        verify(service, never()).unlockNodeAsync(any(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: ビームではなく通常ノードのhitboxを5m以上離れて左クリックした場合も、既存どおりノード解放を実行する。
+     */
+    @Test
+    void leftClickingDistantNodeHitboxStillUnlocksInsteadOfTeleporting() {
+        SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 10, 64, 20);
+        SkillTreeService.SkillTreePositionHit hit =
+                new SkillTreeService.SkillTreePositionHit(position, 5.0D);
+        SkillTreeNodeDefinition node = node("1000");
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        allowSnapshotRefresh();
+        when(service.findTargetedBeaconPositionHit(any(PlayerInteractionSnapshot.class))).thenReturn(Optional.empty());
+        when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class))).thenReturn(Optional.of(hit));
+        when(service.getNode("1000")).thenReturn(node);
+        when(service.isStateReady(astPlayer)).thenReturn(true);
+        when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
+        when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
+        when(service.unlockNodeAsync(astPlayer, node)).thenReturn(successfulMutation());
+        when(service.availablePassivePoints(astPlayer)).thenReturn(4);
+        stubAccount(astPlayer);
+
+        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+                .resolve(new PlayerInputContext<>(
+                        player.getUniqueId(), 8L, InputFamily.LEFT_CLICK,
+                        InputSource.PRE_PLAYER_ATTACK_ENTITY, snapshot
+                ))
+                .iterator()
+                .next();
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(candidate.executeIfValid());
+        }
+
+        verify(service).unlockNodeAsync(astPlayer, node);
+        verify(player, never()).teleport(any(Location.class), any(PlayerTeleportEvent.TeleportCause.class));
     }
 
     /**

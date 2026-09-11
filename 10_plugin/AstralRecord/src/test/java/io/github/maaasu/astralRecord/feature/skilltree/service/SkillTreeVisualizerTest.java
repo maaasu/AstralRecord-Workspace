@@ -109,6 +109,22 @@ class SkillTreeVisualizerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 検証契約: 強調ビームはXZ距離5mで等倍、1mでscale 0とし、その間を線形に縮小する。
+     */
+    @Test
+    void nodeBeaconScaleShrinksLinearlyBetweenOneAndFiveBlocks() {
+        assertEquals(1.0F, SkillTreeVisualizer.nodeBeaconScale(5.0D));
+        assertEquals(1.0F, SkillTreeVisualizer.nodeBeaconScale(8.0D));
+        assertEquals(0.5F, SkillTreeVisualizer.nodeBeaconScale(3.0D));
+        assertEquals(0.0F, SkillTreeVisualizer.nodeBeaconScale(1.0D));
+        assertEquals(0.0F, SkillTreeVisualizer.nodeBeaconScale(0.0D));
+        assertFalse(SkillTreeVisualizer.isNodeBeaconClickable(1.0D));
+        assertTrue(SkillTreeVisualizer.isNodeBeaconClickable(1.01D));
+    }
+
     private SkillTreeNodeDefinition node(String name) {
         return new SkillTreeNodeDefinition(
                 "1000",

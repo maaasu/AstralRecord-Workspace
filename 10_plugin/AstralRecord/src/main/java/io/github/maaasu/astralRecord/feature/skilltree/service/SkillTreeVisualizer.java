@@ -24,6 +24,7 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -44,7 +45,7 @@ final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
-    private static final double NODE_BEAM_Y_OFFSET = 2.95D;
+    static final double NODE_BEAM_Y_OFFSET = 2.95D;
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double BEDROCK_EDGE_PARTICLE_SPACING = 1.5D;
@@ -53,9 +54,11 @@ final class SkillTreeVisualizer {
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final double NODE_TEXT_Y_OFFSET = 1.65D;
     private static final float NODE_ITEM_SCALE = 0.72F;
-    private static final float NODE_BEAM_WIDTH = 0.36F;
-    private static final float NODE_BEAM_DEPTH = 0.08F;
-    private static final float NODE_BEAM_HEIGHT = 12.0F;
+    static final float NODE_BEAM_WIDTH = 0.36F;
+    static final float NODE_BEAM_DEPTH = 0.08F;
+    static final float NODE_BEAM_HEIGHT = 12.0F;
+    private static final double NODE_BEACON_FULL_SCALE_DISTANCE = 5.0D;
+    private static final double NODE_BEACON_HIDDEN_DISTANCE = 1.0D;
     private static final float NODE_TEXT_SCALE = 0.85F;
     private static final float NODE_TEXT_COMPACT_SCALE = 0.72F;
     private static final float ADMIN_ITEM_SCALE = 0.72F;
@@ -145,6 +148,31 @@ final class SkillTreeVisualizer {
 
     @NotNull Set<StatusType> statusFilter(@NotNull UUID viewerId) {
         return viewerEmphasisState(viewerId).statusFilter();
+    }
+
+    /**
+     * 指定ノードの強調ビームがプレイヤーへ表示対象かを返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @param node 判定対象ノード
+     * @param nodeLocation ノード基準位置
+     * @return 強調ビームが表示対象なら {@code true}
+     */
+    boolean isNodeBeaconVisible(
+            @NotNull Player player,
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull Location nodeLocation
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return resolveMode(player) == RenderMode.PLAYER
+                && astPlayer != null
+                && service.isNodeVisible(astPlayer, node)
+                && isBeamVisibleTo(player, nodeLocation)
+                && resolveNodeBeamState(
+                        node,
+                        isSkillNodeHighlightEnabled(player.getUniqueId()),
+                        statusFilter(player.getUniqueId())
+                ) != NodeBeamState.HIDDEN;
     }
 
     private @NotNull ViewerEmphasisState viewerEmphasisState(@NotNull UUID viewerId) {
@@ -495,6 +523,19 @@ final class SkillTreeVisualizer {
                 && player.getWorld() == location.getWorld();
     }
 
+    /**
+     * 2地点のXZ平面上の距離を返します。
+     *
+     * @param left 一方の地点
+     * @param right 他方の地点
+     * @return XZ平面上のユークリッド距離
+     */
+    private static double horizontalDistance(@NotNull Location left, @NotNull Location right) {
+        double deltaX = left.getX() - right.getX();
+        double deltaZ = left.getZ() - right.getZ();
+        return Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    }
+
     static @NotNull NodeBeamState resolveNodeBeamState(
             @NotNull SkillTreeNodeDefinition node,
             boolean skillNodeHighlightEnabled,
@@ -672,10 +713,67 @@ final class SkillTreeVisualizer {
         return location.clone().add(0.0D, NODE_BEAM_Y_OFFSET, 0.0D);
     }
 
+    /**
+     * ノード強調ビームをクリック判定するための境界箱を返します。
+     *
+     * @param location ノード基準位置
+     * @return ビーム全長を覆う軸平行境界箱
+     */
+    static @NotNull BoundingBox nodeBeaconHitbox(@NotNull Location location) {
+        double halfWidth = NODE_BEAM_WIDTH * 0.5D;
+        double halfDepth = NODE_BEAM_DEPTH * 0.5D;
+        return new BoundingBox(
+                location.getX() - halfWidth,
+                location.getY() + NODE_BEAM_Y_OFFSET,
+                location.getZ() - halfDepth,
+                location.getX() + halfWidth,
+                location.getY() + NODE_BEAM_Y_OFFSET + NODE_BEAM_HEIGHT,
+                location.getZ() + halfDepth
+        );
+    }
+
+    /**
+     * ノードの水平距離から、プレイヤーごとの強調ビーム拡大率を求めます。
+     * 5m以上は等倍、1m以下は0、間は線形補間します。
+     *
+     * @param horizontalDistance ノードまでのXZ平面上の距離
+     * @return 0.0から1.0までの一様スケール
+     */
+    static float nodeBeaconScale(double horizontalDistance) {
+        if (!Double.isFinite(horizontalDistance) || horizontalDistance >= NODE_BEACON_FULL_SCALE_DISTANCE) {
+            return 1.0F;
+        }
+        if (horizontalDistance <= NODE_BEACON_HIDDEN_DISTANCE) {
+            return 0.0F;
+        }
+        return (float) ((horizontalDistance - NODE_BEACON_HIDDEN_DISTANCE)
+                / (NODE_BEACON_FULL_SCALE_DISTANCE - NODE_BEACON_HIDDEN_DISTANCE));
+    }
+
+    /**
+     * ノード強調ビームがクリック対象として残る拡大率かを判定します。
+     *
+     * @param horizontalDistance ノードまでのXZ平面上の距離
+     * @return scaleが0より大きく、プレイヤーから視認可能なら {@code true}
+     */
+    static boolean isNodeBeaconClickable(double horizontalDistance) {
+        return nodeBeaconScale(horizontalDistance) > 0.0F;
+    }
+
     private @NotNull SkillTreePacketDisplay.BeamTransform nodeBeamTransform() {
+        return nodeBeamTransform(1.0F);
+    }
+
+    /**
+     * 指定倍率を反映したノード強調ビームの変形を作成します。
+     *
+     * @param scale X/Y/Zへ一様適用する0.0から1.0までの倍率
+     * @return ビーム描画用の変形
+     */
+    private @NotNull SkillTreePacketDisplay.BeamTransform nodeBeamTransform(float scale) {
         return new SkillTreePacketDisplay.BeamTransform(
-                new Vector3f(-NODE_BEAM_WIDTH * 0.5F, 0.0F, -NODE_BEAM_DEPTH * 0.5F),
-                new Vector3f(NODE_BEAM_WIDTH, NODE_BEAM_HEIGHT, NODE_BEAM_DEPTH),
+                new Vector3f(-NODE_BEAM_WIDTH * scale * 0.5F, 0.0F, -NODE_BEAM_DEPTH * scale * 0.5F),
+                new Vector3f(NODE_BEAM_WIDTH * scale, NODE_BEAM_HEIGHT * scale, NODE_BEAM_DEPTH * scale),
                 new Quaternionf()
         );
     }
@@ -824,6 +922,7 @@ final class SkillTreeVisualizer {
         private final Map<NodeLabelKey, SkillTreePacketDisplay.PacketEntity> labels = new HashMap<>();
         private final Map<UUID, NodeRenderState> viewerStates = new HashMap<>();
         private final Map<UUID, NodeBeamState> beamViewerStates = new HashMap<>();
+        private final Map<UUID, Float> beamViewerScales = new HashMap<>();
 
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
@@ -968,27 +1067,32 @@ final class SkillTreeVisualizer {
         private void updateBeamViewer(@NotNull Player player, @NotNull NodeBeamState nextState) {
             UUID playerId = player.getUniqueId();
             NodeBeamState previousState = beamViewerStates.getOrDefault(playerId, NodeBeamState.HIDDEN);
-            if (previousState == nextState) {
-                return;
-            }
             if (nextState == NodeBeamState.HIDDEN) {
                 beamViewerStates.remove(playerId);
-            } else {
-                beamViewerStates.put(playerId, nextState);
+                beamViewerScales.remove(playerId);
+                if (previousState != NodeBeamState.HIDDEN) {
+                    beam.destroy(player);
+                }
+                return;
             }
+            float nextScale = nodeBeaconScale(horizontalDistance(player.getLocation(), baseLocation));
+            Float previousScale = beamViewerScales.put(playerId, nextScale);
+            beamViewerStates.put(playerId, nextState);
             if (previousState == NodeBeamState.HIDDEN) {
-                beam.spawn(player);
+                packetDisplay.spawnBeam(player, beam, nextState.material, nodeBeamTransform(nextScale));
+                return;
             }
-            if (nextState == NodeBeamState.HIDDEN) {
-                beam.destroy(player);
-            } else {
-                packetDisplay.updateBlock(player, beam, nextState.material);
+            if (previousState != nextState
+                    || previousScale == null
+                    || Float.compare(previousScale, nextScale) != 0) {
+                packetDisplay.updateBeam(player, beam, nextState.material, nodeBeamTransform(nextScale));
             }
         }
 
         private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
             viewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
             beamViewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
+            beamViewerScales.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
         }
 
         private boolean isValid() {
@@ -999,6 +1103,7 @@ final class SkillTreeVisualizer {
             hideCurrentViewers();
             viewerStates.clear();
             beamViewerStates.clear();
+            beamViewerScales.clear();
             interaction.remove();
         }
 
@@ -1027,8 +1132,8 @@ final class SkillTreeVisualizer {
             for (Map.Entry<UUID, NodeBeamState> entry : beamViewerStates.entrySet()) {
                 Player player = plugin.getServer().getPlayer(entry.getKey());
                 if (player != null) {
-                    beam.spawn(player);
-                    packetDisplay.updateBlock(player, beam, entry.getValue().material);
+                    float scale = beamViewerScales.getOrDefault(entry.getKey(), 1.0F);
+                    packetDisplay.spawnBeam(player, beam, entry.getValue().material, nodeBeamTransform(scale));
                 }
             }
         }

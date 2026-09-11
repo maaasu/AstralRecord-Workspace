@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -18,6 +19,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -53,6 +55,9 @@ import java.util.UUID;
 /** スキルツリーの通常プレイヤー操作と表示ライフサイクルを扱います。 */
 public class SkillTreeEventHandler extends AbstractEventHandler
         implements PlayerInputResolver<PlayerInteractionSnapshot> {
+    private static final double NODE_BEACON_TELEPORT_DISTANCE = 5.0D;
+    private static final double NODE_BEACON_TELEPORT_DISTANCE_SQUARED =
+            NODE_BEACON_TELEPORT_DISTANCE * NODE_BEACON_TELEPORT_DISTANCE;
     private static final int RELOCK_CONFIRMATION_SIZE = 27;
     private static final int RELOCK_CONFIRM_SLOT = 11;
     private static final int RELOCK_CONFIRMATION_OPTION_SLOT = 13;
@@ -79,7 +84,13 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         if (!service.isPlayerModeSkillTree(snapshot.player())) {
             return List.of();
         }
-        SkillTreeService.SkillTreePositionHit hit = service.findTargetedPositionHit(snapshot).orElse(null);
+        boolean leftClick = context.family() == InputFamily.LEFT_CLICK;
+        SkillTreeService.SkillTreePositionHit beaconHit = leftClick
+                ? service.findTargetedBeaconPositionHit(snapshot).orElse(null)
+                : null;
+        SkillTreeService.SkillTreePositionHit hit = beaconHit != null
+                ? beaconHit
+                : service.findTargetedPositionHit(snapshot).orElse(null);
         if (hit == null) {
             return List.of();
         }
@@ -94,25 +105,40 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                 InteractionCandidateOrder.SKILL_TREE,
                 hit.position().nodeId(),
                 InputClaimPolicy.CLAIM_AND_CANCEL,
-                () -> isSameTarget(snapshot, hit),
-                () -> handlePlayerModeInteraction(snapshot.player(), context.family(), node)
+                () -> isSameTarget(snapshot, hit, beaconHit != null),
+                () -> handlePlayerModeInteraction(
+                        snapshot.player(),
+                        context.family(),
+                        node,
+                        hit.position(),
+                        beaconHit != null
+                )
         ));
     }
 
     private boolean isSameTarget(
             PlayerInteractionSnapshot snapshot,
-            SkillTreeService.SkillTreePositionHit expected
+            SkillTreeService.SkillTreePositionHit expected,
+            boolean beaconTarget
     ) {
         PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
-        SkillTreeService.SkillTreePositionHit current = service.findTargetedPositionHit(currentSnapshot).orElse(null);
+        SkillTreeService.SkillTreePositionHit current = (beaconTarget
+                ? service.findTargetedBeaconPositionHit(currentSnapshot)
+                : service.findTargetedPositionHit(currentSnapshot))
+                .orElse(null);
         return current != null && current.position().nodeId().equals(expected.position().nodeId());
     }
 
     private void handlePlayerModeInteraction(
             Player player,
             InputFamily family,
-            SkillTreeNodeDefinition node
+            SkillTreeNodeDefinition node,
+            SkillTreePosition position,
+            boolean beaconTarget
     ) {
+        if (family == InputFamily.LEFT_CLICK && beaconTarget && teleportToDistantBeacon(player, position)) {
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return;
@@ -132,6 +158,48 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             return;
         }
         relockNode(player, astPlayer, node);
+    }
+
+    /**
+     * 5m以上離れたノード強調ビームへ、現在の高さと視線方向を維持して移動します。
+     *
+     * @param player 移動するプレイヤー
+     * @param position 移動先となるノード位置
+     * @return テレポート要求を実行した場合は {@code true}
+     */
+    private boolean teleportToDistantBeacon(@NotNull Player player, @NotNull SkillTreePosition position) {
+        Location beaconLocation = position.toLocation();
+        Location currentLocation = player.getLocation();
+        if (beaconLocation == null
+                || beaconLocation.getWorld() == null
+                || beaconLocation.getWorld() != currentLocation.getWorld()
+                || !isAtLeastBeaconTeleportDistance(currentLocation, beaconLocation)) {
+            return false;
+        }
+        Location target = new Location(
+                currentLocation.getWorld(),
+                beaconLocation.getX(),
+                currentLocation.getY(),
+                beaconLocation.getZ()
+        );
+        PlayerTeleportService.teleport(player, target, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        return true;
+    }
+
+    /**
+     * プレイヤーのXZ平面上の距離が、ノードビーム移動の開始距離以上かを判定します。
+     *
+     * @param playerLocation プレイヤー現在位置
+     * @param beaconLocation ノードビーム基準位置
+     * @return 水平距離が5m以上なら {@code true}
+     */
+    private boolean isAtLeastBeaconTeleportDistance(
+            @NotNull Location playerLocation,
+            @NotNull Location beaconLocation
+    ) {
+        double deltaX = playerLocation.getX() - beaconLocation.getX();
+        double deltaZ = playerLocation.getZ() - beaconLocation.getZ();
+        return deltaX * deltaX + deltaZ * deltaZ >= NODE_BEACON_TELEPORT_DISTANCE_SQUARED;
     }
 
     private void unlockNode(Player player, AstPlayer astPlayer, SkillTreeNodeDefinition node) {

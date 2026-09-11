@@ -66,6 +66,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -1247,6 +1248,25 @@ public class SkillTreeService {
                 || isNodeUnlockConditionMet(astPlayer, node);
     }
 
+    /**
+     * 指定ノードの強調ビームがプレイヤーに表示される条件を満たすかを返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @param node 判定対象ノード
+     * @param position ノードのワールド位置
+     * @return 強調ビームが表示対象なら {@code true}
+     */
+    public boolean isNodeBeaconVisible(
+            @NotNull Player player,
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull SkillTreePosition position
+    ) {
+        Location location = position.toLocation();
+        return location != null
+                && visualizer != null
+                && visualizer.isNodeBeaconVisible(player, node, location);
+    }
+
     private int compareNodeIdDescending(@NotNull String left, @NotNull String right) {
         int numeric = Long.compare(nodeIdSortValue(right), nodeIdSortValue(left));
         return numeric != 0 ? numeric : right.compareTo(left);
@@ -1676,6 +1696,59 @@ public class SkillTreeService {
         }
 
         return findTargetedPositionHit(snapshot.player(), snapshot.ray());
+    }
+
+    /**
+     * 左クリック対象となる、表示中のノード強調ビームを視線またはノードhitboxから解決します。
+     * 通常ノードの解放・解除対象とは異なり、本人に実際に表示されるビームだけを候補にします。
+     *
+     * @param snapshot 判定対象の入力snapshot
+     * @return 命中した強調ビームのノード位置と入口距離
+     */
+    @NotNull
+    public Optional<SkillTreePositionHit> findTargetedBeaconPositionHit(
+            @NotNull PlayerInteractionSnapshot snapshot
+    ) {
+        return findTargetedBeaconPositionHit(snapshot.player(), snapshot.ray());
+    }
+
+    /**
+     * 視線上で最も入口距離が近い、表示中のノード強調ビームを返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @param ray 視線ray
+     * @return 命中した強調ビームのノード位置と入口距離
+     */
+    @NotNull
+    private Optional<SkillTreePositionHit> findTargetedBeaconPositionHit(
+            @NotNull Player player,
+            @NotNull PlayerInteractionRayTrace ray
+    ) {
+        SkillTreePositionHit nearest = null;
+        Location playerLocation = player.getLocation();
+        for (SkillTreePosition position : positionsByNodeId.values()) {
+            SkillTreeNodeDefinition node = nodesById.get(position.nodeId());
+            Location location = position.toLocation();
+            if (node == null || location == null || location.getWorld() != player.getWorld()
+                    || !isNodeBeaconVisible(player, node, position)) {
+                continue;
+            }
+            double deltaX = playerLocation.getX() - location.getX();
+            double deltaZ = playerLocation.getZ() - location.getZ();
+            if (!SkillTreeVisualizer.isNodeBeaconClickable(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ))) {
+                continue;
+            }
+            BoundingBox beaconHitbox = SkillTreeVisualizer.nodeBeaconHitbox(location);
+            Double hitDistance = ray.aabbEntryDistance(beaconHitbox);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && position.nodeId().compareTo(nearest.position().nodeId()) >= 0)))) {
+                continue;
+            }
+            nearest = new SkillTreePositionHit(position, hitDistance);
+        }
+        return Optional.ofNullable(nearest);
     }
 
     private Optional<SkillTreePositionHit> findTargetedPositionHit(
