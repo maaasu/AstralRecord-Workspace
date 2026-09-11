@@ -78,6 +78,35 @@ public sealed class ValidationServiceTests
     }
 
     [Fact]
+    public void TenthBlockCoordinatesPassSemanticValidation()
+    {
+        var structure = JsonNode.Parse("""
+            {
+              "$schema": "../schemas/structure.v1.schema.json",
+              "schemaVersion": 1,
+              "structureId": "main",
+              "name": "Main",
+              "rootNodeId": "1000",
+              "nodes": [
+                { "nodeId": "1000", "x": 0, "y": 0, "z": 0 },
+                { "nodeId": "1001", "x": 0.1, "y": -0.2, "z": 0.3 }
+              ],
+              "edges": [{ "sourceNodeId": "1000", "targetNodeId": "1001" }]
+            }
+            """)!.AsObject();
+        var report = new ValidationReport();
+
+        ValidationService.ValidateStructureShape(
+            structure,
+            "main.json",
+            new HashSet<string>(["1000", "1001"], StringComparer.Ordinal),
+            report);
+
+        Assert.True(report.IsValid);
+        Assert.Empty(report.Issues);
+    }
+
+    [Fact]
     public async Task SequenceBelowInitialFloorFailsSemanticValidation()
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"skilltree-validation-tests-{Guid.NewGuid():N}");

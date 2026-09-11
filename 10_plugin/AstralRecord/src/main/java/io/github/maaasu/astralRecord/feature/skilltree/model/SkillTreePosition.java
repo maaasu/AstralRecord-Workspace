@@ -14,9 +14,9 @@ import java.io.File;
 public record SkillTreePosition(
         @NotNull String nodeId,
         @NotNull String worldName,
-        int x,
-        int y,
-        int z
+        double x,
+        double y,
+        double z
 ) {
     @NotNull
     public String locationKey() {

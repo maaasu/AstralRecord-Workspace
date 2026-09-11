@@ -101,17 +101,13 @@ public class SkillTreeStructureRepository {
             JsonObject row = SkillTreeJsonReader.requiredObject(nodes.get(index), file, path);
             SkillTreeJsonReader.requireOnlyKeys(row, NODE_KEYS, file, path);
             String nodeId = digitId(row, "nodeId", file, path);
-            int relativeX = SkillTreeJsonReader.requiredInt(row, "x", file, path);
-            int relativeY = SkillTreeJsonReader.requiredInt(row, "y", file, path);
-            int relativeZ = SkillTreeJsonReader.requiredInt(row, "z", file, path);
-            int x;
-            int y;
-            int z;
-            try {
-                x = Math.addExact(config.center().x(), relativeX);
-                y = Math.addExact(config.center().y(), relativeY);
-                z = Math.addExact(config.center().z(), relativeZ);
-            } catch (ArithmeticException e) {
+            double relativeX = SkillTreeJsonReader.requiredTenthBlockCoordinate(row, "x", file, path);
+            double relativeY = SkillTreeJsonReader.requiredTenthBlockCoordinate(row, "y", file, path);
+            double relativeZ = SkillTreeJsonReader.requiredTenthBlockCoordinate(row, "z", file, path);
+            double x = config.center().x() + relativeX;
+            double y = config.center().y() + relativeY;
+            double z = config.center().z() + relativeZ;
+            if (!isInBlockCoordinateRange(x) || !isInBlockCoordinateRange(y) || !isInBlockCoordinateRange(z)) {
                 throw SkillTreeJsonReader.invalid(file, path + " overflows absolute coordinates");
             }
             SkillTreePosition position = new SkillTreePosition(nodeId, config.worldName(), x, y, z);
@@ -123,6 +119,10 @@ public class SkillTreeStructureRepository {
             }
         }
         return positions;
+    }
+
+    private static boolean isInBlockCoordinateRange(double value) {
+        return Double.isFinite(value) && value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE;
     }
 
     private Map<String, SkillTreeEdge> parseEdges(

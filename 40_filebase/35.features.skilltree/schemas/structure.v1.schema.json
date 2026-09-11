@@ -66,17 +66,20 @@
           "$ref": "#/$defs/nodeId"
         },
         "x": {
-          "type": "integer",
+          "type": "number",
+          "multipleOf": 0.1,
           "minimum": -2147483648,
           "maximum": 2147483647
         },
         "y": {
-          "type": "integer",
+          "type": "number",
+          "multipleOf": 0.1,
           "minimum": -2147483648,
           "maximum": 2147483647
         },
         "z": {
-          "type": "integer",
+          "type": "number",
+          "multipleOf": 0.1,
           "minimum": -2147483648,
           "maximum": 2147483647
         }

@@ -79,6 +79,34 @@ final class SkillTreeJsonReader {
         return value;
     }
 
+    /**
+     * 0.1ブロック刻みの相対座標を読み込みます。
+     *
+     * @param object 読込元JSONオブジェクト
+     * @param key 座標キー
+     * @param file 読込元ファイル
+     * @param path エラー表示用JSONパス
+     * @return 32-bitブロック範囲内の0.1刻み座標
+     * @throws IllegalStateException 値が有限数、範囲内、または0.1刻みでない場合
+     */
+    static double requiredTenthBlockCoordinate(JsonObject object, String key, File file, String path) {
+        JsonElement element = object.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw invalid(file, path + "." + key + " must be a 0.1-block coordinate");
+        }
+        try {
+            BigDecimal coordinate = element.getAsBigDecimal();
+            if (coordinate.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0
+                    || coordinate.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0
+                    || coordinate.movePointRight(1).stripTrailingZeros().scale() > 0) {
+                throw invalid(file, path + "." + key + " must be a 32-bit coordinate in 0.1-block increments");
+            }
+            return coordinate.doubleValue();
+        } catch (NumberFormatException e) {
+            throw invalid(file, path + "." + key + " must be a finite 0.1-block coordinate");
+        }
+    }
+
     static JsonArray requiredArray(JsonObject object, String key, File file, String path) {
         JsonElement element = object.get(key);
         if (element == null || !element.isJsonArray()) {

@@ -361,24 +361,24 @@ public sealed class ValidationService(
             if (!masterNodeIds.Contains(nodeId))
                 report.AddError("UNKNOWN_NODE_ID", $"Placement references unknown nodeId '{nodeId}'.", fileName, $"/nodes/{index}/nodeId");
 
-            var x = ReadInt32(placement["x"]);
-            var y = ReadInt32(placement["y"]);
-            var z = ReadInt32(placement["z"]);
+            var x = ReadCoordinate(placement["x"]);
+            var y = ReadCoordinate(placement["y"]);
+            var z = ReadCoordinate(placement["z"]);
             if (x is null || y is null || z is null)
             {
-                report.AddError("COORDINATE_INVALID", "x, y and z must be 32-bit integers.", fileName, $"/nodes/{index}");
+                report.AddError("COORDINATE_INVALID", "x, y and z must be 32-bit coordinates in 0.1-block increments.", fileName, $"/nodes/{index}");
                 continue;
             }
 
-            var coordinateKey = string.Join("|", x.Value, y.Value, z.Value);
+            var coordinateKey = string.Join("|", x.Value.ToString("R", CultureInfo.InvariantCulture), y.Value.ToString("R", CultureInfo.InvariantCulture), z.Value.ToString("R", CultureInfo.InvariantCulture));
             if (!coordinateKeys.Add(coordinateKey))
                 report.AddError("DUPLICATE_COORDINATE", $"Coordinate ({x}, {y}, {z}) is used more than once.", fileName, $"/nodes/{index}");
 
             if (displaySettings is not null
                 && string.Equals(displaySettings.StructureId, structureId, StringComparison.Ordinal)
-                && (!FitsInt32((long)displaySettings.CenterX + x.Value)
-                    || !FitsInt32((long)displaySettings.CenterY + y.Value)
-                    || !FitsInt32((long)displaySettings.CenterZ + z.Value)))
+                && (!FitsInt32(displaySettings.CenterX + x.Value)
+                    || !FitsInt32(displaySettings.CenterY + y.Value)
+                    || !FitsInt32(displaySettings.CenterZ + z.Value)))
             {
                 report.AddError(
                     "ABSOLUTE_COORDINATE_OVERFLOW",
@@ -566,7 +566,22 @@ public sealed class ValidationService(
         return (int)number.Value;
     }
 
-    private static bool FitsInt32(long value) => value is >= int.MinValue and <= int.MaxValue;
+    private static double? ReadCoordinate(JsonNode? value)
+    {
+        var number = JsonValueReader.Number(value);
+        if (number is null
+            || !double.IsFinite(number.Value)
+            || number.Value < int.MinValue
+            || number.Value > int.MaxValue)
+        {
+            return null;
+        }
+
+        var tenth = Math.Round(number.Value * 10, MidpointRounding.AwayFromZero);
+        return Math.Abs(number.Value * 10 - tenth) < 0.0000001 ? tenth / 10 : null;
+    }
+
+    private static bool FitsInt32(double value) => value is >= int.MinValue and <= int.MaxValue;
 
     private async Task<JsonObject?> LoadNodeIdSequenceAsync(
         ValidationReport report,

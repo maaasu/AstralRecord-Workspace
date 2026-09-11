@@ -73,9 +73,11 @@ describe('PlacementInspector', () => {
 
     expect(screen.getByRole('heading', { name: '旅立ちの記録' })).toBeInTheDocument()
     expect(screen.getByLabelText('Minecraft Material')).toHaveAttribute('list')
+    expect(screen.getByLabelText('X')).toHaveAttribute('inputmode', 'decimal')
     expect(screen.getByRole('button', { name: 'ルート／根を削除' })).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('タグを追加'), { target: { value: 'primary' } })
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '8' } })
+    fireEvent.blur(screen.getByLabelText('X'))
     expect(onChange).toHaveBeenCalledWith({
       ...structure,
       nodes: [{ nodeId: '1012', x: 8, y: 64, z: 0 }],
@@ -90,6 +92,68 @@ describe('PlacementInspector', () => {
       name: '&b新しい名前',
       icon: 'DIAMOND_SWORD',
       tags: ['root', 'primary'],
+    }))
+  })
+
+  it('preserves intermediate decimal input and commits the completed tenth-block value', () => {
+    const onChange = vi.fn()
+
+    render(
+      <PlacementInspector
+        nodeId="1012"
+        structure={structure}
+        master={master}
+        saving={false}
+        iconRevision={0}
+        onChange={onChange}
+        onSaveMaster={vi.fn(async (node: NodeMaster) => node)}
+        onEditMaster={vi.fn()}
+        onRetryIcons={vi.fn()}
+      />,
+    )
+
+    const x = screen.getByLabelText('X')
+    fireEvent.change(x, { target: { value: '1' } })
+    fireEvent.change(x, { target: { value: '1.' } })
+    expect(x).toHaveValue('1.')
+    expect(onChange).not.toHaveBeenCalled()
+
+    fireEvent.change(x, { target: { value: '1.2' } })
+    fireEvent.blur(x)
+    expect(onChange).toHaveBeenCalledWith({
+      ...structure,
+      nodes: [{ nodeId: '1012', x: 1.2, y: 64, z: 0 }],
+    })
+  })
+
+  it('selects the target class for a CP node', async () => {
+    const onSaveMaster = vi.fn(async (node: NodeMaster) => node)
+
+    render(
+      <PlacementInspector
+        nodeId="1012"
+        structure={structure}
+        master={{ ...master, pointType: 'CP' }}
+        classMasters={[
+          { id: 'adventurer', name: '&6冒険者', parentClassIds: [] },
+          { id: 'mage', name: '&b魔法使い', parentClassIds: ['adventurer'] },
+        ]}
+        saving={false}
+        iconRevision={0}
+        onChange={vi.fn()}
+        onSaveMaster={onSaveMaster}
+        onEditMaster={vi.fn()}
+        onRetryIcons={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('対象クラス'), { target: { value: 'mage' } })
+    fireEvent.click(screen.getByRole('button', { name: 'マスター定義を保存' }))
+
+    await waitFor(() => expect(onSaveMaster).toHaveBeenCalledWith({
+      ...master,
+      pointType: 'CP',
+      unlockCondition: { classId: 'mage' },
     }))
   })
 

@@ -51,6 +51,31 @@ class SkillTreeStructureRepositoryTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
      * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: 相対座標は0.1ブロック刻みを許可し、centerへ加算して保持する。
+     */
+    @Test
+    void loadsTenthBlockRelativeCoordinates() throws IOException {
+        writeStructure(structureJson(
+                "1000",
+                """
+                        [
+                          {"nodeId": "1000", "x": 0, "y": 0, "z": 0},
+                          {"nodeId": "1001", "x": -2.1, "y": 3.2, "z": 4.3}
+                        ]
+                        """,
+                "[{\"sourceNodeId\": \"1000\", \"targetNodeId\": \"1001\"}]"
+        ));
+
+        var snapshot = new SkillTreeStructureRepository(filebaseRoot.toFile()).load(config());
+
+        assertEquals(97.9D, snapshot.positions().get(1).x());
+        assertEquals(67.2D, snapshot.positions().get(1).y());
+        assertEquals(-15.7D, snapshot.positions().get(1).z());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
      * 検証契約: 重複node座標をstructure load失敗にする。
      */
     @Test

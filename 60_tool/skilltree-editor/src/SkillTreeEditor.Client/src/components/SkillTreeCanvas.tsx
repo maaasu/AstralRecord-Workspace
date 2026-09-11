@@ -62,7 +62,7 @@ interface NodeContextMenuState {
 
 const nodeTypes = { skill: SkillNode }
 const BLOCK_SCALE = 36
-const GRID: [number, number] = [BLOCK_SCALE, BLOCK_SCALE]
+const GRID: [number, number] = [BLOCK_SCALE / 10, BLOCK_SCALE / 10]
 
 export function SkillTreeCanvas(props: SkillTreeCanvasProps) {
   return (
@@ -161,8 +161,8 @@ function CanvasInner({
     for (const change of changes) {
       if (change.type === 'position' && change.position) {
         positions.set(change.id, {
-          x: Math.round(change.position.x / BLOCK_SCALE),
-          z: Math.round(change.position.y / BLOCK_SCALE),
+          x: toTenthBlock(change.position.x / BLOCK_SCALE),
+          z: toTenthBlock(change.position.y / BLOCK_SCALE),
         })
       }
     }
@@ -319,9 +319,9 @@ function CanvasInner({
           rootNodeId: structure.rootNodeId || nodeId,
           nodes: [...structure.nodes, {
             nodeId,
-            x: Math.round(position.x / BLOCK_SCALE),
+            x: toTenthBlock(position.x / BLOCK_SCALE),
             y: 0,
-            z: Math.round(position.y / BLOCK_SCALE),
+            z: toTenthBlock(position.y / BLOCK_SCALE),
           }],
         })
       }}
@@ -450,6 +450,8 @@ export const routeEdge = (
 }
 
 const miniMapNodeColor = (node: Node) => node.data.root ? '#e0b56a' : '#6d86ad'
+
+const toTenthBlock = (value: number) => Math.round(value * 10) / 10
 
 const clampMenuPosition = (position: number, available: number, menuSize: number) => (
   Math.max(8, Math.min(position, Math.max(8, available - menuSize - 8)))

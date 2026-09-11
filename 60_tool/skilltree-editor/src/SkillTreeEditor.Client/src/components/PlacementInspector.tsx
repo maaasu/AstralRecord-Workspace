@@ -43,10 +43,19 @@ export function PlacementInspector({
   classMasters = [],
 }: PlacementInspectorProps) {
   const [draft, setDraft] = useState<NodeMaster | null>(() => master ? structuredClone(master) : null)
+  const [coordinateDrafts, setCoordinateDrafts] = useState<Record<'x' | 'y' | 'z', string>>({ x: '', y: '', z: '' })
 
   useEffect(() => setDraft(master ? structuredClone(master) : null), [master])
 
   const placement = structure.nodes.find((node) => node.nodeId === nodeId)
+  useEffect(() => {
+    if (!placement) return
+    setCoordinateDrafts({
+      x: String(placement.x),
+      y: String(placement.y),
+      z: String(placement.z),
+    })
+  }, [placement?.nodeId, placement?.x, placement?.y, placement?.z])
   const masterDirty = useMemo(
     () => Boolean(master && draft && JSON.stringify(master) !== JSON.stringify(draft)),
     [draft, master],
@@ -72,6 +81,17 @@ export function PlacementInspector({
       ? { ...node, [key]: clampCoordinate(value) }
       : node),
   })
+  const commitCoordinate = (key: 'x' | 'y' | 'z') => {
+    const input = coordinateDrafts[key]
+    const value = Number(input)
+    if (!Number.isFinite(value)) {
+      setCoordinateDrafts((current) => ({ ...current, [key]: String(placement[key]) }))
+      return
+    }
+    const normalized = clampCoordinate(value)
+    setCoordinateDrafts((current) => ({ ...current, [key]: String(normalized) }))
+    if (normalized !== placement[key]) updatePlacement(key, normalized)
+  }
   const remove = () => onChange({
     ...structure,
     rootNodeId: structure.rootNodeId === placement.nodeId ? '' : structure.rootNodeId,
@@ -79,6 +99,17 @@ export function PlacementInspector({
     edges: structure.edges.filter((edge) => edge.sourceNodeId !== placement.nodeId && edge.targetNodeId !== placement.nodeId),
   })
   const updateMaster = (key: string, value: JsonValue) => setDraft((current) => current ? { ...current, [key]: value } : current)
+  const updateUnlockConditionClassId = (classId: string) => setDraft((current) => {
+    if (!current) return current
+    const unlockCondition = { ...current.unlockCondition }
+    if (classId) unlockCondition.classId = classId
+    else delete unlockCondition.classId
+
+    const next = { ...current }
+    if (Object.keys(unlockCondition).length === 0) delete next.unlockCondition
+    else next.unlockCondition = unlockCondition
+    return next
+  })
   const updateLore = (value: string) => setDraft((current) => {
     if (!current) return current
     const next = { ...current }
@@ -108,12 +139,14 @@ export function PlacementInspector({
         {(['x', 'y', 'z'] as const).map((key) => (
           <label key={key}>{key.toUpperCase()}<input
             aria-label={key.toUpperCase()}
-            type="number"
-            step={1}
-            min={-2147483648}
-            max={2147483647}
-            value={placement[key]}
-            onChange={(event) => updatePlacement(key, Number(event.target.value) || 0)}
+            type="text"
+            inputMode="decimal"
+            value={coordinateDrafts[key]}
+            onChange={(event) => setCoordinateDrafts((current) => ({ ...current, [key]: event.target.value }))}
+            onBlur={() => commitCoordinate(key)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+            }}
           /></label>
         ))}
       </div>
@@ -163,6 +196,22 @@ export function PlacementInspector({
                 <input aria-label="コスト" type="number" min={0} step={1} value={draft.pointCost} onChange={(event) => updateMaster('pointCost', Math.max(0, Math.round(Number(event.target.value) || 0)))} />
               </label>
             </div>
+            {draft.pointType === 'CP' && (
+              <label>対象クラス
+                <select
+                  aria-label="対象クラス"
+                  value={unlockConditionClassId(draft)}
+                  onChange={(event) => updateUnlockConditionClassId(event.target.value)}
+                >
+                  <option value="">対象クラスを選択してください</option>
+                  {classMasters.map((classMaster) => (
+                    <option value={classMaster.id} key={classMaster.id}>
+                      {stripMinecraftFormatting(classMaster.name)}（{classMaster.id}）
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>タグを追加 <small>表示は日本語、保存値はID</small>
               <select
                 aria-label="タグを追加"
@@ -239,4 +288,9 @@ export function PlacementInspector({
   )
 }
 
-const clampCoordinate = (value: number): StructurePlacement['x'] => Math.max(-2147483648, Math.min(2147483647, Math.round(value)))
+const clampCoordinate = (value: number): StructurePlacement['x'] => Math.max(-2147483648, Math.min(2147483647, Math.round(value * 10) / 10))
+
+const unlockConditionClassId = (node: NodeMaster): string => {
+  const classId = node.unlockCondition?.classId
+  return typeof classId === 'string' ? classId : ''
+}
