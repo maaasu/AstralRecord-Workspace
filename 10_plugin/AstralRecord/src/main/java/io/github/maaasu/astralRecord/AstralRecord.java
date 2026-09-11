@@ -1315,6 +1315,7 @@ public final class AstralRecord extends JavaPlugin {
             mobService,
             damageService,
             dungeonService,
+            conditionService,
             particleDisplayService
         );
         bossChallengeCancelGui = new BossChallengeCancelGui();

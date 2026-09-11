@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -123,6 +124,7 @@ public final class BossMechanicService {
     private final MobService mobService;
     private final DamageService damageService;
     private final DungeonService dungeonService;
+    private final ConditionService conditionService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -134,17 +136,29 @@ public final class BossMechanicService {
     private BukkitTask tickTask;
     private long clockTicks;
 
+    /**
+     * ボス固有ギミックを管理するサービスを作成します。
+     *
+     * @param plugin taskを登録するPlugin
+     * @param mobService ボスMobとBukkit Entityを解決するサービス
+     * @param damageService ギミックdamageを適用するサービス
+     * @param dungeonService Dungeon内の地形変更可否を判定するサービス
+     * @param conditionService ボスのAI実行可否を判定する状態異常サービス
+     * @param particleDisplayService ギミック演出を表示するサービス
+     */
     public BossMechanicService(
         @NotNull JavaPlugin plugin,
         @NotNull MobService mobService,
         @NotNull DamageService damageService,
         @NotNull DungeonService dungeonService,
+        @NotNull ConditionService conditionService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.mobService = mobService;
         this.damageService = damageService;
         this.dungeonService = dungeonService;
+        this.conditionService = conditionService;
         this.particleDisplayService = particleDisplayService;
     }
 
@@ -210,6 +224,11 @@ public final class BossMechanicService {
         runtimes.clear();
     }
 
+    /**
+     * ボス固有ギミックを進行し、AIを停止する状態異常中は通常ギミックを中断します。
+     *
+     * <p>サンバードのHP30%必殺は例外とし、状態異常中でも開始・進行します。</p>
+     */
     private void tick() {
         clockTicks += TICK_PERIOD;
         processPendingMechanics();
@@ -237,8 +256,18 @@ public final class BossMechanicService {
                     boss.currentShield()
                 )
             );
-            processAldaShieldBreak(boss, entity, runtime);
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
+            if (!conditionService.canRunAi(AstEntity.mob(boss))) {
+                cleanupAldaExposure(boss.instanceId(), runtime);
+                if (isPendingSunbirdFinalPhase(boss, runtime, observedPhase)) {
+                    runtime.phase = observedPhase;
+                    handlePhaseTransition(profile, boss, entity, runtime);
+                }
+                processBirdMeteorCharge(boss);
+                continue;
+            }
+
+            processAldaShieldBreak(boss, entity, runtime);
             if (observedPhase > runtime.phase) {
                 runtime.phase = observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
@@ -437,6 +466,11 @@ public final class BossMechanicService {
         );
     }
 
+    /**
+     * 予約済みギミックの予兆と実行を進行し、AI停止中の通常ギミックを即時に取り消します。
+     *
+     * <p>サンバードのHP30%必殺であるバードメテオだけは取り消さず、予兆と実行を継続します。</p>
+     */
     private void processPendingMechanics() {
         if (!deferredPendingMechanics.isEmpty()) {
             pendingMechanics.addAll(deferredPendingMechanics);
@@ -451,9 +485,13 @@ public final class BossMechanicService {
                 && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
                 && entity != null
                 && nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty();
+            boolean mechanicBlocked = boss != null
+                && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
+                && !conditionService.canRunAi(AstEntity.mob(boss));
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
                 || entity.getWorld() != pending.anchor().getWorld()
-                || noManagedTarget) {
+                || noManagedTarget
+                || mechanicBlocked) {
                 removePendingVisuals(pending);
                 releaseScriptedAction(pending);
                 iterator.remove();
@@ -475,6 +513,25 @@ public final class BossMechanicService {
             pendingMechanics.addAll(deferredPendingMechanics);
             deferredPendingMechanics.clear();
         }
+    }
+
+    /**
+     * 凍結中でも開始を許可するサンバードのHP30%必殺が未開始かを判定します。
+     *
+     * @param boss 判定対象のボス
+     * @param runtime ボスのギミック実行時状態
+     * @param observedPhase 現在HPから算出したフェーズ
+     * @return サンバードが最終フェーズへ到達し、必殺をまだ開始していない場合はtrue
+     */
+    private boolean isPendingSunbirdFinalPhase(
+        @NotNull MobInstance boss,
+        @NotNull BossRuntime runtime,
+        int observedPhase
+    ) {
+        return BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
+            && observedPhase >= 2
+            && observedPhase > runtime.phase
+            && !runtime.finalPhaseTriggered;
     }
 
     /** アルダ巨神兵のシールドが0へ到達した瞬間を検出します。 */
