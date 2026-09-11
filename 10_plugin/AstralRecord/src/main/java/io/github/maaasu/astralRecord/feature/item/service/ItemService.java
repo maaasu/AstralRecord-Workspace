@@ -942,7 +942,9 @@ public class ItemService {
     /**
      * 保存済みcaptureを確認し、capture以後に変化していないdirtyだけを解除します。
      * APIが返した更新日時はcapture世代が古くても現在cacheの同一個体へ反映し、後続の保存の
-     * optimistic concurrency基準を最新化します。
+     * optimistic concurrency基準を最新化します。新規作成個体は、capture世代より新しい変更が
+     * 残っていてもAPIの作成ACKを受けた時点で新規作成印だけを解除し、後続snapshotで既存個体の
+     * 更新として送信します。
      *
      * @param accountId 対象アカウント ID
      * @param captured 保存要求へ同梱した装備個体
@@ -962,12 +964,19 @@ public class ItemService {
                 (left, right) -> right,
                 LinkedHashMap::new
             ));
+        Set<String> acknowledgedIds = updatedAtById.keySet().stream()
+            .map(this::normalize)
+            .filter(key -> !key.isBlank())
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
         synchronized (equipmentStateMutex) {
             for (Map.Entry<String, EquipmentInstance> entry : capturedById.entrySet()) {
                 DirtyEquipmentState currentDirty = dirtyEquipmentState.get(entry.getKey());
                 if (currentDirty != null && currentDirty.instance().equals(entry.getValue())) {
                     dirtyEquipmentState.remove(entry.getKey(), currentDirty);
                     dirtyEquipmentDurability.remove(entry.getKey());
+                }
+                // 初回作成のACK後は、capture後に強化などの新しいdirtyがあっても isNew を再送しない。
+                if (acknowledgedIds.contains(entry.getKey())) {
                     pendingEquipmentCreations.remove(entry.getKey());
                 }
             }

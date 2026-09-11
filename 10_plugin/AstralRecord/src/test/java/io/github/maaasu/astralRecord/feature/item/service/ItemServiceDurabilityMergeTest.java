@@ -1,6 +1,10 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import org.junit.jupiter.api.Test;
@@ -10,7 +14,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class ItemServiceDurabilityMergeTest {
@@ -41,6 +47,37 @@ class ItemServiceDurabilityMergeTest {
         assertEquals(2, current.getEnhanceLevel());
         assertEquals("2026-09-06T12:00:00", current.getUpdatedAt());
         assertEquals(1, service.snapshotDirtyEquipmentState(UUID.fromString(accountId)).size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 3. 所有インスタンス > ### ローカル装備状態の保存
+     * 検証契約: 新規個体の初回保存中に後続の強化が確定しても、初回ACKは作成済み印だけを解除し、
+     * 後続のdirty状態を既存個体更新として次snapshotへ残す。
+     */
+    @Test
+    void newEquipmentCaptureAckClearsCreationMarkerAndKeepsNewerDirtyState() {
+        ItemService service = new ItemService(mock(ItemRepository.class), mock(SetEffectRepository.class));
+        UUID accountId = UUID.randomUUID();
+        EquipmentInstance created = service.createLocalEquipmentInstance(equipmentModel(), accountId);
+
+        assertNotNull(created);
+        String instanceId = created.getEquipmentInstanceId();
+        assertTrue(service.snapshotPendingEquipmentCreationIds(accountId).contains(instanceId));
+        List<EquipmentInstance> captured = service.snapshotDirtyEquipmentState(accountId);
+        EquipmentInstance enhanced = instance(instanceId, accountId.toString(), 1, 0, 100, 100);
+        assertNotNull(service.applyLocalEquipmentInstance(enhanced));
+
+        service.acknowledgeEquipmentState(
+            accountId, captured, Map.of(instanceId, "2026-09-12T03:00:00")
+        );
+
+        EquipmentInstance current = service.findLoadedEquipmentInstanceById(instanceId);
+        assertNotNull(current);
+        assertEquals(1, current.getEnhanceLevel());
+        assertEquals("2026-09-12T03:00:00", current.getUpdatedAt());
+        assertFalse(service.snapshotPendingEquipmentCreationIds(accountId).contains(instanceId));
+        assertEquals(List.of(current), service.snapshotDirtyEquipmentState(accountId));
     }
 
     /**
@@ -88,6 +125,45 @@ class ItemServiceDurabilityMergeTest {
             List.of(),
             List.of(),
             List.of()
+        );
+    }
+
+    private static ItemModel equipmentModel() {
+        ItemEquipment equipment = new ItemEquipment(
+            ItemEquipmentSlot.ACCESSORY,
+            ItemEquipmentHandType.ONE,
+            null,
+            0,
+            List.of(),
+            null,
+            List.of(),
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+        return new ItemModel(
+            1,
+            "test_accessory",
+            "equipment",
+            "テストアクセサリ",
+            "AMETHYST_SHARD",
+            "common",
+            1,
+            0,
+            null,
+            null,
+            List.of(),
+            false,
+            false,
+            null,
+            null,
+            equipment,
+            null,
+            null,
+            null,
+            null
         );
     }
 }
