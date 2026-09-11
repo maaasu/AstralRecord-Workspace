@@ -123,7 +123,7 @@ class SkillTreeVisualizerTest {
         assertEquals(0.0F, SkillTreeVisualizer.nodeBeaconScale(0.0D));
         assertFalse(SkillTreeVisualizer.isNodeBeaconClickable(1.0D));
         assertTrue(SkillTreeVisualizer.isNodeBeaconClickable(1.01D));
-        assertEquals(10, SkillTreePacketDisplay.BEAM_TRANSFORMATION_INTERPOLATION_TICKS);
+        assertEquals(2, SkillTreePacketDisplay.BEAM_TRANSFORMATION_INTERPOLATION_TICKS);
     }
 
     private SkillTreeNodeDefinition node(String name) {

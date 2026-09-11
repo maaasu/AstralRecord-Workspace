@@ -43,6 +43,7 @@ import java.util.UUID;
 
 final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
+    private static final long BEAM_SCALE_INTERVAL_TICKS = 2L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
     static final double NODE_BEAM_Y_OFFSET = 2.95D;
@@ -81,6 +82,7 @@ final class SkillTreeVisualizer {
     private final Map<UUID, ViewerEmphasisState> viewerEmphasisStates = new HashMap<>();
     private boolean structureDirty = true;
     private BukkitTask task;
+    private BukkitTask beamScaleTask;
 
     SkillTreeVisualizer(@NotNull Plugin plugin, @NotNull SkillTreeService service) {
         this(plugin, service, null);
@@ -102,12 +104,22 @@ final class SkillTreeVisualizer {
             return;
         }
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
+        beamScaleTask = plugin.getServer().getScheduler().runTaskTimer(
+                plugin,
+                this::refreshVisibleBeamScales,
+                1L,
+                BEAM_SCALE_INTERVAL_TICKS
+        );
     }
 
     void stop() {
         if (task != null) {
             task.cancel();
             task = null;
+        }
+        if (beamScaleTask != null) {
+            beamScaleTask.cancel();
+            beamScaleTask = null;
         }
         nodeVisuals.values().forEach(NodeVisual::remove);
         adminPositionVisuals.values().forEach(AdminPositionVisual::remove);
@@ -216,6 +228,16 @@ final class SkillTreeVisualizer {
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         renderBedrockEdgeFallbacks();
+    }
+
+    /**
+     * 表示中の強調ビームだけを短い間隔で再評価し、距離に応じたscaleを更新します。
+     * ノード本体・ラベル・edgeの再描画は通常周期へ委ねます。
+     */
+    private void refreshVisibleBeamScales() {
+        for (NodeVisual visual : nodeVisuals.values()) {
+            visual.refreshBeamScales();
+        }
     }
 
     /**
@@ -1086,6 +1108,23 @@ final class SkillTreeVisualizer {
                     || previousScale == null
                     || Float.compare(previousScale, nextScale) != 0) {
                 packetDisplay.updateBeam(player, beam, nextState.material, nodeBeamTransform(nextScale));
+            }
+        }
+
+        /**
+         * 現在ビームを表示しているプレイヤーへ、距離変化分だけscale metadataを送信します。
+         */
+        private void refreshBeamScales() {
+            for (Map.Entry<UUID, NodeBeamState> entry : beamViewerStates.entrySet()) {
+                Player player = plugin.getServer().getPlayer(entry.getKey());
+                if (player == null) {
+                    continue;
+                }
+                float nextScale = nodeBeaconScale(horizontalDistance(player.getLocation(), baseLocation));
+                Float previousScale = beamViewerScales.put(entry.getKey(), nextScale);
+                if (previousScale == null || Float.compare(previousScale, nextScale) != 0) {
+                    packetDisplay.updateBeam(player, beam, entry.getValue().material, nodeBeamTransform(nextScale));
+                }
             }
         }
 

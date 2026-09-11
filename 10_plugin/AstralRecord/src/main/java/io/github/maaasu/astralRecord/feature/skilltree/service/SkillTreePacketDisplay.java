@@ -38,7 +38,7 @@ import java.util.UUID;
 final class SkillTreePacketDisplay {
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
     private static final float BEAM_VIEW_RANGE = 512.0F;
-    static final int BEAM_TRANSFORMATION_INTERPOLATION_TICKS = 10;
+    static final int BEAM_TRANSFORMATION_INTERPOLATION_TICKS = 2;
     private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
