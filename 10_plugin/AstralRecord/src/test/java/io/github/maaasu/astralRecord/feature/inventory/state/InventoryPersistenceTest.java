@@ -38,6 +38,42 @@ class InventoryPersistenceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 外部取引前の baseline は、BAG だけが dirty でも未変更の通貨残高を含む。
+     */
+    @Test
+    void externalBaselineIncludesUnchangedCurrencyWhenOnlyBagIsDirty() {
+        UUID accountId = UUID.randomUUID();
+        UUID bagId = UUID.randomUUID();
+        UUID currencyId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2026, 9, 6, 1, 0);
+        InventoryModel bag = new InventoryModel(bagId, accountId, InventoryType.BAG,
+            InventoryProfile.GAME.getCode(), 9, true, null, now, now, accountId, accountId, false);
+        InventoryModel currency = new InventoryModel(currencyId, accountId, InventoryType.CURRENCY,
+            InventoryProfile.GAME.getCode(), null, true, null, now, now, accountId, accountId, false);
+        InventoryEntryModel gold = new InventoryEntryModel(UUID.randomUUID(), currencyId, 1,
+            "CURRENCY", "gold", null, null, 100L, null, now, now, accountId, accountId, false);
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(bag, currency));
+        when(inventoryRepository.findEntries(bagId)).thenReturn(List.of());
+        when(inventoryRepository.findEntries(currencyId)).thenReturn(List.of(gold));
+        when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository,
+            mock(ItemService.class), snapshotRepository());
+        PlayerInventoryState state = persistence.load(accountId);
+        state.updateInventoryMetadata(bagId, "{}", accountId);
+
+        InventoryPersistence.PersistedInventoryBaseline baseline = persistence.saveNowWithBaseline(state);
+
+        assertNotNull(baseline);
+        assertEquals(100L, baseline.entries(currencyId).stream().mapToLong(InventoryEntryModel::getQuantity).sum());
+        assertEquals(gold.getInventoryEntryId(), baseline.entries(currencyId).getFirst().getInventoryEntryId());
+        assertFalse(persistence.hasPendingChanges(state));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値
      * 検証契約: dirty耐久値をflushしてもpendingが残る場合、inventoryのsaveNowはfalseを返す。

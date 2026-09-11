@@ -41,6 +41,92 @@ import static org.mockito.Mockito.when;
 class InventorySaveCoordinatorTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 外部取引の反映後に保存がタイムアウトしても、再試行は保存だけを行い、受取Goldを再加算しない。
+     */
+    @Test
+    void preparedRetryAfterSaveTimeoutDoesNotReapplyGoldDelta() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNowWithBaseline(state)).thenReturn(
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor, 1_000);
+        AtomicInteger gold = new AtomicInteger(100);
+        AtomicInteger applications = new AtomicInteger();
+        java.util.function.Function<InventoryPersistence.PersistedInventoryBaseline, Integer> reconcile = baseline -> {
+            applications.incrementAndGet();
+            return gold.updateAndGet(current -> 110 + current - 100);
+        };
+
+        try (MockedStatic<Logger> ignored = mockStatic(Logger.class)) {
+            var prepare = coordinator.prepareExternalOperationAfterSave(accountId);
+            executor.runAll();
+            var prepared = prepare.join();
+            var first = coordinator.completePreparedExternalOperation(prepared, reconcile);
+            executor.runAll();
+            CompletionException failure = assertThrows(CompletionException.class, first::join);
+            assertTrue(failure.getCause() instanceof InventorySaveCoordinator.ExternalOperationTimeoutException);
+            assertEquals(110, gold.get());
+            assertTrue(coordinator.hasUnresolvedExternalOperation(accountId));
+
+            when(persistence.saveNow(state)).thenReturn(true);
+            var retry = coordinator.completePreparedExternalOperation(prepared, reconcile);
+            executor.runAll();
+
+            assertEquals(110, retry.join());
+            assertEquals(110, gold.get());
+            assertEquals(1, applications.get());
+            assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 外部結果の照合自体が失敗した場合は、同じ handle で照合を再試行できる。
+     */
+    @Test
+    void preparedRetryRepeatsReconciliationThatDidNotComplete() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNowWithBaseline(state)).thenReturn(
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+        when(persistence.saveNow(state)).thenReturn(true);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+        AtomicInteger attempts = new AtomicInteger();
+        java.util.function.Function<InventoryPersistence.PersistedInventoryBaseline, Void> reconcile = baseline -> {
+            if (attempts.incrementAndGet() == 1) throw new IllegalStateException("read unavailable");
+            return null;
+        };
+
+        try (MockedStatic<Logger> ignored = mockStatic(Logger.class)) {
+            var prepare = coordinator.prepareExternalOperationAfterSave(accountId);
+            executor.runAll();
+            var prepared = prepare.join();
+            var first = coordinator.completePreparedExternalOperation(prepared, reconcile);
+            executor.runAll();
+            assertThrows(CompletionException.class, first::join);
+            verify(persistence, never()).saveNow(state);
+
+            var retry = coordinator.completePreparedExternalOperation(prepared, reconcile);
+            executor.runAll();
+
+            assertNull(retry.join());
+            assertEquals(2, attempts.get());
+            assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        }
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## ローカル操作の即時応答
      * 検証契約: 先行保存が未実行でも強化・回復のローカル結果を即時に返し、DB保存失敗で補償しない。

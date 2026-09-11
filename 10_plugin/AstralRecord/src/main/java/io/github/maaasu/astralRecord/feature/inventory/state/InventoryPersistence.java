@@ -269,7 +269,8 @@ public final class InventoryPersistence {
         PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
         if (snapshot == null) {
             synchronized (state) {
-                snapshot = captureState(state, false);
+                // 外部取引の三者マージには、dirty scope 外の通貨を含む完全な比較元が必要。
+                snapshot = captureState(state, baselineTarget != null);
                 if (snapshot == null) return false;
                 state.takeAndClearDirty();
                 pendingSnapshots.put(accountId, snapshot);
@@ -492,6 +493,9 @@ public final class InventoryPersistence {
 
     /**
      * 外部原子操作の直前状態を保存し、API が実際に永続化した entry を baseline として返します。
+     * <p>
+     * 通常保存の dirty scope にかかわらず、全有効インベントリを捕捉・保存します。
+     * 未変更の通貨を baseline から省くと、三者マージで既存残高を追加取得分と誤認するためです。
      * <p>
      * 保存中にローカル変更が入った場合、{@link PlayerInventoryState#acknowledgePersistedEntries(UUID, List, List)}
      * はその変更を保持して dirty を残します。この場合は不安定な snapshot を baseline にせず {@code null}

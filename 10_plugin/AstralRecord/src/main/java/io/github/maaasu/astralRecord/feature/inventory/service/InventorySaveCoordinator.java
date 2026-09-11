@@ -517,7 +517,8 @@ public final class InventorySaveCoordinator {
      * <p>
      * operation が例外になった場合は、API transaction が確定済みの可能性を保護するため未解決境界を
      * 解除しません。同じ handle と operation ID の API replay で再試行し、再同期と保存が成功した時だけ
-     * 境界を解除します。
+     * 境界を解除します。operation が正常終了した後の保存失敗では、その結果を handle に保持し、
+     * 再試行時は保存だけを行います。同一 handle の再試行には同じ処理と結果型を使用してください。
      *
      * @param prepared {@link #prepareExternalOperationAfterSave(UUID)} が返した handle
      * @param operation API 正本照合を行う処理
@@ -539,10 +540,13 @@ public final class InventorySaveCoordinator {
         }
         AtomicReference<T> completedResult = new AtomicReference<>();
         CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (!ownsExternalBoundary(accountId, prepared.boundaryToken())) {
+                throw new IllegalStateException("External operation boundary changed for account " + accountId);
+            }
             if (stateRegistry.get(accountId) != prepared.state()) {
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
             }
-            T result = operation.apply(prepared.baseline());
+            T result = prepared.applyOnce(operation);
             completedResult.set(result);
             persistMergedStateUntilStable(accountId, prepared.state(), prepared.boundaryToken());
             return true;
@@ -1378,17 +1382,56 @@ public final class InventorySaveCoordinator {
     /**
      * API 呼び出し前の保存済み baseline と、その間に保持する state 世代です。
      *
-     * @param accountId 対象アカウント ID
-     * @param state 事前保存時から同一である必要がある state
-     * @param baseline API 正本照合に使う保存済み entry
-     * @param boundaryToken 外部操作境界の所有 token
      */
-    public record PreparedExternalOperation(
-        @NotNull UUID accountId,
-        @NotNull PlayerInventoryState state,
-        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
-        @NotNull UUID boundaryToken
-    ) {
+    public static final class PreparedExternalOperation {
+        private final UUID accountId;
+        private final PlayerInventoryState state;
+        private final InventoryPersistence.PersistedInventoryBaseline baseline;
+        private final UUID boundaryToken;
+        /** 同一 account lane 内だけで読み書きする、正常終了済みの反映結果。 */
+        private boolean applied;
+        private Object appliedResult;
+
+        /**
+         * 事前保存と外部操作境界を関連付けます。
+         * @param accountId 対象アカウント ID
+         * @param state 事前保存時から同一である必要がある state
+         * @param baseline API 正本照合に使う保存済み entry
+         * @param boundaryToken 外部操作境界の所有 token
+         */
+        public PreparedExternalOperation(@NotNull UUID accountId, @NotNull PlayerInventoryState state,
+                                         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+                                         @NotNull UUID boundaryToken) {
+            this.accountId = accountId;
+            this.state = state;
+            this.baseline = baseline;
+            this.boundaryToken = boundaryToken;
+        }
+
+        /** @return 対象アカウント ID */
+        public @NotNull UUID accountId() { return accountId; }
+
+        /** @return 事前保存時の state 世代 */
+        public @NotNull PlayerInventoryState state() { return state; }
+
+        /** @return 事前保存済みの比較元 */
+        public @NotNull InventoryPersistence.PersistedInventoryBaseline baseline() { return baseline; }
+
+        /** @return 外部操作境界の所有 token */
+        public @NotNull UUID boundaryToken() { return boundaryToken; }
+
+        /**
+         * 同一 account lane 内で反映を一度だけ行い、保存再試行には正常終了済みの値を返します。
+         * operation 自体が例外になった場合は未反映のままとし、次回の照合を許可します。
+         */
+        @SuppressWarnings("unchecked")
+        private <T> T applyOnce(Function<InventoryPersistence.PersistedInventoryBaseline, T> operation) {
+            if (!applied) {
+                appliedResult = operation.apply(baseline);
+                applied = true;
+            }
+            return (T) appliedResult;
+        }
     }
 
     /** 重要操作の成功値と、SQL未確定時に呼ぶ操作前状態への補償です。 */
