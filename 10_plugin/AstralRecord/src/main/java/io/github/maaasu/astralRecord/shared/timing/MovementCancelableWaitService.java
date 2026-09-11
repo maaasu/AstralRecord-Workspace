@@ -12,9 +12,6 @@ import org.jetbrains.annotations.NotNull;
 public final class MovementCancelableWaitService {
     public static final double DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS = 0.2D;
 
-    private static final double DEFAULT_MOVE_CANCEL_DISTANCE_SQUARED =
-        DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS * DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS;
-
     private final AstralRecord plugin;
 
     /**
@@ -39,8 +36,47 @@ public final class MovementCancelableWaitService {
         long durationTicks,
         @NotNull MovementCancelableWaitCallbacks callbacks
     ) {
+        return begin(player, durationTicks, DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS, callbacks);
+    }
+
+    /**
+     * 指定した移動許容距離を超えるとキャンセルされる待機処理を開始します。
+     *
+     * @param player 待機するプレイヤー
+     * @param durationTicks 待機 tick
+     * @param moveCancelDistanceBlocks 開始地点から許容する移動距離（block）
+     * @param callbacks 進行・完了・キャンセル callback
+     * @return 待機処理のハンドル
+     */
+    public @NotNull MovementCancelableWait begin(
+        @NotNull Player player,
+        long durationTicks,
+        double moveCancelDistanceBlocks,
+        @NotNull MovementCancelableWaitCallbacks callbacks
+    ) {
+        return begin(player, durationTicks, moveCancelDistanceBlocks, player.getLocation(), callbacks);
+    }
+
+    /**
+     * 指定した開始地点からの移動許容距離を超えるとキャンセルされる待機処理を開始します。
+     *
+     * @param player 待機するプレイヤー
+     * @param durationTicks 待機 tick
+     * @param moveCancelDistanceBlocks 開始地点から許容する移動距離（block）
+     * @param startLocation 移動判定の開始地点
+     * @param callbacks 進行・完了・キャンセル callback
+     * @return 待機処理のハンドル
+     */
+    public @NotNull MovementCancelableWait begin(
+        @NotNull Player player,
+        long durationTicks,
+        double moveCancelDistanceBlocks,
+        @NotNull Location startLocation,
+        @NotNull MovementCancelableWaitCallbacks callbacks
+    ) {
         long resolvedDurationTicks = Math.max(1L, durationTicks);
-        Location startLocation = player.getLocation().clone();
+        double resolvedMoveCancelDistanceSquared = resolveMoveCancelDistanceSquared(moveCancelDistanceBlocks);
+        Location resolvedStartLocation = startLocation.clone();
         MovementCancelableWait wait = new MovementCancelableWait();
         wait.setCallbacks(callbacks);
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
@@ -57,7 +93,7 @@ public final class MovementCancelableWaitService {
                         cancel(wait, MovementCancelableWaitCancelReason.OFFLINE, callbacks);
                         return;
                     }
-                    if (hasMoved(player.getLocation(), startLocation)) {
+                    if (hasMoved(player.getLocation(), resolvedStartLocation, resolvedMoveCancelDistanceSquared)) {
                         cancel(wait, MovementCancelableWaitCancelReason.MOVED, callbacks);
                         return;
                     }
@@ -112,10 +148,21 @@ public final class MovementCancelableWaitService {
         }
     }
 
-    private static boolean hasMoved(@NotNull Location current, @NotNull Location start) {
+    static boolean hasMoved(
+        @NotNull Location current,
+        @NotNull Location start,
+        double moveCancelDistanceSquared
+    ) {
         if (current.getWorld() == null || start.getWorld() == null || !current.getWorld().equals(start.getWorld())) {
             return true;
         }
-        return current.distanceSquared(start) > DEFAULT_MOVE_CANCEL_DISTANCE_SQUARED;
+        return current.distanceSquared(start) > moveCancelDistanceSquared;
+    }
+
+    private static double resolveMoveCancelDistanceSquared(double moveCancelDistanceBlocks) {
+        double resolvedDistance = Double.isFinite(moveCancelDistanceBlocks)
+            ? Math.max(0.0D, moveCancelDistanceBlocks)
+            : DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS;
+        return resolvedDistance * resolvedDistance;
     }
 }

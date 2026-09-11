@@ -20,6 +20,10 @@ challenge:
   reviveDelaySeconds: 5
   timeLimitSeconds: 900
 clearRewards:
+  items:
+    - itemId: item:20a00069
+      rate: 5.0
+      amount: 1
   lootTable: loot_table:dungeon_common_orb_table
 generation:
   area:

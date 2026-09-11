@@ -73,6 +73,9 @@ public final class PotionUseService {
     private static final long MILLIS_PER_TICK = 50L;
     private static final long EFFECT_PERIOD_TICKS = 5L;
     private static final int RING_POINTS = 8;
+    private static final double MINIMUM_MOVE_ALLOWANCE_PARTICLE_RADIUS = 1.0D;
+    private static final int MINIMUM_MOVE_ALLOWANCE_RING_POINTS = 12;
+    private static final int MAXIMUM_MOVE_ALLOWANCE_RING_POINTS = 48;
     private static final Title.Times COUNTDOWN_TITLE_TIMES =
         Title.Times.times(Duration.ZERO, Duration.ofMillis(900L), Duration.ofMillis(120L));
     private static final Title.Times RESULT_TITLE_TIMES =
@@ -142,6 +145,8 @@ public final class PotionUseService {
         }
 
         long useTimeTicks = resolveUseTimeTicks(consumable);
+        double movementAllowanceBlocks = resolveConsumableUseMovementAllowance(astPlayer);
+        Location useStartLocation = astPlayer.getBukkit().getLocation().clone();
         BossBar bossBar = Bukkit.createBossBar(
             PlayerMsgResource.format(PlayerMsgId.P_5267.getId(), displayItemName(model), secondsRemaining(useTimeTicks, 0L)),
             BarColor.GREEN,
@@ -151,13 +156,17 @@ public final class PotionUseService {
         bossBar.setProgress(0.0D);
         bossBar.addPlayer(astPlayer.getBukkit());
 
-        PendingPotionUse pending = new PendingPotionUse(astPlayer, hand, model, consumable, useTimeTicks, bossBar);
+        PendingPotionUse pending = new PendingPotionUse(
+            astPlayer, hand, model, consumable, useTimeTicks, movementAllowanceBlocks, useStartLocation, bossBar);
         updateUseDisplay(pending, secondsRemaining(useTimeTicks, 0L));
-        playUseStartEffects(astPlayer.getBukkit(), consumable.getOnUse());
+        playUseStartEffects(pending);
         pendingUses.put(playerId, pending);
+        statusService.setConsumableUseMovementSlowdownActive(astPlayer, true);
         pending.setWait(movementCancelableWaitService.begin(
             astPlayer.getBukkit(),
             useTimeTicks,
+            movementAllowanceBlocks,
+            useStartLocation,
             new MovementCancelableWaitCallbacks() {
                 @Override
                 public void onTick(long elapsedTicks, double progress) {
@@ -352,10 +361,12 @@ public final class PotionUseService {
         }
         if (elapsedTicks % EFFECT_PERIOD_TICKS == 0L) {
             playUseChargeEffects(player, elapsedTicks, progress, pending.consumable().getOnUse());
+            displayMovementAllowanceRing(pending, elapsedTicks);
         }
     }
 
     private void cleanupPending(@NotNull PendingPotionUse pending) {
+        statusService.setConsumableUseMovementSlowdownActive(pending.astPlayer(), false);
         pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
@@ -389,9 +400,12 @@ public final class PotionUseService {
         ));
     }
 
-    private void playUseStartEffects(@NotNull Player player, @Nullable ItemConsumableOnUse onUse) {
+    private void playUseStartEffects(@NotNull PendingPotionUse pending) {
+        Player player = pending.astPlayer().getBukkit();
+        ItemConsumableOnUse onUse = pending.consumable().getOnUse();
         playUsingSound(player, onUse, 0.7F, 1.0F);
         playUseChargeEffects(player, 0L, 0.0D, onUse);
+        displayMovementAllowanceRing(pending, 0L);
     }
 
     private void playUseChargeEffects(
@@ -419,6 +433,32 @@ public final class PotionUseService {
         if (elapsedTicks % 10L == 0L) {
             playUsingSound(player, onUse, 0.35F, (float) (1.18D + (progress * 0.24D)));
         }
+    }
+
+    private void displayMovementAllowanceRing(@NotNull PendingPotionUse pending, long elapsedTicks) {
+        double radius = pending.movementAllowanceBlocks();
+        if (!shouldDisplayMovementAllowanceRing(radius)) {
+            return;
+        }
+        Location center = pending.useStartLocation();
+        int pointCount = Math.max(
+            MINIMUM_MOVE_ALLOWANCE_RING_POINTS,
+            Math.min(MAXIMUM_MOVE_ALLOWANCE_RING_POINTS, (int) Math.ceil(Math.PI * 2.0D * radius * 2.0D))
+        );
+        List<Location> points = new ArrayList<>(pointCount);
+        for (int index = 0; index < pointCount; index++) {
+            double angle = (elapsedTicks * 0.10D) + ((Math.PI * 2.0D * index) / pointCount);
+            points.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
+        }
+        particleDisplayService.spawnForNearbyViewers(
+            center,
+            points,
+            SharedParticleDefinitions.CONSUMABLE_USE_MOVE_ALLOWANCE_COMPOSTER
+        );
+    }
+
+    static boolean shouldDisplayMovementAllowanceRing(double radius) {
+        return Double.isFinite(radius) && radius >= MINIMUM_MOVE_ALLOWANCE_PARTICLE_RADIUS;
     }
 
     private void playUsingSound(
@@ -628,6 +668,15 @@ public final class PotionUseService {
         return onUse == null ? DEFAULT_COOLDOWN_TICKS : Math.max(0L, onUse.getCooldownTicks());
     }
 
+    private double resolveConsumableUseMovementAllowance(@NotNull AstPlayer astPlayer) {
+        double statusValue = statusService.getStatus(astPlayer)
+            .getMaxValue(StatusType.CONSUMABLE_USE_MOVEMENT_ALLOWANCE);
+        if (!Double.isFinite(statusValue)) {
+            return MovementCancelableWaitService.DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS;
+        }
+        return Math.max(MovementCancelableWaitService.DEFAULT_MOVE_CANCEL_DISTANCE_BLOCKS, statusValue);
+    }
+
     private static boolean shouldNotifyCancel(@NotNull MovementCancelableWaitCancelReason reason) {
         return reason == MovementCancelableWaitCancelReason.MOVED
             || reason == MovementCancelableWaitCancelReason.HELD_ITEM_CHANGED;
@@ -664,6 +713,8 @@ public final class PotionUseService {
         private final ItemModel model;
         private final ItemConsumable consumable;
         private final long useTimeTicks;
+        private final double movementAllowanceBlocks;
+        private final Location useStartLocation;
         private final BossBar bossBar;
         private int lastDisplayedSeconds = -1;
         private MovementCancelableWait wait;
@@ -674,6 +725,8 @@ public final class PotionUseService {
             @NotNull ItemModel model,
             @NotNull ItemConsumable consumable,
             long useTimeTicks,
+            double movementAllowanceBlocks,
+            @NotNull Location useStartLocation,
             @NotNull BossBar bossBar
         ) {
             this.astPlayer = astPlayer;
@@ -681,6 +734,8 @@ public final class PotionUseService {
             this.model = model;
             this.consumable = consumable;
             this.useTimeTicks = useTimeTicks;
+            this.movementAllowanceBlocks = movementAllowanceBlocks;
+            this.useStartLocation = useStartLocation.clone();
             this.bossBar = bossBar;
         }
 
@@ -702,6 +757,14 @@ public final class PotionUseService {
 
         private long useTimeTicks() {
             return useTimeTicks;
+        }
+
+        private double movementAllowanceBlocks() {
+            return movementAllowanceBlocks;
+        }
+
+        private @NotNull Location useStartLocation() {
+            return useStartLocation.clone();
         }
 
         private @NotNull BossBar bossBar() {

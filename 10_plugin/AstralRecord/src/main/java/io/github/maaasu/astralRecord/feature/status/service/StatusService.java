@@ -92,6 +92,7 @@ public class StatusService {
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
     private final Map<UUID, Boolean> shieldActivationStates = new HashMap<>();
+    private final Set<UUID> consumableUseMovementSlowdownPlayers = new java.util.HashSet<>();
 
     public StatusService() {
         this(null, null);
@@ -239,7 +240,34 @@ public class StatusService {
             movementSpeed = Math.min(movementSpeed, movementSpeedCap);
         }
         double speedPercent = movementSpeed * conditionMultiplier;
+        if (consumableUseMovementSlowdownPlayers.contains(player.getBukkit().getUniqueId())) {
+            speedPercent *= consumableUseMovementMultiplier(
+                snapshot.getMaxValue(StatusType.CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE));
+        }
         attribute.setBaseValue(VANILLA_PLAYER_MOVEMENT_SPEED * speedPercent / 100.0D);
+    }
+
+    /**
+     * 消耗品使用中の移動減速を有効または解除し、現在のステータス速度を即時反映します。
+     *
+     * @param player 対象プレイヤー
+     * @param active 消耗品使用中なら {@code true}
+     */
+    public void setConsumableUseMovementSlowdownActive(@NotNull AstPlayer player, boolean active) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        boolean changed = active
+            ? consumableUseMovementSlowdownPlayers.add(playerId)
+            : consumableUseMovementSlowdownPlayers.remove(playerId);
+        if (changed) {
+            applyMovementSpeed(player, getStatus(player));
+        }
+    }
+
+    static double consumableUseMovementMultiplier(double slowdownRate) {
+        if (!Double.isFinite(slowdownRate)) {
+            return 1.0D;
+        }
+        return 1.0D - (Math.max(0.0D, Math.min(100.0D, slowdownRate)) / 100.0D);
     }
 
     /**

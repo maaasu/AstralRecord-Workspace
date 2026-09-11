@@ -94,6 +94,8 @@ statuses:
   - { id: ENERGY_REGEN, displayName: "ENG回復力", description: "時間経過などでENGを回復する量。", category: UTILITY }
   - { id: MOVEMENT_SPEED, displayName: "移動速度", description: "フィールド上を移動する速さ。", category: UTILITY }
   - { id: MOVEMENT_SPEED_CAP, displayName: "移動速度上限", description: "通常状態で適用できる移動速度の上限。", category: UTILITY, supportsRange: false }
+  - { id: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, displayName: "消耗品使用時移動許容距離", description: "消耗品の使用待機中にキャンセルされず移動できる距離。1ポイントにつき1ブロック。0の場合は従来どおり0.2ブロックを超える移動でキャンセルされる。", category: UTILITY, suffix: "ブロック", decimalPlaces: 1, supportsRange: false }
+  - { id: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, displayName: "消耗品使用時移動減速率", description: "消耗品の使用待機中に従来の移動速度から減速する割合。80%の場合は従来速度の20%で移動する。", category: UTILITY, suffix: "%", decimalPlaces: 1, supportsRange: false }
   - { id: COOLDOWN_REDUCTION, displayName: "クールダウン短縮", description: "スキルの再使用までに必要な時間を短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: CAST_TIME_REDUCTION, displayName: "詠唱時間短縮率", description: "スキルの詠唱時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: MANA_COST_REDUCTION, displayName: "MP消費軽減率", description: "スキルのMP消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }

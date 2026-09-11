@@ -306,6 +306,8 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition POTION_USE_ENCHANT =
         new SharedParticleDefinition("potion_use_enchant", Particle.ENCHANT, 3, 0.24D, 0.28D, 0.24D, 0.02D);
+    public static final SharedParticleDefinition CONSUMABLE_USE_MOVE_ALLOWANCE_COMPOSTER =
+        new SharedParticleDefinition("consumable_use_move_allowance_composter", Particle.COMPOSTER, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition HOOKSHOT_TRAIL =
         new SharedParticleDefinition("hookshot_trail", Particle.ELECTRIC_SPARK, 1, 0.01D, 0.01D, 0.01D, 0.0D);
     public static final SharedParticleDefinition HOOKSHOT_ANCHOR =

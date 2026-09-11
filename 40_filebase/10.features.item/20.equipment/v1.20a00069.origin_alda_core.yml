@@ -1,0 +1,85 @@
+# design:
+#   motif: "始源アルダ / 原初の核"
+#   progression: 15
+schemaVersion: 1
+id: 20a00069
+category: equipment
+name: "&a始源アルダコア"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTliZWFkZGZjZTRmM2VlMzYzMTBhOWQzN2IyODE0NTc4NTU3M2JmNDA2YjFmODIxMTY4ZGRhYTFkZGY1NDY0YSJ9fX0=
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 2000
+lore:
+  - "&7始源の遺跡に眠っていた、生命の巡りを司る核。"
+  - "&7極限まで高めると、歩みを止めずに消耗品を使える。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CORE
+  requiredLevel: 15
+  stats: []
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 4
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 5
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 6
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 7
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 8
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 9
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 0 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 0 }
+        successRate: 0.20
+        failAction: NONE
+      - level: 10
+        statIncrease:
+          - { status: CONSUMABLE_USE_MOVEMENT_ALLOWANCE, type: FLAT, value: 2 }
+          - { status: CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE, type: FLAT, value: 80 }
+        successRate: 0.20
+        failAction: NONE

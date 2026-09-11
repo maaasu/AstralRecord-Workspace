@@ -67,4 +67,37 @@ class PrimaryStatusDerivedEffectsTest extends MockBukkitTestBase {
             0.0001D
         );
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 状態異常との統合 > ### 消耗品使用時移動減速の設定
+     * 検証契約: 消耗品使用待機中だけ減速率を従来の移動速度へ乗算し、80%では20%の速度にする。
+     */
+    @Test
+    void consumableUseSlowdownAppliesOnlyWhileUseIsActive() {
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getStatusBonus(player, StatusType.CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE))
+            .thenReturn(80.0D);
+
+        StatusService service = new StatusService();
+        service.setPlayerClassService(playerClassService);
+        service.refreshStatus(player);
+        service.setConsumableUseMovementSlowdownActive(player, true);
+
+        assertEquals(
+            0.021D,
+            bukkitPlayer.getAttribute(Attribute.MOVEMENT_SPEED).getBaseValue(),
+            0.0001D
+        );
+
+        service.setConsumableUseMovementSlowdownActive(player, false);
+
+        assertEquals(
+            0.105D,
+            bukkitPlayer.getAttribute(Attribute.MOVEMENT_SPEED).getBaseValue(),
+            0.0001D
+        );
+    }
 }
