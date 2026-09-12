@@ -21,6 +21,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
+import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -66,6 +68,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final DamageService damageService;
     private final ConditionService conditionService;
     private final NormalAttackDegradationService normalAttackDegradationService;
+    private final PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
     private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
@@ -110,10 +113,30 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @Nullable ConditionService conditionService,
             @Nullable NormalAttackDegradationService normalAttackDegradationService
     ) {
+        this(particleDisplayService, damageService, conditionService, normalAttackDegradationService, null);
+    }
+
+    /**
+     * 通常攻撃劣化とパラディンのフィールド連携を含む weapon attack executor を構築します。
+     *
+     * @param particleDisplayService パーティクル表示サービス
+     * @param damageService custom damage 適用サービス
+     * @param conditionService 通常攻撃に付随する状態異常サービス
+     * @param normalAttackDegradationService 通常攻撃劣化サービス
+     * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
+     */
+    public WeaponAttackSkillExecutor(
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DamageService damageService,
+            @Nullable ConditionService conditionService,
+            @Nullable NormalAttackDegradationService normalAttackDegradationService,
+            @Nullable PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService
+    ) {
         this.particleDisplayService = particleDisplayService;
         this.damageService = damageService;
         this.conditionService = conditionService;
         this.normalAttackDegradationService = normalAttackDegradationService;
+        this.paladinHolyFieldRuntimeService = paladinHolyFieldRuntimeService;
     }
 
     @Override
@@ -127,6 +150,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         if (origin == null) {
             return SkillCastResult.succeeded();
         }
+        refreshHolyFieldForHammerAttack(context);
 
         Location eyeLocation = origin.location();
         Vector direction = origin.direction();
@@ -183,6 +207,20 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 resolveNormalAttackDamageMultiplier(context)
         );
         return SkillCastResult.succeeded();
+    }
+
+    /**
+     * ホーリーフィールド中のハンマー通常攻撃を通知します。
+     *
+     * @param context 通常攻撃の実行コンテキスト
+     */
+    private void refreshHolyFieldForHammerAttack(@NotNull SkillCastContext context) {
+        if (paladinHolyFieldRuntimeService == null
+                || !BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_HAMMER.equals(context.skill().getId())
+                || !(context.caster() instanceof PlayerSkillCaster caster)) {
+            return;
+        }
+        paladinHolyFieldRuntimeService.onHammerNormalAttack(caster.player());
     }
 
     @Override

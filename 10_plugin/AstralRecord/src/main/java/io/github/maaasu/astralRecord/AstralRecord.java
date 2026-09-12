@@ -227,6 +227,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecu
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
@@ -431,6 +432,7 @@ public final class AstralRecord extends JavaPlugin {
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
+    private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
@@ -821,6 +823,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (bastionStrikeSkillRuntimeService != null) {
             bastionStrikeSkillRuntimeService.clearAll();
+        }
+        if (paladinHolyFieldRuntimeService != null) {
+            paladinHolyFieldRuntimeService.clearAll();
         }
         if (skillTreeService != null) {
             skillTreeService.stop();
@@ -1533,6 +1538,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
         normalAttackDegradationService = new NormalAttackDegradationService(statusService);
+        paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(statusService, partyService);
         skillService.addPlayerCastSuccessListener(normalAttackDegradationService::onSkillCast);
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
@@ -1545,7 +1551,8 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             damageService,
             conditionService,
-            normalAttackDegradationService
+            normalAttackDegradationService,
+            paladinHolyFieldRuntimeService
         );
         skillService.registerExecutor(weaponAttackSkillExecutor);
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
@@ -1614,7 +1621,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         damageService.setBastionStrikeSkillRuntimeService(bastionStrikeSkillRuntimeService);
         skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
-        ActiveSkillExecutorCatalog.create(activeSkillServices)
+        ActiveSkillExecutorCatalog.create(activeSkillServices, paladinHolyFieldRuntimeService)
             .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
         bossMechanicService.setTemporarySkillEffectService(temporarySkillEffectService);
@@ -1865,6 +1872,7 @@ public final class AstralRecord extends JavaPlugin {
             spellStepSkillRuntimeService.clearPlayer(playerId);
             arcaneFlowSkillRuntimeService.clearPlayer(playerId);
             bastionStrikeSkillRuntimeService.clearPlayer(playerId);
+            paladinHolyFieldRuntimeService.end(playerId);
             normalAttackDegradationService.clearPlayer(playerId);
             conditionService.clearAll(AstEntity.player(player));
             skillActionRingHoldService.cancel(player.getBukkit());

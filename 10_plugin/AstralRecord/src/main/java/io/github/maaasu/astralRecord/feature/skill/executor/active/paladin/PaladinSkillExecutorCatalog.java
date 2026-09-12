@@ -18,7 +18,13 @@ public final class PaladinSkillExecutorCatalog {
      * @param services 共有発動スキルサービス
      * @return 1個の executor
      */
-    public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        return List.of(new PaladinHolySmiteExecutor(services));
+    public static @NotNull List<SkillExecutor> create(
+            @NotNull ActiveSkillServices services,
+            @NotNull PaladinHolyFieldRuntimeService holyFieldRuntimeService
+    ) {
+        return List.of(
+                new PaladinHolySmiteExecutor(services),
+                new PaladinHolyFieldExecutor(services, holyFieldRuntimeService)
+        );
     }
 }

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1524",
+  "name": "&fホーリーフィールド",
+  "icon": "IRON_TRAPDOOR",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_holy_field"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

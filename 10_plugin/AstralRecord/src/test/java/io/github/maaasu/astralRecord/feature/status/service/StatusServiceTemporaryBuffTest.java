@@ -61,4 +61,28 @@ class StatusServiceTemporaryBuffTest extends MockBukkitTestBase {
         assertEquals(baseAttack, service.getStatus(player).getMaxValue(StatusType.ATTACK), 0.0001D);
         assertEquals(0, service.getActiveBuffs(player).size());
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 一時固定値バフ適用
+     * 検証契約: 呼出元が一意なバフIDを指定した一時固定値バフは、負値を許可し、同ステータスの他IDバフを置換せずに共存する。
+     */
+    @Test
+    void scopedTemporaryFlatBuffSupportsNegativeValuesWithoutReplacingAnotherScope() {
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        StatusService service = new StatusService();
+
+        double baseShieldBreak = service.refreshStatus(player).getMaxValue(StatusType.SHIELD_BREAK);
+        service.applyTemporaryFlatBuff(
+            player, "holy-field:first", "ホーリーフィールド", StatusType.SHIELD_BREAK, -10.0D, 60L
+        );
+        service.applyTemporaryFlatBuff(
+            player, "holy-field:second", "ホーリーフィールド", StatusType.SHIELD_BREAK, 3.0D, 60L
+        );
+
+        assertEquals(baseShieldBreak - 7.0D, service.getStatus(player).getMaxValue(StatusType.SHIELD_BREAK), 0.0001D);
+        service.removeBuff(player, "holy-field:first");
+        assertEquals(baseShieldBreak + 3.0D, service.getStatus(player).getMaxValue(StatusType.SHIELD_BREAK), 0.0001D);
+    }
 }

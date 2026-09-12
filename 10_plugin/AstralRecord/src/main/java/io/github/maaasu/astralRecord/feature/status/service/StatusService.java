@@ -285,11 +285,11 @@ public class StatusService {
     }
 
     /**
-     * 指定ステータスを固定値で上昇させる一時バフを付与し、ステータスを再計算します。
+     * 指定ステータスを固定値で補正する一時バフを付与し、ステータスを再計算します。
      *
      * @param player          対象プレイヤー
      * @param statusType      上昇させるステータス種別
-     * @param value           上昇値（正の有限値）
+     * @param value           補正値（0以外の有限値）
      * @param durationSeconds 持続秒数
      * @return 付与したアクティブバフ
      * @throws IllegalArgumentException 値または持続秒数が有効範囲外の場合
@@ -301,6 +301,33 @@ public class StatusService {
         long durationSeconds
     ) {
         ActiveBuff activeBuff = buffService.applyTemporaryFlat(player, statusType, value, durationSeconds);
+        refreshStatus(player);
+        return activeBuff;
+    }
+
+    /**
+     * 指定IDで固定値の一時バフを付与し、ステータスを再計算します。
+     *
+     * @param player 対象プレイヤー
+     * @param buffId バフ識別子
+     * @param displayName 表示名
+     * @param statusType 補正するステータス種別
+     * @param value 補正値（0以外の有限値）
+     * @param durationSeconds 持続秒数
+     * @return 付与したアクティブバフ
+     * @throws IllegalArgumentException 引数が有効範囲外の場合
+     */
+    public @NotNull ActiveBuff applyTemporaryFlatBuff(
+        @NotNull AstPlayer player,
+        @NotNull String buffId,
+        @NotNull String displayName,
+        @NotNull StatusType statusType,
+        double value,
+        long durationSeconds
+    ) {
+        ActiveBuff activeBuff = buffService.applyTemporaryFlat(
+            player, buffId, displayName, statusType, value, durationSeconds
+        );
         refreshStatus(player);
         return activeBuff;
     }

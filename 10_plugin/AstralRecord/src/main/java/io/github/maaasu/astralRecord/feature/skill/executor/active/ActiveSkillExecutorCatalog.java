@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,14 +23,18 @@ public final class ActiveSkillExecutorCatalog {
      * 実装済みのプレイヤー用 executor を職業横断で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 21個の executor
+     * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
+     * @return 22個の executor
      */
-    public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        List<SkillExecutor> executors = new ArrayList<>(21);
+    public static @NotNull List<SkillExecutor> create(
+            @NotNull ActiveSkillServices services,
+            @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService
+    ) {
+        List<SkillExecutor> executors = new ArrayList<>(22);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
-        executors.addAll(PaladinSkillExecutorCatalog.create(services));
+        executors.addAll(PaladinSkillExecutorCatalog.create(services, paladinHolyFieldRuntimeService));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }

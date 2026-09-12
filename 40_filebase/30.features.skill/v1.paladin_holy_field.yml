@@ -1,0 +1,64 @@
+# design:
+#   motif: "聖騎士 / 神聖な陣地"
+#   progression: 2
+schemaVersion: 1
+id: paladin_holy_field
+type: SKILL
+implementationId: paladin_holy_field
+name: "&fホーリーフィールド"
+description: "&7聖なる陣地で味方の破盾力を調律する。"
+icon: IRON_TRAPDOOR
+lore:
+  - "&7発動地点に半径{skill.radius}mの白いフィールドを{skill.durationTicks:seconds}秒間展開する。"
+  - "&7フィールド内の自身はシールドブレイクが{skill.casterShieldBreak}増加する。"
+  - "&7フィールド内の自身以外のパーティーメンバーはシールドブレイクが{skill.partyShieldBreak}低下する。"
+  - "&7フィールド内でハンマー通常攻撃を発生させると、中心を自身へ移し持続時間を更新する。"
+cooldownTicks: 600
+resourceType: MANA
+resourceCost: 35
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - level: 2
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 3
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 4
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 5
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 6
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 7
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 8
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 9
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+  - level: 10
+    paramDeltas: { radius: 2, durationTicks: 20, casterShieldBreak: 1 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: block.beacon.activate
+tags:
+  - active
+  - field
+  - support
+# behavior:
+#   target: "中心と同じworldで半径内にいる発動者へSHIELD_BREAK +スキルレベル、同じパーティーの発動者以外へSHIELD_BREAK -10を、出入り・離脱に応じて即時反映する。"
+#   visual: "発動地点を中心に白色DUSTの円形輪郭を4tick間隔で表示する。ハンマー通常攻撃で中心を発動者位置へ移す。"
+params:
+  radius: 2.0
+  durationTicks: 20
+  casterShieldBreak: 1.0
+  partyShieldBreak: -10.0
