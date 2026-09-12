@@ -288,6 +288,8 @@ public static class MasterTagIds
         public const string ADMINISTRATOR = "administrator";
         /// <summary>冒険者。</summary>
         public const string ADVENTURER = "adventurer";
+        /// <summary>聖騎士。</summary>
+        public const string HOLY_KNIGHT = "holy_knight";
         /// <summary>コマンド限定。</summary>
         public const string COMMAND_ONLY = "command-only";
         /// <summary>アストラル。</summary>
@@ -447,6 +449,7 @@ public static class MasterTags
                 ["consumable"] = new("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", ["RECIPE"]),
                 ["administrator"] = new("administrator", "管理者", "管理者専用クラス。", "THEME", ["CLASS"]),
                 ["adventurer"] = new("adventurer", "冒険者", "冒険者クラスと関連スキル。", "THEME", ["CLASS", "SKILL"]),
+                ["holy_knight"] = new("holy_knight", "聖騎士", "聖騎士系統に属するスキル。", "THEME", ["SKILL"]),
                 ["command-only"] = new("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", ["CLASS"]),
                 ["astral"] = new("astral", "アストラル", "星界をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
                 ["azure"] = new("azure", "蒼", "蒼色をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),

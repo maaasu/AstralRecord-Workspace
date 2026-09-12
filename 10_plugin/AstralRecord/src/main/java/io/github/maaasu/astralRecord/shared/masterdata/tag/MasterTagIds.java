@@ -428,6 +428,9 @@ public final class MasterTagIds {
         /** 冒険者: 冒険者クラスと関連スキル。 */
         public static final String ADVENTURER = "adventurer";
 
+        /** 聖騎士: 聖騎士系統に属するスキル。 */
+        public static final String HOLY_KNIGHT = "holy_knight";
+
         /** コマンド限定: コマンドからのみ利用する分類。 */
         public static final String COMMAND_ONLY = "command-only";
 
@@ -593,6 +596,7 @@ public final class MasterTagIds {
         Map.entry("consumable", new Definition("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("administrator", new Definition("administrator", "管理者", "管理者専用クラス。", "THEME", List.of("CLASS"))),
         Map.entry("adventurer", new Definition("adventurer", "冒険者", "冒険者クラスと関連スキル。", "THEME", List.of("CLASS", "SKILL"))),
+        Map.entry("holy_knight", new Definition("holy_knight", "聖騎士", "聖騎士系統に属するスキル。", "THEME", List.of("SKILL"))),
         Map.entry("command-only", new Definition("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", List.of("CLASS"))),
         Map.entry("astral", new Definition("astral", "アストラル", "星界をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
         Map.entry("azure", new Definition("azure", "蒼", "蒼色をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),

@@ -530,6 +530,37 @@ public final class DamageService {
     }
 
     /**
+     * 外部で解決した攻撃力参照値を使い、通常の命中・防御・会心・属性補正を適用します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source ダメージの発生元
+     * @param resolvedAttackPower 外部で解決済みの攻撃力参照値
+     * @return 実際に適用したダメージ結果
+     */
+    public @NotNull DamageResult attackWithResolvedAttackPower(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double resolvedAttackPower
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                Math.max(0.0D, resolvedAttackPower),
+                attackType,
+                components,
+                DamageScaling.EXTERNAL_ATTACK_POWER,
+                source,
+                1.0D
+        );
+    }
+
+    /**
      * 一撃限定の超星会心発生率を指定して、攻撃ダメージを適用します。
      * 指定率は攻撃者の {@code SUPER_CRITICAL_RATE} を加算せず、この攻撃の主撃だけへ使用します。
      *

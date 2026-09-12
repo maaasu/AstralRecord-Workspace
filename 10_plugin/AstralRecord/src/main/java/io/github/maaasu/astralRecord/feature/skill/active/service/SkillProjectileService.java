@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Bukkit Entity を生成せず、swept capsule で衝突判定する軽量 projectile です。
@@ -60,7 +61,41 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish
     ) {
-        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null);
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null, null);
+    }
+
+    /**
+     * 指定した対象だけを衝突対象として扱う仮想 projectile を発射します。
+     *
+     * @param player 発動者
+     * @param origin 発射位置
+     * @param targetId 追撃対象のエンティティ UUID
+     * @param direction 発射方向
+     * @param spec projectile 仕様
+     * @param onHit 指定対象への命中処理
+     * @param onFinish 終端位置を受け取る処理
+     */
+    public void launchAtTarget(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull UUID targetId,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            @NotNull BiConsumer<AstEntity, Location> onHit,
+            @NotNull Consumer<Location> onFinish
+    ) {
+        launchInternal(
+                player,
+                origin,
+                direction,
+                spec,
+                0.0D,
+                0.0D,
+                onHit,
+                onFinish,
+                null,
+                candidate -> targetId.equals(candidate.id())
+        );
     }
 
     /**
@@ -81,7 +116,18 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onEntityHit,
             @NotNull Consumer<SkillProjectileTermination> onTerminate
     ) {
-        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onEntityHit, ignored -> { }, onTerminate);
+        launchInternal(
+                player,
+                origin,
+                direction,
+                spec,
+                0.0D,
+                0.0D,
+                onEntityHit,
+                ignored -> { },
+                onTerminate,
+                null
+        );
     }
 
     /**
@@ -368,7 +414,7 @@ public final class SkillProjectileService {
             player, origin, direction, spec,
             Math.max(0.0D, Math.min(1.0D, homingStrength)),
             Math.max(0.0D, homingRange),
-            onHit, onFinish, null
+            onHit, onFinish, null, null
         );
     }
 
@@ -381,7 +427,8 @@ public final class SkillProjectileService {
             double homingRange,
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish,
-            Consumer<SkillProjectileTermination> onTerminate
+            Consumer<SkillProjectileTermination> onTerminate,
+            @Nullable Predicate<AstEntity> hitFilter
     ) {
         Vector initialDirection = direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
@@ -428,7 +475,7 @@ public final class SkillProjectileService {
                             currentDirection[0],
                             Math.max(0.05D, actualDistance),
                             spec.hitRadius(),
-                            spec.maxHits()
+                            hitFilter == null ? spec.maxHits() : Integer.MAX_VALUE
                     )
                     : targetingService.inLineBeforeBlock(
                             player,
@@ -436,9 +483,12 @@ public final class SkillProjectileService {
                             currentDirection[0],
                             current[0].distance(blockImpact),
                             spec.hitRadius(),
-                            spec.maxHits()
+                            hitFilter == null ? spec.maxHits() : Integer.MAX_VALUE
                     );
             for (AstEntity candidate : candidates) {
+                if (hitFilter != null && !hitFilter.test(candidate)) {
+                    continue;
+                }
                 if (!hitIds.add(candidate.id())) {
                     continue;
                 }

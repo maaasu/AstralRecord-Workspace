@@ -657,6 +657,11 @@ tags:
     description: 冒険者クラスと関連スキル。
     category: THEME
     appliesTo: [CLASS, SKILL]
+  - id: holy_knight
+    displayName: 聖騎士
+    description: 聖騎士系統に属するスキル。
+    category: THEME
+    appliesTo: [SKILL]
   - id: command-only
     displayName: コマンド限定
     description: コマンドからのみ利用する分類。

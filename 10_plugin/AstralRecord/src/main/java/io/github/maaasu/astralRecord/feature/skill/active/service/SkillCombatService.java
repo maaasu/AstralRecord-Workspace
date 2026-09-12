@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -38,6 +39,8 @@ public final class SkillCombatService {
     private final MobKnockbackService knockbackService;
     private final StatusService statusService;
     private final MobTauntService tauntService;
+    @Nullable
+    private SkillHitListener skillHitListener;
 
     /**
      * 戦闘サービスで初期化します。
@@ -69,6 +72,65 @@ public final class SkillCombatService {
         this.knockbackService = knockbackService;
         this.statusService = statusService;
         this.tauntService = tauntService;
+    }
+
+    /**
+     * スキル定義を伴う命中通知先を設定します。
+     *
+     * @param skillHitListener 命中通知先。{@code null} で通知を無効化
+     */
+    public void setSkillHitListener(@Nullable SkillHitListener skillHitListener) {
+        this.skillHitListener = skillHitListener;
+    }
+
+    /**
+     * スキル定義を明示して単一属性のスキルダメージを適用し、命中通知を行います。
+     *
+     * @param skill 命中を発生させたスキル定義
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param element 属性
+     * @param ratio ダメージ倍率
+     * @param conditions 命中時状態異常
+     * @return 実際に適用したダメージ結果
+     */
+    public @NotNull DamageResult hit(
+            @NotNull SkillDefinition skill,
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            @NotNull DamageElement element,
+            double ratio,
+            @NotNull ActiveSkillCondition... conditions
+    ) {
+        DamageResult result = hit(attacker, target, attackType, element, ratio, conditions);
+        notifySkillHit(skill, attacker, target, result);
+        return result;
+    }
+
+    /**
+     * スキル定義を明示して複数属性のスキルダメージを適用し、命中通知を行います。
+     *
+     * @param skill 命中を発生させたスキル定義
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param components 属性別ダメージ倍率
+     * @param conditions 命中時状態異常
+     * @return 実際に適用したダメージ結果
+     */
+    public @NotNull DamageResult hit(
+            @NotNull SkillDefinition skill,
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull ActiveSkillCondition... conditions
+    ) {
+        DamageResult result = hit(attacker, target, attackType, components, conditions);
+        notifySkillHit(skill, attacker, target, result);
+        return result;
     }
 
     /**
@@ -192,6 +254,36 @@ public final class SkillCombatService {
                 List.of(new DamageComponent(element, ratio)),
                 DamageSource.SKILL,
                 shieldBreakRatio
+        );
+    }
+
+    /**
+     * 外部で解決した攻撃力参照値を使ってスキルダメージを適用します。
+     * 命中率・防御曲線・会心・属性補正は通常のスキル攻撃と同じ経路を通します。
+     *
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param resolvedAttackPower 外部で解決済みの攻撃力参照値
+     * @param element 属性
+     * @param ratio ダメージ倍率
+     * @return 実際に適用したダメージ結果
+     */
+    public @NotNull DamageResult hitWithResolvedAttackPower(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            double resolvedAttackPower,
+            @NotNull DamageElement element,
+            double ratio
+    ) {
+        return damageService.attackWithResolvedAttackPower(
+                attacker,
+                target,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL,
+                resolvedAttackPower
         );
     }
 
@@ -386,5 +478,16 @@ public final class SkillCombatService {
                 null,
                 ConditionApplyReason.SKILL
         ));
+    }
+
+    private void notifySkillHit(
+            @NotNull SkillDefinition skill,
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull DamageResult result
+    ) {
+        if (skillHitListener != null) {
+            skillHitListener.onSkillHit(skill, attacker, target, result);
+        }
     }
 }

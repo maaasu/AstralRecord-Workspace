@@ -168,6 +168,7 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
             Location base = target.location();
             renderJudgement(context, state, base, slashRingRadius);
             context.services().combat().hit(
+                    context.source().skill(),
                     context.attacker(), target, AttackType.MELEE, DamageElement.NONE, damageRatio, weakness
             );
         }

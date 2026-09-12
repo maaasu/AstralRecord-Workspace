@@ -1,0 +1,45 @@
+# design:
+#   motif: "聖騎士 / 神聖な追撃"
+#   progression: 2
+schemaVersion: 1
+id: paladin_divine_chaser
+type: SKILL
+implementationId: paladin_divine_chaser
+name: "&fディバインチェイサー"
+description: "&7聖騎士の技に呼応し、神聖な追撃を放つパッシブ。"
+icon: BEACON
+lore:
+  - "&7聖騎士タグのスキルが敵に命中すると、追撃を発生させる。"
+  - "&7頭上2mの半径{skill.sphereRadius}mの白い球体から、エンドロッドの軌跡で敵へ向かう。"
+  - "&7(近接防御力 + 魔法防御力) × 筋力 + 防御力 / 2 を攻撃力参照値とし、{skill.damageRatio:percent}%の無属性近接ダメージを与える。"
+  - "&7追撃1回ごとにENGを2消費する。"
+cooldownTicks: 0
+resourceType: ENERGY
+resourceCost: 2
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: {}
+  - level: 3
+    paramDeltas: {}
+  - level: 4
+    paramDeltas: {}
+  - level: 5
+    paramDeltas: {}
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: false
+params:
+  damageRatio: 0.20
+  sphereRadius: 0.8
+  spherePoints: 32
+  projectileSpeed: 1.25
+  projectileHitRadius: 0.35
+tags:
+  - passive
+  - defense

@@ -54,6 +54,7 @@ onCast:
 tags:
   - active
   - melee
+  - holy_knight
 # behavior:
 #   target: "発動地点を中心とする球状半径内で、実body boundsが球体へ交差する管理対象Mobから、遮蔽を確認して毎秒ランダムに最大対象数を選ぶ。NPC、死亡Mob、PvP対象は除外し、Bossは含める。"
 #   visual: "発動地点に小規模な白色祭壇を構成し、白色DUSTの光柱と、基部・上部の光輪を重ねる。各対象の5m上には水平リング、対象位置まで白色の柱を表示する。"

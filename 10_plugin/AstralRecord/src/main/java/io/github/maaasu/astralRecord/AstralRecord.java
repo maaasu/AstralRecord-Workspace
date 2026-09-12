@@ -224,9 +224,11 @@ import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillE
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDivineChaserSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
@@ -432,6 +434,7 @@ public final class AstralRecord extends JavaPlugin {
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
+    private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
     private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
@@ -1546,6 +1549,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
+        skillService.registerExecutor(new PaladinDivineChaserSkillExecutor());
         skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(
             particleDisplayService,
@@ -1599,9 +1603,12 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService
         );
         playerDeathService.setDeathStartedListener(activeSkillLifecycleService::clearAll);
+        SkillCombatService activeSkillCombatService = new SkillCombatService(
+            damageService, conditionService, mobKnockbackService, statusService, mobTauntService
+        );
         var activeSkillServices = new ActiveSkillServices(
             activeSkillTargetingService,
-            new SkillCombatService(damageService, conditionService, mobKnockbackService, statusService, mobTauntService),
+            activeSkillCombatService,
             activeSkillEffectService,
             new SkillProjectileService(
                 activeSkillTargetingService,
@@ -1612,6 +1619,14 @@ public final class AstralRecord extends JavaPlugin {
             temporarySkillEffectService,
             activeSkillTaskService
         );
+        paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(
+            skillService,
+            activeSkillServices.combat(),
+            activeSkillServices.effects(),
+            activeSkillServices.projectiles(),
+            statusService
+        );
+        activeSkillCombatService.setSkillHitListener(paladinDivineChaserRuntimeService::onSkillHit);
         bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(
             skillService,
             activeSkillServices.targeting(),
@@ -1652,6 +1667,7 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillResolver
         );
         passiveSkillService.setStatusService(statusService);
+        paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);
         damageService.setPassiveSkillService(passiveSkillService);
         SkillSigilOrbService skillSigilOrbService = new SkillSigilOrbService(

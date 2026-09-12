@@ -131,6 +131,7 @@ export const MASTER_TAGS = [
   { id: "consumable", displayName: "消耗品", description: "消耗品を成果物とするレシピ。", category: "CRAFTING", appliesTo: ["RECIPE"] },
   { id: "administrator", displayName: "管理者", description: "管理者専用クラス。", category: "THEME", appliesTo: ["CLASS"] },
   { id: "adventurer", displayName: "冒険者", description: "冒険者クラスと関連スキル。", category: "THEME", appliesTo: ["CLASS", "SKILL"] },
+  { id: "holy_knight", displayName: "聖騎士", description: "聖騎士系統に属するスキル。", category: "THEME", appliesTo: ["SKILL"] },
   { id: "command-only", displayName: "コマンド限定", description: "コマンドからのみ利用する分類。", category: "THEME", appliesTo: ["CLASS"] },
   { id: "astral", displayName: "アストラル", description: "星界をモチーフとする分類。", category: "THEME", appliesTo: ["SKILLTREE_NODE"] },
   { id: "azure", displayName: "蒼", description: "蒼色をモチーフとする分類。", category: "THEME", appliesTo: ["SKILLTREE_NODE"] },

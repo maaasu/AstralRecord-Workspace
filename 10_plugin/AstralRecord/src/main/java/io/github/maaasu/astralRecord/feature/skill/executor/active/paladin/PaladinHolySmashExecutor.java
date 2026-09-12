@@ -101,6 +101,7 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
         double defenseMultiplier = 1.0D - defenseReductionRatio / 100.0D;
         for (AstEntity target : targets) {
             DamageResult result = context.services().combat().hit(
+                    context.source().skill(),
                     context.attacker(),
                     target,
                     AttackType.MELEE,

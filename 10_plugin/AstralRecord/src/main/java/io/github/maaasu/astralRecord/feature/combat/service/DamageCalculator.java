@@ -197,6 +197,7 @@ public final class DamageCalculator {
             double attackerAccuracyBonus
     ) {
         if (context.scaling() != DamageScaling.ATTACKER_STATUS
+                && context.scaling() != DamageScaling.EXTERNAL_ATTACK_POWER
                 || context.attacker() == null
                 || !context.attacker().isManaged()) {
             return new HitCheck(true, 100.0D, 100.0D, 0.0D);
@@ -288,7 +289,8 @@ public final class DamageCalculator {
     }
 
     private double resolveBaseDamage(@NotNull DamageContext context, boolean defenseConversionActive) {
-        if (context.scaling() == DamageScaling.FIXED) {
+        if (context.scaling() == DamageScaling.FIXED
+                || context.scaling() == DamageScaling.EXTERNAL_ATTACK_POWER) {
             return context.baseDamage();
         }
         if (context.attacker() != null && context.attacker().isManaged()) {
