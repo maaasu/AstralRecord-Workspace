@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.Hunter
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolySmiteRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -26,6 +27,7 @@ public final class ActiveSkillExecutorCatalog {
      *
      * @param services 共有発動スキルサービス
      * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
+     * @param paladinHolySmiteRuntimeService ホーリースマイト聖柱実行時状態サービス
      * @param statusService 一時シールドを管理するステータスサービス
      * @param partyService パーティーメンバーを解決するサービス
      * @return 24個の executor
@@ -33,6 +35,7 @@ public final class ActiveSkillExecutorCatalog {
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
             @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService,
+            @NotNull PaladinHolySmiteRuntimeService paladinHolySmiteRuntimeService,
             @NotNull StatusService statusService,
             @NotNull PartyService partyService
     ) {
@@ -41,7 +44,7 @@ public final class ActiveSkillExecutorCatalog {
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.addAll(PaladinSkillExecutorCatalog.create(
-                services, paladinHolyFieldRuntimeService, statusService, partyService));
+                services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }

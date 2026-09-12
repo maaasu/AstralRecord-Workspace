@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** 自身のシールドを消費し、近くのパーティーメンバーへ一時シールドを配る発動スキルです。 */
+/** 自身のシールドを消費し、仲間への一時シールドまたは対象不在時の攻撃聖柱へ変換する発動スキルです。 */
 public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "paladin_shield";
@@ -32,6 +32,11 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
     private static final double DEFAULT_TARGET_RANGE = 30.0D;
     private static final int DEFAULT_TEMPORARY_SHIELD_DURATION_TICKS = 400;
     private static final double DEFAULT_PILLAR_HEIGHT = 5.0D;
+    private static final double DEFAULT_PILLAR_DAMAGE_RATIO = 0.50D;
+    private static final double DEFAULT_PILLAR_RADIUS = 1.5D;
+    private static final int DEFAULT_PILLAR_IMPACT_INTERVAL_TICKS = 20;
+    private static final int DEFAULT_PILLAR_MAX_TARGETS = 1;
+    private static final double DEFAULT_PILLAR_SLASH_RING_RADIUS = 1.0D;
     private static final int AURA_PARTICLE_POINTS = 24;
     private final StatusService statusService;
     private final PartyService partyService;
@@ -63,6 +68,11 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "targetRange");
         requirePositiveInt(params, "temporaryShieldDurationTicks");
         requirePositive(params, "pillarHeight");
+        requirePositive(params, "pillarDamageRatio");
+        requirePositive(params, "pillarRadius");
+        requirePositiveInt(params, "pillarImpactIntervalTicks");
+        requirePositiveInt(params, "pillarMaxTargets");
+        requirePositive(params, "pillarSlashRingRadius");
     }
 
     /** {@inheritDoc} */
@@ -86,7 +96,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
         renderCasterAura(context);
         List<Player> targets = findTargets(context.player(), targetRange);
         if (targets.isEmpty()) {
-            buildFallbackHolyPillar(context, pillarHeight, temporaryShieldDurationTicks);
+            buildFallbackHolyPillar(context, params, pillarHeight, temporaryShieldDurationTicks);
             return context.success();
         }
         for (Player target : targets) {
@@ -134,8 +144,17 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
         );
     }
 
+    /**
+     * 付与対象がいない場合の聖柱を生成し、指定期間だけ表示と周期攻撃を実行します。
+     *
+     * @param context 発動スキル実行コンテキスト
+     * @param params パラディンシールドの解決済みパラメータ
+     * @param pillarHeight 聖柱の高さ
+     * @param durationTicks 聖柱の持続tick
+     */
     private void buildFallbackHolyPillar(
             @NotNull PlayerActiveSkillContext context,
+            @NotNull SkillParamReader params,
             double pillarHeight,
             int durationTicks
     ) {
@@ -150,7 +169,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
                     0L,
                     1L,
                     durationTicks,
-                    tick -> renderFallbackHolyPillar(context, state, tick),
+                    tick -> renderFallbackHolyPillar(context, params, state, tick),
                     state::destroy
             );
         } catch (RuntimeException exception) {
@@ -159,11 +178,23 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
+    /**
+     * 対象不在時の聖柱を1tick進め、表示更新と攻撃間隔に応じた断罪を実行します。
+     *
+     * @param context 発動スキル実行コンテキスト
+     * @param params パラディンシールドの解決済みパラメータ
+     * @param state 表示中の聖柱
+     * @param tick 発動からの経過tick index
+     */
     private void renderFallbackHolyPillar(
             @NotNull PlayerActiveSkillContext context,
+            @NotNull SkillParamReader params,
             @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
             int tick
     ) {
+        if (tick % 4 == 0) {
+            state.updateDisplays(tick);
+        }
         if ((tick & 1) == 0) {
             context.services().effects().line(
                     state.center(),
@@ -186,6 +217,18 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
                     state.altarRadius(),
                     16,
                     SharedParticleDefinitions.TELEPORTER_UNLOCK_RING_END_ROD
+            );
+        }
+        int impactIntervalTicks = params.getInt(
+                "pillarImpactIntervalTicks", DEFAULT_PILLAR_IMPACT_INTERVAL_TICKS);
+        if (tick % impactIntervalTicks == 0) {
+            PaladinHolySmiteExecutor.impact(
+                    context,
+                    state,
+                    params.getDouble("pillarRadius", DEFAULT_PILLAR_RADIUS),
+                    params.getInt("pillarMaxTargets", DEFAULT_PILLAR_MAX_TARGETS),
+                    params.getDouble("pillarDamageRatio", DEFAULT_PILLAR_DAMAGE_RATIO),
+                    params.getDouble("pillarSlashRingRadius", DEFAULT_PILLAR_SLASH_RING_RADIUS)
             );
         }
     }

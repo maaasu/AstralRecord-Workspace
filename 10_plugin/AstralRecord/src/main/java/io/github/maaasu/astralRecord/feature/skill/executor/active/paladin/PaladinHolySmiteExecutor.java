@@ -46,10 +46,20 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
     private static final int ALTAR_SUPPORT_COUNT = 4;
     private static final int LANTERN_UPDATE_INTERVAL_TICKS = 4;
     private static final double ALTAR_RADIUS = 1.15D;
+    private final PaladinHolySmiteRuntimeService runtimeService;
 
-    /** 共有発動スキルサービスで初期化します。 */
-    public PaladinHolySmiteExecutor(@NotNull ActiveSkillServices services) {
+    /**
+     * 共有発動スキルサービスと聖柱実行時状態サービスで初期化します。
+     *
+     * @param services 共有発動スキルサービス
+     * @param runtimeService 聖柱の残り持続時間を管理するサービス
+     */
+    public PaladinHolySmiteExecutor(
+            @NotNull ActiveSkillServices services,
+            @NotNull PaladinHolySmiteRuntimeService runtimeService
+    ) {
         super(ID, services);
+        this.runtimeService = runtimeService;
     }
 
     /** {@inheritDoc} */
@@ -88,35 +98,59 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
         );
         Location center = context.services().targeting().groundAt(context.player().getLocation(), 3, 16);
         HolyPillarState state = new HolyPillarState(center, pillarHeight);
-        String scope = ID + ":" + UUID.randomUUID();
+        UUID pillarId = UUID.randomUUID();
+        String scope = ID + ":" + pillarId;
         try {
             state.spawnDisplays();
+            runtimeService.register(pillarId, center, durationTicks);
             context.services().tasks().repeat(
                     context.player().getUniqueId(),
                     scope,
                     0L,
                     1L,
-                    durationTicks,
-                    tick -> advance(
-                            context,
-                            state,
-                            tick,
-                            radius,
-                            maxTargets,
-                            damageRatio,
-                            impactIntervalTicks,
-                            weakness,
-                            slashRingRadius
-                    ),
-                    state::destroy
+                    Integer.MAX_VALUE,
+                    tick -> {
+                        advance(
+                                context,
+                                state,
+                                tick,
+                                radius,
+                                maxTargets,
+                                damageRatio,
+                                impactIntervalTicks,
+                                weakness,
+                                slashRingRadius
+                        );
+                        if (!runtimeService.consumeTick(pillarId)) {
+                            context.services().tasks().cancel(context.player().getUniqueId(), scope);
+                        }
+                    },
+                    () -> {
+                        runtimeService.unregister(pillarId);
+                        state.destroy();
+                    }
             );
         } catch (RuntimeException exception) {
+            runtimeService.unregister(pillarId);
             state.destroy();
             throw exception;
         }
         return context.success();
     }
 
+    /**
+     * 聖柱を1tick進め、表示更新と攻撃間隔に応じた断罪を実行します。
+     *
+     * @param context 発動スキル実行コンテキスト
+     * @param state 表示中の聖柱
+     * @param tick 発動からの経過tick index
+     * @param radius 球形の対象半径
+     * @param maxTargets 最大対象数
+     * @param damageRatio 近接攻撃力倍率
+     * @param impactIntervalTicks 断罪の実行間隔
+     * @param weakness 命中時に評価する衰弱
+     * @param slashRingRadius 対象上部の断罪リング半径
+     */
     private void advance(
             @NotNull PlayerActiveSkillContext context,
             @NotNull HolyPillarState state,
@@ -158,6 +192,30 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
         if (tick % impactIntervalTicks != 0) {
             return;
         }
+        impact(context, state, radius, maxTargets, damageRatio, slashRingRadius, weakness);
+    }
+
+    /**
+     * 聖柱の現在範囲から対象をランダムに選び、断罪演出と近接無属性ダメージを1回適用します。
+     * 渡された状態異常は各命中へそのまま引き渡します。
+     *
+     * @param context 発動スキル実行コンテキスト
+     * @param state 表示中の聖柱
+     * @param radius 球形の対象半径
+     * @param maxTargets 最大対象数
+     * @param damageRatio 近接攻撃力倍率
+     * @param slashRingRadius 対象上部の断罪リング半径
+     * @param conditions 命中時に評価する状態異常
+     */
+    static void impact(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull HolyPillarState state,
+            double radius,
+            int maxTargets,
+            double damageRatio,
+            double slashRingRadius,
+            @NotNull ActiveSkillCondition... conditions
+    ) {
         List<AstEntity> candidates = new ArrayList<>(context.services().targeting().inSphere(
                 context.player(), state.center(), radius, Integer.MAX_VALUE, true
         ));
@@ -168,13 +226,13 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
             Location base = target.location();
             renderJudgement(context, state, base, slashRingRadius);
             context.services().combat().hit(
-                    context.source().skill(),
-                    context.attacker(), target, AttackType.MELEE, DamageElement.NONE, damageRatio, weakness
+                    context.source().skill(), context.attacker(), target,
+                    AttackType.MELEE, DamageElement.NONE, damageRatio, conditions
             );
         }
     }
 
-    private void renderJudgement(
+    private static void renderJudgement(
             @NotNull PlayerActiveSkillContext context,
             @NotNull HolyPillarState state,
             @NotNull Location base,

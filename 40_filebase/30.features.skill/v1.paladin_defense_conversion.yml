@@ -9,7 +9,7 @@ name: "&dディフェンスコンバージョン"
 description: "&7攻撃力の一部を防御力へ加算する常時パッシブ。"
 icon: WARDEN_SPAWN_EGG
 lore:
-  - "&7バインド不要で常時有効。"
+  - "&7パッシブスロットへのバインド中のみ有効。"
   - "&7被ダメージ時の防御力へ攻撃力の20%を加算する。"
   - "&7状態異常による継続ダメージには適用しない。"
 cooldownTicks: 0
@@ -23,7 +23,7 @@ allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 passive:
-  bindRequired: false
+  bindRequired: true
 tags:
   - passive
   - defense

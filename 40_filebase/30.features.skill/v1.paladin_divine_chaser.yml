@@ -9,6 +9,7 @@ name: "&fディバインチェイサー"
 description: "&7聖騎士の技に呼応し、神聖な追撃を放つパッシブ。"
 icon: BEACON
 lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
   - "&7聖騎士タグのスキルが敵に命中すると、追撃を発生させる。"
   - "&7頭上2mの半径{skill.sphereRadius}mの白い球体から、エンドロッドの軌跡で敵へ向かう。"
   - "&7(近接防御力 + 魔法防御力) × (筋力 / 100) + 防御力 / 2 を攻撃力参照値とし、{skill.damageRatio:percent}%の無属性近接ダメージを与える。"
@@ -33,7 +34,7 @@ allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 passive:
-  bindRequired: false
+  bindRequired: true
 params:
   damageRatio: 0.20
   sphereRadius: 0.8

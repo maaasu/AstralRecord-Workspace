@@ -45,8 +45,8 @@ params:
   damageRatio: 0.025
   defenseReductionRatio: 30.0
   defenseDebuffDurationTicks: 20
-  energyRecoveryAmount: 30.0
-  reducedCooldownTicks: 120
+  energyRecoveryAmount: 35.0
+  reducedCooldownTicks: 60
 tags:
   - active
   - melee

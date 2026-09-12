@@ -30,9 +30,10 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
     private static final double DEFAULT_DAMAGE_RATIO = 0.025D;
     private static final double DEFAULT_DEFENSE_REDUCTION_RATIO = 30.0D;
     private static final int DEFAULT_DEFENSE_DEBUFF_DURATION_TICKS = 20;
-    private static final double DEFAULT_ENERGY_RECOVERY_AMOUNT = 30.0D;
-    private static final int DEFAULT_REDUCED_COOLDOWN_TICKS = 120;
+    private static final double DEFAULT_ENERGY_RECOVERY_AMOUNT = 35.0D;
+    private static final int DEFAULT_REDUCED_COOLDOWN_TICKS = 60;
     private static final double[] SLASH_RADIUS_RATIOS = {0.28D, 0.48D, 0.68D, 0.88D};
+    private static final double[] DEFENSE_REDUCTION_RING_RADII = {0.78D, 0.58D, 0.38D};
 
     private final PaladinHolyFieldRuntimeService holyFieldRuntimeService;
 
@@ -117,6 +118,7 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
                     defenseDebuffDurationTicks,
                     defenseMultiplier
             );
+            renderDefenseReduction(context, target);
             if (!fieldBonusTriggered) {
                 context.services().combat().recoverEnergy(
                         context.caster().player(),
@@ -128,6 +130,27 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
         return fieldBonusTriggered
                 ? context.successWithCooldownTicks(reducedCooldownTicks)
                 : context.success();
+    }
+
+    /**
+     * 防御低下が成立した対象へ、上から押し下げる灰色の三重リングを表示します。
+     *
+     * @param context 発動スキル実行コンテキスト
+     * @param target 防御低下を適用した対象
+     */
+    private void renderDefenseReduction(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull AstEntity target
+    ) {
+        Location base = target.location();
+        for (int index = 0; index < DEFENSE_REDUCTION_RING_RADII.length; index++) {
+            context.services().effects().ring(
+                    base.clone().add(0.0D, 1.55D - index * 0.55D, 0.0D),
+                    DEFENSE_REDUCTION_RING_RADII[index],
+                    12,
+                    SharedParticleDefinitions.SKILL_PALADIN_HOLY_SMASH_DEFENSE_DOWN_DUST
+            );
+        }
     }
 
     /** 白い弧を重ね、炎剣技とは異なる単段の聖なる一閃を表示します。 */
