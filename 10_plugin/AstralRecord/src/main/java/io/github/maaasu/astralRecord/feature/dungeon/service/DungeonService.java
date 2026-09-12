@@ -2816,6 +2816,10 @@ public final class DungeonService {
             player.closeInventory();
             return;
         }
+        if (slot == DungeonRewardGui.CLAIM_ALL_SLOT) {
+            handleAllRewards(player, session, page, rewards);
+            return;
+        }
         if (slot == DungeonRewardGui.PREVIOUS_SLOT) {
             openRewardGui(session, player, Math.max(0, page - 1));
             return;
@@ -2848,6 +2852,75 @@ public final class DungeonService {
         if (granted >= reward.amount()) rewards.remove(index);
         else rewards.set(index, reward.withAmount(reward.amount() - granted));
         openRewardGui(session, player, page);
+    }
+
+    /**
+     * 未受取報酬を一つのインベントリ変更として全件付与します。
+     * 容量不足または準備失敗時は一件も claim せず、生成済み装備個体も操作前へ戻します。
+     *
+     * @param player 操作プレイヤー
+     * @param session クリア待機中セッション
+     * @param page 再描画する0始まりページ
+     * @param rewards 操作プレイヤーの未受取報酬
+     */
+    private void handleAllRewards(
+            @NotNull Player player,
+            @NotNull Session session,
+            int page,
+            @NotNull List<DungeonRewardEntry> rewards
+    ) {
+        if (rewards.isEmpty()) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || (afkService != null && afkService.isAfk(astPlayer))) {
+            return;
+        }
+
+        List<ItemModel> models = resolveRewardModels(rewards);
+        if (models == null) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            return;
+        }
+        try {
+            List<InventoryService.NormalInventoryReward> inventoryRewards = new ArrayList<>(rewards.size());
+            for (int index = 0; index < rewards.size(); index++) {
+                inventoryRewards.add(new InventoryService.NormalInventoryReward(
+                        models.get(index), rewards.get(index).amount()));
+            }
+            InventoryService.InventoryGrantReceipt receipt = inventoryService
+                    .addRewardsToNormalInventoryAtomically(astPlayer, inventoryRewards, REWARD_SOURCE);
+            if (receipt == null) {
+                messageService.send(player, PlayerMsgId.P_7031);
+                return;
+            }
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_7001, failure, player.getName(), "reward_claim_all");
+            messageService.send(player, PlayerMsgId.P_7001);
+            return;
+        }
+
+        rewards.clear();
+        GuiSound.ITEM_RECEIVE.play(player);
+        openRewardGui(session, player, page);
+    }
+
+    /**
+     * 未受取報酬のアイテム定義を現在のロード済み状態から解決します。
+     *
+     * @param rewards 未受取報酬
+     * @return 報酬順のアイテム定義。1件でも未解決なら {@code null}
+     */
+    private @Nullable List<ItemModel> resolveRewardModels(@NotNull List<DungeonRewardEntry> rewards) {
+        List<ItemModel> models = new ArrayList<>(rewards.size());
+        for (DungeonRewardEntry reward : rewards) {
+            ItemModel model = itemService.findLoadedById(reward.itemId());
+            if (model == null) model = itemService.loadItem(reward.itemId());
+            if (model == null) return null;
+            models.add(model);
+        }
+        return models;
     }
 
     static boolean canRejoinParticipant(

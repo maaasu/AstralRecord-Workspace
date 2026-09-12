@@ -169,6 +169,87 @@ public final class PlayerInventoryState {
     }
 
     /**
+     * 複数inventoryを変更する原子的操作向けに、親行・entry・dirty scope・表示種別を取得します。
+     *
+     * @return 現在のinventory変更状態を保持する不変スナップショット
+     */
+    public synchronized @NotNull InventoryMutationSnapshot snapshotInventoryMutationState() {
+        return new InventoryMutationSnapshot(
+            accountId,
+            inventories,
+            entriesByInventoryId,
+            dirtyMetadataInventoryIds,
+            dirtyInventoryIds,
+            dirtyEntryIdsByInventoryId,
+            displayedType,
+            dirty.get()
+        );
+    }
+
+    /**
+     * 原子的inventory操作を、親行とdirty scopeを含む取得時点へ戻します。
+     *
+     * @param snapshot {@link #snapshotInventoryMutationState()} で取得した同一アカウントの状態
+     * @throws IllegalArgumentException 別アカウントのスナップショットを指定した場合
+     */
+    public synchronized void restoreInventoryMutationState(@NotNull InventoryMutationSnapshot snapshot) {
+        if (!accountId.equals(snapshot.accountId())) {
+            throw new IllegalArgumentException("Inventory mutation snapshot belongs to another account");
+        }
+        inventories.clear();
+        inventories.addAll(snapshot.inventories());
+        entriesByInventoryId.clear();
+        snapshot.entriesByInventoryId().forEach((inventoryId, entries) ->
+            entriesByInventoryId.put(inventoryId, new ArrayList<>(entries)));
+        dirtyMetadataInventoryIds.clear();
+        dirtyMetadataInventoryIds.addAll(snapshot.dirtyMetadataInventoryIds());
+        dirtyInventoryIds.clear();
+        dirtyInventoryIds.addAll(snapshot.dirtyInventoryIds());
+        dirtyEntryIdsByInventoryId.clear();
+        snapshot.dirtyEntryIdsByInventoryId().forEach((inventoryId, entryIds) ->
+            dirtyEntryIdsByInventoryId.put(inventoryId, new HashSet<>(entryIds)));
+        displayedType = snapshot.displayedType();
+        dirty.set(snapshot.dirty());
+    }
+
+    /**
+     * 原子的inventory操作の補償点です。
+     *
+     * @param accountId 所有アカウントID
+     * @param inventories 操作前の親inventory一覧
+     * @param entriesByInventoryId 操作前のinventory別entry一覧
+     * @param dirtyMetadataInventoryIds 操作前のmetadata dirty inventory ID
+     * @param dirtyInventoryIds 操作前のdirty inventory ID
+     * @param dirtyEntryIdsByInventoryId 操作前のinventory別dirty entry ID
+     * @param displayedType 操作前の表示inventory種別
+     * @param dirty 操作前の全体dirty状態
+     */
+    public record InventoryMutationSnapshot(
+        @NotNull UUID accountId,
+        @NotNull List<InventoryModel> inventories,
+        @NotNull Map<UUID, List<InventoryEntryModel>> entriesByInventoryId,
+        @NotNull Set<UUID> dirtyMetadataInventoryIds,
+        @NotNull Set<UUID> dirtyInventoryIds,
+        @NotNull Map<UUID, Set<UUID>> dirtyEntryIdsByInventoryId,
+        @NotNull InventoryType displayedType,
+        boolean dirty
+    ) {
+        public InventoryMutationSnapshot {
+            inventories = List.copyOf(inventories);
+            Map<UUID, List<InventoryEntryModel>> immutableEntries = new HashMap<>();
+            entriesByInventoryId.forEach((inventoryId, entries) ->
+                immutableEntries.put(inventoryId, List.copyOf(entries)));
+            entriesByInventoryId = Map.copyOf(immutableEntries);
+            dirtyMetadataInventoryIds = Set.copyOf(dirtyMetadataInventoryIds);
+            dirtyInventoryIds = Set.copyOf(dirtyInventoryIds);
+            Map<UUID, Set<UUID>> immutableDirtyEntries = new HashMap<>();
+            dirtyEntryIdsByInventoryId.forEach((inventoryId, entryIds) ->
+                immutableDirtyEntries.put(inventoryId, Set.copyOf(entryIds)));
+            dirtyEntryIdsByInventoryId = Map.copyOf(immutableDirtyEntries);
+        }
+    }
+
+    /**
      * API 側で再作成された inventory へ、キャッシュ済み inventory と entry の参照を移します。
      * <p>
      * 保存中に API の inventory 本体が失われた場合の復旧専用です。ローカル entry の内容は保持し、

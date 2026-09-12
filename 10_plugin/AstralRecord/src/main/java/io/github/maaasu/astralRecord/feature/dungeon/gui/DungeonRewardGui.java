@@ -29,6 +29,7 @@ public final class DungeonRewardGui {
     public static final int SIZE = 54;
     public static final int CONTENT_SIZE = 45;
     public static final int PREVIOUS_SLOT = 45;
+    public static final int CLAIM_ALL_SLOT = 49;
     public static final int NEXT_SLOT = 53;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
@@ -72,6 +73,12 @@ public final class DungeonRewardGui {
         inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()), List.of(),
                 GuiPagination.hasPreviousPage(page)));
+        if (!rewards.isEmpty()) {
+            inventory.setItem(CLAIM_ALL_SLOT, GuiItems.create(
+                    Material.HOPPER,
+                    PlayerMsgResource.getComponent(PlayerMsgId.P_7108.getId()),
+                    List.of(PlayerMsgResource.getComponent(PlayerMsgId.P_7109.getId()))));
+        }
         inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()), List.of(),
                 GuiPagination.hasNextPage(page, rewards.size(), CONTENT_SIZE)));

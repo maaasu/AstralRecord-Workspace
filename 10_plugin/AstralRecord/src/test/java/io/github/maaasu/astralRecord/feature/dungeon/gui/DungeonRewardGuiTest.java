@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,5 +67,32 @@ class DungeonRewardGuiTest extends MockBukkitTestBase {
                 .map(PlainTextComponentSerializer.plainText()::serialize)
                 .toList();
         assertFalse(lore.stream().anyMatch(line -> line.contains("設定確率") || line.contains("12.34")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: 未受取報酬があるGUIは最下段中央の49番slotへ全件受取ボタンを表示する。
+     */
+    @Test
+    void showsClaimAllButtonInBottomRowCenter() {
+        ItemService itemService = mock(ItemService.class);
+        ItemStackFactory factory = mock(ItemStackFactory.class);
+        ItemModel model = mock(ItemModel.class);
+        when(itemService.findLoadedById("reward_item")).thenReturn(model);
+        when(model.getMaxStack()).thenReturn(64);
+        when(factory.create(model, 1)).thenReturn(new ItemStack(Material.DIAMOND));
+        DungeonRewardGui gui = new DungeonRewardGui(itemService, factory);
+        var player = server().addPlayer();
+
+        gui.open(player, UUID.randomUUID(), "Test Dungeon", List.of(
+                new DungeonRewardEntry(UUID.randomUUID(), "reward_item", 1, 1.0D)), 0);
+
+        ItemStack button = player.getOpenInventory().getTopInventory()
+                .getItem(DungeonRewardGui.CLAIM_ALL_SLOT);
+        assertNotNull(button);
+        assertEquals(Material.HOPPER, button.getType());
+        assertEquals("すべて受け取る", PlainTextComponentSerializer.plainText()
+                .serialize(button.getItemMeta().displayName()));
     }
 }

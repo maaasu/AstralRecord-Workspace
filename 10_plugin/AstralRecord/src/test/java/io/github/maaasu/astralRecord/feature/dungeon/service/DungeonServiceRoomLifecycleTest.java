@@ -907,6 +907,94 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: 全件受取は現在の未受取報酬を一つの原子的付与へ渡し、成功時だけ全claimを削除する。
+     */
+    @Test
+    void claimAllClearsEveryRewardOnlyAfterAtomicGrantSucceeds() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        InventoryService inventoryService = field(service, "inventoryService", InventoryService.class);
+        ItemService itemService = field(service, "itemService", ItemService.class);
+        ItemModel firstModel = mock(ItemModel.class);
+        ItemModel secondModel = mock(ItemModel.class);
+        when(firstModel.getCategory()).thenReturn("material");
+        when(secondModel.getCategory()).thenReturn("material");
+        when(itemService.findLoadedById("first_reward")).thenReturn(firstModel);
+        when(itemService.findLoadedById("second_reward")).thenReturn(secondModel);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        when(inventoryService.addRewardsToNormalInventoryAtomically(
+                eq(astPlayer), any(), eq("dungeon_clear")))
+                .thenReturn(new InventoryService.InventoryGrantReceipt(accountId, List.of()));
+        Object session = session(player.getUniqueId());
+        UUID sessionId = field(session, "id", UUID.class);
+        setField(session, "cleared", true);
+        List<DungeonRewardEntry> rewards = new ArrayList<>(List.of(
+                new DungeonRewardEntry(UUID.randomUUID(), "first_reward", 2, 1.0D),
+                new DungeonRewardEntry(UUID.randomUUID(), "second_reward", 3, 2.0D)));
+        mapField(session, "rewardsByPlayer").put(player.getUniqueId(), rewards);
+        mapField(service, "sessionsById").put(sessionId, session);
+
+        try (MockedStatic<AstPlayerCache> cache = Mockito.mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            service.handleRewardClick(
+                    player, sessionId, 0, DungeonRewardGui.CLAIM_ALL_SLOT, null);
+        }
+
+        assertTrue(rewards.isEmpty());
+        verify(inventoryService).addRewardsToNormalInventoryAtomically(
+                eq(astPlayer), argThat(inventoryRewards ->
+                        inventoryRewards.size() == 2
+                                && inventoryRewards.get(0).model() == firstModel
+                                && inventoryRewards.get(0).amount() == 2
+                                && inventoryRewards.get(1).model() == secondModel
+                                && inventoryRewards.get(1).amount() == 3),
+                eq("dungeon_clear"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: 全件受取で原子的付与が失敗した場合はclaimを一件も削除しない。
+     */
+    @Test
+    void claimAllKeepsEveryRewardWhenAtomicGrantCannotFitAll() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        InventoryService inventoryService = field(service, "inventoryService", InventoryService.class);
+        ItemService itemService = field(service, "itemService", ItemService.class);
+        ItemModel firstModel = mock(ItemModel.class);
+        ItemModel secondModel = mock(ItemModel.class);
+        when(firstModel.getCategory()).thenReturn("material");
+        when(secondModel.getCategory()).thenReturn("material");
+        when(itemService.findLoadedById("first_reward")).thenReturn(firstModel);
+        when(itemService.findLoadedById("second_reward")).thenReturn(secondModel);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        when(inventoryService.addRewardsToNormalInventoryAtomically(
+                eq(astPlayer), any(), eq("dungeon_clear")))
+                .thenReturn(null);
+        Object session = session(player.getUniqueId());
+        UUID sessionId = field(session, "id", UUID.class);
+        setField(session, "cleared", true);
+        List<DungeonRewardEntry> rewards = new ArrayList<>(List.of(
+                new DungeonRewardEntry(UUID.randomUUID(), "first_reward", 2, 1.0D),
+                new DungeonRewardEntry(UUID.randomUUID(), "second_reward", 3, 2.0D)));
+        List<DungeonRewardEntry> before = List.copyOf(rewards);
+        mapField(session, "rewardsByPlayer").put(player.getUniqueId(), rewards);
+        mapField(service, "sessionsById").put(sessionId, session);
+
+        try (MockedStatic<AstPlayerCache> cache = Mockito.mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            service.handleRewardClick(
+                    player, sessionId, 0, DungeonRewardGui.CLAIM_ALL_SLOT, null);
+        }
+
+        assertEquals(before, rewards);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
      * 検証契約: 報酬チェストへアクセスできなくても、クリア待機中かつ未受取報酬があれば /drop でGUIを再表示できる。
      */
     @Test

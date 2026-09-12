@@ -1730,6 +1730,70 @@ public class InventoryService {
     }
 
     /**
+     * 未生成の装備個体を含む複数報酬を、同じ player state lock 内で全量追加します。
+     * <p>
+     * 装備cacheの補償点取得、ローカル個体生成、全inventory entryの追加まで保存処理と共通の
+     * state lockを保持します。容量不足時は{@code null}を返し、inventoryと装備cacheの双方を
+     * 操作前へ戻します。
+     *
+     * @param astPlayer 追加対象プレイヤー
+     * @param rewards アイテム定義と数量を解決済みの報酬
+     * @param source 装備個体の生成元
+     * @return 追加したentryの差分。全量を追加できない場合は{@code null}
+     * @throws IllegalArgumentException 報酬数量が1未満の場合
+     * @throws IllegalStateException 装備個体を生成できない場合
+     */
+    public @Nullable InventoryGrantReceipt addRewardsToNormalInventoryAtomically(
+        @NotNull AstPlayer astPlayer,
+        @NotNull List<NormalInventoryReward> rewards,
+        @NotNull String source
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (rewards.isEmpty()) {
+            return new InventoryGrantReceipt(accountId, List.of());
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            try {
+                List<PreparedInventoryReward> prepared = new ArrayList<>(rewards.size());
+                for (NormalInventoryReward reward : rewards) {
+                    if (reward.amount() <= 0) {
+                        throw new IllegalArgumentException("Reward amount must be positive");
+                    }
+                    List<PreparedInventoryInstance> instances = new ArrayList<>();
+                    if (ItemCategory.fromApiValue(reward.model().getCategory()) == ItemCategory.EQUIPMENT) {
+                        for (int index = 0; index < reward.amount(); index++) {
+                            UUID instanceId = createEquipmentInstanceId(
+                                reward.model(), accountId, source);
+                            if (instanceId == null) {
+                                throw new IllegalStateException(
+                                    "Failed to create reward equipment instance");
+                            }
+                            instances.add(new PreparedInventoryInstance(
+                                InventoryInstanceType.EQUIPMENT, instanceId));
+                        }
+                    }
+                    prepared.add(new PreparedInventoryReward(
+                        reward.model(), reward.amount(), instances));
+                }
+                InventoryGrantReceipt receipt = addPreparedRewardsToNormalInventory(
+                    astPlayer, prepared, true);
+                if (receipt == null) {
+                    equipmentRollback.run();
+                }
+                return receipt;
+            } catch (RuntimeException | Error failure) {
+                equipmentRollback.run();
+                throw failure;
+            }
+        }
+    }
+
+    /**
      * API I/O 済みのインスタンスを含む報酬を、1 回のローカル変更として通常インベントリへ追加します。
      * 装備品について、このメソッド内ではインスタンス生成 API を呼び出しません。
      * ルーンは通常itemと同じ itemId / quantity のstackとして追加します。
@@ -1775,11 +1839,10 @@ public class InventoryService {
             return null;
         }
 
-        Map<UUID, List<InventoryEntryModel>> beforeEntries = new LinkedHashMap<>();
-        InventoryType beforeDisplayedType;
         Set<InventoryType> changedTypes = new HashSet<>();
         synchronized (state) {
-            beforeDisplayedType = state.getDisplayedType();
+            PlayerInventoryState.InventoryMutationSnapshot beforeState =
+                state.snapshotInventoryMutationState();
             for (PreparedInventoryReward reward : rewards) {
                 if (reward.amount() <= 0) {
                     continue;
@@ -1790,70 +1853,73 @@ public class InventoryService {
                     normalizeCurrencyEntries(state, targetInventory);
                 }
             }
-            for (InventoryModel inventory : state.snapshotInventories()) {
-                beforeEntries.put(inventory.getInventoryId(), state.snapshotEntries(inventory.getInventoryId()));
-            }
 
-            boolean succeeded = true;
-            Set<UUID> preparedInstanceIds = new HashSet<>();
-            for (PreparedInventoryReward reward : rewards) {
-                if (reward.amount() <= 0) {
-                    continue;
-                }
-                ItemCategory category = ItemCategory.fromApiValue(reward.model().getCategory());
-                InventoryType inventoryType = resolveTargetInventoryType(reward.model());
-                InventoryModel targetInventory = ensureInventory(state, inventoryType);
-                changedTypes.add(inventoryType);
-
-                if (category == ItemCategory.EQUIPMENT) {
-                    InventoryInstanceType expectedType = InventoryInstanceType.EQUIPMENT;
-                    if (reward.instances().size() != reward.amount()
-                        || reward.instances().stream().anyMatch(instance -> instance.instanceType() != expectedType)) {
-                        succeeded = false;
-                        break;
+            try {
+                boolean succeeded = true;
+                Set<UUID> preparedInstanceIds = new HashSet<>();
+                for (PreparedInventoryReward reward : rewards) {
+                    if (reward.amount() <= 0) {
+                        continue;
                     }
-                    for (PreparedInventoryInstance instance : reward.instances()) {
-                        if (!preparedInstanceIds.add(instance.instanceId())
-                            || !addPreparedInstanceEntry(
-                            state,
-                            targetInventory,
-                            reward.model(),
-                            instance.instanceType(),
-                            instance.instanceId()
-                        )) {
+                    ItemCategory category = ItemCategory.fromApiValue(reward.model().getCategory());
+                    InventoryType inventoryType = resolveTargetInventoryType(reward.model());
+                    InventoryModel targetInventory = ensureInventory(state, inventoryType);
+                    changedTypes.add(inventoryType);
+
+                    if (category == ItemCategory.EQUIPMENT) {
+                        InventoryInstanceType expectedType = InventoryInstanceType.EQUIPMENT;
+                        if (reward.instances().size() != reward.amount()
+                            || reward.instances().stream().anyMatch(instance -> instance.instanceType() != expectedType)) {
                             succeeded = false;
                             break;
                         }
+                        for (PreparedInventoryInstance instance : reward.instances()) {
+                            if (!preparedInstanceIds.add(instance.instanceId())
+                                || !addPreparedInstanceEntry(
+                                state,
+                                targetInventory,
+                                reward.model(),
+                                instance.instanceType(),
+                                instance.instanceId()
+                            )) {
+                                succeeded = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        if (!reward.instances().isEmpty()) {
+                            succeeded = false;
+                            break;
+                        }
+                        succeeded = addStackedItems(
+                            state,
+                            targetInventory,
+                            reward.model(),
+                            reward.amount()
+                        ) == reward.amount();
                     }
-                } else {
-                    if (!reward.instances().isEmpty()) {
-                        succeeded = false;
+                    if (!succeeded) {
                         break;
                     }
-                    succeeded = addStackedItems(
-                        state,
-                        targetInventory,
-                        reward.model(),
-                        reward.amount()
-                    ) == reward.amount();
                 }
+
                 if (!succeeded) {
-                    break;
+                    state.restoreInventoryMutationState(beforeState);
+                    return null;
                 }
-            }
 
-            if (!succeeded) {
-                restoreImmediateGrantState(state, beforeEntries, beforeDisplayedType);
-                return null;
-            }
-
-            List<InventoryGrantMutation> mutations = collectGrantMutations(state, beforeEntries);
-            if (reflectToGui) {
-                for (InventoryType changedType : changedTypes) {
-                    autoSwitchDisplayedInventory(astPlayer, changedType);
+                List<InventoryGrantMutation> mutations = collectGrantMutations(
+                    state, beforeState.entriesByInventoryId());
+                if (reflectToGui) {
+                    for (InventoryType changedType : changedTypes) {
+                        autoSwitchDisplayedInventory(astPlayer, changedType);
+                    }
                 }
+                return new InventoryGrantReceipt(state.getAccountId(), mutations);
+            } catch (RuntimeException | Error failure) {
+                state.restoreInventoryMutationState(beforeState);
+                throw failure;
             }
-            return new InventoryGrantReceipt(state.getAccountId(), mutations);
         }
     }
 
@@ -1948,20 +2014,6 @@ public class InventoryService {
         ));
         state.replaceEntries(inventory.getInventoryId(), entries);
         return true;
-    }
-
-    private void restoreImmediateGrantState(
-        @NotNull PlayerInventoryState state,
-        @NotNull Map<UUID, List<InventoryEntryModel>> beforeEntries,
-        @NotNull InventoryType beforeDisplayedType
-    ) {
-        for (InventoryModel inventory : state.snapshotInventories()) {
-            state.replaceEntries(
-                inventory.getInventoryId(),
-                beforeEntries.getOrDefault(inventory.getInventoryId(), List.of())
-            );
-        }
-        state.setDisplayedType(beforeDisplayedType);
     }
 
     private @NotNull List<InventoryGrantMutation> collectGrantMutations(
@@ -8405,6 +8457,15 @@ public class InventoryService {
         public PreparedInventoryReward {
             instances = List.copyOf(instances);
         }
+    }
+
+    /**
+     * state lock 内で個体生成から開始する原子的な報酬付与入力です。
+     *
+     * @param model アイテム定義
+     * @param amount 追加数
+     */
+    public record NormalInventoryReward(@NotNull ItemModel model, int amount) {
     }
 
     /**

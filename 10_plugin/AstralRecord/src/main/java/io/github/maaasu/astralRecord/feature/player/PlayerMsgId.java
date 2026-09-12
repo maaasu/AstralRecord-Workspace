@@ -1562,6 +1562,10 @@ public enum PlayerMsgId {
     P_7106(7106),
     /** Bedrock 接続プレイヤー向けのクリア報酬再表示コマンド subtitle。 */
     P_7107(7107),
+    /** ダンジョン報酬 GUI 一括受取。 */
+    P_7108(7108),
+    /** ダンジョン報酬 GUI 一括受取条件。 */
+    P_7109(7109),
     // endregion
 
     // region /feature/whitelist 7110-7119
