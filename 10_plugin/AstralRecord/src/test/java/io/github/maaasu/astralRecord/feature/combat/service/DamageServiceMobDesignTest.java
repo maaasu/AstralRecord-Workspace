@@ -35,6 +35,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.Collection;
 import java.util.List;
@@ -47,14 +48,17 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -501,15 +505,14 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     void configuredPlayerRechargeRestartsOnShieldDamage() {
         DamageHarness harness = damageHarness();
         AstPlayer attacker = attacker();
-        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
-        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
-            StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
-        ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        AstPlayer victim = shieldedPvpVictim();
         attacker.setPvpEnabled(true);
         victim.setPvpEnabled(true);
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
+        when(harness.statusService.getShieldDisplayCapacity(victim)).thenReturn(30.0D);
         when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
+        stubHpConsumption(harness, victim);
 
         harness.service.applyDamage(AstEntity.player(attacker), AstEntity.player(victim), 10.0D, AttackType.MELEE);
 
@@ -526,15 +529,14 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     void configuredPlayerBreakStartsFullRecoveryInsteadOfRetainedRecharge() {
         DamageHarness harness = damageHarness();
         AstPlayer attacker = attacker();
-        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
-        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
-            StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
-        ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        AstPlayer victim = shieldedPvpVictim();
         attacker.setPvpEnabled(true);
         victim.setPvpEnabled(true);
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
+        when(harness.statusService.getShieldDisplayCapacity(victim)).thenReturn(30.0D);
         when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
+        stubHpConsumption(harness, victim);
 
         DamageResult result = harness.service.applyDamage(
             AstEntity.player(attacker),
@@ -923,6 +925,25 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
         ), 100.0D, 0.0D, 0.0D));
         return attacker;
+    }
+
+    private AstPlayer shieldedPvpVictim() {
+        PlayerMock bukkitPlayer = spy(server().addPlayer());
+        doNothing().when(bukkitPlayer).playHurtAnimation(anyFloat());
+        AstPlayer victim = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
+        ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        return victim;
+    }
+
+    private void stubHpConsumption(DamageHarness harness, AstPlayer victim) {
+        when(harness.statusService.consumeHp(same(victim), anyDouble())).thenAnswer(invocation ->
+            victim.getStatusSnapshot().withCurrentValues(
+                victim.getStatusSnapshot().getCurrentHp() - (double) invocation.getArgument(1),
+                victim.getStatusSnapshot().getCurrentMp()
+            )
+        );
     }
 
     private DamageHarness damageHarness() {
