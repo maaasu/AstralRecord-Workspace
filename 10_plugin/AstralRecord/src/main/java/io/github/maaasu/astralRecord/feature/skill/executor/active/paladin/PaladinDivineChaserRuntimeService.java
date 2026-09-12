@@ -201,7 +201,7 @@ public final class PaladinDivineChaserRuntimeService {
         double magicDefense = attacker.statValue(StatusType.MAGIC_DEFENSE);
         double strength = attacker.statValue(StatusType.STRENGTH);
         double defense = attacker.statValue(StatusType.DEFENSE);
-        double value = (meleeDefense + magicDefense) * strength + defense / 2.0D;
+        double value = (meleeDefense + magicDefense) * (strength / 100.0D) + defense / 2.0D;
         return Double.isFinite(value) ? Math.max(0.0D, value) : 0.0D;
     }
 
