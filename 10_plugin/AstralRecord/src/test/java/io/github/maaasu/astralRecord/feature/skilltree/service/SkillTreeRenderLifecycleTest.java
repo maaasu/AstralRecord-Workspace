@@ -55,7 +55,7 @@ class SkillTreeRenderLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
-     * 検証契約: 通常更新は20tick、移動dirtyでは構造再走査を行わず、全体更新は両通知順で部分更新より優先する。
+     * 検証契約: 通常更新は10tick、移動dirtyでは構造再走査を行わず、全体更新は両通知順で部分更新より優先する。
      */
     @Test
     void fullRefreshWinsBothNotificationOrdersWithoutResyncingStructure() {
@@ -66,8 +66,6 @@ class SkillTreeRenderLifecycleTest extends MockBukkitTestBase {
                 if (partialFirst) f.visualizer.markNodeStateDirty(f.player.getUniqueId(), Set.of("unrelated"));
                 f.visualizer.markViewerDirty(f.player.getUniqueId());
                 if (!partialFirst) f.visualizer.markNodeStateDirty(f.player.getUniqueId(), Set.of("unrelated"));
-                server().getScheduler().performTicks(10);
-                verify(f.service, never()).createNodePresentationSnapshot(any());
                 server().getScheduler().performTicks(10);
                 verify(f.service, times(1)).createNodePresentationSnapshot(f.ast);
                 verify(f.service, never()).getPositions();
@@ -89,20 +87,20 @@ class SkillTreeRenderLifecycleTest extends MockBukkitTestBase {
             f.player.teleport(halfway);
             f.visualizer.markViewerMoved(f.player, halfway);
             f.visualizer.markNodeStateDirty(f.player.getUniqueId(), Set.of("1000"));
-            server().getScheduler().performTicks(20);
+            server().getScheduler().performTicks(10);
             clearInvocations(f.service);
             Location oneBlock = origin.clone().add(1, 0, 0);
             f.player.teleport(oneBlock);
             f.visualizer.markViewerMoved(f.player, oneBlock);
-            server().getScheduler().performTicks(20);
+            server().getScheduler().performTicks(10);
             verify(f.service, times(1)).createNodePresentationSnapshot(f.ast);
             clearInvocations(f.service);
             f.visualizer.markViewerMoved(f.player, oneBlock.clone().add(0.1, 0, 0));
-            server().getScheduler().performTicks(20);
+            server().getScheduler().performTicks(10);
             verify(f.service, never()).createNodePresentationSnapshot(any());
             f.visualizer.removeViewer(f.player.getUniqueId());
             f.visualizer.markViewerMoved(f.player, oneBlock);
-            server().getScheduler().performTicks(20);
+            server().getScheduler().performTicks(10);
             verify(f.service, times(1)).createNodePresentationSnapshot(f.ast);
         }
     }
@@ -122,7 +120,7 @@ class SkillTreeRenderLifecycleTest extends MockBukkitTestBase {
             when(f.service.getEdges()).thenReturn(expanded);
             f.visualizer.markNodeStateDirty(f.player.getUniqueId(), Set.of("unrelated"));
             f.visualizer.markStructureDirty();
-            server().getScheduler().performTicks(20);
+            server().getScheduler().performTicks(10);
             assertEquals(4, f.entities.size());
             verify(f.entities.get(3)).spawn(f.player);
         }
@@ -131,7 +129,7 @@ class SkillTreeRenderLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 9. スキルツリー表示フォールバック
-     * 検証契約: 通常更新を20tickにしてもBedrockの可視edge粒子は10tickごとに維持し、BlockDisplayを送らない。
+     * 検証契約: 通常更新と同じ10tickでBedrockの可視edge粒子を維持し、BlockDisplayを送らない。
      */
     @Test
     void bedrockParticlesKeepTenTickCadence() {

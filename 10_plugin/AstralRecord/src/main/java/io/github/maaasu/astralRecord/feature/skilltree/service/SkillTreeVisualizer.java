@@ -45,7 +45,7 @@ final class SkillTreeVisualizer {
     /** Bedrock edge粒子の従来再表示周期です。 */
     static final long MAINTENANCE_INTERVAL_TICKS = 10L;
     /** node・label・edgeの通常再描画周期です。 */
-    static final long VIEWER_REFRESH_INTERVAL_TICKS = 20L;
+    static final long VIEWER_REFRESH_INTERVAL_TICKS = 10L;
     private static final long BEAM_SCALE_INTERVAL_TICKS = 2L;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
