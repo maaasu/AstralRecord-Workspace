@@ -305,14 +305,15 @@ public final class DamageCalculator {
             @NotNull AttackType attackType,
             boolean defenseConversionActive
     ) {
-        double attack = defenseConversionActive
+        double attack = attacker.statValue(StatusType.ATTACK);
+        double defense = defenseConversionActive
                 ? attacker.statValue(StatusType.DEFENSE)
-                : attacker.statValue(StatusType.ATTACK);
+                : 0.0D;
         double typedAttack = defenseConversionActive
                 ? attacker.statValue(defenseStatusType(attackType))
                 : attacker.statValue(attackType.statusType());
         double primary = attacker.statValue(attackType.primaryStatusType());
-        return (attack + typedAttack) * (1.0D + primary / 100.0D);
+        return (attack + defense + typedAttack) * (1.0D + primary / 100.0D);
     }
 
     /**

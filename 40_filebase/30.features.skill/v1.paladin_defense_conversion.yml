@@ -6,11 +6,11 @@ id: paladin_defense_conversion
 type: SKILL
 implementationId: paladin_defense_conversion
 name: "&dディフェンスコンバージョン"
-description: "&7防御力をスキル威力へ転換する常時パッシブ。"
+description: "&7攻撃力と防御力でスキル威力を高める常時パッシブ。"
 icon: WARDEN_SPAWN_EGG
 lore:
   - "&7バインド不要で常時有効。"
-  - "&7スキルの攻撃力参照を防御力系へ置換する。"
+  - "&7スキルの攻撃力参照へ防御力系を加算する。"
   - "&7通常攻撃と固定ダメージには適用しない。"
 cooldownTicks: 0
 resourceType: MANA

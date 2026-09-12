@@ -118,13 +118,14 @@ class DamageCalculatorDesignTest {
     @Test
     void defenseConversionUsesGeneralAndMatchingTypedDefenseForSkillAttackPower() {
         AstEntity attacker = AstEntity.player(player(Map.of(
+            StatusType.ATTACK, 40.0D,
             StatusType.DEFENSE, 20.0D,
             StatusType.MELEE_DEFENSE, 5.0D,
             StatusType.STRENGTH, 50.0D
         )));
 
-        assertEquals(37.5D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE, true), 0.0001D);
-        assertEquals(0.0D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE), 0.0001D);
+        assertEquals(97.5D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE, true), 0.0001D);
+        assertEquals(60.0D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE), 0.0001D);
     }
 
     /**

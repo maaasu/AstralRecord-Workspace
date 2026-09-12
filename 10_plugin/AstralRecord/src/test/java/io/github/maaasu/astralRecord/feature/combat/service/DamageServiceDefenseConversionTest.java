@@ -76,7 +76,7 @@ class DamageServiceDefenseConversionTest extends MockBukkitTestBase {
         );
         var fixed = service.applyDamage(AstEntity.player(attacker), AstEntity.mob(mob()), 11.0D, AttackType.MELEE);
 
-        assertEquals(37.5D, skill.breakdown().resolvedAttackPower(), 0.0001D);
+        assertEquals(187.5D, skill.breakdown().resolvedAttackPower(), 0.0001D);
         assertEquals(300.0D, normalAttack.breakdown().resolvedAttackPower(), 0.0001D);
         assertEquals(11.0D, fixed.breakdown().resolvedAttackPower(), 0.0001D);
     }
