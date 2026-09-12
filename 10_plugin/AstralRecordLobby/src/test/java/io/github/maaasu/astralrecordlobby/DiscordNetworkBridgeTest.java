@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -115,5 +116,47 @@ class DiscordNetworkBridgeTest {
         assertEquals(0L, transition.sequence());
         assertTrue(transition.skipBatch());
         assertFalse(transition.relayEnabled());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
+     * 検証契約: Discord Webhookの表示名はアカウント表示と送信元backendを一目で識別できる。
+     */
+    @Test
+    void formatsPlayerWebhookNameWithSourceServer() {
+        var message = new LobbyApiClient.ChatMessage(
+            1L, "ch1", "AstralRecord#1", "こんにちは", "chat",
+            UUID.randomUUID(), "AstralRecord");
+
+        assertEquals("AstralRecord#1 • ch1", DiscordNetworkBridge.playerWebhookName(message));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
+     * 検証契約: Webhookを利用できない環境でもプレイヤーと送信元を区別できる表示で発言を中継する。
+     */
+    @Test
+    void formatsReadableFallbackPlayerMessage() {
+        var message = new LobbyApiClient.ChatMessage(
+            1L, "ch1", "AstralRecord#1", "こんにちは", "chat", null, null);
+
+        assertEquals("**[ch1] AstralRecord#1**\nこんにちは", DiscordNetworkBridge.fallbackPlayerMessage(message));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## Discordサーバー接続通知
+     * 検証契約: Embed権限がない環境でもシステム通知と送信元を識別できる形式へ退避する。
+     */
+    @Test
+    void formatsReadableFallbackSystemMessage() {
+        var message = new LobbyApiClient.ChatMessage(
+            1L, "proxy", "AstralRecord", "Aliceがサーバーに参加しました", "lifecycle", null, null);
+
+        assertEquals(
+            "**🔔 AstralRecord システム • proxy**\n> Aliceがサーバーに参加しました",
+            DiscordNetworkBridge.fallbackSystemMessage(message));
     }
 }

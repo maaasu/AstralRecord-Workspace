@@ -102,7 +102,12 @@ public sealed class NetworkController(
             || string.IsNullOrWhiteSpace(request.AuthorName)
             || string.IsNullOrWhiteSpace(request.Message)
             || request.Kind is not ("chat" or "lifecycle")
-            || request.AuthorName.Length > 64 || request.Message.Length > 512)
+            || request.AuthorName.Length > 64 || request.Message.Length > 512
+            || request.AuthorPlayerId == Guid.Empty
+            || request.AuthorMinecraftName is not null
+                && (string.IsNullOrWhiteSpace(request.AuthorMinecraftName)
+                    || request.AuthorMinecraftName.Length > 64)
+            || request.AuthorPlayerId.HasValue != (request.AuthorMinecraftName is not null))
             return BadRequest();
 
         return Ok(runtimeService.PublishChat(request));

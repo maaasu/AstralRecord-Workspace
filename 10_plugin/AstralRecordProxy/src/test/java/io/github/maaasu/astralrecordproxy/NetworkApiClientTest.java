@@ -2,6 +2,7 @@ package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -16,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -51,6 +53,27 @@ class NetworkApiClientTest {
             assertEquals(List.of(), batch.messages());
             response.get(5, TimeUnit.SECONDS);
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
+     * 検証契約: Minecraft発言はDiscordスキン解決用のUUIDとMCIDをNetwork APIへ登録する。
+     */
+    @Test
+    void minecraftChatRequestIncludesPlayerIdentity() {
+        UUID messageId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        var chat = new BackendProtocol.Chat(
+            messageId, playerId, "AstralRecord", "ch1", "AstralRecord#1", 10, "剣士",
+            "konnichiha", "こんにちは");
+
+        JsonObject body = NetworkApiClient.minecraftChatRequest(chat, "ch1");
+
+        assertEquals(playerId.toString(), body.get("authorPlayerId").getAsString());
+        assertEquals("AstralRecord", body.get("authorMinecraftName").getAsString());
+        assertEquals("AstralRecord#1", body.get("authorName").getAsString());
+        assertEquals("konnichiha[こんにちは]", body.get("message").getAsString());
     }
 
     private SSLContext createServerContext() throws Exception {

@@ -88,6 +88,34 @@ public sealed class NetworkControllerTests
     }
 
     [Fact]
+    public void ChatPublishAcceptsCompleteMinecraftPlayerIdentity()
+    {
+        var runtime = new NetworkRuntimeService(TimeProvider.System);
+        var controller = Controller(runtime, providedSyncKey: null);
+        var playerId = Guid.NewGuid();
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "ch1", "AstralRecord#1", "こんにちは", "chat",
+            playerId, "AstralRecord"));
+
+        var response = Assert.IsType<NetworkChatMessageResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(playerId, response.AuthorPlayerId);
+        Assert.Equal("AstralRecord", response.AuthorMinecraftName);
+    }
+
+    [Fact]
+    public void ChatPublishRejectsPartialMinecraftPlayerIdentity()
+    {
+        var controller = Controller(new NetworkRuntimeService(TimeProvider.System), providedSyncKey: null);
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "ch1", "AstralRecord#1", "こんにちは", "chat",
+            Guid.NewGuid(), null));
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
     public void AuthorityReplacementAcceptsProxySyncKey()
     {
         var runtime = new NetworkRuntimeService(TimeProvider.System);

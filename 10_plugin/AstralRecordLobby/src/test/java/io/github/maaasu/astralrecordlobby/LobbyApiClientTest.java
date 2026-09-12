@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,7 +37,13 @@ class LobbyApiClientTest {
     @Test
     void insecureTlsAcceptsSelfSignedCertificateWithMismatchedHostName() throws Exception {
         SSLContext serverContext = createServerContext();
-        byte[] responseBody = "{\"generationId\":\"test-generation\",\"messages\":[]}"
+        UUID playerId = UUID.randomUUID();
+        byte[] responseBody = ("{\"generationId\":\"test-generation\",\"messages\":["
+            + "{\"sequence\":1,\"sourceServerId\":\"ch1\",\"authorName\":\"AstralRecord#1\","
+            + "\"message\":\"こんにちは\",\"kind\":\"chat\",\"authorPlayerId\":\"" + playerId + "\","
+            + "\"authorMinecraftName\":\"AstralRecord\"},"
+            + "{\"sequence\":2,\"sourceServerId\":\"ch2\",\"authorName\":\"LegacyPlayer\","
+            + "\"message\":\"legacy\",\"kind\":\"chat\"}]}")
             .getBytes(StandardCharsets.UTF_8);
 
         try (SSLServerSocket server = (SSLServerSocket) serverContext.getServerSocketFactory()
@@ -52,7 +59,11 @@ class LobbyApiClientTest {
             LobbyApiClient.ChatBatch batch = new LobbyApiClient(config).getMinecraftChat(0L);
 
             assertEquals("test-generation", batch.generationId());
-            assertEquals(List.of(), batch.messages());
+            assertEquals(2, batch.messages().size());
+            assertEquals(playerId, batch.messages().get(0).authorPlayerId());
+            assertEquals("AstralRecord", batch.messages().get(0).authorMinecraftName());
+            assertEquals(null, batch.messages().get(1).authorPlayerId());
+            assertEquals(null, batch.messages().get(1).authorMinecraftName());
             response.get(5, TimeUnit.SECONDS);
         }
     }

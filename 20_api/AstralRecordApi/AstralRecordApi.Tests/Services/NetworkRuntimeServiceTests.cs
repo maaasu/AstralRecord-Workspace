@@ -65,6 +65,20 @@ public sealed class NetworkRuntimeServiceTests
     }
 
     [Fact]
+    public void MinecraftChatKeepsPlayerIdentityForDiscordAvatar()
+    {
+        var service = new NetworkRuntimeService(TimeProvider.System);
+        var playerId = Guid.NewGuid();
+
+        var message = service.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "ch1", "AstralRecord#1", "こんにちは", "chat",
+            playerId, "AstralRecord"));
+
+        Assert.Equal(playerId, message.AuthorPlayerId);
+        Assert.Equal("AstralRecord", message.AuthorMinecraftName);
+    }
+
+    [Fact]
     public void AuthorityReplacementRemovesOldEntries()
     {
         var service = new NetworkRuntimeService(TimeProvider.System);

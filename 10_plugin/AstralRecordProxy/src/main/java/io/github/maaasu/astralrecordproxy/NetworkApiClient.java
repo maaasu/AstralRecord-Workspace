@@ -92,17 +92,31 @@ final class NetworkApiClient {
     }
 
     CompletableFuture<Void> publishMinecraftChat(BackendProtocol.Chat chat, String sourceServerId) {
+        return send("POST", "/api/network/chat", minecraftChatRequest(chat, sourceServerId).toString())
+            .thenApply(ignored -> null);
+    }
+
+    /**
+     * MinecraftチャットのNetwork API登録payloadを生成する。
+     *
+     * @param chat backendから受信したチャット
+     * @param sourceServerId 送信元backend ID
+     * @return プレイヤー識別情報を含むAPI登録payload
+     */
+    static JsonObject minecraftChatRequest(BackendProtocol.Chat chat, String sourceServerId) {
         JsonObject body = new JsonObject();
         body.addProperty("messageId", chat.messageId().toString());
         body.addProperty("source", "minecraft");
         body.addProperty("sourceServerId", sourceServerId);
         body.addProperty("authorName", chat.displayName());
+        body.addProperty("authorPlayerId", chat.playerId().toString());
+        body.addProperty("authorMinecraftName", chat.authorName());
         body.addProperty(
             "message",
             chat.original().equals(chat.converted()) ? chat.original() : chat.original() + "[" + chat.converted() + "]"
         );
         body.addProperty("kind", "chat");
-        return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
+        return body;
     }
 
     /**

@@ -81,7 +81,9 @@ final class LobbyApiClient {
                 value.get("sourceServerId").getAsString(),
                 value.get("authorName").getAsString(),
                 value.get("message").getAsString(),
-                value.has("kind") ? value.get("kind").getAsString() : "chat"));
+                value.has("kind") ? value.get("kind").getAsString() : "chat",
+                optionalUuid(value, "authorPlayerId"),
+                optionalString(value, "authorMinecraftName")));
         });
         return new ChatBatch(generationId, latestSequence, messages);
     }
@@ -120,6 +122,31 @@ final class LobbyApiClient {
     private static int optionalInt(JsonObject value, String name) {
         return value.has(name) && !value.get(name).isJsonNull()
             ? Math.max(0, value.get(name).getAsInt()) : 0;
+    }
+
+    /**
+     * JSONの省略可能なUUID文字列を取得する。
+     *
+     * @param value 読み取り元JSON
+     * @param name フィールド名
+     * @return UUID値。欠落またはnullの場合はnull
+     * @throws IllegalArgumentException UUID文字列が不正な場合
+     */
+    private static UUID optionalUuid(JsonObject value, String name) {
+        String raw = optionalString(value, name);
+        return raw == null ? null : UUID.fromString(raw);
+    }
+
+    /**
+     * JSONの省略可能な文字列を取得する。
+     *
+     * @param value 読み取り元JSON
+     * @param name フィールド名
+     * @return 文字列値。欠落またはnullの場合はnull
+     */
+    private static String optionalString(JsonObject value, String name) {
+        return value.has(name) && !value.get(name).isJsonNull()
+            ? value.get(name).getAsString() : null;
     }
 
     private String send(String method, String path, String body) {
@@ -205,7 +232,15 @@ final class LobbyApiClient {
     record Admission(boolean admitted, int permission, String denyReason) {
     }
 
-    record ChatMessage(long sequence, String sourceServerId, String authorName, String message, String kind) {
+    record ChatMessage(
+        long sequence,
+        String sourceServerId,
+        String authorName,
+        String message,
+        String kind,
+        UUID authorPlayerId,
+        String authorMinecraftName
+    ) {
     }
 
     record ChatBatch(String generationId, Long latestSequence, List<ChatMessage> messages) {
