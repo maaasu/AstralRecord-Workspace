@@ -17,6 +17,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DungeonLayoutPlannerTest {
@@ -92,15 +93,16 @@ class DungeonLayoutPlannerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 2. DungeonLayout
-     * 検証契約: STARTは部屋矩形のminX、minZ、IDの昇順で一意に決定する。
+     * 検証契約: STARTは予約BOSS部屋を除いた部屋矩形のminX、minZ、IDの昇順で一意に決定する。
      */
     @Test
     void selectsTheStartRoomByMinimumBoundsCoordinates() {
         DungeonDefinition definition = DungeonTestFixtures.definition();
 
-        for (long seed = 0; seed < 50; seed++) {
+        for (long seed = 0; seed < 100; seed++) {
             DungeonLayout layout = planner.plan(definition, seed);
             int expectedStartRoomId = layout.rooms().stream()
+                    .filter(room -> room.id() != layout.bossRoomId())
                     .min(Comparator
                             .comparingInt((DungeonLayout.Room room) -> room.bounds().minX())
                             .thenComparingInt(room -> room.bounds().minZ())
@@ -109,6 +111,7 @@ class DungeonLayoutPlannerTest {
                     .id();
 
             assertEquals(expectedStartRoomId, layout.startRoomId());
+            assertNotEquals(layout.bossRoomId(), layout.startRoomId());
         }
     }
 

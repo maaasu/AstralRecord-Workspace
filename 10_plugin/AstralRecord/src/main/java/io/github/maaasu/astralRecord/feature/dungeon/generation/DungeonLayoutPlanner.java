@@ -124,6 +124,7 @@ public final class DungeonLayoutPlanner {
         }
 
         int startRoomId = placedRooms.stream()
+                .filter(room -> !room.bossReserved())
                 .min(Comparator
                         .comparingInt((PlacedRoom room) -> room.bounds.minX())
                         .thenComparingInt(room -> room.bounds.minZ())
