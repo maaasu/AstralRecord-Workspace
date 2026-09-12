@@ -30,6 +30,7 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** RPGサーバーとVelocity Proxy間の転送・チャット・Tabメタデータを管理します。 */
-public final class NetworkBridgeService implements NetworkChatBridge, Listener {
+public final class NetworkBridgeService implements NetworkChatBridge, Listener, PluginMessageListener {
     private final AstralRecord plugin;
     private final PlayerClassService playerClassService;
     private final AfkService afkService;
@@ -77,6 +78,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         playerClassService.setPlayerListNameUpdatesEnabled(!enabled);
         if (!enabled) return;
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, BackendProtocol.CHANNEL);
+        plugin.getServer().getMessenger().registerIncomingPluginChannel(
+            plugin, BackendProtocol.CHANNEL, this);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         metadataTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
@@ -96,6 +99,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         authorityTask = null;
         if (enabled) {
             plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, BackendProtocol.CHANNEL);
+            plugin.getServer().getMessenger().unregisterIncomingPluginChannel(
+                plugin, BackendProtocol.CHANNEL, this);
             HandlerList.unregisterAll(this);
         }
         transfers.forEach(playerId ->
@@ -167,6 +172,16 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
 
     /** 全保存の成功後にだけProxyへロビー接続を要求します。 */
     public void transferToLobby(@NotNull AstPlayer player) {
+        transferToServer(player, lobbyServer);
+    }
+
+    /**
+     * 現在のプレイヤーデータを保存し、ACK成功後にだけProxyへ接続を要求します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param targetServer Proxy設定に登録された接続先backend名
+     */
+    void transferToServer(@NotNull AstPlayer player, @NotNull String targetServer) {
         Player bukkit = player.getBukkit();
         UUID playerId = bukkit.getUniqueId();
         if (!enabled) {
@@ -200,8 +215,10 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         bukkit.closeInventory();
         bukkit.setInvulnerable(true);
         CompletableFuture<Boolean> playerStateSave;
+        CompletableFuture<Void> questStateSave;
         try {
             playerStateSave = plugin.getPlayerService().saveForChannelTransfer(player);
+            questStateSave = questService.flushState(player.getAccount().getUuid());
         } catch (RuntimeException failure) {
             releaseTransfer(playerId);
             bukkit.setInvulnerable(false);
@@ -209,7 +226,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             return;
         }
 
-        playerStateSave.whenComplete((ignored, failure) ->
+        CompletableFuture.allOf(playerStateSave, questStateSave).whenComplete((ignored, failure) ->
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (!bukkit.isOnline()) {
                     releaseTransfer(playerId);
@@ -222,7 +239,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
                     return;
                 }
                 try {
-                    BackendProtocol.sendConnect(plugin, bukkit, lobbyServer);
+                    BackendProtocol.sendConnect(plugin, bukkit, targetServer);
                 } catch (RuntimeException connectFailure) {
                     releaseTransfer(playerId);
                     bukkit.setInvulnerable(false);
@@ -239,6 +256,35 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
                 }, 100L);
             })
         );
+    }
+
+    /**
+     * Proxyからの保存付き接続準備要求を受け取ります。
+     *
+     * @param channel 受信チャンネル
+     * @param player 対象プレイヤー
+     * @param message Plugin message payload
+     */
+    @Override
+    public void onPluginMessageReceived(
+        @NotNull String channel,
+        @NotNull Player player,
+        byte @NotNull [] message
+    ) {
+        if (!enabled || !BackendProtocol.CHANNEL.equals(channel)) return;
+        String targetServer;
+        try {
+            targetServer = BackendProtocol.decodePrepareConnect(message);
+        } catch (java.io.IOException ignored) {
+            return;
+        }
+        if (!NetworkAuthorityRegistry.isAuthority(player.getUniqueId())) return;
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7152);
+            return;
+        }
+        transferToServer(astPlayer, targetServer);
     }
 
     @EventHandler(ignoreCancelled = true)

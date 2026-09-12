@@ -6,13 +6,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
 final class BackendProtocol {
     static final String CHANNEL = "astralrecord:network";
+    private static final String PREPARE_CONNECT = "prepare_connect";
 
     private BackendProtocol() {
     }
@@ -22,6 +25,28 @@ final class BackendProtocol {
             output.writeUTF("connect");
             output.writeUTF(targetServer);
         });
+    }
+
+    /**
+     * Proxyから受信した保存付き接続準備要求を復元する。
+     *
+     * @param payload Plugin message payload
+     * @return 接続先backend名
+     * @throws IOException payloadが不正な場合
+     */
+    static @NotNull String decodePrepareConnect(byte[] payload) throws IOException {
+        if (payload.length > 32_767) throw new IOException("Plugin message is too large");
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
+            String type = input.readUTF();
+            if (!PREPARE_CONNECT.equals(type)) {
+                throw new IOException("Unknown proxy message type: " + type);
+            }
+            String targetServer = input.readUTF().trim();
+            if (targetServer.isEmpty() || input.available() > 0) {
+                throw new IOException("Invalid prepare_connect payload");
+            }
+            return targetServer;
+        }
     }
 
     static void sendMetadata(

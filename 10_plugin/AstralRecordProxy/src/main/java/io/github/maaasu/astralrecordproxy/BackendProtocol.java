@@ -16,6 +16,7 @@ final class BackendProtocol {
     static final String PRIVATE_CHAT = "private_chat";
     static final String DIRECT_MESSAGE = "direct_message";
     static final String OPEN_MENU = "open_menu";
+    static final String PREPARE_CONNECT = "prepare_connect";
 
     private BackendProtocol() {
     }
@@ -70,10 +71,20 @@ final class BackendProtocol {
     }
 
     static byte[] openMenu() {
+        return outgoing(OPEN_MENU, null);
+    }
+
+    /** RPG backendへ保存完了後のチャンネル接続要求を指示する。 */
+    static byte[] prepareConnect(String targetServer) {
+        return outgoing(PREPARE_CONNECT, targetServer);
+    }
+
+    private static byte[] outgoing(String type, String value) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             try (DataOutputStream output = new DataOutputStream(bytes)) {
-                output.writeUTF(OPEN_MENU);
+                output.writeUTF(type);
+                if (value != null) output.writeUTF(value);
             }
             return bytes.toByteArray();
         } catch (IOException impossible) {

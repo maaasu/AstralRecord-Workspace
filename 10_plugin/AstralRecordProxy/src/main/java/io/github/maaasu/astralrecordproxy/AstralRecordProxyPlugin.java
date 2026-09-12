@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
+    private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
     private static final int DONOR_PERMISSION = 5;
     private static final MinecraftChannelIdentifier CHANNEL =
         MinecraftChannelIdentifier.from(BackendProtocol.CHANNEL);
@@ -54,6 +56,7 @@ public final class AstralRecordProxyPlugin {
     private final Path dataDirectory;
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
+    private final Map<UUID, AuthorityTransferPreparation> authorityTransferPreparations = new ConcurrentHashMap<>();
     private final Set<UUID> pendingGameConnections = ConcurrentHashMap.newKeySet();
     private final Map<String, AtomicInteger> serverReservations = new ConcurrentHashMap<>();
     private final Map<String, ServerMetric> serverMspt = new ConcurrentHashMap<>();
@@ -129,6 +132,7 @@ public final class AstralRecordProxyPlugin {
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
         Player player = event.getPlayer();
+        authorityTransferPreparations.remove(player.getUniqueId());
         String serverId = event.getServer().getServerInfo().getName();
         metadata.compute(player.getUniqueId(), (ignored, current) -> {
             if (current == null) {
@@ -164,6 +168,7 @@ public final class AstralRecordProxyPlugin {
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         UUID playerId = event.getPlayer().getUniqueId();
+        authorityTransferPreparations.remove(playerId);
         String currentServer = event.getPlayer().getCurrentServer()
             .map(connection -> connection.getServerInfo().getName())
             .orElseGet(() -> {
@@ -318,7 +323,8 @@ public final class AstralRecordProxyPlugin {
      * @param permission LobbyがAPI admissionから取得した権限
      */
     private void requestConnection(Player player, String sourceServer, String targetServer, int permission) {
-        int effectivePermission = config.isServerAuthority(player.getUniqueId()) ? 99 : permission;
+        boolean serverAuthority = config.isServerAuthority(player.getUniqueId());
+        int effectivePermission = serverAuthority ? 99 : permission;
         RegisteredServer target = proxy.getServer(targetServer).orElse(null);
         if (target == null || (!config.isGameServer(targetServer)
             && !targetServer.equalsIgnoreCase(config.lobbyServer()))) {
@@ -326,14 +332,21 @@ public final class AstralRecordProxyPlugin {
             return;
         }
         if (config.isGameServer(targetServer)) {
-            if (!sourceServer.equalsIgnoreCase(config.lobbyServer())) {
+            String currentServer = player.getCurrentServer()
+                .map(connection -> connection.getServerInfo().getName())
+                .orElse(null);
+            boolean preparedAuthorityTransfer = !sourceServer.equalsIgnoreCase(config.lobbyServer())
+                && isCurrentBackend(currentServer, sourceServer)
+                && consumeAuthorityTransferPreparation(player.getUniqueId(), sourceServer, targetServer);
+            if (!canRequestGameServerFrom(
+                sourceServer, config, player.getUniqueId(), preparedAuthorityTransfer)) {
                 player.sendMessage(Component.text("RPGサーバーへの接続はロビーから選択してください。", NamedTextColor.YELLOW));
                 return;
             }
             boolean currentlyInGame = player.getCurrentServer()
                 .map(connection -> config.isGameServer(connection.getServerInfo().getName()))
                 .orElse(false);
-            if (currentlyInGame) {
+            if (shouldRejectCurrentGameConnection(currentlyInGame, preparedAuthorityTransfer)) {
                 player.sendMessage(Component.text("RPGサーバーから戻る場合は /lobby を使用してください。", NamedTextColor.YELLOW));
                 return;
             }
@@ -361,6 +374,84 @@ public final class AstralRecordProxyPlugin {
                 player.sendMessage(Component.text("サーバーへの接続に失敗しました。", NamedTextColor.RED));
             }
         });
+    }
+
+    /**
+     * Proxy最高権限ユーザーの/server引数を検証し、安全な接続経路へ渡す。
+     *
+     * @param player 実行プレイヤー
+     * @param requestedTarget 指定された接続先backend名
+     */
+    private void requestAuthorityServerCommand(Player player, String requestedTarget) {
+        if (!config.isServerAuthority(player.getUniqueId())) {
+            player.sendMessage(Component.text(
+                "チャンネル名を指定した /server はProxy最高権限ユーザー専用です。",
+                NamedTextColor.YELLOW));
+            return;
+        }
+        String targetServer = config.gameServers().stream()
+            .filter(serverId -> serverId.equalsIgnoreCase(requestedTarget))
+            .findFirst().orElse(null);
+        RegisteredServer target = targetServer == null ? null : proxy.getServer(targetServer).orElse(null);
+        if (target == null) {
+            player.sendMessage(Component.text("接続先チャンネルが見つかりません。", NamedTextColor.RED));
+            return;
+        }
+        ServerConnection current = player.getCurrentServer().orElse(null);
+        if (current == null) {
+            player.sendMessage(Component.text("現在の接続先を確認できません。", NamedTextColor.RED));
+            return;
+        }
+        String currentServer = current.getServerInfo().getName();
+        if (currentServer.equalsIgnoreCase(targetServer)) {
+            player.sendMessage(Component.text("既にそのチャンネルへ接続しています。", NamedTextColor.YELLOW));
+            return;
+        }
+        long remaining = cooldownRemaining(player.getUniqueId());
+        if (remaining > 0L) {
+            player.sendMessage(Component.text(
+                "再接続まで " + remaining + " 秒お待ちください。", NamedTextColor.YELLOW));
+            return;
+        }
+        if (currentServer.equalsIgnoreCase(config.lobbyServer())) {
+            requestConnection(player, currentServer, targetServer, 99);
+            return;
+        }
+        if (!config.isGameServer(currentServer)) {
+            player.sendMessage(Component.text("現在のサーバーからチャンネル移動できません。", NamedTextColor.RED));
+            return;
+        }
+        AuthorityTransferPreparation preparation = new AuthorityTransferPreparation(
+            currentServer,
+            targetServer,
+            System.currentTimeMillis() + AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS);
+        AuthorityTransferPreparation selected = authorityTransferPreparations.compute(
+            player.getUniqueId(),
+            (ignored, existing) -> existing == null || existing.expiresAtMillis() < System.currentTimeMillis()
+                ? preparation : existing);
+        if (selected != preparation) {
+            player.sendMessage(Component.text("サーバー移動を処理中です。", NamedTextColor.YELLOW));
+            return;
+        }
+        if (!current.sendPluginMessage(CHANNEL, BackendProtocol.prepareConnect(targetServer))) {
+            authorityTransferPreparations.remove(player.getUniqueId(), preparation);
+            player.sendMessage(Component.text("プレイヤーデータの保存を開始できませんでした。", NamedTextColor.RED));
+        }
+    }
+
+    /** Proxy最高権限ユーザーへ/server引数として利用可能なRPG backend名を返す。 */
+    static List<String> serverCommandSuggestions(
+        ProxyConfig config,
+        UUID playerId,
+        String currentServer,
+        String prefix
+    ) {
+        if (!config.isServerAuthority(playerId)) return List.of();
+        String normalizedPrefix = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
+        return config.gameServers().stream()
+            .filter(serverId -> currentServer == null || !serverId.equalsIgnoreCase(currentServer))
+            .filter(serverId -> serverId.toLowerCase(Locale.ROOT).startsWith(normalizedPrefix))
+            .toList();
     }
 
     private void connectToGameServer(
@@ -398,10 +489,51 @@ public final class AstralRecordProxyPlugin {
     private long cooldownRemaining(UUID playerId) {
         Long last = lastGameConnectMillis.get(playerId);
         if (last == null) return 0L;
-        long expiresAt = last + TimeUnit.SECONDS.toMillis(config.transferCooldownSeconds());
-        long remaining = Math.max(0L, (expiresAt - System.currentTimeMillis() + 999L) / 1000L);
+        long remaining = cooldownRemainingSeconds(
+            last, System.currentTimeMillis(), config.transferCooldownSeconds());
         if (remaining == 0L) lastGameConnectMillis.remove(playerId, last);
         return remaining;
+    }
+
+    /** LobbyまたはProxy最高権限ユーザーの接続元だけRPG接続要求を許可する。 */
+    static boolean canRequestGameServerFrom(
+        String sourceServer,
+        ProxyConfig config,
+        UUID playerId,
+        boolean preparedAuthorityTransfer
+    ) {
+        return sourceServer != null && (sourceServer.equalsIgnoreCase(config.lobbyServer())
+            || (config.isServerAuthority(playerId) && preparedAuthorityTransfer));
+    }
+
+    /** 準備済み最高権限転送以外はRPG接続中の直接接続を拒否する。 */
+    static boolean shouldRejectCurrentGameConnection(boolean currentlyInGame, boolean preparedAuthorityTransfer) {
+        return currentlyInGame && !preparedAuthorityTransfer;
+    }
+
+    private boolean consumeAuthorityTransferPreparation(UUID playerId, String sourceServer, String targetServer) {
+        AuthorityTransferPreparation preparation = authorityTransferPreparations.remove(playerId);
+        return matchesAuthorityTransferPreparation(
+            preparation, sourceServer, targetServer, System.currentTimeMillis());
+    }
+
+    /** 一回限りの最高権限転送準備が接続元・接続先・有効期限と一致するか判定する。 */
+    static boolean matchesAuthorityTransferPreparation(
+        AuthorityTransferPreparation preparation,
+        String sourceServer,
+        String targetServer,
+        long nowMillis
+    ) {
+        return preparation != null
+            && preparation.expiresAtMillis() >= nowMillis
+            && preparation.sourceServer().equalsIgnoreCase(sourceServer)
+            && preparation.targetServer().equalsIgnoreCase(targetServer);
+    }
+
+    /** 最終RPG接続時刻から再接続クールタイムの残秒を算出する。 */
+    static long cooldownRemainingSeconds(long lastConnectMillis, long nowMillis, long cooldownSeconds) {
+        long expiresAt = lastConnectMillis + TimeUnit.SECONDS.toMillis(cooldownSeconds);
+        return Math.max(0L, (expiresAt - nowMillis + 999L) / 1000L);
     }
 
     private void sendOpenMenu(Player player) {
@@ -549,6 +681,9 @@ public final class AstralRecordProxyPlugin {
             - TimeUnit.SECONDS.toMillis(config.transferCooldownSeconds());
         lastGameConnectMillis.entrySet().removeIf(entry -> entry.getValue() <= cooldownCutoff
             && !pendingGameConnections.contains(entry.getKey()));
+        long nowMillis = System.currentTimeMillis();
+        authorityTransferPreparations.entrySet().removeIf(
+            entry -> entry.getValue().expiresAtMillis() < nowMillis);
         for (Player player : proxy.getAllPlayers()) {
             String serverId = player.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName()).orElse(config.lobbyServer());
@@ -729,11 +864,27 @@ public final class AstralRecordProxyPlugin {
     record ServerMetric(double mspt, long receivedAtNanos) {
     }
 
+    record AuthorityTransferPreparation(
+        String sourceServer,
+        String targetServer,
+        long expiresAtMillis
+    ) {
+    }
+
     private final class ServerMenuCommand implements SimpleCommand {
         @Override
         public void execute(Invocation invocation) {
             if (!(invocation.source() instanceof Player player)) {
                 invocation.source().sendMessage(Component.text("プレイヤー専用コマンドです。"));
+                return;
+            }
+            String[] arguments = invocation.arguments();
+            if (arguments.length == 1 && !arguments[0].isBlank()) {
+                requestAuthorityServerCommand(player, arguments[0].trim());
+                return;
+            }
+            if (arguments.length > 0) {
+                player.sendMessage(Component.text("使用方法: /server <チャンネル名>", NamedTextColor.YELLOW));
                 return;
             }
             String current = player.getCurrentServer()
@@ -743,6 +894,18 @@ public final class AstralRecordProxyPlugin {
                 return;
             }
             player.sendMessage(Component.text("RPGサーバーから戻る場合は /lobby を使用してください。", NamedTextColor.YELLOW));
+        }
+
+        @Override
+        public List<String> suggest(Invocation invocation) {
+            if (!(invocation.source() instanceof Player player)) return List.of();
+            String current = player.getCurrentServer()
+                .map(connection -> connection.getServerInfo().getName()).orElse(null);
+            String[] arguments = invocation.arguments();
+            String prefix = arguments.length == 1 ? arguments[0] : "";
+            return arguments.length <= 1
+                ? serverCommandSuggestions(config, player.getUniqueId(), current, prefix)
+                : List.of();
         }
     }
 }

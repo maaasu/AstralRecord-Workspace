@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -21,6 +22,71 @@ import org.junit.jupiter.api.io.TempDir;
 class AstralRecordProxyPluginTest {
     @TempDir
     Path dataDirectory;
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: RPG間の接続要求はProxy最高権限UUIDだけに許可する。
+     */
+    @Test
+    void onlyServerAuthorityCanRequestGameServerFromAnotherGameServer() throws Exception {
+        UUID authority = UUID.fromString("7c72cb6c-8cfd-4d74-8c67-6f39a4b4b9ca");
+        ProxyConfig config = loadConfig("serverAuthorityUsers:\n  - " + authority + "\n");
+
+        assertEquals(true,
+            AstralRecordProxyPlugin.canRequestGameServerFrom("ch1", config, authority, true));
+        assertEquals(false,
+            AstralRecordProxyPlugin.canRequestGameServerFrom("ch1", config, authority, false));
+        assertEquals(false,
+            AstralRecordProxyPlugin.canRequestGameServerFrom("ch1", config, UUID.randomUUID(), true));
+        assertEquals(true,
+            AstralRecordProxyPlugin.canRequestGameServerFrom("lobby", config, UUID.randomUUID(), false));
+        assertEquals(false, AstralRecordProxyPlugin.shouldRejectCurrentGameConnection(true, true));
+        assertEquals(true, AstralRecordProxyPlugin.shouldRejectCurrentGameConnection(true, false));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: Proxy最高権限の/server候補も現在地を除くRPG channelだけに限定する。
+     */
+    @Test
+    void serverCommandSuggestionsAreRestrictedToAuthorityGameServers() throws Exception {
+        UUID authority = UUID.fromString("7c72cb6c-8cfd-4d74-8c67-6f39a4b4b9ca");
+        ProxyConfig config = loadConfig(
+            "gameServers:\n  - ch1\n  - ch2\n  - dev\nserverAuthorityUsers:\n  - " + authority + "\n");
+
+        assertEquals(List.of("ch2"),
+            AstralRecordProxyPlugin.serverCommandSuggestions(config, authority, "ch1", "ch"));
+        assertEquals(List.of(),
+            AstralRecordProxyPlugin.serverCommandSuggestions(config, UUID.randomUUID(), "ch1", "ch"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: 高速なRPG再接続は設定済み30秒クールタイムの残秒を返す。
+     */
+    @Test
+    void directServerCommandUsesTransferCooldownWindow() {
+        assertEquals(30L, AstralRecordProxyPlugin.cooldownRemainingSeconds(1_000L, 1_000L, 30L));
+        assertEquals(1L, AstralRecordProxyPlugin.cooldownRemainingSeconds(1_000L, 30_001L, 30L));
+        assertEquals(0L, AstralRecordProxyPlugin.cooldownRemainingSeconds(1_000L, 31_000L, 30L));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: RPG間転送準備は接続元・接続先・10秒の有効期限が一致する場合だけ利用できる。
+     */
+    @Test
+    void authorityTransferPreparationRequiresMatchingRouteAndLifetime() {
+        var preparation = new AstralRecordProxyPlugin.AuthorityTransferPreparation("ch1", "ch2", 11_000L);
+
+        assertEquals(true, AstralRecordProxyPlugin.matchesAuthorityTransferPreparation(
+            preparation, "CH1", "CH2", 11_000L));
+        assertEquals(false, AstralRecordProxyPlugin.matchesAuthorityTransferPreparation(
+            preparation, "ch1", "dev", 11_000L));
+        assertEquals(false, AstralRecordProxyPlugin.matchesAuthorityTransferPreparation(
+            preparation, "ch1", "ch2", 11_001L));
+    }
+
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md

@@ -17,8 +17,13 @@ import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,6 +39,54 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class NetworkBridgeServiceTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
+     * 検証契約: Proxyからの保存準備要求は指定されたRPG channel名を欠損なく復元する。
+     */
+    @Test
+    void decodesProxyPrepareConnectTarget() throws Exception {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("prepare_connect");
+            output.writeUTF("ch2");
+        }
+
+        assertEquals("ch2", BackendProtocol.decodePrepareConnect(bytes.toByteArray()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
+     * 検証契約: player-stateとQuest stateのACK成功後だけ指定RPG channelへの接続を要求する。
+     */
+    @Test
+    void transfersToRequestedChannelOnlyAfterAllSavesSucceed() throws Exception {
+        Fixture fixture = new Fixture(true);
+        UUID accountId = UUID.randomUUID();
+        Player bukkit = mock(Player.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(bukkit.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(bukkit.isOnline()).thenReturn(true);
+        when(player.getBukkit()).thenReturn(bukkit);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(fixture.playerService.saveForChannelTransfer(player))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(fixture.questService.flushState(accountId))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        fixture.service.transferToServer(player, "ch2");
+
+        ArgumentCaptor<byte[]> payload = ArgumentCaptor.forClass(byte[].class);
+        verify(bukkit).sendPluginMessage(eq(fixture.plugin), eq(BackendProtocol.CHANNEL), payload.capture());
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload.getValue()))) {
+            assertEquals("connect", input.readUTF());
+            assertEquals("ch2", input.readUTF());
+        }
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
@@ -78,7 +131,7 @@ class NetworkBridgeServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## RPGからロビーへの保存付き転送
+     * 章・見出し: # 33_4-統合フロー > ## RPGからの保存付き転送
      * 検証契約: player-stateのSQL ACKが失敗した場合はProxy接続要求を送らず、現在チャンネルで操作凍結を解除する。
      */
     @Test
@@ -111,6 +164,37 @@ class NetworkBridgeServiceTest {
         // 失敗時に transfer guard が解除され、同じチャンネルから再試行できる。
         fixture.service.transferToLobby(player);
         verify(fixture.playerService, times(2)).saveForChannelTransfer(player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## RPGからの保存付き転送
+     * 検証契約: Quest stateの保存ACKが失敗した場合もProxy接続要求を送らない。
+     */
+    @Test
+    void keepsPlayerOnCurrentChannelWhenQuestSaveFails() {
+        Fixture fixture = new Fixture(true);
+        UUID accountId = UUID.randomUUID();
+        Player bukkit = mock(Player.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(bukkit.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(bukkit.isOnline()).thenReturn(true);
+        when(player.getBukkit()).thenReturn(bukkit);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(fixture.playerService.saveForChannelTransfer(player))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(fixture.questService.flushState(accountId))
+            .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("save failed")));
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(mock(PlayerMessageService.class));
+            fixture.service.transferToLobby(player);
+        }
+
+        verify(bukkit).setInvulnerable(false);
+        verify(bukkit, never()).sendPluginMessage(any(), any(), any());
     }
 
     /**

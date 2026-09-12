@@ -2,15 +2,30 @@ package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 class BackendProtocolTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: Proxyの/server要求は保存準備メッセージとして接続先をRPG backendへ渡す。
+     */
+    @Test
+    void encodesPrepareConnectTargetForBackend() throws Exception {
+        try (DataInputStream input = new DataInputStream(
+            new ByteArrayInputStream(BackendProtocol.prepareConnect("ch2")))) {
+            assertEquals(BackendProtocol.PREPARE_CONNECT, input.readUTF());
+            assertEquals("ch2", input.readUTF());
+            assertEquals(0, input.available());
+        }
+    }
+
     @Test
     void connectCarriesLobbyPermission() throws Exception {
         byte[] payload;
