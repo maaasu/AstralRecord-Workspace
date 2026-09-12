@@ -129,6 +129,7 @@ class DamageCalculatorDesignTest {
             AstEntity.player(victim),
             100.0D,
             AttackType.MELEE,
+            List.of(DamageComponent.defaultComponent()),
             DamageScaling.FIXED,
             DamageSource.SKILL
         ), 0.0D, true);
