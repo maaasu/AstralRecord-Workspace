@@ -102,6 +102,9 @@ class StatusServiceConditionTest {
     @Test
     void hpRecoveryListenerReceivesActualClampedAmount() {
         AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
         StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.MAX_MANA, 50.0D,
@@ -127,6 +130,9 @@ class StatusServiceConditionTest {
     @Test
     void naturalHpRecoveryDoesNotNotify() {
         AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000004"));
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
         StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D
         ), 50.0D, 0.0D, 0.0D);
@@ -149,6 +155,9 @@ class StatusServiceConditionTest {
     @Test
     void hpRecoveryNotificationKeepsHealerAndSource() {
         AstPlayer target = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000005"));
+        when(target.getBukkit()).thenReturn(bukkitPlayer);
         StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D
         ), 80.0D, 0.0D, 0.0D);
