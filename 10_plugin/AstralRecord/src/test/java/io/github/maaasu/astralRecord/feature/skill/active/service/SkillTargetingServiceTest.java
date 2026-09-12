@@ -41,6 +41,31 @@ class SkillTargetingServiceTest {
     );
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 29. パラディン ホーリースマイトの実装契約
+     * 検証契約: 球形範囲は水平方向だけでなく、Mob body boundsまでの3次元距離で判定する。
+     */
+    @Test
+    void sphereSelectsElevatedMobWithinItsThreeDimensionalRadius() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance elevated = mock(MobInstance.class);
+        MobInstance outside = mock(MobInstance.class);
+        when(player.getWorld()).thenReturn(world);
+        when(mobService.getInstances()).thenReturn(List.of(elevated, outside));
+        configureMob(elevated, template, world, 0.0D, 2.2D, 0.0D);
+        configureMob(outside, template, world, 0.0D, 2.6D, 0.0D);
+
+        List<AstEntity> targets = new SkillTargetingService(mobService).inSphere(
+                player, new Location(world, 0.0D, 0.0D, 0.0D), 2.5D, 8, false
+        );
+
+        assertEquals(List.of(elevated.instanceId()), targets.stream().map(AstEntity::id).toList());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
      * 検証契約: 水平eye rayとMob実body bounding boxの交差をhitとする。
@@ -451,5 +476,20 @@ class SkillTargetingServiceTest {
         when(mob.bukkitEntityId()).thenReturn(null);
         when(mob.currentLocation()).thenReturn(new Location(world, x, 0.0D, z));
         return mob;
+    }
+
+    private static void configureMob(
+            MobInstance mob,
+            MobTemplate template,
+            World world,
+            double x,
+            double y,
+            double z
+    ) {
+        when(mob.state()).thenReturn(MobState.IDLE);
+        when(mob.template()).thenReturn(template);
+        when(mob.instanceId()).thenReturn(UUID.randomUUID());
+        when(mob.bukkitEntityId()).thenReturn(null);
+        when(mob.currentLocation()).thenReturn(new Location(world, x, y, z));
     }
 }

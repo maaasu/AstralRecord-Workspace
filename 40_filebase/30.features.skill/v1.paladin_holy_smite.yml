@@ -10,7 +10,7 @@ description: "&7聖柱が敵群へ断罪の斬撃を落とす。"
 icon: WAXED_OXIDIZED_COPPER_LANTERN
 lore:
   - "&7発動地点に{skill.durationTicks:seconds}秒間、聖なる柱を立てる。"
-  - "&7毎秒、半径{skill.radius}m内からランダムな敵最大{skill.maxTargets}体へ白い斬撃を落とす。"
+  - "&7毎秒、半径{skill.radius}mの球状範囲からランダムな敵最大{skill.maxTargets}体へ白い斬撃を落とす。"
   - "&7近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
   - "&7{skill.weaknessChance}%で{skill.weaknessDurationTicks:seconds}秒間の衰弱を付与する。"
 cooldownTicks: 240
@@ -55,8 +55,8 @@ tags:
   - active
   - melee
 # behavior:
-#   target: "発動地点の水平半径内にいる管理対象Mobから、遮蔽を確認して毎秒ランダムに最大対象数を選ぶ。NPC、死亡Mob、PvP対象は除外し、Bossは含める。"
-#   visual: "発動地点にWHITE_STAINED_GLASSのBlockDisplayと白色DUSTで聖柱を立て、各対象の5m上に水平リング、対象位置まで白色の柱を表示する。"
+#   target: "発動地点を中心とする球状半径内で、実body boundsが球体へ交差する管理対象Mobから、遮蔽を確認して毎秒ランダムに最大対象数を選ぶ。NPC、死亡Mob、PvP対象は除外し、Bossは含める。"
+#   visual: "発動地点に小規模な白色祭壇を構成し、白色DUSTの光柱と、基部・上部の光輪を重ねる。各対象の5m上には水平リング、対象位置まで白色の柱を表示する。"
 params:
   damageRatio: 0.50
   radius: 1.5

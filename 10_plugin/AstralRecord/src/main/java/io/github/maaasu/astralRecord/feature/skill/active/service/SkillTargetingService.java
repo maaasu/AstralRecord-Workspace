@@ -404,6 +404,44 @@ public final class SkillTargetingService {
     }
 
     /**
+     * 指定球体へ交差する対象を中心から近い順で返します。
+     * <p>
+     * Mobの実body boundsと球体の最短距離を使うため、Mobの足元や中心点だけで半径判定を行いません。
+     *
+     * @param player 発動者
+     * @param center 球体中心
+     * @param radius 球体半径
+     * @param maxTargets 最大対象数
+     * @param requireLineOfSight 遮蔽判定を行うか
+     * @return 命中対象
+     */
+    public @NotNull List<AstEntity> inSphere(
+            @NotNull Player player,
+            @NotNull Location center,
+            double radius,
+            int maxTargets,
+            boolean requireLineOfSight
+    ) {
+        if (center.getWorld() != player.getWorld()) {
+            return List.of();
+        }
+        double safeRadius = Math.max(0.0D, radius);
+        double radiusSquared = safeRadius * safeRadius;
+        return targets(player, mob -> {
+            BoundingBox bounds = targetBounds(mob);
+            Location targetCenter = targetCenter(mob);
+            return squaredDistanceToBounds(center, bounds) <= radiusSquared
+                    && (!requireLineOfSight || hasLineOfSight(center, targetCenter));
+        }).stream()
+                .sorted(Comparator
+                        .comparingDouble((MobInstance mob) -> squaredDistanceToBounds(center, targetBounds(mob)))
+                        .thenComparing(mob -> mob.instanceId().toString()))
+                .limit(Math.max(0, maxTargets))
+                .map(AstEntity::mob)
+                .toList();
+    }
+
+    /**
      * 指定地点の円柱範囲へ入っているゲームプレイ中のプレイヤーを返します。
      * <p>
      * Mob用の {@link #inRadius(Player, Location, double, double, int, boolean)} と異なり、
@@ -731,6 +769,17 @@ public final class SkillTargetingService {
         double dx = first.getX() - second.getX();
         double dz = first.getZ() - second.getZ();
         return dx * dx + dz * dz;
+    }
+
+    /** 球体中心からboundsまでの最短距離の二乗を返します。 */
+    static double squaredDistanceToBounds(@NotNull Location center, @NotNull BoundingBox bounds) {
+        double nearestX = Math.clamp(center.getX(), bounds.getMinX(), bounds.getMaxX());
+        double nearestY = Math.clamp(center.getY(), bounds.getMinY(), bounds.getMaxY());
+        double nearestZ = Math.clamp(center.getZ(), bounds.getMinZ(), bounds.getMaxZ());
+        double dx = nearestX - center.getX();
+        double dy = nearestY - center.getY();
+        double dz = nearestZ - center.getZ();
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private static final Comparator<MobLineIntersection> MOB_LINE_INTERSECTION_ORDER = Comparator
