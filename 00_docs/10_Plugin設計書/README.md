@@ -175,7 +175,10 @@ python .codex/skills/astralrecord-docs-review/scripts/docs_structure_audit.py 00
 
 ### 11.1 恒久テストの設計入力
 
-- `10_plugin/AstralRecord/src/test` に残す恒久テストは、採用済みの設計契約を入力として期待結果を決める。
+- `10_plugin/AstralRecord/src/test` に残す恒久テストは、採用済みの設計契約を入力として期待結果を決める。ただし、設計書に契約があることは恒久テスト化の十分条件ではない。
+- 恒久テストは、コンテンツ非依存で複数機能から再利用される共通ロジックを対象とし、純粋な計算、入力正規化、共通の状態遷移・不変条件、冪等性、補償、データ保全、権限境界のいずれかを守るものに限る。決定的に検証でき、不具合時の影響が大きい、または手作業で見逃しやすい契約であることも必要とする。
+- 個別スキル・Mobスキル・ボスギミック・アイテム・クエストの固有処理、倍率・射程・対象数・クールダウン・個別params・ID一覧、マスタ値、表示文言、Lore、GUI配置、アイコン、particle、sound、演出、視認性は、採用済み設計契約であっても恒久テストの対象にしない。
+- 文字列を使う検証でも、共通parser・正規化・変換ロジックの不変条件を守る場合は恒久テストにできる。表示コピーやコンテンツ値の固定と区別する。
 - 実装コードや既存テストは fixture、依存関係、観測方法を判断する資料であり、期待結果の正本にはしない。
 - テスト入力として参照できる設計文書は `PLUGIN_GUIDE.md` と `00_docs/10_Plugin設計書/` 配下の Markdown とする。
 - `8-実装予定`、`9-未決事項`、review 記録、`TODO` を含む記載は採用済み仕様ではないため、恒久テストの期待結果に使用しない。
@@ -207,7 +210,9 @@ void returnsCurrentAndMaximumValuesFromOneSnapshot() {
 
 ### 11.3 設計書に契約が不足している場合
 
-恒久的に守る価値がある挙動が採用済み実装に存在し、設計書に記載がない場合は、テストへ実装値を直接固定する前に設計書へ契約を追加する。追記内容はテスト case の説明ではなく、入力、拒否条件、境界値、状態遷移、失敗時挙動など、実装を判断できる設計契約として現在の正しい節へ統合する。
+上記の恒久テスト適格性を満たす共通ロジックが採用済み実装に存在し、設計書に記載がない場合は、テストへ実装値を直接固定する前に設計書へ契約を追加する。追記内容はテスト case の説明ではなく、入力、拒否条件、境界値、状態遷移、失敗時挙動など、実装を判断できる設計契約として現在の正しい節へ統合する。
+
+個別コンテンツの契約が設計書にない場合でも、恒久テストのためだけに設計書を追記しない。必要な仕様は設計書と実装レビューで管理し、切り分けにテストが必要な場合だけ一時テストを使う。
 
 実装と意図のどちらが正しいか一意に判断できない場合は、テストで現行挙動を正当化しない。設計判断を行い、採用済みの節へ反映できるまでは一時テストとして扱う。
 
@@ -230,12 +235,13 @@ Kotlin の import alias / typealias で test annotation を隠す、`@Disabled` 
 | 検証層 | 対象 | 保証できないもの |
 |:--|:--|:--|
 | JUnit | 純粋な計算、判定、状態遷移、repository/service の契約 | Bukkit/Paper の実ライフサイクル |
-| MockBukkit | `Player`、`Inventory`、`Command`、`Event` など Bukkit API 周辺 | Purpur/Paper 固有 API、ProtocolLib、実 plugin 構成 |
+| MockBukkit | データ保全、権限、不可逆な状態遷移など、Bukkit境界が不可欠な共通契約の例外的確認 | Purpur/Paper 固有 API、ProtocolLib、実 plugin 構成 |
 | 一時 Purpur/Paper server | server lifecycle、scheduler、Paper/Purpur 固有挙動 | 本番 plugin・proxy・world 構成との組合せ |
 | live server clone integration | ProtocolLib、依存 plugin、proxy、world、設定を含む結合挙動 | client 上の見た目、視認性、操作感 |
 | 実 client 確認 | 表示配置、視認性、入力感、演出 | 自動回帰検知 |
 
 - 下位層で保証できる契約を、理由なく上位の重い層だけで確認しない。
+- 恒久テストはJUnitを既定とし、Bukkit adapterは薄く保って共通ロジックを分離する。MockBukkit、一時server、live cloneはテスト数を増やすための代替層としない。
 - packet probe と test bot は packet-level の再現証跡であり、client 表示確認の代替にはしない。
 - 恒久的な integration scenario は対応する設計入力と見出しをスクリプトのコメントまたは隣接する運用文書へ記録する。一度限りの probe は結果確認後に削除する。
 

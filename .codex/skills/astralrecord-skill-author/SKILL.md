@@ -45,10 +45,10 @@ ChatGPT などの上流案は、ゲームデザインの入力として扱い、
 3. ChatGPT 案を受け取った場合は、固定条件・提案内容・Codex 確定範囲・未決事項を分解してから、近い既存スキルを確認する。ID、executor、発動判定、ダメージ計算、particle / sound、管理者公開、ジェムとショップ、テストの既存パターンを再利用する。
 4. 最小の一貫した変更を実装する。
    - skill YAML、職業登録、必要な管理者登録、入手用ジェム・ショップを追加または更新する。
-   - Plugin executor、catalog / registration、メッセージ・共通演出定義、必要なテストを更新する。
+   - Plugin executor、catalog / registration、メッセージ・共通演出定義を更新する。個別スキルの恒久テストは追加せず、変更した共通ロジックがPluginテスト方針の恒久テスト適格性を満たす場合だけ対象テストを更新する。
    - 指定された設計書にスキル効果、Lv1 / 最大Lvの性能、DPS 算出前提、対象数・追加効果、演出、入手経路を記載する。
 5. Particle は `ParticleDisplayService` と共有定義を使う。Plugin の damage / target / thread / message 規約を崩さない。
-6. 変更に応じて filebase 参照、Plugin resource check、設計トレーサビリティ、対象テストを検証する。品質ゲートのレビュー・修正・再レビューと commit / develop merge は統合入口の手順に従う。
+6. 変更に応じて filebase 参照、Plugin resource check、設計トレーサビリティ、恒久テスト適格性を満たす共通テストを検証する。個別スキルはfilebase validator、実装レビュー、実サーバーまたは実クライアントで確認し、切り分けの一時テストは確認後に削除する。品質ゲートのレビュー・修正・再レビューと commit / develop merge は統合入口の手順に従う。
 
 ## Scope Decision
 

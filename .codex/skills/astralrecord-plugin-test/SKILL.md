@@ -1,19 +1,23 @@
 ---
 name: astralrecord-plugin-test
-description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、設計書を入力とする JUnit / MockBukkit の恒久テスト、使い捨て診断テスト、一時 Purpur/Paper サーバー、実サーバー clone による integration 検証基盤を整備する。設計トレーサビリティを保ったテスト追加・整理、手動確認の自動化、AI デバッグ用の最小再現を行い、プラグイン本体の機能仕様変更を主目的としないときに使う。
+description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、コンテンツ非依存の共通ロジックに限定した JUnit 恒久テスト、使い捨て診断テスト、一時 Purpur/Paper サーバー、実サーバー clone による integration 検証基盤を整備する。設計トレーサビリティを保った小規模テスト整理、AI デバッグ用の最小再現を行い、プラグイン本体の機能仕様変更を主目的としないときに使う。
 ---
 
 # AstralRecord Plugin Test
 
 ## Core Rule
 
-`10_plugin/AstralRecord` のテストと検証基盤だけを扱います。恒久テストは採用済みの設計書を入力とし、各 test method から設計箇所と検証契約を追跡可能にします。設計契約ではない一時的な診断は恒久テストへ混ぜません。主目的が機能実装や仕様変更なら `$astralrecord-code` を使い、この skill ではテスト追加・MockBukkit 化・dev server 整備・live server clone を使う integration 検証・再現手順の固定化に集中します。
+`10_plugin/AstralRecord` のテストと検証基盤だけを扱います。恒久テストは採用済み設計契約を入力とし、コンテンツ非依存の共通ロジックに限定し、各 test method から設計箇所と検証契約を追跡可能にします。個別コンテンツや一時的な診断は恒久テストへ混ぜません。主目的が機能実装や仕様変更なら `$astralrecord-code` を使い、この skill では小規模な共通ロジックテスト、一時診断、dev server、live server clone を使う再現手順に集中します。
 
 作業開始時に `git rev-parse --show-toplevel` を実行して現在の task checkout を `<task-root>` として解決し、以後の設計入力・ソース・script はすべて同じ `<task-root>` から読む。main workspace の固定パスへ読み替えない。live server の外部配置先だけは `scripts/dev-server.config.json` の設定値を正本とする。
 
-## Boss Gimmick and Production Master Data Policy
+## Permanent Test Scope and Production Master Data Policy
 
-- ボス固有ギミック（フェーズ、周期処理、特殊攻撃など）の恒久テストは原則作成しない。意図どおりのプレイ体験かは実プレイで確認する。制作中の切り分けで一時テストが必要な場合だけ追加し、確認後に削除する。共通モデル・挑戦進行・フィールド管理の契約テストは対象外とする。
+- 恒久テストは、コンテンツ非依存で複数機能から再利用される共通ロジックであり、純粋な計算・入力正規化・共通の状態遷移・不変条件・冪等性・補償・データ保全・権限境界のいずれかを守るものに限る。決定的に検証でき、不具合時の影響が大きい、または手作業で見逃しやすいことも必須とする。
+- 個別スキル・個別Mobスキル・ボスギミック・アイテム・クエストの固有ロジック、倍率・射程・対象数・クールダウン・個別params・ID一覧・マスタ値は恒久テストにしない。
+- 表示文言、Lore、GUI配置、アイコン、particle、sound、演出、視認性も恒久テストにしない。文字列を使うテストでも、共通parser・正規化・変換の不変条件を検証するものは対象にできる。
+- 個別コンテンツの切り分けは一時テスト、filebase validator、実サーバーまたは実クライアント確認で行う。一時テストは確認後に削除する。
+- MockBukkitは、データ保全、権限、不可逆な状態遷移など、Bukkit境界を分離できない共通契約の例外的確認に限る。それ以外はBukkit adapterを薄くし、抽出した純ロジックをJUnitで検証する。
 - 通常のPlugin JUnit / MockBukkitテストでは、本番 `<task-root>\40_filebase` を読み込まず、参照せず、接続しない。マスタ形状が必要なら、テスト内の最小固定fixture、inline payload、またはtest doubleを使う。本番ファイルから期待値を組み立てない。
 - YAML読込機構自体のテストで `@TempDir` 等の隔離入力を使うことは許可するが、本番マスタファイルを入力にしてはならない。live server cloneを使う明示的な統合検証は、通常の恒久テストとは別の検証層として扱う。
 
@@ -31,16 +35,17 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 ## Workflow
 
 1. 検証目的を分類する
-   - 採用済みの設計契約を継続して守る: 恒久テストにする
+   - 採用済み設計契約であり、上記の恒久テスト適格性をすべて満たす: 恒久テストにする
+   - 個別コンテンツ、表示、GUI、演出、マスタ値: 恒久テストを追加せず、専用validatorまたは手動確認にする
    - 不具合の切り分け、実装中の仮説、設計にない内部詳細を一度だけ確認する: 一時テストにする
-   - 恒久的に守る価値があるのに設計書へ契約がない: 先に設計書を現行仕様へ同期してから恒久テストにする
+   - 適格性を満す共通契約だが設計書にない: 先に設計書を現行仕様へ同期してから恒久テストにする
 2. 設計入力を先に読む
    - 恒久テストの期待値を実装コードや既存テストから写さず、許可された設計文書の採用済み記載から決める
    - 対象クラス、近傍の呼び出し元、依存 repository/service、関連 config は fixture と観測点を決めるために読む
    - `8-実装予定`、`9-未決事項`、review 記録、`TODO` は期待値の根拠にしない
 3. 検証層を決める
-   - 純ロジック確認: `JUnit`
-   - Bukkit `Player` / `Inventory` / `Command` / `Event`: `MockBukkit`
+   - 適格性を満す純ロジック確認: `JUnit`
+   - データ保全・権限・不可逆な状態遷移でBukkit境界が不可欠: `MockBukkit`
    - Purpur/Paper 固有 API、Lifecycle、Pathfinder: 一時サーバースクリプト
    - ProtocolLib、実 plugin 構成、proxy、world を含む integration: 動作サーバー一式 clone
    - client 表示、視認性、操作感: 実クライアント確認を残す
@@ -108,6 +113,7 @@ python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability
 
 ## Heuristics
 
+- 個別スキル、個別Mob、GUI、View、表示コピー、Lore、演出、マスタ内容のテストを恒久化しない。新規コンテンツ変更の恒久テスト追加は原則0件とする。
 - `MockBukkit` で無理に `AstralRecord` 本体をロードしない。`ProtocolLib` や外部依存に引っかかるなら、対象 class を isolated にテストする。
 - いきなり統合テストに行かず、純ロジック -> MockBukkit -> dev server -> live server clone の順で狭く確認する。
 - DB/API/filebase 契約が絡む場合でも、最初の再現は repository mock や test double を優先する。
@@ -184,7 +190,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <task-root>\10_plugin\Astral
 ## Example Prompts
 
 ```text
-$astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord に JUnit / MockBukkit のテスト雛形を追加し、結果を報告してください。
+$astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の既存テストを恒久テスト適格性で分類し、共通ロジックだけに整理してください。
 ```
 
 ```text
@@ -192,7 +198,7 @@ $astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の�
 ```
 
 ```text
-$astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の inventory feature 向け MockBukkit テストを追加し、結果を報告してください。
+$astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の inventory の二重消費防止契約が恒久テスト適格性を満たすか判定し、適格な場合だけ最小のJUnitまたはMockBukkitテストを追加してください。
 ```
 
 ```text

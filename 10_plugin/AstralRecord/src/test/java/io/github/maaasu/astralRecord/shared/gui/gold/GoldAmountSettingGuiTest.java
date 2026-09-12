@@ -1,38 +1,12 @@
 package io.github.maaasu.astralRecord.shared.gui.gold;
 
-import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
-import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-class GoldAmountSettingGuiTest extends MockBukkitTestBase {
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
-     * 検証契約: 桁別増減とquick adjustment controlを共通gold GUIへ描画する。
-     */
-    @Test
-    void rendersDigitAndQuickAdjustmentControls() {
-        GoldAmountSettingGui gui = new GoldAmountSettingGui();
-        var player = server().addPlayer();
-
-        gui.open(player, "test", UUID.randomUUID(), 1L, Long.MAX_VALUE);
-
-        var inventory = player.getOpenInventory().getTopInventory();
-        assertEquals(27, inventory.getSize());
-        assertInstanceOf(GoldAmountSettingGui.GoldAmountHolder.class, inventory.getHolder());
-        assertEquals(Material.REDSTONE, inventory.getItem(GoldAmountSettingGui.STEP_DOWN_SLOT).getType());
-        assertEquals(Material.RED_CONCRETE, inventory.getItem(GoldAmountSettingGui.MINUS_SLOT).getType());
-        assertEquals(Material.ORANGE_STAINED_GLASS_PANE, inventory.getItem(GoldAmountSettingGui.HALF_SLOT).getType());
-        assertEquals(Material.LIME_STAINED_GLASS_PANE, inventory.getItem(GoldAmountSettingGui.DOUBLE_SLOT).getType());
-        assertEquals(Material.LIME_CONCRETE, inventory.getItem(GoldAmountSettingGui.PLUS_SLOT).getType());
-        assertEquals(Material.GLOWSTONE_DUST, inventory.getItem(GoldAmountSettingGui.STEP_UP_SLOT).getType());
-    }
+class GoldAmountSettingGuiTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md

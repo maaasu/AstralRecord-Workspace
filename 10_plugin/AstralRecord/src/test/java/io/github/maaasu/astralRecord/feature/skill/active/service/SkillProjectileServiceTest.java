@@ -359,7 +359,7 @@ class SkillProjectileServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.2 演出・入手・テスト契約
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
      * 検証契約: 実SkillTargetingServiceを通した弾道は、Block面より手前のMobへ命中しながら飛翔を継続し、Block面より後ろのMobを除外して正確なBlock地点でBLOCK終端とする。
      */
     @Test
