@@ -1,0 +1,70 @@
+# design:
+#   motif: "聖騎士 / 聖なる断罪"
+#   progression: 2
+schemaVersion: 1
+id: paladin_holy_smite
+type: SKILL
+implementationId: paladin_holy_smite
+name: "&fホーリースマイト"
+description: "&7聖柱が敵群へ断罪の斬撃を落とす。"
+icon: WAXED_OXIDIZED_COPPER_LANTERN
+lore:
+  - "&7発動地点に{skill.durationTicks:seconds}秒間、聖なる柱を立てる。"
+  - "&7毎秒、半径{skill.radius}m内からランダムな敵最大{skill.maxTargets}体へ白い斬撃を落とす。"
+  - "&7近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
+  - "&7{skill.weaknessChance}%で{skill.weaknessDurationTicks:seconds}秒間の衰弱を付与する。"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 20
+manaCost: 20
+castTimeTicks: 14
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - level: 2
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 3
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 4
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 5
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 6
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 7
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 8
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 9
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+  - level: 10
+    paramDeltas: { durationTicks: 20, radius: 1.5, maxTargets: 1, weaknessChance: 5 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: block.beacon.activate
+tags:
+  - active
+  - melee
+# behavior:
+#   target: "発動地点の水平半径内にいる管理対象Mobから、遮蔽を確認して毎秒ランダムに最大対象数を選ぶ。NPC、死亡Mob、PvP対象は除外し、Bossは含める。"
+#   visual: "発動地点にWHITE_STAINED_GLASSのBlockDisplayと白色DUSTで聖柱を立て、各対象の5m上に水平リング、対象位置まで白色の柱を表示する。"
+params:
+  damageRatio: 0.50
+  radius: 1.5
+  durationTicks: 20
+  impactIntervalTicks: 20
+  maxTargets: 1
+  weaknessChance: 5
+  weaknessDurationTicks: 100
+  weaknessStrength: 1.0
+  pillarHeight: 5.0
+  slashRingRadius: 1.0

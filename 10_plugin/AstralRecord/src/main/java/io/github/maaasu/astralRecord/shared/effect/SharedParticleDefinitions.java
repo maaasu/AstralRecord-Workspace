@@ -852,6 +852,17 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition CONDITION_SHOCKED_SPARK =
         new SharedParticleDefinition("condition_shocked_spark", Particle.ELECTRIC_SPARK, 5, 0.24D, 0.34D, 0.24D, 0.025D);
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_SMITE_DUST =
+        new SharedParticleDefinition(
+            "skill_paladin_holy_smite_dust",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 250, 225), 1.10F)
+        );
     public static final SharedParticleDefinition CONDITION_WEAKNESS_DUST =
         new SharedParticleDefinition(
             "condition_weakness_dust",

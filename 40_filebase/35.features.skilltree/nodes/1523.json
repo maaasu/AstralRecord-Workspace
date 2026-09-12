@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1523",
+  "name": "&fホーリースマイト",
+  "icon": "WAXED_OXIDIZED_COPPER_LANTERN",
+  "tags": [
+    "weakness"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_holy_smite"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}
