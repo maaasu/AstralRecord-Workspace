@@ -3472,6 +3472,10 @@
       "targetNodeId": "1402"
     },
     {
+      "sourceNodeId": "1402",
+      "targetNodeId": "1523"
+    },
+    {
       "sourceNodeId": "1403",
       "targetNodeId": "1404"
     },
@@ -3914,14 +3918,6 @@
     {
       "sourceNodeId": "1519",
       "targetNodeId": "1521"
-    },
-    {
-      "sourceNodeId": "1402",
-      "targetNodeId": "1523"
-    },
-    {
-      "sourceNodeId": "1487",
-      "targetNodeId": "1522"
     }
   ]
 }
