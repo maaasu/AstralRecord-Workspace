@@ -99,6 +99,28 @@ class TemporarySkillEffectServiceTest {
         assertEquals(1.0D, service.incomingMultiplier(second), DELTA);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 防御倍率は異なる効果を合成し、同じeffect IDの再付与では置換され、期限切れで除去される。
+     */
+    @Test
+    void defenseMultiplierReplacesSameEffectAndExpires() {
+        AtomicLong currentTimeMillis = new AtomicLong(1_000L);
+        TemporarySkillEffectService service = new TemporarySkillEffectService(currentTimeMillis::get);
+        AstEntity entity = entity(UUID.randomUUID());
+
+        service.applyDefenseMultiplier(entity.id(), "holy_smash", 20L, 0.7D);
+        service.applyDefenseMultiplier(entity.id(), "holy_smash", 20L, 0.6D);
+        service.applyDefenseMultiplier(entity.id(), "other_debuff", 20L, 0.5D);
+
+        assertEquals(0.3D, service.defenseMultiplier(entity), DELTA);
+
+        currentTimeMillis.addAndGet(1_000L);
+
+        assertEquals(1.0D, service.defenseMultiplier(entity), DELTA);
+    }
+
     private static AstEntity entity(UUID id) {
         AstEntity entity = mock(AstEntity.class);
         when(entity.id()).thenReturn(id);

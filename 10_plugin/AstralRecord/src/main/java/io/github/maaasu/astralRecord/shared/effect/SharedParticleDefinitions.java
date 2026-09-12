@@ -863,6 +863,19 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 250, 225), 1.10F)
         );
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_SMASH_DUST =
+        new SharedParticleDefinition(
+            "skill_paladin_holy_smash_dust",
+            Particle.DUST,
+            10,
+            0.035D,
+            0.035D,
+            0.035D,
+            0.0D,
+            new Particle.DustOptions(Color.WHITE, 1.45F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_SMASH_END_ROD =
+        new SharedParticleDefinition("skill_paladin_holy_smash_end_rod", Particle.END_ROD, 3, 0.04D, 0.04D, 0.04D, 0.02D);
     public static final SharedParticleDefinition CONDITION_WEAKNESS_DUST =
         new SharedParticleDefinition(
             "condition_weakness_dust",

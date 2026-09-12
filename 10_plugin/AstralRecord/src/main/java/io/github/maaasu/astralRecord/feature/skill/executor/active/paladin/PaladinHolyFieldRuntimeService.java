@@ -106,6 +106,17 @@ public final class PaladinHolyFieldRuntimeService {
     }
 
     /**
+     * 発動者が現在自身のホーリーフィールド内にいるか判定します。
+     *
+     * @param casterId 発動者UUID
+     * @return フィールドが存在し、発動者が同じworldの水平範囲内にいる場合は true
+     */
+    public boolean isCasterWithinField(@NotNull UUID casterId) {
+        FieldState state = fieldsByCaster.get(casterId);
+        return state != null && isWithin(state, state.caster.getBukkit());
+    }
+
+    /**
      * 発動者によるハンマー通常攻撃を処理します。
      * 発動者が自身のフィールド内にいる場合だけ、中心を現在位置へ移し、持続時間を初期値へ戻します。
      *

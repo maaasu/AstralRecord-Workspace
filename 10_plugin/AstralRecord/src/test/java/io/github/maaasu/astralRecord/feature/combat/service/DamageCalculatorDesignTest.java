@@ -251,6 +251,31 @@ class DamageCalculatorDesignTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 一時防御倍率は防御曲線へ適用し、ダメージ内訳の基礎防御値は保持する。
+     */
+    @Test
+    void temporaryDefenseMultiplierIsAppliedBeforeDefenseCurve() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 100.0D, 0.0D);
+        DamageContext context = new DamageContext(
+                null,
+                AstEntity.mob(victim),
+                10.0D,
+                AttackType.MELEE,
+                List.of(DamageComponent.defaultComponent()),
+                DamageScaling.FIXED,
+                DamageSource.OTHER
+        );
+
+        var result = calculator.calculate(context, 0.0D, false, 0.7D);
+
+        assertEquals(100.0D, result.breakdown().rawDefense(), 0.0001D);
+        assertEquals(70.0D, result.breakdown().effectiveDefense(), 0.0001D);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
      * 検証契約: 通常会心率0%でも超星会心率100%を独立抽選し、base 10へ30%を加算して最終damageを13.0とする。

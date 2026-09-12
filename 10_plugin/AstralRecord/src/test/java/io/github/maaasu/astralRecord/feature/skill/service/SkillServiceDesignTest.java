@@ -150,6 +150,40 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: executorが指定した正のクールダウン上書き値を、定義の通常値より優先して開始する。
+     */
+    @Test
+    void castSkillUsesExecutorCooldownOverrideAfterSuccess() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        SkillDefinition definition = skill(
+            "paladin_holy_smash",
+            "cooldown_override_impl",
+            0.0D,
+            200L,
+            Map.of()
+        );
+        registry.registerExecutor(new CooldownOverrideExecutor("cooldown_override_impl"));
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        TestCaster caster = new TestCaster(1, 20.0D, 20.0D);
+
+        SkillCastResult result = service.castSkill(
+            caster,
+            definition.getId(),
+            SkillCastTrigger.SYSTEM,
+            new Location(null, 0.0D, 0.0D, 0.0D),
+            null,
+            List.of()
+        );
+
+        assertTrue(result.success());
+        assertEquals(120L, service.getCooldownDurationTicks(caster, definition.getId()));
+        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) > 0L);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
      * 検証契約: ENERGY主消費かつ正のmanaCostを持つdefinitionは、成功時だけENGとMPを同時に消費する。
      */
@@ -817,6 +851,17 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
         @Override
         public SkillCastResult cast(SkillCastContext context) {
             return SkillCastResult.failure(PlayerMsgId.P_5805);
+        }
+    }
+
+    private static final class CooldownOverrideExecutor extends TestExecutor {
+        CooldownOverrideExecutor(String implementationId) {
+            super(implementationId);
+        }
+
+        @Override
+        public SkillCastResult cast(SkillCastContext context) {
+            return SkillCastResult.succeededWithCooldownTicks(120L);
         }
     }
 

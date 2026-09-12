@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -43,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -270,6 +272,42 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(15.0D, skill.finalDamage(), 0.0001D);
         assertEquals(25.0D, normalAttackVictim.currentHealth(), 0.0001D);
         assertEquals(25.0D, skillVictim.currentHealth(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: TemporarySkillEffectServiceのMob防御倍率がDamageService経由で全攻撃種別の防御計算へ届く。
+     */
+    @Test
+    void temporaryDefenseMultiplierReachesDamageServiceForEveryAttackType() {
+        DamageHarness harness = damageHarness();
+        TemporarySkillEffectService temporaryEffects = new TemporarySkillEffectService();
+        harness.service.setTemporarySkillEffectService(temporaryEffects);
+        MobInstance attacker = DesignTestFixtures.mobInstanceWithAttack(100.0D, 100.0D, 0.0D, 0.0D);
+
+        for (AttackType attackType : AttackType.values()) {
+            MobInstance baselineVictim = DesignTestFixtures.mobInstance(1000.0D, 100.0D, 100.0D);
+            MobInstance debuffedVictim = DesignTestFixtures.mobInstance(1000.0D, 100.0D, 100.0D);
+            DamageResult baseline = harness.service.attack(
+                    AstEntity.mob(attacker), AstEntity.mob(baselineVictim), attackType
+            );
+            temporaryEffects.applyDefenseMultiplier(
+                    debuffedVictim.instanceId(),
+                    "test_defense_reduction",
+                    200L,
+                    0.7D
+            );
+
+            DamageResult debuffed = harness.service.attack(
+                    AstEntity.mob(attacker), AstEntity.mob(debuffedVictim), attackType
+            );
+
+            assertTrue(
+                    debuffed.finalDamage() > baseline.finalDamage(),
+                    "defense multiplier was not applied for " + attackType
+            );
+        }
     }
 
     /**

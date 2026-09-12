@@ -101,6 +101,24 @@ public final class DamageCalculator {
             double attackerAccuracyBonus,
             boolean defenseConversionActive
     ) {
+        return calculate(context, attackerAccuracyBonus, defenseConversionActive, 1.0D);
+    }
+
+    /**
+     * 一時的な対象防御倍率を適用してダメージを計算します。
+     *
+     * @param context ダメージ計算入力
+     * @param attackerAccuracyBonus この一撃だけ攻撃者の命中率へ加算する補正値（%ポイント）
+     * @param defenseConversionActive スキル攻撃力を防御力系ステータスから解決する場合は {@code true}
+     * @param victimDefenseMultiplier 被弾者の防御力へ適用する倍率
+     * @return 計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus,
+            boolean defenseConversionActive,
+            double victimDefenseMultiplier
+    ) {
         HitCheck hitCheck = checkHit(context, attackerAccuracyBonus);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
@@ -111,7 +129,12 @@ public final class DamageCalculator {
                 .toList();
         double totalRatio = components.stream().mapToDouble(DamageComponent::ratio).sum();
         double resolvedAttackPower = Math.max(0.0D, resolveBaseDamage(context, defenseConversionActive));
-        DefenseCalculation defense = defenseCalculation(context.attacker(), context.victim(), context.attackType());
+        DefenseCalculation defense = defenseCalculation(
+                context.attacker(),
+                context.victim(),
+                context.attackType(),
+                victimDefenseMultiplier
+        );
         if (totalRatio <= 0.0D) {
             return new DamageResult(
                     0.0D,
@@ -329,7 +352,7 @@ public final class DamageCalculator {
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AstEntity victim,
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
     ) {
-        return defenseCalculation(attacker, victim, attackType).effectiveDefense();
+        return defenseCalculation(attacker, victim, attackType, 1.0D).effectiveDefense();
     }
 
     /**
@@ -355,18 +378,22 @@ public final class DamageCalculator {
     private static @NotNull DefenseCalculation defenseCalculation(
             @Nullable io.github.maaasu.astralRecord.feature.combat.model.AstEntity attacker,
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AstEntity victim,
-            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType,
+            double victimDefenseMultiplier
     ) {
+        double normalizedMultiplier = Double.isFinite(victimDefenseMultiplier)
+                ? Math.max(0.0D, victimDefenseMultiplier)
+                : 1.0D;
         double rawGeneralDefense = Math.max(0.0D, victim.statValue(StatusType.DEFENSE));
         double rawTypedDefense = Math.max(0.0D, victim.statValue(defenseStatusType(attackType)));
         double generalDefense = effectiveDefense(
                 rawGeneralDefense,
                 attacker == null ? 0.0D : attacker.statValue(StatusType.DEFENSE_PENETRATION_RATE)
-        );
+        ) * normalizedMultiplier;
         double typedDefense = effectiveDefense(
                 rawTypedDefense,
                 attacker == null ? 0.0D : attacker.statValue(defensePenetrationStatusType(attackType))
-        );
+        ) * normalizedMultiplier;
         return new DefenseCalculation(
                 rawGeneralDefense + rawTypedDefense,
                 generalDefense + typedDefense

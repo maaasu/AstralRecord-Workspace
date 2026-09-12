@@ -771,11 +771,14 @@ public class SkillService {
             resolveResourceCosts(effectiveStatus, definition)
                     .forEach((resourceType, amount) -> consumeResource(caster, resourceType, amount));
             if (definition.getCooldownTicks() > 0L) {
+                long cooldownTicks = result.cooldownTicksOverride() == null
+                        ? resolveCooldownTicks(effectiveStatus, definition.getCooldownTicks())
+                        : result.cooldownTicksOverride();
                 startCooldown(
                     caster,
                     cooldownKey(definition),
                     definition.getId(),
-                    resolveCooldownTicks(effectiveStatus, definition.getCooldownTicks())
+                    cooldownTicks
                 );
             }
             if (caster instanceof PlayerSkillCaster playerCaster) {

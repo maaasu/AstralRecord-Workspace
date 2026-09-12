@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1525",
+  "name": "&fホーリースマッシュ",
+  "icon": "music_disc_tears",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_holy_smash"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

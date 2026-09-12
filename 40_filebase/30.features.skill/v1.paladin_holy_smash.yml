@@ -1,0 +1,52 @@
+# design:
+#   motif: "聖騎士 / 白光の一閃"
+#   progression: 2
+schemaVersion: 1
+id: paladin_holy_smash
+type: SKILL
+implementationId: paladin_holy_smash
+name: "&fホーリースマッシュ"
+description: "&7白い斬撃で敵を打ち払い、聖域では防御を崩す。"
+icon: music_disc_tears
+lore:
+  - "&7前方{skill.range}m・{skill.targetAngle}度の扇形へ、最大{skill.maxTargets}体を斬る。"
+  - "&7近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
+  - "&7ホーリーフィールド内で命中すると、防御力を{skill.defenseReductionRatio}%下げる。"
+  - "&7防御低下は{skill.defenseDebuffDurationTicks:seconds}秒間重複せず、ENGを{skill.energyRecoveryAmount}回復する。"
+  - "&7条件成立時はクールダウンを{skill.reducedCooldownTicks:seconds}秒へ短縮する。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { damageRatio: 0.025, defenseDebuffDurationTicks: 20 }
+  - level: 3
+    paramDeltas: { damageRatio: 0.025, defenseDebuffDurationTicks: 20 }
+  - level: 4
+    paramDeltas: { damageRatio: 0.025, defenseDebuffDurationTicks: 20 }
+  - level: 5
+    paramDeltas: { damageRatio: 0.025, defenseDebuffDurationTicks: 20 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  range: 6.0
+  targetAngle: 60.0
+  maxTargets: 5
+  damageRatio: 0.025
+  defenseReductionRatio: 30.0
+  defenseDebuffDurationTicks: 20
+  energyRecoveryAmount: 30.0
+  reducedCooldownTicks: 120
+tags:
+  - active
+  - melee

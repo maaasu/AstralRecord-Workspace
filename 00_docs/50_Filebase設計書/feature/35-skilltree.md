@@ -24,7 +24,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 
 ## パラディン専門枝
 
-`starter` の追加nodeは `1362`〜`1524` の範囲に151個ある。`1362`〜`1487` から削除済みskill node 6個を除くパラディンCP 120node、パラディンのディフェンスコンバージョンskill node `1522`、ホーリースマイトskill node `1523`、ホーリーフィールドskill node `1524`、および`1488`〜`1504` / `1511`〜`1521` のclass条件がないPP 28nodeである。削除済みnode IDは再利用しない。パラディンはLv80で79CP、Lv100で99CPのため、全123CPを取得できない。追加PPは既存の有料PP 32PPと合わせて60PPの消費先を持ち、playerLv50の49PP・playerLv51の50PPでも全取得できない選択を残す。
+`starter` の追加nodeは `1362`〜`1525` の範囲に152個ある。`1362`〜`1487` から削除済みskill node 6個を除くパラディンCP 120node、パラディンのディフェンスコンバージョンskill node `1522`、ホーリースマイトskill node `1523`、ホーリーフィールドskill node `1524`、ホーリースマッシュskill node `1525`、および`1488`〜`1504` / `1511`〜`1521` のclass条件がないPP 28nodeである。削除済みnode IDは再利用しない。パラディンはLv80で79CP、Lv100で99CPのため、全124CPを取得できない。追加PPは既存の有料PP 32PPと合わせて60PPの消費先を持ち、playerLv50の49PP・playerLv51の50PPでも全取得できない選択を残す。
 
 | 方向 | 既存ソードマン接続元 → 入口 | パラディンstatus node | CP設計 |
 |:--|:--|:--|:--|
@@ -44,7 +44,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 | 南 | 1082 → 1515 | 1515〜1521 |
 | 西 | 1083 → 1488 | 1488〜1494 |
 
-全374nodeの相対Yは0に統一する。既存226nodeの座標と既存node同士の248edgeを維持し、追加部分の164edgeを含め全412edgeとする。追加nodeと他nodeの中心間距離は3ブロック以上とし、既存の基本間隔を下回らない。PP導入部の既存円環間には新しいnodeを置かず、接続線だけを通して既存メイジ等のnodeとの間隔を確保する。追加nodeに関係するedgeは、全職業表示でも他edgeとの交差・重複や無関係なnodeの通過を避ける。
+全378nodeの相対Yは0に統一する。既存226nodeの座標と既存node同士の248edgeを維持し、追加部分の168edgeを含め全416edgeとする。追加nodeと他nodeの中心間距離は3ブロック以上とし、既存の基本間隔を下回らない。PP導入部の既存円環間には新しいnodeを置かず、接続線だけを通して既存メイジ等のnodeとの間隔を確保する。追加nodeに関係するedgeは、全職業表示でも他edgeとの交差・重複や無関係なnodeの通過を避ける。
 
 ## コンテンツ設計
 
@@ -73,7 +73,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放と、パラディンのstatus専門枝、ディフェンスコンバージョン、ホーリースマイトおよびホーリーフィールドskill解放を定義します。現行は377nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放と、パラディンのstatus専門枝、ディフェンスコンバージョン、ホーリースマイト、ホーリーフィールドおよびホーリースマッシュskill解放を定義します。現行は378nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -95,6 +95,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | パラディン ディフェンスコンバージョン | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン ホーリースマイト | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン ホーリーフィールド | 1 | パラディンCP 1 | `classId: paladin` |
+| パラディン ホーリースマッシュ | 1 | パラディンCP 1 | `classId: paladin` |
 | 追加汎用PP | 28 | PP 28 | playerLevelのみ |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
@@ -112,7 +113,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush` と `swordsman_exept_stamp`、Shield容量円環の別経路から `swordsman_bastion_strike`、`swordsman_shield_drain`、Shield再充填円環から `administrator_shield_recharge` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。`swordsman_exept_stamp` は通常会心円環の小node `1217` からnode `1386` へ分岐します。タンクシールドアクティベート `swordsman_shield_activate` はソードマンの `usableSkills` から使用許可を与え、スキルツリーには配置しません。
 - ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・ENG効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。Shield破壊専門円環の全取得値は `SHIELD_BREAK +2` とし、ソードマンの `+8` より低く設定します。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
-- パラディンは防御枝のnotable `1487` から、`paladin_defense_conversion` を使用許可する1CP leaf node `1522` へ分岐します。攻撃枝のnotable `1402` からは、`paladin_holy_smite` を使用許可する1CP leaf node `1523` へ分岐し、その先の1CP leaf node `1524` で`paladin_holy_field`を使用許可します。skill nodeはstatus nodeへ混載せず、既存の各枝と明確に区別します。
+- パラディンは防御枝のnotable `1487` から、`paladin_defense_conversion` を使用許可する1CP leaf node `1522` へ分岐します。攻撃枝のnotable `1402` からは、`paladin_holy_smite` を使用許可する1CP leaf node `1523` へ分岐し、その先で1CP leaf node `1524` が`paladin_holy_field`、もう一つの1CP leaf node `1525` が`paladin_holy_smash`を使用許可します。skill nodeはstatus nodeへ混載せず、既存の各枝と明確に区別します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

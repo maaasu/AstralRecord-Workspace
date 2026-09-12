@@ -16,7 +16,8 @@ public final class PaladinSkillExecutorCatalog {
      * パラディン用 executor をスキル表示順で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 1個の executor
+     * @param holyFieldRuntimeService ホーリーフィールド実行時状態サービス
+     * @return 3個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -24,7 +25,8 @@ public final class PaladinSkillExecutorCatalog {
     ) {
         return List.of(
                 new PaladinHolySmiteExecutor(services),
-                new PaladinHolyFieldExecutor(services, holyFieldRuntimeService)
+                new PaladinHolyFieldExecutor(services, holyFieldRuntimeService),
+                new PaladinHolySmashExecutor(services, holyFieldRuntimeService)
         );
     }
 }

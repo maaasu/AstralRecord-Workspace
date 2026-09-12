@@ -974,7 +974,8 @@ public final class DamageService {
         DamageResult calculated = damageCalculator.calculate(
                 context,
                 attackerAccuracyBonus,
-                usesDefenseConversion(attacker, source)
+                usesDefenseConversion(attacker, source),
+                temporaryDefenseMultiplier(victim)
         );
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
@@ -1189,6 +1190,13 @@ public final class DamageService {
                 ? 1.0D
                 : temporarySkillEffectService.outgoingMultiplier(attacker);
         return outgoing * temporarySkillEffectService.incomingMultiplier(victim);
+    }
+
+    /** 被弾者へ適用されている一時防御倍率を返します。 */
+    private double temporaryDefenseMultiplier(@NotNull AstEntity victim) {
+        return temporarySkillEffectService == null
+                ? 1.0D
+                : temporarySkillEffectService.defenseMultiplier(victim);
     }
 
     /**

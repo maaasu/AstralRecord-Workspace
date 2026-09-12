@@ -80,4 +80,14 @@ public record PlayerActiveSkillContext(
     public @NotNull SkillCastResult success() {
         return SkillCastResult.succeeded();
     }
+
+    /**
+     * 発動成功結果へ、共通制御が採用する固定クールダウンtickを指定します。
+     *
+     * @param cooldownTicks 成功時に採用するクールダウンtick（1以上）
+     * @return 成功結果
+     */
+    public @NotNull SkillCastResult successWithCooldownTicks(long cooldownTicks) {
+        return SkillCastResult.succeededWithCooldownTicks(cooldownTicks);
+    }
 }

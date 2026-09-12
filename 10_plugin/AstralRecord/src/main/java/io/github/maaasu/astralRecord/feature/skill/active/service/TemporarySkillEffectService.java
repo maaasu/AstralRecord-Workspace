@@ -39,14 +39,58 @@ public final class TemporarySkillEffectService {
             double outgoingMultiplier,
             double knockbackMultiplier
     ) {
+        apply(
+                entityId,
+                effectId,
+                durationTicks,
+                incomingMultiplier,
+                outgoingMultiplier,
+                knockbackMultiplier,
+                1.0D
+        );
+    }
+
+    private void apply(
+            @NotNull UUID entityId,
+            @NotNull String effectId,
+            long durationTicks,
+            double incomingMultiplier,
+            double outgoingMultiplier,
+            double knockbackMultiplier,
+            double defenseMultiplier
+    ) {
         long expiresAtMillis = currentTimeMillis.getAsLong() + Math.max(1L, durationTicks) * MILLIS_PER_TICK;
         modifiersByEntity.computeIfAbsent(entityId, ignored -> new ConcurrentHashMap<>())
                 .put(effectId, new Modifier(
                         Math.max(0.0D, incomingMultiplier),
                         Math.max(0.0D, outgoingMultiplier),
                         Math.max(0.0D, knockbackMultiplier),
+                        Math.max(0.0D, defenseMultiplier),
                         expiresAtMillis
                 ));
+    }
+
+    /**
+     * 対象の防御力へ一時的な乗算補正を設定します。
+     * <p>
+     * 同じ対象・同じeffect IDの補正は置き換えられるため、同一スキルの再付与を重複させません。
+     * 異なるeffect IDの補正は他の一時効果と同じく乗算されます。
+     *
+     * @param entityId 対象エンティティ UUID
+     * @param effectId 効果 ID
+     * @param durationTicks 持続tick
+     * @param defenseMultiplier 防御力へ適用する倍率（0以上）
+     */
+    public void applyDefenseMultiplier(
+            @NotNull UUID entityId,
+            @NotNull String effectId,
+            long durationTicks,
+            double defenseMultiplier
+    ) {
+        if (!Double.isFinite(defenseMultiplier) || defenseMultiplier < 0.0D) {
+            throw new IllegalArgumentException("defenseMultiplier must be a finite non-negative number");
+        }
+        apply(entityId, effectId, durationTicks, 1.0D, 1.0D, 1.0D, defenseMultiplier);
     }
 
     /** 対象へ適用する被ダメージ倍率を返します。 */
@@ -62,6 +106,11 @@ public final class TemporarySkillEffectService {
     /** 対象へ適用するノックバック倍率を返します。 */
     public double knockbackMultiplier(@NotNull AstEntity target) {
         return multiplier(target.id(), Modifier::knockbackMultiplier);
+    }
+
+    /** 対象の防御力へ適用する一時倍率を返します。 */
+    public double defenseMultiplier(@NotNull AstEntity target) {
+        return multiplier(target.id(), Modifier::defenseMultiplier);
     }
 
     /** 指定対象の全効果を解除します。 */
@@ -114,6 +163,7 @@ public final class TemporarySkillEffectService {
             double incomingMultiplier,
             double outgoingMultiplier,
             double knockbackMultiplier,
+            double defenseMultiplier,
             long expiresAtMillis
     ) {
     }

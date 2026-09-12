@@ -24,13 +24,13 @@ public final class ActiveSkillExecutorCatalog {
      *
      * @param services 共有発動スキルサービス
      * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
-     * @return 22個の executor
+     * @return 23個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
             @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(22);
+        List<SkillExecutor> executors = new ArrayList<>(23);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
