@@ -959,10 +959,7 @@ public final class DamageService {
                 superStarCriticalMode,
                 superStarCriticalRateOverride
         );
-        DamageResult calculated = temporarySkillEffectService == null
-                ? damageCalculator.calculate(context, attackerAccuracyBonus)
-                : damageCalculator.calculate(context, attackerAccuracyBonus,
-                        temporarySkillEffectService.defenseMultiplier(victim.id()));
+        DamageResult calculated = damageCalculator.calculate(context, attackerAccuracyBonus);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {
@@ -1019,9 +1016,6 @@ public final class DamageService {
         applyShieldRechargeDelay(attacker, victim, result, source);
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         playCriticalHitEffect(victim, result);
-        if (temporarySkillEffectService != null && victim.isPlayer() && !result.evaded()) {
-            result = temporarySkillEffectService.absorbWard(victim.id(), result);
-        }
         boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
         double victimCurrentHealthBefore = victim.currentHealth();
         double victimMaxHealth = victim.maxHealth();

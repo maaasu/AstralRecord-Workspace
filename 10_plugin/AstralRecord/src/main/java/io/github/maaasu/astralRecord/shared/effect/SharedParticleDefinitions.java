@@ -21,13 +21,6 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
-    public static final SharedParticleDefinition PALADIN_JUDGMENT =
-        new SharedParticleDefinition("paladin_judgment", Particle.ENCHANT, 2, 0.03D, 0.12D, 0.03D, 0.0D);
-    public static final SharedParticleDefinition PALADIN_WARD =
-        new SharedParticleDefinition("paladin_ward", Particle.END_ROD, 1, 0.02D, 0.05D, 0.02D, 0.0D);
-    public static final SharedParticleDefinition PALADIN_REQUIEM =
-        new SharedParticleDefinition("paladin_requiem", Particle.SOUL_FIRE_FLAME, 2, 0.03D, 0.08D, 0.03D, 0.0D);
-
     public static final SharedParticleDefinition DODGE_CLOUD =
         new SharedParticleDefinition("dodge_cloud", Particle.CLOUD, 6, 0.2D, 0.05D, 0.2D, 0.0D);
     public static final SharedParticleDefinition JUST_DODGE_ENERGY_ABSORB_END_ROD =

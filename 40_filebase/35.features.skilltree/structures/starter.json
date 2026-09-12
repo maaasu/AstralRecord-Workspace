@@ -1458,12 +1458,6 @@
       "z": -16
     },
     {
-      "nodeId": "1378",
-      "x": 42,
-      "y": 0,
-      "z": -17
-    },
-    {
       "nodeId": "1379",
       "x": 46,
       "y": 0,
@@ -1564,12 +1558,6 @@
       "x": 50,
       "y": 0,
       "z": -27
-    },
-    {
-      "nodeId": "1396",
-      "x": 45,
-      "y": 0,
-      "z": -30
     },
     {
       "nodeId": "1397",
@@ -1692,12 +1680,6 @@
       "z": -49
     },
     {
-      "nodeId": "1417",
-      "x": -27,
-      "y": 0,
-      "z": -34
-    },
-    {
       "nodeId": "1418",
       "x": -22,
       "y": 0,
@@ -1798,12 +1780,6 @@
       "x": -36,
       "y": 0,
       "z": -51
-    },
-    {
-      "nodeId": "1435",
-      "x": -49,
-      "y": 0,
-      "z": -39
     },
     {
       "nodeId": "1436",
@@ -1926,12 +1902,6 @@
       "z": 52
     },
     {
-      "nodeId": "1456",
-      "x": 21,
-      "y": 0,
-      "z": 46
-    },
-    {
       "nodeId": "1457",
       "x": 25,
       "y": 0,
@@ -2032,12 +2002,6 @@
       "x": 36,
       "y": 0,
       "z": 51
-    },
-    {
-      "nodeId": "1474",
-      "x": 37,
-      "y": 0,
-      "z": 46
     },
     {
       "nodeId": "1475",
@@ -2218,42 +2182,6 @@
       "x": 36,
       "y": 0,
       "z": 3
-    },
-    {
-      "nodeId": "1505",
-      "x": 55,
-      "y": 0,
-      "z": -22
-    },
-    {
-      "nodeId": "1506",
-      "x": -31,
-      "y": 0,
-      "z": 27
-    },
-    {
-      "nodeId": "1507",
-      "x": -15,
-      "y": 0,
-      "z": -73
-    },
-    {
-      "nodeId": "1508",
-      "x": -70,
-      "y": 0,
-      "z": 15
-    },
-    {
-      "nodeId": "1509",
-      "x": 31,
-      "y": 0,
-      "z": 58
-    },
-    {
-      "nodeId": "1510",
-      "x": -36,
-      "y": 0,
-      "z": 49
     },
     {
       "nodeId": "1511",
@@ -3444,10 +3372,6 @@
       "targetNodeId": "1379"
     },
     {
-      "sourceNodeId": "1378",
-      "targetNodeId": "1382"
-    },
-    {
       "sourceNodeId": "1379",
       "targetNodeId": "1380"
     },
@@ -3478,10 +3402,6 @@
     {
       "sourceNodeId": "1386",
       "targetNodeId": "1387"
-    },
-    {
-      "sourceNodeId": "1386",
-      "targetNodeId": "1505"
     },
     {
       "sourceNodeId": "1387",
@@ -3518,10 +3438,6 @@
     {
       "sourceNodeId": "1395",
       "targetNodeId": "1397"
-    },
-    {
-      "sourceNodeId": "1396",
-      "targetNodeId": "1401"
     },
     {
       "sourceNodeId": "1397",
@@ -3568,10 +3484,6 @@
       "targetNodeId": "1409"
     },
     {
-      "sourceNodeId": "1408",
-      "targetNodeId": "1506"
-    },
-    {
       "sourceNodeId": "1410",
       "targetNodeId": "1413"
     },
@@ -3612,10 +3524,6 @@
       "targetNodeId": "1418"
     },
     {
-      "sourceNodeId": "1417",
-      "targetNodeId": "1421"
-    },
-    {
       "sourceNodeId": "1418",
       "targetNodeId": "1419"
     },
@@ -3646,10 +3554,6 @@
     {
       "sourceNodeId": "1425",
       "targetNodeId": "1426"
-    },
-    {
-      "sourceNodeId": "1425",
-      "targetNodeId": "1507"
     },
     {
       "sourceNodeId": "1426",
@@ -3688,10 +3592,6 @@
       "targetNodeId": "1436"
     },
     {
-      "sourceNodeId": "1435",
-      "targetNodeId": "1440"
-    },
-    {
       "sourceNodeId": "1436",
       "targetNodeId": "1437"
     },
@@ -3714,10 +3614,6 @@
     {
       "sourceNodeId": "1442",
       "targetNodeId": "1443"
-    },
-    {
-      "sourceNodeId": "1442",
-      "targetNodeId": "1508"
     },
     {
       "sourceNodeId": "1443",
@@ -3780,10 +3676,6 @@
       "targetNodeId": "1457"
     },
     {
-      "sourceNodeId": "1456",
-      "targetNodeId": "1460"
-    },
-    {
       "sourceNodeId": "1457",
       "targetNodeId": "1458"
     },
@@ -3814,10 +3706,6 @@
     {
       "sourceNodeId": "1464",
       "targetNodeId": "1465"
-    },
-    {
-      "sourceNodeId": "1464",
-      "targetNodeId": "1509"
     },
     {
       "sourceNodeId": "1465",
@@ -3854,10 +3742,6 @@
     {
       "sourceNodeId": "1473",
       "targetNodeId": "1475"
-    },
-    {
-      "sourceNodeId": "1474",
-      "targetNodeId": "1479"
     },
     {
       "sourceNodeId": "1475",
@@ -3902,10 +3786,6 @@
     {
       "sourceNodeId": "1486",
       "targetNodeId": "1487"
-    },
-    {
-      "sourceNodeId": "1486",
-      "targetNodeId": "1510"
     },
     {
       "sourceNodeId": "1488",

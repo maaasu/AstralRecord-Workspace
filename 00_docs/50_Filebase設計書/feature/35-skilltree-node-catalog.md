@@ -156,15 +156,14 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## パラディン専門枝
 
-パラディンは共通幹9nodeと、断罪・聖柩・黒聖域の各39nodeを使う。全CP nodeは `pointCost: 1`、`unlockCondition.classId: paladin`、固有skill node以外はstatus効果を持つ。`SCALAR` は基礎値へ加算する割合であり、利点と不利を同じnodeへ定義する。
+パラディンは共通幹9nodeと、攻撃・支援・防御の各37nodeを使う。全120nodeは `pointCost: 1`、`unlockCondition.classId: paladin` のstatus効果である。`SCALAR` は基礎値へ加算する割合であり、利点と不利を同じnodeへ定義する。削除済みのskill node IDは再利用しない。
 
-| 範囲 | 効果の組 | skill node |
-|:--|:--|:--|
-| 1362〜1370 | MAX_SHIELD / DEFENSE / MAGIC_DEFENSE / MAX_HEALTH / SUPPORT_POWERを主に正のSCALAR、ATTACK等を負のSCALAR | なし |
-| 1371〜1409 | ATTACK、STRENGTH、SKILL_DAMAGE_INCREASEの正SCALARまたはDEFENSE_PENETRATION_RATE FLATと、防御・Shieldの負SCALAR | 1378: `paladin_anathema`、1396: `paladin_last_judgment` |
-| 1410〜1448 | SUPPORT_POWER、MAX_MANA、MAX_SHIELDの正SCALARまたはSHIELD_RECHARGE_REDUCTION FLATと、通常攻撃系の負SCALAR | 1417: `paladin_vesper_aegis`、1435: `paladin_covenant` |
-| 1449〜1487 | MAX_SHIELD、物魔防、MAX_HEALTHの正SCALARと、ATTACK・機動・MP・SKILL_DAMAGE_INCREASEの負SCALAR | 1456: `paladin_requiem`、1474: `paladin_black_sanctum` |
-| 1505〜1510 | 既存`status_passive` executorへ渡す、各枝2つのSCALAR tradeoff passive | 1505/1506:断罪、1507/1508:聖柩、1509/1510:黒聖域 |
+| 対象node | 効果の組 |
+|:--|:--|
+| 1362〜1370 | MAX_SHIELD / DEFENSE / MAGIC_DEFENSE / MAX_HEALTH / SUPPORT_POWERを主に正のSCALAR、ATTACK等を負のSCALAR |
+| 1371〜1409（1378、1396を除く） | ATTACK、STRENGTH、SKILL_DAMAGE_INCREASEの正SCALARまたはDEFENSE_PENETRATION_RATE FLATと、防御・Shieldの負SCALAR |
+| 1410〜1448（1417、1435を除く） | SUPPORT_POWER、MAX_MANA、MAX_SHIELDの正SCALARまたはSHIELD_RECHARGE_REDUCTION FLATと、通常攻撃系の負SCALAR |
+| 1449〜1487（1456、1474を除く） | MAX_SHIELD、物魔防、MAX_HEALTHの正SCALARと、ATTACK・機動・MP・SKILL_DAMAGE_INCREASEの負SCALAR |
 
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 

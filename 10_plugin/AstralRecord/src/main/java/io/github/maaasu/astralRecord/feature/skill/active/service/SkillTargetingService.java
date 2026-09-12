@@ -43,7 +43,6 @@ public final class SkillTargetingService {
     private static final double FALLBACK_TARGET_HEIGHT = 1.8D;
     private static final double HEIGHT_BOUNDARY_EPSILON = 1.0E-6D;
     private final MobService mobService;
-    private final io.github.maaasu.astralRecord.feature.party.service.PartyService partyService;
 
     /**
      * Mob サービスを使って構築します。
@@ -51,35 +50,7 @@ public final class SkillTargetingService {
      * @param mobService 現在存在する Mob の取得元
      */
     public SkillTargetingService(@NotNull MobService mobService) {
-        this(mobService, null);
-    }
-
-    /**
-     * パーティー限定支援の検索元を受け取ります。
-     * @param mobService Mob取得元
-     * @param partyService パーティー取得元。nullでは自分だけを味方とする
-     */
-    public SkillTargetingService(@NotNull MobService mobService,
-            @Nullable io.github.maaasu.astralRecord.feature.party.service.PartyService partyService) {
         this.mobService = mobService;
-        this.partyService = partyService;
-    }
-
-    /**
-     * 生存中の自分と同一パーティーだけを円柱・遮蔽判定付きで返します。
-     * @param caster 発動者
-     * @param radius 水平半径
-     * @param height 上下許容距離
-     * @return 対象。未所属時は自分だけ
-     */
-    public @NotNull List<AstPlayer> partyInRadius(@NotNull AstPlayer caster, double radius, double height) {
-        UUID casterId = caster.getBukkit().getUniqueId();
-        var party = partyService == null ? null : partyService.findParty(casterId);
-        Set<UUID> allowed = party == null ? Set.of(casterId) : Set.copyOf(party.members());
-        return playersInRadius(caster.getBukkit().getLocation(), radius, height).stream()
-                .filter(player -> allowed.contains(player.getBukkit().getUniqueId()))
-                .filter(player -> hasLineOfSight(caster.getBukkit().getEyeLocation(), player.getBukkit().getEyeLocation()))
-                .toList();
     }
 
     /**
@@ -99,30 +70,10 @@ public final class SkillTargetingService {
             int maxTargets,
             boolean requireLineOfSight
     ) {
-        return inCone(player, range, angleDegrees, maxTargets, requireLineOfSight, Double.POSITIVE_INFINITY);
-    }
-
-    /**
-     * 高低差も形状条件として適用し、条件内の近いMobから件数制限します。
-     * @param player 発動者
-     * @param range 目線からの射程
-     * @param angleDegrees 扇形の全角
-     * @param maxTargets 最大対象数
-     * @param requireLineOfSight 遮蔽判定の有無
-     * @param height 足元同士の上下許容差。無限大なら高低差による追加制限なし
-     * @return 全条件を満たす距離順の対象
-     */
-    public @NotNull List<AstEntity> inCone(
-            @NotNull Player player, double range, double angleDegrees, int maxTargets,
-            boolean requireLineOfSight, double height
-    ) {
         Location origin = player.getEyeLocation();
         Vector direction = normalized(origin.getDirection());
         double minDot = Math.cos(Math.toRadians(Math.clamp(angleDegrees, 0.0D, 360.0D) * 0.5D));
         return targets(player, mob -> {
-            if (Math.abs(mob.currentLocation().getY() - player.getLocation().getY()) > height) {
-                return false;
-            }
             Location center = targetCenter(mob);
             Vector offset = center.toVector().subtract(origin.toVector());
             double distanceSquared = offset.lengthSquared();

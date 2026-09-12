@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ public final class ActiveSkillExecutorCatalog {
      * 実装済みのプレイヤー用 executor を職業横断で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 職業別の実装済みexecutor
+     * @return 20個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         List<SkillExecutor> executors = new ArrayList<>(20);
@@ -30,7 +29,6 @@ public final class ActiveSkillExecutorCatalog {
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
-        executors.addAll(PaladinSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }
 }

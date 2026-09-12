@@ -438,31 +438,6 @@ class SkillTargetingServiceTest {
         assertTrue(service.inCone(player, 7.0D, 60.0D, 6, true).isEmpty());
     }
 
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-パラディン.md
-     * 章・見出し: # 13_3-パラディン > ## 1. 対象と発動
-     * 検証契約: 近いheight外Mobがいても、件数制限前に除外して遠いheight内の有効Mobを選ぶ。
-     */
-    @Test
-    void coneFiltersHeightBeforeApplyingTargetLimit() {
-        World world = mock(World.class);
-        Player player = mock(Player.class);
-        MobService mobs = mock(MobService.class);
-        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
-        MobInstance high = mockMob(template, world, 0, 2);
-        when(high.currentLocation()).thenReturn(new Location(world, 0, 4, 2));
-        MobInstance valid = mockMob(template, world, 0, 5);
-        when(mobs.getInstances()).thenReturn(List.of(high, valid));
-        when(player.getWorld()).thenReturn(world);
-        when(player.getLocation()).thenReturn(new Location(world, 0, 0, 0));
-        Location eye = new Location(world, 0, 1.6, 0);
-        eye.setDirection(new Vector(0, 0, 1));
-        when(player.getEyeLocation()).thenReturn(eye);
-        List<AstEntity> result = new SkillTargetingService(mobs).inCone(player, 7, 120, 1, true, 3);
-        assertEquals(1, result.size());
-        assertEquals(valid.instanceId(), result.getFirst().id());
-    }
-
     private static MobInstance mockMob(
             MobTemplate template,
             World world,
