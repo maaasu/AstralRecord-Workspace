@@ -1,0 +1,40 @@
+# design:
+#   motif: "聖柱の掌握 / 支援の祭壇"
+#   progression: 2
+schemaVersion: 1
+id: paladin_holy_control
+type: SKILL
+implementationId: paladin_holy_control
+name: "&fホーリーコントロール"
+description: "&7最寄りの聖柱を操り、味方を支援する。"
+icon: COMPARATOR
+lore:
+  - "&7HPを{skill.hpCost}消費して、半径{skill.pillarSearchRadius}m以内の最寄りの聖柱を自身へ移動する。"
+  - "&7聖柱がある間、半径{skill.effectRadius}m以内のパーティーメンバーのスキル与ダメージを{skill.partyDamageIncrease}%増加する。"
+  - "&7同範囲の敵Mobの被ダメージを{skill.mobDamageTakenIncrease}%増加する。"
+  - "&7毎秒、範囲内のパーティーメンバーをHP{skill.hpRecovery}、発動者の最大MPの{skill.mpRecoveryMaxManaRatio:percent}%回復する。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 5
+requiredLevel: 1
+maxLevel: 1
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+onCast:
+  sound: block.beacon.activate
+tags:
+  - active
+  - support
+  - holy_knight
+# behavior:
+#   target: "発動者が現在HP200以下なら失敗する。半径20m以内にホーリースマイトの聖柱がない場合も失敗し、この場合はHP200・MP30と5秒のクールダウンを消費する。"
+#   visual: "移動後の聖柱を中心に、半径12mの黄色い円形輪郭を4tick間隔で表示する。"
+params:
+  hpCost: 200.0
+  pillarSearchRadius: 20.0
+  effectRadius: 12.0
+  partyDamageIncrease: 5.0
+  mobDamageTakenIncrease: 5.0
+  hpRecovery: 87.0
+  mpRecoveryMaxManaRatio: 0.10

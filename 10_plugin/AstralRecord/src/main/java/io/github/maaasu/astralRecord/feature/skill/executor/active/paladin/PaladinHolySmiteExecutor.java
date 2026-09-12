@@ -102,7 +102,7 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
         String scope = ID + ":" + pillarId;
         try {
             state.spawnDisplays();
-            runtimeService.register(pillarId, center, durationTicks);
+            runtimeService.register(pillarId, state, durationTicks);
             context.services().tasks().repeat(
                     context.player().getUniqueId(),
                     scope,
@@ -275,10 +275,11 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
 
     /** 発動地点の小規模な祭壇・聖柱BlockDisplayを生成・破棄します。 */
     static final class HolyPillarState {
-        private final Location center;
+        private Location center;
         private final double pillarHeight;
         private final List<BlockDisplay> displays = new ArrayList<>();
         private final List<BlockDisplay> floatingLanterns = new ArrayList<>();
+        private boolean active;
 
         HolyPillarState(@NotNull Location center, double pillarHeight) {
             this.center = center.clone();
@@ -289,6 +290,7 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
             if (center.getWorld() == null) {
                 return;
             }
+            active = true;
             for (int index = 0; index < CORE_DISPLAY_COUNT; index++) {
                 double height = pillarHeight * (index + 0.5D) / CORE_DISPLAY_COUNT;
                 spawnDisplay(
@@ -377,9 +379,25 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
         }
 
         void destroy() {
+            active = false;
             displays.stream().filter(Entity::isValid).forEach(Entity::remove);
             displays.clear();
             floatingLanterns.clear();
+        }
+
+        void moveTo(@NotNull Location destination) {
+            if (destination.getWorld() == null) {
+                return;
+            }
+            displays.stream().filter(Entity::isValid).forEach(Entity::remove);
+            displays.clear();
+            floatingLanterns.clear();
+            center = destination.clone();
+            spawnDisplays();
+        }
+
+        boolean isActive() {
+            return active;
         }
 
         @NotNull Location center() {

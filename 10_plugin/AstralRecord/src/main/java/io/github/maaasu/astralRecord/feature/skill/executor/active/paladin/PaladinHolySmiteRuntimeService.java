@@ -2,16 +2,18 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * 実行中のホーリースマイト聖柱の位置と残り持続時間を管理します。
+ * 実行中のホーリースマイト聖柱の表示状態と残り持続時間を管理します。
  * <p>
- * 柱の表示と攻撃は executor の task が所有し、このサービスはホーリーフィールド更新時に
- * 範囲内の柱を生成時の持続時間へ戻すための寿命だけを保持します。
+ * 柱の表示と攻撃は executor の task が所有し、このサービスはホーリーフィールドによる
+ * 寿命更新とホーリーコントロールによる検索・移動を仲介します。
  */
 public final class PaladinHolySmiteRuntimeService {
 
@@ -25,12 +27,16 @@ public final class PaladinHolySmiteRuntimeService {
      * 新しい聖柱を登録します。
      *
      * @param pillarId 発動単位の一意ID
-     * @param center 聖柱の中心
+     * @param state 表示中の聖柱状態
      * @param durationTicks 生成時の持続tick
      */
-    public void register(@NotNull UUID pillarId, @NotNull Location center, int durationTicks) {
+    public void register(
+            @NotNull UUID pillarId,
+            @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
+            int durationTicks
+    ) {
         int safeDurationTicks = Math.max(1, durationTicks);
-        pillarsById.put(pillarId, new PillarRuntime(center.clone(), safeDurationTicks, safeDurationTicks));
+        pillarsById.put(pillarId, new PillarRuntime(state, safeDurationTicks, safeDurationTicks));
     }
 
     /**
@@ -41,7 +47,7 @@ public final class PaladinHolySmiteRuntimeService {
      */
     public boolean consumeTick(@NotNull UUID pillarId) {
         PillarRuntime runtime = pillarsById.get(pillarId);
-        if (runtime == null) {
+        if (runtime == null || !runtime.state.isActive()) {
             return false;
         }
         runtime.remainingTicks--;
@@ -61,11 +67,14 @@ public final class PaladinHolySmiteRuntimeService {
         }
         double radiusSquared = Math.max(0.0D, radius) * Math.max(0.0D, radius);
         for (PillarRuntime runtime : pillarsById.values()) {
-            if (runtime.center.getWorld() == null || !center.getWorld().equals(runtime.center.getWorld())) {
+            Location pillarCenter = runtime.state.center();
+            if (!runtime.state.isActive()
+                    || pillarCenter.getWorld() == null
+                    || !center.getWorld().equals(pillarCenter.getWorld())) {
                 continue;
             }
-            double deltaX = runtime.center.getX() - center.getX();
-            double deltaZ = runtime.center.getZ() - center.getZ();
+            double deltaX = pillarCenter.getX() - center.getX();
+            double deltaZ = pillarCenter.getZ() - center.getZ();
             if (deltaX * deltaX + deltaZ * deltaZ <= radiusSquared) {
                 runtime.remainingTicks = runtime.durationTicks;
             }
@@ -81,18 +90,77 @@ public final class PaladinHolySmiteRuntimeService {
         pillarsById.remove(pillarId);
     }
 
+    /**
+     * 指定地点と同じworldにある、水平半径内で最も近い有効な聖柱を返します。
+     *
+     * @param location 検索中心
+     * @param radius 水平検索半径
+     * @return 最寄りの聖柱。存在しない場合は null
+     */
+    public @Nullable PaladinHolySmiteExecutor.HolyPillarState findNearest(
+            @NotNull Location location,
+            double radius
+    ) {
+        if (location.getWorld() == null) {
+            return null;
+        }
+        double safeRadius = Math.max(0.0D, radius);
+        double maximumDistanceSquared = safeRadius * safeRadius;
+        PaladinHolySmiteExecutor.HolyPillarState nearest = null;
+        double nearestDistanceSquared = Double.POSITIVE_INFINITY;
+        for (PillarRuntime runtime : pillarsById.values()) {
+            if (!runtime.state.isActive()) {
+                continue;
+            }
+            Location center = runtime.state.center();
+            if (center.getWorld() != location.getWorld()) {
+                continue;
+            }
+            double deltaX = center.getX() - location.getX();
+            double deltaZ = center.getZ() - location.getZ();
+            double distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
+            if (distanceSquared <= maximumDistanceSquared && distanceSquared < nearestDistanceSquared) {
+                nearest = runtime.state;
+                nearestDistanceSquared = distanceSquared;
+            }
+        }
+        return nearest;
+    }
+
+    /** 聖柱を指定地点へ移動します。 */
+    public void moveTo(
+            @NotNull PaladinHolySmiteExecutor.HolyPillarState pillar,
+            @NotNull Location destination
+    ) {
+        if (isActive(pillar)) {
+            pillar.moveTo(destination);
+        }
+    }
+
+    /** 指定した聖柱が現在も存在するか判定します。 */
+    public boolean isActive(@NotNull PaladinHolySmiteExecutor.HolyPillarState pillar) {
+        return pillarsById.values().stream().anyMatch(runtime -> runtime.state == pillar && pillar.isActive());
+    }
+
     /** Plugin停止時に全聖柱の実行時状態を破棄します。 */
     public void clearAll() {
+        for (PillarRuntime runtime : new ArrayList<>(pillarsById.values())) {
+            runtime.state.destroy();
+        }
         pillarsById.clear();
     }
 
     private static final class PillarRuntime {
-        private final Location center;
+        private final PaladinHolySmiteExecutor.HolyPillarState state;
         private final int durationTicks;
         private int remainingTicks;
 
-        private PillarRuntime(@NotNull Location center, int durationTicks, int remainingTicks) {
-            this.center = center;
+        private PillarRuntime(
+                @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
+                int durationTicks,
+                int remainingTicks
+        ) {
+            this.state = state;
             this.durationTicks = durationTicks;
             this.remainingTicks = remainingTicks;
         }

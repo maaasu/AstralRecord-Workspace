@@ -766,8 +766,10 @@ public class SkillService {
             return notifyCompletion(completionListener, failure);
         }
 
-        if (result.success()) {
-            playOnCastSound(castLocation, definition.getOnCastSound());
+        if (result.consumeResourcesAndCooldown()) {
+            if (result.success()) {
+                playOnCastSound(castLocation, definition.getOnCastSound());
+            }
             resolveResourceCosts(effectiveStatus, definition)
                     .forEach((resourceType, amount) -> consumeResource(caster, resourceType, amount));
             if (definition.getCooldownTicks() > 0L) {
@@ -781,12 +783,13 @@ public class SkillService {
                     cooldownTicks
                 );
             }
-            if (caster instanceof PlayerSkillCaster playerCaster) {
+            if (result.success() && caster instanceof PlayerSkillCaster playerCaster) {
                 for (BiConsumer<AstPlayer, String> listener : playerCastSuccessListeners) {
                     listener.accept(playerCaster.player(), definition.getId());
                 }
             }
-        } else {
+        }
+        if (!result.success()) {
             notifyIfFailed(caster, result, definition.getId());
         }
         return notifyCompletion(completionListener, result);

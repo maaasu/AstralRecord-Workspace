@@ -22,7 +22,7 @@ public final class PaladinSkillExecutorCatalog {
      * @param holySmiteRuntimeService ホーリースマイト聖柱実行時状態サービス
      * @param statusService 一時シールドを管理するステータスサービス
      * @param partyService パーティーメンバーを解決するサービス
-     * @return 4個の executor
+     * @return 5個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -33,6 +33,7 @@ public final class PaladinSkillExecutorCatalog {
     ) {
         return List.of(
                 new PaladinHolySmiteExecutor(services, holySmiteRuntimeService),
+                new PaladinHolyControlExecutor(services, holySmiteRuntimeService, statusService, partyService),
                 new PaladinHolyFieldExecutor(services, holyFieldRuntimeService),
                 new PaladinHolySmashExecutor(services, holyFieldRuntimeService),
                 new PaladinShieldExecutor(services, statusService, partyService)

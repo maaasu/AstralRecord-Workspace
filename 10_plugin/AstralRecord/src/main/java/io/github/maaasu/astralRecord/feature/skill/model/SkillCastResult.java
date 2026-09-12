@@ -16,11 +16,13 @@ import org.jetbrains.annotations.Nullable;
  * @param success   発動成功フラグ
  * @param messageId プレイヤー向け通知 ID。不要なら {@code null}
  * @param cooldownTicksOverride 成功時に採用するクールダウンtick。通常は {@code null}
+ * @param consumeResourcesAndCooldown 失敗時にも定義済みリソースとクールダウンを適用するか
  */
 public record SkillCastResult(
         boolean success,
         @Nullable PlayerMsgId messageId,
-        @Nullable Long cooldownTicksOverride
+        @Nullable Long cooldownTicksOverride,
+        boolean consumeResourcesAndCooldown
 ) {
 
     /** 既存の成功・失敗結果形式から初期化します。 */
@@ -28,7 +30,16 @@ public record SkillCastResult(
             boolean success,
             @Nullable PlayerMsgId messageId
     ) {
-        this(success, messageId, null);
+        this(success, messageId, null, success);
+    }
+
+    /** 既存のクールダウン上書き結果形式から初期化します。 */
+    public SkillCastResult(
+            boolean success,
+            @Nullable PlayerMsgId messageId,
+            @Nullable Long cooldownTicksOverride
+    ) {
+        this(success, messageId, cooldownTicksOverride, success);
     }
 
     /**
@@ -40,6 +51,17 @@ public record SkillCastResult(
     @NotNull
     public static SkillCastResult failure(@Nullable PlayerMsgId messageId) {
         return new SkillCastResult(false, messageId);
+    }
+
+    /**
+     * 失敗通知を返しつつ、定義済みリソース消費とクールダウンだけは通常どおり適用します。
+     *
+     * @param messageId 失敗理由を伝える通知 ID
+     * @return 消費とクールダウンを伴う失敗結果
+     */
+    @NotNull
+    public static SkillCastResult failureWithCostAndCooldown(@Nullable PlayerMsgId messageId) {
+        return new SkillCastResult(false, messageId, null, true);
     }
 
     /**
@@ -64,6 +86,6 @@ public record SkillCastResult(
         if (cooldownTicks < 1L) {
             throw new IllegalArgumentException("cooldownTicks must be positive");
         }
-        return new SkillCastResult(true, null, cooldownTicks);
+        return new SkillCastResult(true, null, cooldownTicks, true);
     }
 }

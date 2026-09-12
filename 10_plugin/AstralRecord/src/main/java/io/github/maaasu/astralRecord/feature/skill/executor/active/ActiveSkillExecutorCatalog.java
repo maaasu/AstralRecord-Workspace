@@ -30,7 +30,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param paladinHolySmiteRuntimeService ホーリースマイト聖柱実行時状態サービス
      * @param statusService 一時シールドを管理するステータスサービス
      * @param partyService パーティーメンバーを解決するサービス
-     * @return 24個の executor
+     * @return 25個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -39,7 +39,7 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull StatusService statusService,
             @NotNull PartyService partyService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(24);
+        List<SkillExecutor> executors = new ArrayList<>(25);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));

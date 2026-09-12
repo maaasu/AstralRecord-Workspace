@@ -863,6 +863,17 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 250, 225), 1.10F)
         );
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_CONTROL_RING =
+        new SharedParticleDefinition(
+            "skill_paladin_holy_control_ring",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 210, 45), 1.10F)
+        );
     public static final SharedParticleDefinition SKILL_PALADIN_DIVINE_CHASER_DUST =
         new SharedParticleDefinition(
             "skill_paladin_divine_chaser_dust",
