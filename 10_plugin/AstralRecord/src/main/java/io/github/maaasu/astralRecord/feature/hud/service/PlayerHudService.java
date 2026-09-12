@@ -203,11 +203,7 @@ public class PlayerHudService {
 
             StatusSnapshot snapshot = statusService.getStatus(astPlayer);
             int playerLevel = astPlayer.getAccount().getLevel();
-            double experienceProgress = accountService.experienceProgress(
-                astPlayer.getAccount().getUuid(),
-                playerLevel,
-                astPlayer.getAccount().getTotalExperience()
-            );
+            double experienceProgress = accountService.experienceProgress(astPlayer.getAccount());
             if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
                 if (isWallClingActive(astPlayer)) {
                     renderWallClingWindow(astPlayer);
@@ -262,7 +258,8 @@ public class PlayerHudService {
                     bossInfo,
                     dungeonInfo,
                     showBuffInfo,
-                    statusService.getActiveBuffs(astPlayer)
+                    statusService.getActiveBuffs(astPlayer),
+                    astPlayer.getAccount().getRebirthOriginalLevel()
                 );
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());

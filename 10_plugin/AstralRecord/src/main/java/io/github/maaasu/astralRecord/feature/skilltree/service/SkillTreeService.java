@@ -1165,7 +1165,8 @@ public class SkillTreeService {
     }
 
     private int earnedPassivePoints(@NotNull AstPlayer astPlayer) {
-        return Math.max(0, astPlayer.getAccount().getLevel() - 1);
+        return Math.max(0,
+            Math.max(astPlayer.getAccount().getLevel(), astPlayer.getAccount().getHighestLevel()) - 1);
     }
 
     private int spentClassPoints(@NotNull SkillTreePlayerState state, @NotNull String classId) {

@@ -210,6 +210,11 @@ public sealed class PlayerStateAccountProgressSection
     public int ExpectedProgressVersion { get; init; }
     public int Level { get; init; }
     public long TotalExperience { get; init; }
+    public int? HighestLevel { get; init; }
+    /// <summary>null は旧クライアント、false は転生状態解除、true は転生中を表す。</summary>
+    public bool? RebirthActive { get; init; }
+    public int? RebirthOriginalLevel { get; init; }
+    public int? RebirthExperienceRemainder { get; init; }
     public required string ClassId { get; init; }
     public int ClassLevel { get; init; }
     public long ClassExperience { get; init; }

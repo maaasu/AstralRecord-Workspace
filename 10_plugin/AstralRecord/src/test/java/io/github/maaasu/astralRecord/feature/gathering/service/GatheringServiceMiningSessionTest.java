@@ -127,7 +127,7 @@ class GatheringServiceMiningSessionTest extends MockBukkitTestBase {
         when(fixture.dropService().roll(any(MobDropConfig.class), eq(fixture.astPlayer())))
             .thenReturn(new MobDropResult(List.of(), 7, 0));
         when(fixture.accountService().grantExperienceCached(currentAccount, 7, userId))
-            .thenReturn(new AccountExperienceResult(currentAccount, updatedAccount, 7, 0));
+            .thenReturn(new AccountExperienceResult(currentAccount, updatedAccount, 7, 0, 0));
         when(fixture.playerClassService().grantClassExperience(fixture.astPlayer(), 7))
             .thenReturn(new ClassExperienceResult(1, 1, 7, 0));
 

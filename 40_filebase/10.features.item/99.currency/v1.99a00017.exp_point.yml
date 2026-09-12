@@ -1,0 +1,18 @@
+# design:
+#   motif: "錬金術 / 経験の結晶"
+#   progression: 0
+schemaVersion: 1
+id: 99a00017
+category: currency
+name: "&bEXPポイント"
+icon: EXPERIENCE_BOTTLE
+rarity: RARE
+saleValue: 0
+lore:
+  - "&7転生中に獲得した経験が結晶化したポイント。"
+  - "&710EXPごとに1ポイント獲得する。"
+unTradeable: true
+unSellable: true
+currency:
+  type: EXP_POINT
+  group: rebirth

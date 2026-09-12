@@ -37,6 +37,7 @@
 | 31 | [[31_0-概要]] | 検証用カカシの配置、共有ステータス調整、非致死・定期回復 | `feature/trainingdummy` |
 | 32 | [[32_0-概要]] | BSP ダンジョン生成、部屋戦闘、ゲート進行、一時ワールド回収 | `feature/dungeon` |
 | 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
+| 34 | [[34_0-概要]] | レベル1への転生、短縮レベル進行、EXPポイント変換、転生GUI | `feature/rebirth` |
 
 ## 更新規則
 
@@ -333,3 +334,12 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/challenge/*`（Boss／Dungeon 共用の開始 countdown・死亡許容判定・インスタンス作成枠キュー）
 
 feature 固有 resource の ID 範囲や利用条件は各 feature が所有し、共通 loader、resolver、logger、正規化処理の実装境界はこの共通基盤が所有する。
+
+### [[34_0-概要|34-rebirth]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/rebirth/*`
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7180` から `P_7189`）
+- `feature/account` の転生進行フィールドと経験値計算
+- `feature/hud` の転生中レベル表示
+- `feature/skilltree` の最高到達レベル由来PP算出
+- `feature/mob/event/MobInteractionEventHandler.java` のNPC導線

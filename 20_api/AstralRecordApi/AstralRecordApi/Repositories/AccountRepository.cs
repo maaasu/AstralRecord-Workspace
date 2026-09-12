@@ -165,6 +165,12 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             account.Level = Math.Max(1, request.Level.Value);
             account.TotalExperience = Math.Max(0, request.TotalExperience.Value);
+            account.HighestLevel = Math.Max(account.HighestLevel, account.Level);
+            if (account.RebirthOriginalLevel.HasValue && account.Level >= account.RebirthOriginalLevel.Value)
+            {
+                account.RebirthOriginalLevel = null;
+                account.RebirthExperienceRemainder = 0;
+            }
         }
 
         var selectedClassId = account.ClassId;
@@ -740,6 +746,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             MenuShortcutsJson = account.MenuShortcutsJson,
             Level = account.Level,
             TotalExperience = account.TotalExperience,
+            HighestLevel = account.HighestLevel,
+            RebirthOriginalLevel = account.RebirthOriginalLevel,
+            RebirthExperienceRemainder = account.RebirthExperienceRemainder,
             ClassId = account.ClassId,
             ClassLevel = account.ClassLevel,
             ClassExperience = account.ClassExperience,

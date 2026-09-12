@@ -183,6 +183,9 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.rebirth.event.RebirthGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.rebirth.gui.RebirthGui;
+import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.player.service.StoneButtonReachService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -374,6 +377,7 @@ public final class AstralRecord extends JavaPlugin {
     private InventoryAutoSaveTask inventoryAutoSaveTask;
     private CurrencyService currencyService;
     private CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
+    private RebirthService rebirthService;
     private StatusService statusService;
     private StatusRegenTask statusRegenTask;
     private DodgeService dodgeService;
@@ -1077,6 +1081,7 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setLocalStatePersistence(inventoryService);
         currencyService = new CurrencyService(inventoryService, itemService);
         currencyExchangeGuiEventHandler = new CurrencyExchangeGuiEventHandler(currencyService);
+        rebirthService = new RebirthService(accountService, inventoryService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
@@ -1210,6 +1215,7 @@ public final class AstralRecord extends JavaPlugin {
                 particleDisplayService
         );
         mobCombatService.setAfkService(afkService);
+        mobCombatService.setRebirthService(rebirthService);
         playerDeathService = new PlayerDeathService(
             this,
             accountService,
@@ -1492,6 +1498,7 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.QUEST_COMPLETED, questId)
         );
         questService.setSkillTreeService(skillTreeService);
+        questService.setRebirthService(rebirthService);
         inventoryPersistence.registerStateParticipant(questService::snapshotPlayerState);
         gatheringService.setProgressionServices(
             accountService,
@@ -1508,6 +1515,7 @@ public final class AstralRecord extends JavaPlugin {
             )
         );
         gatheringService.setQuestService(questService);
+        gatheringService.setRebirthService(rebirthService);
         gatheringService.setGatheringCompleteListener((player, spawnerOrGatheringId) ->
             guideService.recordCondition(player, GuideConditionType.GATHERING_COMPLETED, spawnerOrGatheringId)
         );
@@ -2161,6 +2169,13 @@ public final class AstralRecord extends JavaPlugin {
             skillForgetGuiEventHandler,
             getServer().getPluginManager()
         );
+        var rebirthGuiEventHandler = new RebirthGuiEventHandler(
+            this,
+            new RebirthGui(rebirthService),
+            rebirthService,
+            skillTreeService
+        );
+        eventManager.registerHandler(rebirthGuiEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(skillActionRingHoldService, getServer().getPluginManager());
         var skillActionRingEventHandler = new SkillActionRingEventHandler(
             skillActionRingService,
@@ -2235,7 +2250,8 @@ public final class AstralRecord extends JavaPlugin {
             loginBonusService,
             skillForgetGuiEventHandler,
             marketGuiEventHandler,
-            partyBoardGui
+            partyBoardGui,
+            rebirthGuiEventHandler
         );
         eventManager.registerHandler(
             new TrainingDummyGuiEventHandler(trainingDummyGui, trainingDummyService),

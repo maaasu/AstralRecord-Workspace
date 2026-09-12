@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
@@ -73,6 +74,7 @@ public class MobCombatService {
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
+    private RebirthService rebirthService;
     private PlayerDeathService playerDeathService;
     private QuestService questService;
     private DamageService damageService;
@@ -137,6 +139,11 @@ public class MobCombatService {
 
     public void setQuestService(@Nullable QuestService questService) {
         this.questService = questService;
+    }
+
+    /** @param rebirthService 転生中のプレイヤーEXPとEXPポイントを反映するサービス */
+    public void setRebirthService(@NotNull RebirthService rebirthService) {
+        this.rebirthService = rebirthService;
     }
 
     /**
@@ -425,11 +432,10 @@ public class MobCombatService {
             return;
         }
         try {
-            AccountExperienceResult progress = accountService.grantExperienceCached(
-                recipient.getAccount(),
-                result.exp(),
-                recipient.getUser().getUuid()
-            );
+            AccountExperienceResult progress = rebirthService == null
+                ? accountService.grantExperienceCached(
+                    recipient.getAccount(), result.exp(), recipient.getUser().getUuid())
+                : rebirthService.grantExperience(recipient, result.exp());
             ClassExperienceResult classProgress = playerClassService.grantClassExperience(recipient, result.exp());
             applyExperienceAndSkillPointsResult(recipient, progress, classProgress);
         } catch (RuntimeException ex) {

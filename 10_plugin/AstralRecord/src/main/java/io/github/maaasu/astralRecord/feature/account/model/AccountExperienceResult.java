@@ -9,12 +9,14 @@ import org.jetbrains.annotations.NotNull;
  * @param updatedAccount  更新後アカウント
  * @param grantedExperience 今回加算した経験値
  * @param levelUps 今回上昇したレベル数
+ * @param grantedExpPoints 今回転生報酬として付与するEXPポイント数
  */
 public record AccountExperienceResult(
         @NotNull AccountModel previousAccount,
         @NotNull AccountModel updatedAccount,
         int grantedExperience,
-        int levelUps
+        int levelUps,
+        int grantedExpPoints
 ) {
     /**
      * 今回レベルアップが発生したかを返します。

@@ -102,7 +102,7 @@ class PlayerHudServiceTest extends MockBukkitTestBase {
                     eq(player), eq(20.0D), eq(1), eq(0.0D), eq(1), eq("剣士"), eq(0L),
                     eq("CP[剣士]"), eq(7), eq(8), eq("スキルツリー"), eq(regionName), eq(0),
                     eq(false), isNull(BossChallengeSidebarInfo.class), isNull(DungeonSidebarInfo.class),
-                    eq(false), eq(activeBuffs)
+                    eq(false), eq(activeBuffs), isNull(Integer.class)
             );
 
             invokeUpdateAll(service);
@@ -110,7 +110,7 @@ class PlayerHudServiceTest extends MockBukkitTestBase {
                     eq(player), eq(20.0D), eq(1), eq(0.0D), eq(1), eq("剣士"), eq(0L),
                     isNull(String.class), eq(0), eq(0), eq("スキルツリー"), eq(regionName), eq(0),
                     eq(false), isNull(BossChallengeSidebarInfo.class), isNull(DungeonSidebarInfo.class),
-                    eq(false), eq(activeBuffs)
+                    eq(false), eq(activeBuffs), isNull(Integer.class)
             );
         }
     }

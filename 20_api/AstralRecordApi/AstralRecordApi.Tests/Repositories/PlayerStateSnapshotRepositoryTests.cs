@@ -936,6 +936,103 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     [Fact]
+    public async Task SaveAsync_PersistsAndClearsRebirthProgressWithExplicitStateMarker()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var existingAccount = await fixture.DbContext.Accounts.SingleAsync();
+        existingAccount.HighestLevel = 20;
+        await fixture.DbContext.SaveChangesAsync();
+        var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
+        var active = new PlayerStateAccountProgressSection
+        {
+            AccountId = fixture.AccountId, ClientRevision = 10, ExpectedProgressVersion = 1,
+            Level = 1, TotalExperience = 99, HighestLevel = 10, RebirthActive = true,
+            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 9,
+            ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
+            ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
+        };
+
+        var activeResult = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AccountProgress = Section(active),
+        });
+
+        Assert.True(activeResult.Succeeded);
+        var savedActive = await fixture.DbContext.Accounts.SingleAsync();
+        Assert.Equal(20, savedActive.HighestLevel);
+        Assert.Equal(10, savedActive.RebirthOriginalLevel);
+        Assert.Equal(9, savedActive.RebirthExperienceRemainder);
+
+        var ended = new PlayerStateAccountProgressSection
+        {
+            AccountId = fixture.AccountId, ClientRevision = 11, ExpectedProgressVersion = 2,
+            Level = 10, TotalExperience = 10_000, HighestLevel = 10, RebirthActive = false,
+            RebirthOriginalLevel = null, RebirthExperienceRemainder = 0,
+            ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
+            ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
+        };
+        var endedResult = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AccountProgress = Section(ended),
+        });
+
+        Assert.True(endedResult.Succeeded);
+        var savedEnded = await fixture.DbContext.Accounts.SingleAsync();
+        Assert.Equal(20, savedEnded.HighestLevel);
+        Assert.Null(savedEnded.RebirthOriginalLevel);
+        Assert.Equal(0, savedEnded.RebirthExperienceRemainder);
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsInvalidRebirthPayloadBeforeConflictEvaluation()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var invalid = new PlayerStateAccountProgressSection
+        {
+            AccountId = fixture.AccountId, ClientRevision = 12, ExpectedProgressVersion = 1,
+            Level = 1, TotalExperience = 9, HighestLevel = 10, RebirthActive = true,
+            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 10,
+            ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
+            ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
+        };
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AccountProgress = Section(invalid),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Invalid, result.Failure);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreservesExistingLevelAboveCurrentGameplayCap()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var section = new PlayerStateAccountProgressSection
+        {
+            AccountId = fixture.AccountId, ClientRevision = 13, ExpectedProgressVersion = 1,
+            Level = 101, TotalExperience = 1_000_000, HighestLevel = 101, RebirthActive = false,
+            RebirthOriginalLevel = null, RebirthExperienceRemainder = 0,
+            ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
+            ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
+        };
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AccountProgress = Section(section),
+        });
+
+        Assert.True(result.Succeeded);
+        var saved = await fixture.DbContext.Accounts.SingleAsync();
+        Assert.Equal(101, saved.Level);
+        Assert.Equal(101, saved.HighestLevel);
+    }
+
+    [Fact]
     public async Task SaveAsync_PersistsQuestLoginClaimAndInventoryInOneReplayableSnapshot()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();

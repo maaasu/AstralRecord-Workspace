@@ -40,6 +40,8 @@ import java.util.function.Supplier;
 public class AccountService {
 
     private static final long EXPERIENCE_FLUSH_INTERVAL_TICKS = 40L;
+    private static final int REBIRTH_EXPERIENCE_DIVISOR = 3;
+    private static final int EXPERIENCE_PER_EXP_POINT = 10;
     public static final int MAX_PLAYER_LEVEL = 100;
 
     private final Plugin plugin;
@@ -345,19 +347,57 @@ public class AccountService {
         AccountExperienceResult result = withProgressLock(currentAccount.getUuid(), () -> {
             AccountModel previous = overlayPendingProgress(currentAccount);
             if (experience <= 0) {
-                return new AccountExperienceResult(previous, previous, 0, 0);
+                return new AccountExperienceResult(previous, previous, 0, 0, 0);
             }
 
             long totalExperience = previous.getTotalExperience() + experience;
             int level = Math.max(1, previous.getLevel());
-            while (level < MAX_PLAYER_LEVEL && totalExperience >= totalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
-                level++;
+            Integer rebirthOriginalLevel = activeRebirthOriginalLevel(previous);
+            int expPointRemainder = previous.getRebirthExperienceRemainder();
+            int grantedExpPoints = 0;
+            if (rebirthOriginalLevel != null) {
+                long completionThreshold = rebirthTotalRequiredExperienceForLevel(
+                    previous.getUuid(), rebirthOriginalLevel);
+                long eligibleExperience = Math.min(
+                    (long) experience,
+                    Math.max(0L, completionThreshold - previous.getTotalExperience())
+                );
+                long convertibleExperience = Math.max(0, expPointRemainder) + eligibleExperience;
+                grantedExpPoints = (int) (convertibleExperience / EXPERIENCE_PER_EXP_POINT);
+                expPointRemainder = (int) (convertibleExperience % EXPERIENCE_PER_EXP_POINT);
+                while (level < rebirthOriginalLevel
+                    && totalExperience >= rebirthTotalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
+                    level++;
+                }
+                if (level >= rebirthOriginalLevel) {
+                    long overflow = Math.max(0L, totalExperience - completionThreshold);
+                    totalExperience = totalRequiredExperienceForLevel(previous.getUuid(), rebirthOriginalLevel) + overflow;
+                    rebirthOriginalLevel = null;
+                    expPointRemainder = 0;
+                    while (level < MAX_PLAYER_LEVEL
+                        && totalExperience >= totalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
+                        level++;
+                    }
+                }
+            } else {
+                while (level < MAX_PLAYER_LEVEL
+                    && totalExperience >= totalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
+                    level++;
+                }
             }
 
-            AccountModel updated = withProgress(previous, level, totalExperience, updatedBy);
+            AccountModel updated = withProgress(
+                previous,
+                level,
+                totalExperience,
+                Math.max(previous.getHighestLevel(), level),
+                rebirthOriginalLevel,
+                expPointRemainder,
+                updatedBy
+            );
             registerPendingExperience(updated, updatedBy);
             int levelUps = Math.max(0, updated.getLevel() - previous.getLevel());
-            return new AccountExperienceResult(previous, updated, experience, levelUps);
+            return new AccountExperienceResult(previous, updated, experience, levelUps, grantedExpPoints);
         });
         int levelUps = result.levelUps();
         if (levelUps > 0) {
@@ -385,9 +425,86 @@ public class AccountService {
             int previousLevel = Math.clamp(previous.getLevel(), 1, MAX_PLAYER_LEVEL);
             int currentLevel = (int) Math.clamp(requestedLevel, 1L, (long) MAX_PLAYER_LEVEL);
             long totalExperience = totalRequiredExperienceForLevel(previous.getUuid(), currentLevel);
-            AccountModel updated = withProgress(previous, currentLevel, totalExperience, updatedBy);
+            AccountModel updated = withProgress(
+                previous,
+                currentLevel,
+                totalExperience,
+                Math.max(previous.getHighestLevel(), currentLevel),
+                null,
+                0,
+                updatedBy
+            );
             registerPendingExperience(updated, updatedBy);
             return new AccountLevelSetResult(previousLevel, currentLevel, MAX_PLAYER_LEVEL, updated);
+        });
+    }
+
+    /**
+     * 現在レベルを転生前レベルとして保持し、プレイヤーレベルを1へ戻します。
+     * Gold消費と永続化の原子性は呼び出し元の critical mutation が保証します。
+     *
+     * @param currentAccount 転生前のアカウント状態
+     * @param updatedBy 更新者UUID
+     * @return 転生開始後のアカウント状態
+     * @throws IllegalStateException レベル1、または転生中の場合
+     */
+    public @NotNull AccountModel startRebirthCached(
+        @NotNull AccountModel currentAccount,
+        @NotNull UUID updatedBy
+    ) {
+        return withProgressLock(currentAccount.getUuid(), () -> {
+            AccountModel previous = overlayPendingProgress(currentAccount);
+            if (previous.getLevel() <= 1) {
+                throw new IllegalStateException("Player level must be at least 2 to start rebirth");
+            }
+            if (activeRebirthOriginalLevel(previous) != null) {
+                throw new IllegalStateException("Rebirth is already active");
+            }
+            int originalLevel = previous.getLevel();
+            AccountModel updated = withProgress(
+                previous,
+                1,
+                0L,
+                Math.max(previous.getHighestLevel(), originalLevel),
+                originalLevel,
+                0,
+                updatedBy
+            );
+            registerPendingExperience(updated, updatedBy);
+            return updated;
+        });
+    }
+
+    /**
+     * 転生前レベルへ即時復帰し、転生状態と未変換経験値を破棄します。
+     * アストラルド消費と永続化の原子性は呼び出し元の critical mutation が保証します。
+     *
+     * @param currentAccount 転生中のアカウント状態
+     * @param updatedBy 更新者UUID
+     * @return 転生終了後のアカウント状態
+     * @throws IllegalStateException 転生中でない場合
+     */
+    public @NotNull AccountModel endRebirthCached(
+        @NotNull AccountModel currentAccount,
+        @NotNull UUID updatedBy
+    ) {
+        return withProgressLock(currentAccount.getUuid(), () -> {
+            AccountModel previous = overlayPendingProgress(currentAccount);
+            Integer originalLevel = activeRebirthOriginalLevel(previous);
+            if (originalLevel == null) {
+                throw new IllegalStateException("Rebirth is not active");
+            }
+            AccountModel updated = withProgress(
+                previous,
+                originalLevel,
+                totalRequiredExperienceForLevel(previous.getUuid(), originalLevel),
+                Math.max(previous.getHighestLevel(), originalLevel),
+                null,
+                0,
+                updatedBy
+            );
+            registerPendingExperience(updated, updatedBy);
+            return updated;
         });
     }
 
@@ -409,18 +526,23 @@ public class AccountService {
         });
     }
 
-    public double experienceProgress(UUID accountUuid, int level, long totalExperience) {
-        int normalizedLevel = Math.max(1, level);
+    public double experienceProgress(@NotNull AccountModel account) {
+        int normalizedLevel = Math.max(1, account.getLevel());
         if (normalizedLevel >= MAX_PLAYER_LEVEL) {
             return 1.0D;
         }
-        long currentLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel);
-        long nextLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel + 1);
+        boolean rebirthActive = activeRebirthOriginalLevel(account) != null;
+        long currentLevelRequiredExperience = rebirthActive
+            ? rebirthTotalRequiredExperienceForLevel(account.getUuid(), normalizedLevel)
+            : totalRequiredExperienceForLevel(account.getUuid(), normalizedLevel);
+        long nextLevelRequiredExperience = rebirthActive
+            ? rebirthTotalRequiredExperienceForLevel(account.getUuid(), normalizedLevel + 1)
+            : totalRequiredExperienceForLevel(account.getUuid(), normalizedLevel + 1);
         long levelRange = nextLevelRequiredExperience - currentLevelRequiredExperience;
         if (levelRange <= 0L) {
             return 0.0D;
         }
-        long levelProgress = Math.max(0L, totalExperience - currentLevelRequiredExperience);
+        long levelProgress = Math.max(0L, account.getTotalExperience() - currentLevelRequiredExperience);
         return Math.clamp((double) levelProgress / (double) levelRange, 0.0D, 1.0D);
     }
 
@@ -446,7 +568,9 @@ public class AccountService {
             }
 
             int level = Math.max(1, previous.getLevel());
-            long currentLevelRequiredExperience = totalRequiredExperienceForLevel(previous.getUuid(), level);
+            long currentLevelRequiredExperience = activeRebirthOriginalLevel(previous) == null
+                ? totalRequiredExperienceForLevel(previous.getUuid(), level)
+                : rebirthTotalRequiredExperienceForLevel(previous.getUuid(), level);
             long levelProgress = Math.max(0L, previous.getTotalExperience() - currentLevelRequiredExperience);
             if (levelProgress <= 0L) {
                 return Optional.empty();
@@ -563,6 +687,14 @@ public class AccountService {
         payload.addProperty("updatedBy", captured.progress().getUpdatedBy().toString());
         payload.addProperty("level", captured.progress().getLevel());
         payload.addProperty("totalExperience", captured.progress().getTotalExperience());
+        payload.addProperty("highestLevel", captured.progress().getHighestLevel());
+        payload.addProperty("rebirthActive", activeRebirthOriginalLevel(captured.progress()) != null);
+        if (captured.progress().getRebirthOriginalLevel() == null) {
+            payload.add("rebirthOriginalLevel", com.google.gson.JsonNull.INSTANCE);
+        } else {
+            payload.addProperty("rebirthOriginalLevel", captured.progress().getRebirthOriginalLevel());
+        }
+        payload.addProperty("rebirthExperienceRemainder", captured.progress().getRebirthExperienceRemainder());
         payload.addProperty("classId", captured.progress().getClassId());
         payload.addProperty("classLevel", captured.progress().getClassLevel());
         payload.addProperty("classExperience", captured.progress().getClassExperience());
@@ -715,6 +847,9 @@ public class AccountService {
                 rebased,
                 experience.account().getLevel(),
                 experience.account().getTotalExperience(),
+                experience.account().getHighestLevel(),
+                experience.account().getRebirthOriginalLevel(),
+                experience.account().getRebirthExperienceRemainder(),
                 experience.updatedBy()
             );
             pendingExperienceUpdates.put(accountId, new PendingExperienceUpdate(rebased, experience.updatedBy()));
@@ -785,7 +920,10 @@ public class AccountService {
             classProgress.getClassLevel(),
             classProgress.getClassExperience(),
             classProgress.getClassProgresses(),
-            playerProgress.getProgressVersion()
+            playerProgress.getProgressVersion(),
+            playerProgress.getHighestLevel(),
+            playerProgress.getRebirthOriginalLevel(),
+            playerProgress.getRebirthExperienceRemainder()
         );
     }
 
@@ -793,6 +931,26 @@ public class AccountService {
         @NotNull AccountModel account,
         int level,
         long totalExperience,
+        @NotNull UUID updatedBy
+    ) {
+        return withProgress(
+            account,
+            level,
+            totalExperience,
+            Math.max(account.getHighestLevel(), level),
+            account.getRebirthOriginalLevel(),
+            account.getRebirthExperienceRemainder(),
+            updatedBy
+        );
+    }
+
+    private @NotNull AccountModel withProgress(
+        @NotNull AccountModel account,
+        int level,
+        long totalExperience,
+        int highestLevel,
+        @Nullable Integer rebirthOriginalLevel,
+        int rebirthExperienceRemainder,
         @NotNull UUID updatedBy
     ) {
         return new AccountModel(
@@ -814,7 +972,10 @@ public class AccountService {
             account.getClassLevel(),
             account.getClassExperience(),
             account.getClassProgresses(),
-            account.getProgressVersion()
+            account.getProgressVersion(),
+            Math.max(highestLevel, 1),
+            rebirthOriginalLevel,
+            Math.clamp(rebirthExperienceRemainder, 0, EXPERIENCE_PER_EXP_POINT - 1)
         );
     }
 
@@ -852,7 +1013,10 @@ public class AccountService {
             Math.max(1, classLevel),
             Math.max(0L, classExperience),
             classProgresses,
-            account.getProgressVersion()
+            account.getProgressVersion(),
+            account.getHighestLevel(),
+            account.getRebirthOriginalLevel(),
+            account.getRebirthExperienceRemainder()
         );
     }
 
@@ -866,8 +1030,24 @@ public class AccountService {
             account.isActive(), mode, account.getMenuShortcutsJson(), account.getCreatedAt(), LocalDateTime.now(),
             account.getCreatedBy(), updatedBy, account.isDeleted(), account.getLevel(), account.getTotalExperience(),
             account.getClassId(), account.getClassLevel(), account.getClassExperience(), account.getClassProgresses(),
-            account.getProgressVersion()
+            account.getProgressVersion(), account.getHighestLevel(), account.getRebirthOriginalLevel(),
+            account.getRebirthExperienceRemainder()
         );
+    }
+
+    private @Nullable Integer activeRebirthOriginalLevel(@NotNull AccountModel account) {
+        Integer originalLevel = account.getRebirthOriginalLevel();
+        return originalLevel != null && originalLevel > account.getLevel() ? originalLevel : null;
+    }
+
+    private long rebirthTotalRequiredExperienceForLevel(UUID accountUuid, int targetLevel) {
+        long total = 0L;
+        for (int level = 1; level < targetLevel; level++) {
+            total += Math.max(1L,
+                (requiredExperienceForNextLevel(accountUuid, level) + REBIRTH_EXPERIENCE_DIVISOR - 1L)
+                    / REBIRTH_EXPERIENCE_DIVISOR);
+        }
+        return total;
     }
 
     private long totalRequiredExperienceForLevel(UUID accountUuid, int targetLevel) {

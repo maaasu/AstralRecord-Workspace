@@ -67,6 +67,26 @@
           }
         ]
       }
+    },
+    {
+      "id": "20260913_account_rebirth_progress",
+      "fileName": "20260913_account_rebirth_progress.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account",
+        "primaryKey": "PK_account",
+        "columns": [
+          { "name": "highest_level", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false },
+          { "name": "rebirth_original_level", "sqlType": "int", "maxLengthBytes": 4, "isNullable": true },
+          { "name": "rebirth_experience_remainder", "sqlType": "smallint", "maxLengthBytes": 2, "isNullable": false }
+        ],
+        "checkConstraints": [
+          "CK_account_highest_level",
+          "CK_account_rebirth_original_level",
+          "CK_account_rebirth_experience_remainder"
+        ],
+        "indexes": []
+      }
     }
   ]
 }

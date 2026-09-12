@@ -1491,7 +1491,26 @@ public sealed class PlayerStateSnapshotRepository(
         PlayerStateSnapshotSaveRequest request,
         DateTime now)
     {
-        if (account.ProgressVersion != section.ExpectedProgressVersion || section.Level < 1 || section.TotalExperience < 0
+        var hasPartialRebirthState = !section.RebirthActive.HasValue
+            && (section.RebirthOriginalLevel.HasValue || section.RebirthExperienceRemainder.HasValue);
+        var resolvedHighestLevel = Math.Max(
+            account.HighestLevel,
+            section.HighestLevel ?? section.Level
+        );
+        var invalidRebirthState = section.RebirthActive switch
+        {
+            true => !section.RebirthOriginalLevel.HasValue
+                || section.RebirthOriginalLevel.Value <= section.Level
+                || section.RebirthOriginalLevel.Value > resolvedHighestLevel
+                || !section.RebirthExperienceRemainder.HasValue
+                || section.RebirthExperienceRemainder is < 0 or > 9,
+            false => section.RebirthOriginalLevel.HasValue
+                || section.RebirthExperienceRemainder.GetValueOrDefault() != 0,
+            null => hasPartialRebirthState,
+        };
+        if (account.ProgressVersion != section.ExpectedProgressVersion || section.Level < 1
+            || section.TotalExperience < 0 || section.HighestLevel is < 1
+            || section.HighestLevel.HasValue && section.HighestLevel.Value < section.Level || invalidRebirthState
             || section.ClassLevel < 1 || section.ClassExperience < 0 || string.IsNullOrWhiteSpace(section.ClassId)
             || (section.Mode.HasValue && section.Mode is not (0 or 2))
             || section.ClassProgresses.Any(progress => string.IsNullOrWhiteSpace(progress.ClassId) || progress.Level < 1 || progress.Experience < 0)
@@ -1499,6 +1518,14 @@ public sealed class PlayerStateSnapshotRepository(
             return null;
         account.Level = section.Level;
         account.TotalExperience = section.TotalExperience;
+        account.HighestLevel = resolvedHighestLevel;
+        if (section.RebirthActive.HasValue)
+        {
+            account.RebirthOriginalLevel = section.RebirthActive.Value ? section.RebirthOriginalLevel : null;
+            account.RebirthExperienceRemainder = section.RebirthActive.Value
+                ? section.RebirthExperienceRemainder.GetValueOrDefault()
+                : 0;
+        }
         account.ClassId = section.ClassId.Trim();
         account.ClassLevel = section.ClassLevel;
         account.ClassExperience = section.ClassExperience;
@@ -1931,6 +1958,7 @@ public sealed class PlayerStateSnapshotRepository(
             var section = TryDeserializeSection<PlayerStateAccountProgressSection>(progressJson);
             if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
                 || section.ExpectedProgressVersion < 1 || section.Level < 1 || section.TotalExperience < 0
+                || !ValidRebirthProgress(section)
                 || section.ClassLevel < 1 || section.ClassExperience < 0 || !ValidText(section.ClassId, 100)
                 || (section.Mode.HasValue && section.Mode is not (0 or 2)) || section.ClassProgresses is null
                 || section.ClassProgresses.Any(p => p is null || !ValidText(p.ClassId, 100) || p.Level < 1 || p.Experience < 0)
@@ -2029,6 +2057,25 @@ public sealed class PlayerStateSnapshotRepository(
                 return false;
         }
         return true;
+    }
+
+    private static bool ValidRebirthProgress(PlayerStateAccountProgressSection section)
+    {
+        if (section.HighestLevel.HasValue
+            && (section.HighestLevel.Value < 1 || section.HighestLevel.Value < section.Level))
+            return false;
+        return section.RebirthActive switch
+        {
+            true => section.RebirthOriginalLevel.HasValue
+                && section.RebirthOriginalLevel.Value > section.Level
+                && (!section.HighestLevel.HasValue
+                    || section.RebirthOriginalLevel.Value <= section.HighestLevel.Value)
+                && section.RebirthExperienceRemainder is >= 0 and <= 9,
+            false => !section.RebirthOriginalLevel.HasValue
+                && section.RebirthExperienceRemainder.GetValueOrDefault() == 0,
+            null => !section.RebirthOriginalLevel.HasValue
+                && !section.RebirthExperienceRemainder.HasValue,
+        };
     }
 
     private static IReadOnlyList<string?> NormalizeSlots(IReadOnlyList<string?> values, int count)

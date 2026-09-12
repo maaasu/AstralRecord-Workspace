@@ -1,0 +1,39 @@
+# design:
+#   motif: "魔女 / 記憶"
+#   progression: 0
+schemaVersion: 1
+id: rebirth_witch
+type: MOB
+category: NPC
+name: "&b転生の魔女リネア"
+title: "&7記憶と経験の案内人"
+level: 1
+entityType: WITCH
+nameVisible: true
+damageImmune: true
+icon: ENCHANTED_BOOK
+lore:
+  - "&7レベル1から歩み直す転生を司る魔女。"
+  - "&7右クリックで転生GUIを開ける。"
+tags:
+  - npc
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&b転生の魔女リネア&7: 過去の力を保ったまま、レベル1から歩み直せるよ。"
+  rightClick:
+    - id: gui
+      params:
+        type: REBIRTH

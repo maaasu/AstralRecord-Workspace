@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -161,7 +162,7 @@ public final class PlayerListGui {
         lore.add(noItalic(Component.text("ワールド: " + displayWorldName(target), NamedTextColor.GRAY)));
         if (astTarget != null) {
             lore.add(noItalic(Component.text("モード: " + astTarget.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
-            lore.add(noItalic(Component.text("Lv: " + astTarget.getAccount().getLevel(), NamedTextColor.YELLOW)));
+            lore.add(noItalic(RebirthLevelDisplay.component("Lv: ", astTarget.getAccount())));
         }
         if (purpose == PlayerListPurpose.PARTY_INVITE) {
             lore.add(Component.empty());

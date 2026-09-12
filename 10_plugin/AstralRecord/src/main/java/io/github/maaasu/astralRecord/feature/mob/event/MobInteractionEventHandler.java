@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.rebirth.event.RebirthGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
@@ -33,6 +34,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapsho
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -57,6 +59,28 @@ public final class MobInteractionEventHandler
     private final SkillForgetGuiEventHandler skillForgetGuiEventHandler;
     private final MarketGuiEventHandler marketGuiEventHandler;
     private final PartyBoardGui partyBoardGui;
+    private final @Nullable RebirthGuiEventHandler rebirthGuiEventHandler;
+
+    /** 転生GUIを持たない既存テスト・互換構成用コンストラクタです。 */
+    public MobInteractionEventHandler(
+            @NotNull MobService mobService,
+            @NotNull StatusService statusService,
+            @NotNull ShopGuiEventHandler shopGuiEventHandler,
+            @NotNull MenuView menuView,
+            @NotNull PlayerClassService playerClassService,
+            @NotNull StorageService storageService,
+            @NotNull QuestGuiEventHandler questGuiEventHandler,
+            @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
+            @NotNull LoginBonusService loginBonusService,
+            @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler,
+            @NotNull MarketGuiEventHandler marketGuiEventHandler,
+            @NotNull PartyBoardGui partyBoardGui) {
+        this(
+            mobService, statusService, shopGuiEventHandler, menuView, playerClassService, storageService,
+            questGuiEventHandler, currencyExchangeGuiEventHandler, loginBonusService,
+            skillForgetGuiEventHandler, marketGuiEventHandler, partyBoardGui, null
+        );
+    }
 
     /**
      * ハンドラを生成します。
@@ -73,6 +97,7 @@ public final class MobInteractionEventHandler
      * @param skillForgetGuiEventHandler スキル忘却 GUI ハンドラ
      * @param marketGuiEventHandler マーケット GUI ハンドラ
      * @param partyBoardGui パーティー掲示板 GUI
+     * @param rebirthGuiEventHandler 転生 GUI ハンドラ
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -86,7 +111,8 @@ public final class MobInteractionEventHandler
             @NotNull LoginBonusService loginBonusService,
             @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler,
             @NotNull MarketGuiEventHandler marketGuiEventHandler,
-            @NotNull PartyBoardGui partyBoardGui) {
+            @NotNull PartyBoardGui partyBoardGui,
+            @Nullable RebirthGuiEventHandler rebirthGuiEventHandler) {
         this.mobService = mobService;
         this.statusService = statusService;
         this.shopGuiEventHandler = shopGuiEventHandler;
@@ -99,6 +125,7 @@ public final class MobInteractionEventHandler
         this.skillForgetGuiEventHandler = skillForgetGuiEventHandler;
         this.marketGuiEventHandler = marketGuiEventHandler;
         this.partyBoardGui = partyBoardGui;
+        this.rebirthGuiEventHandler = rebirthGuiEventHandler;
     }
 
     @Override
@@ -231,6 +258,10 @@ public final class MobInteractionEventHandler
             case "PARTY_BOARD" -> partyBoardGui.open(player, 0);
             case "LOGIN_BONUS" -> openLoginBonus(player);
             case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
+            case "REBIRTH" -> {
+                if (rebirthGuiEventHandler == null) GuiSound.DENY.play(player);
+                else rebirthGuiEventHandler.open(player);
+            }
             default -> GuiSound.DENY.play(player);
         }
     }

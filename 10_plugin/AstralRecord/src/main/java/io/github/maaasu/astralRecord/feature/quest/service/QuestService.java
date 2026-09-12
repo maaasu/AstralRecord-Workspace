@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
@@ -80,6 +81,7 @@ public final class QuestService {
     private final PlayerClassService playerClassService;
     private final StatusService statusService;
     private SkillTreeService skillTreeService;
+    private RebirthService rebirthService;
     private final ParticleDisplayService particleDisplayService;
     private final Executor asyncExecutor;
     private final Executor mainExecutor;
@@ -125,6 +127,11 @@ public final class QuestService {
             command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command),
             command -> plugin.getServer().getScheduler().runTask(plugin, command)
         );
+    }
+
+    /** @param rebirthService 転生中のプレイヤーEXPとEXPポイントを反映するサービス */
+    public void setRebirthService(@NotNull RebirthService rebirthService) {
+        this.rebirthService = rebirthService;
     }
 
     /** クエスト報酬によるレベル変化をスキルツリーへ反映するサービスを設定します。 */
@@ -988,11 +995,10 @@ public final class QuestService {
             }
 
             if (quest.rewards().exp() > 0) {
-                AccountExperienceResult result = accountService.grantExperienceCached(
-                    player.getAccount(),
-                    quest.rewards().exp(),
-                    player.getUser().getUuid()
-                );
+                AccountExperienceResult result = rebirthService == null
+                    ? accountService.grantExperienceCached(
+                        player.getAccount(), quest.rewards().exp(), player.getUser().getUuid())
+                    : rebirthService.grantExperience(player, quest.rewards().exp());
                 progressChanged = true;
                 player.setAccount(result.updatedAccount());
                 playerClassService.grantClassExperienceStateOnly(

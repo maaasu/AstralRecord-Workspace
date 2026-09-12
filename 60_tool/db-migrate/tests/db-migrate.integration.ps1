@@ -44,7 +44,11 @@ try {
     # The production migrations extend an existing game database. Seed only the
     # parent keys required by the new receipt's foreign keys in this isolated DB.
     Invoke-DbNonQuery -ConnectionString $databaseConnectionString -CommandText @"
-CREATE TABLE dbo.account (uuid UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+CREATE TABLE dbo.account (
+    uuid UNIQUEIDENTIFIER NOT NULL,
+    level INT NOT NULL,
+    CONSTRAINT PK_account PRIMARY KEY CLUSTERED (uuid)
+);
 CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
 "@
 
@@ -65,6 +69,12 @@ CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KE
     if ([int]$receiptTableCount -ne 1 -or [int]$receiptHistoryCount -ne 1) {
         throw "Listing creation receipt migration did not create its schema and history row."
     }
+    $rebirthHistoryCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260913_account_rebirth_progress';"
+    $rebirthColumnCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.account') AND name IN (N'highest_level', N'rebirth_original_level', N'rebirth_experience_remainder');"
+    $rebirthConstraintCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID(N'dbo.account') AND name IN (N'CK_account_highest_level', N'CK_account_rebirth_original_level', N'CK_account_rebirth_experience_remainder');"
+    if ([int]$rebirthHistoryCount -ne 1 -or [int]$rebirthColumnCount -ne 3 -or [int]$rebirthConstraintCount -ne 3) {
+        throw "Account rebirth migration did not create its columns, constraints, and history row."
+    }
 
     Invoke-MigrationTool
     $historyCountAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260905_account_learned_skill_operation';"
@@ -74,6 +84,10 @@ CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KE
     $receiptHistoryAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260910_market_listing_create_receipt';"
     if ([int]$receiptHistoryAfterRerun -ne 1) {
         throw "Listing creation receipt migration was not idempotent."
+    }
+    $rebirthHistoryAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260913_account_rebirth_progress';"
+    if ([int]$rebirthHistoryAfterRerun -ne 1) {
+        throw "Account rebirth migration was not idempotent."
     }
 
     $config.migrations[0].expectation.columns[0].sqlType = "int"

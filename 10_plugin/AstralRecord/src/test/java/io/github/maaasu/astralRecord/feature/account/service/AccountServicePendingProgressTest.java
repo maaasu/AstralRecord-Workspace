@@ -44,6 +44,85 @@ import static org.mockito.Mockito.when;
 class AccountServicePendingProgressTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
+     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生開始
+     * 検証契約: レベル30の非転生アカウントは最高到達レベルを維持したままレベル1・EXP 0・端数0の転生状態へ遷移する。
+     */
+    @Test
+    void startsRebirthAtLevelOneAndKeepsHighestLevel() {
+        Fixture fixture = createFixture(mock(AccountRepository.class));
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        AccountModel initial = account(accountId, userId, 0, AccountMode.PLAYER, 30, 500_000L, 7, userId);
+
+        AccountModel reborn = fixture.service().startRebirthCached(initial, userId);
+
+        assertEquals(1, reborn.getLevel());
+        assertEquals(0L, reborn.getTotalExperience());
+        assertEquals(30, reborn.getHighestLevel());
+        assertEquals(30, reborn.getRebirthOriginalLevel());
+        assertEquals(0, reborn.getRebirthExperienceRemainder());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
+     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生中EXP加算
+     * 検証契約: 転生中は通常必要EXPの3分の1を切り上げた量で元レベルへ戻り、10EXP単位のポイントと端数を算出する。
+     */
+    @Test
+    void usesOneThirdRequiredExperienceAndConvertsExpPoints() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        AccountService normalService = createFixture(mock(AccountRepository.class)).service();
+        AccountModel normal = account(accountId, userId, 0L);
+        int normalRequired = 0;
+        while (normal.getLevel() == 1) {
+            normal = normalService.grantExperienceCached(normal, 1, userId).updatedAccount();
+            normalRequired++;
+        }
+
+        AccountService rebirthService = createFixture(mock(AccountRepository.class)).service();
+        AccountModel levelTwo = account(accountId, userId, 0, AccountMode.PLAYER, 2, normalRequired, 0, userId);
+        AccountModel reborn = rebirthService.startRebirthCached(levelTwo, userId);
+        AccountExperienceResult first = rebirthService.grantExperienceCached(reborn, 9, userId);
+        AccountExperienceResult second = rebirthService.grantExperienceCached(first.updatedAccount(), 1, userId);
+        int rebirthRequired = 10;
+        AccountModel current = second.updatedAccount();
+        while (current.getLevel() == 1) {
+            current = rebirthService.grantExperienceCached(current, 1, userId).updatedAccount();
+            rebirthRequired++;
+        }
+
+        assertEquals(0, first.grantedExpPoints());
+        assertEquals(9, first.updatedAccount().getRebirthExperienceRemainder());
+        assertEquals(1, second.grantedExpPoints());
+        assertEquals((normalRequired + 2) / 3, rebirthRequired);
+        assertNull(current.getRebirthOriginalLevel());
+        assertEquals(normalRequired, current.getTotalExperience());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
+     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生終了
+     * 検証契約: 転生の有償終了用進行操作は転生前レベルの通常開始EXPへ復帰し、転生状態と端数を解除する。
+     */
+    @Test
+    void endsRebirthAtOriginalLevelAndClearsRemainder() {
+        Fixture fixture = createFixture(mock(AccountRepository.class));
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        AccountModel active = rebirthAccount(accountId, userId, 5, 2, 123L, 7);
+
+        AccountModel ended = fixture.service().endRebirthCached(active, userId);
+
+        assertEquals(5, ended.getLevel());
+        assertEquals(5, ended.getHighestLevel());
+        assertNull(ended.getRebirthOriginalLevel());
+        assertEquals(0, ended.getRebirthExperienceRemainder());
+        assertTrue(ended.getTotalExperience() > 0L);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
      * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### 経験値加算
      * 検証契約: クラス進行の未flush更新が併存しても、連続する経験値加算は最新の経験値キャッシュを基準にして同じレベルアップを再判定しない。
@@ -462,6 +541,25 @@ class AccountServicePendingProgressTest {
             0L,
             List.of(new ClassProgressModel("adventurer", 1, 0L)),
             progressVersion
+        );
+    }
+
+    /** 転生中のテスト用アカウントを作成します。 */
+    private AccountModel rebirthAccount(
+        UUID accountId,
+        UUID userId,
+        int originalLevel,
+        int level,
+        long totalExperience,
+        int remainder
+    ) {
+        AccountModel base = account(accountId, userId, 0, AccountMode.PLAYER, level, totalExperience, 0, userId);
+        return new AccountModel(
+            base.getUuid(), base.getUserId(), base.getAccountName(), base.getSlotIndex(), base.isActive(),
+            base.getMode(), base.getMenuShortcutsJson(), base.getCreatedAt(), base.getUpdatedAt(), base.getCreatedBy(),
+            base.getUpdatedBy(), base.isDeleted(), base.getLevel(), base.getTotalExperience(), base.getClassId(),
+            base.getClassLevel(), base.getClassExperience(), base.getClassProgresses(), base.getProgressVersion(),
+            originalLevel, originalLevel, remainder
         );
     }
 

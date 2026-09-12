@@ -307,6 +307,34 @@ public class PlayerHudView {
         );
     }
 
+    /** 転生表示を指定しない互換用サイドバー描画です。 */
+    public void renderSidebar(
+        Player player,
+        double mspt,
+        int playerLevel,
+        double classExperienceProgress,
+        int classLevel,
+        String className,
+        long goldAmount,
+        @Nullable String skillTreeClassPointLabel,
+        int availableClassPoints,
+        int availablePassivePoints,
+        String worldName,
+        String regionName,
+        int regionLevel,
+        boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo,
+        DungeonSidebarInfo dungeonInfo,
+        boolean showBuffInfo,
+        List<ActiveBuff> activeBuffs
+    ) {
+        renderSidebar(
+            player, mspt, playerLevel, classExperienceProgress, classLevel, className, goldAmount,
+            skillTreeClassPointLabel, availableClassPoints, availablePassivePoints, worldName, regionName,
+            regionLevel, showPerformanceInfo, bossInfo, dungeonInfo, showBuffInfo, activeBuffs, null
+        );
+    }
+
     /**
      * サイドバーを描画し、設定が有効な場合は獲得順のバフを最大5件表示します。
      * 表示行数が15行を超えないよう、挑戦名と参加者を優先して任意情報・バフ・性能情報を調整します。
@@ -328,6 +356,7 @@ public class PlayerHudView {
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      * @param showBuffInfo バフ情報を表示するか
      * @param activeBuffs 獲得順の有効バフ一覧
+     * @param rebirthOriginalLevel 転生前レベル。転生中でなければnull
      */
     public void renderSidebar(
         Player player,
@@ -347,7 +376,8 @@ public class PlayerHudView {
         BossChallengeSidebarInfo bossInfo,
         DungeonSidebarInfo dungeonInfo,
         boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs
+        List<ActiveBuff> activeBuffs,
+        @Nullable Integer rebirthOriginalLevel
     ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -390,7 +420,12 @@ public class PlayerHudView {
         lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
         lines.add(buildSeparator("player"));
-        lines.add(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel);
+        String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
+            + (rebirthOriginalLevel == null
+                ? ColorCodeUtil.YELLOW + Integer.toString(playerLevel)
+                : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
+                    + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
+        lines.add(playerLevelLine);
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));

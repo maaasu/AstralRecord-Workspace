@@ -495,5 +495,10 @@ class AccountRepository {
                 )
             ),
         progressVersion = get("progressVersion")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
+        highestLevel = get("highestLevel")?.takeIf { !it.isJsonNull }?.asInt
+            ?: (get("level")?.takeIf { !it.isJsonNull }?.asInt ?: 1),
+        rebirthOriginalLevel = get("rebirthOriginalLevel")?.takeIf { !it.isJsonNull }?.asInt,
+        rebirthExperienceRemainder = get("rebirthExperienceRemainder")
+            ?.takeIf { !it.isJsonNull }?.asInt ?: 0,
     )
 }

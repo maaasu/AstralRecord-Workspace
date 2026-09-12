@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -625,7 +626,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                 AccountDisplayNameFormatter.toComponent(target.getAccount()).decorate(TextDecoration.BOLD)
             ));
             List<Component> lore = new ArrayList<>();
-            lore.add(noItalic(Component.text("プレイヤー Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)));
+            lore.add(noItalic(RebirthLevelDisplay.component("プレイヤー Lv.", target.getAccount())));
             lore.add(noItalic(Component.text("現在のクラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
             lore.add(noItalic(Component.text("アカウント: ", NamedTextColor.WHITE)
                 .append(AccountDisplayNameFormatter.toComponent(target.getAccount()))));

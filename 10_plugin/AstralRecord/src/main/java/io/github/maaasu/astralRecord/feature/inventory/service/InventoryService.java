@@ -4166,6 +4166,46 @@ public class InventoryService {
         }
     }
 
+    /**
+     * Bukkit APIを呼ばず、指定通貨を通貨インベントリへ加算します。
+     * 呼び出し元は player-state のローカル変更境界内で実行してください。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 通貨アイテムID
+     * @param amount 加算量
+     * @return 全量を加算できた場合は {@code true}
+     */
+    public boolean addCurrencyStateOnly(
+        @NotNull UUID accountId,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled()) {
+            return false;
+        }
+        ItemModel model = itemService.findLoadedById(itemId);
+        if (model == null || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.CURRENCY) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryStateSnapshot snapshot = snapshotState(accountId);
+            if (snapshot == null || !addCurrencyAmountToInventory(state, inventory, model, amount)) {
+                restoreState(snapshot);
+                return false;
+            }
+            compactInventoryEntries(state, inventory.getInventoryId());
+            return true;
+        }
+    }
+
     private boolean removeAllGoldCurrency(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory
@@ -4211,6 +4251,16 @@ public class InventoryService {
         if (model == null || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.CURRENCY) {
             return false;
         }
+        return addCurrencyAmountToInventory(state, inventory, model, amount);
+    }
+
+    private boolean addCurrencyAmountToInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull ItemModel model,
+        long amount
+    ) {
+        String itemId = model.getId();
         List<InventoryEntryModel> entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
         for (int index = 0; index < entries.size(); index++) {
             InventoryEntryModel entry = entries.get(index);

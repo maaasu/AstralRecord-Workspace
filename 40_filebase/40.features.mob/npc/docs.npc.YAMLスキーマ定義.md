@@ -39,7 +39,7 @@ block Material の場合は `Interaction` entity を当たり判定に、`BlockD
 | `id` | `params` | 説明 |
 |:--|:--|:--|
 | `message` | `message` | チャットメッセージを送信する |
-| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須で、`access: NPC_ONLY` のショップもこの導線から開ける。`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`CURRENCY_EXCHANGE` は Plugin 組み込み通貨だけを扱う専用両替 GUI、`MARKET` はプレイヤー間の Gold 建てマーケット GUI、`LOGIN_BONUS` はログインボーナス GUI、`SKILL_FORGET` は習得済みスキルの忘却 GUI、`PARTY_BOARD` は現在のサーバーで公開中のパーティー掲示板 GUI |
+| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須で、`access: NPC_ONLY` のショップもこの導線から開ける。`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`CURRENCY_EXCHANGE` は Plugin 組み込み通貨だけを扱う専用両替 GUI、`MARKET` はプレイヤー間の Gold 建てマーケット GUI、`LOGIN_BONUS` はログインボーナス GUI、`SKILL_FORGET` は習得済みスキルの忘却 GUI、`PARTY_BOARD` は現在のサーバーで公開中のパーティー掲示板 GUI、`REBIRTH` は転生 GUI |
 | `command` | `command` | プレイヤーとしてコマンドを実行する。先頭の `/` はあってもなくてもよい |
 | `restore_status` | （なし） | 現在の HP / MP / ENG / Shield を最大値まで回復する。回復阻害中も実行する |
 
