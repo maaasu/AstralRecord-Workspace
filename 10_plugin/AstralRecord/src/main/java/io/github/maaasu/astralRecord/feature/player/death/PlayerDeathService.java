@@ -157,7 +157,7 @@ public final class PlayerDeathService {
         DeathState state = new DeathState(playerId, lockLocation, expiresAtMillis, recoveryAction);
         deaths.put(playerId, state);
         deathStartedListener.accept(playerId);
-        statusService.clearShieldRuntimeState(playerId);
+        statusService.clearShieldRuntimeState(astPlayer);
 
         if (applyExperiencePenalty) {
             accountService.loseCurrentLevelExperiencePercentCached(astPlayer.getAccount(), 10, astPlayer.getUser().getUuid())

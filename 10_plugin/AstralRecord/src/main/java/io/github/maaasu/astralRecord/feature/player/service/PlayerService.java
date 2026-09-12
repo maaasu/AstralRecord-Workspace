@@ -348,7 +348,11 @@ public class PlayerService {
             inventoryService.clearClickGuard(accountId);
             inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
         }
-        statusService.clearShieldRuntimeState(player.getUniqueId());
+        if (astPlayer != null) {
+            statusService.clearShieldRuntimeState(astPlayer);
+        } else {
+            statusService.clearShieldRuntimeState(player.getUniqueId());
+        }
         AstPlayerCache.remove(player.getUniqueId());
         return save;
     }
@@ -389,7 +393,7 @@ public class PlayerService {
         inventoryService.clearClickGuard(accountId);
         inventoryService.clearHiddenEntriesFromGui(accountId);
         inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
-        statusService.clearShieldRuntimeState(player.getUniqueId());
+        statusService.clearShieldRuntimeState(astPlayer);
         AstPlayerCache.remove(player.getUniqueId(), astPlayer);
         player.updateCommands();
     }

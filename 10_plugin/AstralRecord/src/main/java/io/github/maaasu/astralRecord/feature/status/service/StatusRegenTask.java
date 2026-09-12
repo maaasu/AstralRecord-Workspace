@@ -56,7 +56,7 @@ public class StatusRegenTask {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
             Player player = astPlayer.getBukkit();
             if (!player.isOnline() || player.isDead()) {
-                statusService.clearShieldRuntimeState(player.getUniqueId());
+                statusService.clearShieldRuntimeState(astPlayer);
                 continue;
             }
             applyRegen(astPlayer);

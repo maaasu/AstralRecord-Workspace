@@ -1636,7 +1636,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         damageService.setBastionStrikeSkillRuntimeService(bastionStrikeSkillRuntimeService);
         skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
-        ActiveSkillExecutorCatalog.create(activeSkillServices, paladinHolyFieldRuntimeService)
+        ActiveSkillExecutorCatalog.create(activeSkillServices, paladinHolyFieldRuntimeService, statusService, partyService)
             .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
         bossMechanicService.setTemporarySkillEffectService(temporarySkillEffectService);
@@ -1895,7 +1895,7 @@ public final class AstralRecord extends JavaPlugin {
             skillActionRingService.close(player.getBukkit());
             skillTreeService.restorePlayerVisibility(player.getBukkit());
             skillTreeService.clearPlayerPresentation(player.getBukkit());
-            statusService.clearShieldRuntimeState(playerId);
+            statusService.clearShieldRuntimeState(player);
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(

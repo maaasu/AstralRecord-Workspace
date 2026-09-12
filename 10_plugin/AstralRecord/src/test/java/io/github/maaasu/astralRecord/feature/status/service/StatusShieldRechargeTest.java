@@ -327,6 +327,81 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### タンクシールドアクティベート
+     * 検証契約: 一時Shieldはアクティベート未所持でも付与でき、後続付与が値と期限を上書きして期限後に失効する。
+     */
+    @Test
+    void temporaryShieldWorksWithoutActivationAndOverwritesLaterGrant() {
+        StatusService service = shieldService(false);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(0.0D));
+
+        service.grantTemporaryShield(player, 12.0D, 400L);
+        service.grantTemporaryShield(player, 7.0D, 400L);
+
+        assertEquals(7.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(7.0D, service.getShieldDisplayCapacity(player), 0.0001D);
+        assertTrue(service.completeShieldRechargeIfReady(player, System.currentTimeMillis() + 20_001L));
+        assertEquals(0.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(0.0D, service.getShieldDisplayCapacity(player), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### タンクシールドアクティベート
+     * 検証契約: 一時ShieldはMAX_SHIELDが0の再計算後も、有効期限まで値と表示capacityを維持する。
+     */
+    @Test
+    void temporaryShieldSurvivesRefreshWhenMaximumShieldIsZero() {
+        StatusService service = shieldService(false);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(0.0D));
+
+        service.grantTemporaryShield(player, 7.0D, 400L);
+        StatusSnapshot refreshed = service.refreshStatus(player);
+
+        assertEquals(7.0D, refreshed.getCurrentShield(), 0.0001D);
+        assertEquals(7.0D, service.getShieldDisplayCapacity(player), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### タンクシールドアクティベート
+     * 検証契約: 一時Shieldの失効周期では、同じ周期に通常Shieldリチャージを適用しない。
+     */
+    @Test
+    void temporaryShieldExpiryDefersReadyNormalRechargeUntilNextCycle() {
+        StatusService service = activatedService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(100.0D));
+        service.startShieldRecharge(player, 0L);
+        service.grantTemporaryShield(player, 7.0D, 1L);
+
+        assertTrue(service.completeShieldRechargeIfReady(player, System.currentTimeMillis() + 1_000L));
+        assertEquals(0.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertNotNull(service.getShieldRechargeState(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### タンクシールドアクティベート
+     * 検証契約: Shield runtimeを明示破棄すると有効な一時Shieldも即時に0へ戻る。
+     */
+    @Test
+    void clearingShieldRuntimeAlsoClearsTemporaryShieldValue() {
+        StatusService service = shieldService(false);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(0.0D));
+        service.grantTemporaryShield(player, 7.0D, 400L);
+
+        service.clearShieldRuntimeState(player);
+
+        assertEquals(0.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(0.0D, service.getShieldDisplayCapacity(player), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
      * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
      * 検証契約: 既存セッションでタンクシールドアクティベートだけを有効化した場合、現在Shieldを即時付与せず通常30秒リチャージを開始する。
      */

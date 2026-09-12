@@ -151,7 +151,10 @@ public class PlayerHudView {
         player.setSaturation(0.0F);
         setManaBar(player, ratio(snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA)));
         player.sendExperienceChange((float) ratio(experienceProgress, 1.0D), Math.max(0, playerLevel));
-        setArmorBar(player, ratio(snapshot.getCurrentShield(), snapshot.getMaxValue(StatusType.MAX_SHIELD)));
+        setArmorBar(player, ratio(
+            snapshot.getCurrentShield(),
+            Math.max(snapshot.getMaxValue(StatusType.MAX_SHIELD), snapshot.getCurrentShield())
+        ));
     }
 
     /**
@@ -757,7 +760,7 @@ public class PlayerHudView {
     }
 
     private Component shieldActionText(StatusSnapshot snapshot, ShieldRechargeState rechargeState) {
-        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        double maxShield = Math.max(snapshot.getMaxValue(StatusType.MAX_SHIELD), snapshot.getCurrentShield());
         if (maxShield <= 0.0D) {
             return Component.empty();
         }

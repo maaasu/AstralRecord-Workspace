@@ -1932,7 +1932,7 @@ public final class DamageService {
 
     private double maxShield(@NotNull AstEntity victim) {
         if (victim.isPlayer() && victim.player() != null) {
-            return statusService.getStatus(victim.player()).getMaxValue(StatusType.MAX_SHIELD);
+            return statusService.getShieldDisplayCapacity(victim.player());
         }
         if (victim.isMob() && victim.mob() != null && victim.mob().template().shield().active()) {
             return victim.mob().shieldDisplayCapacity();

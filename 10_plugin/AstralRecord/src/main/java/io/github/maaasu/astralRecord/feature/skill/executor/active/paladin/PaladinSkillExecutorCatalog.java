@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -17,16 +19,21 @@ public final class PaladinSkillExecutorCatalog {
      *
      * @param services 共有発動スキルサービス
      * @param holyFieldRuntimeService ホーリーフィールド実行時状態サービス
-     * @return 3個の executor
+     * @param statusService 一時シールドを管理するステータスサービス
+     * @param partyService パーティーメンバーを解決するサービス
+     * @return 4個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
-            @NotNull PaladinHolyFieldRuntimeService holyFieldRuntimeService
+            @NotNull PaladinHolyFieldRuntimeService holyFieldRuntimeService,
+            @NotNull StatusService statusService,
+            @NotNull PartyService partyService
     ) {
         return List.of(
                 new PaladinHolySmiteExecutor(services),
                 new PaladinHolyFieldExecutor(services, holyFieldRuntimeService),
-                new PaladinHolySmashExecutor(services, holyFieldRuntimeService)
+                new PaladinHolySmashExecutor(services, holyFieldRuntimeService),
+                new PaladinShieldExecutor(services, statusService, partyService)
         );
     }
 }

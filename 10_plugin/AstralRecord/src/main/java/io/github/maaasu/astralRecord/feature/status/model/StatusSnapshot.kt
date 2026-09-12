@@ -93,6 +93,18 @@ data class StatusSnapshot(
         return withCurrentValues(currentHp, currentMp, currentEnergy, shield)
     }
 
+    /**
+     * 最大 Shield を持たないプレイヤーにも付与できる一時シールド量へ更新します。
+     *
+     * @param shield 新しい現在シールド値
+     * @return 下限だけを適用した更新後の [StatusSnapshot]
+     */
+    fun withTemporaryShield(shield: Double): StatusSnapshot {
+        val normalizedShield = shield.coerceAtLeast(0.0)
+        val shieldChangedAt = if (normalizedShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
+        return copy(currentShield = normalizedShield, shieldChangedAtMs = shieldChangedAt)
+    }
+
     /** スキル個体だけに適用する加算補正を反映した一時スナップショットを返します。 */
     fun withFlatBonuses(bonuses: Map<StatusType, Double>): StatusSnapshot {
         if (bonuses.isEmpty()) return this

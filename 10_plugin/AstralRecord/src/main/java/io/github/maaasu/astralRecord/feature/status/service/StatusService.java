@@ -92,6 +92,7 @@ public class StatusService {
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
     private final Map<UUID, Boolean> shieldActivationStates = new HashMap<>();
+    private final Map<UUID, TemporaryShieldGrant> temporaryShieldGrants = new HashMap<>();
     private final Set<UUID> consumableUseMovementSlowdownPlayers = new java.util.HashSet<>();
 
     public StatusService() {
@@ -146,6 +147,7 @@ public class StatusService {
      * @return 現在のステータススナップショット
      */
     public @NotNull StatusSnapshot getStatus(@NotNull AstPlayer player) {
+        expireTemporaryShieldIfReady(player, System.currentTimeMillis());
         StatusSnapshot snapshot;
         if (player.getStatusSnapshot().getValues().isEmpty() || buffService.purgeExpired(player) > 0) {
             snapshot = refreshStatus(player);
@@ -188,6 +190,9 @@ public class StatusService {
                 previous.getCurrentEnergy(),
                 shieldActivationEnabled ? previous.getCurrentShield() : 0.0D
             );
+            if (hasActiveTemporaryShield(playerId, System.currentTimeMillis())) {
+                merged = merged.withTemporaryShield(previous.getCurrentShield());
+            }
         }
 
         player.setStatusSnapshot(merged);
@@ -199,7 +204,11 @@ public class StatusService {
             clearShieldRecharge(player);
             shieldDisplayCapacities.put(playerId, maxShield);
         } else if (maxShield <= 0.0D) {
-            clearShieldRuntimeState(playerId);
+            if (hasActiveTemporaryShield(playerId, System.currentTimeMillis())) {
+                shieldRechargeStates.remove(playerId);
+            } else {
+                clearShieldRuntimeState(playerId);
+            }
         } else if (!wasShieldActivationEnabled || previousMaxShield <= 0.0D) {
             clearShieldAcquisitionRuntime(playerId);
             shieldDisplayCapacities.put(playerId, maxShield);
@@ -385,8 +394,37 @@ public class StatusService {
             return snapshot;
         }
 
-        StatusSnapshot updated = snapshot.withCurrentShield(snapshot.getCurrentShield() - amount);
+        StatusSnapshot updated = hasActiveTemporaryShield(player.getBukkit().getUniqueId(), System.currentTimeMillis())
+            ? snapshot.withTemporaryShield(snapshot.getCurrentShield() - amount)
+            : snapshot.withCurrentShield(snapshot.getCurrentShield() - amount);
         player.setStatusSnapshot(updated);
+        return updated;
+    }
+
+    /**
+     * タンクシールドアクティベートの有無を問わず、指定時間だけ有効なシールドを付与します。
+     * 後からの付与は残存量に加算せず、値と期限を上書きします。
+     *
+     * @param player 対象プレイヤー
+     * @param amount 付与するシールド量
+     * @param durationTicks 付与時間（tick）
+     * @return 更新後のステータススナップショット。無効な入力では現在値
+     */
+    public @NotNull StatusSnapshot grantTemporaryShield(
+            @NotNull AstPlayer player,
+            double amount,
+            long durationTicks
+    ) {
+        StatusSnapshot snapshot = getStatus(player);
+        if (!(amount > 0.0D) || durationTicks < 1L) {
+            return snapshot;
+        }
+        long nowMs = System.currentTimeMillis();
+        UUID playerId = player.getBukkit().getUniqueId();
+        temporaryShieldGrants.put(playerId, new TemporaryShieldGrant(amount, nowMs + durationTicks * 50L));
+        StatusSnapshot updated = snapshot.withTemporaryShield(amount);
+        player.setStatusSnapshot(updated);
+        shieldDisplayCapacities.put(playerId, amount);
         return updated;
     }
 
@@ -520,8 +558,15 @@ public class StatusService {
      */
     public boolean completeShieldRechargeIfReady(@NotNull AstPlayer player, long nowMs) {
         UUID playerId = player.getBukkit().getUniqueId();
+        boolean temporaryShieldExpired = expireTemporaryShieldIfReady(player, nowMs);
+        if (temporaryShieldExpired) {
+            return true;
+        }
         ShieldRechargeState state = shieldRechargeStates.get(playerId);
         if (state == null) {
+            return temporaryShieldExpired;
+        }
+        if (hasActiveTemporaryShield(playerId, nowMs)) {
             return false;
         }
         if (!isShieldActivationEnabled(player)) {
@@ -575,6 +620,7 @@ public class StatusService {
      * @return 0 以上の表示基準値
      */
     public double getShieldDisplayCapacity(@NotNull AstPlayer player) {
+        expireTemporaryShieldIfReady(player, System.currentTimeMillis());
         return shieldDisplayCapacities.getOrDefault(
             player.getBukkit().getUniqueId(),
             getStatus(player).getMaxValue(StatusType.MAX_SHIELD)
@@ -600,6 +646,20 @@ public class StatusService {
         shieldRechargeConfigurations.remove(playerId);
         shieldDisplayCapacities.remove(playerId);
         shieldActivationStates.remove(playerId);
+        temporaryShieldGrants.remove(playerId);
+    }
+
+    /**
+     * 指定プレイヤーの一時Shieldを失効させてから、セッション内シールド状態を破棄します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void clearShieldRuntimeState(@NotNull AstPlayer player) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (temporaryShieldGrants.containsKey(playerId)) {
+            player.setStatusSnapshot(player.getStatusSnapshot().withTemporaryShield(0.0D));
+        }
+        clearShieldRuntimeState(playerId);
     }
 
     /**
@@ -985,6 +1045,10 @@ public class StatusService {
     }
 
     private void discardCurrentShieldIfInactive(@NotNull AstPlayer player) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (hasActiveTemporaryShield(playerId, System.currentTimeMillis())) {
+            return;
+        }
         StatusSnapshot snapshot = player.getStatusSnapshot();
         if (snapshot.getCurrentShield() > 0.0D) {
             player.setStatusSnapshot(snapshot.withCurrentShield(0.0D));
@@ -994,14 +1058,42 @@ public class StatusService {
         if (player.getBukkit() == null) {
             return;
         }
-        UUID playerId = player.getBukkit().getUniqueId();
         clearShieldAcquisitionRuntime(playerId);
         shieldActivationStates.put(playerId, false);
     }
 
     private void clearShieldAcquisitionRuntime(@NotNull UUID playerId) {
         shieldRechargeStates.remove(playerId);
-        shieldDisplayCapacities.remove(playerId);
+        if (!hasActiveTemporaryShield(playerId, System.currentTimeMillis())) {
+            shieldDisplayCapacities.remove(playerId);
+        }
+    }
+
+    private boolean hasActiveTemporaryShield(@NotNull UUID playerId, long nowMs) {
+        TemporaryShieldGrant grant = temporaryShieldGrants.get(playerId);
+        return grant != null && grant.expiresAtMs() > nowMs;
+    }
+
+    private boolean expireTemporaryShieldIfReady(@NotNull AstPlayer player, long nowMs) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        TemporaryShieldGrant grant = temporaryShieldGrants.get(playerId);
+        if (grant == null || grant.expiresAtMs() > nowMs) {
+            return false;
+        }
+        temporaryShieldGrants.remove(playerId);
+        StatusSnapshot snapshot = player.getStatusSnapshot();
+        if (snapshot.getCurrentShield() > 0.0D) {
+            player.setStatusSnapshot(snapshot.withCurrentShield(0.0D));
+        }
+        if (isShieldActivationEnabled(player)) {
+            shieldDisplayCapacities.put(playerId, snapshot.getMaxValue(StatusType.MAX_SHIELD));
+        } else {
+            shieldDisplayCapacities.remove(playerId);
+        }
+        return true;
+    }
+
+    private record TemporaryShieldGrant(double amount, long expiresAtMs) {
     }
 
     private double getBaseValue(@NotNull StatusType type) {

@@ -8,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkil
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -24,17 +26,22 @@ public final class ActiveSkillExecutorCatalog {
      *
      * @param services 共有発動スキルサービス
      * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
-     * @return 23個の executor
+     * @param statusService 一時シールドを管理するステータスサービス
+     * @param partyService パーティーメンバーを解決するサービス
+     * @return 24個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
-            @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService
+            @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService,
+            @NotNull StatusService statusService,
+            @NotNull PartyService partyService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(23);
+        List<SkillExecutor> executors = new ArrayList<>(24);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
-        executors.addAll(PaladinSkillExecutorCatalog.create(services, paladinHolyFieldRuntimeService));
+        executors.addAll(PaladinSkillExecutorCatalog.create(
+                services, paladinHolyFieldRuntimeService, statusService, partyService));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }

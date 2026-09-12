@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1527",
+  "name": "&fパラディンシールド",
+  "icon": "SHIELD",
+  "tags": [
+    "support"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_shield"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

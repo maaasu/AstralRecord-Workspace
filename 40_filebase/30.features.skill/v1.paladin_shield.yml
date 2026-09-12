@@ -1,0 +1,41 @@
+# design:
+#   motif: "聖騎士 / 守護の分与"
+#   progression: 2
+schemaVersion: 1
+id: paladin_shield
+type: SKILL
+implementationId: paladin_shield
+name: "&fパラディンシールド"
+description: "&7自身の守護を近くの仲間へ分け与える。"
+icon: SHIELD
+lore:
+  - "&7現在シールドが{skill.minimumCurrentShield}以上のときだけ発動できる。"
+  - "&7現在シールドの{skill.transferRatio:percent}%を消費する。"
+  - "&7半径{skill.targetRange}m以内のパーティーメンバー全員へ、消費量と同じ一時シールドを付与する。"
+  - "&7一時シールドは{skill.temporaryShieldDurationTicks:seconds}秒間有効で、後からの付与で値と時間を上書きする。"
+  - "&7対象がいない場合は、ホーリースマイトの聖柱を{skill.temporaryShieldDurationTicks:seconds}秒間建てる。"
+cooldownTicks: 400
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+learnRequiredItems: [{ itemId: 10a00025, amount: 12 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 12 }]
+onCast:
+  sound: block.beacon.activate
+tags:
+  - active
+  - support
+  - holy_knight
+# behavior:
+#   target: "同じパーティーに所属し、同一worldかつ半径30m以内にいる発動者以外のオンラインプレイヤー全員。"
+#   shield: "発動者の現在Shieldが2以上のとき半分を消費し、各対象へ同じ量の一時Shieldを20秒間付与する。後からの一時Shield付与は残存量へ加算せず値と期限を上書きする。"
+#   fallback: "対象不在時もShield消費は行い、発動者の位置へホーリースマイトと同じ聖柱を20秒間表示する。"
+#   visual: "発動者へ白色DUSTのオーラを表示し、各付与対象へEND_RODの直線をつなぐ。"
+params:
+  minimumCurrentShield: 2.0
+  transferRatio: 0.50
+  targetRange: 30.0
+  temporaryShieldDurationTicks: 400
+  pillarHeight: 5.0
