@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.party.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -403,6 +404,176 @@ class PartyServiceTest {
             service.clearAll();
             assertTrue(service.createParty(leader).success());
             assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(leader).messageId());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板募集設定
+     * 検証契約: 募集内容が空のパーティーは公開できず、検証済み本文を設定した場合だけ公開一覧へ現れる。
+     */
+    @Test
+    void requiresRecruitmentMessageBeforePublishing() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        AstPlayer leader = mock(AstPlayer.class);
+        Player leaderPlayer = mock(Player.class);
+        UUID leaderId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        when(leaderPlayer.getUniqueId()).thenReturn(leaderId);
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+
+            assertTrue(service.createParty(leader).success());
+            assertEquals(PlayerMsgId.P_5971, service.publishRecruitment(leader).messageId());
+            assertTrue(service.getPublishedParties().isEmpty());
+            assertEquals(
+                PlayerMsgId.P_5972,
+                service.setRecruitmentMessage(leader, "a".repeat(PartyService.MAX_RECRUITMENT_MESSAGE_LENGTH + 1)).messageId()
+            );
+
+            assertTrue(service.setRecruitmentMessage(leader, "  のんびり攻略\n ").success());
+            assertEquals("のんびり攻略", service.findParty(leaderId).getRecruitmentMessage());
+            assertTrue(service.publishRecruitment(leader).success());
+            assertEquals(1, service.getPublishedParties().size());
+
+            assertTrue(service.unpublishRecruitment(leader).success());
+            assertTrue(service.getPublishedParties().isEmpty());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板参加
+     * 検証契約: 承認不要の募集はクリックで即時参加し、6人到達時に掲載を自動終了する。
+     */
+    @Test
+    void joinsOpenRecruitmentAndClosesListingAtCapacity() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        AstPlayer leader = mock(AstPlayer.class);
+        AstPlayer requester = mock(AstPlayer.class);
+        Player leaderPlayer = mock(Player.class);
+        Player requesterPlayer = mock(Player.class);
+        UUID leaderId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        when(requester.getBukkit()).thenReturn(requesterPlayer);
+        when(leaderPlayer.getUniqueId()).thenReturn(leaderId);
+        when(leaderPlayer.getName()).thenReturn("leader");
+        when(leaderPlayer.isOnline()).thenReturn(true);
+        when(requesterPlayer.getUniqueId()).thenReturn(requesterId);
+        when(requesterPlayer.getName()).thenReturn("requester");
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(requester)).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(leaderPlayer)).thenReturn(leader);
+            bukkit.when(() -> Bukkit.getPlayer(leaderId)).thenReturn(leaderPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(service.createParty(leader).success());
+            Party party = service.findParty(leaderId);
+            for (int index = 0; index < PartyService.MAX_MEMBERS - 2; index++) {
+                party.addMember(UUID.randomUUID());
+            }
+            assertTrue(service.setRecruitmentMessage(leader, "満員まで募集").success());
+            assertTrue(service.toggleRecruitmentApproval(leader).success());
+            assertTrue(service.publishRecruitment(leader).success());
+
+            assertEquals(PlayerMsgId.P_5982, service.joinFromBoard(requester, party.getPartyId()).messageId());
+            assertEquals(party, service.findParty(requesterId));
+            assertEquals(PartyService.MAX_MEMBERS, party.size());
+            assertFalse(party.isRecruitmentPublished());
+            assertTrue(service.getPublishedParties().isEmpty());
+            verify(messageService).send(leaderPlayer, PlayerMsgId.P_5985);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板参加
+     * 検証契約: 承認制募集はリーダーへクリック可能な申請を送り、/party approve 相当の承認で参加させる。
+     */
+    @Test
+    void requestsAndApprovesBoardJoin() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        AstPlayer leader = mock(AstPlayer.class);
+        AstPlayer requester = mock(AstPlayer.class);
+        Player leaderPlayer = mock(Player.class);
+        Player requesterPlayer = mock(Player.class);
+        UUID leaderId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        when(requester.getBukkit()).thenReturn(requesterPlayer);
+        when(leaderPlayer.getUniqueId()).thenReturn(leaderId);
+        when(leaderPlayer.getName()).thenReturn("leader");
+        when(leaderPlayer.isOnline()).thenReturn(true);
+        when(requesterPlayer.getUniqueId()).thenReturn(requesterId);
+        when(requesterPlayer.getName()).thenReturn("requester");
+        when(requesterPlayer.isOnline()).thenReturn(true);
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(requester)).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(leaderPlayer)).thenReturn(leader);
+            cache.when(() -> AstPlayerCache.get(requesterPlayer)).thenReturn(requester);
+            bukkit.when(() -> Bukkit.getPlayer(leaderId)).thenReturn(leaderPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(requesterId)).thenReturn(requesterPlayer);
+            bukkit.when(() -> Bukkit.getPlayerExact("requester")).thenReturn(requesterPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(service.createParty(leader).success());
+            Party party = service.findParty(leaderId);
+            assertTrue(service.setRecruitmentMessage(leader, "承認制で募集").success());
+            assertTrue(service.publishRecruitment(leader).success());
+
+            assertEquals(PlayerMsgId.P_5978, service.joinFromBoard(requester, party.getPartyId()).messageId());
+            assertEquals(1, service.getJoinRequests(leaderId).size());
+            assertNull(service.findParty(requesterId));
+            verify(messageService).sendClickable(
+                leaderPlayer,
+                PlayerMsgId.P_5979,
+                "/party approve requester",
+                "requester"
+            );
+
+            assertEquals(PlayerMsgId.P_5981, service.approveJoinRequest(leader, "requester").messageId());
+            assertEquals(party, service.findParty(requesterId));
+            assertTrue(service.getJoinRequests(leaderId).isEmpty());
+            verify(messageService).send(
+                requesterPlayer,
+                PlayerMsgId.P_5982,
+                "leaderのパーティー"
+            );
         }
     }
 }

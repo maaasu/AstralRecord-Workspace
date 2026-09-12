@@ -35,6 +35,7 @@ public final class PartyGui extends BaseMenuScreenView {
     public static final int SIZE = 54;
     public static final int CREATE_SLOT = 22;
     public static final int INVITE_SLOT = 15;
+    public static final int RECRUITMENT_SETTINGS_SLOT = 47;
     public static final int LEAVE_OR_DISBAND_SLOT = 51;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
     private static final int INFO_SLOT = 4;
@@ -188,6 +189,22 @@ public final class PartyGui extends BaseMenuScreenView {
                 Material.WRITABLE_BOOK,
                 Component.text("プレイヤー招待", NamedTextColor.GREEN, TextDecoration.BOLD),
                 List.of(Component.text("未招待のプレイヤー一覧を開きます", NamedTextColor.GRAY))
+            ));
+        }
+        if (viewerLeader) {
+            inventory.setItem(RECRUITMENT_SETTINGS_SLOT, createItem(
+                party.isRecruitmentPublished() ? Material.WRITABLE_BOOK : Material.LECTERN,
+                Component.text(
+                    party.isRecruitmentPublished() ? "掲示板掲載内容を変更" : "パーティー掲示板へ公開",
+                    party.isRecruitmentPublished() ? NamedTextColor.YELLOW : NamedTextColor.GREEN,
+                    TextDecoration.BOLD
+                ),
+                List.of(Component.text(
+                    party.isRecruitmentPublished()
+                        ? "募集内容の変更や掲載停止を行います"
+                        : "募集内容と参加方式を設定します",
+                    NamedTextColor.GRAY
+                ))
             ));
         }
         inventory.setItem(LEAVE_OR_DISBAND_SLOT, createItem(

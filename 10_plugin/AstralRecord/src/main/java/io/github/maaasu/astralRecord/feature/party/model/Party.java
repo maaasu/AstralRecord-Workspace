@@ -16,6 +16,9 @@ public final class Party {
     private final LinkedHashSet<UUID> members;
     private final Instant createdAt;
     private UUID leaderId;
+    private String recruitmentMessage = "";
+    private boolean recruitmentApprovalRequired = true;
+    private boolean recruitmentPublished;
 
     /**
      * パーティーを作成します。
@@ -73,5 +76,59 @@ public final class Party {
 
     public @NotNull List<UUID> members() {
         return new ArrayList<>(members);
+    }
+
+    /**
+     * 掲示板へ表示する募集内容を返します。
+     *
+     * @return 募集内容。未設定時は空文字列
+     */
+    public @NotNull String getRecruitmentMessage() {
+        return recruitmentMessage;
+    }
+
+    /**
+     * 掲示板へ表示する募集内容を更新します。
+     *
+     * @param recruitmentMessage 検証済みの募集内容
+     */
+    public void setRecruitmentMessage(@NotNull String recruitmentMessage) {
+        this.recruitmentMessage = recruitmentMessage;
+    }
+
+    /**
+     * 掲示板経由の参加にリーダー承認が必要か返します。
+     *
+     * @return 承認が必要なら {@code true}
+     */
+    public boolean isRecruitmentApprovalRequired() {
+        return recruitmentApprovalRequired;
+    }
+
+    /**
+     * 掲示板経由の参加にリーダー承認が必要か更新します。
+     *
+     * @param recruitmentApprovalRequired 承認が必要なら {@code true}
+     */
+    public void setRecruitmentApprovalRequired(boolean recruitmentApprovalRequired) {
+        this.recruitmentApprovalRequired = recruitmentApprovalRequired;
+    }
+
+    /**
+     * 現在パーティー掲示板へ掲載中か返します。
+     *
+     * @return 掲載中なら {@code true}
+     */
+    public boolean isRecruitmentPublished() {
+        return recruitmentPublished;
+    }
+
+    /**
+     * パーティー掲示板への掲載状態を更新します。
+     *
+     * @param recruitmentPublished 掲載中にする場合は {@code true}
+     */
+    public void setRecruitmentPublished(boolean recruitmentPublished) {
+        this.recruitmentPublished = recruitmentPublished;
     }
 }

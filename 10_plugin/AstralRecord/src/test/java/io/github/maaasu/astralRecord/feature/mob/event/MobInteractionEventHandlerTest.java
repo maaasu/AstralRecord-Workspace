@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyBoardGui;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -118,7 +119,8 @@ class MobInteractionEventHandlerTest {
             mock(CurrencyExchangeGuiEventHandler.class),
             mock(LoginBonusService.class),
             mock(SkillForgetGuiEventHandler.class),
-            mock(MarketGuiEventHandler.class)
+            mock(MarketGuiEventHandler.class),
+            mock(PartyBoardGui.class)
         );
 
         PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(

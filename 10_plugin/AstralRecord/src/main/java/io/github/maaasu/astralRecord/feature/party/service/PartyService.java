@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
+import io.github.maaasu.astralRecord.feature.party.model.PartyJoinRequest;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +35,15 @@ import java.util.function.Predicate;
  */
 public final class PartyService {
     public static final int MAX_MEMBERS = 6;
+    /** 金床GUIから設定できる募集内容の最大Unicode文字数です。 */
+    public static final int MAX_RECRUITMENT_MESSAGE_LENGTH = 50;
 
     private final AstralRecord plugin;
     private final UserService userService;
     private final Map<UUID, Party> parties = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> partyIdByMember = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, PartyInvite>> invitesByTarget = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, PartyJoinRequest>> joinRequestsByParty = new ConcurrentHashMap<>();
     private final Set<UUID> partyChatEnabled = ConcurrentHashMap.newKeySet();
     private final CopyOnWriteArrayList<PartyMembershipChangeListener> membershipChangeListeners =
             new CopyOnWriteArrayList<>();
@@ -197,6 +202,8 @@ public final class PartyService {
         partyIdByMember.put(playerId, party.getPartyId());
         removeInvite(playerId, leaderId);
         clearInvitesForTarget(playerId);
+        clearJoinRequestsForPlayer(playerId);
+        closeRecruitmentIfFull(party);
         notifyPartyExcept(party, playerId, PlayerMsgId.P_5913, player.getBukkit().getName());
         recordHistory(playerId, "PARTY_JOINED", "Party joined: " + party.getPartyId());
         notifyMembershipChanged(party.getPartyId());
@@ -279,6 +286,7 @@ public final class PartyService {
         List<UUID> members = party.members();
         UUID leaderId = leader.getBukkit().getUniqueId();
         parties.remove(party.getPartyId());
+        clearJoinRequestsForParty(party.getPartyId());
         for (UUID memberId : members) {
             partyIdByMember.remove(memberId);
             partyChatEnabled.remove(memberId);
@@ -357,6 +365,7 @@ public final class PartyService {
         }
 
         party.setLeaderId(targetId);
+        clearJoinRequestsForParty(party.getPartyId());
         notifyPartyExcept(party, leaderId, PlayerMsgId.P_5923, target.getName());
         recordHistory(leaderId, "PARTY_LEADER_TRANSFERRED", "Party leader transferred to " + target.getName());
         recordHistory(targetId, "PARTY_LEADER_ASSIGNED", "Party leader assigned: " + party.getPartyId());
@@ -437,6 +446,225 @@ public final class PartyService {
         return List.copyOf(parties.values());
     }
 
+    /**
+     * パーティーリーダーが掲示板へ表示する募集内容を更新します。
+     * 掲載中のパーティーにも即時反映します。
+     *
+     * @param leader 更新するパーティーのリーダー
+     * @param rawMessage 金床GUIから受け取った募集内容
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult setRecruitmentMessage(
+        @NotNull AstPlayer leader,
+        @NotNull String rawMessage
+    ) {
+        Party party = requireLeaderParty(leader);
+        if (party == null) {
+            return leaderPartyFailure(leader);
+        }
+        String message = normalizeRecruitmentMessage(rawMessage);
+        if (message.isBlank()) {
+            return PartyActionResult.failure(PlayerMsgId.P_5971);
+        }
+        if (message.codePointCount(0, message.length()) > MAX_RECRUITMENT_MESSAGE_LENGTH) {
+            return PartyActionResult.failure(PlayerMsgId.P_5972, MAX_RECRUITMENT_MESSAGE_LENGTH);
+        }
+        party.setRecruitmentMessage(message);
+        return PartyActionResult.success(PlayerMsgId.P_5970);
+    }
+
+    /**
+     * パーティー掲示板経由の参加にリーダー承認が必要か切り替えます。
+     *
+     * @param leader 設定するパーティーのリーダー
+     * @return 切替後の状態を表す操作結果
+     */
+    public synchronized @NotNull PartyActionResult toggleRecruitmentApproval(@NotNull AstPlayer leader) {
+        Party party = requireLeaderParty(leader);
+        if (party == null) {
+            return leaderPartyFailure(leader);
+        }
+        boolean approvalRequired = !party.isRecruitmentApprovalRequired();
+        party.setRecruitmentApprovalRequired(approvalRequired);
+        clearJoinRequestsForParty(party.getPartyId());
+        return PartyActionResult.success(approvalRequired ? PlayerMsgId.P_5975 : PlayerMsgId.P_5976);
+    }
+
+    /**
+     * 募集内容が設定済みのパーティーを掲示板へ公開します。
+     *
+     * @param leader 公開するパーティーのリーダー
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult publishRecruitment(@NotNull AstPlayer leader) {
+        Party party = requireLeaderParty(leader);
+        if (party == null) {
+            return leaderPartyFailure(leader);
+        }
+        if (party.getRecruitmentMessage().isBlank()) {
+            return PartyActionResult.failure(PlayerMsgId.P_5971);
+        }
+        if (party.size() >= MAX_MEMBERS) {
+            party.setRecruitmentPublished(false);
+            return PartyActionResult.failure(PlayerMsgId.P_5903, MAX_MEMBERS);
+        }
+        party.setRecruitmentPublished(true);
+        return PartyActionResult.success(PlayerMsgId.P_5973);
+    }
+
+    /**
+     * パーティー掲示板への掲載を停止し、未処理の参加申請を破棄します。
+     *
+     * @param leader 掲載を停止するパーティーのリーダー
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult unpublishRecruitment(@NotNull AstPlayer leader) {
+        Party party = requireLeaderParty(leader);
+        if (party == null) {
+            return leaderPartyFailure(leader);
+        }
+        party.setRecruitmentPublished(false);
+        clearJoinRequestsForParty(party.getPartyId());
+        return PartyActionResult.success(PlayerMsgId.P_5974);
+    }
+
+    /**
+     * 現在のサーバープロセスで掲示板へ公開中のパーティーを返します。
+     *
+     * @return 作成日時順の公開パーティースナップショット
+     */
+    public synchronized @NotNull List<Party> getPublishedParties() {
+        return parties.values().stream()
+            .filter(Party::isRecruitmentPublished)
+            .filter(party -> !party.getRecruitmentMessage().isBlank())
+            .filter(party -> party.size() < MAX_MEMBERS)
+            .sorted(Comparator.comparing(Party::getCreatedAt).thenComparing(Party::getPartyId))
+            .toList();
+    }
+
+    /**
+     * 掲示板のパーティーへ参加、または承認制の場合は参加申請を送ります。
+     *
+     * @param requester 参加希望プレイヤー
+     * @param partyId 参加先パーティーID
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult joinFromBoard(
+        @NotNull AstPlayer requester,
+        @NotNull UUID partyId
+    ) {
+        if (!AccountModeGuard.isGameplayPlayer(requester)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
+        UUID requesterId = requester.getBukkit().getUniqueId();
+        if (partyIdByMember.containsKey(requesterId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5901);
+        }
+        Party party = parties.get(partyId);
+        if (!isJoinableRecruitment(party)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5977);
+        }
+        UUID leaderId = party.getLeaderId();
+        if (isChallengePartyMutationBlocked(requesterId) || isChallengePartyMutationBlocked(leaderId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_7024);
+        }
+        Player leader = Bukkit.getPlayer(leaderId);
+        if (leader == null || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(leader))) {
+            return PartyActionResult.failure(PlayerMsgId.P_5977);
+        }
+        String partyName = leader.getName() + "のパーティー";
+        if (!party.isRecruitmentApprovalRequired()) {
+            addBoardMember(party, requester);
+            return PartyActionResult.success(PlayerMsgId.P_5982, partyName);
+        }
+
+        Map<UUID, PartyJoinRequest> requests = joinRequestsByParty.computeIfAbsent(
+            partyId,
+            ignored -> new LinkedHashMap<>()
+        );
+        if (requests.containsKey(requesterId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5983);
+        }
+        requests.put(requesterId, new PartyJoinRequest(partyId, requesterId, java.time.Instant.now()));
+        String requesterName = requester.getBukkit().getName();
+        TradeService tradeService = plugin.getTradeService();
+        if (tradeService != null && tradeService.getOpenSession(leaderId) != null) {
+            PlayerMessageService.getInstance().send(leader, PlayerMsgId.P_5979, requesterName);
+        } else {
+            PlayerMessageService.getInstance().sendClickable(
+                leader,
+                PlayerMsgId.P_5979,
+                "/party approve " + requesterName,
+                requesterName
+            );
+        }
+        recordHistory(requesterId, "PARTY_JOIN_REQUESTED", "Party join requested: " + partyId);
+        return PartyActionResult.success(PlayerMsgId.P_5978, partyName);
+    }
+
+    /**
+     * リーダーが掲示板から届いた参加申請を承認します。
+     *
+     * @param leader 承認するパーティーリーダー
+     * @param requesterName 参加申請者の現在のプレイヤー名
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult approveJoinRequest(
+        @NotNull AstPlayer leader,
+        @NotNull String requesterName
+    ) {
+        Party party = requireLeaderParty(leader);
+        if (party == null) {
+            return leaderPartyFailure(leader);
+        }
+        Player requester = Bukkit.getPlayerExact(requesterName);
+        AstPlayer requesterAstPlayer = requester == null ? null : AstPlayerCache.get(requester);
+        if (requester == null || !AccountModeGuard.isGameplayPlayer(requesterAstPlayer)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5905, requesterName);
+        }
+        UUID requesterId = requester.getUniqueId();
+        Map<UUID, PartyJoinRequest> requests = joinRequestsByParty.get(party.getPartyId());
+        if (requests == null || !requests.containsKey(requesterId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5980, requesterName);
+        }
+        if (!isJoinableRecruitment(party)) {
+            clearJoinRequestsForParty(party.getPartyId());
+            return PartyActionResult.failure(PlayerMsgId.P_5977);
+        }
+        UUID leaderId = leader.getBukkit().getUniqueId();
+        if (isChallengePartyMutationBlocked(leaderId) || isChallengePartyMutationBlocked(requesterId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_7024);
+        }
+        if (partyIdByMember.containsKey(requesterId)) {
+            clearJoinRequestsForPlayer(requesterId);
+            return PartyActionResult.failure(PlayerMsgId.P_5906);
+        }
+
+        addBoardMember(party, requesterAstPlayer);
+        PlayerMessageService.getInstance().send(
+            requester,
+            PlayerMsgId.P_5982,
+            leader.getBukkit().getName() + "のパーティー"
+        );
+        return PartyActionResult.success(PlayerMsgId.P_5981, requester.getName());
+    }
+
+    /**
+     * リーダーのパーティーへ届いている参加申請を作成順で返します。
+     *
+     * @param leaderId 参照するリーダーUUID
+     * @return 現在のリーダーでない場合は空、リーダーなら申請一覧
+     */
+    public synchronized @NotNull List<PartyJoinRequest> getJoinRequests(@NotNull UUID leaderId) {
+        Party party = findParty(leaderId);
+        if (party == null || !party.isLeader(leaderId)) {
+            return List.of();
+        }
+        return joinRequestsByParty.getOrDefault(party.getPartyId(), Map.of()).values().stream()
+            .sorted(Comparator.comparing(PartyJoinRequest::createdAt))
+            .toList();
+    }
+
     public @Nullable Party findParty(@NotNull UUID playerId) {
         UUID partyId = partyIdByMember.get(playerId);
         return partyId == null ? null : parties.get(partyId);
@@ -478,6 +706,7 @@ public final class PartyService {
         parties.clear();
         partyIdByMember.clear();
         invitesByTarget.clear();
+        joinRequestsByParty.clear();
         partyChatEnabled.clear();
     }
 
@@ -493,6 +722,7 @@ public final class PartyService {
         recordHistory(playerId, eventType, "Party left: " + party.getPartyId());
         if (party.isEmpty()) {
             parties.remove(party.getPartyId());
+            clearJoinRequestsForParty(party.getPartyId());
             notifyMembershipChanged(party.getPartyId());
             return true;
         }
@@ -500,6 +730,7 @@ public final class PartyService {
         if (party.getLeaderId().equals(playerId)) {
             UUID nextLeader = party.members().get(0);
             party.setLeaderId(nextLeader);
+            clearJoinRequestsForParty(party.getPartyId());
             Player nextLeaderPlayer = Bukkit.getPlayer(nextLeader);
             notifyParty(party, PlayerMsgId.P_5923, nextLeaderPlayer == null ? nextLeader.toString() : nextLeaderPlayer.getName());
             recordHistory(nextLeader, "PARTY_LEADER_ASSIGNED", "Party leader assigned after leave: " + party.getPartyId());
@@ -562,6 +793,70 @@ public final class PartyService {
         for (Map<UUID, PartyInvite> invites : invitesByTarget.values()) {
             invites.remove(targetId);
         }
+    }
+
+    private @Nullable Party requireLeaderParty(@NotNull AstPlayer leader) {
+        if (!AccountModeGuard.isGameplayPlayer(leader)) {
+            return null;
+        }
+        Party party = findParty(leader.getBukkit().getUniqueId());
+        return party != null && party.isLeader(leader.getBukkit().getUniqueId()) ? party : null;
+    }
+
+    private @NotNull PartyActionResult leaderPartyFailure(@NotNull AstPlayer leader) {
+        if (!AccountModeGuard.isGameplayPlayer(leader)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
+        return findParty(leader.getBukkit().getUniqueId()) == null
+            ? PartyActionResult.failure(PlayerMsgId.P_5902)
+            : PartyActionResult.failure(PlayerMsgId.P_5920);
+    }
+
+    private boolean isJoinableRecruitment(@Nullable Party party) {
+        return party != null
+            && party.isRecruitmentPublished()
+            && !party.getRecruitmentMessage().isBlank()
+            && party.size() < MAX_MEMBERS;
+    }
+
+    private void addBoardMember(@NotNull Party party, @NotNull AstPlayer requester) {
+        UUID requesterId = requester.getBukkit().getUniqueId();
+        party.addMember(requesterId);
+        partyIdByMember.put(requesterId, party.getPartyId());
+        clearInvitesForTarget(requesterId);
+        clearJoinRequestsForPlayer(requesterId);
+        notifyPartyExcept(party, requesterId, PlayerMsgId.P_5913, requester.getBukkit().getName());
+        recordHistory(requesterId, "PARTY_JOINED_FROM_BOARD", "Party joined from board: " + party.getPartyId());
+        notifyMembershipChanged(party.getPartyId());
+        closeRecruitmentIfFull(party);
+    }
+
+    private void closeRecruitmentIfFull(@NotNull Party party) {
+        if (party.size() < MAX_MEMBERS || !party.isRecruitmentPublished()) {
+            return;
+        }
+        party.setRecruitmentPublished(false);
+        clearJoinRequestsForParty(party.getPartyId());
+        sendIfOnline(party.getLeaderId(), PlayerMsgId.P_5985);
+    }
+
+    private void clearJoinRequestsForParty(@NotNull UUID partyId) {
+        joinRequestsByParty.remove(partyId);
+    }
+
+    private void clearJoinRequestsForPlayer(@NotNull UUID playerId) {
+        for (Map<UUID, PartyJoinRequest> requests : joinRequestsByParty.values()) {
+            requests.remove(playerId);
+        }
+        joinRequestsByParty.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
+    private @NotNull String normalizeRecruitmentMessage(@NotNull String rawMessage) {
+        StringBuilder normalized = new StringBuilder(rawMessage.length());
+        rawMessage.codePoints()
+            .filter(codePoint -> !Character.isISOControl(codePoint))
+            .forEach(normalized::appendCodePoint);
+        return normalized.toString().strip();
     }
 
     private void recordHistory(@NotNull UUID userId, @NotNull String eventType, @NotNull String message) {

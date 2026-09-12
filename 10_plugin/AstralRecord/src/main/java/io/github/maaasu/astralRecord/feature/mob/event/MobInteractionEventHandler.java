@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyBoardGui;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -55,6 +56,7 @@ public final class MobInteractionEventHandler
     private final LoginBonusService loginBonusService;
     private final SkillForgetGuiEventHandler skillForgetGuiEventHandler;
     private final MarketGuiEventHandler marketGuiEventHandler;
+    private final PartyBoardGui partyBoardGui;
 
     /**
      * ハンドラを生成します。
@@ -70,6 +72,7 @@ public final class MobInteractionEventHandler
      * @param loginBonusService ログインボーナス GUI サービス
      * @param skillForgetGuiEventHandler スキル忘却 GUI ハンドラ
      * @param marketGuiEventHandler マーケット GUI ハンドラ
+     * @param partyBoardGui パーティー掲示板 GUI
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -82,7 +85,8 @@ public final class MobInteractionEventHandler
             @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
             @NotNull LoginBonusService loginBonusService,
             @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler,
-            @NotNull MarketGuiEventHandler marketGuiEventHandler) {
+            @NotNull MarketGuiEventHandler marketGuiEventHandler,
+            @NotNull PartyBoardGui partyBoardGui) {
         this.mobService = mobService;
         this.statusService = statusService;
         this.shopGuiEventHandler = shopGuiEventHandler;
@@ -94,6 +98,7 @@ public final class MobInteractionEventHandler
         this.loginBonusService = loginBonusService;
         this.skillForgetGuiEventHandler = skillForgetGuiEventHandler;
         this.marketGuiEventHandler = marketGuiEventHandler;
+        this.partyBoardGui = partyBoardGui;
     }
 
     @Override
@@ -223,6 +228,7 @@ public final class MobInteractionEventHandler
             case "STORAGE" -> openStorage(player);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
             case "MARKET" -> marketGuiEventHandler.openFromNpc(player);
+            case "PARTY_BOARD" -> partyBoardGui.open(player, 0);
             case "LOGIN_BONUS" -> openLoginBonus(player);
             case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
             default -> GuiSound.DENY.play(player);

@@ -24,7 +24,7 @@ public final class PartyTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("gui", "create", "invite", "accept", "decline", "leave", "disband", "kick", "promote", "list", "chat");
+            return List.of("gui", "create", "invite", "accept", "decline", "approve", "leave", "disband", "kick", "promote", "list", "chat");
         }
         if (args.length == 2 && "invite".equalsIgnoreCase(args[0])) {
             return getOnlinePlayerNames().stream()
@@ -55,6 +55,17 @@ public final class PartyTabCompleter extends AstTabCompleter {
             return party.members().stream()
                 .filter(memberId -> !memberId.equals(player.getBukkit().getUniqueId()))
                 .map(Bukkit::getPlayer)
+                .filter(java.util.Objects::nonNull)
+                .map(Player::getName)
+                .toList();
+        }
+        if (args.length == 2 && "approve".equalsIgnoreCase(args[0])) {
+            PartyService partyService = AstralRecord.getInstance().getPartyService();
+            if (partyService == null) {
+                return List.of();
+            }
+            return partyService.getJoinRequests(player.getBukkit().getUniqueId()).stream()
+                .map(request -> Bukkit.getPlayer(request.requesterId()))
                 .filter(java.util.Objects::nonNull)
                 .map(Player::getName)
                 .toList();

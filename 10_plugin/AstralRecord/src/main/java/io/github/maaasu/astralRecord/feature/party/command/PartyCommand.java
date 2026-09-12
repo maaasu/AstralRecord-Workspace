@@ -29,7 +29,7 @@ public final class PartyCommand extends AstCommand {
      * PartyCommand を初期化します。
      */
     public PartyCommand() {
-        super("party", "パーティーを管理します。", "/party [gui|create|invite|accept|decline|leave|disband|kick|promote|list|chat [message]]", true);
+        super("party", "パーティーを管理します。", "/party [gui|create|invite|accept|decline|approve|leave|disband|kick|promote|list|chat [message]]", true);
     }
 
     @Override
@@ -61,6 +61,7 @@ public final class PartyCommand extends AstCommand {
             case "invite" -> invite(player, partyService, args);
             case "accept" -> accept(player, partyService, args);
             case "decline" -> decline(player, partyService, args);
+            case "approve" -> approve(player, partyService, args);
             case "leave" -> sendResult(player, partyService.leave(player));
             case "disband" -> sendResult(player, partyService.disband(player));
             case "kick" -> kick(player, partyService, args);
@@ -95,6 +96,13 @@ public final class PartyCommand extends AstCommand {
             return;
         }
         sendResult(player, partyService.declineInvite(player, args[1]));
+    }
+
+    private void approve(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {
+        if (!checkArgsLength(args, 2, player.getBukkit())) {
+            return;
+        }
+        sendResult(player, partyService.approveJoinRequest(player, args[1]));
     }
 
     private void kick(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {

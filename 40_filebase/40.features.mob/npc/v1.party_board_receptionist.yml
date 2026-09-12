@@ -1,0 +1,42 @@
+# design:
+#   motif: "記録媒体 / 掲示板"
+#   progression: 0
+schemaVersion: 1
+id: party_board_receptionist
+type: MOB
+category: NPC
+name: "&bパーティー掲示板案内人"
+title: "&7仲間募集"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAiIDogMTc2NzIxOTA2NDY3OCwKICAicHJvZmlsZUlkIiA6ICIxN2I5ZDBmOWYxYzE0OTE5ODRkY2Y5ZGM2YzczZDYzYyIsCiAgInByb2ZpbGVOYW1lIiA6ICJuYWJlNDk3NSIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8yZDY5MTc5MjEyNzgxNjM4OTFhOGQ4YmFkNzY2NzljMDg3Y2ZmN2QyYzE4MjgwZDc4MjVkNTE3ZDc0MDk4MTkyIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0="
+  signature: "VOhQZa8QQNDdg37kBPQY2SQujRMi4AGC6o59dgRIS8jNLmR1aA+30bSkNjW/AOfb4MTwU5nBEKeifmz7nd11yuP3OYQgSKGvc2/EQ5Ua/JYCTtHGtvuSDHXk+3fA4BdiEFGIkVBllf1ygruEphNvV3Ezx3vcRI6kTj3QAVKsK11xTLFZ5fsIfCwV74gLEBLFsL/LgGAK5ulpCDrGT5kIIUxhpop/mgRv4FJdJMs8dqVxdgIcKIP6BPbJEGoE4gMGVS9z7InRV93lcCWhb7aLRYoMzYLO40bPxZU3O+KSNZlYvO6BZEOfREzJ7w4TWJiXbUX4YTxIQo+aaTa8IuzsUDTy2StUD33SAE4Y9NwYEEBuDF2s92TK9xFpsscqCyz8KPHJiCeBouWz5Q/ujX1s22XMpmA1osiXFPRgfkqhTwByKaaQo6qenV7zSgHuQa5kr80nvqHPqZNWDd3tdyLDupsq0KABv1qZZkT0mq3lpm1lbnOZ3AXg77esnteh7UUOlJBfXMdYBxHwma4QTIgy0RXIdVtNMp3YgoU6ZehnaHinpl4+1X8LKVrGDbNTrqLG9wPDEX8FGmk2WK9CziAEmdb4uZSEqu135IG/OT4pkNLOF4yU4DUmSNm1tgKLJ4TiilWqwqZ1QOA0+tWe9kcc1y9oWwy+0z4glD/QBt/VHbc="
+nameVisible: true
+damageImmune: true
+icon: WRITABLE_BOOK
+lore:
+  - "&7公開中のパーティー募集を案内する受付係。"
+  - "&7右クリックでパーティー掲示板を確認できる。"
+tags:
+  - npc
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&bパーティー掲示板案内人&7: 一緒に冒険する仲間を探してみませんか？"
+  rightClick:
+    - id: gui
+      params:
+        type: PARTY_BOARD

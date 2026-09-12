@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentSettingsGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
@@ -32,19 +33,32 @@ import java.util.UUID;
 public final class PartyGuiEventHandler extends AbstractEventHandler {
     private final PartyGui gui;
     private final PartyMemberActionGui memberActionGui;
+    private final PartyRecruitmentSettingsGui recruitmentSettingsGui;
     private final PartyService partyService;
     private final PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
     private final InventoryService inventoryService;
 
+    /**
+     * パーティーGUIイベントハンドラを生成します。
+     *
+     * @param gui パーティーGUI
+     * @param memberActionGui メンバー操作GUI
+     * @param recruitmentSettingsGui リーダー向け募集設定GUI
+     * @param partyService パーティー操作サービス
+     * @param playerBrowserGuiEventHandler 招待対象一覧GUIハンドラ
+     * @param inventoryService ホットバーショートカット処理用サービス
+     */
     public PartyGuiEventHandler(
         @NotNull PartyGui gui,
         @NotNull PartyMemberActionGui memberActionGui,
+        @NotNull PartyRecruitmentSettingsGui recruitmentSettingsGui,
         @NotNull PartyService partyService,
         @NotNull PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler,
         @NotNull InventoryService inventoryService
     ) {
         this.gui = gui;
         this.memberActionGui = memberActionGui;
+        this.recruitmentSettingsGui = recruitmentSettingsGui;
         this.partyService = partyService;
         this.playerBrowserGuiEventHandler = playerBrowserGuiEventHandler;
         this.inventoryService = inventoryService;
@@ -126,6 +140,11 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == PartyGui.INVITE_SLOT && party.isLeader(player.getUniqueId())) {
             GuiSound.OPEN.play(player);
             playerBrowserGuiEventHandler.openInviteList(player, 0);
+            return;
+        }
+        if (rawSlot == PartyGui.RECRUITMENT_SETTINGS_SLOT && party.isLeader(player.getUniqueId())) {
+            GuiSound.OPEN.play(player);
+            recruitmentSettingsGui.open(player);
             return;
         }
         if (gui.isMemberSlot(rawSlot)) {

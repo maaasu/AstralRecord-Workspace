@@ -157,8 +157,12 @@ import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocati
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
+import io.github.maaasu.astralRecord.feature.party.event.PartyRecruitmentGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyBoardGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentMessageAnvilGui;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentSettingsGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerCapacityEventHandler;
@@ -482,6 +486,9 @@ public final class AstralRecord extends JavaPlugin {
     private PartyService partyService;
     private PartyGui partyGui;
     private PartyMemberActionGui partyMemberActionGui;
+    private PartyRecruitmentSettingsGui partyRecruitmentSettingsGui;
+    private PartyRecruitmentMessageAnvilGui partyRecruitmentMessageAnvilGui;
+    private PartyBoardGui partyBoardGui;
     private LoginBonusService loginBonusService;
     private MailService mailService;
     private MailGuiEventHandler mailGuiEventHandler;
@@ -1033,6 +1040,9 @@ public final class AstralRecord extends JavaPlugin {
         userService = new UserService(userRepository, accountService);
         partyService = new PartyService(this, userService);
         partyGui = new PartyGui(partyService);
+        partyRecruitmentSettingsGui = new PartyRecruitmentSettingsGui(partyService);
+        partyRecruitmentMessageAnvilGui = new PartyRecruitmentMessageAnvilGui();
+        partyBoardGui = new PartyBoardGui(partyService);
 
         // inventory
         var inventoryRepository = new InventoryRepository();
@@ -2224,7 +2234,8 @@ public final class AstralRecord extends JavaPlugin {
             currencyExchangeGuiEventHandler,
             loginBonusService,
             skillForgetGuiEventHandler,
-            marketGuiEventHandler
+            marketGuiEventHandler,
+            partyBoardGui
         );
         eventManager.registerHandler(
             new TrainingDummyGuiEventHandler(trainingDummyGui, trainingDummyService),
@@ -2275,8 +2286,20 @@ public final class AstralRecord extends JavaPlugin {
             new PartyGuiEventHandler(
                 partyGui,
                 partyMemberActionGui,
+                partyRecruitmentSettingsGui,
                 partyService,
                 playerBrowserGuiEventHandler,
+                inventoryService
+            ),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PartyRecruitmentGuiEventHandler(
+                partyService,
+                partyGui,
+                partyRecruitmentSettingsGui,
+                partyRecruitmentMessageAnvilGui,
+                partyBoardGui,
                 inventoryService
             ),
             getServer().getPluginManager()

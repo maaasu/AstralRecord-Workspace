@@ -131,6 +131,41 @@ class PartyCommandTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## `/party` command
+     * 検証契約: `/party approve <player>` は掲示板参加申請の承認処理へ対象名を渡す。
+     */
+    @Test
+    void approveCommandDelegatesToJoinRequestApproval() {
+        Player leaderPlayer = mockPlayer(UUID.randomUUID());
+        AstPlayer leader = mock(AstPlayer.class);
+        PartyService partyService = mock(PartyService.class);
+        AstralRecord plugin = mock(AstralRecord.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        when(partyService.approveJoinRequest(leader, "requester"))
+            .thenReturn(PartyActionResult.success(PlayerMsgId.P_5981, "requester"));
+
+        try (MockedStatic<AccountModeGuard> modeGuard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstralRecord> astralRecord = mockStatic(AstralRecord.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            modeGuard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+            astralRecord.when(AstralRecord::getInstance).thenReturn(plugin);
+            when(plugin.getPartyService()).thenReturn(partyService);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            new PartyCommand().executePlayerCommand(leader, new String[] {"approve", "requester"});
+        }
+
+        verify(partyService).approveJoinRequest(leader, "requester");
+        verify(messageService).send(
+            same(leader),
+            eq(PlayerMsgId.P_5981),
+            org.mockito.ArgumentMatchers.any(Object[].class)
+        );
+    }
+
     private Player mockPlayer(UUID uuid) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(uuid);
