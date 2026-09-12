@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1450",
+  "name": "&8黒曜護符の星環",
+  "icon": "CRYING_OBSIDIAN",
+  "tags": [
+    "status",
+    "defense",
+    "durability",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEFENSE",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0167
-    },
-    {
-      "type": "status",
-      "status": "MOVEMENT_SPEED",
-      "modifierType": "SCALAR",
-      "value": -0.0052
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1450",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "defense",
-    "durability"
-  ],
-  "name": "&d贖罪の灰",
-  "icon": "IRON_CHESTPLATE"
+  }
 }

@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1392",
+  "name": "&b聖盾の星環",
+  "icon": "IRON_INGOT",
+  "tags": [
+    "status",
+    "defense",
+    "shield"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
-      "modifierType": "SCALAR",
-      "value": 0.0287
-    },
-    {
-      "type": "status",
       "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": -0.0082
+      "modifierType": "FLAT",
+      "value": 10
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1392",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "shield"
-  ],
-  "name": "&d被告の影",
-  "icon": "BLAZE_POWDER"
+  }
 }

@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1468",
+  "name": "&c血啜りの星環",
+  "icon": "WITHER_ROSE",
+  "tags": [
+    "status",
+    "offense",
+    "health"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_HEALTH",
-      "modifierType": "SCALAR",
-      "value": 0.0254
-    },
-    {
-      "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
+      "status": "LIFE_STEAL",
       "modifierType": "FLAT",
-      "value": -0.88
+      "value": 0.6
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1468",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "health",
-    "durability"
-  ],
-  "name": "&d殉教の歩み",
-  "icon": "HEART_OF_THE_SEA"
+  }
 }

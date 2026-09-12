@@ -1,31 +1,39 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1438",
+  "name": "&8血鉄の星路",
+  "icon": "CHAIN",
+  "tags": [
+    "status",
+    "defense",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SUPPORT_POWER",
+      "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 4.24
+      "value": 15
     },
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.013
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.003
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1438",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "resource",
-    "light"
-  ],
-  "name": "&d宵の結び目",
-  "icon": "GLOW_BERRIES"
+  }
 }

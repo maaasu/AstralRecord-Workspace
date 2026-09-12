@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1414",
+  "name": "&b聖泉の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SUPPORT_POWER",
+      "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 2.32
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.007
+      "value": 15
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1414",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "resource",
-    "light"
-  ],
-  "name": "&d盟約の綴り",
-  "icon": "GLOW_BERRIES"
+  }
 }

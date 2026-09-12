@@ -1,31 +1,38 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1427",
+  "name": "&f断罪の星環",
+  "icon": "IRON_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_MANA",
+      "status": "ATTACK",
       "modifierType": "SCALAR",
-      "value": 0.0299
+      "value": 0.01
     },
     {
       "type": "status",
       "status": "STRENGTH",
       "modifierType": "SCALAR",
-      "value": -0.0084
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 0.8
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1427",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "mana",
-    "resource"
-  ],
-  "name": "&d安息の楔",
-  "icon": "AMETHYST_SHARD"
+  }
 }

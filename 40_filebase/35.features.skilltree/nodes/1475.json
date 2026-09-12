@@ -1,32 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1475",
+  "name": "&c反攻の星環",
+  "icon": "IRON_AXE",
+  "tags": [
+    "status",
+    "offense",
+    "strength",
+    "ember"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAGIC_DEFENSE",
+      "status": "ATTACK",
       "modifierType": "SCALAR",
-      "value": 0.0342
+      "value": 0.01
     },
     {
       "type": "status",
-      "status": "MAX_MANA",
+      "status": "STRENGTH",
       "modifierType": "SCALAR",
-      "value": -0.0092
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1475",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "defense",
-    "mana",
-    "dark"
-  ],
-  "name": "&d聖骸の揺籠",
-  "icon": "WITHER_ROSE"
+  }
 }

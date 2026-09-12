@@ -1,31 +1,39 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1439",
+  "name": "&8血鉄の星路",
+  "icon": "CHAIN",
+  "tags": [
+    "status",
+    "defense",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_MANA",
-      "modifierType": "SCALAR",
-      "value": 0.0383
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 15
     },
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.0108
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.003
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1439",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "mana",
-    "resource"
-  ],
-  "name": "&d共鳴する棺",
-  "icon": "AMETHYST_SHARD"
+  }
 }

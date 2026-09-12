@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1384",
+  "name": "&d生命の星環",
+  "icon": "HEART_OF_THE_SEA",
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
-      "modifierType": "SCALAR",
-      "value": 0.0231
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 25
     },
     {
       "type": "status",
-      "status": "MAX_SHIELD",
+      "status": "VITALITY",
       "modifierType": "SCALAR",
-      "value": -0.0066
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1384",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "shield"
-  ],
-  "name": "&d断罪の脈動",
-  "icon": "BLAZE_POWDER"
+  }
 }

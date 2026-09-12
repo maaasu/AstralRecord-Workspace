@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1377",
+  "name": "&6星衣の極星",
+  "icon": "ENCHANTED_GOLDEN_APPLE",
+  "tags": [
+    "status",
+    "defense",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
-    {
-      "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
-      "modifierType": "FLAT",
-      "value": 1.92
-    },
     {
       "type": "status",
       "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.0065
+      "value": 0.04
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1377",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d裁定の火種",
-  "icon": "GLOWSTONE_DUST"
+  }
 }

@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1473",
+  "name": "&c反攻の星環",
+  "icon": "IRON_AXE",
+  "tags": [
+    "status",
+    "offense",
+    "strength",
+    "ember"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
-    {
-      "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": 0.0392
-    },
     {
       "type": "status",
       "status": "ATTACK",
       "modifierType": "SCALAR",
-      "value": -0.013
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "SCALAR",
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1473",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "dark"
-  ],
-  "name": "&d終わらぬ夜祷",
-  "icon": "OBSIDIAN"
+  }
 }

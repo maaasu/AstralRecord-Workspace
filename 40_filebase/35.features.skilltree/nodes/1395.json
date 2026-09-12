@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1395",
+  "name": "&b聖光の星路",
+  "icon": "SEA_LANTERN",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": 0.0288
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 3
     },
     {
       "type": "status",
-      "status": "DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0144
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1395",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d最終審理",
-  "icon": "IRON_SWORD"
+  }
 }

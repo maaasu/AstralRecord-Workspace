@@ -1,31 +1,39 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1454",
+  "name": "&8血鉄の星路",
+  "icon": "CHAIN",
+  "tags": [
+    "status",
+    "defense",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 15
+    },
     {
       "type": "status",
       "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0195
+      "value": 0.003
     },
     {
       "type": "status",
-      "status": "MOVEMENT_SPEED",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.006
+      "value": 0.003
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1454",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "defense",
-    "durability"
-  ],
-  "name": "&d血染めの盾",
-  "icon": "IRON_CHESTPLATE"
+  }
 }

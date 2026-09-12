@@ -1,31 +1,38 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1433",
+  "name": "&b聖域の星環",
+  "icon": "SHIELD",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SHIELD_RECHARGE_REDUCTION",
-      "modifierType": "FLAT",
-      "value": 1.95
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.01
     },
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.0128
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 8
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1433",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "resource"
-  ],
-  "name": "&d守護の律動",
-  "icon": "PRISMARINE_CRYSTALS"
+  }
 }

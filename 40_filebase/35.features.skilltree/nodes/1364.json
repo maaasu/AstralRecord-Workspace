@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1364",
+  "name": "&d聖鋼の星環",
+  "icon": "IRON_CHESTPLATE",
+  "tags": [
+    "status",
+    "defense",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SUPPORT_POWER",
-      "modifierType": "FLAT",
-      "value": 2.0
-    },
-    {
-      "type": "status",
-      "status": "STRENGTH",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.01
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1364",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "resource",
-    "light"
-  ],
-  "name": "&d聖痕の灯",
-  "icon": "GLOWSTONE_DUST"
+  }
 }

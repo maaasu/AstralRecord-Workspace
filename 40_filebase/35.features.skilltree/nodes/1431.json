@@ -1,31 +1,38 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1431",
+  "name": "&b聖域の星環",
+  "icon": "SHIELD",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_MANA",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0327
+      "value": 0.01
     },
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.0092
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 8
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1431",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "mana",
-    "resource"
-  ],
-  "name": "&d聖域の輪郭",
-  "icon": "AMETHYST_SHARD"
+  }
 }

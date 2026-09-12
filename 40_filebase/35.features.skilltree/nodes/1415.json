@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1415",
+  "name": "&b聖泉の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
       "status": "MAX_MANA",
-      "modifierType": "SCALAR",
-      "value": 0.0215
-    },
-    {
-      "type": "status",
-      "status": "STRENGTH",
-      "modifierType": "SCALAR",
-      "value": -0.006
+      "modifierType": "FLAT",
+      "value": 15
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1415",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "mana",
-    "resource"
-  ],
-  "name": "&d星明りの護符",
-  "icon": "AMETHYST_SHARD"
+  }
 }

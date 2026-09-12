@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1400",
+  "name": "&b再生聖盾の星環",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "resource"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
-      "modifierType": "SCALAR",
-      "value": 0.0343
-    },
-    {
-      "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": -0.0098
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 2
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1400",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "shield"
-  ],
-  "name": "&d罅割れた威光",
-  "icon": "BLAZE_POWDER"
+  }
 }

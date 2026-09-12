@@ -1,31 +1,24 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1410",
+  "name": "&a祝祷の星環",
+  "icon": "GLOW_BERRIES",
+  "tags": [
+    "status",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
       "status": "SUPPORT_POWER",
       "modifierType": "FLAT",
-      "value": 2.0
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.006
+      "value": 2
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1410",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "resource",
-    "light"
-  ],
-  "name": "&d聖柩の起点",
-  "icon": "GLOW_BERRIES"
+  }
 }

@@ -24,16 +24,19 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 
 ## パラディン専門枝
 
-`starter` の追加nodeは `1362`〜`1527` の範囲に153個ある。`1362`〜`1487` から削除済みskill node 6個を除くパラディンCP 120node、パラディンのディフェンスコンバージョンskill node `1522`、ホーリースマイトskill node `1523`、ホーリーフィールドskill node `1524`、ホーリースマッシュskill node `1525`、ディバインチェイサーskill node `1526`、パラディンシールドskill node `1527`、および`1488`〜`1504` / `1511`〜`1521` のclass条件がないPP 28nodeである。削除済みnode IDは再利用しない。パラディンはLv80で79CP、Lv100で99CPのため、全126CPを取得できない。追加PPは既存の有料PP 32PPと合わせて60PPの消費先を持ち、playerLv50の49PP・playerLv51の50PPでも全取得できない選択を残す。
+`starter` のパラディン領域は、削除済み ID `1378`、`1396`、`1417`、`1435`、`1456`、`1474` を除く `1362`〜`1487` のstatus node 120個と、skill node `1522`〜`1527` の6個で構成する。削除済み ID は再利用しない。status nodeはすべて `pointCost: 1`、`unlockCondition.classId: paladin` とし、既存ソードマンnode `1359` から共通防御領域へ入る。
 
-| 方向 | 既存ソードマン接続元 → 入口 | パラディンstatus node | CP設計 |
-|:--|:--|:--|:--|
-| 北から北西 | 1120 → 1410 | 1410〜1441（1417、1435を除く） | 30CP。支援系。 |
-| 東から北東 | 1127 → 1371 | 1371〜1402（1378、1396を除く） | 30CP。攻撃系。 |
-| 南から南東 | 1359 → 1449 | 1449〜1480（1456、1474を除く） | 30CP。防御系。 |
-| 西から南西 | 1140 → 1362 | 1362〜1370、1403〜1409、1442〜1448、1481〜1487 | 30CP。共通耐久と3系統の選択。 |
+| 系統 | status node | skill node | 全取得CP | 役割 |
+|:--|:--|:--|--:|:--|
+| 共通防御 | `1362`〜`1386`（`1378`を除く） | なし | 24 | DEFENSE、MAGIC_DEFENSE、MAX_HEALTH、VITALITY |
+| Holy | `1387`〜`1437`（`1396`、`1417`、`1435`を除く） | `1523`〜`1527` | 53 | MAX_SHIELD、SHIELD_RECHARGE_REDUCTION、SUPPORT_POWER、Mana、聖属性skill向け攻撃 |
+| Guardian | `1438`〜`1487`（`1456`、`1474`を除く） | `1522` | 49 | DEFENSE、MAGIC_DEFENSE、MAX_HEALTH、LIFE_STEAL、HEALING_INCREASE、反攻向けATTACK / STRENGTH |
 
-各方向は接続用status 3nodeと、status 9nodeの円環3個で構成する。入口側の円環から外側の2円環へ分岐する。単一の9CP共通幹を必須経路とせず、各方向の既存ソードマンnodeから独立して進める。南は既存ソードマン円環の `1359` から伸ばし、`1134` とその後続円環の配置・接続を維持する。パラディンでは祖先職のソードマンが可視であるため、4方向とも既存経路から到達できる。
+共通防御は6node円環3個、HolyとGuardianはそれぞれ6node円環6個で構成し、円環間を2nodeの短い経路で接続する。共通防御の外端からHolyを東側、Guardianを西側へ分け、両枝を外周方向へ弧状に広げる。各円環では同系統statusを5個の通常nodeと1個のnotableへまとめる。円環内の隣接node中心間隔は1〜約1.4ブロックとし、旧来の3ブロック以上という配置制約はパラディン領域へ適用しない。
+
+Holyのskill nodeは1か所へ集約しない。パラディンシールド `1527` はMAX_SHIELD円環、ホーリーフィールド `1524` はSUPPORT_POWER円環、ホーリースマイト `1523` とホーリースマッシュ `1525` は同じ攻撃円環の反対側、ディバインチェイサー `1526` は最外周の聖域円環からそれぞれ独立leafとして分岐する。Guardianの新規skillは定義せず、ディフェンスコンバージョン `1522` だけを最外周の回復・最大HP円環から分岐する。
+
+全status 120CPとskill 6CPの合計は126CPである。共通防御を含むHoly全取得は77CP、Guardian全取得は73CPとなる。Lv80の79CPでは一方の完成形とごく一部の他系統、Lv100の99CPでは一方の完成形と他系統の一部まで取得できるが、両系統の全取得はできない。
 
 追加PPは東西南北に7nodeずつ置き、既存PP notableから独立して伸ばす。各方向は導入2node、4nodeの対称ダイヤ、外向きleaf 1nodeで構成する。
 
@@ -44,7 +47,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 | 南 | 1082 → 1515 | 1515〜1521 |
 | 西 | 1083 → 1488 | 1488〜1494 |
 
-全378nodeの相対Yは0に統一する。既存226nodeの座標と既存node同士の248edgeを維持し、追加部分の168edgeを含め全416edgeとする。追加nodeと他nodeの中心間距離は3ブロック以上とし、既存の基本間隔を下回らない。PP導入部の既存円環間には新しいnodeを置かず、接続線だけを通して既存メイジ等のnodeとの間隔を確保する。追加nodeに関係するedgeは、全職業表示でも他edgeとの交差・重複や無関係なnodeの通過を避ける。
+`starter` は全380node・421edgeで、全nodeの相対Yは0に統一する。パラディン領域の座標範囲はX `-69`〜`68`、Z `9`〜`68` とし、東西へ対称に広がる大きな外周シルエットを作る。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。パラディン表示時に同時表示されるPP・冒険者・ソードマンedgeとの不要な交差を作らない。
 
 ## コンテンツ設計
 
@@ -73,7 +76,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放と、パラディンのstatus専門枝、ディフェンスコンバージョン、ホーリースマイト、ホーリーフィールド、ホーリースマッシュ、ディバインチェイサーおよびパラディンシールドskill解放を定義します。現行は379nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放と、パラディンの共通防御・Holy・Guardian領域、ディフェンスコンバージョン、ホーリースマイト、ホーリーフィールド、ホーリースマッシュ、ディバインチェイサーおよびパラディンシールドskill解放を定義します。現行は380nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -91,7 +94,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | メイジ基礎幹 | 27 | メイジCP 27 | `classId: mage` |
 | メイジ専門円環 | 20 | メイジCP 24 | `classId: mage` |
 | メイジskill解放 | 5 | メイジCP 5 | `classId: mage` |
-| パラディン北・東・南・西の4枝 | 120 | パラディンCP 120（各方向30） | `classId: paladin` |
+| パラディン共通防御 / Holy / Guardian | 120 | パラディンCP 120（24 / 48 / 48） | `classId: paladin` |
 | パラディン ディフェンスコンバージョン | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン ホーリースマイト | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン ホーリーフィールド | 1 | パラディンCP 1 | `classId: paladin` |
@@ -115,7 +118,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush` と `swordsman_exept_stamp`、Shield容量円環の別経路から `swordsman_bastion_strike`、`swordsman_shield_drain`、Shield再充填円環から `administrator_shield_recharge` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。`swordsman_exept_stamp` は通常会心円環の小node `1217` からnode `1386` へ分岐します。タンクシールドアクティベート `swordsman_shield_activate` はソードマンの `usableSkills` から使用許可を与え、スキルツリーには配置しません。
 - ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・ENG効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。Shield破壊専門円環の全取得値は `SHIELD_BREAK +2` とし、ソードマンの `+8` より低く設定します。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
-- パラディンは防御枝のnotable `1487` から、`paladin_defense_conversion` を使用許可する1CP leaf node `1522` へ分岐します。攻撃枝のnotable `1402` からは、`paladin_holy_smite` を使用許可する1CP leaf node `1523` へ分岐し、その先で1CP leaf node `1524` が`paladin_holy_field`、`1525` が`paladin_holy_smash`、`1526` が`paladin_divine_chaser`、`1527` が`paladin_shield`を使用許可します。skill nodeはstatus nodeへ混載せず、既存の各枝と明確に区別します。
+- パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` を分岐します。Holyでは `paladin_shield` の `1527`、`paladin_holy_field` の `1524`、`paladin_holy_smite` の `1523`、`paladin_holy_smash` の `1525`、`paladin_divine_chaser` の `1526` を、関連する5地点のstatus nodeから独立leafとして分散します。skill nodeはstatus nodeへ混載しません。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

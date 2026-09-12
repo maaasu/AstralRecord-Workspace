@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1465",
+  "name": "&c血啜りの星環",
+  "icon": "WITHER_ROSE",
+  "tags": [
+    "status",
+    "offense",
+    "health"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": 0.0328
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.011
+      "status": "LIFE_STEAL",
+      "modifierType": "FLAT",
+      "value": 0.6
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1465",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "dark"
-  ],
-  "name": "&d弔鐘の残響",
-  "icon": "OBSIDIAN"
+  }
 }

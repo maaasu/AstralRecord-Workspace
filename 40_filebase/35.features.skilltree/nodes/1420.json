@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1420",
+  "name": "&6尽きぬ聖泉の極星",
+  "icon": "CONDUIT",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": 0.02
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 40
     },
     {
       "type": "status",
-      "status": "ATTACK_SPEED",
-      "modifierType": "SCALAR",
-      "value": -0.006
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1.5
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1420",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "defense"
-  ],
-  "name": "&d救いの残響",
-  "icon": "SHIELD"
+  }
 }

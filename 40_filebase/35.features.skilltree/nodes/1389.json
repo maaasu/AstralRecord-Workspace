@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1389",
+  "name": "&b聖盾の星環",
+  "icon": "IRON_INGOT",
+  "tags": [
+    "status",
+    "defense",
+    "shield"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
+      "status": "MAX_SHIELD",
       "modifierType": "FLAT",
-      "value": 2.76
-    },
-    {
-      "type": "status",
-      "status": "MAGIC_DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0095
+      "value": 10
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1389",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d戦端の証",
-  "icon": "GLOWSTONE_DUST"
+  }
 }

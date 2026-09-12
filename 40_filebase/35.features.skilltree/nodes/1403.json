@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1403",
+  "name": "&6瞬光城塞の極星",
+  "icon": "RECOVERY_COMPASS",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "resource"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": 0.0344
-    },
-    {
-      "type": "status",
-      "status": "DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0172
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 8
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1403",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d断頭の星",
-  "icon": "IRON_SWORD"
+  }
 }

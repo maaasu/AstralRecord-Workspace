@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1453",
+  "name": "&6魔断城壁の極星",
+  "icon": "OBSIDIAN",
+  "tags": [
+    "status",
+    "defense",
+    "durability",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0232
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.008
+      "value": 0.04
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1453",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "dark"
-  ],
-  "name": "&d墓標の守り",
-  "icon": "OBSIDIAN"
+  }
 }

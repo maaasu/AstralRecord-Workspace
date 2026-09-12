@@ -1,31 +1,24 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1409",
+  "name": "&a祝祷の星環",
+  "icon": "GLOW_BERRIES",
+  "tags": [
+    "status",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
+      "status": "SUPPORT_POWER",
       "modifierType": "FLAT",
-      "value": 4.16
-    },
-    {
-      "type": "status",
-      "status": "MAGIC_DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0145
+      "value": 2
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1409",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d終末の法廷",
-  "icon": "GLOWSTONE_DUST"
+  }
 }

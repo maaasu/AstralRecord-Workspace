@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1449",
+  "name": "&8黒曜護符の星環",
+  "icon": "CRYING_OBSIDIAN",
+  "tags": [
+    "status",
+    "defense",
+    "durability",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.02
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.007
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1449",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "dark"
-  ],
-  "name": "&d黒聖域の起点",
-  "icon": "OBSIDIAN"
+  }
 }

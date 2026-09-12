@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1413",
+  "name": "&b聖光の星路",
+  "icon": "SEA_LANTERN",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SHIELD_RECHARGE_REDUCTION",
+      "status": "MAX_SHIELD",
       "modifierType": "FLAT",
-      "value": 0.95
+      "value": 3
     },
     {
       "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.0078
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1413",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "resource"
-  ],
-  "name": "&d守人の灯",
-  "icon": "PRISMARINE_CRYSTALS"
+  }
 }

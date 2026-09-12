@@ -49,7 +49,12 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 `paladin` はソードマンLv50・プレイヤーLv15から転職するLv100タンクです。Lv1時点で `MAX_HEALTH +135 / MAX_SHIELD +15 / DEFENSE +12 / MAGIC_DEFENSE +8` を持ち、Lvごとに `MAX_HEALTH +8 / VITALITY +1.6 / DEFENSE +1.1 / MAGIC_DEFENSE +0.7` を成長させます。攻撃成長は `STRENGTH +0.8 / ATTACK +0.8` に抑え、同じ旧値だったソードマスターの `+1.2 / +1.2` を引き継ぎません。
 
-クラス本体の使用許可は `swordsman_challenging_roar`、`swordsman_shield_activate` の2つだけです。パラディン固有skillは定義せず、skilltreeにもパラディン用skill nodeを配置しません。
+クラス本体の使用許可は `swordsman_challenging_roar`、`swordsman_shield_activate` の2つだけです。パラディン固有skillの使用許可はskilltreeで解放します。ディフェンスコンバージョン以外の現行固有skillであるホーリースマイト、ホーリーフィールド、ホーリースマッシュ、ディバインチェイサー、パラディンシールドはHoly型に属します。
+
+パラディンのビルド形態はホーリー（Holy）型とガーディアン（Guardian）型の2つです。両型は共通防御領域でDEFENSE、MAGIC_DEFENSE、MAX_HEALTH、VITALITYを伸ばし、パラディン共通の高防御を確保してから分岐します。
+
+- ホーリー型: 高いMAX_SHIELDとSHIELD_RECHARGE_REDUCTIONを確保し、SUPPORT_POWERとMana系statusを伸ばします。味方へのShield配布、敵DEF低下、Holy系skillによる支援と攻撃を主軸にします。
+- ガーディアン型: ホーリー型よりMAX_HEALTH、DEFENSE、MAGIC_DEFENSEを厚くし、LIFE_STEAL、HEALING_INCREASE、ATTACK、STRENGTHを伸ばします。被弾しながら攻撃する将来skill、受けたダメージ・軽減量に応じた攻撃、HP消費skillを受け止められるHP量を前提とします。ガーディアン固有skillは現時点で定義せず、ディフェンスコンバージョンだけを配置します。
 
 ## 正本参照
 

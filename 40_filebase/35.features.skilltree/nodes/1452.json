@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1452",
+  "name": "&8黒曜護符の星環",
+  "icon": "CRYING_OBSIDIAN",
+  "tags": [
+    "status",
+    "defense",
+    "durability",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_HEALTH",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0158
-    },
-    {
-      "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
-      "modifierType": "FLAT",
-      "value": -0.56
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1452",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "health",
-    "durability"
-  ],
-  "name": "&d沈鐘の脈",
-  "icon": "HEART_OF_THE_SEA"
+  }
 }

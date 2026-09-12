@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1390",
+  "name": "&b聖盾の星環",
+  "icon": "IRON_INGOT",
+  "tags": [
+    "status",
+    "defense",
+    "shield"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEFENSE_PENETRATION_RATE",
+      "status": "MAX_SHIELD",
       "modifierType": "FLAT",
-      "value": 1.16
-    },
-    {
-      "type": "status",
-      "status": "DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0137
+      "value": 10
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1390",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "defense"
-  ],
-  "name": "&d審問の火",
-  "icon": "ANVIL"
+  }
 }

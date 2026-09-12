@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1430",
+  "name": "&b聖光の星路",
+  "icon": "SEA_LANTERN",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 3
+    },
     {
       "type": "status",
       "status": "SUPPORT_POWER",
       "modifierType": "FLAT",
-      "value": 3.6
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": -0.011
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1430",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "resource",
-    "light"
-  ],
-  "name": "&d白百合の隔壁",
-  "icon": "GLOW_BERRIES"
+  }
 }

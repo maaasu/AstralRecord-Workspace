@@ -1,31 +1,44 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1485",
+  "name": "&c血潮の星環",
+  "icon": "GLISTERING_MELON_SLICE",
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": 0.0488
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 35
     },
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "VITALITY",
       "modifierType": "SCALAR",
-      "value": -0.016
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "HEALING_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1.5
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1485",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "dark"
-  ],
-  "name": "&d最後の犠牲",
-  "icon": "OBSIDIAN"
+  }
 }

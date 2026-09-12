@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1369",
+  "name": "&6鉄壁の極星",
+  "icon": "NETHERITE_CHESTPLATE",
+  "tags": [
+    "status",
+    "defense",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SUPPORT_POWER",
-      "modifierType": "FLAT",
-      "value": 2.5
-    },
-    {
-      "type": "status",
-      "status": "ATTACK",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.01
+      "value": 0.04
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1369",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "resource"
-  ],
-  "name": "&d聖柩の門",
-  "icon": "BEACON"
+  }
 }

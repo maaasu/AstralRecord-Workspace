@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1388",
+  "name": "&b聖光の星路",
+  "icon": "SEA_LANTERN",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
-      "modifierType": "SCALAR",
-      "value": 0.0259
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 3
     },
     {
       "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": -0.0074
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1388",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "shield"
-  ],
-  "name": "&d剥離の祈り",
-  "icon": "BLAZE_POWDER"
+  }
 }

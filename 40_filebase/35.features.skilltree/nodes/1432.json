@@ -1,31 +1,38 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1432",
+  "name": "&b聖域の星環",
+  "icon": "SHIELD",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
+      "status": "DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0272
+      "value": 0.01
     },
     {
       "type": "status",
-      "status": "ATTACK_SPEED",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": -0.0084
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 8
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1432",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "defense"
-  ],
-  "name": "&d盟友の灯台",
-  "icon": "SHIELD"
+  }
 }

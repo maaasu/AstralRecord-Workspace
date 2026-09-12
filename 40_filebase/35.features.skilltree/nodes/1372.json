@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1372",
+  "name": "&d魔護の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "defense",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0147
-    },
-    {
-      "type": "status",
-      "status": "MAX_SHIELD",
-      "modifierType": "SCALAR",
-      "value": -0.0042
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1372",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "shield"
-  ],
-  "name": "&d聖傷の刻印",
-  "icon": "BLAZE_POWDER"
+  }
 }

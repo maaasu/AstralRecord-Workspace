@@ -1,31 +1,26 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1399",
+  "name": "&b再生聖盾の星環",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "resource"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": 0.0316
-    },
-    {
-      "type": "status",
-      "status": "DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0158
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 2
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1399",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d宣告の残光",
-  "icon": "IRON_SWORD"
+  }
 }

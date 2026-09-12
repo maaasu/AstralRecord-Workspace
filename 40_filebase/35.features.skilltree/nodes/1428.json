@@ -1,31 +1,44 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1428",
+  "name": "&6審判の極星",
+  "icon": "GOLDEN_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_SHIELD",
+      "status": "ATTACK",
       "modifierType": "SCALAR",
-      "value": 0.0248
+      "value": 0.03
     },
     {
       "type": "status",
-      "status": "ATTACK_SPEED",
+      "status": "STRENGTH",
       "modifierType": "SCALAR",
-      "value": -0.0076
+      "value": 0.03
+    },
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 3
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1428",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shield",
-    "defense"
-  ],
-  "name": "&d黄昏の守り手",
-  "icon": "SHIELD"
+  }
 }

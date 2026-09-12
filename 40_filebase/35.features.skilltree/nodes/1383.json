@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1383",
+  "name": "&d生命の星環",
+  "icon": "HEART_OF_THE_SEA",
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
-      "modifierType": "SCALAR",
-      "value": 0.0204
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 25
     },
     {
       "type": "status",
-      "status": "DEFENSE",
+      "status": "VITALITY",
       "modifierType": "SCALAR",
-      "value": -0.0102
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1383",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d砕けた護符",
-  "icon": "IRON_SWORD"
+  }
 }

@@ -1,31 +1,39 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1472",
+  "name": "&8血鉄の星路",
+  "icon": "CHAIN",
+  "tags": [
+    "status",
+    "defense",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
       "status": "MAX_HEALTH",
-      "modifierType": "SCALAR",
-      "value": 0.0278
+      "modifierType": "FLAT",
+      "value": 15
     },
     {
       "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
-      "modifierType": "FLAT",
-      "value": -0.96
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.003
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1472",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "health",
-    "durability"
-  ],
-  "name": "&d血の帳",
-  "icon": "HEART_OF_THE_SEA"
+  }
 }

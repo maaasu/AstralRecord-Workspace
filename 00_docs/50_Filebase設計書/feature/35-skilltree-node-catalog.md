@@ -156,14 +156,66 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## パラディン専門枝
 
-パラディンは共通幹9nodeと、攻撃・支援・防御の各37nodeを使う。全120nodeは `pointCost: 1`、`unlockCondition.classId: paladin` のstatus効果である。`SCALAR` は基礎値へ加算する割合であり、利点と不利を同じnodeへ定義する。削除済みのskill node IDは再利用しない。
+パラディンは共通防御24node、Holy 48node、Guardian 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: paladin` である。`SCALAR` は基礎値へ加算する割合、`FLAT` は表示単位の実数加算として使い分ける。削除済み ID `1378`、`1396`、`1417`、`1435`、`1456`、`1474` は再利用しない。
 
-| 対象node | 効果の組 |
-|:--|:--|
-| 1362〜1370 | MAX_SHIELD / DEFENSE / MAGIC_DEFENSE / MAX_HEALTH / SUPPORT_POWERを主に正のSCALAR、ATTACK等を負のSCALAR |
-| 1371〜1409（1378、1396を除く） | ATTACK、STRENGTH、SKILL_DAMAGE_INCREASEの正SCALARまたはDEFENSE_PENETRATION_RATE FLATと、防御・Shieldの負SCALAR |
-| 1410〜1448（1417、1435を除く） | SUPPORT_POWER、MAX_MANA、MAX_SHIELDの正SCALARまたはSHIELD_RECHARGE_REDUCTION FLATと、通常攻撃系の負SCALAR |
-| 1449〜1487（1456、1474を除く） | MAX_SHIELD、物魔防、MAX_HEALTHの正SCALARと、ATTACK・機動・MP・SKILL_DAMAGE_INCREASEの負SCALAR |
+### 共通防御パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-paladin-common-path` | `1362`, `1363`, `1370`, `1371`, `1379`, `1380` | DEFENSE / MAGIC_DEFENSE `SCALAR +0.005`、MAX_HEALTH `FLAT +10` | `&d鉄祷の星路` | `CHAIN` | `status`, `defense`, `durability` |
+| `status-paladin-common-defense` | `1364`〜`1368` | DEFENSE `SCALAR +0.015` | `&d聖鋼の星環` | `IRON_CHESTPLATE` | `status`, `defense`, `durability` |
+| `status-paladin-common-defense-notable` | `1369` | DEFENSE `SCALAR +0.04` | `&6鉄壁の極星` | `NETHERITE_CHESTPLATE` | `status`, `defense`, `durability` |
+| `status-paladin-common-magic-defense` | `1372`〜`1376` | MAGIC_DEFENSE `SCALAR +0.015` | `&d魔護の星環` | `AMETHYST_SHARD` | `status`, `defense`, `astral` |
+| `status-paladin-common-magic-defense-notable` | `1377` | MAGIC_DEFENSE `SCALAR +0.04` | `&6星衣の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `defense`, `astral` |
+| `status-paladin-common-health` | `1381`〜`1385` | MAX_HEALTH `FLAT +25`、VITALITY `SCALAR +0.01` | `&d生命の星環` | `HEART_OF_THE_SEA` | `status`, `resource`, `health`, `durability` |
+| `status-paladin-common-health-notable` | `1386` | MAX_HEALTH `FLAT +75`、VITALITY `SCALAR +0.03`、DEFENSE / MAGIC_DEFENSE `SCALAR +0.02` | `&6不屈の極星` | `TOTEM_OF_UNDYING` | `status`, `defense`, `resource`, `health`, `durability` |
+
+### Holyパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-paladin-holy-path` | `1387`, `1388`, `1395`, `1397`, `1404`, `1405`, `1412`, `1413`, `1421`, `1422`, `1429`, `1430` | MAX_SHIELD `FLAT +3`、SUPPORT_POWER `FLAT +1` | `&b聖光の星路` | `SEA_LANTERN` | `status`, `defense`, `shield`, `light` |
+| `status-paladin-holy-shield` | `1389`〜`1393` | MAX_SHIELD `FLAT +10` | `&b聖盾の星環` | `IRON_INGOT` | `status`, `defense`, `shield` |
+| `status-paladin-holy-shield-notable` | `1394` | MAX_SHIELD `FLAT +30` | `&6大聖盾の極星` | `SHIELD` | `status`, `defense`, `shield` |
+| `status-paladin-holy-recharge` | `1398`〜`1402` | SHIELD_RECHARGE_REDUCTION `FLAT +2` | `&b再生聖盾の星環` | `PRISMARINE_CRYSTALS` | `status`, `defense`, `shield`, `resource` |
+| `status-paladin-holy-recharge-notable` | `1403` | SHIELD_RECHARGE_REDUCTION `FLAT +8` | `&6瞬光城塞の極星` | `RECOVERY_COMPASS` | `status`, `defense`, `shield`, `resource` |
+| `status-paladin-holy-support` | `1406`〜`1410` | SUPPORT_POWER `FLAT +2` | `&a祝祷の星環` | `GLOW_BERRIES` | `status`, `light` |
+| `status-paladin-holy-support-notable` | `1411` | SUPPORT_POWER `FLAT +6` | `&6大祝祷の極星` | `BEACON` | `status`, `light` |
+| `status-paladin-holy-mana` | `1414`〜`1416`, `1418`, `1419` | MAX_MANA `FLAT +15` | `&b聖泉の星環` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
+| `status-paladin-holy-mana-notable` | `1420` | MAX_MANA `FLAT +40`、MP_REGEN `FLAT +1.5` | `&6尽きぬ聖泉の極星` | `CONDUIT` | `status`, `resource`, `mana`, `azure` |
+| `status-paladin-holy-offense` | `1423`〜`1427` | ATTACK / STRENGTH `SCALAR +0.01`、SKILL_DAMAGE_INCREASE `FLAT +0.8` | `&f断罪の星環` | `IRON_SWORD` | `status`, `offense`, `strength`, `light` |
+| `status-paladin-holy-offense-notable` | `1428` | ATTACK / STRENGTH `SCALAR +0.03`、SKILL_DAMAGE_INCREASE / DEFENSE_PENETRATION_RATE `FLAT +3` | `&6審判の極星` | `GOLDEN_SWORD` | `status`, `offense`, `strength`, `light` |
+| `status-paladin-holy-bastion` | `1431`〜`1434`, `1436` | DEFENSE / MAGIC_DEFENSE `SCALAR +0.01`、MAX_SHIELD `FLAT +8` | `&b聖域の星環` | `SHIELD` | `status`, `defense`, `shield`, `light` |
+| `status-paladin-holy-bastion-notable` | `1437` | DEFENSE / MAGIC_DEFENSE `SCALAR +0.03`、MAX_SHIELD `FLAT +30`、SUPPORT_POWER `FLAT +5` | `&6天上城塞の極星` | `NETHER_STAR` | `status`, `defense`, `shield`, `light`, `astral` |
+
+### Guardianパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-paladin-guardian-path` | `1438`, `1439`, `1446`, `1447`, `1454`, `1455`, `1463`, `1464`, `1471`, `1472`, `1480`, `1481` | MAX_HEALTH `FLAT +15`、DEFENSE / MAGIC_DEFENSE `SCALAR +0.003` | `&8血鉄の星路` | `CHAIN` | `status`, `defense`, `resource`, `health`, `durability` |
+| `status-paladin-guardian-defense` | `1440`〜`1444` | DEFENSE `SCALAR +0.015` | `&8重鎧の星環` | `NETHERITE_CHESTPLATE` | `status`, `defense`, `durability`, `stone` |
+| `status-paladin-guardian-defense-notable` | `1445` | DEFENSE `SCALAR +0.04` | `&6不動城壁の極星` | `ANVIL` | `status`, `defense`, `durability`, `stone` |
+| `status-paladin-guardian-magic-defense` | `1448`〜`1452` | MAGIC_DEFENSE `SCALAR +0.015` | `&8黒曜護符の星環` | `CRYING_OBSIDIAN` | `status`, `defense`, `durability`, `astral` |
+| `status-paladin-guardian-magic-defense-notable` | `1453` | MAGIC_DEFENSE `SCALAR +0.04` | `&6魔断城壁の極星` | `OBSIDIAN` | `status`, `defense`, `durability`, `astral` |
+| `status-paladin-guardian-health` | `1457`〜`1461` | MAX_HEALTH `FLAT +45` | `&c巨躯の星環` | `HEART_OF_THE_SEA` | `status`, `resource`, `health`, `durability` |
+| `status-paladin-guardian-health-notable` | `1462` | MAX_HEALTH `FLAT +120` | `&6巨神の極星` | `TOTEM_OF_UNDYING` | `status`, `resource`, `health`, `durability` |
+| `status-paladin-guardian-life-steal` | `1465`〜`1469` | LIFE_STEAL `FLAT +0.6` | `&c血啜りの星環` | `WITHER_ROSE` | `status`, `offense`, `health` |
+| `status-paladin-guardian-life-steal-notable` | `1470` | LIFE_STEAL `FLAT +2` | `&6血盟の極星` | `FERMENTED_SPIDER_EYE` | `status`, `offense`, `health` |
+| `status-paladin-guardian-offense` | `1473`, `1475`〜`1478` | ATTACK / STRENGTH `SCALAR +0.01` | `&c反攻の星環` | `IRON_AXE` | `status`, `offense`, `strength`, `ember` |
+| `status-paladin-guardian-offense-notable` | `1479` | ATTACK / STRENGTH `SCALAR +0.03` | `&6報復の極星` | `NETHERITE_AXE` | `status`, `offense`, `strength`, `ember` |
+| `status-paladin-guardian-recovery` | `1482`〜`1486` | MAX_HEALTH `FLAT +35`、VITALITY `SCALAR +0.01`、HEALING_INCREASE `FLAT +1.5`、HP_REGEN `FLAT +1` | `&c血潮の星環` | `GLISTERING_MELON_SLICE` | `status`, `resource`, `health`, `durability` |
+| `status-paladin-guardian-recovery-notable` | `1487` | MAX_HEALTH `FLAT +100`、VITALITY `SCALAR +0.03`、HEALING_INCREASE `FLAT +5`、HP_REGEN `FLAT +2` | `&6不滅の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `defense`, `resource`, `health`, `durability` |
+
+### パラディンskill解放
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `skill-paladin-defense-conversion` | `1522` | `skill / paladin_defense_conversion` | `&dディフェンスコンバージョン` | `WARDEN_SPAWN_EGG` | `defense` |
+| `skill-paladin-holy-smite` | `1523` | `skill / paladin_holy_smite` | `&fホーリースマイト` | `WAXED_OXIDIZED_COPPER_LANTERN` | `weakness` |
+| `skill-paladin-holy-field` | `1524` | `skill / paladin_holy_field` | `&fホーリーフィールド` | `IRON_TRAPDOOR` | `defense` |
+| `skill-paladin-holy-smash` | `1525` | `skill / paladin_holy_smash` | `&fホーリースマッシュ` | `music_disc_tears` | `offense` |
+| `skill-paladin-divine-chaser` | `1526` | `skill / paladin_divine_chaser` | `&fディバインチェイサー` | `BEACON` | `offense` |
+| `skill-paladin-shield` | `1527` | `skill / paladin_shield` | `&fパラディンシールド` | `SHIELD` | `defense` |
 
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 

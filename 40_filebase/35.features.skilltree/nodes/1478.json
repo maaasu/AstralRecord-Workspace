@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1478",
+  "name": "&c反攻の星環",
+  "icon": "IRON_AXE",
+  "tags": [
+    "status",
+    "offense",
+    "strength",
+    "ember"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEFENSE",
+      "status": "ATTACK",
       "modifierType": "SCALAR",
-      "value": 0.0363
+      "value": 0.01
     },
     {
       "type": "status",
-      "status": "MOVEMENT_SPEED",
+      "status": "STRENGTH",
       "modifierType": "SCALAR",
-      "value": -0.0108
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1478",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "defense",
-    "durability"
-  ],
-  "name": "&d受難者の王冠",
-  "icon": "IRON_CHESTPLATE"
+  }
 }

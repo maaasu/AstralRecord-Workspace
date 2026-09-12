@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1382",
+  "name": "&d生命の星環",
+  "icon": "HEART_OF_THE_SEA",
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "durability"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEFENSE_PENETRATION_RATE",
+      "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 0.84
+      "value": 25
     },
     {
       "type": "status",
-      "status": "DEFENSE",
+      "status": "VITALITY",
       "modifierType": "SCALAR",
-      "value": -0.0113
+      "value": 0.01
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1382",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "defense"
-  ],
-  "name": "&d罪科の露見",
-  "icon": "ANVIL"
+  }
 }

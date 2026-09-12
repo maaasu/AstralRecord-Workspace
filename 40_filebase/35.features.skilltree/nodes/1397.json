@@ -1,31 +1,32 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1397",
+  "name": "&b聖光の星路",
+  "icon": "SEA_LANTERN",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "light"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SKILL_DAMAGE_INCREASE",
+      "status": "MAX_SHIELD",
       "modifierType": "FLAT",
-      "value": 3.32
+      "value": 3
     },
     {
       "type": "status",
-      "status": "MAGIC_DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0115
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1397",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d刑罰の余韻",
-  "icon": "GLOWSTONE_DUST"
+  }
 }

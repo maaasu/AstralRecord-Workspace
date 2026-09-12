@@ -1,31 +1,25 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1375",
+  "name": "&d魔護の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "defense",
+    "astral"
+  ],
   "pointType": "CP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "MAGIC_DEFENSE",
       "modifierType": "SCALAR",
-      "value": 0.0148
-    },
-    {
-      "type": "status",
-      "status": "DEFENSE",
-      "modifierType": "SCALAR",
-      "value": -0.0074
+      "value": 0.015
     }
   ],
   "unlockCondition": {
     "classId": "paladin"
-  },
-  "nodeId": "1375",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "offense",
-    "light"
-  ],
-  "name": "&d執行の歩み",
-  "icon": "IRON_SWORD"
+  }
 }
