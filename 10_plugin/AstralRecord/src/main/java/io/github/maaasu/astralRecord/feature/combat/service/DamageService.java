@@ -32,6 +32,8 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
@@ -92,6 +94,7 @@ public final class DamageService {
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
+    private PassiveSkillService passiveSkillService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
@@ -205,6 +208,15 @@ public final class DamageService {
      */
     public void setBossChallengeService(@Nullable BossChallengeService bossChallengeService) {
         this.bossChallengeService = bossChallengeService;
+    }
+
+    /**
+     * スキル攻撃力のパッシブ変換状態を解決するサービスを設定します。
+     *
+     * @param passiveSkillService パッシブスキルサービス。{@code null} の場合は変換を適用しません
+     */
+    public void setPassiveSkillService(@Nullable PassiveSkillService passiveSkillService) {
+        this.passiveSkillService = passiveSkillService;
     }
 
     /**
@@ -959,7 +971,11 @@ public final class DamageService {
                 superStarCriticalMode,
                 superStarCriticalRateOverride
         );
-        DamageResult calculated = damageCalculator.calculate(context, attackerAccuracyBonus);
+        DamageResult calculated = damageCalculator.calculate(
+                context,
+                attackerAccuracyBonus,
+                usesDefenseConversion(attacker, source)
+        );
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {
@@ -1040,6 +1056,14 @@ public final class DamageService {
             );
         }
         return result;
+    }
+
+    private boolean usesDefenseConversion(@Nullable AstEntity attacker, @NotNull DamageSource source) {
+        return source == DamageSource.SKILL
+                && attacker != null
+                && attacker.isPlayer()
+                && passiveSkillService != null
+                && passiveSkillService.isPassiveSkillActive(attacker.player(), PaladinDefenseConversionSkillExecutor.ID);
     }
 
     /**

@@ -111,6 +111,23 @@ class DamageCalculatorDesignTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 3. scaling
+     * 検証契約: 防御力変換中のスキル攻撃は共通防御力と対応種別防御力、対応基本能力値から攻撃力を解決する。
+     */
+    @Test
+    void defenseConversionUsesGeneralAndMatchingTypedDefenseForSkillAttackPower() {
+        AstEntity attacker = AstEntity.player(player(Map.of(
+            StatusType.DEFENSE, 20.0D,
+            StatusType.MELEE_DEFENSE, 5.0D,
+            StatusType.STRENGTH, 50.0D
+        )));
+
+        assertEquals(37.5D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE, true), 0.0001D);
+        assertEquals(0.0D, DamageCalculator.calculateAttackPower(attacker, AttackType.MELEE), 0.0001D);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
      * 検証契約: attacker固有damage multiplierをdefense curve前のpreDefenseへ掛ける。

@@ -85,6 +85,22 @@ public final class DamageCalculator {
             @NotNull DamageContext context,
             double attackerAccuracyBonus
     ) {
+        return calculate(context, attackerAccuracyBonus, false);
+    }
+
+    /**
+     * 一撃だけ防御力参照への攻撃力変換を適用してダメージを計算します。
+     *
+     * @param context ダメージ計算入力
+     * @param attackerAccuracyBonus この一撃だけ攻撃者の命中率へ加算する補正値（%ポイント）
+     * @param defenseConversionActive スキル攻撃力を防御力系ステータスから解決する場合は {@code true}
+     * @return 計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus,
+            boolean defenseConversionActive
+    ) {
         HitCheck hitCheck = checkHit(context, attackerAccuracyBonus);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
@@ -94,7 +110,7 @@ public final class DamageCalculator {
                 .filter(component -> component.ratio() > 0.0D)
                 .toList();
         double totalRatio = components.stream().mapToDouble(DamageComponent::ratio).sum();
-        double resolvedAttackPower = Math.max(0.0D, resolveBaseDamage(context));
+        double resolvedAttackPower = Math.max(0.0D, resolveBaseDamage(context, defenseConversionActive));
         DefenseCalculation defense = defenseCalculation(context.attacker(), context.victim(), context.attackType());
         if (totalRatio <= 0.0D) {
             return new DamageResult(
@@ -248,18 +264,18 @@ public final class DamageCalculator {
         return rate > 0.0D && criticalRollSupplier.getAsDouble() < rate;
     }
 
-    private double resolveBaseDamage(@NotNull DamageContext context) {
+    private double resolveBaseDamage(@NotNull DamageContext context, boolean defenseConversionActive) {
         if (context.scaling() == DamageScaling.FIXED) {
             return context.baseDamage();
         }
         if (context.attacker() != null && context.attacker().isManaged()) {
-            return Math.max(context.baseDamage(), attackPower(context));
+            return Math.max(context.baseDamage(), attackPower(context, defenseConversionActive));
         }
         return context.baseDamage();
     }
 
-    private double attackPower(@NotNull DamageContext context) {
-        return calculateAttackPower(context.attacker(), context.attackType());
+    private double attackPower(@NotNull DamageContext context, boolean defenseConversionActive) {
+        return calculateAttackPower(context.attacker(), context.attackType(), defenseConversionActive);
     }
 
     /**
@@ -273,8 +289,28 @@ public final class DamageCalculator {
             @NotNull AstEntity attacker,
             @NotNull AttackType attackType
     ) {
-        double attack = attacker.statValue(StatusType.ATTACK);
-        double typedAttack = attacker.statValue(attackType.statusType());
+        return calculateAttackPower(attacker, attackType, false);
+    }
+
+    /**
+     * 攻撃種別に対応する攻撃力、または防御力変換後の攻撃力を解決します。
+     *
+     * @param attacker 攻撃者
+     * @param attackType 攻撃種別
+     * @param defenseConversionActive 防御力変換を適用する場合は {@code true}
+     * @return 解決攻撃力
+     */
+    public static double calculateAttackPower(
+            @NotNull AstEntity attacker,
+            @NotNull AttackType attackType,
+            boolean defenseConversionActive
+    ) {
+        double attack = defenseConversionActive
+                ? attacker.statValue(StatusType.DEFENSE)
+                : attacker.statValue(StatusType.ATTACK);
+        double typedAttack = defenseConversionActive
+                ? attacker.statValue(defenseStatusType(attackType))
+                : attacker.statValue(attackType.statusType());
         double primary = attacker.statValue(attackType.primaryStatusType());
         return (attack + typedAttack) * (1.0D + primary / 100.0D);
     }

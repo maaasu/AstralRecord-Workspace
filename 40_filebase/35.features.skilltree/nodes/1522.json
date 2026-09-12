@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1522",
+  "name": "&dディフェンスコンバージョン",
+  "icon": "WARDEN_SPAWN_EGG",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_defense_conversion"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

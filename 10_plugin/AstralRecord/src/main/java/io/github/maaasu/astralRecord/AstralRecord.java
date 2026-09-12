@@ -224,6 +224,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillE
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
@@ -1539,6 +1540,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
+        skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(
             particleDisplayService,
             damageService,
@@ -1644,6 +1646,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         passiveSkillService.setStatusService(statusService);
         statusService.setPassiveSkillService(passiveSkillService);
+        damageService.setPassiveSkillService(passiveSkillService);
         SkillSigilOrbService skillSigilOrbService = new SkillSigilOrbService(
             this,
             inventoryService,
