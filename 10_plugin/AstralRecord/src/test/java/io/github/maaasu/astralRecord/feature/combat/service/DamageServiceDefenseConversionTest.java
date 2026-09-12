@@ -83,6 +83,6 @@ class DamageServiceDefenseConversionTest extends MockBukkitTestBase {
     }
 
     private MobInstance mob() {
-        return DesignTestFixtures.mobInstanceWithAttack(1_000.0D, 100.0D, 0.0D, 0.0D);
+        return DesignTestFixtures.mobInstance(1_000.0D, 0.0D, 0.0D);
     }
 }
