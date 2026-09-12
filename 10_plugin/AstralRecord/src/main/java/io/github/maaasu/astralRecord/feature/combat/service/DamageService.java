@@ -1005,7 +1005,7 @@ public final class DamageService {
         DamageResult calculated = damageCalculator.calculate(
                 context,
                 attackerAccuracyBonus,
-                usesDefenseConversion(attacker, source),
+                usesDefenseConversion(victim),
                 temporaryDefenseMultiplier(victim)
         );
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
@@ -1090,12 +1090,10 @@ public final class DamageService {
         return result;
     }
 
-    private boolean usesDefenseConversion(@Nullable AstEntity attacker, @NotNull DamageSource source) {
-        return source == DamageSource.SKILL
-                && attacker != null
-                && attacker.isPlayer()
+    private boolean usesDefenseConversion(@NotNull AstEntity victim) {
+        return victim.isPlayer()
                 && passiveSkillService != null
-                && passiveSkillService.isPassiveSkillActive(attacker.player(), PaladinDefenseConversionSkillExecutor.ID);
+                && passiveSkillService.isPassiveSkillActive(victim.player(), PaladinDefenseConversionSkillExecutor.ID);
     }
 
     /**

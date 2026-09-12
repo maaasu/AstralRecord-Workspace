@@ -33,25 +33,22 @@ class DamageServiceDefenseConversionTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
      * 章・見出し: # 14_1-モデル定義 > ## 3. scaling
-     * 検証契約: 有効なディフェンスコンバージョンはATTACKER_STATUSのSKILLだけを防御力参照へ置換し、通常攻撃とFIXEDダメージを変更しない。
+     * 検証契約: 被弾プレイヤーの有効なディフェンスコンバージョンは、統合経路の通常攻撃・SKILL・FIXEDへ共通防御力の加算として適用する。
      */
     @Test
-    void defenseConversionAppliesOnlyToAttackerStatusSkillDamage() {
-        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
-        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+    void defenseConversionAppliesToUnifiedDamageForVictim() {
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
                 StatusType.MAX_HEALTH, 100.0D,
                 StatusType.ATTACK, 100.0D,
-                StatusType.MELEE_ATTACK, 100.0D,
                 StatusType.DEFENSE, 20.0D,
-                StatusType.MELEE_DEFENSE, 5.0D,
-                StatusType.STRENGTH, 50.0D,
-                StatusType.ACCURACY, 100.0D
+                StatusType.MELEE_DEFENSE, 5.0D
         ), 100.0D, 0.0D, 0.0D));
 
         StatusService statusService = mock(StatusService.class);
-        when(statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        when(statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
-        when(passiveSkillService.isPassiveSkillActive(attacker, PaladinDefenseConversionSkillExecutor.ID)).thenReturn(true);
+        when(passiveSkillService.isPassiveSkillActive(victim, PaladinDefenseConversionSkillExecutor.ID)).thenReturn(true);
         DamageService service = new DamageService(
                 statusService,
                 mock(MobService.class),
@@ -67,21 +64,25 @@ class DamageServiceDefenseConversionTest extends MockBukkitTestBase {
         service.setPassiveSkillService(passiveSkillService);
 
         var skill = service.attack(
-                AstEntity.player(attacker), AstEntity.mob(mob()), AttackType.MELEE,
+                AstEntity.mob(mob()), AstEntity.player(victim), AttackType.MELEE,
                 List.of(DamageComponent.defaultComponent()), DamageSource.SKILL, 1.0D
         );
         var normalAttack = service.attack(
-                AstEntity.player(attacker), AstEntity.mob(mob()), AttackType.MELEE,
+                AstEntity.mob(mob()), AstEntity.player(victim), AttackType.MELEE,
                 List.of(DamageComponent.defaultComponent()), DamageSource.NORMAL_ATTACK, 1.0D
         );
-        var fixed = service.applyDamage(AstEntity.player(attacker), AstEntity.mob(mob()), 11.0D, AttackType.MELEE);
+        var fixed = service.applyDamage(AstEntity.mob(mob()), AstEntity.player(victim), 11.0D, AttackType.MELEE);
 
-        assertEquals(187.5D, skill.breakdown().resolvedAttackPower(), 0.0001D);
-        assertEquals(300.0D, normalAttack.breakdown().resolvedAttackPower(), 0.0001D);
+        assertEquals(45.0D, skill.breakdown().rawDefense(), 0.0001D);
+        assertEquals(45.0D, skill.breakdown().effectiveDefense(), 0.0001D);
+        assertEquals(45.0D, normalAttack.breakdown().rawDefense(), 0.0001D);
+        assertEquals(45.0D, normalAttack.breakdown().effectiveDefense(), 0.0001D);
+        assertEquals(45.0D, fixed.breakdown().rawDefense(), 0.0001D);
+        assertEquals(45.0D, fixed.breakdown().effectiveDefense(), 0.0001D);
         assertEquals(11.0D, fixed.breakdown().resolvedAttackPower(), 0.0001D);
     }
 
     private MobInstance mob() {
-        return DesignTestFixtures.mobInstance(1_000.0D, 0.0D, 0.0D);
+        return DesignTestFixtures.mobInstanceWithAttack(1_000.0D, 100.0D, 0.0D, 0.0D);
     }
 }
