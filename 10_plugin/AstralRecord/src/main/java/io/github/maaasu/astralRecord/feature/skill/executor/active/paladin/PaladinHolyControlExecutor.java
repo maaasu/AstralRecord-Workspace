@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -188,8 +189,10 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
                     partyDamageIncrease,
                     1L
             );
-            context.services().combat().recoverHp(target, hpRecovery, recoveryContext);
-            statusService.recoverMp(target, mpRecovery);
+            recoverPartyMember(
+                    context.services().combat(), statusService, context.caster().player(), target,
+                    hpRecovery, mpRecovery, recoveryContext
+            );
         }
         for (AstEntity target : context.services().targeting().inRadius(
                 context.player(), center, effectRadius, effectRadius, Integer.MAX_VALUE, true
@@ -200,6 +203,30 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
                     1.0D + mobDamageTakenIncrease / 100.0D, 1.0D, 1.0D
             );
         }
+    }
+
+    /**
+     * パーティーメンバーのHPとMPを、発動者を回復元として共通回復処理へ渡します。
+     *
+     * @param combatService HP回復を処理するスキル戦闘サービス
+     * @param statusService MP回復を処理するステータスサービス
+     * @param caster 回復元となる発動者
+     * @param target 回復対象プレイヤー
+     * @param hpRecovery 支援力適用前のHP回復要求量
+     * @param mpRecovery 支援力適用前のMP回復要求量
+     * @param recoveryContext HP回復通知へ渡す回復元情報
+     */
+    static void recoverPartyMember(
+            @NotNull SkillCombatService combatService,
+            @NotNull StatusService statusService,
+            @NotNull AstPlayer caster,
+            @NotNull AstPlayer target,
+            double hpRecovery,
+            double mpRecovery,
+            @NotNull HealthRecoveryContext recoveryContext
+    ) {
+        combatService.recoverHp(target, hpRecovery, recoveryContext);
+        statusService.recoverMp(target, mpRecovery, caster);
     }
 
     private void replaceControl(

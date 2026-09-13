@@ -716,7 +716,7 @@ public class StatusService {
      * 現在HPを回復します。
      *
      * @param player 対象プレイヤー
-     * @param amount 回復量（0以下は無視）
+     * @param amount 支援力適用前の回復量（0以下は無視）
      * @return 更新後のステータススナップショット
      */
     public @NotNull StatusSnapshot recoverHp(@NotNull AstPlayer player, double amount) {
@@ -728,8 +728,8 @@ public class StatusService {
      * 発生元を {@code null} にすると、自然回復などの常時回復を表示対象から除外できます。
      *
      * @param player 対象プレイヤー
-     * @param amount 回復量（0以下は無視）
-     * @param context 回復元と回復手段。{@code null} の場合は通知しない
+     * @param amount 支援力適用前の回復量（0以下は無視）
+     * @param context 回復元と回復手段。回復元がある場合はその支援力を使い、{@code null} の場合は対象本人の支援力を使って通知しない
      * @return 更新後のステータススナップショット
      */
     public @NotNull StatusSnapshot recoverHp(
@@ -742,9 +742,13 @@ public class StatusService {
             return snapshot;
         }
 
+        AstPlayer recoverySource = context != null && context.healer() != null
+            ? context.healer()
+            : player;
+        double supportedAmount = applySupportPower(recoverySource, amount);
         double healingIncrease = Math.max(0.0D, snapshot.getMaxValue(StatusType.HEALING_INCREASE));
         StatusSnapshot updated = snapshot.withCurrentValues(
-            snapshot.getCurrentHp() + amount * (1.0D + healingIncrease / 100.0D),
+            snapshot.getCurrentHp() + supportedAmount * (1.0D + healingIncrease / 100.0D),
             snapshot.getCurrentMp()
         );
         player.setStatusSnapshot(updated);
@@ -786,16 +790,36 @@ public class StatusService {
      * 現在MPを回復します。
      *
      * @param player 対象プレイヤー
-     * @param amount 回復量（0以下は無視）
+     * @param amount 支援力適用前の回復量（0以下は無視）
      * @return 更新後のステータススナップショット
      */
     public @NotNull StatusSnapshot recoverMp(@NotNull AstPlayer player, double amount) {
+        return recoverMp(player, amount, player);
+    }
+
+    /**
+     * 回復元の支援力を反映して現在MPを回復します。
+     *
+     * @param player 回復対象プレイヤー
+     * @param amount 支援力適用前の回復量（0以下は無視）
+     * @param recoverySource 回復を発生させたプレイヤー
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot recoverMp(
+        @NotNull AstPlayer player,
+        double amount,
+        @NotNull AstPlayer recoverySource
+    ) {
         StatusSnapshot snapshot = getStatus(player);
         if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
-        StatusSnapshot updated = snapshot.withCurrentValues(snapshot.getCurrentHp(), snapshot.getCurrentMp() + amount);
+        double supportedAmount = applySupportPower(recoverySource, amount);
+        StatusSnapshot updated = snapshot.withCurrentValues(
+            snapshot.getCurrentHp(),
+            snapshot.getCurrentMp() + supportedAmount
+        );
         player.setStatusSnapshot(updated);
         return updated;
     }
@@ -824,20 +848,54 @@ public class StatusService {
      * 現在エネルギーを回復します。
      *
      * @param player 対象プレイヤー
-     * @param amount 回復量（0以下は無視）
+     * @param amount 支援力適用前の回復量（0以下は無視）
      * @return 更新後のステータススナップショット
      */
     public @NotNull StatusSnapshot recoverEnergy(@NotNull AstPlayer player, double amount) {
+        return recoverEnergy(player, amount, player);
+    }
+
+    /**
+     * 回復元の支援力を反映して現在エネルギーを回復します。
+     *
+     * @param player 回復対象プレイヤー
+     * @param amount 支援力適用前の回復量（0以下は無視）
+     * @param recoverySource 回復を発生させたプレイヤー
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot recoverEnergy(
+        @NotNull AstPlayer player,
+        double amount,
+        @NotNull AstPlayer recoverySource
+    ) {
         StatusSnapshot snapshot = getStatus(player);
         if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
+        double supportedAmount = applySupportPower(recoverySource, amount);
         StatusSnapshot updated = snapshot.withCurrentValues(
-            snapshot.getCurrentHp(), snapshot.getCurrentMp(), snapshot.getCurrentEnergy() + amount
+            snapshot.getCurrentHp(),
+            snapshot.getCurrentMp(),
+            snapshot.getCurrentEnergy() + supportedAmount
         );
         player.setStatusSnapshot(updated);
         return updated;
+    }
+
+    /**
+     * 回復元の支援力を範囲内で確定し、0未満を無効化して回復要求量へ割合適用します。
+     *
+     * @param recoverySource 支援力を参照する回復元プレイヤー
+     * @param amount 支援力適用前の回復要求量
+     * @return {@code amount * (1 + max(0, SUPPORT_POWER) / 100)} で算出した回復量
+     */
+    private double applySupportPower(@NotNull AstPlayer recoverySource, double amount) {
+        double supportPower = Math.max(
+            0.0D,
+            getStatus(recoverySource).rollValue(StatusType.SUPPORT_POWER)
+        );
+        return amount * (1.0D + supportPower / 100.0D);
     }
 
     /**

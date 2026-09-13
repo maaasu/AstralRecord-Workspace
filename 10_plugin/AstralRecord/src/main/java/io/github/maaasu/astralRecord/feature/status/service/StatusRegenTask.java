@@ -13,7 +13,9 @@ import org.jetbrains.annotations.NotNull;
  * オンラインプレイヤーの HP / MP / エネルギー自然回復とシールドリチャージ完了を処理する定常タスク。
  * <p>
  * 各ステータスの基準回復量は {@link StatusType#HP_REGEN} / {@link StatusType#MP_REGEN} /
- * {@link StatusType#ENERGY_REGEN}（5秒あたりの値として定義）を使用し、1秒ごとに 1/5 ずつ加算します。
+ * {@link StatusType#ENERGY_REGEN}（5秒あたりの値として定義）を使用し、1秒ごとに 1/5 ずつ回復要求へ変換します。
+ * 実回復時は共通の回復処理が対象本人の {@link StatusType#SUPPORT_POWER} をHP / MP / エネルギーへ適用し、
+ * HPには {@link StatusType#HEALING_INCREASE} も適用します。
  */
 public class StatusRegenTask {
 
@@ -68,7 +70,7 @@ public class StatusRegenTask {
      *
      * @param astPlayer 対象プレイヤー
      */
-    private void applyRegen(@NotNull AstPlayer astPlayer) {
+    void applyRegen(@NotNull AstPlayer astPlayer) {
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
 
         double hpRegenPerSecond = snapshot.rollValue(StatusType.HP_REGEN) / REGEN_PERIOD_SECONDS;

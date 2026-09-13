@@ -163,6 +163,12 @@ class StatusServiceConditionTest {
         ), 80.0D, 0.0D, 0.0D);
         when(target.getStatusSnapshot()).thenReturn(snapshot);
         AstPlayer healer = mock(AstPlayer.class);
+        Player healerBukkitPlayer = mock(Player.class);
+        when(healerBukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000006"));
+        when(healer.getBukkit()).thenReturn(healerBukkitPlayer);
+        when(healer.getStatusSnapshot()).thenReturn(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.SUPPORT_POWER, 0.0D
+        ), 0.0D, 0.0D, 0.0D));
 
         HealthRecoveryNotification[] notification = {null};
         StatusService statusService = new StatusService();
@@ -178,5 +184,77 @@ class StatusServiceConditionTest {
         assertEquals(healer, notification[0].healer());
         assertEquals("ヒールオーラ", notification[0].sourceName());
         assertEquals(10.0D, notification[0].amount(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 回復量への支援力適用
+     * 検証契約: 自己回復と自然回復が通る既定overloadは対象本人の支援力をHP/MP/ENGへ適用する。
+     */
+    @Test
+    void selfRecoveryUsesTargetSupportPowerForEveryResource() {
+        AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000007"));
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.MAX_MANA, 100.0D,
+            StatusType.MAX_ENERGY, 100.0D,
+            StatusType.SUPPORT_POWER, 25.0D,
+            StatusType.HEALING_INCREASE, 20.0D
+        ), 10.0D, 10.0D, 10.0D);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+
+        StatusService statusService = new StatusService();
+
+        assertEquals(25.0D, statusService.recoverHp(player, 10.0D).getCurrentHp(), 0.0001D);
+        assertEquals(22.5D, statusService.recoverMp(player, 10.0D).getCurrentMp(), 0.0001D);
+        assertEquals(22.5D, statusService.recoverEnergy(player, 10.0D).getCurrentEnergy(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 回復量への支援力適用
+     * 検証契約: 味方回復は対象ではなく回復元プレイヤーの支援力をHP/MP/ENGへ適用する。
+     */
+    @Test
+    void allyRecoveryUsesRecoverySourceSupportPowerForEveryResource() {
+        AstPlayer target = mock(AstPlayer.class);
+        Player targetBukkitPlayer = mock(Player.class);
+        when(targetBukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000008"));
+        when(target.getBukkit()).thenReturn(targetBukkitPlayer);
+        when(target.getStatusSnapshot()).thenReturn(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.MAX_MANA, 100.0D,
+            StatusType.MAX_ENERGY, 100.0D,
+            StatusType.SUPPORT_POWER, 100.0D,
+            StatusType.HEALING_INCREASE, 20.0D
+        ), 10.0D, 10.0D, 10.0D));
+
+        AstPlayer healer = mock(AstPlayer.class);
+        Player healerBukkitPlayer = mock(Player.class);
+        when(healerBukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000009"));
+        when(healer.getBukkit()).thenReturn(healerBukkitPlayer);
+        when(healer.getStatusSnapshot()).thenReturn(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.SUPPORT_POWER, 50.0D
+        ), 0.0D, 0.0D, 0.0D));
+
+        double[] notifiedAmount = {-1.0D};
+        StatusService statusService = new StatusService();
+        statusService.setHpRecoveryListener(notification -> notifiedAmount[0] = notification.amount());
+
+        StatusSnapshot hp = statusService.recoverHp(
+            target,
+            10.0D,
+            HealthRecoveryContext.by(healer, "ヒールスキル")
+        );
+        StatusSnapshot mp = statusService.recoverMp(target, 10.0D, healer);
+        StatusSnapshot energy = statusService.recoverEnergy(target, 10.0D, healer);
+
+        assertEquals(28.0D, hp.getCurrentHp(), 0.0001D);
+        assertEquals(25.0D, mp.getCurrentMp(), 0.0001D);
+        assertEquals(25.0D, energy.getCurrentEnergy(), 0.0001D);
+        assertEquals(18.0D, notifiedAmount[0], 0.0001D);
     }
 }
