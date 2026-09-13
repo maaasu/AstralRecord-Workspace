@@ -197,17 +197,17 @@ class SkillRepository {
     private fun parseResourceTypeOrNull(element: JsonElement?): SkillResourceType? {
         if (element == null || element.isJsonNull) return null
         if (!element.isJsonPrimitive || !element.asJsonPrimitive.isString) {
-            throw SkillParameterException("resourceType", "MANA または ENERGY を文字列で指定してください")
+            throw SkillParameterException("resourceType", "MANA、ENERGY、GUARD のいずれかを文字列で指定してください")
         }
 
         val rawValue = element.asString.trim()
         if (rawValue.isEmpty()) {
-            throw SkillParameterException("resourceType", "MANA または ENERGY を指定してください")
+            throw SkillParameterException("resourceType", "MANA、ENERGY、GUARD のいずれかを指定してください")
         }
         return try {
             SkillResourceType.valueOf(rawValue.uppercase(Locale.ROOT))
         } catch (e: IllegalArgumentException) {
-            throw SkillParameterException("resourceType", "MANA または ENERGY を指定してください")
+            throw SkillParameterException("resourceType", "MANA、ENERGY、GUARD のいずれかを指定してください")
         }
     }
 

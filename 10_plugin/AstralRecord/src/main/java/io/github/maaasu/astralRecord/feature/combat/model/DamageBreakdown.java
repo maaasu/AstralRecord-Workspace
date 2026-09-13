@@ -11,16 +11,28 @@ import java.util.List;
  * @param rawDefense          貫通適用前の全体防御力と種別防御力の合計
  * @param effectiveDefense    各防御力へ対応する貫通を適用した有効防御力の合計
  * @param elementResistances  属性ごとの計算時耐性
+ * @param preDefenseDamage    防御力曲線だけを適用しなかった場合のダメージ
  */
 public record DamageBreakdown(
         double resolvedAttackPower,
         double rawDefense,
         double effectiveDefense,
-        @NotNull List<ElementResistance> elementResistances
+        @NotNull List<ElementResistance> elementResistances,
+        double preDefenseDamage
 ) {
 
     public DamageBreakdown {
         elementResistances = List.copyOf(elementResistances);
+    }
+
+    /** 防御力適用前ダメージを持たない従来形式との互換コンストラクタです。 */
+    public DamageBreakdown(
+            double resolvedAttackPower,
+            double rawDefense,
+            double effectiveDefense,
+            @NotNull List<ElementResistance> elementResistances
+    ) {
+        this(resolvedAttackPower, rawDefense, effectiveDefense, elementResistances, 0.0D);
     }
 
     /**
@@ -29,7 +41,7 @@ public record DamageBreakdown(
      * @return 全項目が空の中間計算値
      */
     public static @NotNull DamageBreakdown empty() {
-        return new DamageBreakdown(0.0D, 0.0D, 0.0D, List.of());
+        return new DamageBreakdown(0.0D, 0.0D, 0.0D, List.of(), 0.0D);
     }
 
     /**

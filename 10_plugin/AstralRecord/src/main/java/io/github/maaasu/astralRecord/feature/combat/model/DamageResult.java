@@ -322,6 +322,29 @@ public record DamageResult(
     }
 
     /**
+     * HPダメージとその固定成分を同じ倍率で縮小します。
+     *
+     * @param multiplier 0以上の倍率
+     * @return HPダメージ成分だけを倍率適用した結果
+     */
+    public DamageResult withScaledHealthDamage(double multiplier) {
+        double safeMultiplier = Math.max(0.0D, multiplier);
+        return new DamageResult(
+                finalDamage * safeMultiplier,
+                fixedHealthDamage * safeMultiplier,
+                shieldDamage,
+                shieldBroken,
+                critical,
+                superStarCritical,
+                evaded,
+                hitChance,
+                accuracy,
+                evasion,
+                breakdown
+        );
+    }
+
+    /**
      * 通常ダメージと分離した固定HPダメージを加算します。
      *
      * @param amount 加算する固定HPダメージ

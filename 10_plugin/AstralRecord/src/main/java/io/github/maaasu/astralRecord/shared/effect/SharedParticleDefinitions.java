@@ -919,6 +919,68 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(105, 110, 125), 1.20F)
         );
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_BASH_DUST =
+        new SharedParticleDefinition(
+            "skill_paladin_shield_bash_dust",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(95, 220, 255), 0.95F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_BASH_CRIT =
+        new SharedParticleDefinition("skill_paladin_shield_bash_crit", Particle.CRIT, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_DUST =
+        new SharedParticleDefinition(
+            "skill_paladin_shield_impact_dust",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 195, 255), 1.35F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_EXPLOSION =
+        new SharedParticleDefinition("skill_paladin_shield_impact_explosion", Particle.EXPLOSION, 4, 0.35D, 0.25D, 0.35D, 0.0D);
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_DEFENSE_DOWN =
+        new SharedParticleDefinition(
+            "skill_paladin_shield_impact_defense_down",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(75, 90, 110), 1.20F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_FORTRESS_DUST =
+        new SharedParticleDefinition(
+            "skill_paladin_fortress_dust",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(45, 125, 175), 1.25F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_GUARDIAN_PROTECT_END_ROD =
+        new SharedParticleDefinition("skill_paladin_guardian_protect_end_rod", Particle.END_ROD, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+    public static final SharedParticleDefinition SKILL_PALADIN_GUARDIAN_CHAIN_LINE =
+        new SharedParticleDefinition(
+            "skill_paladin_guardian_chain_line",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(35, 45, 55), 0.25F),
+            true
+        );
     public static final SharedParticleDefinition CONDITION_WEAKNESS_DUST =
         new SharedParticleDefinition(
             "condition_weakness_dust",

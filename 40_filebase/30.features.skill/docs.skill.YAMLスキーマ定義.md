@@ -4,7 +4,7 @@
 
 スキル種別は plugin 側の `SkillExecutor.kind()` が正本です。filebase 側ではパッシブスキルの場合に `passive.bindRequired` でバインド必要可否を定義します。
 
-発動スキルの主リソース種別と消費量は、共通項目 `resourceType` / `resourceCost` へ定義します。`params` は実装固有の拡張値だけに使用し、リソース、クールダウン、詠唱時間などの共通項目を重複して定義しません。ENGとMPを同時消費する例外だけは `resourceType: ENERGY` / `resourceCost` に加えて正の `manaCost` を副MP消費として定義します。
+発動スキルの主リソース種別と消費量は、共通項目 `resourceType` / `resourceCost` へ定義します。`params` は実装固有の拡張値だけに使用し、リソース、クールダウン、詠唱時間などの共通項目を重複して定義しません。ENGとMPを同時消費する例外だけは `resourceType: ENERGY` / `resourceCost` に加えて正の `manaCost` を副MP消費として定義します。`GUARD` はガードコンバートのバインド中だけ存在するパラディン専用リソースで、消費軽減を適用しません。
 
 ## 共通定義
 
@@ -21,7 +21,7 @@
 | `lore` | List<String> | 任意 | `[]` | 効果、条件、対象、数値などの詳細表示。1行1要素を基本とする |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
 | `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |
-| `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` |
+| `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` / `GUARD` |
 | `resourceCost` | Double | 任意 | `0` | `resourceType` で指定したリソースの消費量。0以上を指定する |
 | `manaCost` | Double | 任意 | `0` | 通常は旧定義との互換用MP消費量。`resourceType: ENERGY` と正数を併記した場合だけ、副MP消費として主ENGと同時に検証・消費する |
 | `castTimeTicks` | Long | 任意 | `0` | 詠唱時間。冷気中は最終値が2倍 |
@@ -52,6 +52,8 @@
 `swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`params.consumeAllCurrentMana: true` と `params.levelFiveRequiredManaRatio: 0.80` は、反撃成立時の現在MP全消費とLv.5の必要MP比率を定義します。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` は共通消費を重ねないための定義であり、反撃成立時のMP全消費はexecutorが行います。
 
 複合消費では `ENERGY_COST_REDUCTION` と `MANA_COST_REDUCTION` を各消費へ個別に適用します。片方でも残量不足なら発動前に全消費を拒否し、executor成功時だけ両方を消費します。GUIも主ENGと副MPを別行で表示します。
+
+`GUARD` は `MANA_COST_REDUCTION` / `ENERGY_COST_REDUCTION` の対象外です。発動前と詠唱完了時に現在ガードを検証し、executor成功時だけ定義量を消費します。
 
 ## 説明文プレースホルダー
 

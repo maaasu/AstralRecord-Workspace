@@ -79,7 +79,7 @@ public class PlayerHudView {
         Collection<ActiveCondition> activeConditions,
         ShieldRechargeState shieldRechargeState
     ) {
-        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, 0.0D);
+        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, 0.0D, false, 0.0D, 0.0D);
     }
 
     /**
@@ -98,15 +98,41 @@ public class PlayerHudView {
         ShieldRechargeState shieldRechargeState,
         double currentDps
     ) {
+        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, currentDps, false, 0.0D, 0.0D);
+    }
+
+    /**
+     * 通常リソース・ガード・状態異常・DPSを同じアクションバーへ描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param activeConditions 現在有効な状態異常
+     * @param shieldRechargeState シールドリチャージ状態。通常時は {@code null}
+     * @param currentDps 直近10秒の平均秒間与ダメージ
+     * @param showGuard ガード要素を表示するか
+     * @param currentGuard 現在ガード
+     * @param maximumGuard 最大ガード
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions,
+        ShieldRechargeState shieldRechargeState,
+        double currentDps,
+        boolean showGuard,
+        double currentGuard,
+        double maximumGuard
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         player.sendActionBar(Component.empty()
             .append(statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
-            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
-            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
+            .append(guardActionText(showGuard, currentGuard, maximumGuard))
             .append(shieldActionText(snapshot, shieldRechargeState))
             .append(conditionActionText(activeConditions))
             .append(dpsActionText(currentDps)));
@@ -788,10 +814,10 @@ public class PlayerHudView {
     }
 
     private Component statText(String label, double current, double max, NamedTextColor color) {
-        return Component.text(label + " ", color, TextDecoration.BOLD)
+        return framed(Component.text(label + " ", color, TextDecoration.BOLD)
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))
             .append(Component.text("/", NamedTextColor.DARK_GRAY))
-            .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY));
+            .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY)));
     }
 
     private Component shieldActionText(StatusSnapshot snapshot, ShieldRechargeState rechargeState) {
@@ -799,23 +825,32 @@ public class PlayerHudView {
         if (maxShield <= 0.0D) {
             return Component.empty();
         }
-        Component shield = Component.text("  ", NamedTextColor.DARK_GRAY)
-            .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));
+        Component shield = Component.text("SH ", NamedTextColor.BLUE, TextDecoration.BOLD)
+            .append(Component.text(String.format("%.0f", snapshot.getCurrentShield()), NamedTextColor.WHITE))
+            .append(Component.text("/", NamedTextColor.DARK_GRAY))
+            .append(Component.text(String.format("%.0f", maxShield), NamedTextColor.GRAY));
         if (rechargeState != null) {
             double remainingSeconds = rechargeState.remainingMs(System.currentTimeMillis()) / 1000.0D;
-            return shield
+            shield = shield
                 .append(Component.text(" (RC ", NamedTextColor.GOLD, TextDecoration.BOLD))
                 .append(Component.text(String.format("%.1fs", remainingSeconds), NamedTextColor.WHITE))
                 .append(Component.text(")", NamedTextColor.GOLD, TextDecoration.BOLD));
         }
-        return shield;
+        return separated(framed(shield));
+    }
+
+    private Component guardActionText(boolean showGuard, double current, double maximum) {
+        if (!showGuard || current < 0.0D) {
+            return Component.empty();
+        }
+        return separated(statText("GUARD", current, maximum, NamedTextColor.AQUA));
     }
 
     private Component conditionActionText(Collection<ActiveCondition> activeConditions) {
         if (activeConditions.isEmpty()) {
             return Component.empty();
         }
-        Component summary = Component.text("  ❖ ", NamedTextColor.DARK_GRAY);
+        Component summary = Component.text("❖ ", NamedTextColor.DARK_GRAY);
         List<ActiveCondition> conditions = activeConditions.stream()
                 .sorted(Comparator.comparingInt(condition -> conditionPriority(condition.type())))
                 .limit(3)
@@ -830,7 +865,7 @@ public class PlayerHudView {
         if (hiddenCount > 0) {
             summary = summary.append(Component.text("  +" + hiddenCount, NamedTextColor.GRAY));
         }
-        return summary;
+        return separated(framed(summary));
     }
 
     private Component conditionText(ActiveCondition condition) {
@@ -857,9 +892,19 @@ public class PlayerHudView {
 
     private Component dpsActionText(double currentDps) {
         String dps = formatOneDecimal(currentDps);
-        return Component.text("  DPS ", NamedTextColor.DARK_GRAY)
+        return separated(framed(Component.text("DPS ", NamedTextColor.DARK_GRAY)
             .append(Component.text(dps, NamedTextColor.GOLD))
-            .append(Component.text("/s", NamedTextColor.GRAY));
+            .append(Component.text("/s", NamedTextColor.GRAY))));
+    }
+
+    private Component framed(Component content) {
+        return Component.text("〚", NamedTextColor.DARK_GRAY)
+                .append(content)
+                .append(Component.text("〛", NamedTextColor.DARK_GRAY));
+    }
+
+    private Component separated(Component content) {
+        return Component.text(" ", NamedTextColor.DARK_GRAY).append(content);
     }
 
     private String formatOneDecimal(double value) {

@@ -1,0 +1,35 @@
+# design:
+#   motif: "守護者 / 捕縛の鎖"
+#   progression: 2
+schemaVersion: 1
+id: paladin_guardian_chain
+type: SKILL
+implementationId: paladin_guardian_chain
+name: "&3ガーディアンチェイン"
+description: "&7周囲の敵へ鎖を伸ばし、自身のもとへ引き寄せる。"
+icon: LEAD
+lore:
+  - "&7半径{skill.radius}m以内の全敵を1秒ごとに{skill.pullCount}回引き寄せる。"
+  - "&7遠い敵ほど強く、斜め上方向へ引き寄せる。"
+  - "&7引き寄せはノックバック耐性で軽減され、耐性100%では移動しない。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 10
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+params:
+  radius: 15.0
+  pullCount: 3
+  pullIntervalTicks: 20
+  minimumPullStrength: 0.35
+  maximumPullStrength: 1.35
+  verticalStrength: 0.35
+  curveHeight: 2.5
+  curvePoints: 20
+tags:
+  - active
+  - tank
+  - support

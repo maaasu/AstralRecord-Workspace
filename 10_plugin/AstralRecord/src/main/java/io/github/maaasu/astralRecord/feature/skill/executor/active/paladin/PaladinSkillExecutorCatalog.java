@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,21 +23,32 @@ public final class PaladinSkillExecutorCatalog {
      * @param holySmiteRuntimeService ホーリースマイト聖柱実行時状態サービス
      * @param statusService 一時シールドを管理するステータスサービス
      * @param partyService パーティーメンバーを解決するサービス
-     * @return 5個の executor
+     * @param guardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
+     * @param playerDeathService custom死亡状態サービス
+     * @return 10個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
             @NotNull PaladinHolyFieldRuntimeService holyFieldRuntimeService,
             @NotNull PaladinHolySmiteRuntimeService holySmiteRuntimeService,
             @NotNull StatusService statusService,
-            @NotNull PartyService partyService
+            @NotNull PartyService partyService,
+            @NotNull PaladinGuardianProtectRuntimeService guardianProtectRuntimeService,
+            @NotNull PlayerDeathService playerDeathService
     ) {
         return List.of(
                 new PaladinHolySmiteExecutor(services, holySmiteRuntimeService),
                 new PaladinHolyControlExecutor(services, holySmiteRuntimeService, statusService, partyService),
                 new PaladinHolyFieldExecutor(services, holyFieldRuntimeService),
                 new PaladinHolySmashExecutor(services, holyFieldRuntimeService),
-                new PaladinShieldExecutor(services, statusService, partyService)
+                new PaladinShieldExecutor(services, statusService, partyService),
+                new PaladinShieldBashExecutor(services),
+                new PaladinShieldImpactExecutor(services),
+                new PaladinFortressExecutor(services),
+                new PaladinGuardianProtectExecutor(
+                        services, guardianProtectRuntimeService, partyService, playerDeathService
+                ),
+                new PaladinGuardianChainExecutor(services)
         );
     }
 }

@@ -1,0 +1,31 @@
+# design:
+#   motif: "守護 / 被害変換"
+#   progression: 2
+schemaVersion: 1
+id: paladin_guard_convert
+type: SKILL
+implementationId: paladin_guard_convert
+name: "&bガードコンバート"
+description: "&7防いだ被害と受けた傷をガードへ変換する。"
+icon: RESPAWN_ANCHOR
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7防御前後の軽減率×10をガードとして獲得する。"
+  - "&7さらに最大HPに対する実被ダメージ率×10を加算する。"
+  - "&7最大ガード: スキルレベル×10"
+  - "&710秒間増加しないと、減少開始時の10%を毎秒失う。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+passive:
+  bindRequired: true
+tags:
+  - passive
+  - defense

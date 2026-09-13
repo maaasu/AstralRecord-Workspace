@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1531",
+  "name": "&bシールドインパクト",
+  "icon": "NETHERITE_BLOCK",
+  "tags": ["offense", "defense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [{ "type": "skill", "skillId": "paladin_shield_impact" }],
+  "unlockCondition": { "classId": "paladin" }
+}

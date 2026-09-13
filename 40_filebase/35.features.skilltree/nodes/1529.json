@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1529",
+  "name": "&bガードコンバート",
+  "icon": "RESPAWN_ANCHOR",
+  "tags": ["defense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [{ "type": "skill", "skillId": "paladin_guard_convert" }],
+  "unlockCondition": { "classId": "paladin" }
+}

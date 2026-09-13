@@ -34,6 +34,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRun
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
@@ -95,6 +97,8 @@ public final class DamageService {
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private PassiveSkillService passiveSkillService;
+    private PaladinGuardRuntimeService paladinGuardRuntimeService;
+    private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
@@ -217,6 +221,20 @@ public final class DamageService {
      */
     public void setPassiveSkillService(@Nullable PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
+    }
+
+    /** ガード獲得へ被ダメージ内訳を通知するサービスを設定します。 */
+    public void setPaladinGuardRuntimeService(
+            @Nullable PaladinGuardRuntimeService paladinGuardRuntimeService
+    ) {
+        this.paladinGuardRuntimeService = paladinGuardRuntimeService;
+    }
+
+    /** ガーディアンプロテクトのダメージ肩代わり先を設定します。 */
+    public void setPaladinGuardianProtectRuntimeService(
+            @Nullable PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService
+    ) {
+        this.paladinGuardianProtectRuntimeService = paladinGuardianProtectRuntimeService;
     }
 
     /**
@@ -1008,13 +1026,14 @@ public final class DamageService {
                 usesDefenseConversion(victim),
                 temporaryDefenseMultiplier(victim)
         );
+        double postCalculationMultiplier = 1.0D;
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
-            double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
+            postCalculationMultiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {
-                multiplier *= conditionService.damageTakenMultiplier(victim)
+                postCalculationMultiplier *= conditionService.damageTakenMultiplier(victim)
                         * conditionService.damageDealtMultiplier(attacker);
             }
-            calculated = calculated.withFinalDamage(calculated.finalDamage() * multiplier);
+            calculated = calculated.withFinalDamage(calculated.finalDamage() * postCalculationMultiplier);
         }
         DamageResult justDodgeDamage = calculated;
         if (!calculated.evaded()
@@ -1050,6 +1069,25 @@ public final class DamageService {
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
         }
+        double rawFixedHealthDamage = result.fixedHealthDamage();
+        PaladinGuardianProtectRuntimeService.DamageShare protectionShare = null;
+        if (victim.isPlayer() && victim.player() != null && paladinGuardianProtectRuntimeService != null) {
+            protectionShare = paladinGuardianProtectRuntimeService.share(victim.player(), result.finalDamage());
+            if (protectionShare != null
+                    && isPlayerDead(protectionShare.protector().getBukkit().getUniqueId())) {
+                paladinGuardianProtectRuntimeService.clear(
+                        victim.player().getBukkit().getUniqueId(),
+                        protectionShare.protector().getBukkit().getUniqueId()
+                );
+                protectionShare = null;
+            }
+            if (protectionShare != null) {
+                double targetRatio = result.finalDamage() <= 0.0D
+                        ? 1.0D
+                        : protectionShare.targetDamage() / result.finalDamage();
+                result = result.withScaledHealthDamage(targetRatio);
+            }
+        }
         boolean configuredPlayerRecharge = victim.isPlayer()
             && victim.player() != null
             && statusService.hasConfiguredShieldRecharge(victim.player());
@@ -1068,6 +1106,16 @@ public final class DamageService {
         double victimCurrentHealthBefore = victim.currentHealth();
         double victimMaxHealth = victim.maxHealth();
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
+        if (victim.isPlayer() && victim.player() != null && paladinGuardRuntimeService != null) {
+            double rawDamage = calculated.breakdown().preDefenseDamage() * postCalculationMultiplier
+                    + rawFixedHealthDamage;
+            paladinGuardRuntimeService.recordDamage(
+                    victim.player(), rawDamage, result.finalDamage(), victimMaxHealth
+            );
+        }
+        if (protectionShare != null) {
+            applyGuardianProtectDamage(protectionShare.protector(), protectionShare.protectorDamage(), attackType);
+        }
         double victimCurrentHealthAfter = victim.currentHealth();
         if (!projectileDamage) {
             applyDurabilityWear(attacker, victim, result);
@@ -1088,6 +1136,25 @@ public final class DamageService {
             );
         }
         return result;
+    }
+
+    /** 防御を再適用せず、肩代わり分をプロテクターのHPへ直接適用します。 */
+    private void applyGuardianProtectDamage(
+            @NotNull AstPlayer protector,
+            double damage,
+            @NotNull AttackType attackType
+    ) {
+        if (!(damage > 0.0D) || isPlayerDead(protector.getBukkit().getUniqueId())) {
+            return;
+        }
+        AstEntity target = AstEntity.player(protector);
+        double maximumHealth = target.maxHealth();
+        DamageResult redirected = new DamageResult(damage);
+        applyDamageResult(null, target, redirected, attackType, false);
+        if (paladinGuardRuntimeService != null) {
+            paladinGuardRuntimeService.recordDamage(protector, damage, damage, maximumHealth);
+        }
+        spawnDamageDisplay(null, target, redirected);
     }
 
     private boolean usesDefenseConversion(@NotNull AstEntity victim) {

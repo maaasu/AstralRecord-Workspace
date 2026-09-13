@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1533",
+  "name": "&bガーディアンプロテクト",
+  "icon": "GLOBE_BANNER_PATTERN",
+  "tags": ["defense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [{ "type": "skill", "skillId": "paladin_guardian_protect" }],
+  "unlockCondition": { "classId": "paladin" }
+}

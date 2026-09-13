@@ -217,6 +217,12 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `skill-paladin-divine-chaser` | `1526` | `skill / paladin_divine_chaser` | `&fディバインチェイサー` | `BEACON` | `offense` |
 | `skill-paladin-shield` | `1527` | `skill / paladin_shield` | `&fパラディンシールド` | `SHIELD` | `defense` |
 | `skill-paladin-holy-control` | `1528` | `skill / paladin_holy_control` | `&fホーリーコントロール` | `COMPARATOR` | `light` |
+| `skill-paladin-guard-convert` | `1529` | `skill / paladin_guard_convert` | `&bガードコンバート` | `RESPAWN_ANCHOR` | `defense` |
+| `skill-paladin-shield-bash` | `1530` | `skill / paladin_shield_bash` | `&bシールドバッシュ` | `COPPER_GRATE` | `offense` |
+| `skill-paladin-shield-impact` | `1531` | `skill / paladin_shield_impact` | `&bシールドインパクト` | `NETHERITE_BLOCK` | `offense`, `defense` |
+| `skill-paladin-fortress` | `1532` | `skill / paladin_fortress` | `&3フォートレス` | `REINFORCED_DEEPSLATE` | `defense` |
+| `skill-paladin-guardian-protect` | `1533` | `skill / paladin_guardian_protect` | `&bガーディアンプロテクト` | `GLOBE_BANNER_PATTERN` | `defense` |
+| `skill-paladin-guardian-chain` | `1534` | `skill / paladin_guardian_chain` | `&3ガーディアンチェイン` | `LEAD` | `defense` |
 
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 

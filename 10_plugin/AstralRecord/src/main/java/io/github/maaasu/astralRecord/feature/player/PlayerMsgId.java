@@ -1697,6 +1697,15 @@ public enum PlayerMsgId {
     P_7191(7191),
     // endregion
 
+    // region /feature/skill/executor/active/paladin 7200-7209
+    /** ガード不足によりスキルを発動できない。 */
+    P_7200(7200),
+    /** ガーディアンプロテクトの対象が視線上にいない。 */
+    P_7201(7201),
+    /** ガーディアンプロテクトを受けた通知。{0}: 発動者名、{1}: 持続秒数 */
+    P_7202(7202),
+    // endregion
+
     ;
 
     private final String id;

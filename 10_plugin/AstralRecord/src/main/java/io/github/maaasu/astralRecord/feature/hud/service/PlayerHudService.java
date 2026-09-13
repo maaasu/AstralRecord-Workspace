@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerServ
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -46,6 +47,7 @@ public class PlayerHudService {
     private final SkillTreeService skillTreeService;
     private final PlayerHudView playerHudView;
     private CombatDpsTrackerService combatDpsTrackerService;
+    private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private DungeonService dungeonService;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -90,6 +92,13 @@ public class PlayerHudService {
 
     public void setCombatDpsTrackerService(@NotNull CombatDpsTrackerService combatDpsTrackerService) {
         this.combatDpsTrackerService = combatDpsTrackerService;
+    }
+
+    /** アクションバーへガード値を表示する専用リソースサービスを設定します。 */
+    public void setPaladinGuardRuntimeService(
+            @NotNull PaladinGuardRuntimeService paladinGuardRuntimeService
+    ) {
+        this.paladinGuardRuntimeService = paladinGuardRuntimeService;
     }
 
     /** @param dungeonService ダンジョン Sidebar 情報の参照先 */
@@ -369,12 +378,18 @@ public class PlayerHudService {
             player.sendActionBar(override);
             return;
         }
+        PaladinGuardRuntimeService.GuardSnapshot guard = paladinGuardRuntimeService == null
+                ? new PaladinGuardRuntimeService.GuardSnapshot(false, 0.0D, 0.0D)
+                : paladinGuardRuntimeService.snapshot(astPlayer);
         playerHudView.renderActionBar(
             player,
             snapshot,
             conditionService.getActiveConditions(AstEntity.player(astPlayer)),
             statusService.getShieldRechargeState(astPlayer),
-            currentDps
+            currentDps,
+            guard.active(),
+            guard.current(),
+            guard.maximum()
         );
     }
 

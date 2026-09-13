@@ -1,0 +1,42 @@
+# design:
+#   motif: "盾撃 / 前進する盾面"
+#   progression: 2
+schemaVersion: 1
+id: paladin_shield_bash
+type: SKILL
+implementationId: paladin_shield_bash
+name: "&bシールドバッシュ"
+description: "&7前進する盾面で敵を打ち払い、強く減速させる。"
+icon: COPPER_GRATE
+lore:
+  - "&7幅{skill.width}m・高さ{skill.height}mの盾面を{skill.travelTicks}tickかけて前方{skill.range}mへ進める。"
+  - "&7接触した全敵へ近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
+  - "&7移動速度を{skill.movementSpeedReductionRatio:percent}%低下させ、後方へノックバックする。"
+  - "&7減速時間: {skill.slowDurationTicks:seconds}秒 / 同一対象の再命中間隔: {skill.hitCooldownTicks}tick"
+cooldownTicks: 20
+resourceType: GUARD
+resourceCost: 4
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.10 } }
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+params:
+  range: 5.0
+  width: 1.0
+  height: 2.0
+  travelTicks: 15
+  hitCooldownTicks: 3
+  damageRatio: 0.10
+  movementSpeedReductionRatio: 0.90
+  slowDurationTicks: 60
+  knockbackStrength: 1.0
+tags:
+  - active
+  - melee
+  - offense

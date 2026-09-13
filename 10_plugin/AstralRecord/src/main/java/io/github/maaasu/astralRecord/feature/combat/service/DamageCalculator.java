@@ -147,7 +147,8 @@ public final class DamageCalculator {
                             resolvedAttackPower,
                             defense.rawDefense(),
                             defense.effectiveDefense(),
-                            List.of()
+                            List.of(),
+                            0.0D
                     )
             );
         }
@@ -158,12 +159,14 @@ public final class DamageCalculator {
                 * context.attackerDamageMultiplier();
         CriticalDamage criticalDamage = applyCriticalMultipliers(context, damage);
         damage = criticalDamage.damage();
+        double preDefenseDamage = damage;
 
         if (context.victim().isManaged() && damage > 0.0D) {
             damage *= defenseDamageMultiplier(resolvedAttackPower, defense.effectiveDefense());
         }
 
         double attributedDamage = 0.0D;
+        double attributedPreDefenseDamage = 0.0D;
         Map<DamageElement, ElementCalculation> elementCalculations = new LinkedHashMap<>();
         for (DamageComponent component : components) {
             double share = damage * component.ratio() / totalRatio;
@@ -172,6 +175,8 @@ public final class DamageCalculator {
                     damageElement -> elementCalculation(context, damageElement)
             );
             attributedDamage += share * element.multiplier();
+            double preDefenseShare = preDefenseDamage * component.ratio() / totalRatio;
+            attributedPreDefenseDamage += preDefenseShare * element.multiplier();
         }
 
         return new DamageResult(
@@ -188,7 +193,8 @@ public final class DamageCalculator {
                         elementCalculations.values().stream()
                                 .map(ElementCalculation::resistance)
                                 .filter(Objects::nonNull)
-                                .toList()
+                                .toList(),
+                        Math.max(0.0D, attributedPreDefenseDamage)
                 )
         );
     }

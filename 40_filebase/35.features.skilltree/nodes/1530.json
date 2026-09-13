@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1530",
+  "name": "&bシールドバッシュ",
+  "icon": "COPPER_GRATE",
+  "tags": ["offense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [{ "type": "skill", "skillId": "paladin_shield_bash" }],
+  "unlockCondition": { "classId": "paladin" }
+}

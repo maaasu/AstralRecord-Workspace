@@ -1,0 +1,36 @@
+# design:
+#   motif: "盾衝 / 守り崩しの爆発"
+#   progression: 2
+schemaVersion: 1
+id: paladin_shield_impact
+type: SKILL
+implementationId: paladin_shield_impact
+name: "&bシールドインパクト"
+description: "&7周囲へ盾の衝撃を放ち、敵の全体防御を崩す。"
+icon: NETHERITE_BLOCK
+lore:
+  - "&7半径{skill.radius}mの全敵へ近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
+  - "&7命中した敵の全体防御を{skill.defenseReductionRatio}%低下させる。"
+  - "&7防御低下時間: {skill.defenseDebuffDurationTicks:seconds}秒"
+cooldownTicks: 200
+resourceType: GUARD
+resourceCost: 10
+castTimeTicks: 15
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.55 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.55 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.55 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.55 } }
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+params:
+  radius: 4.0
+  damageRatio: 0.55
+  defenseReductionRatio: 30.0
+  defenseDebuffDurationTicks: 100
+tags:
+  - active
+  - melee
+  - offense

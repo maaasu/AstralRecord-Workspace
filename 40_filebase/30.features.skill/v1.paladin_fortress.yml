@@ -1,0 +1,35 @@
+# design:
+#   motif: "要塞 / 戦線固定"
+#   progression: 2
+schemaVersion: 1
+id: paladin_fortress
+type: SKILL
+implementationId: paladin_fortress
+name: "&3フォートレス"
+description: "&7要塞のように踏み留まり、周囲の敵を引き付ける。"
+icon: REINFORCED_DEEPSLATE
+lore:
+  - "&7半径{skill.radius}m・上下{skill.height}mの敵を1秒ごとに最大{skill.maxTargets}体挑発する。"
+  - "&7挑発中は脅威値に関係なく自身を攻撃対象にする。"
+  - "&7持続時間: Lv.1で11秒 / Lv.2で12秒"
+cooldownTicks: 360
+resourceType: ENERGY
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 2
+levels:
+  - { level: 2, paramDeltas: { durationTicks: 20 } }
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+params:
+  radius: 8.0
+  height: 8.0
+  maxTargets: 24
+  durationTicks: 220
+  pulseIntervalTicks: 20
+  tauntHoldTicks: 21
+tags:
+  - active
+  - defense
+  - tank

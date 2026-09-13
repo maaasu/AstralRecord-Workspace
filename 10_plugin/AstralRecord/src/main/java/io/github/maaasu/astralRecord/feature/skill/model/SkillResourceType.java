@@ -13,6 +13,7 @@ public enum SkillResourceType {
 
     MANA(PlayerMsgId.P_5801),
     ENERGY(PlayerMsgId.P_5806),
+    GUARD(PlayerMsgId.P_7200),
     ;
 
     private final PlayerMsgId insufficientMessageId;

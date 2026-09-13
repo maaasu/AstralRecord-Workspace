@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
@@ -91,6 +92,7 @@ public class SkillService {
     private LearnedSkillResolver learnedSkillResolver;
     private ConditionService conditionService;
     private PlayerHudService playerHudService;
+    private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private final List<BiConsumer<AstPlayer, String>> playerCastSuccessListeners = new CopyOnWriteArrayList<>();
     private BiConsumer<AstPlayer, String> playerSkillUseListener = (player, skillId) -> { };
     private BiFunction<AstPlayer, SkillDefinition, Double> playerCastTimeReductionResolver =
@@ -129,6 +131,17 @@ public class SkillService {
      */
     public void setPlayerSkillUseListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         this.playerSkillUseListener = listener;
+    }
+
+    /**
+     * GUARD消費を解決するパラディン専用リソースサービスを設定します。
+     *
+     * @param paladinGuardRuntimeService ガード値の参照・消費先
+     */
+    public void setPaladinGuardRuntimeService(
+            @NotNull PaladinGuardRuntimeService paladinGuardRuntimeService
+    ) {
+        this.paladinGuardRuntimeService = paladinGuardRuntimeService;
     }
 
     /**
@@ -1535,12 +1548,12 @@ public class SkillService {
             return SkillResourceType.MANA;
         }
         if (!(raw instanceof String value) || value.isBlank()) {
-            throw new SkillParameterException("resourceType", "MANA または ENERGY を指定してください");
+            throw new SkillParameterException("resourceType", "MANA、ENERGY、GUARD のいずれかを指定してください");
         }
         try {
             return SkillResourceType.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new SkillParameterException("resourceType", "MANA または ENERGY を指定してください");
+            throw new SkillParameterException("resourceType", "MANA、ENERGY、GUARD のいずれかを指定してください");
         }
     }
 
@@ -1583,6 +1596,9 @@ public class SkillService {
             @NotNull SkillResourceType resourceType,
             double baseCost
     ) {
+        if (resourceType == SkillResourceType.GUARD) {
+            return Math.max(0.0D, baseCost);
+        }
         StatusType reductionType = resourceType == SkillResourceType.MANA
                 ? StatusType.MANA_COST_REDUCTION
                 : StatusType.ENERGY_COST_REDUCTION;
@@ -1594,6 +1610,9 @@ public class SkillService {
         return switch (resourceType) {
             case MANA -> caster.currentMana();
             case ENERGY -> caster.currentEnergy();
+            case GUARD -> caster instanceof PlayerSkillCaster playerCaster && paladinGuardRuntimeService != null
+                    ? paladinGuardRuntimeService.snapshot(playerCaster.player()).current()
+                    : 0.0D;
         };
     }
 
@@ -1608,6 +1627,11 @@ public class SkillService {
         switch (resourceType) {
             case MANA -> caster.consumeMana(amount);
             case ENERGY -> caster.consumeEnergy(amount);
+            case GUARD -> {
+                if (caster instanceof PlayerSkillCaster playerCaster && paladinGuardRuntimeService != null) {
+                    paladinGuardRuntimeService.consume(playerCaster.player(), amount);
+                }
+            }
         }
     }
 
