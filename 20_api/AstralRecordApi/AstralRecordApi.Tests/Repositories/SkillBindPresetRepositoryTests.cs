@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Text.Json;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -172,6 +173,126 @@ public class SkillBindPresetRepositoryTests
         Assert.Null(preset.ActiveSkillSlots[1]);
         Assert.Equal(firstLearnedSkillId.ToString(), preset.LeftClickSkillId);
         Assert.Null(preset.PassiveSkillSlots[0]);
+    }
+
+    [Fact]
+    public async Task DeletedLearnedSkillBinding_CanRemainInItsExistingSlotOnly()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var activeSkillId = Guid.NewGuid();
+        var leftClickSkillId = Guid.NewGuid();
+        var passiveSkillId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+        dbContext.AccountLearnedSkills.AddRange(
+            DeletedSkill(activeSkillId, "swordsman_flame_rush"),
+            DeletedSkill(leftClickSkillId, "swordsman_smash"),
+            DeletedSkill(passiveSkillId, "swordsman_guard"));
+        dbContext.SkillBindPresets.Add(new SkillBindPresetEntity
+        {
+            SkillBindPresetId = Guid.NewGuid(),
+            AccountId = accountId,
+            PresetIndex = 1,
+            ActiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { activeSkillId.ToString() }),
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            PassiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { passiveSkillId.ToString() }),
+            IsUnlocked = true,
+            IsSelected = true,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        await dbContext.SaveChangesAsync();
+        var repository = new SkillBindPresetRepository(dbContext);
+
+        var loaded = (await repository.GetByAccountIdAsync(accountId)).Single(preset => preset.PresetIndex == 1);
+        var retained = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [activeSkillId.ToString()],
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            PassiveSkillSlots = [passiveSkillId.ToString()],
+            UpdatedBy = userId,
+        });
+        var movedActive = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [null, activeSkillId.ToString()],
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            PassiveSkillSlots = [passiveSkillId.ToString()],
+            UpdatedBy = userId,
+        });
+        var movedPassive = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [activeSkillId.ToString()],
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            PassiveSkillSlots = [null, passiveSkillId.ToString()],
+            UpdatedBy = userId,
+        });
+        var reassignedLeftClick = await repository.UpsertAsync(accountId, 2, new SkillBindPresetUpsertRequest
+        {
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            UpdatedBy = userId,
+        });
+        var removedActive = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [],
+            LeftClickSkillId = leftClickSkillId.ToString(),
+            PassiveSkillSlots = [passiveSkillId.ToString()],
+            UpdatedBy = userId,
+        });
+        var removedLeftClick = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [],
+            PassiveSkillSlots = [passiveSkillId.ToString()],
+            UpdatedBy = userId,
+        });
+        var removedPassive = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            ActiveSkillSlots = [],
+            PassiveSkillSlots = [],
+            UpdatedBy = userId,
+        });
+
+        Assert.Equal(activeSkillId.ToString(), loaded.ActiveSkillSlots[0]);
+        Assert.Equal(leftClickSkillId.ToString(), loaded.LeftClickSkillId);
+        Assert.Equal(passiveSkillId.ToString(), loaded.PassiveSkillSlots[0]);
+        Assert.NotNull(retained);
+        Assert.Null(movedActive);
+        Assert.Null(movedPassive);
+        Assert.Null(reassignedLeftClick);
+        Assert.NotNull(removedActive);
+        Assert.Null(removedActive.ActiveSkillSlots[0]);
+        Assert.Equal(leftClickSkillId.ToString(), removedActive.LeftClickSkillId);
+        Assert.Equal(passiveSkillId.ToString(), removedActive.PassiveSkillSlots[0]);
+        Assert.NotNull(removedLeftClick);
+        Assert.Null(removedLeftClick.LeftClickSkillId);
+        Assert.Equal(passiveSkillId.ToString(), removedLeftClick.PassiveSkillSlots[0]);
+        Assert.NotNull(removedPassive);
+        Assert.Null(removedPassive.PassiveSkillSlots[0]);
+
+        AccountLearnedSkillEntity DeletedSkill(Guid learnedSkillId, string skillId) => new()
+        {
+            LearnedSkillId = learnedSkillId,
+            AccountId = accountId,
+            SkillId = skillId,
+            Level = 1,
+            Version = 2,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+            IsDeleted = true,
+        };
     }
 
     [Fact]

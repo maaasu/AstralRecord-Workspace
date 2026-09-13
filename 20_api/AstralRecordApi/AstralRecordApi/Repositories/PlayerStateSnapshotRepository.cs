@@ -1387,19 +1387,41 @@ public sealed class PlayerStateSnapshotRepository(
             || section.Presets.GroupBy(preset => preset.PresetIndex).Any(group => group.Count() > 1))
             return null;
 
-        var ownedIds = await dbContext.AccountLearnedSkills.AsNoTracking()
-            .Where(skill => skill.AccountId == request.AccountId && !skill.IsDeleted)
-            .Select(skill => skill.LearnedSkillId.ToString()).ToHashSetAsync(StringComparer.OrdinalIgnoreCase);
-        bool IsOwned(string? value) => string.IsNullOrWhiteSpace(value)
-            || string.Equals(value, SkillBindPresetRepository.WeaponNormalAttackBindingId, StringComparison.Ordinal)
-            || ownedIds.Contains(value);
-        if (section.Presets.Any(preset => !preset.ActiveSkillSlots.All(IsOwned)
-            || !preset.PassiveSkillSlots.All(IsOwned) || !IsOwned(preset.LeftClickSkillId)))
-            return null;
-
         var existing = await dbContext.SkillBindPresets
             .Where(preset => preset.AccountId == request.AccountId && !preset.IsDeleted).ToListAsync();
         var byIndex = existing.ToDictionary(preset => preset.PresetIndex);
+        var accountSkills = await dbContext.AccountLearnedSkills.AsNoTracking()
+            .Where(skill => skill.AccountId == request.AccountId)
+            .Select(skill => new { skill.LearnedSkillId, skill.IsDeleted }).ToListAsync();
+        var accountIds = accountSkills.Select(skill => skill.LearnedSkillId.ToString())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var activeIds = accountSkills.Where(skill => !skill.IsDeleted)
+            .Select(skill => skill.LearnedSkillId.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool IsAllowed(string? value, string? persisted, bool allowWeaponNormalAttack)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return true;
+            var normalized = value.Trim();
+            if (string.Equals(normalized, SkillBindPresetRepository.WeaponNormalAttackBindingId, StringComparison.Ordinal))
+                return allowWeaponNormalAttack;
+            if (!Guid.TryParse(normalized, out var learnedSkillId)) return false;
+            var canonicalId = learnedSkillId.ToString();
+            return activeIds.Contains(canonicalId)
+                || accountIds.Contains(canonicalId) && SameBinding(learnedSkillId, persisted);
+        }
+        foreach (var snapshot in section.Presets)
+        {
+            byIndex.TryGetValue(snapshot.PresetIndex, out var current);
+            var activeSlots = NormalizeSlots(snapshot.ActiveSkillSlots, SkillBindPresetRepository.ActionRingSlotCount);
+            var persistedActiveSlots = DeserializeBindingSlots(
+                current?.ActiveSkillSlotsJson, SkillBindPresetRepository.ActionRingSlotCount);
+            var passiveSlots = NormalizeSlots(snapshot.PassiveSkillSlots, SkillBindPresetRepository.PassiveSlotCount);
+            var persistedPassiveSlots = DeserializeBindingSlots(
+                current?.PassiveSkillSlotsJson, SkillBindPresetRepository.PassiveSlotCount);
+            if (activeSlots.Where((binding, index) => !IsAllowed(binding, persistedActiveSlots[index], true)).Any()
+                || passiveSlots.Where((binding, index) => !IsAllowed(binding, persistedPassiveSlots[index], false)).Any()
+                || !IsAllowed(snapshot.LeftClickSkillId, current?.LeftClickSkillId, true))
+                return null;
+        }
         foreach (var snapshot in section.Presets)
         {
             if (byIndex.TryGetValue(snapshot.PresetIndex, out var current)
@@ -2082,6 +2104,22 @@ public sealed class PlayerStateSnapshotRepository(
         => Enumerable.Range(0, count)
             .Select(index => index < values.Count && !string.IsNullOrWhiteSpace(values[index]) ? values[index]!.Trim() : null)
             .ToArray();
+
+    private static IReadOnlyList<string?> DeserializeBindingSlots(string? json, int count)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return NormalizeSlots([], count);
+        try
+        {
+            return NormalizeSlots(JsonSerializer.Deserialize<IReadOnlyList<string?>>(json) ?? [], count);
+        }
+        catch (JsonException)
+        {
+            return NormalizeSlots([], count);
+        }
+    }
+
+    private static bool SameBinding(Guid learnedSkillId, string? persisted)
+        => Guid.TryParse(persisted, out var persistedId) && persistedId == learnedSkillId;
 
     private static string ComputeRequestHash(PlayerStateSnapshotSaveRequest request)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, JsonOptions)))).ToLowerInvariant();

@@ -27,20 +27,21 @@ public class SkillBindPresetRepository(
 
         // 個体ID導入前のプリセットには skillId が保存されている。読み出し時に所有する最古の
         // learnedSkillId へ正規化して返すことで、次回保存を UUID 正本へ安全に移行する。
-        var ownedLearnedSkills = await dbContext.AccountLearnedSkills
+        var accountLearnedSkills = await dbContext.AccountLearnedSkills
                 .AsNoTracking()
-                .Where(skill => skill.AccountId == accountId && !skill.IsDeleted)
+                .Where(skill => skill.AccountId == accountId)
                 .OrderBy(skill => skill.CreatedAt)
                 .ThenBy(skill => skill.LearnedSkillId)
-                .Select(skill => new { skill.SkillId, skill.LearnedSkillId })
+                .Select(skill => new { skill.SkillId, skill.LearnedSkillId, skill.IsDeleted })
                 .ToListAsync();
-        var legacyBindingIds = ownedLearnedSkills
+        var legacyBindingIds = accountLearnedSkills
+            .Where(skill => !skill.IsDeleted)
             .GroupBy(skill => skill.SkillId, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 group => group.Key,
                 group => group.First().LearnedSkillId.ToString(),
                 StringComparer.OrdinalIgnoreCase);
-        var ownedBindingIds = ownedLearnedSkills
+        var accountBindingIds = accountLearnedSkills
             .Select(skill => skill.LearnedSkillId.ToString())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -49,7 +50,7 @@ public class SkillBindPresetRepository(
         for (var index = 1; index <= PresetCount; index++)
         {
             result.Add(byIndex.TryGetValue(index, out var entity)
-                ? Map(entity, legacyBindingIds, ownedBindingIds)
+                ? Map(entity, legacyBindingIds, accountBindingIds)
                 : Empty(accountId, index));
         }
 
@@ -68,12 +69,13 @@ public class SkillBindPresetRepository(
         var activeSlots = NormalizeSlots(request.ActiveSkillSlots, ActionRingSlotCount);
         var passiveSlots = NormalizeSlots(request.PassiveSkillSlots, PassiveSlotCount);
         var leftClickSkillId = NormalizeSkillId(request.LeftClickSkillId);
-        if (!await HasValidOwnedBindingsAsync(accountId, activeSlots, leftClickSkillId, passiveSlots))
-            return null;
         var entity = await dbContext.SkillBindPresets
             .FirstOrDefaultAsync(x => x.AccountId == accountId
                 && x.PresetIndex == presetIndex
                 && !x.IsDeleted);
+        if (!await HasValidOwnedBindingsAsync(
+                accountId, activeSlots, leftClickSkillId, passiveSlots, entity))
+            return null;
 
         if (entity is null)
         {
@@ -285,7 +287,8 @@ public class SkillBindPresetRepository(
         Guid accountId,
         IReadOnlyList<string?> activeSlots,
         string? leftClickSkillId,
-        IReadOnlyList<string?> passiveSlots)
+        IReadOnlyList<string?> passiveSlots,
+        SkillBindPresetEntity? existing)
     {
         if (!await dbContext.Accounts.AsNoTracking()
                 .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted))
@@ -300,33 +303,55 @@ public class SkillBindPresetRepository(
         if (passiveBindingIds.Length != passiveBindingIds.Distinct(StringComparer.OrdinalIgnoreCase).Count())
             return false;
 
-        var rawBindings = activeSlots
-            .Concat(passiveSlots)
-            .Append(leftClickSkillId)
-            .Where(binding => !string.IsNullOrWhiteSpace(binding)
-                && !string.Equals(binding, WeaponNormalAttackBindingId, StringComparison.Ordinal))
-            .Select(binding => binding!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var existingActiveSlots = existing is null
+            ? EmptySlots(ActionRingSlotCount)
+            : DeserializeSlots(existing.ActiveSkillSlotsJson, ActionRingSlotCount);
+        var existingPassiveSlots = existing is null
+            ? EmptySlots(PassiveSlotCount)
+            : DeserializeSlots(existing.PassiveSkillSlotsJson, PassiveSlotCount);
+        var existingLeftClickSkillId = NormalizeSkillId(existing?.LeftClickSkillId);
+
+        var rawBindings = activeSlots.Select((binding, index) => (value: binding, existing: existingActiveSlots[index]))
+            .Concat(passiveSlots.Select((binding, index) => (value: binding, existing: existingPassiveSlots[index])))
+            .Append((value: leftClickSkillId, existing: existingLeftClickSkillId))
+            .Where(binding => !string.IsNullOrWhiteSpace(binding.value)
+                && !string.Equals(binding.value, WeaponNormalAttackBindingId, StringComparison.Ordinal))
+            .Select(binding => (value: binding.value!, binding.existing))
             .ToArray();
-        var learnedSkillIds = new List<Guid>(rawBindings.Length);
+        var requestedBindings = new List<(Guid LearnedSkillId, string? Existing)>(rawBindings.Length);
         foreach (var binding in rawBindings)
         {
-            if (!Guid.TryParse(binding, out var learnedSkillId))
+            if (!Guid.TryParse(binding.value, out var learnedSkillId))
                 return false;
-            learnedSkillIds.Add(learnedSkillId);
+            requestedBindings.Add((learnedSkillId, binding.existing));
         }
-        if (learnedSkillIds.Count == 0)
+        if (requestedBindings.Count == 0)
             return true;
 
-        var ownedCount = await dbContext.AccountLearnedSkills.AsNoTracking()
-            .CountAsync(skill => skill.AccountId == accountId
-                && !skill.IsDeleted
-                && learnedSkillIds.Contains(skill.LearnedSkillId));
-        if (ownedCount != learnedSkillIds.Count)
+        var learnedSkillIds = requestedBindings.Select(binding => binding.LearnedSkillId).Distinct().ToArray();
+        var knownSkills = await dbContext.AccountLearnedSkills.AsNoTracking()
+            .Where(skill => skill.AccountId == accountId && learnedSkillIds.Contains(skill.LearnedSkillId))
+            .Select(skill => new { skill.LearnedSkillId, skill.IsDeleted })
+            .ToListAsync();
+        var knownById = knownSkills.ToDictionary(skill => skill.LearnedSkillId);
+        if (requestedBindings.Any(binding => !knownById.TryGetValue(binding.LearnedSkillId, out var known)
+                || known.IsDeleted && !SameBinding(binding.LearnedSkillId, binding.Existing)))
             return false;
 
-        return await HasValidPassiveBindingsAsync(accountId, passiveBindingIds);
+        var activePassiveBindingIds = passiveSlots
+            .Select((binding, index) => (binding, existing: existingPassiveSlots[index]))
+            .Where(binding => !string.IsNullOrWhiteSpace(binding.binding))
+            .Where(binding => !Guid.TryParse(binding.binding, out var learnedSkillId)
+                || !knownById.TryGetValue(learnedSkillId, out var known)
+                || !known.IsDeleted
+                || !SameBinding(learnedSkillId, binding.existing))
+            .Select(binding => binding.binding!)
+            .ToArray();
+        return await HasValidPassiveBindingsAsync(accountId, activePassiveBindingIds);
     }
+
+    private static bool SameBinding(Guid learnedSkillId, string? existing)
+        => Guid.TryParse(existing, out var existingId) && existingId == learnedSkillId;
 
     private async Task<bool> HasValidPassiveBindingsAsync(
         Guid accountId,

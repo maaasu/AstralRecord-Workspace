@@ -56,9 +56,8 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         }
     }
 
-    // AR-CODE-011/012: completed learned state is the binding authority within one transaction.
     [Fact]
-    public async Task SaveAsync_NewLearnedSkillCanBeBound_DeletedSkillCannotRemainBound()
+    public async Task SaveAsync_NewLearnedSkillCanBeBound_DeletedSkillCanRemainInExistingSlot()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();
         var skillId = Guid.NewGuid();
@@ -75,7 +74,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         });
         Assert.True(first.Succeeded, first.Detail);
 
-        PlayerStateSnapshotSaveRequest DeleteRequest(string? binding) => new()
+        PlayerStateSnapshotSaveRequest DeleteRequest(bool moveBinding) => new()
         {
             SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
             LearnedSkills = Section(new PlayerStateLearnedSkillsSection
@@ -83,20 +82,166 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
                 AccountId = fixture.AccountId, ClientRevision = 2,
                 DeletedSkills = [new PlayerStateDeletedLearnedSkillSnapshot { LearnedSkillId = skillId, ExpectedVersion = 1 }],
             }),
-            SkillBindPresets = Section(BindSection(fixture.AccountId, 2, 1, binding)),
+            SkillBindPresets = Section(new PlayerStateSkillBindPresetsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 2, SelectedPresetIndex = 2,
+                Presets = Enumerable.Range(1, SkillBindPresetRepository.PresetCount)
+                    .Select(index => new PlayerStateSkillBindPresetSnapshot
+                    {
+                        PresetIndex = index,
+                        ExpectedVersion = 1,
+                        ActiveSkillSlots = moveBinding
+                            ? [null, skillId.ToString()]
+                            : [skillId.ToString()],
+                    }).ToArray(),
+            }),
         };
-        var invalidBinding = await repository.SaveAsync(DeleteRequest(skillId.ToString()));
-        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, invalidBinding.Failure);
+        var movedBinding = await repository.SaveAsync(DeleteRequest(true));
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, movedBinding.Failure);
         fixture.DbContext.ChangeTracker.Clear();
         Assert.False((await fixture.DbContext.AccountLearnedSkills.SingleAsync()).IsDeleted);
         Assert.Equal(1, (await fixture.DbContext.SkillBindPresets.SingleAsync(p => p.IsSelected)).PresetIndex);
 
-        var deleted = await repository.SaveAsync(DeleteRequest(null));
+        var deleted = await repository.SaveAsync(DeleteRequest(false));
         Assert.True(deleted.Succeeded, deleted.Detail);
         fixture.DbContext.ChangeTracker.Clear();
         Assert.True((await fixture.DbContext.AccountLearnedSkills.SingleAsync()).IsDeleted);
         Assert.Equal(2, (await fixture.DbContext.SkillBindPresets.SingleAsync(p => p.IsSelected)).PresetIndex);
+        Assert.All(await fixture.DbContext.SkillBindPresets.AsNoTracking().ToListAsync(), preset =>
+            Assert.Equal(skillId.ToString(), JsonSerializer.Deserialize<string?[]>(preset.ActiveSkillSlotsJson)![0]));
         Assert.Equal(2, await fixture.DbContext.PlayerStateSnapshots.CountAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreviouslyDeletedSkillBindingCanBeResavedInPlaceButNotMoved()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var activeSkillId = Guid.NewGuid();
+        var leftClickSkillId = Guid.NewGuid();
+        var passiveSkillId = Guid.NewGuid();
+        var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
+        var created = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            LearnedSkills = Section(new PlayerStateLearnedSkillsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1,
+                Skills =
+                [
+                    NewSkill(activeSkillId, "active"),
+                    NewSkill(leftClickSkillId, "left-click"),
+                    NewSkill(passiveSkillId, "passive"),
+                ],
+            }),
+            SkillBindPresets = Section(Bindings(
+                null, [activeSkillId.ToString()], leftClickSkillId.ToString(), [passiveSkillId.ToString()])),
+        });
+        Assert.True(created.Succeeded, created.Detail);
+        var forgotten = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            LearnedSkills = Section(new PlayerStateLearnedSkillsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 2,
+                DeletedSkills =
+                [
+                    DeletedSkill(activeSkillId),
+                    DeletedSkill(leftClickSkillId),
+                    DeletedSkill(passiveSkillId),
+                ],
+            }),
+        });
+        Assert.True(forgotten.Succeeded, forgotten.Detail);
+
+        var retained = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(
+                1, [activeSkillId.ToString()], leftClickSkillId.ToString(), [passiveSkillId.ToString()])),
+        });
+        Assert.True(retained.Succeeded, retained.Detail);
+        var retainedPreset = await fixture.DbContext.SkillBindPresets.AsNoTracking()
+            .SingleAsync(preset => preset.PresetIndex == 1);
+        Assert.Equal(activeSkillId.ToString(), JsonSerializer.Deserialize<string?[]>(retainedPreset.ActiveSkillSlotsJson)![0]);
+        Assert.Equal(leftClickSkillId.ToString(), retainedPreset.LeftClickSkillId);
+        Assert.Equal(passiveSkillId.ToString(), JsonSerializer.Deserialize<string?[]>(retainedPreset.PassiveSkillSlotsJson)![0]);
+        var movedActive = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(
+                2, [null, activeSkillId.ToString()], leftClickSkillId.ToString(), [passiveSkillId.ToString()])),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, movedActive.Failure);
+        var movedPassive = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(
+                2, [activeSkillId.ToString()], leftClickSkillId.ToString(), [null, passiveSkillId.ToString()])),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, movedPassive.Failure);
+        var reassignedLeftClick = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(
+                2, [activeSkillId.ToString()], null, [passiveSkillId.ToString()], leftClickSkillId.ToString())),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, reassignedLeftClick.Failure);
+
+        var removedActive = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(
+                2, [], leftClickSkillId.ToString(), [passiveSkillId.ToString()])),
+        });
+        Assert.True(removedActive.Succeeded, removedActive.Detail);
+        var removedLeftClick = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(3, [], null, [passiveSkillId.ToString()])),
+        });
+        Assert.True(removedLeftClick.Succeeded, removedLeftClick.Detail);
+        var removedPassive = await repository.SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            SkillBindPresets = Section(Bindings(4, [], null, [])),
+        });
+        Assert.True(removedPassive.Succeeded, removedPassive.Detail);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.All(await fixture.DbContext.SkillBindPresets.AsNoTracking().ToListAsync(), preset =>
+        {
+            Assert.DoesNotContain(activeSkillId.ToString(), preset.ActiveSkillSlotsJson);
+            Assert.DoesNotContain(passiveSkillId.ToString(), preset.PassiveSkillSlotsJson);
+            Assert.NotEqual(leftClickSkillId.ToString(), preset.LeftClickSkillId);
+        });
+
+        PlayerStateLearnedSkillSnapshot NewSkill(Guid learnedSkillId, string skillId) => new()
+        {
+            LearnedSkillId = learnedSkillId, SkillId = skillId, Level = 1,
+        };
+        PlayerStateDeletedLearnedSkillSnapshot DeletedSkill(Guid learnedSkillId) => new()
+        {
+            LearnedSkillId = learnedSkillId, ExpectedVersion = 1,
+        };
+        PlayerStateSkillBindPresetsSection Bindings(
+            int? version,
+            IReadOnlyList<string?> activeSlots,
+            string? leftClick,
+            IReadOnlyList<string?> passiveSlots,
+            string? secondPresetLeftClick = null) => new()
+        {
+            AccountId = fixture.AccountId,
+            ClientRevision = version.GetValueOrDefault() + 1,
+            SelectedPresetIndex = 1,
+            Presets = Enumerable.Range(1, SkillBindPresetRepository.PresetCount)
+                .Select(index => new PlayerStateSkillBindPresetSnapshot
+                {
+                    PresetIndex = index,
+                    ExpectedVersion = version,
+                    ActiveSkillSlots = index == 1 ? activeSlots : [],
+                    LeftClickSkillId = index == 1 ? leftClick : index == 2 ? secondPresetLeftClick : null,
+                    PassiveSkillSlots = index == 1 ? passiveSlots : [],
+                }).ToArray(),
+        };
     }
 
     [Fact]
