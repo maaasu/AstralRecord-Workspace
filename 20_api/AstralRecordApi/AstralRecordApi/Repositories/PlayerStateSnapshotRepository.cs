@@ -1,4 +1,5 @@
 using System.Data;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,6 +32,8 @@ public sealed class PlayerStateSnapshotRepository(
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (request.QuestState.HasValue && dbContext.Database.IsSqlServer())
+                await AcquireQuestStateSnapshotLockAsync();
 
             var existing = await FindSnapshotForUpdateAsync(request.SnapshotId);
             if (existing is not null)
@@ -809,12 +812,7 @@ public sealed class PlayerStateSnapshotRepository(
         PlayerStateSnapshotSaveRequest request,
         DateTime now)
     {
-        var state = await dbContext.AccountQuestStates
-            .Include(value => value.ActiveQuests)
-                .ThenInclude(active => active.ObjectiveProgress)
-            .Include(value => value.Completions)
-            .Include(value => value.Cooldowns)
-            .FirstOrDefaultAsync(value => value.AccountId == request.AccountId && !value.IsDeleted);
+        var state = await FindQuestStateForUpdateAsync(request.AccountId);
 
         if (state is null)
         {
@@ -840,15 +838,22 @@ public sealed class PlayerStateSnapshotRepository(
             state.Version = Math.Max(1, state.Version + 1);
             state.UpdatedAt = now;
             state.UpdatedBy = request.UpdatedBy;
-            dbContext.AccountQuestObjectiveProgresses.RemoveRange(
-                state.ActiveQuests.SelectMany(active => active.ObjectiveProgress));
-            dbContext.AccountQuestActives.RemoveRange(state.ActiveQuests);
-            dbContext.AccountQuestCompletions.RemoveRange(state.Completions);
-            dbContext.AccountQuestCooldowns.RemoveRange(state.Cooldowns);
-            await dbContext.SaveChangesAsync();
-            state.ActiveQuests.Clear();
-            state.Completions.Clear();
-            state.Cooldowns.Clear();
+            if (dbContext.Database.IsSqlServer())
+            {
+                await ReplaceQuestChildrenAsync(state.AccountQuestStateId);
+            }
+            else
+            {
+                dbContext.AccountQuestObjectiveProgresses.RemoveRange(
+                    state.ActiveQuests.SelectMany(active => active.ObjectiveProgress));
+                dbContext.AccountQuestActives.RemoveRange(state.ActiveQuests);
+                dbContext.AccountQuestCompletions.RemoveRange(state.Completions);
+                dbContext.AccountQuestCooldowns.RemoveRange(state.Cooldowns);
+                await dbContext.SaveChangesAsync();
+                state.ActiveQuests.Clear();
+                state.Completions.Clear();
+                state.Cooldowns.Clear();
+            }
         }
 
         foreach (var snapshot in section.ActiveQuests)
@@ -1595,6 +1600,85 @@ public sealed class PlayerStateSnapshotRepository(
                 """).SingleOrDefaultAsync();
         }
         return await dbContext.Accounts.SingleOrDefaultAsync(account => account.Uuid == accountId && !account.IsDeleted);
+    }
+
+    /// <summary>
+    /// 同一accountのクエスト置換を親行で直列化する。SQL Serverでは子collectionをIncludeしない。
+    /// Serializable Includeが子主キーに保持するRangeS-S lockと、後続の削除・insertの競合を避けるため。
+    /// </summary>
+    private async Task<AccountQuestStateEntity?> FindQuestStateForUpdateAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.AccountQuestStates.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[account_quest_state] WITH (
+                    UPDLOCK, HOLDLOCK, FORCESEEK([UX_account_quest_state_account] ([account_id])))
+                WHERE [account_id] = {accountId} AND [is_deleted] = 0
+                """).SingleOrDefaultAsync();
+        }
+
+        return await dbContext.AccountQuestStates
+            .Include(value => value.ActiveQuests)
+                .ThenInclude(active => active.ObjectiveProgress)
+            .Include(value => value.Completions)
+            .Include(value => value.Cooldowns)
+            .SingleOrDefaultAsync(value => value.AccountId == accountId && !value.IsDeleted);
+    }
+
+    /// <summary>
+    /// SQL Serverではchildを読み取り追跡せず、外部キー順の直接DELETEで置換する。
+    /// これにより、Serializable transactionが子主キーの共有範囲lockを保持したまま
+    /// DELETE/INSERTへ昇格するデッドロックを回避する。
+    /// </summary>
+    private async Task ReplaceQuestChildrenAsync(Guid stateId)
+    {
+        var activeQuestIds = dbContext.AccountQuestActives
+            .Where(active => active.AccountQuestStateId == stateId)
+            .Select(active => active.AccountQuestActiveId);
+        await dbContext.AccountQuestObjectiveProgresses
+            .Where(progress => activeQuestIds.Contains(progress.AccountQuestActiveId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestActives
+            .Where(active => active.AccountQuestStateId == stateId)
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestCompletions
+            .Where(completion => completion.AccountQuestStateId == stateId)
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestCooldowns
+            .Where(cooldown => cooldown.AccountQuestStateId == stateId)
+            .ExecuteDeleteAsync();
+    }
+
+    /// <summary>
+    /// クエスト状態を含むsnapshotをtransaction単位で直列化する。
+    /// 異なるaccountでもSerializableの子主キー範囲lockが交差するため、account単位lockだけでは
+    /// quest childの置換DELETE/INSERTのデッドロックを防げない。
+    /// </summary>
+    private async Task AcquireQuestStateSnapshotLockAsync()
+    {
+        var transaction = dbContext.Database.CurrentTransaction
+            ?? throw new InvalidOperationException("Quest snapshot lock requires an active transaction.");
+        await using var command = dbContext.Database.GetDbConnection().CreateCommand();
+        command.Transaction = transaction.GetDbTransaction();
+        var commandTimeoutSeconds = dbContext.Database.GetCommandTimeout() ?? 30;
+        command.CommandTimeout = commandTimeoutSeconds;
+        var lockTimeout = command.CreateParameter();
+        lockTimeout.ParameterName = "@lockTimeout";
+        lockTimeout.Value = Math.Max(0, (commandTimeoutSeconds - 1) * 1000);
+        command.Parameters.Add(lockTimeout);
+        command.CommandText = """
+            DECLARE @result int;
+            EXEC @result = sys.sp_getapplock
+                @Resource = N'AstralRecord:PlayerStateSnapshot:QuestState',
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = @lockTimeout,
+                @DbPrincipal = N'public';
+            SELECT @result;
+            """;
+        var result = Convert.ToInt32(await command.ExecuteScalarAsync(CancellationToken.None), CultureInfo.InvariantCulture);
+        if (result < 0)
+            throw new TimeoutException($"Quest snapshot application lock was not acquired (result={result}).");
     }
 
     private async Task<IReadOnlyList<PlayerSettingEntity>> FindPlayerSettingsForUpdateAsync(Guid userId)

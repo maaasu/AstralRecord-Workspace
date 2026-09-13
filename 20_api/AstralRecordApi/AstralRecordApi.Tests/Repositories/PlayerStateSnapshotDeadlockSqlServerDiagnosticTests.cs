@@ -24,7 +24,7 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
     private const string OptInVariable = "ASTRALRECORD_RUN_SQLSERVER_INTEGRATION";
 
     [Fact]
-    public async Task DifferentAccountsReplacingQuestChildren_ReproducesDeadlock()
+    public async Task DifferentAccountsReplacingQuestChildren_CompletesWithoutDeadlock()
     {
         if (!Enabled()) return;
 
@@ -32,25 +32,24 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         var snapshotIds = await SeedSeparatedSnapshotLedgerGapsAsync(database);
         var first = await SeedAccountAsync(database, "quest-a", includeQuest: true);
         var second = await SeedAccountAsync(database, "quest-b", includeQuest: true);
-        using var readGate = new CommandCompletionGate(2, IsQuestGraphRead);
-
-        var attempts = new[]
+        using var snapshotLedgerRead = new CommandPause(IsSnapshotLedgerRead);
+        var firstAttempt = Task.Run(() => SaveCapturingAsync(database,
+            CreateQuestReplacement(first, snapshotIds.First), snapshotLedgerRead));
+        await snapshotLedgerRead.WaitUntilReachedAsync();
+        var secondAttempt = Task.Run(() => SaveCapturingAsync(database,
+            CreateQuestReplacement(second, snapshotIds.Second)));
+        await database.WaitForApplicationLockAsync(snapshotLedgerRead.SessionId);
+        snapshotLedgerRead.Release();
+        var results = await Task.WhenAll(firstAttempt, secondAttempt).WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.All(results, result =>
         {
-            Task.Run(() => SaveCapturingAsync(database, CreateQuestReplacement(first, snapshotIds.First), readGate)),
-            Task.Run(() => SaveCapturingAsync(database, CreateQuestReplacement(second, snapshotIds.Second), readGate)),
-        };
-        await readGate.WaitUntilAllReachedAsync();
-        await database.AssertSessionsNotWaitingAsync(readGate.SessionIds);
-        readGate.Release();
-        var results = await Task.WhenAll(attempts).WaitAsync(TimeSpan.FromSeconds(30));
-        var outcomes = results
-            .Select(result => new OperationOutcome(result.Result?.Succeeded == true, result.Exception))
-            .ToArray();
-        AssertExpectedDeadlockPair(outcomes);
+            Assert.Null(result.Exception);
+            Assert.True(result.Result?.Succeeded);
+        });
+        await AssertQuestReplacementAsync(database, first);
+        await AssertQuestReplacementAsync(database, second);
 
-        output.WriteLine("Quest replacement: 1/2 operations ended in SQL 1205; the survivor succeeded.");
-        foreach (var result in results.Where(result => result.Exception is not null))
-            output.WriteLine(result.Exception!.ToString());
+        output.WriteLine("Quest replacement: both operations completed without SQL 1205.");
     }
 
     [Fact]
@@ -175,16 +174,14 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         }
     }
 
-    private static bool IsQuestGraphRead(string commandText)
-        => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
-            && commandText.Contains("[dbo].[account_quest_state]", StringComparison.OrdinalIgnoreCase)
-            && commandText.Contains("[dbo].[account_quest_completion]", StringComparison.OrdinalIgnoreCase)
-            && commandText.Contains("[dbo].[account_quest_objective_progress]", StringComparison.OrdinalIgnoreCase);
-
     private static bool IsTradeAccountRead(string commandText)
         => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
             && commandText.Contains("FROM [dbo].[account] AS", StringComparison.OrdinalIgnoreCase)
             && commandText.Contains("[uuid] IN", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSnapshotLedgerRead(string commandText)
+        => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+            && commandText.Contains("[dbo].[player_state_snapshot] WITH (UPDLOCK, HOLDLOCK)", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSnapshotInventoryRead(string commandText)
         => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
@@ -243,6 +240,26 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
                 Cooldowns = [],
             }),
         };
+
+    private static async Task AssertQuestReplacementAsync(TemporaryDatabase database, SeededAccount seeded)
+    {
+        await using var context = database.Context();
+        var state = await context.AccountQuestStates.AsNoTracking()
+            .Include(value => value.ActiveQuests)
+                .ThenInclude(active => active.ObjectiveProgress)
+            .Include(value => value.Completions)
+            .Include(value => value.Cooldowns)
+            .SingleAsync(value => value.AccountId == seeded.AccountId && !value.IsDeleted);
+
+        var active = Assert.Single(state.ActiveQuests);
+        Assert.Equal(seeded.Label + "-next-active", active.QuestId);
+        Assert.Equal(
+            [seeded.Label + "-next-objective-a", seeded.Label + "-next-objective-b"],
+            active.ObjectiveProgress.Select(value => value.ObjectiveId).OrderBy(value => value).ToArray());
+        var completion = Assert.Single(state.Completions);
+        Assert.Equal(seeded.Label + "-next-completion", completion.QuestId);
+        Assert.Empty(state.Cooldowns);
+    }
 
     private static PlayerStateSnapshotSaveRequest CreateInventoryAndProgressSnapshot(
         SeededAccount seeded,
@@ -594,6 +611,32 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
             }
             throw new TimeoutException(
                 $"SQL Server did not report session {waitingSession} waiting on session {blockingSession}.");
+        }
+
+        internal async Task WaitForApplicationLockAsync(int blockingSession)
+        {
+            await using var connection = new SqlConnection(ConnectionString(name));
+            await connection.OpenAsync();
+            await using var command = new SqlCommand("""
+                SELECT COUNT(*)
+                FROM sys.dm_exec_requests AS request
+                INNER JOIN sys.dm_tran_locks AS lock_info
+                    ON lock_info.request_session_id = request.session_id
+                WHERE request.blocking_session_id = @blockingSession
+                  AND lock_info.resource_type = 'APPLICATION'
+                  AND lock_info.resource_database_id = DB_ID()
+                  AND lock_info.request_status = 'WAIT'
+                """, connection) { CommandTimeout = 5 };
+            command.Parameters.AddWithValue("@blockingSession", blockingSession);
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (DateTime.UtcNow < deadline)
+            {
+                if (Convert.ToInt32(await command.ExecuteScalarAsync()) > 0)
+                    return;
+                await Task.Delay(20);
+            }
+            throw new TimeoutException(
+                $"SQL Server did not report an application lock waiter blocked by session {blockingSession}.");
         }
 
         internal async Task AssertSessionsNotWaitingAsync(IReadOnlyCollection<int> sessionIds)
