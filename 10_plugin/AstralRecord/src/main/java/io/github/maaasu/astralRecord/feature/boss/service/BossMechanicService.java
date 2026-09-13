@@ -327,7 +327,7 @@ public final class BossMechanicService {
         boolean birdMeteorCharging = isBirdMeteorCharging(boss.instanceId());
         if (clockTicks >= runtime.nextArenaPulseTick) {
             renderSunbirdArenaBoundary(center);
-            if (!birdMeteorActive && !birdMeteorCharging) {
+            if (!birdMeteorCharging) {
                 damagePlayersOutsideSunbirdArena(boss, center);
             }
             runtime.nextArenaPulseTick = clockTicks + SUNBIRD_ARENA_PULSE_INTERVAL_TICKS;
