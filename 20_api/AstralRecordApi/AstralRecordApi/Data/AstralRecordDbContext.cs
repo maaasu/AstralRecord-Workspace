@@ -89,7 +89,9 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.TotalExperience).HasColumnName("total_experience");
             entity.Property(account => account.HighestLevel).HasColumnName("highest_level");
             entity.Property(account => account.RebirthOriginalLevel).HasColumnName("rebirth_original_level");
-            entity.Property(account => account.RebirthExperienceRemainder).HasColumnName("rebirth_experience_remainder");
+            entity.Property(account => account.RebirthExperienceRemainder)
+                .HasColumnName("rebirth_experience_remainder")
+                .HasConversion<short>();
             entity.Property(account => account.ClassId).HasColumnName("class_id").HasMaxLength(100);
             entity.Property(account => account.ClassLevel).HasColumnName("class_level");
             entity.Property(account => account.ClassExperience).HasColumnName("class_experience");

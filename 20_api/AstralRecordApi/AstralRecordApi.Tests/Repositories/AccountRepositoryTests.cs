@@ -14,6 +14,23 @@ namespace AstralRecordApi.Tests.Repositories;
 public class AccountRepositoryTests
 {
     [Fact]
+    public void RebirthExperienceRemainder_UsesSqlServerSmallIntProviderMapping()
+    {
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlServer("Server=localhost;Database=unused;Integrated Security=True;TrustServerCertificate=True")
+            .Options;
+
+        using var dbContext = new AstralRecordDbContext(options);
+        var property = dbContext.Model
+            .FindEntityType(typeof(AccountEntity))!
+            .FindProperty(nameof(AccountEntity.RebirthExperienceRemainder))!;
+
+        Assert.Equal(typeof(int), property.ClrType);
+        Assert.Equal(typeof(short), property.GetTypeMapping().Converter?.ProviderClrType);
+        Assert.Equal("smallint", property.GetColumnType());
+    }
+
+    [Fact]
     public async Task DeleteAsync_SelectsLowestRemainingAccountAndSoftDeletesTheTarget()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
