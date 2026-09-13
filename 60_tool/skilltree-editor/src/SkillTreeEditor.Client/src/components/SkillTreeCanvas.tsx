@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import {
   Background,
   BackgroundVariant,
+  applyNodeChanges,
   Handle,
   MiniMap,
   Position,
@@ -63,6 +64,8 @@ interface NodeContextMenuState {
 const nodeTypes = { skill: SkillNode }
 const BLOCK_SCALE = 36
 const GRID: [number, number] = [BLOCK_SCALE / 10, BLOCK_SCALE / 10]
+const EMPTY_SKILL_MASTERS: readonly SkillMasterSummary[] = []
+const EMPTY_CLASS_MASTERS: readonly ClassMasterSummary[] = []
 
 export function SkillTreeCanvas(props: SkillTreeCanvasProps) {
   return (
@@ -84,17 +87,18 @@ function CanvasInner({
   onNotify,
   iconRevision = 0,
   visibleNodeIds = null,
-  skillMasters = [],
-  classMasters = [],
+  skillMasters = EMPTY_SKILL_MASTERS,
+  classMasters = EMPTY_CLASS_MASTERS,
   nodeSize = 56,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
   const canvasRef = useRef<HTMLDivElement>(null)
+  const pendingDragPositions = useRef(new Map<string, { x: number; z: number }>())
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
   const [contextMenu, setContextMenu] = useState<NodeContextMenuState | null>(null)
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
-  const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes
+  const initialNodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes
     .filter((placement) => !visibleNodeIds || visibleNodeIds.has(placement.nodeId))
     .map((placement) => {
     const master = masterMap.get(placement.nodeId)
@@ -122,8 +126,16 @@ function CanvasInner({
     }),
     [classMasters, iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
+  const [flowNodes, setFlowNodes] = useState<Node<SkillNodeData>[]>(initialNodes)
+
+  useEffect(() => {
+    setFlowNodes(initialNodes)
+  }, [initialNodes])
   const edges = useMemo<Edge[]>(() => {
-    const placementMap = new Map(structure.nodes.map((placement) => [placement.nodeId, placement]))
+    const placementMap = new Map(flowNodes.map((node) => [node.id, {
+      x: node.position.x,
+      z: node.position.y,
+    }]))
     return structure.edges
       .filter((edge) => !visibleNodeIds
         || visibleNodeIds.has(edge.sourceNodeId) && visibleNodeIds.has(edge.targetNodeId))
@@ -141,7 +153,7 @@ function CanvasInner({
           selected: selectedEdgeIds.has(id),
         }
       })
-  }, [selectedEdgeIds, structure.edges, structure.nodes, visibleNodeIds])
+  }, [flowNodes, selectedEdgeIds, structure.edges, visibleNodeIds])
 
   const onNodesChange = useCallback((changes: NodeChange<Node<SkillNodeData>>[]) => {
     setSelectedIds((current) => {
@@ -157,24 +169,31 @@ function CanvasInner({
       return next ?? current
     })
 
-    const positions = new Map<string, { x: number; z: number }>()
     for (const change of changes) {
       if (change.type === 'position' && change.position) {
-        positions.set(change.id, {
+        pendingDragPositions.current.set(change.id, {
           x: toTenthBlock(change.position.x / BLOCK_SCALE),
           z: toTenthBlock(change.position.y / BLOCK_SCALE),
         })
       }
     }
-    if (!positions.size) return
-    onReplace({
-      ...structure,
-      nodes: structure.nodes.map((placement) => {
-        const position = positions.get(placement.nodeId)
-        return position ? { ...placement, ...position } : placement
-      }),
-    })
-  }, [onReplace, structure])
+    setFlowNodes((current) => applyNodeChanges(changes, current))
+  }, [])
+
+  const commitDraggedNodes = useCallback(() => {
+    const positions = pendingDragPositions.current
+    if (positions.size) {
+      pendingDragPositions.current = new Map()
+      onReplace({
+        ...structure,
+        nodes: structure.nodes.map((placement) => {
+          const position = positions.get(placement.nodeId)
+          return position ? { ...placement, ...position } : placement
+        }),
+      })
+    }
+    onCommitTransaction()
+  }, [onCommitTransaction, onReplace, structure])
 
   const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
     setSelectedEdgeIds((current) => {
@@ -327,7 +346,7 @@ function CanvasInner({
       }}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={flowNodes}
         edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
@@ -335,10 +354,11 @@ function CanvasInner({
         onNodesDelete={removeNodes}
         onEdgesDelete={removeEdges}
         onNodeDragStart={() => {
+          pendingDragPositions.current = new Map()
           setContextMenu(null)
           onBeginTransaction()
         }}
-        onNodeDragStop={onCommitTransaction}
+        onNodeDragStop={commitDraggedNodes}
         onConnect={connect}
         onSelectionChange={selectionChanged}
         onNodeContextMenu={openNodeContextMenu}
