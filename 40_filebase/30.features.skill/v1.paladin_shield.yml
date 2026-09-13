@@ -31,7 +31,7 @@ tags:
 # behavior:
 #   target: "同じパーティーに所属し、同一worldかつ半径30m以内にいる発動者以外のオンラインプレイヤー全員。"
 #   shield: "発動者の現在Shieldが2以上のとき半分を消費し、各対象へ同じ量の一時Shieldを20秒間付与する。後からの一時Shield付与は残存量へ加算せず値と期限を上書きする。"
-#   fallback: "対象不在時もShield消費は行い、発動者の位置へホーリースマイトと同じ聖柱を20秒間表示する。聖柱は毎秒、球形半径1.5mの敵最大1体へ近接攻撃力50%の無属性ダメージを与える。"
+#   fallback: "対象不在時もShield消費は行い、発動者の位置へホーリースマイトと同じ聖柱を20秒間表示する。聖柱は毎秒、球形半径15mの敵最大1体へ近接攻撃力50%の無属性ダメージを与える。"
 #   visual: "発動者へ白色DUSTのオーラを表示し、各付与対象へEND_RODの直線をつなぐ。"
 params:
   minimumCurrentShield: 2.0
@@ -40,7 +40,7 @@ params:
   temporaryShieldDurationTicks: 400
   pillarHeight: 5.0
   pillarDamageRatio: 0.50
-  pillarRadius: 1.5
+  pillarRadius: 15.0
   pillarImpactIntervalTicks: 20
   pillarMaxTargets: 1
   pillarSlashRingRadius: 1.0

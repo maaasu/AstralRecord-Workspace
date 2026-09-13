@@ -43,6 +43,7 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
     private static final double DEFAULT_MOB_DAMAGE_TAKEN_INCREASE = 5.0D;
     private static final double DEFAULT_HP_RECOVERY = 87.0D;
     private static final double DEFAULT_MP_RECOVERY_MAX_MANA_RATIO = 0.10D;
+    private static final int DEFAULT_RELOCATED_PILLAR_DURATION_TICKS = 200;
     private static final int EFFECT_INTERVAL_TICKS = 20;
     private static final int RING_INTERVAL_TICKS = 4;
     private static final int RING_POINTS_PER_BLOCK = 8;
@@ -83,6 +84,7 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
         requirePositive(params, "mobDamageTakenIncrease");
         requirePositive(params, "hpRecovery");
         requirePositive(params, "mpRecoveryMaxManaRatio");
+        requirePositiveInt(params, "relocatedPillarDurationTicks");
     }
 
     /** {@inheritDoc} */
@@ -98,6 +100,8 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
         double hpRecovery = params.getDouble("hpRecovery", DEFAULT_HP_RECOVERY);
         double mpRecoveryMaxManaRatio = params.getDouble(
                 "mpRecoveryMaxManaRatio", DEFAULT_MP_RECOVERY_MAX_MANA_RATIO);
+        int relocatedPillarDurationTicks = params.getInt(
+                "relocatedPillarDurationTicks", DEFAULT_RELOCATED_PILLAR_DURATION_TICKS);
         AstPlayer caster = context.caster().player();
         if (statusService.getStatus(caster).getCurrentHp() <= hpCost) {
             return SkillCastResult.failure(PlayerMsgId.P_5882);
@@ -111,7 +115,7 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
         }
 
         Location destination = context.services().targeting().groundAt(context.player().getLocation(), 3, 16);
-        holySmiteRuntimeService.moveTo(pillar, destination);
+        holySmiteRuntimeService.moveTo(pillar, destination, relocatedPillarDurationTicks);
         statusService.consumeHp(caster, hpCost);
         String scope = ID + ":" + UUID.randomUUID();
         ControlState control = new ControlState(context.player().getUniqueId(), scope);
@@ -297,6 +301,12 @@ public final class PaladinHolyControlExecutor extends PlayerActiveSkillExecutor 
         double value = params.getDouble(key, Double.NaN);
         if (!Double.isFinite(value) || value <= 0.0D) {
             throw new SkillParameterException(key, "ホーリーコントロールの params[" + key + "] は正数が必要です");
+        }
+    }
+
+    private static void requirePositiveInt(@NotNull SkillParamReader params, @NotNull String key) {
+        if (params.getInt(key, 0) < 1) {
+            throw new SkillParameterException(key, "ホーリーコントロールの params[" + key + "] は1以上の整数が必要です");
         }
     }
 

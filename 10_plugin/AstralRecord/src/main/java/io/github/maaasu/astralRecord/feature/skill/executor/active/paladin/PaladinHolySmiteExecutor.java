@@ -385,13 +385,16 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
             floatingLanterns.clear();
         }
 
+        /**
+         * 現在の表示Entityをすべて破棄し、指定地点へ聖柱を再生成します。
+         *
+         * @param destination 新しい聖柱の中心。worldがない場合は何も変更しない
+         */
         void moveTo(@NotNull Location destination) {
             if (destination.getWorld() == null) {
                 return;
             }
-            displays.stream().filter(Entity::isValid).forEach(Entity::remove);
-            displays.clear();
-            floatingLanterns.clear();
+            destroy();
             center = destination.clone();
             spawnDisplays();
         }

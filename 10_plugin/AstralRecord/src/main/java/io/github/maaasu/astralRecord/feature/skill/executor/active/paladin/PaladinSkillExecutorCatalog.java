@@ -41,7 +41,7 @@ public final class PaladinSkillExecutorCatalog {
                 new PaladinHolyControlExecutor(services, holySmiteRuntimeService, statusService, partyService),
                 new PaladinHolyFieldExecutor(services, holyFieldRuntimeService),
                 new PaladinHolySmashExecutor(services, holyFieldRuntimeService),
-                new PaladinShieldExecutor(services, statusService, partyService),
+                new PaladinShieldExecutor(services, statusService, partyService, holySmiteRuntimeService),
                 new PaladinShieldBashExecutor(services),
                 new PaladinShieldImpactExecutor(services),
                 new PaladinFortressExecutor(services),

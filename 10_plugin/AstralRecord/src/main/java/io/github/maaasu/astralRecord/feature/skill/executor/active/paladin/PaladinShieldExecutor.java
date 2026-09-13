@@ -33,13 +33,14 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
     private static final int DEFAULT_TEMPORARY_SHIELD_DURATION_TICKS = 400;
     private static final double DEFAULT_PILLAR_HEIGHT = 5.0D;
     private static final double DEFAULT_PILLAR_DAMAGE_RATIO = 0.50D;
-    private static final double DEFAULT_PILLAR_RADIUS = 1.5D;
+    private static final double DEFAULT_PILLAR_RADIUS = 15.0D;
     private static final int DEFAULT_PILLAR_IMPACT_INTERVAL_TICKS = 20;
     private static final int DEFAULT_PILLAR_MAX_TARGETS = 1;
     private static final double DEFAULT_PILLAR_SLASH_RING_RADIUS = 1.0D;
     private static final int AURA_PARTICLE_POINTS = 24;
     private final StatusService statusService;
     private final PartyService partyService;
+    private final PaladinHolySmiteRuntimeService holySmiteRuntimeService;
 
     /**
      * 共有発動スキルサービス、ステータスサービス、パーティーサービスで初期化します。
@@ -47,15 +48,18 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
      * @param services 共有発動スキルサービス
      * @param statusService 一時シールド付与と現在シールド消費を行うサービス
      * @param partyService 付与対象を解決するパーティーサービス
+     * @param holySmiteRuntimeService 聖柱の検索と残り持続時間を管理するサービス
      */
     public PaladinShieldExecutor(
             @NotNull ActiveSkillServices services,
             @NotNull StatusService statusService,
-            @NotNull PartyService partyService
+            @NotNull PartyService partyService,
+            @NotNull PaladinHolySmiteRuntimeService holySmiteRuntimeService
     ) {
         super(ID, services);
         this.statusService = statusService;
         this.partyService = partyService;
+        this.holySmiteRuntimeService = holySmiteRuntimeService;
     }
 
     /** {@inheritDoc} */
@@ -160,19 +164,30 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
     ) {
         Location center = context.services().targeting().groundAt(context.player().getLocation(), 3, 16);
         PaladinHolySmiteExecutor.HolyPillarState state = new PaladinHolySmiteExecutor.HolyPillarState(center, pillarHeight);
-        String scope = ID + ":fallback:" + UUID.randomUUID();
+        UUID pillarId = UUID.randomUUID();
+        String scope = ID + ":fallback:" + pillarId;
         try {
             state.spawnDisplays();
+            holySmiteRuntimeService.register(pillarId, state, durationTicks, false);
             context.services().tasks().repeat(
                     context.player().getUniqueId(),
                     scope,
                     0L,
                     1L,
-                    durationTicks,
-                    tick -> renderFallbackHolyPillar(context, params, state, tick),
-                    state::destroy
+                    Integer.MAX_VALUE,
+                    tick -> {
+                        renderFallbackHolyPillar(context, params, state, tick);
+                        if (!holySmiteRuntimeService.consumeTick(pillarId)) {
+                            context.services().tasks().cancel(context.player().getUniqueId(), scope);
+                        }
+                    },
+                    () -> {
+                        holySmiteRuntimeService.unregister(pillarId);
+                        state.destroy();
+                    }
             );
         } catch (RuntimeException exception) {
+            holySmiteRuntimeService.unregister(pillarId);
             state.destroy();
             throw exception;
         }

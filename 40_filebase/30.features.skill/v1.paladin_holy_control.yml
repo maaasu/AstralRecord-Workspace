@@ -10,6 +10,7 @@ description: "&7最寄りの聖柱を操り、味方を支援する。"
 icon: COMPARATOR
 lore:
   - "&7HPを{skill.hpCost}消費して、半径{skill.pillarSearchRadius}m以内の最寄りの聖柱を自身へ移動する。"
+  - "&7移動前の聖柱を削除し、移動後の持続時間を{skill.relocatedPillarDurationTicks:seconds}秒へ戻す。"
   - "&7聖柱がある間、半径{skill.effectRadius}m以内のパーティーメンバーのスキル与ダメージを{skill.partyDamageIncrease}%増加する。"
   - "&7同範囲の敵Mobの被ダメージを{skill.mobDamageTakenIncrease}%増加する。"
   - "&7毎秒、範囲内のパーティーメンバーをHP{skill.hpRecovery}、発動者の最大MPの{skill.mpRecoveryMaxManaRatio:percent}%回復する。"
@@ -28,7 +29,7 @@ tags:
   - support
   - holy_knight
 # behavior:
-#   target: "発動者が現在HP200以下なら失敗する。半径20m以内にホーリースマイトの聖柱がない場合も失敗し、この場合はHP200・MP30と5秒のクールダウンを消費する。"
+#   target: "発動者が現在HP200以下なら失敗する。半径20m以内にホーリースマイトまたはパラディンシールドの聖柱がない場合も失敗し、この場合はHP200・MP30と5秒のクールダウンを消費する。"
 #   visual: "移動後の聖柱を中心に、半径12mの黄色い円形輪郭を4tick間隔で表示する。"
 params:
   hpCost: 200.0
@@ -38,3 +39,4 @@ params:
   mobDamageTakenIncrease: 5.0
   hpRecovery: 87.0
   mpRecoveryMaxManaRatio: 0.10
+  relocatedPillarDurationTicks: 200

@@ -35,7 +35,7 @@ public final class PaladinDivineChaserRuntimeService {
     private static final int DEFAULT_SPHERE_POINTS = 32;
     private static final double DEFAULT_PROJECTILE_SPEED = 1.25D;
     private static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.35D;
-    private static final double DEFAULT_ENERGY_COST = 2.0D;
+    private static final double DEFAULT_MANA_COST = 2.0D;
     private static final double COST_EPSILON = 1.0E-6D;
 
     private final SkillService skillService;
@@ -119,11 +119,11 @@ public final class PaladinDivineChaserRuntimeService {
                 passiveDefinition.getId(), passiveDefinition.getParams()
         );
         StatusSnapshot currentStatus = statusService.getStatus(attacker.player());
-        double energyCost = resolveEnergyCost(passiveDefinition, currentStatus);
-        if (currentStatus.getCurrentEnergy() + COST_EPSILON < energyCost) {
+        double manaCost = resolveManaCost(passiveDefinition, currentStatus);
+        if (currentStatus.getCurrentMp() + COST_EPSILON < manaCost) {
             return;
         }
-        statusService.consumeEnergy(attacker.player(), energyCost);
+        statusService.consumeMp(attacker.player(), manaCost);
 
         double damageRatio = params.getDouble("damageRatio", DEFAULT_DAMAGE_RATIO);
         double sphereRadius = params.getDouble("sphereRadius", DEFAULT_SPHERE_RADIUS);
@@ -179,17 +179,17 @@ public final class PaladinDivineChaserRuntimeService {
                 .anyMatch(tag -> MasterTagIds.Theme.HOLY_KNIGHT.equalsIgnoreCase(tag));
     }
 
-    private double resolveEnergyCost(
+    private double resolveManaCost(
             @NotNull SkillDefinition skill,
             @NotNull StatusSnapshot status
     ) {
         double baseCost = skill.getResourceCost() == null
-                ? DEFAULT_ENERGY_COST
+                ? DEFAULT_MANA_COST
                 : skill.getResourceCost();
         if (!Double.isFinite(baseCost) || baseCost < 0.0D) {
-            baseCost = DEFAULT_ENERGY_COST;
+            baseCost = DEFAULT_MANA_COST;
         }
-        double rawReduction = status.rollValue(StatusType.ENERGY_COST_REDUCTION);
+        double rawReduction = status.rollValue(StatusType.MANA_COST_REDUCTION);
         double reduction = Double.isFinite(rawReduction)
                 ? Math.clamp(rawReduction, 0.0D, 100.0D)
                 : 0.0D;

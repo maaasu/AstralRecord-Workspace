@@ -13,9 +13,9 @@ lore:
   - "&7聖騎士タグのスキルが敵に命中すると、追撃を発生させる。"
   - "&7頭上2mの半径{skill.sphereRadius}mの白い球体から、エンドロッドの軌跡で敵へ向かう。"
   - "&7(近接防御力 + 魔法防御力) × (筋力 / 100) + 防御力 / 2 を攻撃力参照値とし、{skill.damageRatio:percent}%の無属性近接ダメージを与える。"
-  - "&7追撃1回ごとにENGを2消費する。"
+  - "&7追撃1回ごとにMPを2消費する。"
 cooldownTicks: 0
-resourceType: ENERGY
+resourceType: MANA
 resourceCost: 2
 castTimeTicks: 0
 requiredLevel: 1

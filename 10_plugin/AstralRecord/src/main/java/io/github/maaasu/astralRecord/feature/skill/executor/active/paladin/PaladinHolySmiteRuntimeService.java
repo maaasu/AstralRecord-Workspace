@@ -12,8 +12,8 @@ import java.util.UUID;
 /**
  * 実行中のホーリースマイト聖柱の表示状態と残り持続時間を管理します。
  * <p>
- * 柱の表示と攻撃は executor の task が所有し、このサービスはホーリーフィールドによる
- * 寿命更新とホーリーコントロールによる検索・移動を仲介します。
+ * 柱の表示と攻撃は executor の task が所有し、このサービスはホーリースマイトと
+ * パラディンシールドの柱に対する寿命更新、検索、移動を仲介します。
  */
 public final class PaladinHolySmiteRuntimeService {
 
@@ -35,8 +35,26 @@ public final class PaladinHolySmiteRuntimeService {
             @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
             int durationTicks
     ) {
+        register(pillarId, state, durationTicks, true);
+    }
+
+    /**
+     * 新しい聖柱とホーリーフィールド更新の適格性を登録します。
+     *
+     * @param pillarId 発動単位の一意ID
+     * @param state 表示中の聖柱状態
+     * @param durationTicks 生成時の持続tick
+     * @param holyFieldRefreshEligible ホーリーフィールドの寿命更新対象にする場合は true
+     */
+    public void register(
+            @NotNull UUID pillarId,
+            @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
+            int durationTicks,
+            boolean holyFieldRefreshEligible
+    ) {
         int safeDurationTicks = Math.max(1, durationTicks);
-        pillarsById.put(pillarId, new PillarRuntime(state, safeDurationTicks, safeDurationTicks));
+        pillarsById.put(pillarId, new PillarRuntime(
+                state, safeDurationTicks, safeDurationTicks, holyFieldRefreshEligible));
     }
 
     /**
@@ -68,7 +86,8 @@ public final class PaladinHolySmiteRuntimeService {
         double radiusSquared = Math.max(0.0D, radius) * Math.max(0.0D, radius);
         for (PillarRuntime runtime : pillarsById.values()) {
             Location pillarCenter = runtime.state.center();
-            if (!runtime.state.isActive()
+            if (!runtime.holyFieldRefreshEligible
+                    || !runtime.state.isActive()
                     || pillarCenter.getWorld() == null
                     || !center.getWorld().equals(pillarCenter.getWorld())) {
                 continue;
@@ -127,13 +146,25 @@ public final class PaladinHolySmiteRuntimeService {
         return nearest;
     }
 
-    /** 聖柱を指定地点へ移動します。 */
+    /**
+     * 聖柱を指定地点へ移動し、旧表示を即時破棄して残り持続時間を更新します。
+     *
+     * @param pillar 移動対象の聖柱
+     * @param destination 移動先
+     * @param resetDurationTicks 移動後の残り持続tick
+     */
     public void moveTo(
             @NotNull PaladinHolySmiteExecutor.HolyPillarState pillar,
-            @NotNull Location destination
+            @NotNull Location destination,
+            int resetDurationTicks
     ) {
-        if (isActive(pillar)) {
+        for (PillarRuntime runtime : pillarsById.values()) {
+            if (runtime.state != pillar || !pillar.isActive()) {
+                continue;
+            }
             pillar.moveTo(destination);
+            runtime.remainingTicks = Math.max(1, resetDurationTicks);
+            return;
         }
     }
 
@@ -153,16 +184,19 @@ public final class PaladinHolySmiteRuntimeService {
     private static final class PillarRuntime {
         private final PaladinHolySmiteExecutor.HolyPillarState state;
         private final int durationTicks;
+        private final boolean holyFieldRefreshEligible;
         private int remainingTicks;
 
         private PillarRuntime(
                 @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
                 int durationTicks,
-                int remainingTicks
+                int remainingTicks,
+                boolean holyFieldRefreshEligible
         ) {
             this.state = state;
             this.durationTicks = durationTicks;
             this.remainingTicks = remainingTicks;
+            this.holyFieldRefreshEligible = holyFieldRefreshEligible;
         }
     }
 }
