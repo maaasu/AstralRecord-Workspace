@@ -13,10 +13,12 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * プラグイン GUI 全体のクリッククールタイムを入口で管理するイベントハンドラです。
+ * 金床の結果スロットは各 GUI の確定処理へ委譲するため、共通抑止の対象外とします。
  */
 public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
     private static final long GUI_CLICK_COOLDOWN_MS = 250L;
@@ -51,6 +53,9 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
             if (event.getView().getTopInventory().getHolder() instanceof OrbGuiHolder) {
                 return;
             }
+            if (isAnvilResultClick(event)) {
+                return;
+            }
             if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
                 return;
             }
@@ -78,5 +83,16 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
     private boolean isPluginGui(@NotNull Inventory inventory) {
         InventoryHolder holder = inventory.getHolder();
         return holder != null && holder.getClass().getName().startsWith(PLUGIN_PACKAGE_PREFIX);
+    }
+
+    /**
+     * 金床の結果スロットへのクリックか判定します。結果の確定処理は各GUIへ委譲するため、共通抑止から除外します。
+     *
+     * @param event 判定対象のインベントリクリックイベント
+     * @return 金床の結果スロットへのクリックなら {@code true}
+     */
+    private boolean isAnvilResultClick(@NotNull InventoryClickEvent event) {
+        return event.getView() instanceof AnvilView
+            && event.getRawSlot() == event.getView().getTopInventory().getSize() - 1;
     }
 }
