@@ -67,7 +67,7 @@ class AccountServicePendingProgressTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
      * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生中EXP加算
-     * 検証契約: 転生中は通常必要EXPの3分の1を切り上げた量で元レベルへ戻り、10EXP単位のポイントと端数を算出する。
+     * 検証契約: 転生中は通常必要EXPの3分の1を切り上げた量で元レベルへ戻り、100EXP単位のポイントと端数を算出する。
      */
     @Test
     void usesOneThirdRequiredExperienceAndConvertsExpPoints() {
@@ -84,9 +84,9 @@ class AccountServicePendingProgressTest {
         AccountService rebirthService = createFixture(mock(AccountRepository.class)).service();
         AccountModel levelTwo = account(accountId, userId, 0, AccountMode.PLAYER, 2, normalRequired, 0, userId);
         AccountModel reborn = rebirthService.startRebirthCached(levelTwo, userId);
-        AccountExperienceResult first = rebirthService.grantExperienceCached(reborn, 9, userId);
+        AccountExperienceResult first = rebirthService.grantExperienceCached(reborn, 99, userId);
         AccountExperienceResult second = rebirthService.grantExperienceCached(first.updatedAccount(), 1, userId);
-        int rebirthRequired = 10;
+        int rebirthRequired = 100;
         AccountModel current = second.updatedAccount();
         while (current.getLevel() == 1) {
             current = rebirthService.grantExperienceCached(current, 1, userId).updatedAccount();
@@ -94,7 +94,7 @@ class AccountServicePendingProgressTest {
         }
 
         assertEquals(0, first.grantedExpPoints());
-        assertEquals(9, first.updatedAccount().getRebirthExperienceRemainder());
+        assertEquals(99, first.updatedAccount().getRebirthExperienceRemainder());
         assertEquals(1, second.grantedExpPoints());
         assertEquals((normalRequired + 2) / 3, rebirthRequired);
         assertNull(current.getRebirthOriginalLevel());

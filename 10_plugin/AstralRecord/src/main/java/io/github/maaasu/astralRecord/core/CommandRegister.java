@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompl
 import io.github.maaasu.astralRecord.feature.account.command.AccountSwitchCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.LevelCommand;
+import io.github.maaasu.astralRecord.feature.account.command.ExpCommand;
+import io.github.maaasu.astralRecord.feature.account.command.ExpTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
 import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
 import io.github.maaasu.astralRecord.feature.currency.command.CurrencyCommand;
@@ -234,6 +236,7 @@ public class CommandRegister {
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
         cm.registerCommand("account", accountCommand, new AccountTabCompleter());
         cm.registerCommand("level", new LevelCommand(), new LevelTabCompleter());
+        cm.registerCommand("exp", new ExpCommand(), new ExpTabCompleter());
         cm.registerCommand("flyspeed", new CreativeFlySpeedCommand());
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());

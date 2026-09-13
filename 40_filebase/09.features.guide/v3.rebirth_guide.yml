@@ -1,0 +1,27 @@
+# design:
+#   motif: "転生 / 記憶と再生"
+#   progression: 0
+schemaVersion: 3
+id: rebirth_guide
+category: other
+displayOrder: 10
+title: "&b転生について"
+iconMaterial: ENCHANTED_BOOK
+summary: "&7レベル1から再び成長し、EXPポイントを得る仕組み。"
+steps:
+  - id: understand_rebirth
+    text: "&f転生の仕組みを確認する"
+    details:
+      - "&7転生すると、プレイヤーレベルが1に戻る。"
+      - "&7転生前のレベルまで、必要EXPが通常の3分の1になる。"
+      - "&7獲得EXPそのものが増えるわけではない。"
+      - "&7転生中に実際に獲得したEXPは、100EXPごとに1EXPポイントへ変換される。"
+      - "&7転生費用は転生前レベル×10,000 Gold。Lv1では転生できない。"
+      - "&7転生前のレベルへ戻ると転生は自動終了する。"
+      - "&7転生中のGUIから100アストラルドを支払って終了することもできる。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: rebirth_witch
+      description: "&dクリックで転生の魔女リネアの場所を表示し、発光させる。"
+    condition:
+      type: GUIDE_OPENED

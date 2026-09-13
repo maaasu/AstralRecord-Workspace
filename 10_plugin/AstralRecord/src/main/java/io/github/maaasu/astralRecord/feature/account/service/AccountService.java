@@ -41,7 +41,7 @@ public class AccountService {
 
     private static final long EXPERIENCE_FLUSH_INTERVAL_TICKS = 40L;
     private static final int REBIRTH_EXPERIENCE_DIVISOR = 3;
-    private static final int EXPERIENCE_PER_EXP_POINT = 10;
+    private static final int EXPERIENCE_PER_EXP_POINT = 100;
     public static final int MAX_PLAYER_LEVEL = 100;
 
     private final Plugin plugin;

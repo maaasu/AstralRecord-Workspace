@@ -10,6 +10,9 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthOperationResult;
 import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthRejectionReason;
 import org.jetbrains.annotations.NotNull;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
+import org.bukkit.plugin.Plugin;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +25,7 @@ public final class RebirthService {
 
     private final AccountService accountService;
     private final InventoryService inventoryService;
+    private final Plugin plugin;
 
     /**
      * 転生サービスを生成します。
@@ -30,9 +34,10 @@ public final class RebirthService {
      * @param inventoryService 通貨を含むプレイヤー状態サービス
      */
     public RebirthService(
-        @NotNull AccountService accountService,
+        @NotNull Plugin plugin, @NotNull AccountService accountService,
         @NotNull InventoryService inventoryService
     ) {
+        this.plugin = plugin;
         this.accountService = accountService;
         this.inventoryService = inventoryService;
     }
@@ -59,7 +64,7 @@ public final class RebirthService {
     }
 
     /**
-     * 実際に獲得したプレイヤーEXPを反映し、転生中の10EXPごとに1EXPポイントを同時付与します。
+     * 実際に獲得したプレイヤーEXPを反映し、転生中の100EXPごとに1EXPポイントを同時付与します。
      * クラスEXPはこのメソッドの対象外です。
      *
      * @param player 対象プレイヤー
@@ -88,6 +93,10 @@ public final class RebirthService {
                 )) {
                     throw new IllegalStateException("EXP point currency could not be granted");
                 }
+                if (result.grantedExpPoints() > 0) plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (player.getBukkit().isOnline()) player.getBukkit().playSound(
+                        player.getBukkit().getLocation(), Sound.BLOCK_BONE_BLOCK_HIT, SoundCategory.PLAYERS, 1.0F, 2.0F);
+                });
                 return result;
             } catch (RuntimeException failure) {
                 inventoryService.restoreState(inventoryBefore);

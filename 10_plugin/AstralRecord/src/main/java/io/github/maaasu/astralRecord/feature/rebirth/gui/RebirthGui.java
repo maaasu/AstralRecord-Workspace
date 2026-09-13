@@ -21,7 +21,7 @@ import java.util.List;
 
 /** 転生の状態確認、開始、早期終了の画面を描画します。 */
 public final class RebirthGui {
-    public static final int ACTION_SLOT = 15;
+    public static final int ACTION_SLOT = 13;
     private static final int INFO_SLOT = 11;
     private static final int SIZE = 27;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
@@ -54,7 +54,7 @@ public final class RebirthGui {
                     Component.text("現在レベル: " + account.getLevel(), NamedTextColor.AQUA),
                     Component.text("転生前レベル: " + account.getRebirthOriginalLevel(), NamedTextColor.GRAY),
                     Component.text("必要EXPは通常の3分の1", NamedTextColor.GREEN),
-                    Component.text("10EXPごとに1EXPポイント", NamedTextColor.LIGHT_PURPLE)
+                    Component.text("100EXPごとに1EXPポイント", NamedTextColor.LIGHT_PURPLE)
                 )
             ));
             inventory.setItem(ACTION_SLOT, GuiItems.create(
@@ -68,22 +68,17 @@ public final class RebirthGui {
             ));
         } else {
             long cost = rebirthService.startGoldCost(account.getLevel());
-            inventory.setItem(INFO_SLOT, GuiItems.create(
+            inventory.setItem(ACTION_SLOT, GuiItems.create(
                 Material.WRITABLE_BOOK,
-                Component.text("転生の契約", NamedTextColor.LIGHT_PURPLE),
+                Component.text("レベル1へ転生する", NamedTextColor.AQUA),
                 List.of(
                     Component.text("現在レベル: " + account.getLevel(), NamedTextColor.WHITE),
                     Component.text("転生後レベル: 1", NamedTextColor.AQUA),
                     Component.text("必要Gold: " + cost, NamedTextColor.GOLD),
-                    Component.text("スキルツリーは維持されます", NamedTextColor.GRAY)
-                )
-            ));
-            inventory.setItem(ACTION_SLOT, GuiItems.create(
-                Material.NETHER_STAR,
-                Component.text("レベル1へ転生する", NamedTextColor.AQUA),
-                List.of(
-                    Component.text(cost + " Goldを消費", NamedTextColor.YELLOW),
-                    Component.text("クリックで確認", NamedTextColor.GREEN)
+                    Component.text("スキルツリーとPPは維持されます", NamedTextColor.GRAY),
+                    Component.text("転生前レベルまで必要EXPは通常の3分の1", NamedTextColor.GREEN),
+                    Component.text("転生中に100EXPごとに1EXPポイント獲得", NamedTextColor.LIGHT_PURPLE),
+                    Component.text("クリックで転生確認を開く", NamedTextColor.YELLOW)
                 )
             ));
         }

@@ -599,13 +599,13 @@ public class GatheringService {
         }
 
         if (progress.leveledUp()) {
-            PlayerMessageService.getInstance().send(
-                recipient,
-                PlayerMsgId.P_5835,
-                progress.updatedAccount().getLevel(),
-                progress.grantedExperience(),
-                progress.levelUps()
-            );
+            if (progress.previousAccount().getRebirthOriginalLevel() != null) {
+                PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_7190,
+                    progress.updatedAccount().getLevel(), progress.grantedExperience());
+            } else {
+                PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_5835,
+                    progress.updatedAccount().getLevel(), progress.grantedExperience(), progress.levelUps());
+            }
             playPlayerLevelUp(recipient.getBukkit());
         }
         if (classProgress.getLeveledUp()) {
