@@ -216,6 +216,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `skill-paladin-holy-smash` | `1525` | `skill / paladin_holy_smash` | `&fホーリースマッシュ` | `music_disc_tears` | `offense` |
 | `skill-paladin-divine-chaser` | `1526` | `skill / paladin_divine_chaser` | `&fディバインチェイサー` | `BEACON` | `offense` |
 | `skill-paladin-shield` | `1527` | `skill / paladin_shield` | `&fパラディンシールド` | `SHIELD` | `defense` |
+| `skill-paladin-holy-control` | `1528` | `skill / paladin_holy_control` | `&fホーリーコントロール` | `COMPARATOR` | `light` |
 
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 
