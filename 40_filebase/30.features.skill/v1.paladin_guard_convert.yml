@@ -20,6 +20,25 @@ resourceCost: 0
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 10
+levels:
+  - level: 2
+    paramDeltas: {}
+  - level: 3
+    paramDeltas: {}
+  - level: 4
+    paramDeltas: {}
+  - level: 5
+    paramDeltas: {}
+  - level: 6
+    paramDeltas: {}
+  - level: 7
+    paramDeltas: {}
+  - level: 8
+    paramDeltas: {}
+  - level: 9
+    paramDeltas: {}
+  - level: 10
+    paramDeltas: {}
 sigilSlotsByLevel: []
 allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
