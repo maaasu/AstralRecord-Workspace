@@ -26,10 +26,12 @@ levels:
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 params:
-  radius: 4.0
+  radius: 6.0
   damageRatio: 0.55
   defenseReductionRatio: 30.0
   defenseDebuffDurationTicks: 100
+onCast:
+  sound: block.anvil.land
 tags:
   - active
   - melee

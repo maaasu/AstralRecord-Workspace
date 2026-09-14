@@ -86,7 +86,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力を
 
 `paladin_shield_bash` はGuard4、1秒cooldown、詠唱なし、最大Lv5です。幅1m・高さ2mの水色盾面を15tickかけて前方5mへ移動させ、接触した全Mobへ近接攻撃力の`Lv×10%`を与えます。同一対象の再命中間隔は3tickで、3秒間の移動速度90%低下とノックバック耐性を反映する後方ノックバックを適用します。使用許可はnode `1530` から与えます。
 
-`paladin_shield_impact` はGuard10、10秒cooldown、15tick詠唱、最大Lv5です。半径4mの全Mobへ近接攻撃力の`Lv×55%`を与え、全体防御を30%低下させる効果を5秒間適用します。使用許可はnode `1531` から与えます。
+`paladin_shield_impact` はGuard10、10秒cooldown、15tick詠唱、最大Lv5です。半径6mの全Mobへ近接攻撃力の`Lv×55%`を与え、全体防御を30%低下させる効果を5秒間適用します。発動時は `block.anvil.land` を再生します。使用許可はnode `1531` から与えます。
 
 `paladin_fortress` はENG30、18秒cooldown、詠唱なし、最大Lv2です。半径8m・上下8mのMob最大24体を1秒ごとに挑発し、Lv1で11秒、Lv2で12秒維持します。使用許可はnode `1532` から与えます。
 

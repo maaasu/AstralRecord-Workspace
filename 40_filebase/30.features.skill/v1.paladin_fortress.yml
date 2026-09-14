@@ -22,6 +22,8 @@ levels:
   - { level: 2, paramDeltas: { durationTicks: 20 } }
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+onCast:
+  sound: entity.ravager.roar
 params:
   radius: 8.0
   height: 8.0

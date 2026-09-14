@@ -26,6 +26,8 @@ levels:
   - { level: 5, paramDeltas: { damageRatio: 0.10 } }
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+onCast:
+  sound: item.shield.block
 params:
   range: 5.0
   width: 1.0

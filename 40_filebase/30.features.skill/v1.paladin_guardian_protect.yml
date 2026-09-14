@@ -20,6 +20,8 @@ requiredLevel: 1
 maxLevel: 1
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+onCast:
+  sound: item.totem.use
 params:
   targetRange: 30.0
   aimRadius: 2.0

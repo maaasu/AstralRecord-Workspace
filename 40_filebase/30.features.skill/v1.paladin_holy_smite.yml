@@ -50,7 +50,7 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 onCast:
-  sound: block.beacon.activate
+  sound: entity.lightning_bolt.impact
 tags:
   - active
   - melee
