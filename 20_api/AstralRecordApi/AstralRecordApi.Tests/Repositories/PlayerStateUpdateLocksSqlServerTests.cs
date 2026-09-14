@@ -100,6 +100,25 @@ public class PlayerStateUpdateLocksSqlServerTests
     }
 
     [Fact]
+    public void MarketListingRangeQuery_UsesOneInstancePrefixInsteadOfMultipleStatusRanges()
+    {
+        var instanceId = Guid.NewGuid();
+
+        var query = MarketListingRangeLock.BuildActiveOrSuspendedQuery("equipment", instanceId);
+        var format = query.Format;
+        var arguments = query.GetArguments();
+
+        Assert.Contains("COALESCE(MAX(CASE", format);
+        Assert.Contains("listing.[status] = 'ACTIVE'", format);
+        Assert.Contains("listing.[status] = 'SUSPENDED'", format);
+        Assert.DoesNotContain("listing.[status] IN", format);
+        Assert.Contains("FORCESEEK([IX_market_listing_instance_active_status]", format);
+        Assert.Contains("([instance_type], [instance_id], [is_deleted])", format);
+        Assert.Contains("EQUIPMENT", arguments);
+        Assert.Contains(instanceId, arguments);
+    }
+
+    [Fact]
     public async Task ListedEquipmentIsRejectedBeforeEquipmentUpdateLock()
     {
         if (!Enabled()) return;

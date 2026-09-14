@@ -116,15 +116,6 @@ public class MarketRepository(
                 "market.unsupported_currency",
                 "Market listings must use the configured Gold currency.");
 
-        var sellerAccount = await dbContext.Accounts
-            .AsNoTracking()
-            .Where(account => account.Uuid == request.SellerAccountId && !account.IsDeleted)
-            .Select(account => new { account.AccountName, account.SlotIndex })
-            .FirstOrDefaultAsync();
-        if (sellerAccount is null)
-            return MarketOperationResult<MarketListingResponse>.Failure(404, "market.seller_not_found", "Seller account was not found.");
-        var sellerAccountIdentity = new SellerAccountIdentity(sellerAccount.AccountName, sellerAccount.SlotIndex);
-
         var requestHash = ComputeCreateListingRequestHash(request);
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -146,6 +137,18 @@ public class MarketRepository(
                     errorCode,
                     detail);
             }
+
+            // player-state保存・オーブ操作と同じaccount行を最初に更新ロックし、
+            // 同一アカウントのinventory / market_listing取得順が交差しないよう直列化する。
+            var sellerAccount = await FindSellerAccountForUpdateAsync(request.SellerAccountId);
+            if (sellerAccount is null)
+                return await RollbackFailureAsync(
+                    404,
+                    "market.seller_not_found",
+                    "Seller account was not found.");
+            var sellerAccountIdentity = new SellerAccountIdentity(
+                sellerAccount.AccountName,
+                sellerAccount.SlotIndex);
 
             var existingReceipt = await FindCreateReceiptForUpdateAsync(request.OperationId);
             if (existingReceipt is not null)
@@ -511,6 +514,12 @@ public class MarketRepository(
                 dbContext.ChangeTracker.Clear();
                 return MarketOperationResult<MarketListingResponse>.Failure(statusCode, errorCode, detail);
             }
+
+            if (await FindSellerAccountForUpdateAsync(request.SellerAccountId) is null)
+                return await RollbackFailureAsync(
+                    404,
+                    "market.seller_not_found",
+                    "Seller account was not found.");
 
             var listing = await FindListingForCancelForUpdateAsync(listingId);
             if (listing is null)
@@ -945,6 +954,24 @@ public class MarketRepository(
 
         return await dbContext.MarketListings
             .SingleOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
+    }
+
+    /// <summary>
+    /// 出品者accountを更新ロックし、同一accountのplayer-state保存・装備操作と出品作成を直列化する。
+    /// </summary>
+    private async Task<AccountEntity?> FindSellerAccountForUpdateAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.Accounts.FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [uuid] = {accountId}
+                      AND [is_deleted] = 0
+                    """)
+                .SingleOrDefaultAsync();
+        }
+        return await dbContext.Accounts
+            .SingleOrDefaultAsync(account => account.Uuid == accountId && !account.IsDeleted);
     }
 
     private async Task<MarketListingCreateReceiptEntity?> FindCreateReceiptForUpdateAsync(Guid operationId)
@@ -1448,6 +1475,12 @@ public class MarketRepository(
 
     private async Task<int> CountUsedListingSlotsAsync(Guid accountId)
     {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.Database
+                .SqlQuery<int>(BuildUsedListingSlotsForSerializableQuery(accountId))
+                .SingleAsync();
+        }
         return await dbContext.MarketListings.CountAsync(listing =>
             listing.SellerAccountId == accountId
             && !listing.IsDeleted
@@ -1455,6 +1488,21 @@ public class MarketRepository(
                 || listing.Status == "SUSPENDED"
                 || listing.Status == "SOLD"));
     }
+
+    /// <summary>
+    /// 出品枠COUNTをseller/status索引へ固定し、個体出品判定のinstance索引rangeを横断しないSQLを構築する。
+    /// </summary>
+    internal static FormattableString BuildUsedListingSlotsForSerializableQuery(Guid accountId) => $"""
+        SELECT COUNT(*) AS [Value]
+        FROM [dbo].[market_listing] AS listing WITH (
+            HOLDLOCK,
+            FORCESEEK([IX_market_listing_seller_status] ([seller_account_id], [status])))
+        WHERE listing.[seller_account_id] = {accountId}
+          AND listing.[is_deleted] = 0
+          AND (listing.[status] = 'ACTIVE'
+               OR listing.[status] = 'SUSPENDED'
+               OR listing.[status] = 'SOLD')
+        """;
 
     private async Task<int> CountExpansionListingSlotsAsync(Guid accountId, bool forUpdate = false)
     {

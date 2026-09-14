@@ -156,6 +156,22 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public void SqlServerUsedListingCountQuery_UsesSellerStatusIndex()
+    {
+        var accountId = Guid.NewGuid();
+
+        var query = MarketRepository.BuildUsedListingSlotsForSerializableQuery(accountId);
+        var format = query.Format;
+        var arguments = query.GetArguments();
+
+        Assert.Contains("FORCESEEK([IX_market_listing_seller_status]", format);
+        Assert.Contains("([seller_account_id], [status])", format);
+        Assert.DoesNotContain("IX_market_listing_instance_active_status", format);
+        Assert.Contains("listing.[seller_account_id] =", format);
+        Assert.Contains(accountId, arguments);
+    }
+
+    [Fact]
     public async Task MarketPriceQuote_RejectsUntradeableItems()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

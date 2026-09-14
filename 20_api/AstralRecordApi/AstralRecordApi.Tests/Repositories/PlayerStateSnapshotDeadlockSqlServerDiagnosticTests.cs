@@ -6,6 +6,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using AstralRecordApi.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -105,6 +106,120 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
             output.WriteLine(outcome.Exception!.ToString());
     }
 
+    [Fact]
+    public async Task MarketCreateAndSnapshotSerializeOnAccountWithoutDeadlock()
+    {
+        if (!Enabled()) return;
+
+        await using var database = await TemporaryDatabase.CreateAsync();
+        var snapshotIds = await SeedSeparatedSnapshotLedgerGapsAsync(database);
+        var account = await SeedAccountAsync(database, "market", includeQuest: false, includeInventories: true);
+        var equipment = await SeedMarketEquipmentAsync(database, account);
+        using var snapshotEntriesRead = new CommandPause(IsSnapshotInventoryEntryRead);
+
+        var snapshotTask = Task.Run(() => SaveCapturingAsync(
+            database,
+            CreateMarketEquipmentSnapshot(account, equipment, snapshotIds.First),
+            snapshotEntriesRead));
+        await snapshotEntriesRead.WaitUntilReachedAsync();
+
+        var marketConnection = new ConnectionSessionCapture();
+        await using var marketContext = database.Context(marketConnection);
+        var marketRepository = CreateMarketRepository(marketContext);
+        var marketTask = Task.Run(() => MarketCapturingAsync(
+            marketRepository,
+            CreateMarketListingRequest(account, equipment)));
+
+        Exception? lockObservationFailure = null;
+        try
+        {
+            var marketSession = await marketConnection.WaitUntilReachedAsync();
+            await database.WaitForLockAsync(marketSession, snapshotEntriesRead.SessionId);
+        }
+        catch (Exception exception)
+        {
+            lockObservationFailure = exception;
+        }
+        finally
+        {
+            snapshotEntriesRead.Release();
+        }
+
+        await Task.WhenAll((Task)snapshotTask, marketTask).WaitAsync(TimeSpan.FromSeconds(30));
+        var snapshotResult = await snapshotTask;
+        var marketResult = await marketTask;
+
+        Assert.Null(lockObservationFailure);
+        Assert.Null(snapshotResult.Exception);
+        Assert.True(snapshotResult.Result?.Succeeded, snapshotResult.Result?.Detail);
+        Assert.Null(marketResult.Exception);
+        Assert.True(marketResult.Result?.Succeeded, marketResult.Result?.Detail);
+        output.WriteLine("Market create / snapshot account serialization: both operations completed without SQL 1205.");
+    }
+
+    [Fact]
+    public async Task MarketCancelAndCreateSerializeOnSellerAccountWithoutDeadlock()
+    {
+        if (!Enabled()) return;
+
+        await using var database = await TemporaryDatabase.CreateAsync();
+        var account = await SeedAccountAsync(database, "market-cancel", includeQuest: false, includeInventories: true);
+        var cancelEquipment = await SeedMarketEquipmentAsync(database, account);
+        Guid listingId;
+        await using (var setupContext = database.Context())
+        {
+            var created = await CreateMarketRepository(setupContext)
+                .CreateListingAsync(CreateMarketListingRequest(account, cancelEquipment));
+            Assert.True(created.Succeeded, created.Detail);
+            listingId = created.Value!.ListingId;
+        }
+        var createEquipment = await SeedMarketEquipmentAsync(database, account);
+        using var cancelAccountRead = new CommandPause(IsSellerAccountForUpdateRead);
+        await using var cancelContext = database.Context(cancelAccountRead);
+        var cancelTask = Task.Run(() => CancelCapturingAsync(
+            CreateMarketRepository(cancelContext),
+            listingId,
+            new MarketCancelRequest
+            {
+                SellerAccountId = account.AccountId,
+                IdempotencyKey = Guid.NewGuid().ToString(),
+                UpdatedBy = account.AccountId,
+            }));
+        await cancelAccountRead.WaitUntilReachedAsync();
+
+        var createConnection = new ConnectionSessionCapture();
+        await using var createContext = database.Context(createConnection);
+        var createTask = Task.Run(() => MarketCapturingAsync(
+            CreateMarketRepository(createContext),
+            CreateMarketListingRequest(account, createEquipment)));
+
+        Exception? lockObservationFailure = null;
+        try
+        {
+            var createSession = await createConnection.WaitUntilReachedAsync();
+            await database.WaitForLockAsync(createSession, cancelAccountRead.SessionId);
+        }
+        catch (Exception exception)
+        {
+            lockObservationFailure = exception;
+        }
+        finally
+        {
+            cancelAccountRead.Release();
+        }
+
+        await Task.WhenAll((Task)cancelTask, createTask).WaitAsync(TimeSpan.FromSeconds(30));
+        var cancelResult = await cancelTask;
+        var createResult = await createTask;
+
+        Assert.Null(lockObservationFailure);
+        Assert.Null(cancelResult.Exception);
+        Assert.True(cancelResult.Result?.Succeeded, cancelResult.Result?.Detail);
+        Assert.Null(createResult.Exception);
+        Assert.True(createResult.Result?.Succeeded, createResult.Result?.Detail);
+        output.WriteLine("Market cancel / create seller-account serialization: both operations completed without SQL 1205.");
+    }
+
     private static async Task<SaveAttempt> SaveCapturingAsync(
         TemporaryDatabase database,
         PlayerStateSnapshotSaveRequest request,
@@ -136,6 +251,35 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         catch (Exception exception)
         {
             return new TradeAttempt(null, exception);
+        }
+    }
+
+    private static async Task<MarketAttempt> MarketCapturingAsync(
+        MarketRepository repository,
+        MarketListingCreateRequest request)
+    {
+        try
+        {
+            return new MarketAttempt(await repository.CreateListingAsync(request), null);
+        }
+        catch (Exception exception)
+        {
+            return new MarketAttempt(null, exception);
+        }
+    }
+
+    private static async Task<MarketAttempt> CancelCapturingAsync(
+        MarketRepository repository,
+        Guid listingId,
+        MarketCancelRequest request)
+    {
+        try
+        {
+            return new MarketAttempt(await repository.CancelListingAsync(listingId, request), null);
+        }
+        catch (Exception exception)
+        {
+            return new MarketAttempt(null, exception);
         }
     }
 
@@ -187,6 +331,15 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
             && commandText.Contains("FROM [dbo].[inventory] WITH (UPDLOCK, HOLDLOCK)", StringComparison.OrdinalIgnoreCase)
             && commandText.Contains("ORDER BY [inventory_id]", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSnapshotInventoryEntryRead(string commandText)
+        => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+            && commandText.Contains("FROM [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK)", StringComparison.OrdinalIgnoreCase)
+            && commandText.Contains("ORDER BY entry.[inventory_entry_id]", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSellerAccountForUpdateRead(string commandText)
+        => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+            && commandText.Contains("FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)", StringComparison.OrdinalIgnoreCase);
 
     private static PlayerStateSnapshotSaveRequest CreateQuestReplacement(SeededAccount seeded, Guid snapshotId)
         => new()
@@ -427,6 +580,126 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         return new SeededAccount(accountId, label, bagInventoryId);
     }
 
+    private static async Task<SeededEquipment> SeedMarketEquipmentAsync(
+        TemporaryDatabase database,
+        SeededAccount account)
+    {
+        await using var context = database.Context();
+        var now = new DateTime(2026, 9, 12, 12, 0, 0, DateTimeKind.Utc);
+        var equipmentId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
+        context.EquipmentInstances.Add(new EquipmentInstanceEntity
+        {
+            EquipmentInstanceId = equipmentId,
+            AccountId = account.AccountId,
+            ItemId = "market_deadlock_equipment",
+            DurabilityMax = 100,
+            DurabilityValue = 100,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = account.AccountId,
+            UpdatedBy = account.AccountId,
+            IsDeleted = false,
+        });
+        context.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = entryId,
+            InventoryId = account.BagInventoryId,
+            SlotIndex = 0,
+            ItemCategory = "EQUIPMENT",
+            ItemId = "market_deadlock_equipment",
+            InstanceType = "EQUIPMENT",
+            InstanceId = equipmentId,
+            Quantity = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = account.AccountId,
+            UpdatedBy = account.AccountId,
+            IsDeleted = false,
+        });
+        await context.SaveChangesAsync();
+        return new SeededEquipment(equipmentId, entryId, now);
+    }
+
+    private static PlayerStateSnapshotSaveRequest CreateMarketEquipmentSnapshot(
+        SeededAccount account,
+        SeededEquipment equipment,
+        Guid snapshotId) => new()
+    {
+        SnapshotId = snapshotId,
+        AccountId = account.AccountId,
+        UpdatedBy = account.AccountId,
+        Inventories =
+        [
+            new PlayerStateInventorySnapshot
+            {
+                InventoryId = account.BagInventoryId,
+                ExpectedEntries =
+                [
+                    new PlayerStateExpectedInventoryEntry
+                    {
+                        InventoryEntryId = equipment.InventoryEntryId,
+                        UpdatedAt = equipment.UpdatedAt,
+                    },
+                ],
+                Entries =
+                [
+                    new PlayerStateInventoryEntrySnapshot
+                    {
+                        InventoryEntryId = equipment.InventoryEntryId,
+                        ExpectedUpdatedAt = equipment.UpdatedAt,
+                        SlotIndex = 0,
+                        ItemCategory = "EQUIPMENT",
+                        ItemId = "market_deadlock_equipment",
+                        InstanceType = "EQUIPMENT",
+                        InstanceId = equipment.EquipmentInstanceId,
+                        Quantity = 1,
+                    },
+                ],
+            },
+        ],
+        Equipment =
+        [
+            new PlayerStateEquipmentSnapshot
+            {
+                EquipmentInstanceId = equipment.EquipmentInstanceId,
+                ExpectedUpdatedAt = equipment.UpdatedAt,
+                RuneMaxSlots = 0,
+                DurabilityMax = 100,
+                DurabilityValue = 90,
+            },
+        ],
+    };
+
+    private static MarketListingCreateRequest CreateMarketListingRequest(
+        SeededAccount account,
+        SeededEquipment equipment) => new()
+    {
+        OperationId = Guid.NewGuid(),
+        SellerAccountId = account.AccountId,
+        SourceEntries =
+        [
+            new MarketListingSourceRequest
+            {
+                InventoryEntryId = equipment.InventoryEntryId,
+                Quantity = 1,
+            },
+        ],
+        ItemCategory = "EQUIPMENT",
+        ItemId = "market_deadlock_equipment",
+        InstanceType = "EQUIPMENT",
+        InstanceId = equipment.EquipmentInstanceId,
+        Quantity = 1,
+        CurrencyId = GoldCurrencyBalanceSupport.MarketCurrencyId,
+        UnitPrice = 100,
+        CreatedBy = account.AccountId,
+    };
+
+    private static MarketRepository CreateMarketRepository(AstralRecordDbContext context) => new(
+        context,
+        new AllowingMarketPriceService(),
+        new FixedMarketListingLimitService());
+
     /// <summary>SQL Serverのuniqueidentifier順で、2要求を互いに異なるPK gapへ決定的に配置する。</summary>
     private static async Task<SnapshotIds> SeedSeparatedSnapshotLedgerGapsAsync(TemporaryDatabase database)
     {
@@ -467,13 +740,59 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
 
     private sealed record SeededAccount(Guid AccountId, string Label, Guid BagInventoryId);
 
+    private sealed record SeededEquipment(Guid EquipmentInstanceId, Guid InventoryEntryId, DateTime UpdatedAt);
+
     private sealed record SnapshotIds(Guid First, Guid Second);
 
     private sealed record SaveAttempt(PlayerStateSnapshotSaveResult? Result, Exception? Exception);
 
     private sealed record TradeAttempt(TradeOperationResult<TradeCommitResponse>? Result, Exception? Exception);
 
+    private sealed record MarketAttempt(
+        MarketOperationResult<MarketListingResponse>? Result,
+        Exception? Exception);
+
     private sealed record OperationOutcome(bool Succeeded, Exception? Exception);
+
+    private sealed class AllowingMarketPriceService : IMarketPriceService
+    {
+        public Task<MarketPriceQuoteResponse?> CreateQuoteAsync(MarketPriceQuoteRequest request) =>
+            Task.FromResult<MarketPriceQuoteResponse?>(new MarketPriceQuoteResponse
+            {
+                ItemCategory = request.ItemCategory,
+                ItemId = request.ItemId,
+                InstanceType = request.InstanceType,
+                InstanceId = request.InstanceId,
+                SellPrice = 10,
+                SuggestedUnitPrice = 100,
+                Confidence = "HIGH",
+                AllowedMinUnitPrice = 10,
+                AllowedMaxUnitPrice = 1_000,
+                Judgement = "ALLOW",
+                EvaluatedAt = DateTime.UtcNow,
+            });
+    }
+
+    private sealed class FixedMarketListingLimitService : IMarketListingLimitService
+    {
+        public MarketAccountSummaryResponse BuildSummary(
+            MarketAccountStateEntity state,
+            int activeListingCount,
+            int usedListingSlotCount,
+            int expansionListingSlotCount) => new()
+        {
+            AccountId = state.AccountId,
+            ActiveListingCount = activeListingCount,
+            MaxActiveListingCount = 10 + expansionListingSlotCount,
+            UsedListingSlotCount = usedListingSlotCount,
+            MaxListingSlotCount = 10 + expansionListingSlotCount,
+            CompletedTradeCount = state.CompletedTradeCount,
+            Tier = "T0",
+            UpdatedAt = state.UpdatedAt,
+        };
+
+        public (string Tier, int MaxActiveListingCount) ResolveLimit(int completedTradeCount) => ("T0", 10);
+    }
 
     private sealed class CommandPause(Func<string, bool> predicate) : DbCommandInterceptor, IDisposable
     {
@@ -506,6 +825,23 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         {
             release.Set();
             release.Dispose();
+        }
+    }
+
+    private sealed class ConnectionSessionCapture : DbConnectionInterceptor
+    {
+        private readonly TaskCompletionSource<int> reached =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal Task<int> WaitUntilReachedAsync() => reached.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        public override Task ConnectionOpenedAsync(
+            DbConnection connection,
+            ConnectionEndEventData eventData,
+            CancellationToken cancellationToken = default)
+        {
+            reached.TrySetResult(((SqlConnection)connection).ServerProcessId);
+            return Task.CompletedTask;
         }
     }
 
