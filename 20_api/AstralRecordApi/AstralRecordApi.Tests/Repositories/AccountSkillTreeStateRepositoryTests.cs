@@ -207,7 +207,7 @@ public class AccountSkillTreeStateRepositoryTests
 
         await using var dbContext = new AstralRecordDbContext(options);
         var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
-        await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
+        var initial = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
         {
             UnlockedNodes = [new() { NodeId = "1000" }, new() { NodeId = "1001" }],
             UpdatedBy = accountId,
@@ -220,6 +220,7 @@ public class AccountSkillTreeStateRepositoryTests
             {
                 UserId = userId,
                 RepairKey = repairKey,
+                ExpectedVersion = initial.Version,
                 UpdatedBy = accountId,
             });
         Assert.Equal(1, transientInterceptor.TriggerCount);
@@ -228,22 +229,33 @@ public class AccountSkillTreeStateRepositoryTests
             {
                 UserId = userId,
                 RepairKey = repairKey,
+                ExpectedVersion = initial.Version,
                 UpdatedBy = accountId,
             });
 
         Assert.Empty(repaired.UnlockedNodes);
         Assert.Empty(retried.UnlockedNodes);
         Assert.Equal(repaired.Version, retried.Version);
-        await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
+        var reselected = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
         {
             UnlockedNodes = [new() { NodeId = "9999" }],
             UpdatedBy = accountId,
         });
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => repository.RepairInvalidStateAsync(accountId,
+            new AccountSkillTreeInvalidStateRepairRequest
+            {
+                UserId = userId,
+                RepairKey = repairKey,
+                ExpectedVersion = initial.Version,
+                UpdatedBy = accountId,
+            }));
+        Assert.Equal("9999", Assert.Single((await repository.GetByAccountIdAsync(accountId)).UnlockedNodes).NodeId);
         var repairedAgain = await repository.RepairInvalidStateAsync(accountId,
             new AccountSkillTreeInvalidStateRepairRequest
             {
                 UserId = userId,
                 RepairKey = repairKey,
+                ExpectedVersion = reselected.Version,
                 UpdatedBy = accountId,
             });
 

@@ -79,7 +79,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -308,7 +307,6 @@ public class SkillTreeService {
     private final Map<UUID, Integer> persistedPlayerStateVersions = new HashMap<>();
     private final Set<UUID> retainedInitialPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> releasedPlayerStates = new LinkedHashSet<>();
-    private final Set<UUID> resetLoadedPlayerStates = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> acknowledgedPlayerStateRevisions = new HashMap<>();
     private final Map<UUID, UUID> playerStateEpochs = new HashMap<>();
     private final Map<UUID, SkillTreePlayerState> initialPlayerStatePublications = new HashMap<>();
@@ -864,14 +862,18 @@ public class SkillTreeService {
      * 呼び出し元は Bukkit メインスレッド外で実行し、戻り値は
      * {@link #applyInitialPlayerState(SkillTreePlayerState)} でメインスレッドから反映してください。
      *
-     * @param accountId 読み込み対象アカウント UUID
-     * 現在のマスター構造と不整合な状態はローカルで空状態へ置換し、初期反映後の完成
-     * スナップショットで保存する。初期ロード中に更新 API は呼ばない。
+     * 現在のマスター構造と不整合な状態は、API側で空状態への置換と補償メール配信を
+     * 同一トランザクションとして確定する。
      *
+     * @param accountId 読み込み対象アカウント UUID
+     * @param userId 補償メール配信対象ユーザー UUID
      * @return 保持中の未保存状態、または検証済みのAPI / DB読込状態
-     * @throws RuntimeException 読み込みに失敗した場合
+     * @throws RuntimeException 読み込みまたは補修APIの呼び出しに失敗した場合
      */
-    public @NotNull SkillTreePlayerState loadInitialPlayerState(@NotNull UUID accountId) {
+    public @NotNull SkillTreePlayerState loadInitialPlayerState(
+            @NotNull UUID accountId,
+            @NotNull UUID userId
+    ) {
         SkillTreePlayerState retained = retainInitialPlayerState(accountId);
         if (retained != null) return retained;
         SkillTreePlayerState loadedState = playerStateRepository.load(accountId);
@@ -879,8 +881,12 @@ public class SkillTreeService {
         if (validationSnapshot.isStructurallyValid(loadedState)) {
             return loadedState;
         }
-        resetLoadedPlayerStates.add(accountId);
-        return new SkillTreePlayerState(accountId, List.of(), loadedState.persistedVersion());
+        return playerStateRepository.repairInvalidState(
+                accountId,
+                userId,
+                validationSnapshot.repairKey(),
+                loadedState.persistedVersion()
+        );
     }
 
     /**
@@ -909,13 +915,6 @@ public class SkillTreeService {
             persistedPlayerStateVersions.remove(state.accountId());
         }
         derivedPlayerStates.remove(state.accountId());
-        if (resetLoadedPlayerStates.remove(state.accountId())) {
-            markDirty(state);
-            InventoryService persistence = inventoryService;
-            if (persistence != null) {
-                persistence.queueLocalPlayerSave(state.accountId());
-            }
-        }
     }
 
     /** 未保存状態を初期ロードへ引き継ぎ、applyまでACK後の破棄を抑止します。 */

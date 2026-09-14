@@ -58,9 +58,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -159,16 +161,18 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
-     * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、ローカルで全解除しsnapshot保存対象にする。
+     * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、全解除と補償メール配信を確定するAPI補修へ委譲する。
      */
     @Test
-    void initialLoadResetsStateContainingDeletedNodeLocally() {
+    void initialLoadDelegatesDeletedNodeRepairToCompensationMailApi() {
         UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         SkillTreeNodeDefinition root = node("1000");
         SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, List.of(
             new SkillTreeUnlockedNode("1000", null),
             new SkillTreeUnlockedNode("9999", null)
         ), 4);
+        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, List.of(), 5);
         SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
         SkillTreeService service = newService(root, stateRepository);
         service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
@@ -178,26 +182,31 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 List.of()
         ));
         when(stateRepository.load(accountId)).thenReturn(invalidState);
+        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class), eq(4)))
+                .thenReturn(repairedState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
         service.applyInitialPlayerState(result);
 
         assertTrue(result.unlockedNodeIds().isEmpty());
-        assertEquals(4, service.snapshotPlayerState(accountId).payload().getAsJsonObject()
-            .get("expectedVersion").getAsInt());
+        assertEquals(5, result.persistedVersion());
+        assertNull(service.snapshotPlayerState(accountId));
+        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class), eq(4));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
-     * 検証契約: rootから到達できない解放済みnodeを含むログイン状態は、ローカルで全解除する。
+     * 検証契約: rootから到達できない解放済みnodeを含むログイン状態は、API補修で全解除する。
      */
     @Test
-    void initialLoadResetsDisconnectedUnlockedNodesLocally() {
+    void initialLoadRepairsDisconnectedUnlockedNodes() {
         UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         SkillTreeNodeDefinition root = node("1000");
         SkillTreeNodeDefinition disconnected = node("1001");
         SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, Set.of("1000", "1001"));
+        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, Set.of());
         SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
         SkillTreeService service = newService(root, stateRepository);
         service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
@@ -210,10 +219,13 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 List.of()
         ));
         when(stateRepository.load(accountId)).thenReturn(invalidState);
+        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class), eq(0)))
+                .thenReturn(repairedState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
 
         assertTrue(result.unlockedNodeIds().isEmpty());
+        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class), eq(0));
     }
 
     /**
@@ -242,9 +254,10 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         ));
         when(stateRepository.load(accountId)).thenReturn(validState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
 
         assertEquals(Set.of("1000", "1001"), result.unlockedNodeIds());
+        verify(stateRepository, never()).repairInvalidState(any(), any(), any(), anyInt());
     }
 
     /**
@@ -1149,7 +1162,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         service.applyInitialPlayerState(local);
         service.markDirty(local);
         var sent = service.snapshotPlayerState(accountId);
-        assertEquals(local.unlockedNodeIds(), service.loadInitialPlayerState(accountId).unlockedNodeIds());
+        assertEquals(local.unlockedNodeIds(), service.loadInitialPlayerState(accountId, UUID.randomUUID()).unlockedNodeIds());
         com.google.gson.JsonObject ack = new com.google.gson.JsonObject();
         ack.addProperty("clientRevision", sent.payload().getAsJsonObject().get("clientRevision").getAsLong());
         ack.addProperty("version", 9);
@@ -1202,9 +1215,9 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         SkillTreePlayerState local = new SkillTreePlayerState(accountId, Set.of("local-node"));
         service.applyInitialPlayerState(local);
         service.markDirty(local);
-        SkillTreePlayerState oldLoad = service.loadInitialPlayerState(accountId);
+        SkillTreePlayerState oldLoad = service.loadInitialPlayerState(accountId, UUID.randomUUID());
         service.applyInitialPlayerState(oldLoad);
-        SkillTreePlayerState newLoad = service.loadInitialPlayerState(accountId);
+        SkillTreePlayerState newLoad = service.loadInitialPlayerState(accountId, UUID.randomUUID());
         service.applyInitialPlayerState(newLoad);
         service.discardInitialPlayerState(oldLoad);
         var sent = service.snapshotPlayerState(accountId);

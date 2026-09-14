@@ -155,7 +155,7 @@ class PlayerJoinEventHandlerTest {
         when(playerService.loadPlayerJoinUser(playerUuid, "new-session")).thenReturn(user);
         when(playerService.loadPlayerJoinAccount(user, "new-session")).thenReturn(account);
         when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
-        when(skillTreeService.loadInitialPlayerState(accountId)).thenReturn(skillTreeState);
+        when(skillTreeService.loadInitialPlayerState(eq(accountId), any())).thenReturn(skillTreeState);
         when(questService.loadInitialState(accountId)).thenReturn(questState);
         when(questService.applyInitialState(questState)).thenReturn(true);
         when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());
@@ -301,7 +301,7 @@ class PlayerJoinEventHandlerTest {
         when(playerService.loadPlayerJoinUser(playerUuid, "handoff-failure")).thenReturn(user);
         when(playerService.loadPlayerJoinAccount(user, "handoff-failure")).thenReturn(account);
         when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
-        when(skillTreeService.loadInitialPlayerState(accountId)).thenReturn(skillTreeState);
+        when(skillTreeService.loadInitialPlayerState(eq(accountId), any())).thenReturn(skillTreeState);
         when(questService.loadInitialState(accountId)).thenReturn(questState);
         when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());
         doAnswer(invocation -> mock(BukkitTask.class))
@@ -422,7 +422,7 @@ class PlayerJoinEventHandlerTest {
         when(playerService.loadPlayerJoinUser(playerUuid, "published-state-failure")).thenReturn(user);
         when(playerService.loadPlayerJoinAccount(user, "published-state-failure")).thenReturn(account);
         when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
-        when(skillTreeService.loadInitialPlayerState(accountId)).thenReturn(skillTreeState);
+        when(skillTreeService.loadInitialPlayerState(eq(accountId), any())).thenReturn(skillTreeState);
         when(questService.loadInitialState(accountId)).thenReturn(questState);
         when(questService.applyInitialState(questState)).thenReturn(true);
         when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());
@@ -544,7 +544,7 @@ class PlayerJoinEventHandlerTest {
         when(playerService.loadPlayerJoinUser(playerUuid, "status-attribute")).thenReturn(user);
         when(playerService.loadPlayerJoinAccount(user, "status-attribute")).thenReturn(account);
         when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
-        when(skillTreeService.loadInitialPlayerState(accountId)).thenReturn(skillTreeState);
+        when(skillTreeService.loadInitialPlayerState(eq(accountId), any())).thenReturn(skillTreeState);
         when(questService.loadInitialState(accountId)).thenReturn(questState);
         when(questService.applyInitialState(questState)).thenReturn(true);
         when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());
@@ -848,13 +848,13 @@ class PlayerJoinEventHandlerTest {
              SkillTreeRetryConfigOverride ignored = new SkillTreeRetryConfigOverride(3, 1L, 2L)) {
             fixture.joinFivePlayers();
             UUID accountId = UUID.randomUUID();
-            when(fixture.skillTreeService.loadInitialPlayerState(accountId))
+            when(fixture.skillTreeService.loadInitialPlayerState(eq(accountId), any()))
                 .thenThrow(new IllegalStateException("temporary failure"));
 
             Object result = fixture.loadInitialSkillTreeState(fixture.players.getFirst(), accountId);
 
             assertNull(result);
-            verify(fixture.skillTreeService, times(3)).loadInitialPlayerState(accountId);
+            verify(fixture.skillTreeService, times(3)).loadInitialPlayerState(eq(accountId), any());
         }
     }
 
@@ -951,7 +951,7 @@ class PlayerJoinEventHandlerTest {
         when(playerService.loadPlayerJoinUser(playerUuid, "join-notice")).thenReturn(user);
         when(playerService.loadPlayerJoinAccount(user, "join-notice")).thenReturn(account);
         when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
-        when(skillTreeService.loadInitialPlayerState(accountId)).thenReturn(skillTreeState);
+        when(skillTreeService.loadInitialPlayerState(accountId, playerUuid)).thenReturn(skillTreeState);
         when(questService.loadInitialState(accountId)).thenReturn(questState);
         when(questService.applyInitialState(questState)).thenReturn(true);
         when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());

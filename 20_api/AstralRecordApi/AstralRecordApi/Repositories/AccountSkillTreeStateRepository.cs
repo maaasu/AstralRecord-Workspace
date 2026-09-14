@@ -88,6 +88,10 @@ public class AccountSkillTreeStateRepository(
                 await transaction.CommitAsync();
                 return;
             }
+            var currentVersion = await GetCurrentVersionAsync(accountId);
+            if (currentVersion != request.ExpectedVersion)
+                throw new DbUpdateConcurrencyException(
+                    $"Account skill tree state version conflict: expected={request.ExpectedVersion}, current={currentVersion}");
 
             if (hasUnlockedNodes || !deliveryExistsInTransaction)
             {
@@ -240,6 +244,13 @@ public class AccountSkillTreeStateRepository(
                 .AnyAsync(node => node.AccountSkillTreeStateId == stateId.Value);
     }
 
+    private async Task<int> GetCurrentVersionAsync(Guid accountId)
+        => await dbContext.AccountSkillTreeStates
+            .AsNoTracking()
+            .Where(state => state.AccountId == accountId && !state.IsDeleted)
+            .Select(state => (int?)state.Version)
+            .FirstOrDefaultAsync() ?? 0;
+
     private async Task<MailResponse?> GetCompensationMailMasterAsync()
     {
         var payload = await masterDataDbContext.Entries
@@ -273,6 +284,8 @@ public class AccountSkillTreeStateRepository(
         if (request.RepairKey.Length != 64
             || !request.RepairKey.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f'))
             throw new ArgumentException("repairKey must be a lowercase SHA-256 hash");
+        if (request.ExpectedVersion < 0)
+            throw new ArgumentException("expectedVersion must not be negative");
     }
 
     private async Task AddUnlockedNodesAsync(

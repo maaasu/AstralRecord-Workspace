@@ -838,7 +838,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         long maxDelayMillis = ConfigProperties.getInstance().getPlayerJoinSkillTreeRetryMaxDelayMillis();
         for (int attemptNumber = 1; attemptNumber <= maxAttempts && isJoinLoading(attempt); attemptNumber++) {
             try {
-                return skillTreeService.loadInitialPlayerState(accountId);
+                return skillTreeService.loadInitialPlayerState(accountId, userId);
             } catch (RuntimeException e) {
                 if (attemptNumber == 1) {
                     Logger.log(LogId.W_9002, accountId, e.getMessage());

@@ -30,6 +30,9 @@ public class AccountSkillTreeInvalidStateRepairRequest
     /// <summary>同一構造に対する再試行を一意にする SHA-256 形式のキー。</summary>
     public required string RepairKey { get; init; }
 
+    /// <summary>Plugin が構造不整合を判定した状態の版数。</summary>
+    public int ExpectedVersion { get; init; }
+
     /// <summary>監査用の更新者 UUID。</summary>
     public Guid UpdatedBy { get; init; }
 }
