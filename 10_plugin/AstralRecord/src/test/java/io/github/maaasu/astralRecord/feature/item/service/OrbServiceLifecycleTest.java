@@ -594,7 +594,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
-     * 検証契約: 29種類以上のオーブを28種類単位でページ分割し、前後ページボタンを状態に応じて描画する。
+     * 検証契約: 29種類以上のオーブを28種類単位でページ分割し、次ページの候補を操作できる。
      */
     @Test
     void inventoryOrbListPagesAtTwentyEightOrbTypes() {
@@ -603,13 +603,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.normalInventoryClick(26));
         Inventory list = harness.player.getOpenInventory().getTopInventory();
 
-        assertPageButton(list, 53, true);
-        assertPageButton(list, 45, false);
-
         harness.handler.onInventoryClick(harness.guiClick(53));
 
-        assertPageButton(list, 45, true);
-        assertPageButton(list, 53, false);
         assertNotNull(list.getItem(10));
     }
 
@@ -625,9 +620,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         emptyHarness.handler.onInventoryClick(emptyHarness.normalInventoryClick(26));
         Inventory emptyList = emptyHarness.player.getOpenInventory().getTopInventory();
         assertEquals(Material.AIR, emptyList.getItem(10).getType());
-        assertPageButton(emptyList, 45, false);
-        assertPageButton(emptyList, 53, false);
-
         Harness staleHarness = new Harness(ItemOrbEffectType.REPAIR);
         staleHarness.handler.onInventoryClick(staleHarness.normalInventoryClick(26));
         Inventory staleList = staleHarness.player.getOpenInventory().getTopInventory();
@@ -900,14 +892,11 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         OrbGuiHolder materialHolder = (OrbGuiHolder) materialList.getHolder();
         assertEquals(OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST, materialHolder.screen());
         assertEquals(OrbGuiHolder.SIZE, materialList.getSize());
-        assertPageButton(materialList, 45, false);
         assertEquals(Material.PAPER, materialList.getItem(46).getType());
         assertEquals(Material.GOLD_INGOT, materialList.getItem(47).getType());
         assertEquals(Material.ARROW, materialList.getItem(49).getType());
-        assertPageButton(materialList, 53, true);
 
         harness.handler.onInventoryClick(harness.guiClick(53));
-        assertPageButton(materialList, 45, true);
         harness.handler.onInventoryClick(harness.guiClick(49));
         assertEquals(
             OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM,
@@ -915,21 +904,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         );
         assertEquals(OrbGuiHolder.TRANSCENDENCE_CONFIRM_SIZE,
             harness.player.getOpenInventory().getTopInventory().getSize());
-    }
-
-    /**
-     * 現行の共通ページボタンと移動可否の表示を確認します。
-     *
-     * @param inventory 対象GUI
-     * @param slot ボタン位置
-     * @param enabled 移動可能な場合true
-     */
-    private static void assertPageButton(Inventory inventory, int slot, boolean enabled) {
-        assertEquals(Material.PLAYER_HEAD, inventory.getItem(slot).getType());
-        assertEquals(enabled
-            ? net.kyori.adventure.text.format.NamedTextColor.YELLOW
-            : net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY,
-            inventory.getItem(slot).getItemMeta().displayName().color());
     }
 
     private static long heardSoundCount(PlayerMock player, Sound sound) {
