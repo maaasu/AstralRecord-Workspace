@@ -51,7 +51,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/web-auth/challenges` / `POST /api/web-auth/challenges/consume`（Webログインコードの発行・一回消費）
 - `GET /api/web-auth/users/by-mcid/{mcid}`（コンソール用の登録済みプレイヤーMCID解決）
 - `GET /api/web-auth/users/{userUuid}/authorization`（Web管理権限照会）
-- `GET /api/web-profiles` / `GET /api/web-profiles/{userUuid}` / `GET /api/web-profiles/me`（Webプレイヤープロフィール一覧・詳細・本人）
+- `GET /api/web-profiles` / `GET /api/web-profiles/{userUuid}?account_id=` / `GET /api/web-profiles/me`（Webプレイヤーのアカウント一覧・選択アカウント詳細・本人）
 - `PUT /api/web-profiles/me/visibility`（本人のWebプロフィール公開設定）
 
 ## AstralRecord Plugin

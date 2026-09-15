@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AstralRecordWeb.Pages.Players;
 
+[Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class IndexModel(PlayerProfileApiClient profiles, IAuthorizationService authorization) : PageModel
 {

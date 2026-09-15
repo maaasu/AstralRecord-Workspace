@@ -25,17 +25,18 @@ public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repos
         [FromBody] WebPlayerProfileVisibilityUpdateRequest request)
         => viewerUserUuid == Guid.Empty ? BadRequest() : await ProfileOrNotFound(repository.UpdateVisibilityAsync(viewerUserUuid, request.IsPublic));
 
-    /// <summary>公開済みプレイヤー、またはWeb管理者が許可された非公開プロフィールを取得します。</summary>
+    /// <summary>公開済みプレイヤー、またはWeb管理者が許可されたプロフィールの指定アカウントを取得します。</summary>
     [HttpGet("{userUuid:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile(
         Guid userUuid,
         [FromQuery(Name = "viewer_user_uuid")] Guid viewerUserUuid,
-        [FromQuery(Name = "include_private")] bool includePrivate = false)
-        => await ProfileOrNotFound(repository.GetProfileAsync(userUuid, viewerUserUuid, includePrivate));
+        [FromQuery(Name = "include_private")] bool includePrivate = false,
+        [FromQuery(Name = "account_id")] Guid? accountId = null)
+        => await ProfileOrNotFound(repository.GetProfileAsync(userUuid, viewerUserUuid, includePrivate, accountId));
 
-    /// <summary>公開プレイヤーを検索し、Web管理者だけは非公開・Web未ログイン登録者を含められます。</summary>
+    /// <summary>公開プレイヤーのゲームアカウントを検索し、Web管理者だけは非公開・Web未ログイン登録者を含められます。</summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

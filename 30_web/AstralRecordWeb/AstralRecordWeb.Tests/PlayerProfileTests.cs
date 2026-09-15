@@ -90,6 +90,9 @@ public sealed class PlayerProfileTests
         var api = new ProfileHandler { Published = true };
         await using var factory = new ProfileFactory(api);
         using var client = Client(factory);
+        using var anonymousDirectory = await client.GetAsync("/players");
+        Assert.Equal(HttpStatusCode.Found, anonymousDirectory.StatusCode);
+        await Login(client);
         var body = WebUtility.HtmlDecode(await client.GetStringAsync("/players?mcid=Live&classId=swordsman&sort=level_asc&pageNumber=2"));
         Assert.DoesNotContain("すべてのプレイヤーの情報を検索", body);
         Assert.Contains("LivePlayer", body);
@@ -106,13 +109,13 @@ public sealed class PlayerProfileTests
         var api = new ProfileHandler { Published = true };
         await using var factory = new ProfileFactory(api);
         using var client = Client(factory);
+        await Login(client);
 
         var publicDirectory = WebUtility.HtmlDecode(await client.GetStringAsync("/players?mcid=Live%20Player&classId=swordsman&sort=level_asc&pageNumber=2"));
         var publicDetailPath = Link(publicDirectory, "ar-player-card");
         AssertSearchState(publicDetailPath, "Live Player", "swordsman", "level_asc", "2", "false");
         Assert.DoesNotContain("includePrivate=true", publicDetailPath, StringComparison.OrdinalIgnoreCase);
 
-        await Login(client);
         api.Admin = true;
         var adminDirectory = WebUtility.HtmlDecode(await client.GetStringAsync("/players?mcid=Live%20Player&classId=swordsman&sort=level_asc&pageNumber=2&includePrivate=true"));
         var adminDetailPath = Link(adminDirectory, "ar-player-card");
@@ -122,6 +125,26 @@ public sealed class PlayerProfileTests
         var backPath = Link(adminDetail, "ar-btn-outline");
         Assert.Equal("/players", new Uri(client.BaseAddress!, backPath).AbsolutePath);
         AssertSearchState(backPath, "Live Player", "swordsman", "level_asc", "2", "true");
+    }
+
+    [Fact]
+    public async Task PlayerDetail_UsesReadonlyOwnedAccountSelection_AndDisablesSingleSlot()
+    {
+        var api = new ProfileHandler { Published = true, MultiSlot = true };
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+
+        var multiSlot = WebUtility.HtmlDecode(await client.GetStringAsync($"/players/{ProfileHandler.UserId:D}?accountId={ProfileHandler.SecondAccountId:D}&mcid=Live&classId=swordsman&sort=level_asc&pageNumber=2"));
+        Assert.Contains("Slot 0: 選択中の冒険者", multiSlot);
+        Assert.Contains("Slot 1: 別の冒険者", multiSlot);
+        Assert.Contains("別の冒険者", multiSlot);
+        Assert.DoesNotContain(HttpMethod.Put, api.Methods);
+
+        api.MultiSlot = false;
+        var singleSlot = WebUtility.HtmlDecode(await client.GetStringAsync($"/players/{ProfileHandler.UserId:D}?accountId={ProfileHandler.FirstAccountId:D}"));
+        Assert.Contains("id=\"account-select\"", singleSlot);
+        Assert.Contains("disabled", singleSlot);
     }
 
     [Fact]
@@ -203,16 +226,21 @@ public sealed class PlayerProfileTests
     private sealed class ProfileHandler : HttpMessageHandler
     {
         public static readonly Guid UserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        public static readonly Guid FirstAccountId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        public static readonly Guid SecondAccountId = Guid.Parse("33333333-3333-3333-3333-333333333333");
         public List<string> Calls { get; } = [];
+        public List<HttpMethod> Methods { get; } = [];
         public bool Published { get; set; }
         public bool Admin { get; set; }
         public bool FailProfiles { get; set; }
+        public bool MultiSlot { get; set; }
         public string? LastVisibilityViewer { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var uri = request.RequestUri!;
             Calls.Add(uri.PathAndQuery);
+            Methods.Add(request.Method);
             if (uri.AbsolutePath.EndsWith("challenges/consume")) return Json(new { userUuid = UserId, mcid = "CookiePlayer", permission = 99, accountIds = Array.Empty<Guid>() });
             if (uri.AbsolutePath.EndsWith("authorization")) return Json(new { webAdmin = Admin });
             if (FailProfiles) return new(HttpStatusCode.ServiceUnavailable);
@@ -223,19 +251,21 @@ public sealed class PlayerProfileTests
                 LastVisibilityViewer = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query)["viewer_user_uuid"];
                 return Json(new { isPublic = Published });
             }
-            var profile = new
+            var requestedAccountId = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).GetValueOrDefault("account_id").ToString();
+            var secondSelected = MultiSlot && string.Equals(requestedAccountId, SecondAccountId.ToString(), StringComparison.OrdinalIgnoreCase);
+            var currentAccount = new
             {
-                userUuid = UserId, mcid = "LivePlayer", permission = 0, isPublic = Published,
-                currentAccount = new
-                {
-                    accountId = Guid.Parse("22222222-2222-2222-2222-222222222222"), accountName = "選択中の冒険者", playerLevel = 37,
-                    classId = "swordsman", className = "剣士", classLevel = 12, gold = 543210L, updatedAt = "2026-09-15T12:34:56Z",
-                    classProgresses = new[] { new { classId = "swordsman", className = "剣士", level = 12 } },
-                    skillTree = new { structureId = "main", name = "冒険の始まり", rootNodeId = "1000", nodes = new[] { new { nodeId = "1000", name = "力の覚醒", icon = "DIAMOND_SWORD", pointType = "PP", pointCost = 1, x = 0, y = 0, z = 0, isUnlocked = true } }, edges = Array.Empty<object>() },
-                },
+                accountId = secondSelected ? SecondAccountId : FirstAccountId, accountName = secondSelected ? "別の冒険者" : "選択中の冒険者", slotIndex = secondSelected ? 1 : 0, playerLevel = secondSelected ? 21 : 37,
+                classId = "swordsman", className = "剣士", classLevel = 12, gold = 543210L, updatedAt = "2026-09-15T12:34:56Z",
+                classProgresses = new[] { new { classId = "swordsman", className = "剣士", level = 12 } },
+                skillTree = new { structureId = "main", name = "冒険の始まり", rootNodeId = "1000", nodes = new[] { new { nodeId = "1000", name = "力の覚醒", icon = "DIAMOND_SWORD", pointType = "PP", pointCost = 1, x = 0, y = 0, z = 0, isUnlocked = true } }, edges = Array.Empty<object>() },
             };
+            var accounts = MultiSlot
+                ? new[] { new { accountId = FirstAccountId, accountName = "選択中の冒険者", slotIndex = 0, playerLevel = 37, classId = "swordsman", className = "剣士" }, new { accountId = SecondAccountId, accountName = "別の冒険者", slotIndex = 1, playerLevel = 21, classId = "swordsman", className = "剣士" } }
+                : new[] { new { accountId = FirstAccountId, accountName = "選択中の冒険者", slotIndex = 0, playerLevel = 37, classId = "swordsman", className = "剣士" } };
+            var profile = new { userUuid = UserId, mcid = "LivePlayer", permission = 0, isPublic = Published, currentAccount, accounts };
             return uri.AbsolutePath == "/api/web-profiles"
-                ? Json(new { profiles = new[] { profile }, classes = new[] { new { id = "swordsman", name = "剣士" } }, page = 1, pageSize = 20, totalCount = 40 })
+                ? Json(new { profiles = new[] { new { userUuid = UserId, mcid = "LivePlayer", isPublic = Published, account = accounts[0] } }, classes = new[] { new { id = "swordsman", name = "剣士" } }, page = 1, pageSize = 20, totalCount = 40 })
                 : Json(profile);
         }
         private static HttpResponseMessage Json(object data) => new(HttpStatusCode.OK) { Content = JsonContent.Create(data) };

@@ -10,6 +10,7 @@ public sealed class WebPlayerProfileResponse
     public int? Permission { get; init; }
     public bool IsPublic { get; init; }
     public WebPlayerAccountProfileResponse? CurrentAccount { get; init; }
+    public required IReadOnlyList<WebPlayerAccountSummaryResponse> Accounts { get; init; }
 }
 
 /// <summary>現在選択中のアカウントだけを表すプロフィール進行です。</summary>
@@ -17,6 +18,7 @@ public sealed class WebPlayerAccountProfileResponse
 {
     public required Guid AccountId { get; init; }
     public required string AccountName { get; init; }
+    public required int SlotIndex { get; init; }
     public required int PlayerLevel { get; init; }
     public required string ClassId { get; init; }
     public required string ClassName { get; init; }
@@ -96,13 +98,14 @@ public sealed class WebPlayerProfileSummaryResponse
     public required Guid UserUuid { get; init; }
     public required string Mcid { get; init; }
     public bool IsPublic { get; init; }
-    public WebPlayerAccountSummaryResponse? CurrentAccount { get; init; }
+    public required WebPlayerAccountSummaryResponse Account { get; init; }
 }
 
 public sealed class WebPlayerAccountSummaryResponse
 {
     public required Guid AccountId { get; init; }
     public required string AccountName { get; init; }
+    public required int SlotIndex { get; init; }
     public required int PlayerLevel { get; init; }
     public required string ClassId { get; init; }
     public required string ClassName { get; init; }

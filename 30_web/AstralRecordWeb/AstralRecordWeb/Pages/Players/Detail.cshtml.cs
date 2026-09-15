@@ -15,6 +15,7 @@ public class DetailModel(PlayerProfileApiClient profiles, IAuthorizationService 
     [BindProperty(SupportsGet = true)] public string Sort { get; set; } = "level_desc";
     [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public bool IncludePrivate { get; set; }
+    [BindProperty(SupportsGet = true)] public Guid? AccountId { get; set; }
     public WebPlayerProfileResponse? Profile { get; private set; }
     public bool IsPrivateView { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -24,7 +25,7 @@ public class DetailModel(PlayerProfileApiClient profiles, IAuthorizationService 
         if (userUuid == Guid.Empty) return NotFound();
         if (IncludePrivate && !(await authorization.AuthorizeAsync(User, null, "WebAdminOnly")).Succeeded) return Forbid();
         Guid? viewer = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
-        var result = await profiles.GetProfileAsync(userUuid, viewer, IncludePrivate, ct);
+        var result = await profiles.GetProfileAsync(userUuid, viewer, IncludePrivate, AccountId, ct);
         if (result.Status == System.Net.HttpStatusCode.NotFound) return NotFound();
         if (result.Status == System.Net.HttpStatusCode.Forbidden) return Forbid();
         Profile = result.Value;

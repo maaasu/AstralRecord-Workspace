@@ -15,13 +15,14 @@ public class PlayerProfileApiClient(HttpClient httpClient, ILogger<PlayerProfile
     public Task<ProfileApiResult<WebPlayerProfileResponse>> GetMeAsync(Guid viewer, CancellationToken ct) =>
         GetAsync<WebPlayerProfileResponse>($"/api/web-profiles/me?viewer_user_uuid={viewer:D}", ct);
 
-    public Task<ProfileApiResult<WebPlayerProfileResponse>> GetProfileAsync(Guid target, Guid? viewer, bool includePrivate, CancellationToken ct) =>
-        GetAsync<WebPlayerProfileResponse>($"/api/web-profiles/{target:D}?include_private={includePrivate.ToString().ToLowerInvariant()}{ViewerQuery(viewer)}", ct);
+    public Task<ProfileApiResult<WebPlayerProfileResponse>> GetProfileAsync(Guid target, Guid? viewer, bool includePrivate, Guid? accountId, CancellationToken ct) =>
+        GetAsync<WebPlayerProfileResponse>($"/api/web-profiles/{target:D}?include_private={includePrivate.ToString().ToLowerInvariant()}{AccountQuery(accountId)}{ViewerQuery(viewer)}", ct);
 
     public Task<ProfileApiResult<WebPlayerProfileSearchResponse>> SearchAsync(Guid? viewer, string? mcid, string? classId, string sort, int page, bool includePrivate, CancellationToken ct) =>
         GetAsync<WebPlayerProfileSearchResponse>($"/api/web-profiles?mcid={Uri.EscapeDataString(mcid ?? "")}&class_id={Uri.EscapeDataString(classId ?? "")}&sort={Uri.EscapeDataString(sort)}&page={page}&page_size=20&include_private={includePrivate.ToString().ToLowerInvariant()}{ViewerQuery(viewer)}", ct);
 
     private static string ViewerQuery(Guid? viewer) => viewer.HasValue ? $"&viewer_user_uuid={viewer.Value:D}" : string.Empty;
+    private static string AccountQuery(Guid? accountId) => accountId.HasValue ? $"&account_id={accountId.Value:D}" : string.Empty;
 
     public async Task<bool> SetVisibilityAsync(Guid viewer, bool isPublic, CancellationToken ct)
     {

@@ -16,7 +16,7 @@
                 <div>
                     <h2 id="visibility-title">プロフィールの公開設定</h2>
                     <span class="ar-profile-badge @(profile.IsPublic ? "" : "ar-profile-badge--private")">@(profile.IsPublic ? "公開中" : "非公開")</span>
-                    <p>公開すると、MCID・UUID、現在のアカウント、所持金、レベル、クラス、スキルツリーがプレイヤー一覧と詳細ページに表示されます。<br />いつでも非公開に戻せます。非公開の情報も管理者は確認できます。</p>
+                    <p>公開すると、MCID・UUID、各アカウントの所持金、レベル、クラス、スキルツリーがプレイヤー一覧と詳細ページに表示されます。<br />いつでも非公開に戻せます。非公開の情報も管理者は確認できます。</p>
                 </div>
                 <form method="post" asp-page-handler="Visibility">
                     <input type="hidden" name="IsPublic" value="@((!profile.IsPublic).ToString().ToLowerInvariant())" />

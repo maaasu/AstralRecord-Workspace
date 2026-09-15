@@ -107,7 +107,7 @@ public sealed class WebPlayerProfileRepositoryTests
         Assert.Single(publicOnly.Profiles);
         Assert.Equal(publicPlayer, publicOnly.Profiles[0].UserUuid);
         Assert.Single(nonAdminAll.Profiles);
-        Assert.Equal(5, all.TotalCount);
+        Assert.Equal(4, all.TotalCount);
         Assert.Equal(privatePlayer, all.Profiles[0].UserUuid);
         Assert.Contains(all.Profiles, profile => profile.UserUuid == gameOnlyPlayer);
         Assert.Equal(admin, ascending.Profiles[0].UserUuid);
@@ -179,6 +179,42 @@ public sealed class WebPlayerProfileRepositoryTests
         var json = System.Text.Json.JsonSerializer.Serialize(current);
         Assert.DoesNotContain("SkillTree", json);
         Assert.DoesNotContain("Gold", json);
+    }
+
+    [Fact]
+    public async Task AccountRowsAndDetailSelection_UseOnlyTheTargetUsersNonDeletedAccounts()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var owner = Guid.NewGuid();
+        var currentAccount = Guid.NewGuid();
+        var secondAccount = Guid.NewGuid();
+        var otherUser = Guid.NewGuid();
+        var otherAccount = Guid.NewGuid();
+        await fixture.AddClassMasterAsync("adventurer", "冒険者");
+        await fixture.AddProfileAsync(owner, "Owner", currentAccount, 10, true);
+        await fixture.AddProfileAsync(otherUser, "Other", otherAccount, 20, true);
+        var now = DateTime.UtcNow;
+        fixture.Game.Accounts.Add(new AccountEntity
+        {
+            Uuid = secondAccount, UserId = owner, AccountName = "second", SlotIndex = 1, IsActive = false, Mode = 0,
+            Level = 30, ClassId = "adventurer", ClassLevel = 30, CreatedAt = now, UpdatedAt = now, CreatedBy = owner, UpdatedBy = owner,
+        });
+        await fixture.Game.SaveChangesAsync();
+
+        var listing = await fixture.Repository.SearchAsync(owner, "Owner", "adventurer", "level_desc", 1, 20, includePrivate: false);
+        var selected = await fixture.Repository.GetProfileAsync(owner, owner, includePrivate: false, accountId: secondAccount);
+        var forged = await fixture.Repository.GetProfileAsync(owner, owner, includePrivate: false, accountId: otherAccount);
+
+        Assert.Equal(2, listing.TotalCount);
+        Assert.Equal(secondAccount, listing.Profiles[0].Account.AccountId);
+        Assert.Equal(currentAccount, listing.Profiles[1].Account.AccountId);
+        Assert.NotNull(selected);
+        Assert.Equal(secondAccount, selected.CurrentAccount!.AccountId);
+        Assert.Equal(2, selected.Accounts.Count);
+        Assert.Equal(0, selected.Accounts[0].SlotIndex);
+        Assert.Equal(1, selected.Accounts[1].SlotIndex);
+        Assert.Null(forged);
+        Assert.Equal(currentAccount, fixture.Game.Users.Single(user => user.Uuid == owner).AccountId);
     }
 
     private sealed class Fixture : IAsyncDisposable

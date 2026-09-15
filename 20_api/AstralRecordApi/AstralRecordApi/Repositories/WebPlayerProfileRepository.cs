@@ -23,13 +23,13 @@ public sealed class WebPlayerProfileRepository(
         await BuildProfileAsync(viewerUserUuid);
 
     public async Task<WebPlayerProfileResponse?> GetProfileAsync(
-        Guid targetUserUuid, Guid viewerUserUuid, bool includePrivate)
+        Guid targetUserUuid, Guid viewerUserUuid, bool includePrivate, Guid? accountId = null)
     {
         var isAdmin = await IsWebAdminAsync(viewerUserUuid);
         if (targetUserUuid != viewerUserUuid && !(includePrivate && isAdmin)
             && !await managementDb.Players.AsNoTracking().AnyAsync(player => player.PlayerUuid == targetUserUuid && player.IsProfilePublic))
             return null;
-        var profile = await BuildProfileAsync(targetUserUuid);
+        var profile = await BuildProfileAsync(targetUserUuid, accountId);
         if (profile is null)
             return null;
         if (targetUserUuid == viewerUserUuid || (includePrivate && isAdmin)) return profile;
@@ -45,23 +45,19 @@ public sealed class WebPlayerProfileRepository(
         var usersQuery = gameDb.Users.AsNoTracking().Where(user => !user.IsDeleted);
         if (!includesAllRegisteredPlayers) usersQuery = usersQuery.Where(user => publicPlayerIds.Contains(user.Uuid));
         var users = await usersQuery.ToDictionaryAsync(user => user.Uuid);
-        var accountIds = users.Values.Where(user => user.AccountId.HasValue).Select(user => user.AccountId!.Value).ToArray();
         var accounts = await gameDb.Accounts.AsNoTracking()
-            .Where(account => accountIds.Contains(account.Uuid) && !account.IsDeleted)
-            .ToDictionaryAsync(account => account.Uuid);
+            .Where(account => !account.IsDeleted && users.Keys.Contains(account.UserId))
+            .ToListAsync();
         var classMap = await GetClassMapAsync();
-        var candidateIds = new HashSet<Guid>(users.Keys);
-        foreach (var player in managementPlayers.Values.Where(player => includesAllRegisteredPlayers || player.IsProfilePublic))
-            candidateIds.Add(player.PlayerUuid);
-        var candidates = candidateIds.Select(userId =>
+        var candidates = accounts.Select(account =>
         {
+            var userId = account.UserId;
             users.TryGetValue(userId, out var user);
-            var account = user?.AccountId is Guid accountId && accounts.TryGetValue(accountId, out var found) && found.UserId == userId ? found : null;
-            return new { UserId = userId, Mcid = user?.Mcid ?? managementPlayers[userId].Mcid, Account = account };
+            return new { UserId = userId, Mcid = user!.Mcid, Account = account };
         })
             .Where(item => string.IsNullOrWhiteSpace(mcid) || item.Mcid.Contains(mcid.Trim(), StringComparison.OrdinalIgnoreCase))
             .Where(item => string.IsNullOrWhiteSpace(classId) || string.Equals(item.Account?.ClassId, classId.Trim(), StringComparison.OrdinalIgnoreCase))
-            .OrderBy(item => sort == "level_asc" ? item.Account?.Level ?? -1 : -(long)(item.Account?.Level ?? -1))
+            .OrderBy(item => sort == "level_asc" ? item.Account.Level : -(long)item.Account.Level)
             .ThenBy(item => item.Mcid, StringComparer.OrdinalIgnoreCase).ThenBy(item => item.UserId)
             .ToList();
         var selected = candidates.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -74,11 +70,11 @@ public sealed class WebPlayerProfileRepository(
             .Select(item => new WebPlayerProfileSummaryResponse
             {
                 UserUuid = item.UserId, Mcid = item.Mcid, IsPublic = publicIdsNow.Contains(item.UserId),
-                CurrentAccount = item.Account is not { } account ? null : new WebPlayerAccountSummaryResponse
+                Account = new WebPlayerAccountSummaryResponse
                 {
-                    AccountId = account.Uuid, AccountName = account.AccountName, PlayerLevel = account.Level,
-                    ClassId = account.ClassId,
-                    ClassName = classMap.TryGetValue(account.ClassId, out var c) ? StripLegacyColors(c.Name) : account.ClassId,
+                    AccountId = item.Account.Uuid, AccountName = item.Account.AccountName, SlotIndex = item.Account.SlotIndex, PlayerLevel = item.Account.Level,
+                    ClassId = item.Account.ClassId,
+                    ClassName = classMap.TryGetValue(item.Account.ClassId, out var c) ? StripLegacyColors(c.Name) : item.Account.ClassId,
                 },
             }).ToList();
         return new WebPlayerProfileSearchResponse
@@ -107,7 +103,7 @@ public sealed class WebPlayerProfileRepository(
             .Select(player => (bool?)player.WebAdmin)
             .FirstOrDefaultAsync() == true;
 
-    private async Task<WebPlayerProfileResponse?> BuildProfileAsync(Guid userUuid)
+    private async Task<WebPlayerProfileResponse?> BuildProfileAsync(Guid userUuid, Guid? requestedAccountId = null)
     {
         var managementPlayer = await managementDb.Players.AsNoTracking()
             .FirstOrDefaultAsync(player => player.PlayerUuid == userUuid);
@@ -116,10 +112,16 @@ public sealed class WebPlayerProfileRepository(
         if (managementPlayer is null && user is null)
             return null;
 
-        var account = user?.AccountId is Guid accountId
-            ? await gameDb.Accounts.AsNoTracking().FirstOrDefaultAsync(candidate =>
-                candidate.Uuid == accountId && candidate.UserId == user!.Uuid && !candidate.IsDeleted)
-            : null;
+        var accounts = user is null ? new List<AccountEntity>() : await gameDb.Accounts.AsNoTracking()
+            .Where(candidate => candidate.UserId == user.Uuid && !candidate.IsDeleted)
+            .OrderBy(candidate => candidate.SlotIndex).ThenBy(candidate => candidate.Uuid)
+            .ToListAsync();
+        var account = requestedAccountId.HasValue
+            ? accounts.FirstOrDefault(candidate => candidate.Uuid == requestedAccountId.Value)
+            : user?.AccountId is Guid accountId ? accounts.FirstOrDefault(candidate => candidate.Uuid == accountId) : null;
+        if (requestedAccountId.HasValue && account is null)
+            return null;
+        var classMap = await GetClassMapAsync();
         return new WebPlayerProfileResponse
         {
             UserUuid = userUuid,
@@ -127,6 +129,12 @@ public sealed class WebPlayerProfileRepository(
             Permission = user?.Permission,
             IsPublic = managementPlayer?.IsProfilePublic ?? false,
             CurrentAccount = account is null ? null : await BuildAccountAsync(account),
+            Accounts = accounts.Select(candidate => new WebPlayerAccountSummaryResponse
+            {
+                AccountId = candidate.Uuid, AccountName = candidate.AccountName, SlotIndex = candidate.SlotIndex,
+                PlayerLevel = candidate.Level, ClassId = candidate.ClassId,
+                ClassName = classMap.TryGetValue(candidate.ClassId, out var c) ? StripLegacyColors(c.Name) : candidate.ClassId,
+            }).ToList(),
         };
     }
 
@@ -153,6 +161,7 @@ public sealed class WebPlayerProfileRepository(
         {
             AccountId = account.Uuid,
             AccountName = account.AccountName,
+            SlotIndex = account.SlotIndex,
             PlayerLevel = account.Level,
             ClassId = account.ClassId,
             ClassName = classMap.TryGetValue(account.ClassId, out var currentClass) ? StripLegacyColors(currentClass.Name) : account.ClassId,
@@ -339,6 +348,7 @@ public sealed class WebPlayerProfileRepository(
     {
         UserUuid = profile.UserUuid, Mcid = profile.Mcid, Permission = null, IsPublic = profile.IsPublic,
         CurrentAccount = profile.CurrentAccount,
+        Accounts = profile.Accounts,
     };
 
     private static string StripLegacyColors(string value) => System.Text.RegularExpressions.Regex.Replace(value, "[&§][0-9A-FK-ORX]", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase);

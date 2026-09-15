@@ -19,16 +19,16 @@
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         @if (Model.Results is { } results)
         {
-            <p class="ar-portal-sub mb-3">@results.TotalCount 人 @(Model.IncludePrivate ? "・管理者として全プレイヤーを表示中" : "・公開プロフィール")</p>
+            <p class="ar-portal-sub mb-3">@results.TotalCount アカウント @(Model.IncludePrivate ? "・管理者として全プレイヤーを表示中" : "・公開プロフィール")</p>
             @if (results.Profiles.Count == 0) { <div class="ar-empty">条件に一致するプレイヤーがいません。</div> }
             <div class="ar-player-grid">
                 @foreach (var p in results.Profiles)
                 {
-                    <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">
+                    <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-accountId="@p.Account.AccountId" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">
                         <span class="ar-profile-badge @(p.IsPublic ? "" : "ar-profile-badge--private")">@(p.IsPublic ? "公開プロフィール" : "非公開・管理者閲覧")</span>
                         <h2>@p.Mcid</h2>
-                        <p>@(p.CurrentAccount?.ClassName ?? "アカウント未選択")</p>
-                        <div class="ar-player-card-footer"><span>プレイヤーレベル<br /><strong>@(p.CurrentAccount?.PlayerLevel.ToString("N0") ?? "—")</strong></span><span aria-hidden="true">プロフィール ↗</span></div>
+                        <p>@p.Account.ClassName ・ Slot @p.Account.SlotIndex</p>
+                        <div class="ar-player-card-footer"><span>プレイヤーレベル<br /><strong>@p.Account.PlayerLevel.ToString("N0")</strong></span><span aria-hidden="true">プロフィール ↗</span></div>
                     </a>
                 }
             </div>
