@@ -20,6 +20,7 @@ public sealed class PlayerStateSnapshotRepository(
     MasterDataDbContext? masterDataDbContext = null) : IPlayerStateSnapshotRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const int MaxRebirthExperienceRemainder = 99;
 
     public async Task<PlayerStateSnapshotSaveResult> SaveAsync(PlayerStateSnapshotSaveRequest request)
     {
@@ -1530,7 +1531,7 @@ public sealed class PlayerStateSnapshotRepository(
                 || section.RebirthOriginalLevel.Value <= section.Level
                 || section.RebirthOriginalLevel.Value > resolvedHighestLevel
                 || !section.RebirthExperienceRemainder.HasValue
-                || section.RebirthExperienceRemainder is < 0 or > 9,
+                || section.RebirthExperienceRemainder is < 0 or > MaxRebirthExperienceRemainder,
             false => section.RebirthOriginalLevel.HasValue
                 || section.RebirthExperienceRemainder.GetValueOrDefault() != 0,
             null => hasPartialRebirthState,
@@ -2176,7 +2177,7 @@ public sealed class PlayerStateSnapshotRepository(
                 && section.RebirthOriginalLevel.Value > section.Level
                 && (!section.HighestLevel.HasValue
                     || section.RebirthOriginalLevel.Value <= section.HighestLevel.Value)
-                && section.RebirthExperienceRemainder is >= 0 and <= 9,
+                && section.RebirthExperienceRemainder is >= 0 and <= MaxRebirthExperienceRemainder,
             false => !section.RebirthOriginalLevel.HasValue
                 && section.RebirthExperienceRemainder.GetValueOrDefault() == 0,
             null => !section.RebirthOriginalLevel.HasValue

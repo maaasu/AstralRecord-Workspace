@@ -26,10 +26,12 @@
 |:--|:--|:--|
 | `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260910_market_listing_create_receipt.sql` | 出品作成の冪等結果台帳を追加。対応 API 配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20260913_account_rebirth_progress.sql` | 転生進行カラムと初期制約を追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260915_expand_rebirth_experience_remainder.sql` | 100EXP単位の変換に合わせて転生EXP端数の許容範囲を0～99へ拡張。対応 API 配置前に適用 |
 
 本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
-開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記2件だけをmigrationとして管理する。
+開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記migrationだけを管理する。
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 

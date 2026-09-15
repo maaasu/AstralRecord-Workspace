@@ -84,6 +84,6 @@ data class AccountModel @JvmOverloads constructor(
     val highestLevel: Int = level,
     /** 転生開始時のレベル。転生していない場合は null。 */
     val rebirthOriginalLevel: Int? = null,
-    /** 転生中にEXPポイントへ未変換の経験値（0～9）。 */
+    /** 転生中にEXPポイントへ未変換の経験値（0～99）。 */
     val rebirthExperienceRemainder: Int = 0,
 )

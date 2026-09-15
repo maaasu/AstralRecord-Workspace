@@ -87,6 +87,22 @@
         ],
         "indexes": []
       }
+    },
+    {
+      "id": "20260915_expand_rebirth_experience_remainder",
+      "fileName": "20260915_expand_rebirth_experience_remainder.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account",
+        "primaryKey": "PK_account",
+        "columns": [
+          { "name": "rebirth_experience_remainder", "sqlType": "smallint", "maxLengthBytes": 2, "isNullable": false }
+        ],
+        "checkConstraints": [
+          "CK_account_rebirth_experience_remainder"
+        ],
+        "indexes": []
+      }
     }
   ]
 }

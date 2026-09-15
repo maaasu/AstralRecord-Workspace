@@ -75,6 +75,22 @@ CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KE
     if ([int]$rebirthHistoryCount -ne 1 -or [int]$rebirthColumnCount -ne 3 -or [int]$rebirthConstraintCount -ne 3) {
         throw "Account rebirth migration did not create its columns, constraints, and history row."
     }
+    $remainderRangeHistoryCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260915_expand_rebirth_experience_remainder';"
+    if ([int]$remainderRangeHistoryCount -ne 1) {
+        throw "Rebirth experience remainder range migration did not create its history row."
+    }
+    Invoke-DbNonQuery -ConnectionString $databaseConnectionString -CommandText "INSERT INTO dbo.account (uuid, level) VALUES (NEWID(), 1); UPDATE dbo.account SET highest_level = 2, rebirth_original_level = 2, rebirth_experience_remainder = 99;"
+    $persistedRemainder = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT rebirth_experience_remainder FROM dbo.account;"
+    if ([int]$persistedRemainder -ne 99) {
+        throw "Rebirth experience remainder constraint did not accept the upper boundary."
+    }
+    $ErrorActionPreference = "Continue"
+    & $sqlcmd -S $serverName -d $databaseName -E -C -b -l 60 -Q "UPDATE dbo.account SET rebirth_experience_remainder = 100;" 2>&1 | Out-Null
+    $invalidRemainderExit = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($invalidRemainderExit -eq 0) {
+        throw "Rebirth experience remainder constraint accepted a value above the upper boundary."
+    }
 
     Invoke-MigrationTool
     $historyCountAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260905_account_learned_skill_operation';"
@@ -88,6 +104,10 @@ CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KE
     $rebirthHistoryAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260913_account_rebirth_progress';"
     if ([int]$rebirthHistoryAfterRerun -ne 1) {
         throw "Account rebirth migration was not idempotent."
+    }
+    $remainderRangeHistoryAfterRerun = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260915_expand_rebirth_experience_remainder';"
+    if ([int]$remainderRangeHistoryAfterRerun -ne 1) {
+        throw "Rebirth experience remainder range migration was not idempotent."
     }
 
     $config.migrations[0].expectation.columns[0].sqlType = "int"

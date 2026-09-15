@@ -947,7 +947,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         {
             AccountId = fixture.AccountId, ClientRevision = 10, ExpectedProgressVersion = 1,
             Level = 1, TotalExperience = 99, HighestLevel = 10, RebirthActive = true,
-            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 9,
+            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 99,
             ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
             ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
         };
@@ -962,7 +962,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         var savedActive = await fixture.DbContext.Accounts.SingleAsync();
         Assert.Equal(20, savedActive.HighestLevel);
         Assert.Equal(10, savedActive.RebirthOriginalLevel);
-        Assert.Equal(9, savedActive.RebirthExperienceRemainder);
+        Assert.Equal(99, savedActive.RebirthExperienceRemainder);
 
         var ended = new PlayerStateAccountProgressSection
         {
@@ -993,7 +993,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         {
             AccountId = fixture.AccountId, ClientRevision = 12, ExpectedProgressVersion = 1,
             Level = 1, TotalExperience = 9, HighestLevel = 10, RebirthActive = true,
-            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 10,
+            RebirthOriginalLevel = 10, RebirthExperienceRemainder = 100,
             ClassId = "adventurer", ClassLevel = 1, ClassExperience = 0,
             ClassProgresses = [new AccountClassProgressUpdateRequest { ClassId = "adventurer", Level = 1, Experience = 0 }],
         };

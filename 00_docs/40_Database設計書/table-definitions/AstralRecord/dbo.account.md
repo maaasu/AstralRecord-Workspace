@@ -32,7 +32,7 @@
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 現在のレベル進行に用いる累計経験値。転生開始・終了時は対応する基準値へ置換し、負数不可 |
 | `highest_level` | `INT` | | ○ | `1` | 過去最高プレイヤーレベル。PP算出元で、現在レベル以上 |
 | `rebirth_original_level` | `INT` | | | | 転生前レベル。転生中だけ現在レベルより大きい値を保持 |
-| `rebirth_experience_remainder` | `SMALLINT` | | ○ | `0` | EXPポイントへ未変換の転生中経験値（0～9） |
+| `rebirth_experience_remainder` | `SMALLINT` | | ○ | `0` | EXPポイントへ未変換の転生中経験値（0～99） |
 | `class_id`     | `NVARCHAR(100)`    |    |    ○    | `adventurer` | 現在クラス ID |
 | `class_level`  | `INT`              |    |    ○    |  `1`   | 現在クラスレベルの互換ミラー。正本は `dbo.account_class_progress` |
 | `class_experience` | `BIGINT`      |    |    ○    |  `0`   | 現在クラス累計経験値の互換ミラー。正本は `dbo.account_class_progress` |
@@ -84,7 +84,7 @@
 | `CK_account_total_experience` | `total_experience` | `>= 0` | 経験値の負数保存を防ぐ |
 | `CK_account_highest_level` | `highest_level`, `level` | `highest_level >= level` | 過去最高レベルが現在レベルを下回る状態を防ぐ |
 | `CK_account_rebirth_original_level` | `rebirth_original_level`, `level`, `highest_level` | `NULL` または `2以上` かつ `level < rebirth_original_level <= highest_level` | 転生中の復帰レベルを制限する |
-| `CK_account_rebirth_experience_remainder` | `rebirth_experience_remainder`, `rebirth_original_level` | `0～9`、転生外は`0` | EXPポイント変換端数を制限する |
+| `CK_account_rebirth_experience_remainder` | `rebirth_experience_remainder`, `rebirth_original_level` | `0～99`、転生外は`0` | EXPポイント変換端数を制限する |
 | `CK_account_class_id_not_blank` | `class_id` | `LEN(LTRIM(RTRIM(class_id))) > 0` | 現在クラス ID の空文字を防ぐ |
 | `CK_account_class_level` | `class_level` | `>= 1` | クラスレベルの下限を制限する |
 | `CK_account_class_experience` | `class_experience` | `>= 0` | クラス経験値の負数保存を防ぐ |
@@ -160,7 +160,7 @@ CREATE TABLE [dbo].[account] (
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
     CONSTRAINT [CK_account_highest_level] CHECK ([highest_level] >= [level]),
     CONSTRAINT [CK_account_rebirth_original_level] CHECK ([rebirth_original_level] IS NULL OR ([rebirth_original_level] >= 2 AND [rebirth_original_level] > [level] AND [rebirth_original_level] <= [highest_level])),
-    CONSTRAINT [CK_account_rebirth_experience_remainder] CHECK ([rebirth_experience_remainder] BETWEEN 0 AND 9 AND ([rebirth_original_level] IS NOT NULL OR [rebirth_experience_remainder] = 0)),
+    CONSTRAINT [CK_account_rebirth_experience_remainder] CHECK ([rebirth_experience_remainder] BETWEEN 0 AND 99 AND ([rebirth_original_level] IS NOT NULL OR [rebirth_experience_remainder] = 0)),
     CONSTRAINT [CK_account_class_id_not_blank] CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
     CONSTRAINT [CK_account_class_level] CHECK ([class_level] >= 1),
     CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0),

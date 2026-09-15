@@ -210,7 +210,7 @@ CREATE TABLE [dbo].[account] (
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
     CONSTRAINT [CK_account_highest_level] CHECK ([highest_level] >= [level]),
     CONSTRAINT [CK_account_rebirth_original_level] CHECK ([rebirth_original_level] IS NULL OR ([rebirth_original_level] >= 2 AND [rebirth_original_level] > [level] AND [rebirth_original_level] <= [highest_level])),
-    CONSTRAINT [CK_account_rebirth_experience_remainder] CHECK ([rebirth_experience_remainder] BETWEEN 0 AND 9 AND ([rebirth_original_level] IS NOT NULL OR [rebirth_experience_remainder] = 0)),
+    CONSTRAINT [CK_account_rebirth_experience_remainder] CHECK ([rebirth_experience_remainder] BETWEEN 0 AND 99 AND ([rebirth_original_level] IS NOT NULL OR [rebirth_experience_remainder] = 0)),
     CONSTRAINT [CK_account_class_id_not_blank] CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
     CONSTRAINT [CK_account_class_level] CHECK ([class_level] >= 1),
     CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0),
