@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AstralRecordWeb.Pages.Admin;
 
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "WebAdminOnly")]
 public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
 {
     private const string IconBaseUrl = "https://assets.mcasset.cloud/1.21.11/assets/minecraft/textures/item/";

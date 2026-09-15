@@ -39,6 +39,28 @@ public class WebAuthApiClient(HttpClient httpClient, ILogger<WebAuthApiClient> l
         }
     }
 
+    /// <summary>指定プレイヤーのWeb管理権限をAPIから取得します。</summary>
+    public async Task<bool> IsWebAdminAsync(Guid userUuid, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync(
+                $"/api/web-auth/users/{userUuid:D}/authorization",
+                cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var authorization = await response.Content.ReadFromJsonAsync<WebAuthorizationResponse>(cancellationToken);
+            return authorization?.WebAdmin == true;
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested &&
+            ex is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
+        {
+            logger.LogWarning(ex, "Web administrator authorization API request failed.");
+            return false;
+        }
+    }
+
     private static string NormalizeLoginCode(string loginCode) =>
         loginCode.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
 }

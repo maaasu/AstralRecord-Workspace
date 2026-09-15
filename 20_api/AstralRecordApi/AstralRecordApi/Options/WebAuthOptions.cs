@@ -4,6 +4,6 @@ public class WebAuthOptions
 {
     public const string SectionName = "WebAuth";
 
-    public string LoginUrl { get; set; } = "https://astralrecord.example.com/Login";
+    public string LoginUrl { get; set; } = "https://astralrecord.com/Login";
     public int ChallengeMinutes { get; set; } = 5;
 }

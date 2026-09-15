@@ -53,4 +53,35 @@ public class WebAuthController(IWebAuthRepository webAuthRepository) : Controlle
 
         return Ok(consumed);
     }
+
+    /// <summary>MCID から一意に解決できるプレイヤーを取得します。</summary>
+    /// <param name="mcid">完全一致で検索する Minecraft ID。</param>
+    /// <response code="200">プレイヤーを一意に解決できた。</response>
+    /// <response code="404">登録済みプレイヤーが存在しない。</response>
+    /// <response code="409">同じ MCID の登録が複数あり、一意に解決できない。</response>
+    [HttpGet("users/by-mcid/{mcid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResolveUserByMcid(string mcid)
+    {
+        var resolved = await webAuthRepository.ResolveUserByMcidAsync(mcid);
+        return resolved.Status switch
+        {
+            WebLoginChallengeUserResolveStatus.Found => Ok(resolved.Response),
+            WebLoginChallengeUserResolveStatus.Ambiguous => Conflict(new { message = "mcid is ambiguous." }),
+            _ => NotFound(),
+        };
+    }
+
+    /// <summary>Web 管理機能を利用できるかを取得します。</summary>
+    /// <param name="userUuid">確認するプレイヤー UUID。</param>
+    /// <response code="200">Web 管理フラグを返した。</response>
+    [HttpGet("users/{userUuid:guid}/authorization")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAuthorization(Guid userUuid)
+    {
+        var webAdmin = await webAuthRepository.IsWebAdminAsync(userUuid);
+        return Ok(new WebAuthorizationResponse { WebAdmin = webAdmin });
+    }
 }

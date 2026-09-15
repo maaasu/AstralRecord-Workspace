@@ -1,6 +1,6 @@
 # 01_README
 
-Web `web-auth` feature は現在停止中です。`/Login` は未実装案内のみを表示し、フォームの操作、API でのコード消費、ASP.NET Core Cookie 認証の開始を行いません。既存の認証実装と以下の資料は再開時の同期対象として保持します。
+Web `web-auth` feature は、Minecraft内で発行した一回限りのコードを `/Login` で消費し、ASP.NET Core Cookie認証を開始します。ログイン成功時はAPIがWebSiteDBへプレイヤー利用者情報を記録し、Web管理機能は専用の `web_admin` フラグで判定します。
 
 ## ドキュメント一覧（推奨順）
 

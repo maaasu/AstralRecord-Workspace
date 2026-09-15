@@ -10,8 +10,14 @@ public class WebLoginChallengeConsumeResponse
     public Guid UserUuid { get; set; }
     public string Mcid { get; set; } = string.Empty;
     public int Permission { get; set; }
+    public bool WebAdmin { get; set; }
     public Guid? CurrentAccountId { get; set; }
     public IReadOnlyList<Guid> AccountIds { get; set; } = [];
+}
+
+public class WebAuthorizationResponse
+{
+    public bool WebAdmin { get; set; }
 }
 
 public enum WebLoginChallengeConsumeStatus

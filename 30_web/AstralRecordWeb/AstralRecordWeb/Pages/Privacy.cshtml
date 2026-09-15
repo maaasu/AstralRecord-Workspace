@@ -59,7 +59,7 @@
                             <dt>Webログイン関連</dt>
                             <dd>
                                 ログインコード照合用のハッシュ値、認証成立時にCookieへ保持するMinecraft UUID、MCID、アカウントID、権限などの認証情報。
-                                Webログイン画面は現在未実装として停止しており、一般ユーザーは利用できません。
+                                Webログイン時には、Webサイトの利用者情報としてプレイヤー UUID、MCID、初回・最終ログイン日時、Web管理フラグを保存します。
                             </dd>
                         </div>
                     </dl>
@@ -114,10 +114,10 @@
                     <h2 class="ar-terms-heading"><span class="ar-terms-num">06</span>Cookie</h2>
                     <p>
                         Webサイトでは、フォームの不正送信を防ぐためのCookieを使用します。
-                        Webログインを提供する際は、ログイン状態を保持するための認証Cookieも使用しますが、現在そのログイン機能は未実装です。
+                        Webログイン時には、ログイン状態を保持するための認証Cookieを使用します。
                         現在、広告配信やアクセス解析を目的とするCookieは使用していません。
                     </p>
-                    <p class="ar-terms-note">必要なCookieを無効にすると、フォーム送信や将来のログイン機能が正常に動作しない場合があります。</p>
+                    <p class="ar-terms-note">必要なCookieを無効にすると、フォーム送信やログイン機能が正常に動作しない場合があります。</p>
                 </section>
 
                 <section class="ar-terms-section">

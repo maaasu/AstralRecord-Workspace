@@ -1,5 +1,7 @@
 using AstralRecordWeb.Options;
 using AstralRecordWeb.Services;
+using AstralRecordWeb.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Options;
 
@@ -53,14 +55,13 @@ builder.Services
     });
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
+    options.AddPolicy("WebAdminOnly", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireAssertion(context =>
-            int.TryParse(context.User.FindFirst("permission")?.Value, out var permission)
-            && permission >= 99);
+        policy.Requirements.Add(new WebAdminRequirement());
     });
 });
+builder.Services.AddScoped<IAuthorizationHandler, WebAdminAuthorizationHandler>();
 builder.Services.AddHttpClient<WebAuthApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

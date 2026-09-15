@@ -11,6 +11,7 @@ namespace AstralRecordApi.Repositories;
 
 public class WebAuthRepository(
     AstralRecordDbContext dbContext,
+    WebSiteDbContext webSiteDbContext,
     IOptions<WebAuthOptions> options) : IWebAuthRepository
 {
     private const string LoginCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -68,45 +69,151 @@ public class WebAuthRepository(
             return null;
 
         var hash = HashLoginCode(normalizedCode);
-        var challenge = await dbContext.WebLoginChallenges
-            .FirstOrDefaultAsync(x => x.LoginCodeHash == hash);
-
-        if (challenge is null)
-            return null;
-
-        var now = DateTime.UtcNow;
-        if (challenge.ConsumedAt is not null || challenge.RevokedAt is not null || challenge.ExpiresAt <= now)
+        var gameDatabaseStrategy = dbContext.Database.CreateExecutionStrategy();
+        var consumed = await gameDatabaseStrategy.ExecuteAsync(async () =>
         {
-            challenge.FailedAttempts++;
-            await dbContext.SaveChangesAsync();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            var now = DateTime.UtcNow;
+            var claimed = await dbContext.WebLoginChallenges
+                .Where(challenge =>
+                    challenge.LoginCodeHash == hash &&
+                    challenge.ConsumedAt == null &&
+                    challenge.RevokedAt == null &&
+                    challenge.ExpiresAt > now)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(challenge => challenge.ConsumedAt, now));
+
+            if (claimed != 1)
+            {
+                await dbContext.WebLoginChallenges
+                    .Where(challenge => challenge.LoginCodeHash == hash)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(challenge => challenge.FailedAttempts, challenge => challenge.FailedAttempts + 1));
+                await transaction.CommitAsync();
+                return null;
+            }
+
+            var challenge = await dbContext.WebLoginChallenges
+                .AsNoTracking()
+                .SingleAsync(item => item.LoginCodeHash == hash);
+            var user = await dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Uuid == challenge.UserId && !item.IsDeleted);
+
+            if (user is null)
+            {
+                await transaction.RollbackAsync();
+                return null;
+            }
+
+            var accountIds = await dbContext.Accounts
+                .AsNoTracking()
+                .Where(account => account.UserId == user.Uuid && !account.IsDeleted)
+                .OrderBy(account => account.SlotIndex)
+                .Select(account => account.Uuid)
+                .ToListAsync();
+
+            // Web利用者の保存失敗時は、未確定のコード消費をrollbackして再試行を許可する。
+            var webAdmin = await UpsertWebUserAsync(user.Uuid, user.Mcid, now);
+            await transaction.CommitAsync();
+            return new ConsumedChallenge(user.Uuid, user.Mcid, user.Permission, user.AccountId, accountIds, webAdmin);
+        });
+
+        if (consumed is null)
             return null;
-        }
-
-        var user = await dbContext.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Uuid == challenge.UserId && !x.IsDeleted);
-
-        if (user is null)
-            return null;
-
-        var accountIds = await dbContext.Accounts
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Uuid && !x.IsDeleted)
-            .OrderBy(x => x.SlotIndex)
-            .Select(x => x.Uuid)
-            .ToListAsync();
-
-        challenge.ConsumedAt = now;
-        await dbContext.SaveChangesAsync();
 
         return new WebLoginChallengeConsumeResponse
         {
-            UserUuid = user.Uuid,
-            Mcid = user.Mcid,
-            Permission = user.Permission,
-            CurrentAccountId = user.AccountId,
-            AccountIds = accountIds,
+            UserUuid = consumed.UserUuid,
+            Mcid = consumed.Mcid,
+            Permission = consumed.Permission,
+            WebAdmin = consumed.WebAdmin,
+            CurrentAccountId = consumed.CurrentAccountId,
+            AccountIds = consumed.AccountIds,
         };
+    }
+
+    public async Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid)
+    {
+        var normalizedMcid = mcid.Trim();
+        if (normalizedMcid.Length == 0)
+            return WebLoginChallengeUserResolveResult.NotFound();
+
+        var users = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.Mcid == normalizedMcid && !user.IsDeleted)
+            .OrderBy(user => user.Uuid)
+            .Take(2)
+            .ToListAsync();
+
+        return users.Count switch
+        {
+            0 => WebLoginChallengeUserResolveResult.NotFound(),
+            1 => WebLoginChallengeUserResolveResult.Found(new WebLoginChallengeUserResolveResponse
+            {
+                UserUuid = users[0].Uuid,
+                Mcid = users[0].Mcid,
+            }),
+            _ => WebLoginChallengeUserResolveResult.Ambiguous(),
+        };
+    }
+
+    public async Task<bool> IsWebAdminAsync(Guid userUuid) =>
+        await webSiteDbContext.WebUsers
+            .AsNoTracking()
+            .Where(user => user.UserUuid == userUuid)
+            .Select(user => (bool?)user.WebAdmin)
+            .SingleOrDefaultAsync() == true;
+
+    private async Task<bool> UpsertWebUserAsync(Guid userUuid, string mcid, DateTime loginAt)
+    {
+        var updated = await webSiteDbContext.WebUsers
+            .Where(user => user.UserUuid == userUuid)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(user => user.Mcid, mcid)
+                .SetProperty(user => user.LastLoginAt, loginAt));
+
+        if (updated == 1)
+        {
+            return await webSiteDbContext.WebUsers
+                .AsNoTracking()
+                .Where(user => user.UserUuid == userUuid)
+                .Select(user => user.WebAdmin)
+                .SingleAsync();
+        }
+
+        var created = new WebUserEntity
+        {
+            UserUuid = userUuid,
+            Mcid = mcid,
+            WebAdmin = false,
+            FirstLoginAt = loginAt,
+            LastLoginAt = loginAt,
+        };
+        await webSiteDbContext.WebUsers.AddAsync(created);
+
+        try
+        {
+            await webSiteDbContext.SaveChangesAsync();
+            return false;
+        }
+        catch (DbUpdateException)
+        {
+            webSiteDbContext.ChangeTracker.Clear();
+            var updatedAfterInsertRace = await webSiteDbContext.WebUsers
+                .Where(user => user.UserUuid == userUuid)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(user => user.Mcid, mcid)
+                    .SetProperty(user => user.LastLoginAt, loginAt));
+            if (updatedAfterInsertRace != 1)
+                throw;
+
+            return await webSiteDbContext.WebUsers
+                .AsNoTracking()
+                .Where(user => user.UserUuid == userUuid)
+                .Select(user => user.WebAdmin)
+                .SingleAsync();
+        }
     }
 
     private static string GenerateLoginCode()
@@ -129,4 +236,12 @@ public class WebAuthRepository(
 
     private static string NormalizeLoginCode(string loginCode) =>
         loginCode.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
+
+    private sealed record ConsumedChallenge(
+        Guid UserUuid,
+        string Mcid,
+        int Permission,
+        Guid? CurrentAccountId,
+        IReadOnlyList<Guid> AccountIds,
+        bool WebAdmin);
 }

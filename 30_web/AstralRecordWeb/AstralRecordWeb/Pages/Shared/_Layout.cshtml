@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
 @inject Microsoft.Extensions.Options.IOptions<AstralRecordWeb.Options.PublicSiteOptions> PublicSiteOptionsAccessor
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     var publicSite = PublicSiteOptionsAccessor.Value;
     var metaDescription = publicSite.IsOpenAlpha
@@ -52,10 +53,6 @@
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Releases/Index">お知らせ</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
-                           rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Terms">利用規約</a>
                     </li>
                     <li class="nav-item">
@@ -63,9 +60,8 @@
                     </li>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        var hasAdminPermission = int.TryParse(User.FindFirst("permission")?.Value, out var permission)
-                            && permission >= 99;
-                        if (hasAdminPermission)
+                        var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminOnly");
+                        if (webAdminAuthorization.Succeeded)
                         {
                             <li class="nav-item">
                                 <a class="nav-link ar-nav-link" asp-area="" asp-page="/Admin/Items">アイテム</a>
@@ -83,9 +79,13 @@
                     else
                     {
                         <li class="nav-item">
-                            <a class="nav-link ar-nav-link ar-nav-login" asp-area="" asp-page="/Login">ログイン<span>未実装</span></a>
+                            <a class="nav-link ar-nav-link ar-nav-login" asp-area="" asp-page="/Login">ログイン</a>
                         </li>
                     }
+                    <li class="nav-item">
+                        <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
+                           rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
+                    </li>
                 </ul>
             </div>
         </div>

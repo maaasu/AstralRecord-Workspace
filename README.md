@@ -48,6 +48,9 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/release-notes/{slug}/retry-notification`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `GET /api/network/servers`（Lobbyのサーバー選択GUI向け人数・権限別定員）
 - `GET /api/geyser/heads`（Extension起動時のマスターヘッドテクスチャ・登録プレイヤーUUID一覧）
+- `POST /api/web-auth/challenges` / `POST /api/web-auth/challenges/consume`（Webログインコードの発行・一回消費）
+- `GET /api/web-auth/users/by-mcid/{mcid}`（コンソール用の登録済みプレイヤーMCID解決）
+- `GET /api/web-auth/users/{userUuid}/authorization`（Web管理権限照会）
 
 ## AstralRecord Plugin
 

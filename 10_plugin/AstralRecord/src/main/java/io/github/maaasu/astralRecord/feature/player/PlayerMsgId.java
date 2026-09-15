@@ -1184,6 +1184,8 @@ public enum PlayerMsgId {
     P_6400(6400),
     P_6401(6401),
     P_6402(6402),
+    P_6403(6403),
+    P_6404(6404),
     // endregion
 
     // region /feature/boss 6500-6539

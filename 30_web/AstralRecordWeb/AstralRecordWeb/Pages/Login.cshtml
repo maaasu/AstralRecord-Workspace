@@ -10,22 +10,21 @@
         <div class="row justify-content-center">
             <div class="col-12 col-md-9 col-lg-6">
                 <div class="ar-login-card">
-                    <p class="ar-alpha-badge ar-alpha-badge--muted">COMING LATER</p>
                     <h1 id="login-title">プレイヤーログイン</h1>
-                    <div class="ar-login-card__notice" id="login-unavailable" role="status">
-                        <strong>Webログインは現在未実装です。</strong>
-                        <span>ゲーム内でのログインコード発行とは別に、このWebフォームからのログインは現在利用できません。</span>
+                    <div class="ar-login-card__notice" id="login-guide">
+                        <strong>ゲーム内でログインコードを発行してください。</strong>
+                        <span>ゲーム内で <code>/web login</code> を実行し、表示されたコードを入力してください。</span>
                     </div>
 
-                    <form method="post" aria-describedby="login-unavailable">
-                        <fieldset disabled aria-disabled="true">
-                            <div class="mb-3">
-                                <label asp-for="LoginCode" class="form-label">ログインコード</label>
-                                <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase ar-disabled-input"
-                                       autocomplete="off" placeholder="準備中" />
-                            </div>
-                            <button type="submit" class="btn ar-home-button ar-home-button--primary w-100">ログイン</button>
-                        </fieldset>
+                    <form method="post" aria-describedby="login-guide">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+                        <div class="mb-3">
+                            <label asp-for="LoginCode" class="form-label">ログインコード</label>
+                            <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase"
+                                   autocomplete="one-time-code" placeholder="ABCD-EFGH" />
+                            <span asp-validation-for="LoginCode" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn ar-home-button ar-home-button--primary w-100">ログイン</button>
                     </form>
 
                     <p class="ar-login-card__foot">

@@ -67,6 +67,16 @@ builder.Services.AddDbContext<HistoryDbContext>(options =>
         ?? throw new InvalidOperationException("Connection string 'History' is not configured."),
         sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
 
+builder.Services.AddDbContext<WebSiteDbContext>(options =>
+    options.UseSqlServer(
+        ResolveWebSiteConnectionString(builder.Configuration),
+        sqlServerOptions => sqlServerOptions
+            .CommandTimeout(databaseCommandTimeoutSeconds)
+            .EnableRetryOnFailure(
+                databaseRetryCount,
+                TimeSpan.FromMilliseconds(databaseRetryDelayMilliseconds),
+                errorNumbersToAdd: [1205])));
+
 builder.Services.AddProblemDetails();
 
 // マスタデータ参照系は MasterDataDB から取得するため Scoped で登録する。
@@ -211,6 +221,21 @@ app.MapControllers().RequireAuthorization();
 // 起動時の事前ロードは行わない。各 Repository はリクエスト毎に MasterDataDB を参照する。
 
 app.Run();
+
+static string ResolveWebSiteConnectionString(IConfiguration configuration)
+{
+    var explicitlyConfigured = configuration.GetConnectionString("WebSite");
+    if (!string.IsNullOrWhiteSpace(explicitlyConfigured))
+        return explicitlyConfigured;
+
+    var gameDatabaseConnection = configuration.GetConnectionString("SqlServer")
+        ?? throw new InvalidOperationException("Connection string 'SqlServer' is not configured.");
+    var connectionBuilder = new SqlConnectionStringBuilder(gameDatabaseConnection)
+    {
+        InitialCatalog = "WebSiteDB",
+    };
+    return connectionBuilder.ConnectionString;
+}
 
 static bool IsDatabaseUnavailable(Exception? exception)
 {
