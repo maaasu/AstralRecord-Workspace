@@ -29,6 +29,7 @@ class ConfigPropertiesTest {
         UUID whitelistUuid = UUID.randomUUID();
         UUID reloadedWhitelistUuid = UUID.randomUUID();
         FileConfiguration initialConfig = new YamlConfiguration();
+        initialConfig.set(ConfigKeys.NETWORK_ENABLED, false);
         initialConfig.set(
                 ConfigKeys.PLUGIN_DEBUG_USERS,
                 List.of(" " + debugUuid + " ", "not-a-uuid", " ")
@@ -43,6 +44,7 @@ class ConfigPropertiesTest {
 
         FileConfiguration reloadedConfig = new YamlConfiguration();
         reloadedConfig.set(ConfigKeys.PLUGIN_DEBUG_USERS, List.of());
+        reloadedConfig.set(ConfigKeys.NETWORK_ENABLED, false);
         reloadedConfig.set(
                 ConfigKeys.PLUGIN_WHITELIST_USERS,
                 List.of(reloadedWhitelistUuid.toString())

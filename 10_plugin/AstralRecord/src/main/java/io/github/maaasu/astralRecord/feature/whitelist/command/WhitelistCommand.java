@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -66,6 +67,10 @@ public final class WhitelistCommand extends AstCommand {
      */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (NetworkChannelAccessService.getInstance().isManaged()) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7119.getId()));
+            return;
+        }
         if (args.length == 0) {
             setEnabled(sender, !whitelistService.isEnabled());
             return;

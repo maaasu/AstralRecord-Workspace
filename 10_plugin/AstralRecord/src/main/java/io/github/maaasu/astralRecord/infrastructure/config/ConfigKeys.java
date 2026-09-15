@@ -63,6 +63,10 @@ public final class ConfigKeys {
     public static final String API_SSL_VERIFY_ENABLED = "api.ssl.verifyEnabled";
     public static final String API_SERVER_ID = "api.serverId";
 
+    // Velocity network settings
+    public static final String NETWORK_ENABLED = "network.enabled";
+    public static final String NETWORK_CHANNEL_NAME = "network.channelName";
+
     // Resource pack settings
     public static final String RESOURCE_PACK_ENABLED = "resourcePack.enabled";
     public static final String RESOURCE_PACK_URL = "resourcePack.url";

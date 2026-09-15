@@ -52,6 +52,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     private final String lobbyServer;
     private final Set<UUID> transfers = ConcurrentHashMap.newKeySet();
     private final NetworkAuthorityClient authorityClient = new NetworkAuthorityClient();
+    private final NetworkChannelAccessService channelAccessService = NetworkChannelAccessService.getInstance();
     private final AtomicBoolean authorityRefreshRunning = new AtomicBoolean();
     private final AtomicBoolean authorityWarningLogged = new AtomicBoolean();
     private BukkitTask metadataTask;
@@ -278,7 +279,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         } catch (java.io.IOException ignored) {
             return;
         }
-        if (!NetworkAuthorityRegistry.isAuthority(player.getUniqueId())) return;
+        if (!NetworkAuthorityRegistry.isAuthority(player.getUniqueId())
+            && !NetworkChannelAccessRegistry.isAuthority(player.getUniqueId())) return;
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7152);
@@ -386,6 +388,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         } catch (RuntimeException | java.io.IOException exception) {
             logAuthorityWarningOnce(exception);
         } finally {
+            refreshOnlineChannelAccessRoles();
             authorityRefreshRunning.set(false);
             plugin.getServer().getScheduler().runTask(plugin, () ->
                 AstPlayerCache.getAll().forEach(AstPlayer::refreshEffectivePermission));
@@ -397,6 +400,16 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (authorityWarningLogged.compareAndSet(false, true)) {
             Logger.log(LogId.W_7120, failure, failure.getClass().getSimpleName());
         }
+    }
+
+    /** Network管理ロールをオンラインプレイヤー分だけ更新します。 */
+    private void refreshOnlineChannelAccessRoles() {
+        if (Bukkit.getServer() == null) {
+            return;
+        }
+        AstPlayerCache.getAll().forEach(player ->
+            channelAccessService.refresh(player.getBukkit().getUniqueId())
+        );
     }
 
     private @NotNull String displayName(@NotNull AstPlayer player) {

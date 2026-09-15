@@ -8,6 +8,10 @@ import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.feature.network.NetworkBanClient;
+import io.github.maaasu.astralRecord.feature.network.NetworkBanState;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessService;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -19,7 +23,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Set;
@@ -37,6 +44,7 @@ public final class BanCommand extends AstCommand {
 
     private final @Nullable UserService userService;
     private final Set<String> pendingMcids = ConcurrentHashMap.newKeySet();
+    private final NetworkBanClient networkBanClient = new NetworkBanClient();
 
     /**
      * BAN コマンドを初期化します。
@@ -80,16 +88,35 @@ public final class BanCommand extends AstCommand {
             AsyncTaskUtil.supplyAsync(plugin, () -> {
                 UserModel before = resolvedUserService.getUserByMcid(request.mcid());
                 if (before == null) {
-                    return new BanUpdateResult(null, null);
+                    return BanUpdateResult.notFound();
                 }
-
+                if (NetworkChannelAccessService.getInstance().isManaged()) {
+                    try {
+                        NetworkBanState current = networkBanClient.get(before.getUuid());
+                        NetworkBanState updated = networkBanClient.update(
+                            before.getUuid(),
+                            executorUuid,
+                            ConfigProperties.getInstance().getNetworkChannelName(),
+                            current.revision(),
+                            true,
+                            request.duration() == BanDuration.INDEFINITE ? null : request.expiresAtUtc(),
+                            current.reason()
+                        );
+                        return BanUpdateResult.network(before, current, updated);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Network BAN update was interrupted", exception);
+                    } catch (java.io.IOException exception) {
+                        throw new IllegalStateException("Network BAN update failed", exception);
+                    }
+                }
                 UserModel updated = resolvedUserService.setBan(
-                        before.getUuid(),
-                        request.duration() == BanDuration.INDEFINITE,
-                        request.banDate(),
-                        executorUuid
+                    before.getUuid(),
+                    request.duration() == BanDuration.INDEFINITE,
+                    request.legacyBanDate(),
+                    executorUuid
                 );
-                return new BanUpdateResult(before, updated);
+                return BanUpdateResult.legacy(before, updated);
             }).whenComplete((result, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
                 pendingMcids.remove(pendingKey);
                 if (failure != null) {
@@ -102,42 +129,46 @@ public final class BanCommand extends AstCommand {
                     return;
                 }
 
-                UserModel updated = result.updated();
-                if (updated == null) {
+                if (!result.updated()) {
                     sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5303.getId(), request.mcid()));
                     return;
                 }
 
+                boolean beforeIndefinite = result.beforeIndefinite();
+                LocalDateTime beforeBanDate = result.beforeBanDate();
+                boolean updatedIndefinite = result.updatedIndefinite();
+                LocalDateTime updatedBanDate = result.updatedBanDate();
+
                 Logger.log(
                         LogId.I_5054,
                         executorUuid,
-                        updated.getUuid(),
-                        result.before().getBanIndefinite(),
-                        formatDate(result.before().getBanDate()),
-                        updated.getBanIndefinite(),
-                        formatDate(updated.getBanDate()),
+                        result.before().getUuid(),
+                        beforeIndefinite,
+                        formatDate(beforeBanDate),
+                        updatedIndefinite,
+                        formatDate(updatedBanDate),
                         source
                 );
 
-                if (updated.getBanIndefinite()) {
+                if (updatedIndefinite) {
                     sendSuccess(
                             sender,
-                            PlayerMsgResource.format(PlayerMsgId.P_5308.getId(), updated.getMcid())
+                            PlayerMsgResource.format(PlayerMsgId.P_5308.getId(), result.before().getMcid())
                     );
                 } else {
                     sendSuccess(
                             sender,
                             PlayerMsgResource.format(
                                     PlayerMsgId.P_5312.getId(),
-                                    updated.getMcid(),
+                                    result.before().getMcid(),
                                     request.days(),
-                                    formatDate(updated.getBanDate())
+                                    formatDate(updatedBanDate)
                             )
                     );
                 }
 
-                Player online = Bukkit.getPlayer(updated.getUuid());
-                if (online != null && online.isOnline()) {
+                Player online = Bukkit.getPlayer(result.before().getUuid());
+                if (result.active() && online != null && online.isOnline()) {
                     online.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_5307.getId()));
                 }
             }));
@@ -188,9 +219,9 @@ public final class BanCommand extends AstCommand {
         }
 
         try {
-            LocalDateTime banDate = LocalDateTime.now().withNano(0).plusDays(days);
-            return new BanRequest(mcid, duration, days, banDate);
-        } catch (DateTimeException exception) {
+            Instant expiresAtUtc = Instant.now().plusSeconds(Math.multiplyExact(days, 86_400L));
+            return new BanRequest(mcid, duration, days, expiresAtUtc);
+        } catch (DateTimeException | ArithmeticException exception) {
             sendInvalidDays(sender);
             return null;
         }
@@ -231,13 +262,58 @@ public final class BanCommand extends AstCommand {
             @NotNull String mcid,
             @NotNull BanDuration duration,
             long days,
-            @Nullable LocalDateTime banDate
+            @Nullable Instant expiresAtUtc
     ) {
+        private @Nullable LocalDateTime legacyBanDate() {
+            return expiresAtUtc == null ? null : LocalDateTime.ofInstant(expiresAtUtc, ZoneId.systemDefault());
+        }
     }
 
     private record BanUpdateResult(
             @Nullable UserModel before,
-            @Nullable UserModel updated
+            boolean updated,
+            boolean beforeIndefinite,
+            @Nullable LocalDateTime beforeBanDate,
+            boolean updatedIndefinite,
+            @Nullable LocalDateTime updatedBanDate,
+            boolean active
     ) {
+        private static BanUpdateResult notFound() {
+            return new BanUpdateResult(null, false, false, null, false, null, false);
+        }
+
+        private static BanUpdateResult legacy(@NotNull UserModel before, @Nullable UserModel updated) {
+            return updated == null
+                ? new BanUpdateResult(before, false, false, null, false, null, false)
+                : new BanUpdateResult(
+                    before,
+                    true,
+                    before.getBanIndefinite(),
+                    before.getBanDate(),
+                    updated.getBanIndefinite(),
+                    updated.getBanDate(),
+                    updated.getBanIndefinite() || updated.getBanDate() != null
+                );
+        }
+
+        private static BanUpdateResult network(
+            @NotNull UserModel before,
+            @NotNull NetworkBanState current,
+            @NotNull NetworkBanState updated
+        ) {
+            return new BanUpdateResult(
+                before,
+                true,
+                current.indefinite(),
+                toLocalDateTime(current.expiresAtUtc()),
+                updated.indefinite(),
+                toLocalDateTime(updated.expiresAtUtc()),
+                updated.active()
+            );
+        }
+
+        private static @Nullable LocalDateTime toLocalDateTime(@Nullable Instant value) {
+            return value == null ? null : LocalDateTime.ofInstant(value, ZoneOffset.UTC);
+        }
     }
 }

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 
@@ -56,7 +57,8 @@ public class UserService {
             }
             pendingSameIpUsers.put(uuid, hasOtherUsersByGlobalIp(uuid, mcid, globalIp));
         } else {
-            if (isActiveBan(existing, LocalDateTime.now())) {
+            if (!NetworkChannelAccessService.getInstance().isManaged()
+                && isActiveBan(existing, LocalDateTime.now())) {
                 return false;
             }
 

@@ -1639,6 +1639,10 @@ public enum PlayerMsgId {
     P_7117(7117),
     /** whitelist ユーザー更新処理中。 */
     P_7118(7118),
+    /**
+     * Network管理中のwhitelist変更拒否
+     */
+    P_7119(7119),
     // endregion
 
     // region /feature/player/afk 7120-7129

@@ -883,7 +883,9 @@ public final class AstralRecord extends JavaPlugin {
             // 設定ファイルを初期化
             ConfigManager.getInstance().initialize();
             playerCapacityService = new PlayerCapacityService();
-            playerCapacityService.applyConfiguredMaximum(getServer());
+            if (!ConfigProperties.getInstance().isNetworkEnabled()) {
+                playerCapacityService.applyConfiguredMaximum(getServer());
+            }
 
 
             // DB を初期化
@@ -1898,7 +1900,11 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerCapacityEventHandler(userService, playerCapacityService),
+            new PlayerCapacityEventHandler(
+                userService,
+                playerCapacityService,
+                ConfigProperties.getInstance().isNetworkEnabled()
+            ),
             getServer().getPluginManager()
         );
         var menuToolJoinGrantService = new MenuToolJoinGrantService(

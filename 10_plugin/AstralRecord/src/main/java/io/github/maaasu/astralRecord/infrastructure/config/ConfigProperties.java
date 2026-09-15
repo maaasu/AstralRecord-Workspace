@@ -72,6 +72,10 @@ public class ConfigProperties {
     private boolean apiSslVerifyEnabled;
     private String apiServerId;
 
+    // Velocity network settings
+    private boolean networkEnabled;
+    private String networkChannelName;
+
     // Resource pack settings
     private boolean resourcePackEnabled;
     private String resourcePackUrl;
@@ -114,38 +118,43 @@ public class ConfigProperties {
     public void initialize() {
         ConfigManager configManager = ConfigManager.getInstance();
 
+        // Velocity network settings are read first because network-managed backends must not
+        // load their local debug/whitelist/capacity role settings into runtime state.
+        this.networkEnabled = configManager.getConfig().getBoolean(ConfigKeys.NETWORK_ENABLED, true);
+        this.networkChannelName = configManager.getConfig().getString(ConfigKeys.NETWORK_CHANNEL_NAME, "dev");
+
         // Plugin 関連
         this.pluginDebugMode = configManager.getConfig().getBoolean(ConfigKeys.PLUGIN_DEBUG_MODE);
-        this.pluginDebugUsers = parseConfiguredUsers(
-                configManager.getConfig().getStringList(ConfigKeys.PLUGIN_DEBUG_USERS)
+        this.pluginDebugUsers = networkEnabled ? Collections.emptySet() : parseConfiguredUsers(
+            configManager.getConfig().getStringList(ConfigKeys.PLUGIN_DEBUG_USERS)
         );
-        this.pluginWhitelistUsers = parseConfiguredUsers(
-                configManager.getConfig().getStringList(ConfigKeys.PLUGIN_WHITELIST_USERS)
+        this.pluginWhitelistUsers = networkEnabled ? Collections.emptySet() : parseConfiguredUsers(
+            configManager.getConfig().getStringList(ConfigKeys.PLUGIN_WHITELIST_USERS)
         );
-        this.pluginWhitelistEnabled = configManager.getConfig().getBoolean(
-                ConfigKeys.PLUGIN_WHITELIST_ENABLED,
-                false
+        this.pluginWhitelistEnabled = !networkEnabled && configManager.getConfig().getBoolean(
+            ConfigKeys.PLUGIN_WHITELIST_ENABLED,
+            false
         );
 
         // プレイヤー接続人数制限
-        this.playerCapacityMaxPlayers = Math.max(
-                1,
-                configManager.getConfig().getInt(
-                        ConfigKeys.PLAYER_CAPACITY_MAX_PLAYERS,
-                        DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS
-                )
+        this.playerCapacityMaxPlayers = networkEnabled ? DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS : Math.max(
+            1,
+            configManager.getConfig().getInt(
+                ConfigKeys.PLAYER_CAPACITY_MAX_PLAYERS,
+                DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS
+            )
         );
-        this.playerCapacityDonorExtraPlayers = Math.max(
-                0,
-                configManager.getConfig().getInt(
-                        ConfigKeys.PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS,
-                        DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS
-                )
+        this.playerCapacityDonorExtraPlayers = networkEnabled ? DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS : Math.max(
+            0,
+            configManager.getConfig().getInt(
+                ConfigKeys.PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS,
+                DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS
+            )
         );
-        this.playerCapacityAdminExtraPlayers = Math.max(
-                0,
-                configManager.getConfig().getInt(
-                        ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS,
+        this.playerCapacityAdminExtraPlayers = networkEnabled ? DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS : Math.max(
+            0,
+            configManager.getConfig().getInt(
+                ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS,
                         DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS
                 )
         );
@@ -518,6 +527,24 @@ public class ConfigProperties {
      */
     public String getApiServerId() {
         return apiServerId;
+    }
+
+    /**
+     * このRPG backendでVelocity network管理が有効か返します。
+     *
+     * @return network管理が有効なら{@code true}
+     */
+    public boolean isNetworkEnabled() {
+        return networkEnabled;
+    }
+
+    /**
+     * このRPG backendのnetwork channel識別子を返します。
+     *
+     * @return Network APIへ送信する設定済みchannel識別子
+     */
+    public String getNetworkChannelName() {
+        return networkChannelName;
     }
 
     public boolean isResourcePackEnabled() {

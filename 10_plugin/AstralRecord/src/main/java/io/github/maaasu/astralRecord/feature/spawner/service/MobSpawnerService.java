@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessRegistry;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -434,7 +435,8 @@ public class MobSpawnerService {
         return astPlayer != null
             && (astPlayer.getUser().getPermission() == UserPermission.ADMIN.getValue()
                 || astPlayer.getBukkit() != null
-                    && NetworkAuthorityRegistry.isAuthority(astPlayer.getBukkit().getUniqueId()));
+                    && (NetworkAuthorityRegistry.isAuthority(astPlayer.getBukkit().getUniqueId())
+                        || NetworkChannelAccessRegistry.isAuthority(astPlayer.getBukkit().getUniqueId())));
     }
 
     /**

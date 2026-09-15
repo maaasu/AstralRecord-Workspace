@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
 import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccess;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessRegistry;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -107,6 +109,35 @@ class PlayerCapacityEventHandlerTest {
         new PlayerCapacityEventHandler(userService, capacityService).onPlayerLogin(event);
 
         verify(capacityService).release(playerUuid);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
+     * 検証契約: Network APIで接続許可済みのプレイヤーは、backendのnative KICK_FULLだけを解除し、Proxyの人数制御へ委ねる。
+     */
+    @SuppressWarnings("deprecation")
+    @Test
+    void allowsNativeFullResultForNetworkAdmittedPlayer() {
+        UUID playerUuid = UUID.randomUUID();
+        Player player = mock(Player.class);
+        PlayerLoginEvent event = mock(PlayerLoginEvent.class);
+        when(player.getUniqueId()).thenReturn(playerUuid);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getResult()).thenReturn(PlayerLoginEvent.Result.KICK_FULL);
+        NetworkChannelAccessRegistry.replace(new NetworkChannelAccess(
+            playerUuid, "dev", true, false, false, false, false, true, 0
+        ));
+
+        try {
+            new PlayerCapacityEventHandler(
+                mock(UserService.class), mock(PlayerCapacityService.class), true
+            ).onPlayerLogin(event);
+        } finally {
+            NetworkChannelAccessRegistry.clear();
+        }
+
+        verify(event).allow();
     }
 
     /**

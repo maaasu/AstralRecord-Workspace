@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
 import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessRegistry;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -29,6 +30,7 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
 
     private final UserService userService;
     private final PlayerCapacityService playerCapacityService;
+    private final boolean networkManaged;
 
     /**
      * 接続人数制限イベントハンドラーを初期化します。
@@ -40,8 +42,24 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
             @NotNull UserService userService,
             @NotNull PlayerCapacityService playerCapacityService
     ) {
+        this(userService, playerCapacityService, false);
+    }
+
+    /**
+     * 接続人数制限イベントハンドラーを初期化します。
+     *
+     * @param userService 接続プレイヤーの権限を取得するユーザーサービス
+     * @param playerCapacityService 接続人数制限サービス
+     * @param networkManaged Proxyが接続人数を制御する場合は{@code true}
+     */
+    public PlayerCapacityEventHandler(
+            @NotNull UserService userService,
+            @NotNull PlayerCapacityService playerCapacityService,
+            boolean networkManaged
+    ) {
         this.userService = userService;
         this.playerCapacityService = playerCapacityService;
+        this.networkManaged = networkManaged;
     }
 
     /**
@@ -53,6 +71,9 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onAsyncPreLogin(@NotNull AsyncPlayerPreLoginEvent event) {
+        if (networkManaged) {
+            return;
+        }
         if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
             return;
         }
@@ -79,6 +100,13 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
     @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerLogin(@NotNull PlayerLoginEvent event) {
+        if (networkManaged) {
+            if (event.getResult() == PlayerLoginEvent.Result.KICK_FULL
+                && NetworkChannelAccessRegistry.isAllowed(event.getPlayer().getUniqueId())) {
+                event.allow();
+            }
+            return;
+        }
         if (event.getResult() != PlayerLoginEvent.Result.ALLOWED) {
             playerCapacityService.release(event.getPlayer().getUniqueId());
         }
@@ -92,6 +120,9 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerConnectionClose(@NotNull PlayerConnectionCloseEvent event) {
+        if (networkManaged) {
+            return;
+        }
         playerCapacityService.release(event.getPlayerUniqueId());
     }
 
@@ -102,6 +133,9 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
+        if (networkManaged) {
+            return;
+        }
         playerCapacityService.recordPlayerJoin(event.getPlayer().getUniqueId());
     }
 
@@ -112,6 +146,9 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        if (networkManaged) {
+            return;
+        }
         playerCapacityService.recordPlayerQuit(event.getPlayer().getUniqueId());
     }
 }

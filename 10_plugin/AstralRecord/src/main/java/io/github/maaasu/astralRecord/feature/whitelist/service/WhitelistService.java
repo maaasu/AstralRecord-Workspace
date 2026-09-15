@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.network.NetworkAuthorityRegistry;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessRegistry;
+import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessService;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigKeys;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -42,6 +44,9 @@ public final class WhitelistService {
      * @return 有効なら {@code true}
      */
     public boolean isEnabled() {
+        if (NetworkChannelAccessService.getInstance().isManaged()) {
+            return false;
+        }
         return ConfigProperties.getInstance().isPluginWhitelistEnabled();
     }
 
@@ -52,6 +57,9 @@ public final class WhitelistService {
      * @return whitelistが無効、またはdebugUsers / whitelistUsers / Proxy最高権限のいずれかならtrue
      */
     public boolean isAllowed(@Nullable UUID playerUuid) {
+        if (NetworkChannelAccessService.getInstance().isManaged()) {
+            return NetworkChannelAccessRegistry.isAllowed(playerUuid);
+        }
         return !isEnabled()
             || ConfigProperties.getInstance().isDebugUser(playerUuid)
             || ConfigProperties.getInstance().isWhitelistUser(playerUuid)
@@ -80,6 +88,9 @@ public final class WhitelistService {
      * @throws IllegalStateException メインスレッド以外から呼び出した場合
      */
     public void setEnabled(boolean enabled) {
+        if (NetworkChannelAccessService.getInstance().isManaged()) {
+            throw new IllegalStateException("Network-managed whitelist must be changed through the management API");
+        }
         if (!Bukkit.isPrimaryThread()) {
             throw new IllegalStateException("Whitelist state must be changed on the primary thread");
         }
@@ -128,6 +139,9 @@ public final class WhitelistService {
     }
 
     private boolean updateWhitelistUsers(@NotNull UUID playerUuid, boolean add) {
+        if (NetworkChannelAccessService.getInstance().isManaged()) {
+            throw new IllegalStateException("Network-managed whitelist must be changed through the management API");
+        }
         if (!Bukkit.isPrimaryThread()) {
             throw new IllegalStateException("Whitelist users must be changed on the primary thread");
         }

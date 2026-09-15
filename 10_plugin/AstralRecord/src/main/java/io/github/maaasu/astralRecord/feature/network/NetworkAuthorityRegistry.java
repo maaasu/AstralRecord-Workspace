@@ -34,7 +34,8 @@ public final class NetworkAuthorityRegistry {
      * @return Proxy最高権限の場合は99、それ以外は保存値
      */
     public static int effectivePermission(@Nullable UUID playerId, int storedPermission) {
-        return isAuthority(playerId) ? Math.max(AUTHORITY_PERMISSION, storedPermission) : storedPermission;
+        int channelPermission = NetworkChannelAccessRegistry.effectivePermission(playerId, storedPermission);
+        return isAuthority(playerId) ? Math.max(AUTHORITY_PERMISSION, channelPermission) : channelPermission;
     }
 
     /** 取得済み最高権限UUID一覧を全置換する。 */
@@ -47,6 +48,7 @@ public final class NetworkAuthorityRegistry {
     static void clear() {
         authorityUsers = Set.of();
         updatedAtNanos = 0L;
+        NetworkChannelAccessRegistry.clear();
     }
 
     /** 指定時刻でTTL内にある最高権限UUIDか判定する。 */
