@@ -18,6 +18,7 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
             entity.Property(user => user.PlayerUuid).HasColumnName("player_uuid");
             entity.Property(user => user.Mcid).HasColumnName("mcid").HasMaxLength(100);
             entity.Property(user => user.WebAdmin).HasColumnName("web_admin");
+            entity.Property(user => user.IsProfilePublic).HasColumnName("is_profile_public");
             entity.Property(user => user.CreatedAt).HasColumnName("created_at");
             entity.Property(user => user.UpdatedAt).HasColumnName("updated_at");
             entity.Property(user => user.FirstWebLoginAt).HasColumnName("first_web_login_at");

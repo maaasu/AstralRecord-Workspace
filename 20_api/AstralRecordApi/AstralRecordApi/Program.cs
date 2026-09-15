@@ -28,6 +28,9 @@ builder.Services.Configure<MasterDataOptions>(
 builder.Services.Configure<WebAuthOptions>(
     builder.Configuration.GetSection(WebAuthOptions.SectionName));
 
+builder.Services.Configure<WebPlayerProfileOptions>(
+    builder.Configuration.GetSection(WebPlayerProfileOptions.SectionName));
+
 builder.Services.Configure<ReleaseNoteOptions>(
     builder.Configuration.GetSection(ReleaseNoteOptions.SectionName));
 
@@ -114,6 +117,7 @@ builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutReposito
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
 builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
+builder.Services.AddScoped<IWebPlayerProfileRepository, WebPlayerProfileRepository>();
 builder.Services.AddScoped<IReleaseNoteRepository, ReleaseNoteRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();

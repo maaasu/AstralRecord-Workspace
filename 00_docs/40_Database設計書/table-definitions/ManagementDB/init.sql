@@ -13,6 +13,7 @@ BEGIN
         player_uuid UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_management_player PRIMARY KEY,
         mcid NVARCHAR(100) NOT NULL,
         web_admin BIT NOT NULL CONSTRAINT DF_management_player_web_admin DEFAULT (0),
+        is_profile_public BIT NOT NULL CONSTRAINT DF_management_player_is_profile_public DEFAULT (0),
         created_at DATETIME2(3) NOT NULL CONSTRAINT DF_management_player_created_at DEFAULT SYSUTCDATETIME(),
         updated_at DATETIME2(3) NOT NULL CONSTRAINT DF_management_player_updated_at DEFAULT SYSUTCDATETIME(),
         first_web_login_at DATETIME2(3) NULL,

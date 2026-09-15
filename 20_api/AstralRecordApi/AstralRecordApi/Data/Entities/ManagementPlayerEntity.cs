@@ -6,6 +6,7 @@ public class ManagementPlayerEntity
     public Guid PlayerUuid { get; set; }
     public string Mcid { get; set; } = string.Empty;
     public bool WebAdmin { get; set; }
+    public bool IsProfilePublic { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? FirstWebLoginAt { get; set; }

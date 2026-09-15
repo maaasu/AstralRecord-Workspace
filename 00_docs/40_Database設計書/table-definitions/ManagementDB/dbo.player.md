@@ -7,6 +7,7 @@
 | `player_uuid` | `UNIQUEIDENTIFIER` | NO | なし | MinecraftプレイヤーUUID。主キー |
 | `mcid` | `NVARCHAR(100)` | NO | なし | 最後に確認したMCID |
 | `web_admin` | `BIT` | NO | `0` | Web管理機能の許可。ゲームpermissionと独立 |
+| `is_profile_public` | `BIT` | NO | `0` | Webプロフィールの一般公開可否。本人だけが変更できる |
 | `created_at` | `DATETIME2(3)` | NO | UTC現在日時 | 管理レコード作成日時 |
 | `updated_at` | `DATETIME2(3)` | NO | UTC現在日時 | 管理レコード更新日時 |
 | `first_web_login_at` | `DATETIME2(3)` | YES | NULL | 初回Webログイン受付日時 |
