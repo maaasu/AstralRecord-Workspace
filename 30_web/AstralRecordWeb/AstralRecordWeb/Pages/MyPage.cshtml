@@ -1,27 +1,29 @@
 @page
 @model MyPageModel
-@{
-    ViewData["Title"] = "マイページ";
-}
-
-<section class="ar-section ar-section-dark">
+@{ ViewData["Title"] = "マイページ"; ViewData["OwnProfile"] = true; }
+<section class="ar-portal">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-12 col-lg-8">
-                <div class="ar-card">
-                    <h1 class="ar-card-title h3 mb-3">マイページ</h1>
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">MCID</dt>
-                        <dd class="col-sm-8">@Model.Mcid</dd>
-                        <dt class="col-sm-4">User UUID</dt>
-                        <dd class="col-sm-8 text-break">@Model.UserUuid</dd>
-                        <dt class="col-sm-4">Permission</dt>
-                        <dd class="col-sm-8">@Model.Permission</dd>
-                        <dt class="col-sm-4">Current Account</dt>
-                        <dd class="col-sm-8 text-break">@Model.CurrentAccountId</dd>
-                    </dl>
+        <header class="ar-portal-heading">
+            <div><p class="ar-portal-eyebrow">あなたの冒険の記録</p><h1>マイページ</h1><p class="ar-portal-sub">現在選択しているアカウントの情報を確認できます。</p></div>
+            <a asp-page="/MyPage" class="btn ar-btn-outline">最新の情報に更新 ↻</a>
+        </header>
+        @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+        @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+        @if (Model.Profile is { } profile)
+        {
+            <partial name="_PlayerProfile" model="profile" />
+            <section class="ar-panel ar-visibility" aria-labelledby="visibility-title">
+                <div>
+                    <h2 id="visibility-title">プロフィールの公開設定</h2>
+                    <span class="ar-profile-badge @(profile.IsPublic ? "" : "ar-profile-badge--private")">@(profile.IsPublic ? "公開中" : "非公開")</span>
+                    <p>公開すると、MCID・UUID、現在のアカウント、所持金、レベル、クラス、スキルツリーがプレイヤー一覧と詳細ページに表示されます。<br />いつでも非公開に戻せます。非公開の情報も管理者は確認できます。</p>
                 </div>
-            </div>
-        </div>
+                <form method="post" asp-page-handler="Visibility">
+                    <input type="hidden" name="IsPublic" value="@((!profile.IsPublic).ToString().ToLowerInvariant())" />
+                    <button type="submit" class="btn @(profile.IsPublic ? "ar-btn-outline" : "ar-btn-primary")">@(profile.IsPublic ? "非公開にする" : "プロフィールを公開する")</button>
+                </form>
+            </section>
+        }
     </div>
 </section>
+@section Scripts { <script src="~/js/skilltree-viewer.js" asp-append-version="true"></script> }

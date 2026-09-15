@@ -1,0 +1,45 @@
+@page "/players"
+@model AstralRecordWeb.Pages.Players.IndexModel
+@{ ViewData["Title"] = "プレイヤー一覧"; }
+<section class="ar-portal">
+    <div class="container">
+        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">この世界を冒険する仲間たち</p><h1>プレイヤー一覧</h1><p class="ar-portal-sub">公開されている冒険の記録を見てみよう。</p></div></header>
+        <form method="get" class="ar-panel" aria-label="プレイヤーの検索条件">
+            <div class="ar-filter-grid">
+                <div><label asp-for="Mcid">MCIDで検索</label><input asp-for="Mcid" maxlength="64" placeholder="プレイヤー名を入力" /></div>
+                <div><label asp-for="ClassId">クラス</label><select asp-for="ClassId"><option value="">すべてのクラス</option>@foreach (var c in Model.Results?.Classes ?? []) { <option value="@c.Id">@c.Name</option> }</select></div>
+                <div><label asp-for="Sort">プレイヤーレベル</label><select asp-for="Sort"><option value="level_desc">高い順（降順）</option><option value="level_asc">低い順（昇順）</option></select></div>
+                <button type="submit" class="btn ar-btn-primary">検索する</button>
+            </div>
+            @if (Model.IsAdmin)
+            {
+                <div class="ar-admin-filter"><label><input type="checkbox" name="IncludePrivate" value="true" checked="@Model.IncludePrivate" role="switch" />すべてのプレイヤーの情報を検索 <span class="ar-profile-badge ar-profile-badge--private">管理者専用</span></label><p class="ar-portal-sub">非公開・Web未ログインのプレイヤーも含めます。</p></div>
+            }
+        </form>
+        @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+        @if (Model.Results is { } results)
+        {
+            <p class="ar-portal-sub mb-3">@results.TotalCount 人 @(Model.IncludePrivate ? "・管理者として全プレイヤーを表示中" : "・公開プロフィール")</p>
+            @if (results.Profiles.Count == 0) { <div class="ar-empty">条件に一致するプレイヤーがいません。</div> }
+            <div class="ar-player-grid">
+                @foreach (var p in results.Profiles)
+                {
+                    <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-includePrivate="@Model.IncludePrivate">
+                        <span class="ar-profile-badge @(p.IsPublic ? "" : "ar-profile-badge--private")">@(p.IsPublic ? "公開プロフィール" : "非公開・管理者閲覧")</span>
+                        <h2>@p.Mcid</h2>
+                        <p>@(p.CurrentAccount?.ClassName ?? "アカウント未選択")</p>
+                        <div class="ar-player-card-footer"><span>プレイヤーレベル<br /><strong>@(p.CurrentAccount?.PlayerLevel.ToString("N0") ?? "—")</strong></span><span aria-hidden="true">プロフィール ↗</span></div>
+                    </a>
+                }
+            </div>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="ar-pagination" aria-label="プレイヤー一覧のページ">
+                    @if (Model.PageNumber > 1) { <a class="btn ar-btn-outline" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-includePrivate="@Model.IncludePrivate">前へ</a> }
+                    <span>@Model.PageNumber / @Model.TotalPages</span>
+                    @if (Model.PageNumber < Model.TotalPages) { <a class="btn ar-btn-outline" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-includePrivate="@Model.IncludePrivate">次へ</a> }
+                </nav>
+            }
+        }
+    </div>
+</section>

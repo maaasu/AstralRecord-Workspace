@@ -11,7 +11,8 @@
                 <div class="ar-card">
                     <h1 class="ar-card-title h3 mb-3">ログアウト</h1>
                     <p class="ar-card-text mb-4">現在の Web セッションを終了します。</p>
-                    <form method="post">
+                    <form method="post" class="ar-confirm-actions">
+                        <a asp-page="/MyPage" class="btn ar-btn-outline">キャンセル</a>
                         <button type="submit" class="btn ar-btn-primary">ログアウト</button>
                     </form>
                 </div>

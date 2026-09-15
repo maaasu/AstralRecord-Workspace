@@ -147,6 +147,8 @@ public sealed partial class LoginTests
             {
                 services.AddHttpClient<WebAuthApiClient>()
                     .ConfigurePrimaryHttpMessageHandler(() => apiHandler);
+                services.AddHttpClient<ItemMasterApiClient>()
+                    .ConfigurePrimaryHttpMessageHandler(() => apiHandler);
             });
         }
     }
@@ -177,6 +179,9 @@ public sealed partial class LoginTests
                     AccountIds = [],
                 }));
             }
+
+            if (request.RequestUri?.AbsolutePath == "/api/item")
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK, Array.Empty<object>()));
 
             if (request.RequestUri?.AbsolutePath == $"/api/web-auth/users/{userUuid:D}/authorization")
             {

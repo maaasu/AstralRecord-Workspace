@@ -1,0 +1,12 @@
+@page "/players/{userUuid:guid}"
+@model AstralRecordWeb.Pages.Players.DetailModel
+@{ ViewData["Title"] = Model.Profile is { } p ? $"{p.Mcid} のプロフィール" : "プレイヤー情報"; ViewData["OwnProfile"] = false; }
+<section class="ar-portal">
+    <div class="container">
+        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">プレイヤーの冒険の記録</p><h1>プレイヤープロフィール</h1><p class="ar-portal-sub">@(Model.Profile?.Mcid) の現在のアカウントを表示しています。</p></div><a class="btn ar-btn-outline" asp-page="/Players/Index">プレイヤー一覧へ</a></header>
+        @if (Model.IsPrivateView) { <div class="alert alert-warning">このプロフィールは非公開です。閲覧権限のあるユーザーにのみ表示されています。</div> }
+        @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+        @if (Model.Profile is { } profile) { <partial name="_PlayerProfile" model="profile" /> }
+    </div>
+</section>
+@section Scripts { <script src="~/js/skilltree-viewer.js" asp-append-version="true"></script> }

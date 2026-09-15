@@ -17,79 +17,91 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/AstralRecordWeb.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/portal.css" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
 </head>
 <body>
     <a class="ar-skip-link" href="#main-content">本文へ移動</a>
-    <nav class="navbar navbar-expand-lg ar-navbar fixed-top">
+    <div class="ar-cosmos" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="navbar ar-navbar fixed-top" aria-label="メインナビゲーション">
         <div class="container">
-            <a class="navbar-brand ar-brand" asp-area="" asp-page="/Index">
-                <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"
-                     sizes="40px" width="128" height="128" alt="Astral Record" class="ar-brand-icon" />
+            <a class="navbar-brand ar-brand" asp-page="/Index">
+                <img src="~/images/icon-128.webp" width="40" height="40" alt="" class="ar-brand-icon" />
                 <span class="ar-brand-text">Astral Record</span>
                 @if (publicSite.IsOpenAlpha)
                 {
                     <span class="ar-brand-alpha">OPEN ALPHA</span>
                 }
             </a>
-            <button class="navbar-toggler ar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index">ホーム</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="features">特徴</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="join">参加情報</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Releases/Index">お知らせ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Terms">利用規約</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Privacy">プライバシーポリシー</a>
-                    </li>
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminOnly");
-                        if (webAdminAuthorization.Succeeded)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link ar-nav-link" asp-area="" asp-page="/Admin/Items">アイテム</a>
-                            </li>
-                        }
-                        <li class="nav-item">
-                            <a class="nav-link ar-nav-link" asp-area="" asp-page="/MyPage">マイページ</a>
-                        </li>
-                        <li class="nav-item">
-                            <form method="post" asp-page="/Logout" class="d-inline">
-                                <button type="submit" class="nav-link ar-nav-link btn btn-link p-0">ログアウト</button>
-                            </form>
-                        </li>
-                    }
-                    else
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link ar-nav-link ar-nav-login" asp-area="" asp-page="/Login">ログイン</a>
-                        </li>
-                    }
-                    <li class="nav-item">
-                        <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
-                           rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
-                    </li>
-                </ul>
+            <div class="ar-nav-actions">
+                <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
+                   rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
+                <button class="ar-menu-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#site-menu"
+                        aria-controls="site-menu" aria-expanded="false" aria-label="メニューを開く">
+                    <span class="ar-menu-lines" aria-hidden="true"><i></i><i></i></span><span>メニュー</span>
+                </button>
             </div>
         </div>
     </nav>
+    <div class="offcanvas offcanvas-end ar-menu" tabindex="-1" id="site-menu" aria-labelledby="site-menu-title">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title" id="site-menu-title">Astral Record</h2>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="メニューを閉じる"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="ar-menu-section" aria-label="サイト案内">
+                <p class="ar-menu-label">サイト案内</p>
+                <a asp-page="/Index"><span>ホーム</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Index" asp-fragment="features"><span>特徴</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Index" asp-fragment="join"><span>参加情報</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Releases/Index"><span>お知らせ</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
+            </nav>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <nav class="ar-menu-section ar-menu-account" aria-label="ログイン中のプレイヤー">
+                    <p class="ar-menu-label"><span class="ar-status-dot"></span>ログイン中</p>
+                    <strong class="ar-menu-player">@User.Identity.Name</strong>
+                    <a asp-page="/MyPage"><span>マイページ</span><span aria-hidden="true">↗</span></a>
+                    <a asp-page="/Logout" data-logout-open><span>ログアウト</span><span aria-hidden="true">↗</span></a>
+                </nav>
+                var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminOnly");
+                @if (webAdminAuthorization.Succeeded)
+                {
+                    <nav class="ar-menu-section ar-menu-admin" aria-label="管理者専用">
+                        <p class="ar-menu-label">管理者専用</p>
+                        <a asp-page="/Admin/Items"><span>アイテム</span><span aria-hidden="true">↗</span></a>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="ar-menu-section ar-menu-account">
+                    <a asp-page="/Login"><span>ログイン</span><span aria-hidden="true">↗</span></a>
+                </div>
+            }
+            <nav class="ar-menu-legal" aria-label="ポリシー">
+                <a asp-page="/Terms">利用規約</a>
+                <a asp-page="/Privacy">プライバシーポリシー</a>
+            </nav>
+        </div>
+    </div>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <dialog class="ar-confirm" id="logout-confirm" aria-labelledby="logout-title" aria-describedby="logout-description">
+            <span class="ar-confirm-icon" aria-hidden="true">◇</span>
+            <h2 id="logout-title">ログアウトしますか？</h2>
+            <p id="logout-description">現在の Web セッションを終了します。</p>
+            <div class="ar-confirm-actions">
+                <button type="button" class="btn ar-btn-outline" data-logout-cancel autofocus>キャンセル</button>
+                <form method="post" asp-page="/Logout">
+                    <button type="submit" class="btn ar-btn-primary">ログアウトする</button>
+                </form>
+            </div>
+        </dialog>
+    }
 
     <main id="main-content">
         @RenderBody()
@@ -129,6 +141,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/portal.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

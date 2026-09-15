@@ -1,0 +1,51 @@
+@model AstralRecordWeb.Models.WebPlayerProfileResponse
+@using System.Text.Json
+@{
+    var ownProfile = ViewData["OwnProfile"] as bool? == true;
+    var account = Model.CurrentAccount;
+}
+<section class="ar-profile-banner" aria-label="プレイヤー情報">
+    <div class="ar-profile-identity">
+        <div class="ar-player-emblem" aria-hidden="true">@(string.IsNullOrEmpty(Model.Mcid) ? "◇" : Model.Mcid[..1].ToUpperInvariant())</div>
+        <div><span class="ar-profile-badge @(ownProfile ? "" : "ar-profile-badge--other")">@(ownProfile ? "あなたのプロフィール" : "プレイヤーのプロフィール")</span><h2>@Model.Mcid</h2><p class="ar-portal-sub">@(account?.AccountName ?? "現在選択中のアカウントはありません")</p></div>
+    </div>
+    <dl class="ar-profile-facts">
+        <div><dt>MCID</dt><dd>@Model.Mcid</dd></div>
+        <div><dt>UUID</dt><dd>@Model.UserUuid</dd></div>
+        @if (ownProfile) { <div><dt>権限レベル</dt><dd>@(Model.Permission?.ToString() ?? "—")</dd></div> }
+        <div><dt>現在のアカウント</dt><dd>@(account?.AccountName ?? "未選択")</dd></div>
+        <div><dt>アカウント UUID</dt><dd>@(account?.AccountId.ToString() ?? "—")</dd></div>
+        <div><dt>現在のクラス</dt><dd>@(account?.ClassName ?? "—")</dd></div>
+    </dl>
+</section>
+@if (account is not null)
+{
+    <div class="ar-stats">
+        <article class="ar-stat"><p>プレイヤーレベル</p><strong>@account.PlayerLevel.ToString("N0")</strong><small>Lv.</small></article>
+        <article class="ar-stat"><p>所持金</p><strong>@account.Gold.ToString("N0")</strong><small>Gold</small></article>
+        <article class="ar-stat"><p>クラスレベル</p><strong>@account.ClassLevel.ToString("N0")</strong><small>@account.ClassName</small></article>
+    </div>
+    <p class="ar-portal-sub">保存済みの最新情報です。ゲーム内の変更が反映されるまで時間がかかる場合があります。<br />最終保存：@(DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm:ss"))（日本時間）</p>
+    <section class="ar-panel"><h2>クラスの成長記録</h2><div class="ar-class-list">@foreach (var c in account.ClassProgresses) { <div class="ar-class-chip"><span>@c.ClassName</span><strong>Lv. @c.Level</strong></div> }</div></section>
+    <section class="ar-panel" aria-labelledby="skilltree-title">
+        <div class="ar-tree-toolbar"><h2 id="skilltree-title">スキルツリー</h2><span class="ar-profile-badge">閲覧専用</span></div>
+        @if (account.SkillTree.Nodes.Count == 0) { <p class="ar-empty">現在のアカウントで表示できるスキルツリーはありません。</p> }
+        else
+        {
+            <div data-skilltree-viewer>
+                <script type="application/json" data-tree-json>@Html.Raw(JsonSerializer.Serialize(account.SkillTree, new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
+                <div class="ar-tree-toolbar"><span class="ar-portal-sub">ドラッグで移動・ボタンで拡大縮小・ノードを選んで詳細を表示</span><div class="ar-tree-controls"><button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button><button type="button" data-tree-zoom="out" aria-label="スキルツリーを縮小">−</button><button type="button" data-tree-fit>全体表示</button></div></div>
+                <div class="ar-tree-layout">
+                    <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ。矢印キーで移動、プラス・マイナスキーで拡大縮小"><svg role="group" aria-label="スキルツリーのノードと接続"></svg></div>
+                    <aside class="ar-tree-detail" aria-live="polite"><span class="ar-portal-eyebrow">ノード詳細</span><h3 data-node-name>ノードを選択</h3><p data-node-state>習得状況と効果を確認できます。</p><p data-node-cost></p><p data-node-lore></p><p data-node-effects></p></aside>
+                </div>
+                <div class="ar-tree-legend"><span>◆ 解放済み</span><span>◇ 未解放</span><span>◆ 開始ノード</span></div>
+                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in account.SkillTree.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@string.Join(" / ", n.Lore)<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
+            </div>
+        }
+    </section>
+}
+else
+{
+    <div class="ar-empty mt-4">現在選択中のアカウントがないため、進行情報は表示されません。</div>
+}
