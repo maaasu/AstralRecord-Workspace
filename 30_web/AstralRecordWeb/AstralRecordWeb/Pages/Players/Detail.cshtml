@@ -21,7 +21,35 @@
                 </form>
             }
             <partial name="_PlayerProfile" model="profile" />
+            @if (Model.IsWebAdmin)
+            {
+                <section class="ar-panel ar-ban-management" aria-labelledby="ban-management-title" data-ban-management data-target-mcid="@profile.Mcid" data-target-uuid="@profile.UserUuid">
+                    <h2 id="ban-management-title">管理者操作: 利用停止</h2>
+                    <p class="ar-portal-sub">アカウントではなく、このプレイヤーの User UUID 全体に適用します。</p>
+                    @if (Model.BanErrorMessage is not null) { <div class="ar-alert" role="alert">@Model.BanErrorMessage</div> }
+                    @if (Model.BanState is { } ban)
+                    {
+                        <dl class="ar-ban-state"><div><dt>現在の状態</dt><dd>@(ban.IsActive ? "利用停止中" : "利用可能")</dd></div><div><dt>対象 UUID</dt><dd>@ban.UserUuid</dd></div><div><dt>期限</dt><dd>@(ban.IsActive ? (ban.IsIndefinite ? "無期限" : ban.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm zzz") ?? "未設定") : "—")</dd></div></dl>
+                        <form method="post" asp-page-handler="Ban" class="ar-ban-editor" data-ban-editor>
+                            <input type="hidden" name="BanInput.ExpectedRevision" value="@ban.Revision" />
+                            <label><input type="radio" name="BanInput.IsBanned" value="true" checked="@ban.IsActive" data-ban-mode="ban" />利用停止にする</label>
+                            <label><input type="radio" name="BanInput.IsBanned" value="false" checked="@(!ban.IsActive)" data-ban-mode="unban" />解除する</label>
+                            <div data-ban-fields>
+                                <label><input name="BanInput.IsIndefinite" type="checkbox" value="true" checked="@ban.IsIndefinite" data-ban-indefinite />無期限</label>
+                                <label>期限（日本時間）<input name="BanInput.ExpiresAtLocal" type="datetime-local" value="@(ban.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-ddTHH:mm"))" data-ban-expiry /></label>
+                                <label>理由<textarea name="BanInput.Reason" maxlength="500" rows="3" data-ban-reason>@ban.Reason</textarea></label>
+                            </div>
+                            <button type="button" class="btn ar-btn-primary" data-ban-open>内容を確認する</button>
+                        </form>
+                        <dialog class="ar-confirm" data-ban-confirm aria-labelledby="ban-confirm-title">
+                            <span class="ar-confirm-icon" aria-hidden="true">◇</span><h2 id="ban-confirm-title">利用停止の内容を確認</h2>
+                            <dl class="ar-ban-confirm"><div><dt>対象</dt><dd data-ban-confirm-target></dd></div><div><dt>UUID</dt><dd data-ban-confirm-uuid></dd></div><div><dt>操作</dt><dd data-ban-confirm-action></dd></div><div><dt>期限</dt><dd data-ban-confirm-expiry></dd></div><div><dt>理由</dt><dd data-ban-confirm-reason></dd></div></dl>
+                            <div class="ar-confirm-actions"><button type="button" class="btn ar-btn-outline" data-ban-cancel autofocus>キャンセル</button><button type="button" class="btn ar-btn-primary" data-ban-submit>確定する</button></div>
+                        </dialog>
+                    }
+                </section>
+            }
         }
     </div>
 </section>
-@section Scripts { <script type="module" src="~/js/skilltree-viewer.js" asp-append-version="true"></script> }
+@section Scripts { <script type="module" src="~/js/skilltree-viewer.js" asp-append-version="true"></script><script src="~/js/network-admin.js" asp-append-version="true"></script> }

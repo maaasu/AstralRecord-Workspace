@@ -108,6 +108,33 @@ main, .ar-footer { position: relative; }
 .ar-stat small { color: #9db6cb; margin-left: .5rem; }
 .ar-panel { padding: 1.5rem; border: 1px solid #91c9e22c; border-radius: 12px; background: #101c2ce6; margin: 1.3rem 0; }
 .ar-panel h2 { font-size: 1.1rem; margin: 0 0 1.2rem; }
+.ar-network-form { display: grid; gap: 1.25rem; }
+.ar-network-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.ar-network-grid label, .ar-network-search label { display: grid; gap: .4rem; color: var(--ar-text-muted); font-size: .85rem; }
+.ar-network-grid input, .ar-network-search input, .ar-network-search select { width: 100%; border: 1px solid #91c9e24d; border-radius: 7px; padding: .58rem .68rem; color: var(--ar-text); background: #07101de6; }
+.ar-network-search { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(140px, 1fr) auto; align-items: end; gap: .8rem; }
+.ar-network-checks { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; color: var(--ar-text-muted); }
+.ar-network-checks input { margin-right: .45rem; accent-color: #c99a3b; }
+.ar-network-channels > header, .ar-network-channel > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.ar-network-channels > header { margin: .5rem 0; }
+.ar-network-channels h2, .ar-network-channels h3 { margin: 0; }
+.ar-network-channels p { color: var(--ar-text-muted); margin: .4rem 0 0; }
+.ar-network-access-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+.ar-network-access-lists h4 { font-size: .92rem; margin-bottom: .7rem; }
+.ar-network-user-list, .ar-network-candidates { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.ar-network-user-list li, .ar-network-candidates li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem .75rem; border: 1px solid #91c9e228; border-radius: 7px; background: #07101d9e; }
+.ar-network-user-list span, .ar-network-candidates span { display: grid; min-width: 0; }
+.ar-network-user-list small, .ar-network-candidates small { overflow-wrap: anywhere; color: var(--ar-text-muted); font-size: .72rem; }
+.ar-network-save { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .8rem; color: var(--ar-text-muted); }
+.ar-ban-management { border-color: #d9997852; }
+.ar-ban-state, .ar-ban-confirm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
+.ar-ban-state div, .ar-ban-confirm div { padding: .7rem; border-radius: 7px; background: #07101d9e; }
+.ar-ban-state dt, .ar-ban-confirm dt { color: var(--ar-text-muted); font-size: .72rem; font-weight: 400; }
+.ar-ban-state dd, .ar-ban-confirm dd { overflow-wrap: anywhere; margin: .3rem 0 0; }
+.ar-ban-editor { display: grid; grid-template-columns: repeat(2, max-content); gap: .8rem 1rem; align-items: center; }
+.ar-ban-editor [data-ban-fields] { grid-column: 1 / -1; display: grid; gap: .75rem; width: min(100%, 560px); }
+.ar-ban-editor textarea, .ar-ban-editor input[type="datetime-local"] { width: 100%; color: var(--ar-text); background: #07101de6; border: 1px solid #91c9e24d; border-radius: 7px; padding: .58rem .68rem; }
+.ar-ban-editor [data-ban-open] { grid-column: 1 / -1; justify-self: start; }
 .ar-visibility { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; }
 .ar-visibility p { margin: .6rem 0 0; font-size: .83rem; color: var(--ar-text-muted); line-height: 1.8; }
 .ar-visibility form { flex-shrink: 0; }
@@ -146,7 +173,7 @@ main, .ar-footer { position: relative; }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }
     .ar-stats { gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
-    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; }
+    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-network-grid, .ar-network-access-lists, .ar-network-search, .ar-ban-state, .ar-ban-confirm { grid-template-columns: 1fr; } .ar-network-channels > header, .ar-network-channel > header { align-items: flex-start; flex-direction: column; }
     .ar-cosmos span { filter: blur(40px); } .ar-meteor { width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) {

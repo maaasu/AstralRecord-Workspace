@@ -220,6 +220,7 @@ public sealed class PlayerProfileTests
         {
             services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
+            services.AddHttpClient<NetworkManagementApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
         });
     }
 
@@ -243,6 +244,8 @@ public sealed class PlayerProfileTests
             Methods.Add(request.Method);
             if (uri.AbsolutePath.EndsWith("challenges/consume")) return Json(new { userUuid = UserId, mcid = "CookiePlayer", permission = 99, accountIds = Array.Empty<Guid>() });
             if (uri.AbsolutePath.EndsWith("authorization")) return Json(new { webAdmin = Admin });
+            if (uri.AbsolutePath.StartsWith("/api/network-management/bans/", StringComparison.Ordinal))
+                return Json(new { userUuid = UserId, mcid = "LivePlayer", revision = 1, isBanned = false, isActive = false, isIndefinite = false, serverTimeUtc = "2026-09-16T00:00:00Z" });
             if (FailProfiles) return new(HttpStatusCode.ServiceUnavailable);
             if (request.Method == HttpMethod.Put)
             {

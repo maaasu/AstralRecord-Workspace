@@ -1,0 +1,127 @@
+@page
+@model AstralRecordWeb.Pages.Admin.NetworkModel
+@{
+    ViewData["Title"] = "ネットワーク設定";
+}
+
+<section class="ar-page-hero ar-page-hero--town ar-admin-hero">
+    <div class="ar-section-overlay"></div>
+    <div class="container position-relative">
+        <p class="ar-kicker">Network Management</p>
+        <h1 class="ar-page-hero-title">星界ネットワーク設定</h1>
+        <p class="ar-page-hero-sub">接続先名は Velocity の登録名とロビー設定に一致させてください。接続用の秘密値はこの画面に表示されません。</p>
+    </div>
+</section>
+
+<section class="ar-section ar-section-dark ar-network-admin-page">
+    <div class="container">
+        @if (Model.StatusMessage is not null)
+        {
+            <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+        }
+        @if (Model.IsUninitialized)
+        {
+            <div class="ar-alert" role="alert">まだ管理設定は移行されていません。Proxy を更新して起動後に読み直すか、ここで最初の設定を保存してください。</div>
+        }
+        @if (Model.ErrorMessage is not null)
+        {
+            <div class="ar-alert" role="alert">@Model.ErrorMessage</div>
+        }
+
+        <form method="post" class="ar-network-form" data-network-admin>
+            <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />
+            <section class="ar-panel" aria-labelledby="network-base-title">
+                <h2 id="network-base-title">ネットワーク全体</h2>
+                <div class="ar-network-grid">
+                    <label>ロビーの接続先識別子<input name="Input.LobbyServerId" value="@Model.Input.LobbyServerId" maxlength="64" required pattern="[A-Za-z0-9_.-]+" /></label>
+                    <label>移動クールダウン（秒）<input name="Input.TransferCooldownSeconds" value="@Model.Input.TransferCooldownSeconds" type="number" min="0" max="3600" required /></label>
+                    <label>タブ更新間隔（秒）<input name="Input.TabRefreshSeconds" value="@Model.Input.TabRefreshSeconds" type="number" min="1" max="60" required /></label>
+                    <label>在席通知間隔（秒）<input name="Input.PresenceHeartbeatSeconds" value="@Model.Input.PresenceHeartbeatSeconds" type="number" min="1" max="15" required /></label>
+                </div>
+                <p class="ar-portal-sub">ロビーの識別子は、ゲームチャンネルではないいずれかのチャンネル ID と一致させます。</p>
+            </section>
+
+            <section class="ar-panel" aria-labelledby="network-player-search-title">
+                <h2 id="network-player-search-title">プレイヤーを追加</h2>
+                <p class="ar-portal-sub">登録済み MCID の先頭文字で検索し、候補から選びます。保存されるのは内部 UUID です。</p>
+                <div class="ar-network-search">
+                    <label>追加先
+                        <select name="UserListTarget" data-user-target>
+                            <option value="authority" selected="@(Model.UserListTarget == "authority")">全体の管理権限</option>
+                            @for (var i = 0; i < Model.Input.Channels.Count; i++)
+                            {
+                                <option value="debug:@i" selected="@(Model.UserListTarget == $"debug:{i}")">@Model.Input.Channels[i].DisplayName のデバッグ利用者</option>
+                                <option value="whitelist:@i" selected="@(Model.UserListTarget == $"whitelist:{i}")">@Model.Input.Channels[i].DisplayName のホワイトリスト</option>
+                            }
+                        </select>
+                    </label>
+                    <label>MCID<input name="PlayerQuery" value="@Model.PlayerQuery" maxlength="16" autocomplete="off" /></label>
+                    <button type="submit" class="btn ar-btn-outline" formaction="?handler=SearchPlayer">候補を検索</button>
+                </div>
+                @if (Model.PlayerCandidates.Count > 0)
+                {
+                    <ul class="ar-network-candidates" aria-label="MCID 検索結果">
+                        @foreach (var player in Model.PlayerCandidates)
+                        {
+                            <li><span><strong>@player.Mcid</strong><small>@player.UserUuid</small></span><button type="button" class="btn ar-btn-outline" data-add-network-user data-user-uuid="@player.UserUuid" data-mcid="@player.Mcid">追加</button></li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            <section class="ar-panel" aria-labelledby="network-authority-title">
+                <h2 id="network-authority-title">全体の管理権限</h2>
+                <p class="ar-portal-sub">選択した利用者は UUID で保存されます。</p>
+                <ul class="ar-network-user-list" data-user-list="authority">
+                    @for (var i = 0; i < Model.Input.AuthorityUsers.Count; i++)
+                    {
+                        var userUuid = Model.Input.AuthorityUsers[i];
+                        <li data-user-uuid="@userUuid"><span>@Model.PlayerName(userUuid)<small>@userUuid</small></span><input type="hidden" name="Input.AuthorityUsers[@i]" value="@userUuid" /><button type="button" class="btn ar-btn-outline" data-remove-network-user>外す</button></li>
+                    }
+                </ul>
+            </section>
+
+            <section class="ar-network-channels" aria-labelledby="network-channels-title">
+                <header><div><h2 id="network-channels-title">チャンネル</h2><p>接続先識別子は Velocity の登録名です。ロビーにはゲームチャンネル以外を指定します。</p></div><button type="submit" class="btn ar-btn-outline" formaction="?handler=AddChannel">チャンネルを追加</button></header>
+                @for (var i = 0; i < Model.Input.Channels.Count; i++)
+                {
+                    var channel = Model.Input.Channels[i];
+                    <article class="ar-panel ar-network-channel">
+                        <header><h3>チャンネル @(i + 1)</h3><button type="submit" class="btn ar-btn-outline" name="channelIndex" value="@i" formaction="?handler=RemoveChannel">このチャンネルを外す</button></header>
+                        <div class="ar-network-grid">
+                            <label>接続先識別子<input name="Input.Channels[@i].ServerId" value="@channel.ServerId" maxlength="64" required pattern="[A-Za-z0-9_.-]+" /></label>
+                            <label>表示名<input name="Input.Channels[@i].DisplayName" value="@channel.DisplayName" maxlength="100" required /></label>
+                            <label>上限人数<input name="Input.Channels[@i].MaxPlayers" value="@channel.MaxPlayers" type="number" min="0" max="100000" required /></label>
+                            <label>支援者追加枠<input name="Input.Channels[@i].DonorExtraPlayers" value="@channel.DonorExtraPlayers" type="number" min="0" max="100000" required /></label>
+                            <label>管理者追加枠<input name="Input.Channels[@i].AdminExtraPlayers" value="@channel.AdminExtraPlayers" type="number" min="0" max="100000" required /></label>
+                        </div>
+                        <div class="ar-network-checks">
+                            <label><input name="Input.Channels[@i].IsGame" type="checkbox" value="true" checked="@channel.IsGame" />ゲームチャンネル</label>
+                            <label><input name="Input.Channels[@i].DiscordEnabled" type="checkbox" value="true" checked="@channel.DiscordEnabled" />Discord 通知</label>
+                            <label><input name="Input.Channels[@i].WhitelistEnabled" type="checkbox" value="true" checked="@channel.WhitelistEnabled" />ホワイトリストを有効にする</label>
+                        </div>
+                        <div class="ar-network-access-lists">
+                            <div><h4>デバッグ利用者</h4><ul class="ar-network-user-list" data-user-list="debug" data-channel-index="@i">
+                                @for (var j = 0; j < channel.DebugUsers.Count; j++)
+                                {
+                                    var userUuid = channel.DebugUsers[j];
+                                    <li data-user-uuid="@userUuid"><span>@Model.PlayerName(userUuid)<small>@userUuid</small></span><input type="hidden" name="Input.Channels[@i].DebugUsers[@j]" value="@userUuid" /><button type="button" class="btn ar-btn-outline" data-remove-network-user>外す</button></li>
+                                }
+                            </ul></div>
+                            <div><h4>ホワイトリスト</h4><ul class="ar-network-user-list" data-user-list="whitelist" data-channel-index="@i">
+                                @for (var j = 0; j < channel.WhitelistUsers.Count; j++)
+                                {
+                                    var userUuid = channel.WhitelistUsers[j];
+                                    <li data-user-uuid="@userUuid"><span>@Model.PlayerName(userUuid)<small>@userUuid</small></span><input type="hidden" name="Input.Channels[@i].WhitelistUsers[@j]" value="@userUuid" /><button type="button" class="btn ar-btn-outline" data-remove-network-user>外す</button></li>
+                                }
+                            </ul></div>
+                        </div>
+                    </article>
+                }
+            </section>
+            <div class="ar-network-save"><button type="submit" class="btn ar-btn-primary" formaction="?handler=Save">設定を保存する</button><span>保存時に現在の版を照合します。</span></div>
+        </form>
+    </div>
+</section>
+
+@section Scripts { <script src="~/js/network-admin.js" asp-append-version="true"></script> }
