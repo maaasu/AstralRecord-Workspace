@@ -16,6 +16,7 @@ import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -67,9 +68,16 @@ final class LobbyListener implements Listener {
         }
     }
 
+    /**
+     * ロビー参加時に権限と空腹関連状態を初期化します。
+     *
+     * @param event プレイヤー参加イベント
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        plugin.applyLobbyPermission(event.getPlayer());
+        Player player = event.getPlayer();
+        plugin.applyLobbyPermission(player);
+        keepFoodFull(player);
     }
 
     @EventHandler
@@ -181,12 +189,28 @@ final class LobbyListener implements Listener {
         if (event.getCause() == EntityDamageEvent.DamageCause.VOID) returnFromVoid(player);
     }
 
+    /**
+     * ロビー内の全プレイヤーの空腹値変更をキャンセルして満腹状態を維持します。
+     *
+     * @param event 空腹値変更イベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onFood(FoodLevelChangeEvent event) {
-        if (event.getEntity() instanceof Player player && !plugin.isAdmin(player)) {
-            event.setCancelled(true);
-            player.setFoodLevel(20);
-        }
+        if (!(event.getEntity() instanceof Player player)) return;
+        event.setCancelled(true);
+        keepFoodFull(player);
+    }
+
+    /**
+     * ロビー内の全プレイヤーの消耗度変更をキャンセルして満腹度の減少を防ぎます。
+     *
+     * @param event エンティティ消耗度イベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onExhaustion(EntityExhaustionEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        event.setCancelled(true);
+        keepFoodFull(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -208,6 +232,17 @@ final class LobbyListener implements Listener {
 
     private void cancelUnlessAdmin(Player player, org.bukkit.event.Cancellable event) {
         if (!plugin.isAdmin(player)) event.setCancelled(true);
+    }
+
+    /**
+     * ロビー内プレイヤーの空腹関連状態を満タンへ戻します。
+     *
+     * @param player 対象プレイヤー
+     */
+    private static void keepFoodFull(Player player) {
+        player.setFoodLevel(20);
+        player.setSaturation(20.0F);
+        player.setExhaustion(0.0F);
     }
 
     /**

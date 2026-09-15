@@ -4,6 +4,8 @@ import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityExhaustionEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings({"deprecation", "removal"})
 class LobbyListenerTest {
     @Test
     void detectsOnlyCoordinatesBelowWorldMinimum() {
@@ -112,6 +115,57 @@ class LobbyListenerTest {
 
         assertFalse(event.isCancelled());
         verify(plugin, never()).getServer();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md
+     * 章・見出し: # 33_0-概要 > ## 不変条件
+     * 検証契約: ロビーの一般プレイヤーと管理者は空腹値の変更を受けず、満腹状態を維持する。
+     */
+    @Test
+    void keepsFoodFullForEveryPlayerInLobby() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        ServerSelector selector = mock(ServerSelector.class);
+        Player regularPlayer = mock(Player.class);
+        Player administrator = mock(Player.class);
+        when(plugin.isAdmin(administrator)).thenReturn(true);
+        LobbyListener listener = new LobbyListener(plugin, selector);
+        FoodLevelChangeEvent regularEvent = new FoodLevelChangeEvent(regularPlayer, 14);
+        FoodLevelChangeEvent administratorEvent = new FoodLevelChangeEvent(administrator, 12);
+
+        listener.onFood(regularEvent);
+        listener.onFood(administratorEvent);
+
+        assertTrue(regularEvent.isCancelled());
+        assertTrue(administratorEvent.isCancelled());
+        verify(regularPlayer).setFoodLevel(20);
+        verify(regularPlayer).setSaturation(20.0F);
+        verify(regularPlayer).setExhaustion(0.0F);
+        verify(administrator).setFoodLevel(20);
+        verify(administrator).setSaturation(20.0F);
+        verify(administrator).setExhaustion(0.0F);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md
+     * 章・見出し: # 33_0-概要 > ## 不変条件
+     * 検証契約: ロビーのプレイヤーは消耗度の増加を受けず、満腹度の減少経路を持たない。
+     */
+    @Test
+    void cancelsExhaustionForEveryPlayerInLobby() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        ServerSelector selector = mock(ServerSelector.class);
+        Player player = mock(Player.class);
+        EntityExhaustionEvent event = mock(EntityExhaustionEvent.class);
+        when(event.getEntity()).thenReturn(player);
+        LobbyListener listener = new LobbyListener(plugin, selector);
+
+        listener.onExhaustion(event);
+
+        verify(event).setCancelled(true);
+        verify(player).setFoodLevel(20);
+        verify(player).setSaturation(20.0F);
+        verify(player).setExhaustion(0.0F);
     }
 
     private static PlayerMoveEvent moveEvent(Player player, World world, double destinationY) {

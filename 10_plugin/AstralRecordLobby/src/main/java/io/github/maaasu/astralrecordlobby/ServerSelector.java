@@ -2,6 +2,7 @@ package io.github.maaasu.astralrecordlobby;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -15,29 +16,45 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.RayTraceResult;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 final class ServerSelector {
+    private static final String NPC_KEY_NAMESPACE = "astralrecordlobby";
+    private static final String LORE_SECTION_SEPARATOR = "◈───────────◈";
+    private static final Set<String> ITEM_FLAG_EXCLUSIONS = Set.of(
+        "HIDE_CUSTOM_NAME",
+        "HIDE_ITEM_NAME",
+        "HIDE_LORE",
+        "HIDE_TOOLTIP"
+    );
+    private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
+
     private final AstralRecordLobbyPlugin plugin;
     private final NamespacedKey npcKey;
-    private Entity npc;
 
     ServerSelector(AstralRecordLobbyPlugin plugin) {
         this.plugin = plugin;
-        this.npcKey = new NamespacedKey(plugin, "server_selector");
+        this.npcKey = new NamespacedKey(NPC_KEY_NAMESPACE, "server_selector");
     }
 
+    /**
+     * 既存のサーバー選択NPCを整理してから、設定位置へ1体だけ生成します。
+     */
     void spawnNpc() {
+        removeAllSelectorNpcs();
         if (!plugin.getConfig().getBoolean("selector.npc.enabled", true)) return;
         String worldName = plugin.getConfig().getString("selector.npc.world", "world");
         World world = Bukkit.getWorld(worldName);
@@ -59,8 +76,7 @@ final class ServerSelector {
             plugin.getConfig().getDouble("selector.npc.z", 0.5),
             (float) plugin.getConfig().getDouble("selector.npc.yaw", 0.0),
             (float) plugin.getConfig().getDouble("selector.npc.pitch", 0.0));
-        world.getNearbyEntities(location, 16.0, 16.0, 16.0, this::isSelector).forEach(Entity::remove);
-        npc = world.spawnEntity(location, type);
+        Entity npc = world.spawnEntity(location, type);
         npc.getPersistentDataContainer().set(npcKey, PersistentDataType.BYTE, (byte) 1);
         npc.customName(Component.text(plugin.getConfig().getString("selector.npc.name", "サーバー選択")));
         npc.setCustomNameVisible(true);
@@ -73,9 +89,23 @@ final class ServerSelector {
         }
     }
 
+    /**
+     * ロード済みワールドに残るサーバー選択NPCをすべて除去します。
+     */
     void removeNpc() {
-        if (npc != null && npc.isValid()) npc.remove();
-        npc = null;
+        removeAllSelectorNpcs();
+    }
+
+    /**
+     * ロード済みワールドに残っているサーバー選択NPCをすべて除去します。
+     * 起動・停止をまたいだ古い参照や、設定座標から移動した重複NPCも対象にします。
+     */
+    private void removeAllSelectorNpcs() {
+        plugin.getServer().getWorlds().forEach(world ->
+            world.getEntities().stream()
+                .filter(this::isSelector)
+                .toList()
+                .forEach(Entity::remove));
     }
 
     boolean isSelector(Entity entity) {
@@ -158,14 +188,16 @@ final class ServerSelector {
                 if (material == null || material.isAir()) material = Material.COMPASS;
                 ItemStack item = new ItemStack(material);
                 ItemMeta meta = item.getItemMeta();
-                meta.displayName(Component.text(entry.getString("name", server)));
-                List<Component> lore = new ArrayList<>(
-                    entry.getStringList("lore").stream().map(Component::text).toList());
-                if (!lore.isEmpty()) lore.add(Component.empty());
+                meta.displayName(createEntryDisplayName(entry.getString("name", server)));
+                List<Component> lore = createEntryLore(entry.getStringList("lore"));
                 LobbyApiClient.ServerPresence presence = presences.get(server.toLowerCase(Locale.ROOT));
+                lore.add(Component.text("❖ 接続情報", NamedTextColor.AQUA, TextDecoration.BOLD));
                 boolean connectable = appendServerStatus(
                     lore, presence, plugin.permissionOf(player.getUniqueId()), loadState);
+                lore.add(Component.empty());
+                lore.add(sectionSeparator());
                 meta.lore(lore);
+                applyVanillaHideFlags(meta);
                 item.setItemMeta(meta);
                 holder.inventory.setItem(slot, item);
                 if (connectable) holder.serversBySlot.put(slot, server);
@@ -189,15 +221,15 @@ final class ServerSelector {
         StatusLoadState loadState
     ) {
         if (loadState == StatusLoadState.LOADING) {
-            lore.add(Component.text("人数情報を取得しています...", NamedTextColor.GRAY));
+            lore.add(detailLine("人数情報を取得しています...", NamedTextColor.GRAY));
             return false;
         }
         if (loadState == StatusLoadState.FAILED) {
-            lore.add(Component.text("人数情報を利用できません", NamedTextColor.RED));
+            lore.add(detailLine("人数情報を利用できません", NamedTextColor.RED));
             return false;
         }
         if (presence == null || !presence.online()) {
-            lore.add(Component.text("現在は接続できません", NamedTextColor.RED));
+            lore.add(detailLine("現在は接続できません", NamedTextColor.RED));
             return false;
         }
 
@@ -205,20 +237,104 @@ final class ServerSelector {
         int baseCapacity = Math.max(0, presence.capacity());
         int extra = presence.extraFor(permission);
         int limit = presence.limitFor(permission);
-        lore.add(Component.text("現在人数: " + online, NamedTextColor.WHITE));
+        lore.add(detailLine("現在人数: " + online, NamedTextColor.WHITE));
         if (extra > 0) {
-            lore.add(Component.text(
+            lore.add(detailLine(
                 "最大人数: " + limit + "（基本 " + baseCapacity + " +" + extra + "）",
                 NamedTextColor.AQUA));
         } else {
-            lore.add(Component.text("最大人数: " + limit, NamedTextColor.WHITE));
+            lore.add(detailLine("最大人数: " + limit, NamedTextColor.WHITE));
         }
         if (presence.fullFor(permission)) {
-            lore.add(Component.text("満員のため接続できません", NamedTextColor.RED));
+            lore.add(detailLine("満員のため接続できません", NamedTextColor.RED));
             return false;
         }
-        lore.add(Component.text("クリックして接続", NamedTextColor.GREEN));
+        lore.add(detailLine("クリックして接続", NamedTextColor.GREEN));
         return true;
+    }
+
+    /**
+     * サーバー選択アイコンの表示名をRPGアイテムと同じ記号付きの形式へ整えます。
+     *
+     * @param name 設定されたサーバー名
+     * @return 装飾済みの表示名
+     */
+    private static Component createEntryDisplayName(String name) {
+        return Component.text("◆ ", NamedTextColor.AQUA, TextDecoration.BOLD)
+            .append(Component.text(name, NamedTextColor.WHITE, TextDecoration.BOLD)
+                .decoration(TextDecoration.ITALIC, false));
+    }
+
+    /**
+     * 設定説明とRPGアイテム風のセクション見出しを持つLoreを作成します。
+     *
+     * @param configuredLore 設定された説明行
+     * @return 装飾済みのLore
+     */
+    private static List<Component> createEntryLore(List<String> configuredLore) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(sectionSeparator());
+        lore.add(Component.text("❖ サーバー情報", NamedTextColor.GOLD, TextDecoration.BOLD));
+        configuredLore.forEach(line -> lore.add(descriptionLine(line)));
+        if (!configuredLore.isEmpty()) lore.add(Component.empty());
+        return lore;
+    }
+
+    /**
+     * Loreのセクション区切りを作成します。
+     *
+     * @return 濃い灰色の区切り線
+     */
+    private static Component sectionSeparator() {
+        return Component.text(LORE_SECTION_SEPARATOR, NamedTextColor.DARK_GRAY)
+            .decoration(TextDecoration.ITALIC, false);
+    }
+
+    /**
+     * 設定された説明文をLoreの詳細行へ変換します。
+     *
+     * @param text 説明文
+     * @return イタリック体の説明行
+     */
+    private static Component descriptionLine(String text) {
+        return Component.text(" ▸ ", NamedTextColor.DARK_GRAY)
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(text, NamedTextColor.GRAY, TextDecoration.ITALIC));
+    }
+
+    /**
+     * 接続状態をLoreの詳細行へ変換します。
+     *
+     * @param text 状態文
+     * @param color 状態に対応する色
+     * @return 装飾なしの状態行
+     */
+    private static Component detailLine(String text, NamedTextColor color) {
+        return Component.text(" ▸ ", NamedTextColor.DARK_GRAY)
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(text, color).decoration(TextDecoration.ITALIC, false));
+    }
+
+    /**
+     * 表示名とLoreを維持しながら、バニラ由来のアイテム情報を非表示にします。
+     *
+     * @param meta 表示対象アイテムのメタデータ
+     */
+    private static void applyVanillaHideFlags(ItemMeta meta) {
+        meta.addItemFlags(VANILLA_HIDE_FLAGS);
+    }
+
+    /**
+     * 現在のPaper APIが持つバニラ表示抑制用フラグを解決します。
+     * 独自の表示名・Loreと全体ツールチップを消すフラグは除外します。
+     *
+     * @return 適用対象のItemFlag配列
+     */
+    private static ItemFlag[] resolveVanillaHideFlags() {
+        return Arrays.stream(ItemFlag.values())
+            .filter(flag -> flag.name().startsWith("HIDE_"))
+            .filter(flag -> !ITEM_FLAG_EXCLUSIONS.contains(flag.name()))
+            .toArray(ItemFlag[]::new);
     }
 
     /**
