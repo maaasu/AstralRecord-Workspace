@@ -33,7 +33,9 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
 {
     public string Category => Item?.Category ?? Listing.ItemCategory;
     public string? Rarity => Item?.Rarity;
-    public string DisplayName => string.IsNullOrWhiteSpace(Item?.Name) ? Listing.ItemId : Item.Name;
+    public string DisplayName => PlainText(string.IsNullOrWhiteSpace(Item?.Name) ? Listing.ItemId : Item.Name);
+    public IReadOnlyList<string> DisplayLore => Item?.Lore.Select(PlainText).ToArray() ?? [];
+    private static string PlainText(string value) => System.Text.RegularExpressions.Regex.Replace(value, "[&§][0-9A-FK-ORX]", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     public string? EquipmentSlot => Item?.Equipment?.Slot;
     public int? RequiredLevel => Item?.Equipment?.RequiredLevel;
     public IReadOnlyDictionary<string, decimal> NumericAttributes { get; init; } = new Dictionary<string, decimal>();

@@ -35,9 +35,8 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     {
         try
         {
-            var apiSort = Sort is "price_asc" or "price_desc" ? Sort : null;
-            var source = await marketApiClient.GetActiveListingsAsync(
-                Category, MinimumPrice, MaximumPrice, apiSort, cancellationToken);
+            // Keep the catalog independent of current filters so every category remains selectable.
+            var source = await marketApiClient.GetActiveListingsAsync(null, null, null, null, cancellationToken);
             var items = await marketApiClient.GetItemsAsync(source.Select(listing => listing.ItemId), cancellationToken);
             var allListings = source.Select(listing => new MarketListingItem(
                 listing,
@@ -71,14 +70,20 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
         catch (HttpRequestException exception)
         {
             ErrorMessage = exception.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden
-                ? "マーケット情報 API の認証に失敗しました。Web 側の API キー設定を確認してください。"
+                ? "マーケット情報を取得できませんでした。運営にお問い合わせください。"
                 : "マーケット情報を取得できませんでした。しばらくしてから再試行してください。";
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            ErrorMessage = "マーケット情報の取得がタイムアウトしました。時間をおいて再試行してください。";
         }
         catch (JsonException)
         {
-            ErrorMessage = "マーケット情報の形式が不正です。API と Web の更新状態を確認してください。";
+            ErrorMessage = "マーケット情報を表示できませんでした。時間をおいて再試行してください。";
         }
     }
+
+    public string AttributeLabel(string key) => NumericFilters.FirstOrDefault(filter => filter.Key == key)?.Label ?? key;
 
     public string NumericMinimumName(MarketNumericFilterDefinition filter) => $"stat_{filter.Id}_min";
     public string NumericMaximumName(MarketNumericFilterDefinition filter) => $"stat_{filter.Id}_max";
@@ -93,6 +98,8 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
         IReadOnlyDictionary<string, (decimal? Minimum, decimal? Maximum)> numericFilters)
     {
         var filtered = listings;
+        if (MinimumPrice.HasValue) filtered = filtered.Where(item => item.Listing.UnitPrice >= MinimumPrice.Value);
+        if (MaximumPrice.HasValue) filtered = filtered.Where(item => item.Listing.UnitPrice <= MaximumPrice.Value);
         if (!string.IsNullOrWhiteSpace(Query))
         {
             var query = Query.Trim();
@@ -133,7 +140,7 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     private decimal? ReadDecimal(string key)
     {
         var value = Request.Query[key].FirstOrDefault();
-        return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+        return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed)
             ? parsed : null;
     }
 
@@ -227,7 +234,7 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     {
         if (value.HasValue) values[key] = value.Value;
     }
-    private static decimal? ParseDecimal(string? value) => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+    private static decimal? ParseDecimal(string? value) => decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
     private static string NumericLabel(string key) => key.Replace("listing.", "出品: ", StringComparison.Ordinal)
         .Replace("item.", "アイテム: ", StringComparison.Ordinal)
         .Replace("equipment.", "装備: ", StringComparison.Ordinal)

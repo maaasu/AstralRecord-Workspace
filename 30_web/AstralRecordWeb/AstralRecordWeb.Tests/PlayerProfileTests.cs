@@ -136,8 +136,8 @@ public sealed class PlayerProfileTests
         await Login(client);
 
         var multiSlot = WebUtility.HtmlDecode(await client.GetStringAsync($"/players/{ProfileHandler.UserId:D}?accountId={ProfileHandler.SecondAccountId:D}&mcid=Live&classId=swordsman&sort=level_asc&pageNumber=2"));
-        Assert.Contains("Slot 0: 選択中の冒険者", multiSlot);
-        Assert.Contains("Slot 1: 別の冒険者", multiSlot);
+        Assert.Contains("スロット 0: 選択中の冒険者", multiSlot);
+        Assert.Contains("スロット 1: 別の冒険者", multiSlot);
         Assert.Contains("別の冒険者", multiSlot);
         Assert.DoesNotContain(HttpMethod.Put, api.Methods);
 

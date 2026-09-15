@@ -7,7 +7,7 @@ namespace AstralRecordApi.Controllers;
 /// <summary>Webの本人・公開プレイヤープロフィールを取得します。</summary>
 [ApiController]
 [Route("api/web-profiles")]
-public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repository) : ControllerBase
+public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repository, IWebAuthRepository authorization) : ControllerBase
 {
     /// <summary>ログイン中の本人プロフィールを取得します。</summary>
     [HttpGet("me")]
@@ -27,6 +27,7 @@ public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repos
 
     /// <summary>公開済みプレイヤー、またはWeb管理者が許可されたプロフィールの指定アカウントを取得します。</summary>
     [HttpGet("{userUuid:guid}")]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile(
@@ -34,10 +35,14 @@ public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repos
         [FromQuery(Name = "viewer_user_uuid")] Guid viewerUserUuid,
         [FromQuery(Name = "include_private")] bool includePrivate = false,
         [FromQuery(Name = "account_id")] Guid? accountId = null)
-        => await ProfileOrNotFound(repository.GetProfileAsync(userUuid, viewerUserUuid, includePrivate, accountId));
+    {
+        if (includePrivate && !await authorization.IsWebAdminAsync(viewerUserUuid)) return StatusCode(StatusCodes.Status403Forbidden);
+        return await ProfileOrNotFound(repository.GetProfileAsync(userUuid, viewerUserUuid, includePrivate, accountId));
+    }
 
     /// <summary>公開プレイヤーのゲームアカウントを検索し、Web管理者だけは非公開・Web未ログイン登録者を含められます。</summary>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Search(
@@ -49,6 +54,7 @@ public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repos
         [FromQuery(Name = "page_size")] int pageSize = 20,
         [FromQuery(Name = "include_private")] bool includePrivate = false)
     {
+        if (includePrivate && !await authorization.IsWebAdminAsync(viewerUserUuid)) return StatusCode(StatusCodes.Status403Forbidden);
         if (page is < 1 or > 100000 || pageSize is < 1 or > 100
             || sort is not ("level_desc" or "level_asc"))
             return BadRequest();

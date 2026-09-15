@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace AstralRecordWeb.Tests;
@@ -38,7 +42,8 @@ public sealed class MarketBrowserTests
         var handler = new MarketFixtureHandler(_ =>
         [
             Listing("astral_relic", 120, "{\"rollQualityScore\":95,\"damage\":18}"),
-            Listing("astral_relic_two", 120, "{\"rollQualityScore\":70,\"damage\":24}"),
+            Listing("astral_relic_two", 120, "{\"rollQualityScore\":70,\"damage\":18}"),
+            Listing("astral_relic_three", 120, "{\"rollQualityScore\":95,\"damage\":24}"),
         ]);
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
         var page = CreatePage(new MarketApiClient(httpClient));
@@ -49,7 +54,7 @@ public sealed class MarketBrowserTests
         Assert.Equal("new_category", Assert.Single(page.Categories));
 
         page.PageContext.HttpContext.Request.QueryString = new QueryString(
-            $"?{page.NumericMinimumName(roll)}=90&{page.NumericMaximumName(damage)}=20");
+            $"?{page.NumericMinimumName(roll)}=9e1&{page.NumericMaximumName(damage)}=20");
         await page.OnGetAsync(CancellationToken.None);
 
         var result = Assert.Single(page.Listings);
@@ -73,10 +78,48 @@ public sealed class MarketBrowserTests
     }
 
     [Fact]
-    public void MarketPage_RequiresLoginAndDefinesNoPostAction()
+    public async Task AnonymousMarketRequestRedirectsToLoginWithoutLoadingListings()
     {
-        Assert.NotEmpty(typeof(IndexModel).GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true));
-        Assert.DoesNotContain(typeof(IndexModel).GetMethods(), method => method.Name.StartsWith("OnPost", StringComparison.Ordinal));
+        var handler = new MarketFixtureHandler(_ => []);
+        await using var factory = new MarketFactory(handler);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        using var response = await client.GetAsync("/Market");
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/Login", response.Headers.Location?.AbsolutePath);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task TimeoutShowsRetryMessageButCallerCancellationPropagates()
+    {
+        using var httpClient = new HttpClient(new CanceledResponseHandler()) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(httpClient));
+        await page.OnGetAsync(CancellationToken.None);
+        Assert.Contains("タイムアウト", page.ErrorMessage);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => page.OnGetAsync(new CancellationToken(canceled: true)));
+    }
+
+    [Fact]
+    public async Task ChangingCategoryKeepsAllCatalogOptionsAndAppliesPriceLocally()
+    {
+        var handler = new MarketFixtureHandler(_ => [Listing("sword", 120), Listing("map", 500)],
+            id => id == "sword" ? "weapon" : "map");
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(httpClient));
+        page.Category = "weapon";
+        await page.OnGetAsync(CancellationToken.None);
+        Assert.Equal(2, page.Categories.Count);
+        Assert.Equal("sword", Assert.Single(page.Listings).Listing.ItemId);
+        page.Category = "map";
+        await page.OnGetAsync(CancellationToken.None);
+        Assert.Equal(2, page.Categories.Count);
+        Assert.Equal("map", Assert.Single(page.Listings).Listing.ItemId);
+        page.Category = null;
+        page.MinimumPrice = 200;
+        page.MaximumPrice = 600;
+        await page.OnGetAsync(CancellationToken.None);
+        Assert.Equal("map", Assert.Single(page.Listings).Listing.ItemId);
+        Assert.DoesNotContain(handler.RequestUris, uri => uri.Contains("item_category=weapon", StringComparison.Ordinal));
     }
 
     private static IndexModel CreatePage(MarketApiClient client)
@@ -105,7 +148,7 @@ public sealed class MarketBrowserTests
         ExpiresAt = DateTime.UtcNow.AddDays(1),
     };
 
-    private sealed class MarketFixtureHandler(Func<int, IReadOnlyList<MarketListingResponse>> listingsForPage) : HttpMessageHandler
+    private sealed class MarketFixtureHandler(Func<int, IReadOnlyList<MarketListingResponse>> listingsForPage, Func<string, string>? categoryForItem = null) : HttpMessageHandler
     {
         private readonly JsonSerializerOptions serializerOptions = new(JsonSerializerDefaults.Web);
         public int ListingRequests { get; private set; }
@@ -128,7 +171,7 @@ public sealed class MarketBrowserTests
                 var id = Uri.UnescapeDataString(request.RequestUri.AbsolutePath["/api/item/".Length..]);
                 return Task.FromResult(Json(new ItemMasterResponse
                 {
-                    SchemaVersion = 1, Id = id, Category = "new_category", Name = id,
+                    SchemaVersion = 1, Id = id, Category = categoryForItem?.Invoke(id) ?? "new_category", Name = id,
                     Icon = "NETHER_STAR", Rarity = "MYSTIC",
                 }));
             }
@@ -146,5 +189,17 @@ public sealed class MarketBrowserTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(new HttpResponseMessage(statusCode));
+    }
+
+    private sealed class CanceledResponseHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromCanceled<HttpResponseMessage>(new CancellationToken(canceled: true));
+    }
+
+    private sealed class MarketFactory(MarketFixtureHandler handler) : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+            services.AddHttpClient<MarketApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler));
     }
 }

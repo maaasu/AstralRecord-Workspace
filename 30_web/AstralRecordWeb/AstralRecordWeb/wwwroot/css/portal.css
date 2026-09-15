@@ -178,3 +178,10 @@ main, .ar-footer { position: relative; }
     .ar-server-presence strong { font-size: 1rem; }
     .ar-server-checked { flex-basis: 100%; text-align: left; font-size: .7rem; }
 }
+
+.ar-account-picker { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .8rem 1rem; align-items: center; }
+.ar-account-picker label { color: #d6c29d; font-size: .8rem; }
+.ar-account-picker select { background: #111625; color: #ead8b8; padding: .75rem; border: 1px solid #d9b97c55; border-radius: 5px; min-width: 0; width: 100%; }
+.ar-account-picker select:disabled { opacity: .65; }
+.ar-account-picker p { grid-column: 1 / -1; color: #ad9cbb; font-size: .7rem; margin: 0; }
+@media (max-width: 600px) { .ar-account-picker { grid-template-columns: 1fr; } }

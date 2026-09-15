@@ -26,8 +26,9 @@
                 {
                     <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-accountId="@p.Account.AccountId" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">
                         <span class="ar-profile-badge @(p.IsPublic ? "" : "ar-profile-badge--private")">@(p.IsPublic ? "公開プロフィール" : "非公開・管理者閲覧")</span>
-                        <h2>@p.Mcid</h2>
-                        <p>@p.Account.ClassName ・ Slot @p.Account.SlotIndex</p>
+                        <h2>@p.Account.AccountName</h2>
+                        <p>MCID: @p.Mcid</p>
+                        <p>@p.Account.ClassName ・ スロット @p.Account.SlotIndex</p>
                         <div class="ar-player-card-footer"><span>プレイヤーレベル<br /><strong>@p.Account.PlayerLevel.ToString("N0")</strong></span><span aria-hidden="true">プロフィール ↗</span></div>
                     </a>
                 }

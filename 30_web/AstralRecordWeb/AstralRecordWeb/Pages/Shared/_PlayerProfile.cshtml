@@ -13,7 +13,7 @@
         <div><dt>MCID</dt><dd>@Model.Mcid</dd></div>
         <div><dt>UUID</dt><dd>@Model.UserUuid</dd></div>
         @if (ownProfile) { <div><dt>権限レベル</dt><dd>@(Model.Permission?.ToString() ?? "—")</dd></div> }
-        <div><dt>現在のアカウント</dt><dd>@(account?.AccountName ?? "未選択")</dd></div>
+        <div><dt>@(ownProfile ? "現在のアカウント" : "表示中のアカウント")</dt><dd>@(account?.AccountName ?? "未選択")</dd></div>
         <div><dt>アカウント UUID</dt><dd>@(account?.AccountId.ToString() ?? "—")</dd></div>
         <div><dt>現在のクラス</dt><dd>@(account?.ClassName ?? "—")</dd></div>
     </dl>

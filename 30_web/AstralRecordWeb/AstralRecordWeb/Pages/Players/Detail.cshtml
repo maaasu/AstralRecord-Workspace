@@ -3,19 +3,21 @@
 @{ ViewData["Title"] = Model.Profile is { } p ? $"{p.Mcid} のプロフィール" : "プレイヤー情報"; ViewData["OwnProfile"] = false; }
 <section class="ar-portal">
     <div class="container">
-        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">プレイヤーの冒険の記録</p><h1>プレイヤープロフィール</h1><p class="ar-portal-sub">@(Model.Profile?.Mcid) の現在のアカウントを表示しています。</p></div><a class="btn ar-btn-outline" asp-page="/Players/Index" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">プレイヤー一覧へ</a></header>
+        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">プレイヤーの冒険の記録</p><h1>プレイヤープロフィール</h1><p class="ar-portal-sub">@(Model.Profile?.Mcid) のアカウント情報を表示しています。</p></div><a class="btn ar-btn-outline" asp-page="/Players/Index" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">プレイヤー一覧へ</a></header>
         @if (Model.IsPrivateView) { <div class="alert alert-warning">このプロフィールは非公開です。閲覧権限のあるユーザーにのみ表示されています。</div> }
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         @if (Model.Profile is { } profile)
         {
             @if (profile.Accounts.Count > 0)
             {
-                <form method="get" class="ar-panel" aria-label="表示アカウントの選択">
+                <form method="get" class="ar-panel ar-account-picker" aria-label="表示アカウントの選択">
                     <input type="hidden" name="mcid" value="@Model.Mcid" /><input type="hidden" name="classId" value="@Model.ClassId" /><input type="hidden" name="sort" value="@Model.Sort" /><input type="hidden" name="pageNumber" value="@Model.PageNumber" /><input type="hidden" name="includePrivate" value="@Model.IncludePrivate.ToString().ToLowerInvariant()" />
                     <label for="account-select">表示するアカウント</label>
                     <select id="account-select" name="accountId" disabled="@(profile.Accounts.Count <= 1)" onchange="this.form.submit()">
-                        @foreach (var account in profile.Accounts) { <option value="@account.AccountId" selected="@(profile.CurrentAccount?.AccountId == account.AccountId)">Slot @account.SlotIndex: @account.AccountName（Lv. @account.PlayerLevel / @account.ClassName）</option> }
+                        @foreach (var account in profile.Accounts) { <option value="@account.AccountId" selected="@(profile.CurrentAccount?.AccountId == account.AccountId)">スロット @account.SlotIndex: @account.AccountName（Lv. @account.PlayerLevel / @account.ClassName）</option> }
                     </select>
+                    <button type="submit" class="btn ar-btn-outline" disabled="@(profile.Accounts.Count <= 1)">表示する</button>
+                    <p>閲覧するアカウントだけを切り替えます。</p>
                 </form>
             }
             <partial name="_PlayerProfile" model="profile" />

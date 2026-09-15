@@ -1,4 +1,5 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, materialId, nodeState } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, nodeState } from './skilltree-geometry.mjs';
+import { loadIcon } from './minecraft-icons.mjs';
 
 // Only the camera and selected node change. The graph and account state stay read-only.
 const ns = 'http://www.w3.org/2000/svg';
@@ -8,25 +9,6 @@ const make = (tag, attrs = {}, text) => {
     if (text !== undefined) element.textContent = text;
     return element;
 };
-const iconCache = new Map();
-function loadIcon(icon) {
-    const id = materialId(icon);
-    if (!id) return Promise.resolve(null);
-    if (!iconCache.has(id)) {
-        const base = 'https://assets.mcasset.cloud/1.21.11/assets/minecraft/textures';
-        const sources = [`/images/minecraft/${id}.png`, `${base}/item/${id}.png`, `${base}/block/${id}.png`];
-        iconCache.set(id, new Promise(resolve => {
-            const probe = new Image();
-            probe.referrerPolicy = 'no-referrer';
-            let attempt = 0;
-            probe.onload = () => resolve(sources[attempt - 1]);
-            probe.onerror = () => attempt < sources.length ? probe.src = sources[attempt++] : resolve(null);
-            probe.src = sources[attempt++];
-        }));
-    }
-    return iconCache.get(id);
-}
-
 for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
     let tree;
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { continue; }

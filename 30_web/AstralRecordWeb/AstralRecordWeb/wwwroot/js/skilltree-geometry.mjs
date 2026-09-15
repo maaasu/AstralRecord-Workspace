@@ -33,10 +33,7 @@ export function zoomCamera(camera, zoom, anchorX, anchorY) {
     return { zoom, x: anchorX - (anchorX - camera.x) * zoom / camera.zoom, y: anchorY - (anchorY - camera.y) * zoom / camera.zoom };
 }
 
-export function materialId(icon) {
-    const normalized = String(icon ?? '').trim().replace(/^minecraft:/i, '').toLowerCase();
-    return /^[a-z0-9_]{1,80}$/.test(normalized) ? normalized : null;
-}
+export { materialId } from './minecraft-icons.mjs';
 
 export function nodeState(node) {
     if (node.isUnlocked) return node.isConditionMet === false ? '解放済み・条件未達のため無効' : '解放済み';
