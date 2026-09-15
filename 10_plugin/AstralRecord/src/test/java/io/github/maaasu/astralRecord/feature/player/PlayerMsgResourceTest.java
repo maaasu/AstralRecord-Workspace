@@ -25,6 +25,45 @@ class PlayerMsgResourceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
+     * 検証契約: カラーコード付きの置換引数は引数直後でリセットされ、後続のメッセージ本文へ色・装飾を侵食させない。
+     */
+    @Test
+    void coloredReplacementDoesNotBleedIntoFollowingMessageText() {
+        String formatted = PlayerMsgResource.format(
+            PlayerMsgId.P_5292.getId(),
+            "&c装備",
+            100,
+            100
+        );
+
+        assertEquals(
+            "§a§c装備§r§a の耐久値を回復しました。§7現在: 100 / 100",
+            formatted
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
+     * 検証契約: 複数置換値を持つメッセージでも、カラーコード付きの後段置換引数は後続本文へ色・装飾を侵食させない。
+     */
+    @Test
+    void coloredLaterReplacementDoesNotBleedIntoFollowingMessageText() {
+        String formatted = PlayerMsgResource.format(
+            PlayerMsgId.P_7094.getId(),
+            "参加者",
+            "&d&lダンジョン"
+        );
+
+        assertEquals(
+            "§e参加者§a が §e§d§lダンジョン§r§a の待機ハブで待機中です。あなたを待っています。",
+            formatted
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_5-例外・ログ・運用.md
      * 章・見出し: # 18_5-例外・ログ・運用 > ## ログ・メッセージ
      * 検証契約: メール報酬受取成功メッセージに報酬個数の「件」を表示しない。
@@ -50,7 +89,7 @@ class PlayerMsgResourceTest {
         );
 
         assertEquals(
-            "§aログインボーナスの§dフレイヤのオーブ§aを§f7個§aストレージに送りました。",
+            "§aログインボーナスの§dフレイヤのオーブ§r§aを§f7個§aストレージに送りました。",
             formatted
         );
     }
@@ -64,7 +103,7 @@ class PlayerMsgResourceTest {
     void dungeonRewardDisplayFormatsDungeonNameAcrossMultipleLines() {
         String formatted = PlayerMsgResource.format(PlayerMsgId.P_7033.getId(), "黄昏の坑道");
 
-        assertEquals("§6黄昏の坑道\n§eダンジョン報酬\n§f右クリックで開く", formatted);
+        assertEquals("§6黄昏の坑道§r\n§eダンジョン報酬\n§f右クリックで開く", formatted);
     }
 
     /**
