@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
@@ -653,10 +654,19 @@ public class SkillTreeEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        relockConfirmationSuppressed.remove(event.getPlayer().getUniqueId());
-        service.restorePlayerVisibility(event.getPlayer());
-        service.clearPlayerPresentation(event.getPlayer());
-        service.removeViewerPresentation(event.getPlayer());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        relockConfirmationSuppressed.remove(player.getUniqueId());
+        service.restorePlayerVisibility(player);
+        service.clearPlayerPresentation(player);
+        service.removeViewerPresentation(player);
     }
 
     /** スキルツリー構造を含むchunkの読込後に、停止中viewerにもpacketを再送します。 */

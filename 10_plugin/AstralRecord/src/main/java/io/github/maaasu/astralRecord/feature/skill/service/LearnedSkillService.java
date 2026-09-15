@@ -147,6 +147,22 @@ public final class LearnedSkillService {
         evictReleasedPlayerState(accountId);
     }
 
+    /** 保存不能の復旧時に、指定 account の未保存習得スキル状態を保存せず破棄します。 */
+    public synchronized void discardAccountState(@NotNull UUID accountId) {
+        skillsByAccount.remove(accountId);
+        mutationLocks.remove(accountId);
+        sessionTokens.remove(accountId);
+        playerStateRevisions.remove(accountId);
+        dirtyPlayerStates.remove(accountId);
+        releasedPlayerStates.remove(accountId);
+        retainedInitialLoads.remove(accountId);
+        playerStateEpochs.remove(accountId);
+        acknowledgedPlayerStateRevisions.remove(accountId);
+        persistedSkillVersions.remove(accountId);
+        persistedSkillUpdatedAts.remove(accountId);
+        pendingDeletedSkillVersions.remove(accountId);
+    }
+
     /** 保存済みかつ退出済みの状態を破棄します。呼出元は本serviceのmonitorを保持します。 */
     private void evictReleasedPlayerState(UUID accountId) {
         if (!releasedPlayerStates.remove(accountId)) return;

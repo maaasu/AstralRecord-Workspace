@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.shared.gui.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
@@ -77,7 +78,17 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        clickGuard.clear(event.getPlayer().getUniqueId());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    /** 復旧時にクリック cooldown だけを破棄します。 */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        clickGuard.clear(player.getUniqueId());
     }
 
     private boolean isPluginGui(@NotNull Inventory inventory) {

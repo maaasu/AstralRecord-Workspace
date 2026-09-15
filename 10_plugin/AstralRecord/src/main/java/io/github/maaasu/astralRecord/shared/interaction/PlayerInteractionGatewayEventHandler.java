@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.entity.Interaction;
@@ -344,7 +345,17 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        UUID playerId = event.getPlayer().getUniqueId();
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    /** 復旧時に入力相関 token と次 tick 実行待ち入力を破棄します。 */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        UUID playerId = player.getUniqueId();
         sequenceLedger.clear(playerId);
         pendingArmSwings.keySet().removeIf(token -> token.playerId().equals(playerId));
     }

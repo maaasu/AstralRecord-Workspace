@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
@@ -64,9 +65,17 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(() -> {
-            UUID playerId = event.getPlayer().getUniqueId();
-            pendingGuiOpen.remove(playerId);
+            clearPlayerRuntime(event.getPlayer());
         }, LogId.E_5754, event.getPlayer().getName(), "quit");
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        pendingGuiOpen.remove(player.getUniqueId());
     }
 
     private void requestGuiOpen(@NotNull Player player) {

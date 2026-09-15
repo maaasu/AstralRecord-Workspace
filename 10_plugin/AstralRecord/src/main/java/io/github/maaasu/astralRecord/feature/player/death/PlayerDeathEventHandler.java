@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.death;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -67,7 +68,21 @@ public final class PlayerDeathEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> deathService.handleQuit(event.getPlayer()), LogId.E_3002, "death_quit:" + event.getPlayer().getName());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    /** 復旧時に死亡状態の title と位置固定 runtime を終了します。 */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        discardPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        runSafely(() -> deathService.handleQuit(player), LogId.E_3002, "death_quit:" + player.getName());
+    }
+
+    private void discardPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        runSafely(() -> deathService.discardPlayerRuntime(player), LogId.E_3002, "death_recovery:" + player.getName());
     }
 
     /**

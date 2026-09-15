@@ -49,5 +49,7 @@ public final class PlayerSessionTransitionGuard {
     public enum Transition {
         ACCOUNT_SWITCH,
         CHANNEL_TRANSFER,
+        /** 保存不能 state を破棄して同一 account を再ロードする復旧処理。 */
+        PLAYER_STATE_RECOVERY,
     }
 }

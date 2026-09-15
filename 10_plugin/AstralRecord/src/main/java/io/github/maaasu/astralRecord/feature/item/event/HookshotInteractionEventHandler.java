@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapsho
 import org.bukkit.event.block.Action;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -145,8 +147,17 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        hookshotUseService.cancel(event.getPlayer().getUniqueId());
-        hookshotUseService.cancelLoading(event.getPlayer().getUniqueId());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        hookshotUseService.cancel(player.getUniqueId());
+        hookshotUseService.cancelLoading(player.getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

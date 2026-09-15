@@ -1708,6 +1708,10 @@ public enum PlayerMsgId {
     P_7202(7202),
     // endregion
 
+    /** 保存不能を検出した時刻とUUIDの報告案内。 */
+    P_7210(7210),
+    /** プレイヤー状態の再読み込み失敗。 */
+    P_7211(7211),
     ;
 
     private final String id;

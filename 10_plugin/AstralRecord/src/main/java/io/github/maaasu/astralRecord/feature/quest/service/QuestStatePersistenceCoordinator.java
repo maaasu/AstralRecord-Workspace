@@ -123,6 +123,11 @@ final class QuestStatePersistenceCoordinator {
         channels.clear();
     }
 
+    /** 保存不能の復旧時に、指定 account の旧ロード世代と snapshot を破棄します。 */
+    void discardAccount(@NotNull UUID accountId) {
+        channels.remove(accountId);
+    }
+
     private @NotNull LoadedState loaded(
         @NotNull UUID accountId,
         long loadToken,

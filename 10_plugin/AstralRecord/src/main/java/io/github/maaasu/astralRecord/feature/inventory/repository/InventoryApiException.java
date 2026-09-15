@@ -35,7 +35,7 @@ public final class InventoryApiException extends RuntimeException {
         this.method = method;
         this.path = path;
         this.statusCode = statusCode;
-        this.responseBody = summarize(responseBody);
+        this.responseBody = responseBody;
     }
 
     /** @return HTTP メソッド */

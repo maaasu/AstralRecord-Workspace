@@ -247,6 +247,24 @@ public final class PlayerDeathService {
         player.resetTitle();
     }
 
+    /**
+     * 保存不能 state の復旧時に、通常の切断継続とは異なり死亡 runtime を完全に破棄します。
+     * <p>
+     * 死亡中の通常切断では次回ログイン後の復帰を維持するため {@link #handleQuit(Player)} を使います。
+     * 本メソッドは復旧時だけ、位置固定・無敵・非表示・表示 entity・tick 対象をすべて解除します。
+     *
+     * @param player runtime を破棄するオンライン player
+     */
+    public void discardPlayerRuntime(@NotNull Player player) {
+        DeathState state = deaths.remove(player.getUniqueId());
+        if (state != null) {
+            destroyVisuals(state);
+        }
+        player.setInvulnerable(false);
+        showToOtherPlayers(player);
+        player.resetTitle();
+    }
+
     private void tick() {
         long now = System.currentTimeMillis();
         for (DeathState state : deaths.values()) {

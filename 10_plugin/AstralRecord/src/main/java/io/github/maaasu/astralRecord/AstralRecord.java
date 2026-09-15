@@ -501,6 +501,7 @@ public final class AstralRecord extends JavaPlugin {
     private MailGuiEventHandler mailGuiEventHandler;
     private ItemAdminGuiEventHandler itemAdminGuiEventHandler;
     private AdventureRecordService adventureRecordService;
+    private AdventureRecordStateService adventureRecordStateService;
     private AdventureRecordGuiEventHandler adventureRecordGuiEventHandler;
     private ShopService shopService;
     private ShopGui shopGui;
@@ -1112,7 +1113,7 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService,
             playerMessageService
         );
-        AdventureRecordStateService adventureRecordStateService = new AdventureRecordStateService(inventoryService);
+        adventureRecordStateService = new AdventureRecordStateService(inventoryService);
         inventoryPersistence.registerStateParticipant(adventureRecordStateService::snapshotPlayerState);
         adventureRecordService = new AdventureRecordService(
             this,
@@ -1917,7 +1918,38 @@ public final class AstralRecord extends JavaPlugin {
             guideService,
             menuToolJoinGrantService
         );
+        var playerStateIncidents = new io.github.maaasu.astralRecord.feature.player.service.PlayerStateIncidentService(
+            this, inventoryPersistence::isPlayerStateBlocked, accountId -> {
+                if (inventoryPersistence.isPlayerStateBlocked(accountId)) {
+                    playerJoinEventHandler.recoverPlayerState(accountId, recovered -> {
+                        if (recovered) Logger.info(LogId.I_7212, accountId);
+                        else Logger.error(LogId.E_7213, null, accountId);
+                    });
+                }
+            });
+        inventoryPersistence.setFailureListener(playerStateIncidents::onFailure);
+        playerJoinEventHandler.setAccountLoadingListener(playerStateIncidents::onAccountLoading);
+        inventorySaveCoordinator.setMutationObserver(playerStateIncidents::recordOperation);
+        playerJoinEventHandler.setPlayerStateRecoveryAccountDiscarder(accountId -> {
+            accountService.discardAccountState(accountId);
+            playerSettingService.discardAccountState(accountId);
+            adventureRecordStateService.discardAccountState(accountId);
+            guideService.discardAccountState(accountId);
+            loginBonusService.discardAccountState(accountId);
+            teleporterService.discardAccountState(accountId);
+            questService.discardAccountState(accountId);
+            learnedSkillService.discardAccountState(accountId);
+            skillBindPresetService.discardAccountState(accountId);
+            skillTreeService.discardAccountState(accountId);
+        });
+        playerJoinEventHandler.setPlayerStateRecoveryRuntimeClearer(player -> {
+            loginBonusService.discardPlayerRuntime(player.getUniqueId());
+            getServer().getPluginManager().callEvent(
+                new io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent(player));
+        });
+        getServer().getPluginManager().registerEvents(playerStateIncidents, this);
         playerJoinEventHandler.setPlayerLoadedListener(player -> {
+            playerStateIncidents.onLoaded(player);
             passiveSkillService.reconcileNow(player);
             if (networkBridgeService != null) {
                 networkBridgeService.onPlayerLoaded(player);

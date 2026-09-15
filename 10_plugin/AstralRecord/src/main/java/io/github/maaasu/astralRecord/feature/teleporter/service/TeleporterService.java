@@ -473,6 +473,20 @@ public final class TeleporterService {
     }
 
     /**
+     * 保存不能の復旧時に、指定 account の未保存ワープストーン解放状態を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        synchronized (unlockStateLock) {
+            unlockStatesByAccount.remove(accountId);
+            pendingUnlockRevisionsByAccount.remove(accountId);
+            unlockStateRevisionsByAccount.remove(accountId);
+            releaseWhenAcknowledgedAccounts.remove(accountId);
+        }
+    }
+
+    /**
      * サービス停止時に表示を破棄します。
      */
     public void stop() {

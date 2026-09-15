@@ -651,6 +651,23 @@ public class AccountService {
     }
 
     /**
+     * 保存不能の復旧時に、指定 account の未保存進行度・モード overlay を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        withProgressLock(accountId, () -> {
+            pendingExperienceUpdates.remove(accountId);
+            pendingClassProgressUpdates.remove(accountId);
+            pendingModeUpdates.remove(accountId);
+            pendingProgressRevisions.remove(accountId);
+            acknowledgedProgressVersions.remove(accountId);
+            persistedOfflineModes.remove(accountId);
+            return null;
+        });
+    }
+
+    /**
      * dirty な account進行を共通プレイヤー状態snapshotの section として返します。
      * API ACK は同名sectionの {@code clientRevision} を返し、取得時点より新しいローカル更新を
      * 消さない場合だけ dirty を解除します。

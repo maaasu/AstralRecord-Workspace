@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementSe
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -23,6 +24,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -152,9 +154,18 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         runSafely(() -> {
-            bundleUseService.cancelPendingOpen(event.getPlayer().getUniqueId());
-            potionUseService.cancelPendingUse(event.getPlayer().getUniqueId());
+            clearPlayerRuntime(event.getPlayer());
         }, LogId.E_3002, "item_quit_cleanup:" + event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(Player player) {
+        bundleUseService.cancelPendingOpen(player.getUniqueId());
+        potionUseService.cancelPendingUse(player.getUniqueId());
     }
 
     private static boolean isPlayerMode(AstPlayer astPlayer) {

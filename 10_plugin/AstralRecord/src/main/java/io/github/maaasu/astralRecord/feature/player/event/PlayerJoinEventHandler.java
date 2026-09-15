@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
@@ -81,6 +82,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final @Nullable MenuToolJoinGrantService menuToolJoinGrantService;
     private final AstralRecord plugin;
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingPlayerStateRecovery> pendingPlayerStateRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> initialGuideTitleTasks = new ConcurrentHashMap<>();
     private final Object joinLoadQueueLock = new Object();
@@ -90,6 +92,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
     private Consumer<AstPlayer> playerQuitListener = ignored -> { };
+    private Consumer<AccountModel> accountLoadingListener = ignored -> { };
+    private Consumer<UUID> playerStateRecoveryAccountDiscarder = ignored -> { };
+    private Consumer<Player> playerStateRecoveryRuntimeClearer = ignored -> { };
 
     /**
      * ガイド進行連携を使用しないテスト・互換用途のコンストラクタです。
@@ -173,12 +178,39 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     /**
+     * account が確定し、インベントリ等の詳細ロードを始める直前の通知先を設定します。
+     *
+     * @param listener account と Minecraft UUID の対応を保持する通知先
+     */
+    public void setAccountLoadingListener(@NotNull Consumer<AccountModel> listener) {
+        this.accountLoadingListener = listener;
+    }
+
+    /**
      * プレイヤー退出またはアカウント切替時、キャッシュ削除前の通知先を設定します。
      *
      * @param listener キャッシュ削除前に呼び出すセッション終了通知先
      */
     public void setPlayerQuitListener(@NotNull Consumer<AstPlayer> listener) {
         this.playerQuitListener = listener;
+    }
+
+    /**
+     * 保存不能 state の旧 account runtime を強制破棄する処理を設定します。
+     *
+     * @param discarder account 単位の未保存 state を保存せずに破棄する処理
+     */
+    public void setPlayerStateRecoveryAccountDiscarder(@NotNull Consumer<UUID> discarder) {
+        this.playerStateRecoveryAccountDiscarder = discarder;
+    }
+
+    /**
+     * Bukkit の quit event でのみ通常解放される player runtime を、復旧時に明示解放する処理を設定します。
+     *
+     * @param clearer player 単位の runtime state を解放する処理
+     */
+    public void setPlayerStateRecoveryRuntimeClearer(@NotNull Consumer<Player> clearer) {
+        this.playerStateRecoveryRuntimeClearer = clearer;
     }
 
     /**
@@ -249,6 +281,218 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         JoinAttempt attempt = startJoinLoading(player);
         String playerName = player.getName();
         enqueueJoinLoad(attempt, () -> loadAccountSwitchStep(attempt, playerName, account, completionListener));
+    }
+
+    /**
+     * 保存不能になったオンラインプレイヤーの runtime state を保存せずに破棄し、同じ account を再ロードします。
+     * <p>
+     * 旧 state の API I/O または外部原子操作が進行中なら、その終了までログイン読込状態を維持します。
+     * 終了後にのみ旧 state を破棄して参加時と同じ経路で再ロードするため、古い非同期完了処理が
+     * 新しい session を上書きしません。
+     *
+     * @param player 復旧対象の Bukkit プレイヤー
+     * @param completionListener 復旧完了通知先。通知は Bukkit メインスレッドで行います
+     */
+    public void recoverPlayerState(
+        @NotNull Player player,
+        @NotNull Consumer<Boolean> completionListener
+    ) {
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> recoverPlayerState(player, completionListener)
+            );
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!player.isOnline() || astPlayer == null) {
+            completionListener.accept(false);
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (!plugin.getPlayerSessionTransitionGuard().tryBegin(
+            playerId,
+            PlayerSessionTransitionGuard.Transition.PLAYER_STATE_RECOVERY
+        )) {
+            queuePlayerStateRecovery(player, astPlayer.getAccount().getUuid(), completionListener);
+            return;
+        }
+        pendingPlayerStateRecoveries.remove(playerId);
+        beginPlayerStateRecovery(player, astPlayer, completionListener);
+    }
+
+    /** RECOVERY 遷移所有権を取得済みの player の旧 session を破棄して再ロードを開始します。 */
+    private void beginPlayerStateRecovery(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull Consumer<Boolean> completionListener
+    ) {
+        UUID playerId = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        String playerName = player.getName();
+        JoinAttempt attempt = startJoinLoading(player);
+
+        playerService.discardOnlineSessionForRecovery(player).whenComplete((ignored, failure) ->
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (failure != null) {
+                    finishPlayerStateRecovery(playerId, accountId, completionListener, false);
+                    if (isJoinLoading(attempt)) {
+                        finishJoinLoading(attempt, false);
+                    }
+                    return;
+                }
+                try {
+                    playerQuitListener.accept(astPlayer);
+                    playerStateRecoveryRuntimeClearer.accept(player);
+                    questService.releaseState(accountId);
+                    skillBindPresetService.invalidate(accountId);
+                    learnedSkillService.invalidate(accountId);
+                    if (guideService != null) {
+                        guideService.releaseProgress(accountId);
+                    }
+                    playerStateRecoveryAccountDiscarder.accept(accountId);
+                } catch (RuntimeException cleanupFailure) {
+                    Logger.log(LogId.E_5070, cleanupFailure, playerName);
+                    finishPlayerStateRecovery(playerId, accountId, completionListener, false);
+                    finishJoinLoading(attempt, false);
+                    return;
+                }
+                if (!player.isOnline() || !isJoinLoading(attempt)) {
+                    finishPlayerStateRecovery(playerId, accountId, completionListener, false);
+                    if (isJoinLoading(attempt)) {
+                        finishJoinLoading(attempt, false);
+                    }
+                    return;
+                }
+                // 旧 state を破棄済みで旧 I/O も完了しているため、参加時の初期付与が
+                // recovery block に拒否されないようここで通常操作の受付を再開する。
+                playerService.finishAccountRecovery(accountId);
+                enqueueJoinLoad(
+                    attempt,
+                    () -> loadRecoveryAccountStep(
+                        attempt,
+                        playerName,
+                        accountId,
+                        succeeded -> finishPlayerStateRecovery(
+                            playerId,
+                            accountId,
+                            completionListener,
+                            succeeded
+                        )
+                    )
+                );
+            })
+        );
+    }
+
+    /**
+     * 他の session 遷移が終了するまで、保存不能 account の復旧要求を一件だけ保留します。
+     */
+    private void queuePlayerStateRecovery(
+        @NotNull Player player,
+        @NotNull UUID accountId,
+        @NotNull Consumer<Boolean> completionListener
+    ) {
+        UUID playerId = player.getUniqueId();
+        PendingPlayerStateRecovery request = new PendingPlayerStateRecovery(player, accountId, completionListener);
+        if (pendingPlayerStateRecoveries.putIfAbsent(playerId, request) == null) {
+            schedulePendingPlayerStateRecovery(playerId, request);
+        }
+    }
+
+    /** 保留した復旧を main thread で再試行し、離脱・account切替時は旧accountだけをoffline破棄します。 */
+    private void schedulePendingPlayerStateRecovery(
+        @NotNull UUID playerId,
+        @NotNull PendingPlayerStateRecovery request
+    ) {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (pendingPlayerStateRecoveries.get(playerId) != request) {
+                return;
+            }
+            if (!plugin.isEnabled()) {
+                if (pendingPlayerStateRecoveries.remove(playerId, request)) {
+                    playerService.discardAccountStateForRecovery(request.accountId()).whenComplete((ignored, failure) -> {
+                        playerService.finishAccountRecovery(request.accountId());
+                        request.completionListener().accept(failure == null);
+                    });
+                }
+                return;
+            }
+            Player player = request.player();
+            AstPlayer current = player.isOnline() ? AstPlayerCache.get(player) : null;
+            if (current == null || !request.accountId().equals(current.getAccount().getUuid())) {
+                if (pendingPlayerStateRecoveries.remove(playerId, request)) {
+                    recoverPlayerState(request.accountId(), request.completionListener());
+                }
+                return;
+            }
+            if (!plugin.getPlayerSessionTransitionGuard().tryBegin(
+                playerId,
+                PlayerSessionTransitionGuard.Transition.PLAYER_STATE_RECOVERY
+            )) {
+                schedulePendingPlayerStateRecovery(playerId, request);
+                return;
+            }
+            pendingPlayerStateRecoveries.remove(playerId, request);
+            beginPlayerStateRecovery(player, current, request.completionListener());
+        }, 1L);
+    }
+
+    /**
+     * 保存不能になった account を使用中のオンラインプレイヤーを復旧します。
+     *
+     * @param accountId 復旧対象 account ID
+     */
+    public void recoverPlayerState(@NotNull UUID accountId) {
+        recoverPlayerState(accountId, succeeded -> { });
+    }
+
+    /**
+     * 保存不能になった account を使用中のオンラインプレイヤーを復旧し、結果を通知します。
+     *
+     * @param accountId 復旧対象 account ID
+     * @param completionListener 復旧完了通知先。通知は Bukkit メインスレッドで行います
+     */
+    public void recoverPlayerState(
+        @NotNull UUID accountId,
+        @NotNull Consumer<Boolean> completionListener
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.getAll().stream()
+            .filter(candidate -> accountId.equals(candidate.getAccount().getUuid()))
+            .findFirst()
+            .orElse(null);
+        if (astPlayer == null) {
+            playerService.discardAccountStateForRecovery(accountId).whenComplete((ignored, failure) ->
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    boolean succeeded = failure == null;
+                    if (failure == null) {
+                        try {
+                            playerStateRecoveryAccountDiscarder.accept(accountId);
+                        } catch (RuntimeException cleanupFailure) {
+                            Logger.log(LogId.E_5070, cleanupFailure, accountId.toString());
+                            succeeded = false;
+                        }
+                    }
+                    playerService.finishAccountRecovery(accountId);
+                    completionListener.accept(succeeded);
+                })
+            );
+            return;
+        }
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> recoverPlayerState(accountId, completionListener)
+            );
+            return;
+        }
+        Player player = astPlayer.getBukkit();
+        recoverPlayerState(player, succeeded -> {
+            if (!succeeded && player.isOnline()) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7211);
+            }
+            completionListener.accept(succeeded);
+        });
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -407,6 +651,37 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }, completionListener);
     }
 
+    /**
+     * 保存不能から復旧する account を API から再取得して参加時データをロードします。
+     *
+     * @param attempt 現在のログイン試行
+     * @param playerName ログ出力用プレイヤー名
+     * @param expectedAccountId 旧 session が使用していた account ID
+     * @param completionListener 再ロード結果の通知先
+     */
+    private void loadRecoveryAccountStep(
+        JoinAttempt attempt,
+        String playerName,
+        UUID expectedAccountId,
+        Consumer<Boolean> completionListener
+    ) {
+        runJoinStep(attempt, playerName, () -> {
+            if (!isJoinLoading(attempt)) {
+                return;
+            }
+            UserModel user = playerService.loadPlayerJoinUser(attempt.playerUuid(), playerName);
+            if (!isJoinLoading(attempt)) {
+                return;
+            }
+            AccountModel account = user == null ? null : playerService.loadPlayerJoinAccount(user, playerName);
+            if (account == null || !expectedAccountId.equals(account.getUuid())) {
+                finishAccountLoad(attempt, false, completionListener);
+                return;
+            }
+            loadInventoryStep(attempt, playerName, user, account, false, completionListener);
+        }, completionListener);
+    }
+
     private void loadInventoryStep(
         JoinAttempt attempt,
         String playerName,
@@ -416,6 +691,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         @Nullable Consumer<Boolean> completionListener
     ) {
         runJoinStep(attempt, playerName, () -> {
+            if (!isJoinLoading(attempt)) {
+                return;
+            }
+            runSafely(() -> accountLoadingListener.accept(account), LogId.E_5070, playerName);
+            playerService.awaitRecoveryBeforePlayerJoin(account.getUuid());
             if (!isJoinLoading(attempt)) {
                 return;
             }
@@ -925,6 +1205,21 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         notifyAccountLoadCompletion(completionListener, succeeded);
     }
 
+    /** 復旧用に保持した保存受付停止と session 遷移所有権を解放して結果を通知します。 */
+    private void finishPlayerStateRecovery(
+        @NotNull UUID playerId,
+        @NotNull UUID accountId,
+        @NotNull Consumer<Boolean> completionListener,
+        boolean succeeded
+    ) {
+        playerService.finishAccountRecovery(accountId);
+        plugin.getPlayerSessionTransitionGuard().end(
+            playerId,
+            PlayerSessionTransitionGuard.Transition.PLAYER_STATE_RECOVERY
+        );
+        completionListener.accept(succeeded);
+    }
+
     private void notifyAccountLoadCompletion(
         @Nullable Consumer<Boolean> completionListener,
         boolean succeeded
@@ -1124,5 +1419,12 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private record QueuedJoinLoad(JoinAttempt attempt, Runnable start) {
+    }
+
+    private record PendingPlayerStateRecovery(
+        Player player,
+        UUID accountId,
+        Consumer<Boolean> completionListener
+    ) {
     }
 }

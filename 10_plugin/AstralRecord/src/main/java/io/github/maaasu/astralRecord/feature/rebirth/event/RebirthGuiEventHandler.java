@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthRejectionReaso
 import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthScreen;
 import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthRejectedException;
 import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
@@ -138,7 +139,16 @@ public final class RebirthGuiEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        processing.remove(event.getPlayer().getUniqueId());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(Player player) {
+        processing.remove(player.getUniqueId());
     }
 
     private void complete(

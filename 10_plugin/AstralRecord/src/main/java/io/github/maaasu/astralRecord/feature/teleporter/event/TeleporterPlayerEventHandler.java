@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.teleporter.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -42,7 +43,16 @@ public final class TeleporterPlayerEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> teleporterService.clearPlayer(event.getPlayer()), LogId.E_5955, event.getPlayer().getName(), "quit");
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        runSafely(() -> teleporterService.clearPlayer(player), LogId.E_5955, player.getName(), "quit");
     }
 
     private void scheduleJoinSync(@NotNull Player player, int attempt) {

@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
@@ -324,7 +325,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        runSafely(() -> cleanupCraftShortcuts(event.getPlayer(), false), LogId.E_5600, event.getPlayer().getName());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerRuntimeDiscard(PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(Player player) {
+        runSafely(() -> cleanupCraftShortcuts(player, false), LogId.E_5600, player.getName());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

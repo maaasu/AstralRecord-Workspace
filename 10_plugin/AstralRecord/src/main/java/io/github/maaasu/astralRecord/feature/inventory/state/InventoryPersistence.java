@@ -63,6 +63,44 @@ public final class InventoryPersistence {
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
     private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
     private final PlayerStateRepository playerStateRepository;
+    private volatile java.util.function.Consumer<PlayerStateFailure> failureListener = ignored -> { };
+    private final Set<PlayerInventoryState> discardedStates = java.util.Collections.synchronizedSet(
+        java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>()));
+    private final ThreadLocal<SaveTrigger> currentTrigger = new ThreadLocal<>();
+    private final Set<UUID> recoveryReloads = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 保存停止の初回遷移を受け取る診断処理を起動時に登録します。
+     * @param listener 保存スレッド上で呼ばれる処理。Bukkit操作はメインへ委譲すること
+     */
+    public void setFailureListener(@NotNull java.util.function.Consumer<PlayerStateFailure> listener) {
+        failureListener = java.util.Objects.requireNonNull(listener);
+    }
+
+    /**
+     * 復旧用に保存不能状態と保存基準を破棄します。呼出元は保存laneとセッションを排他すること。
+     * @param accountId 破棄対象。古いstateの再保存は以後拒否します
+     */
+    public void discardBlockedAccount(@NotNull UUID accountId) {
+        synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
+            PlayerInventoryState old = liveStates.remove(accountId);
+            if (old != null) discardedStates.add(old);
+            PlayerStateSnapshot pending = pendingSnapshots.remove(accountId);
+            if (pending != null) {
+                blockedSnapshots.remove(pending.snapshotId);
+                acknowledgementBlockedSnapshots.remove(pending.snapshotId);
+                outcomeUnknownSnapshots.remove(pending.snapshotId);
+            }
+            persistedEntryIds.remove(accountId);
+            persistedEntryVersions.remove(accountId);
+            persistedInventoryIds.remove(accountId);
+            persistedLoadoutIds.remove(accountId);
+            snapshotAttempts.remove(accountId);
+            retryNotBefore.remove(accountId);
+            itemService.clearEquipmentState(accountId);
+            recoveryReloads.add(accountId);
+        }
+    }
 
     /**
      * 永続層との同期処理を構築します。
@@ -116,6 +154,7 @@ public final class InventoryPersistence {
      * @return 構築済み state
      */
     public @NotNull PlayerInventoryState load(@NotNull UUID accountId) {
+        boolean requireCompleteLoad = recoveryReloads.contains(accountId);
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         Set<UUID> loadedInventoryIds = ConcurrentHashMap.newKeySet();
         Set<UUID> loadedLoadoutIds = ConcurrentHashMap.newKeySet();
@@ -160,6 +199,9 @@ public final class InventoryPersistence {
             ItemService.EquipmentPreloadResult preloadResult =
                 itemService.preloadEquipmentInstances(equipmentInstanceIds);
             if (preloadResult == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
+                if (requireCompleteLoad) {
+                    throw new IllegalStateException("Equipment reload is unavailable for account " + accountId);
+                }
                 Logger.warn(LogId.W_5252, accountId, preloadResult);
             }
             // owner不一致はpartial preload後に別IDが通信失敗しても確定情報として除去する。
@@ -182,10 +224,15 @@ public final class InventoryPersistence {
             boolean discardedUnavailableNormalItems = discardUnavailableNormalItemEntries(state);
             if (discardedUnavailableEquipment || discardedUnavailableNormalItems) {
                 save(state, SaveTrigger.IMMEDIATE);
+                if (requireCompleteLoad && hasPendingChanges(state)) {
+                    throw new IllegalStateException("Reconciled inventory reload could not be persisted for account " + accountId);
+                }
             }
         } catch (RuntimeException e) {
+            if (requireCompleteLoad) throw e;
             Logger.warn(LogId.W_5252, accountId, e.getMessage());
         }
+        recoveryReloads.remove(accountId);
         return state;
     }
 
@@ -231,7 +278,12 @@ public final class InventoryPersistence {
      * @return 実際に save 処理を走らせた場合 true
      */
     public boolean save(@NotNull PlayerInventoryState state, @NotNull SaveTrigger trigger) {
-        return savePlayerState(state, null);
+        currentTrigger.set(trigger);
+        try {
+            return savePlayerState(state, null);
+        } finally {
+            currentTrigger.remove();
+        }
     }
 
     private boolean save(
@@ -264,6 +316,7 @@ public final class InventoryPersistence {
     }
 
     private boolean savePlayerStateLocked(PlayerInventoryState state, Map<UUID, List<InventoryEntryModel>> baselineTarget) {
+        if (discardedStates.contains(state)) return false;
         UUID accountId = state.getAccountId();
         liveStates.put(accountId, state);
         PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
@@ -325,19 +378,30 @@ public final class InventoryPersistence {
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
         } catch (RuntimeException failure) {
+            boolean newlyBlocked = false;
             if (failure instanceof PlayerStateOutcomeUnknownException) {
                 outcomeUnknownSnapshots.add(snapshot.snapshotId);
             }
             if (failure instanceof PlayerStateAcknowledgementException) {
-                blockedSnapshots.add(snapshot.snapshotId);
+                newlyBlocked = blockedSnapshots.add(snapshot.snapshotId);
                 acknowledgementBlockedSnapshots.add(snapshot.snapshotId);
             } else if (!outcomeUnknownSnapshots.contains(snapshot.snapshotId)
                     && failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
                     && api.getStatusCode() != 408 && api.getStatusCode() != 425
                     && api.getStatusCode() != 429) {
-                blockedSnapshots.add(snapshot.snapshotId);
+                newlyBlocked = blockedSnapshots.add(snapshot.snapshotId);
             }
             int attempt = snapshotAttempts.merge(accountId, 1, Integer::sum);
+            if (newlyBlocked) {
+                PlayerStateFailure incident = new PlayerStateFailure(accountId, snapshot.snapshotId,
+                    java.time.Instant.now(), java.util.Objects.toString(currentTrigger.get(), SaveTrigger.IMMEDIATE.name()),
+                    attempt, snapshot.payload, failure);
+                try {
+                    failureListener.accept(incident);
+                } catch (RuntimeException diagnosticFailure) {
+                    Logger.error(LogId.E_7211, diagnosticFailure, accountId);
+                }
+            }
             retryNotBefore.put(accountId, System.nanoTime() + TimeUnit.SECONDS.toNanos(
                 Math.min(30L, 1L << Math.min(5, attempt - 1))));
             Logger.warn(LogId.W_5252, accountId, failureReason(failure));
@@ -449,6 +513,7 @@ public final class InventoryPersistence {
      */
     public boolean saveNow(@NotNull PlayerInventoryState state) {
         synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
+            if (discardedStates.contains(state)) return false;
             boolean previousPending = pendingSnapshots.containsKey(state.getAccountId());
             state.markDirty();
             savePlayerStateLocked(state, null);
@@ -471,6 +536,7 @@ public final class InventoryPersistence {
     public boolean saveCriticalNow(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
         synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
+            if (discardedStates.contains(state)) return false;
             if (!pendingSnapshots.containsKey(accountId) && !hasPendingChanges(state)) state.markDirty();
             savePlayerStateLocked(state, null);
             PlayerStateSnapshot failed = pendingSnapshots.get(accountId);

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.shared.gui.session;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundHolder;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -113,9 +114,18 @@ public final class GuiSessionTransitionEventHandler extends AbstractEventHandler
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(() -> {
-            Player player = event.getPlayer();
-            completeSessionClose(player, transitionService.endSilently(player.getUniqueId()), GuiSessionEndReason.PLAYER_QUIT);
+            clearPlayerRuntime(event.getPlayer());
         }, LogId.E_5601, event.getPlayer().getName(), "gui_session_quit");
+    }
+
+    /** 復旧時に保存を伴わず GUI session と継続タスクを終了します。 */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        completeSessionClose(player, transitionService.endSilently(player.getUniqueId()), GuiSessionEndReason.PLAYER_QUIT);
     }
 
     private void completeClose(

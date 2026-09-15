@@ -1077,6 +1077,106 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 復旧要求は開始済み保存の完了前に旧stateを破棄せず、完了後に一度だけ破棄する。
+     */
+    @Test
+    void recoveryDisposalWaitsForInFlightSaveBeforeDiscardingOldState() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        CountDownLatch saveStarted = new CountDownLatch(1);
+        CountDownLatch releaseSave = new CountDownLatch(1);
+        when(persistence.saveNow(state)).thenAnswer(ignored -> {
+            saveStarted.countDown();
+            assertTrue(releaseSave.await(2, TimeUnit.SECONDS));
+            return true;
+        });
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        try {
+            var inFlight = coordinator.saveNow(accountId);
+            assertTrue(saveStarted.await(2, TimeUnit.SECONDS));
+
+            var disposal = coordinator.discardAccountForRecovery(accountId);
+
+            assertFalse(disposal.isDone());
+            verify(persistence, never()).discardBlockedAccount(accountId);
+            releaseSave.countDown();
+
+            assertTrue(inFlight.get(2, TimeUnit.SECONDS));
+            disposal.get(2, TimeUnit.SECONDS);
+            assertNull(registry.get(accountId));
+            verify(persistence, times(1)).discardBlockedAccount(accountId);
+        } finally {
+            releaseSave.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 復旧中に未開始だった旧保存は実行せず、再ロード後に新stateだけを保存受付へ戻す。
+     */
+    @Test
+    void recoveryCancelsQueuedOldSaveAndAcceptsOnlyReloadedStateAfterFinish() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState oldState = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(oldState);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var oldSave = coordinator.saveNow(accountId);
+        var disposal = coordinator.discardAccountForRecovery(accountId);
+
+        assertFalse(oldSave.join());
+        assertTrue(disposal.isDone());
+        assertNull(registry.get(accountId));
+        verify(persistence, never()).saveNow(oldState);
+        verify(persistence).discardBlockedAccount(accountId);
+
+        PlayerInventoryState reloadedState = new PlayerInventoryState(accountId);
+        registry.put(reloadedState);
+        when(persistence.saveNow(reloadedState)).thenReturn(true);
+        coordinator.finishAccountRecovery(accountId);
+        var reloadedSave = coordinator.saveNow(accountId);
+        executor.runAll();
+
+        assertTrue(reloadedSave.join());
+        verify(persistence).saveNow(reloadedState);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: inventory破棄完了後もaccount runtime cleanupが終わるまで同accountの再ログイン読込を待機する。
+     */
+    @Test
+    void recoveryJoinBarrierCompletesOnlyAfterAccountRecoveryFinishes() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, new ManualExecutor());
+
+        var disposal = coordinator.discardAccountForRecovery(accountId);
+        var joinBarrier = coordinator.awaitQueuedSaves(accountId);
+
+        assertTrue(disposal.isDone());
+        assertFalse(joinBarrier.isDone());
+        coordinator.finishAccountRecovery(accountId);
+
+        assertTrue(joinBarrier.isDone());
+        joinBarrier.join();
+    }
+
     private static final class ManualExecutor implements Executor {
         private final ArrayDeque<Runnable> tasks = new ArrayDeque<>();
 

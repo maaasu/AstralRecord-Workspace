@@ -90,6 +90,29 @@ public final class LoginBonusService {
     }
 
     /**
+     * 保存不能の復旧時に、指定 account のログイン報酬未保存状態を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        synchronized (claimStateLock) {
+            knownClaimDates.remove(accountId);
+            pendingClaimRevisions.remove(accountId);
+            claimRevisions.remove(accountId);
+        }
+    }
+
+    /**
+     * 保存不能の復旧時に、player に紐づく未完了の画面・受取処理の結果反映を無効化します。
+     *
+     * @param playerId 破棄対象 player UUID
+     */
+    public void discardPlayerRuntime(@NotNull UUID playerId) {
+        openRequestIds.remove(playerId);
+        claimInFlight.remove(playerId);
+    }
+
+    /**
      * 指定年月のログイン報酬画面を開きます。
      *
      * @param player 対象プレイヤー

@@ -62,6 +62,15 @@ public final class AdventureRecordStateService {
         inventoryService.queueLocalPlayerSave(accountId);
     }
 
+    /**
+     * 保存不能の復旧時に、指定 account の未保存冒険記録差分を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        deltasByAccount.remove(accountId);
+    }
+
     /** 未保存イベント差分を不変 section として捕捉します。 */
     public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
         AccountDeltas state = deltasByAccount.get(accountId);

@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.BiConsumer;
 
 /**
  * 同一アカウントの即時インベントリ保存を直列化するコーディネーターです。
@@ -55,8 +56,15 @@ public final class InventorySaveCoordinator {
     /** accountごとに外部操作の所有者を保持し、古いcleanupが新しい操作を解除しないようにします。 */
     private final Map<UUID, UUID> unresolvedExternalOperations = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> backgroundRetries = ConcurrentHashMap.newKeySet();
+    /** 復旧のため旧 state を破棄中の account。新しい保存要求を受け付けない。 */
+    private final java.util.Set<UUID> recoveryAccounts = ConcurrentHashMap.newKeySet();
+    /** 旧 state の in-flight 操作と外部境界が終了した時点で完了する復旧破棄。 */
+    private final Map<UUID, CompletableFuture<Void>> recoveryDisposals = new ConcurrentHashMap<>();
+    /** account runtime cleanup まで含む再ロード開始バリア。 */
+    private final Map<UUID, CompletableFuture<Void>> recoveryCompletionBarriers = new ConcurrentHashMap<>();
     private final ThreadLocal<UUID> criticalMutationAccount = new ThreadLocal<>();
     private volatile boolean closing;
+    private volatile BiConsumer<UUID, String> mutationObserver = (ignoredAccount, ignoredOperation) -> { };
 
     /**
      * 保存コーディネーターを構築します。
@@ -104,6 +112,15 @@ public final class InventorySaveCoordinator {
     }
 
     /**
+     * ローカル player-state 更新の直前に、発火元を記録する observer を設定します。
+     *
+     * @param observer account ID と mutation implementation class 名を受け取る observer
+     */
+    public void setMutationObserver(@NotNull BiConsumer<UUID, String> observer) {
+        mutationObserver = observer;
+    }
+
+    /**
      * 現在登録されている state を即時保存します。同時期の要求は一件にまとめられます。
      *
      * @param accountId 対象アカウント ID
@@ -127,9 +144,9 @@ public final class InventorySaveCoordinator {
             }
             boolean succeeded = persistence.saveNow(state);
             if (succeeded && persistence.hasPendingChanges(state))
-                scheduleBackgroundSave(accountId);
+                scheduleBackgroundSave(state);
             if (!succeeded) {
-                scheduleBackgroundSave(accountId);
+                scheduleBackgroundSave(state);
             }
             return succeeded;
         });
@@ -157,14 +174,14 @@ public final class InventorySaveCoordinator {
             }
             for (int attempt = 0; attempt < BOUNDARY_SAVE_ATTEMPTS; attempt++) {
                 if (!persistence.saveNow(state)) {
-                    scheduleBackgroundSave(accountId);
+                    scheduleBackgroundSave(state);
                     return false;
                 }
                 if (!persistence.hasPendingChanges(state)) {
                     return true;
                 }
             }
-            scheduleBackgroundSave(accountId);
+            scheduleBackgroundSave(state);
             return false;
         });
     }
@@ -181,6 +198,10 @@ public final class InventorySaveCoordinator {
     public @NotNull CompletableFuture<Boolean> saveAuto(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
         CompletableFuture<Boolean> result = new CompletableFuture<>();
+        if (recoveryAccounts.contains(accountId)) {
+            result.complete(false);
+            return result;
+        }
         AutoSaveBatch batch;
         boolean schedule = false;
         synchronized (laneLock) {
@@ -224,7 +245,7 @@ public final class InventorySaveCoordinator {
             }
             persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
             boolean succeeded = !persistence.hasPendingChanges(state);
-            if (!succeeded) scheduleBackgroundSave(accountId);
+            if (!succeeded) scheduleBackgroundSave(state);
             return succeeded;
         });
         queued.whenComplete((succeeded, failure) -> results.forEach(result -> {
@@ -415,7 +436,7 @@ public final class InventorySaveCoordinator {
             completedResult.set(result);
             persistMergedStateUntilStable(accountId, expectedState, boundaryToken);
             return true;
-        });
+        }, allowExistingBoundary);
         laneResult.whenComplete((succeeded, throwable) -> {
             if (releaseBoundaryOnPreSaveFailure && !operationStarted.get()
                 && (throwable != null || !Boolean.TRUE.equals(succeeded))) {
@@ -812,6 +833,10 @@ public final class InventorySaveCoordinator {
      * @return 先行保存がすべて完了したときに完了する future
      */
     public @NotNull CompletableFuture<Void> awaitQueuedSaves(@NotNull UUID accountId) {
+        CompletableFuture<Void> recovery = recoveryCompletionBarriers.get(accountId);
+        if (recovery != null) {
+            return recovery;
+        }
         flushScheduledAuto(accountId);
         CompletableFuture<Boolean> barrier = new CompletableFuture<>();
         synchronized (laneLock) {
@@ -890,6 +915,59 @@ public final class InventorySaveCoordinator {
     }
 
     /**
+     * 保存不能になった account の旧 runtime state を、進行中の外部操作が終了してから破棄します。
+     * <p>
+     * この呼出し以降、同じ account の新規保存・経済操作は受け付けません。すでに API I/O を
+     * 実行している lane job または外部操作境界がある場合は、それらの終了を待ってから
+     * {@link InventoryPersistence#discardBlockedAccount(UUID)} を呼びます。呼出し側は完了後に
+     * 新しいログイン state を構築し、{@link #finishAccountRecovery(UUID)} で受付を再開してください。
+     *
+     * @param accountId 破棄する account ID
+     * @return 旧 state と保存補助 cache の破棄が完了した future
+     */
+    public @NotNull CompletableFuture<Void> discardAccountForRecovery(@NotNull UUID accountId) {
+        CompletableFuture<Void> requested = new CompletableFuture<>();
+        CompletableFuture<Void> existing = recoveryDisposals.putIfAbsent(accountId, requested);
+        if (existing != null) {
+            return existing;
+        }
+        recoveryCompletionBarriers.putIfAbsent(accountId, new CompletableFuture<>());
+        recoveryAccounts.add(accountId);
+
+        List<CompletableFuture<Boolean>> cancelledResults = new ArrayList<>();
+        synchronized (laneLock) {
+            AutoSaveBatch scheduled = scheduledAutoSaves.remove(accountId);
+            if (scheduled != null) {
+                cancelledResults.addAll(scheduled.results);
+            }
+            SaveLane lane = lanes.get(accountId);
+            if (lane != null) {
+                for (SaveJob queued : lane.jobs) {
+                    cancelledResults.addAll(queued.results);
+                }
+                lane.jobs.clear();
+            }
+        }
+        cancelledResults.forEach(result -> result.complete(false));
+        completeRecoveryDisposalIfReady(accountId);
+        return requested;
+    }
+
+    /**
+     * 復旧用の再ロード完了後に、対象 account の通常操作受付を再開します。
+     *
+     * @param accountId 復旧を終了する account ID
+     */
+    public void finishAccountRecovery(@NotNull UUID accountId) {
+        recoveryAccounts.remove(accountId);
+        recoveryDisposals.remove(accountId);
+        CompletableFuture<Void> barrier = recoveryCompletionBarriers.remove(accountId);
+        if (barrier != null) {
+            barrier.complete(null);
+        }
+    }
+
+    /**
      * 外部取引の受付と排他的に、通信を伴わないローカル変更を実行します。
      * @param accountId 更新対象アカウント
      * @param mutation 呼出元がstateロックを保持して実行する短い計算・変更
@@ -899,11 +977,22 @@ public final class InventorySaveCoordinator {
     public <T> T executeLocalMutation(@NotNull UUID accountId, @NotNull Supplier<T> mutation) {
         synchronized (unresolvedBoundaryLock) {
             boolean ownsCriticalBoundary = accountId.equals(criticalMutationAccount.get());
-            if (closing || !ownsCriticalBoundary && unresolvedExternalOperations.containsKey(accountId)
+            if (closing || recoveryAccounts.contains(accountId)
+                || !ownsCriticalBoundary && unresolvedExternalOperations.containsKey(accountId)
                 || persistence.isPlayerStateBlocked(accountId)) {
                 throw new ExternalOperationPendingException(accountId);
             }
+            notifyMutationObserver(accountId, mutation);
             return mutation.get();
+        }
+    }
+
+    /** observer の失敗が player-state 操作を妨げないよう通知します。 */
+    private void notifyMutationObserver(@NotNull UUID accountId, @NotNull Supplier<?> mutation) {
+        try {
+            mutationObserver.accept(accountId, mutation.getClass().getName());
+        } catch (RuntimeException ignored) {
+            // 診断の失敗でゲーム操作を失敗させない。
         }
     }
 
@@ -1033,12 +1122,14 @@ public final class InventorySaveCoordinator {
         }
     }
 
-    private void scheduleBackgroundSave(UUID accountId) {
-        if (closing || persistence.isPlayerStateBlocked(accountId) || !backgroundRetries.add(accountId)) return;
+    private void scheduleBackgroundSave(@NotNull PlayerInventoryState expectedState) {
+        UUID accountId = expectedState.getAccountId();
+        if (closing || recoveryAccounts.contains(accountId) || persistence.isPlayerStateBlocked(accountId)
+            || !backgroundRetries.add(accountId)) return;
         CompletableFuture.delayedExecutor(1L, TimeUnit.SECONDS, asyncExecutor).execute(() -> {
             backgroundRetries.remove(accountId);
             PlayerInventoryState state = stateRegistry.get(accountId);
-            if (!closing && state != null) saveAuto(state);
+            if (!closing && !recoveryAccounts.contains(accountId) && state == expectedState) saveAuto(state);
         });
     }
 
@@ -1053,6 +1144,9 @@ public final class InventorySaveCoordinator {
         boolean allowExistingBoundary
     ) {
         synchronized (unresolvedBoundaryLock) {
+            if (recoveryAccounts.contains(accountId) && !allowExistingBoundary) {
+                return null;
+            }
             UUID currentToken = unresolvedExternalOperations.get(accountId);
             if (allowExistingBoundary) {
                 // recovery は、先行 operation の pending 境界を再確認したうえで同じ境界を
@@ -1078,6 +1172,37 @@ public final class InventorySaveCoordinator {
 
     private void releaseExternalBoundary(@NotNull UUID accountId, @NotNull UUID boundaryToken) {
         unresolvedExternalOperations.remove(accountId, boundaryToken);
+        completeRecoveryDisposalIfReady(accountId);
+    }
+
+    /** 復旧中の account に旧 I/O が残っていなければ、旧 state を破棄します。 */
+    private void completeRecoveryDisposalIfReady(@NotNull UUID accountId) {
+        CompletableFuture<Void> disposal = recoveryDisposals.get(accountId);
+        if (disposal == null || disposal.isDone() || unresolvedExternalOperations.containsKey(accountId)) {
+            return;
+        }
+        synchronized (disposal) {
+            if (disposal.isDone() || unresolvedExternalOperations.containsKey(accountId)) {
+                return;
+            }
+            synchronized (laneLock) {
+                SaveLane lane = lanes.get(accountId);
+                if (lane != null && lane.inFlight != null) {
+                    return;
+                }
+            }
+            try {
+                synchronized (retainedStateLock) {
+                    retainedStates.remove(accountId);
+                    stateRegistry.remove(accountId);
+                }
+                backgroundRetries.remove(accountId);
+                persistence.discardBlockedAccount(accountId);
+                disposal.complete(null);
+            } catch (RuntimeException failure) {
+                disposal.completeExceptionally(failure);
+            }
+        }
     }
 
     private boolean ownsExternalBoundary(@NotNull UUID accountId, @NotNull UUID boundaryToken) {
@@ -1263,11 +1388,20 @@ public final class InventorySaveCoordinator {
         boolean coalesced,
         @NotNull Supplier<Boolean> operation
     ) {
+        return enqueue(accountId, coalesced, operation, false);
+    }
+
+    private @NotNull CompletableFuture<Boolean> enqueue(
+        @NotNull UUID accountId,
+        boolean coalesced,
+        @NotNull Supplier<Boolean> operation,
+        boolean allowDuringRecovery
+    ) {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         boolean startDrain = false;
         SaveLane lane;
         synchronized (laneLock) {
-            if (closing) {
+            if (closing || recoveryAccounts.contains(accountId) && !allowDuringRecovery) {
                 result.complete(false);
                 return result;
             }
@@ -1332,6 +1466,7 @@ public final class InventorySaveCoordinator {
                         lane.inFlight = null;
                     }
                 }
+                completeRecoveryDisposalIfReady(accountId);
             }
         }
     }

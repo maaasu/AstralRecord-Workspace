@@ -122,6 +122,24 @@ public final class PlayerSettingService {
         }
     }
 
+    /**
+     * 保存不能の復旧時に、指定 account に紐づく設定 cache と未保存変更を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        UUID userId = userIdsByAccount.remove(accountId);
+        if (userId == null) {
+            return;
+        }
+        synchronized (sessionMonitor) {
+            activeSessionTokens.remove(userId);
+            pendingSettings.remove(userId);
+            cache.remove(userId);
+            accountIdsByUser.remove(userId, accountId);
+        }
+    }
+
     public @NotNull PlayerSettingSnapshot getSnapshot(@NotNull UUID userId) {
         PlayerSettingSnapshot snapshot = cache.find(userId);
         if (snapshot != null) return snapshot;

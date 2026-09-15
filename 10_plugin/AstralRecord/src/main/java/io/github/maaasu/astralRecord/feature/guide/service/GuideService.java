@@ -229,6 +229,19 @@ public class GuideService {
     }
 
     /**
+     * 保存不能の復旧時に、指定 account の未保存ガイド進行を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        progressGenerations.merge(accountId, 1L, Long::sum);
+        progressByAccount.remove(accountId);
+        progressLoadFutures.remove(accountId);
+        pendingConditionsByAccount.remove(accountId);
+        initialGuideOpenedAccounts.remove(accountId);
+    }
+
+    /**
      * ガイドが達成済みか判定します。
      *
      * @param accountId アカウント ID。未ロード時は null 可

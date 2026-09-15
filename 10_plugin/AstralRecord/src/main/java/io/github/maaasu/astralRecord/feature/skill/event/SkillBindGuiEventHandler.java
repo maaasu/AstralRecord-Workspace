@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
@@ -250,7 +251,16 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID playerId = event.getPlayer().getUniqueId();
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(Player player) {
+        UUID playerId = player.getUniqueId();
         SynthesisSelection selection = synthesisSelections.remove(playerId);
         if (selection != null) {
             // PlayerJoinEventHandler が先に AstPlayerCache を破棄するため、選択時に保持した

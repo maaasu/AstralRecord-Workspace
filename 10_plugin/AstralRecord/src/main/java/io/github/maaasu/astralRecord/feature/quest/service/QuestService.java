@@ -307,6 +307,23 @@ public final class QuestService {
     }
 
     /**
+     * 保存不能の復旧時に、指定 account の未保存 quest state と非同期継続状態を保存せず破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     */
+    public void discardAccountState(@NotNull UUID accountId) {
+        states.remove(accountId);
+        dirtyStates.remove(accountId);
+        saveDueAtMillis.remove(accountId);
+        stateRevisions.remove(accountId);
+        pendingStateRevisions.remove(accountId);
+        releaseWhenAcknowledged.remove(accountId);
+        pendingRewardClaims.keySet().removeIf(key -> accountId.equals(key.accountId()));
+        rewardProcessingTails.remove(accountId);
+        persistenceCoordinator.discardAccount(accountId);
+    }
+
+    /**
      * runtime state を保持したまま、現在のクエスト状態を API/SQL へ即時保存します。
      * チャンネル移動はこの Future の正常完了を ACK として扱います。
      *

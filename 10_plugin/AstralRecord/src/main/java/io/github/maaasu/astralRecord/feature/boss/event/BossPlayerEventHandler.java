@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.boss.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,9 +22,18 @@ public final class BossPlayerEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
-                () -> bossChallengeService.handleQuit(event.getPlayer().getUniqueId()),
+                () -> clearPlayerRuntime(event.getPlayer()),
                 LogId.E_6501,
                 event.getPlayer().getName()
         );
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        bossChallengeService.handleQuit(player.getUniqueId());
     }
 }

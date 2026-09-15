@@ -945,6 +945,29 @@ public class SkillTreeService {
         evictReleasedPlayerState(state.accountId());
     }
 
+    /** 保存不能の復旧時に、指定 account の未保存スキルツリー状態と表示を保存せず破棄します。 */
+    public synchronized void discardAccountState(@NotNull UUID accountId) {
+        playerStates.remove(accountId);
+        derivedPlayerStates.remove(accountId);
+        dirtyPlayerStates.remove(accountId);
+        loadingPlayerStates.remove(accountId);
+        failedPlayerStateLoads.remove(accountId);
+        dirtyPlayerStateDueAtMillis.remove(accountId);
+        playerStateRevisions.remove(accountId);
+        persistedPlayerStateVersions.remove(accountId);
+        retainedInitialPlayerStates.remove(accountId);
+        releasedPlayerStates.remove(accountId);
+        acknowledgedPlayerStateRevisions.remove(accountId);
+        playerStateEpochs.remove(accountId);
+        initialPlayerStatePublications.remove(accountId);
+        returnLocations.remove(accountId);
+        visualReadyAtMillis.remove(accountId);
+        BossBar bossBar = loadingBossBars.remove(accountId);
+        if (bossBar != null) {
+            bossBar.removeAll();
+        }
+    }
+
     /** 保存済みかつ初期反映取消済みの状態を破棄します。serviceのmonitor内から呼びます。 */
     private void evictReleasedPlayerState(UUID accountId) {
         if (!releasedPlayerStates.remove(accountId)) return;

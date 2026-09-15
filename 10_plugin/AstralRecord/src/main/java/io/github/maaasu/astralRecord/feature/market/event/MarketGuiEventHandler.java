@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRequestRejectedException;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -238,7 +239,16 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        sessions.remove(event.getPlayer().getUniqueId());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull Player player) {
+        sessions.remove(player.getUniqueId());
     }
 
     /**

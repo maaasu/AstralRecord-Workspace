@@ -358,6 +358,64 @@ public class PlayerService {
     }
 
     /**
+     * 保存不能と判定されたオンラインセッションを保存せずに切り離し、再ロード前の runtime state を破棄します。
+     * <p>
+     * Bukkit API を操作するため、呼出し元は Bukkit メインスレッドで実行してください。
+     * 保存 lane または外部原子操作が残っている場合、返却 future はそれらの終了後に完了します。
+     * 完了後は {@link InventorySaveCoordinator#finishAccountRecovery(UUID)} を呼び、再ロードした
+     * account の通常操作受付を再開してください。
+     *
+     * @param player 破棄対象の Bukkit プレイヤー
+     * @return 旧 inventory state と保存補助 cache の破棄完了 future
+     */
+    public @NotNull CompletableFuture<Void> discardOnlineSessionForRecovery(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        CompletableFuture<Void> disposal = inventorySaveCoordinator.discardAccountForRecovery(accountId);
+
+        player.closeInventory();
+        playerRegionService.clearPlayer(player.getUniqueId());
+        inventoryService.clearClickGuard(accountId);
+        inventoryService.clearHiddenEntriesFromGui(accountId);
+        inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
+        statusService.clearShieldRuntimeState(astPlayer);
+        AstPlayerCache.remove(player.getUniqueId(), astPlayer);
+        player.updateCommands();
+        return disposal;
+    }
+
+    /**
+     * ログアウト済み account の保存不能 runtime state を保存せずに破棄します。
+     *
+     * @param accountId 破棄対象 account ID
+     * @return 旧 state と保存補助 cache の破棄完了 future
+     */
+    public @NotNull CompletableFuture<Void> discardAccountStateForRecovery(@NotNull UUID accountId) {
+        return inventorySaveCoordinator.discardAccountForRecovery(accountId);
+    }
+
+    /**
+     * 再ロード終了後に、対象 account の保存・操作受付を再開します。
+     *
+     * @param accountId 復旧を終了する account ID
+     */
+    public void finishAccountRecovery(@NotNull UUID accountId) {
+        inventorySaveCoordinator.finishAccountRecovery(accountId);
+    }
+
+    /**
+     * ログイン開始前に、同一 account の保存不能復旧と先行保存が完了するまで待機します。
+     *
+     * @param accountId 読み込む account ID
+     */
+    public void awaitRecoveryBeforePlayerJoin(@NotNull UUID accountId) {
+        inventorySaveCoordinator.awaitQueuedSaves(accountId).join();
+    }
+
+    /**
      * チャンネル移動前に Bukkit 上の最新状態を取り込み、統合プレイヤー状態を SQL へ確定します。
      * セッションと各 runtime cache は保持したままなので、保存失敗時も現在チャンネルで継続できます。
      *

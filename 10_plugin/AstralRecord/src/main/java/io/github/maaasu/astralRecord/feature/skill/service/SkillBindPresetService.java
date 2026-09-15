@@ -81,6 +81,16 @@ public final class SkillBindPresetService {
         if (!state.dirty) evictReleasedPlayerState(accountId);
     }
 
+    /** 保存不能の復旧時に、指定 account の未保存スキルプリセットを保存せず破棄します。 */
+    public synchronized void discardAccountState(@NotNull UUID accountId) {
+        selectedPresetIndexes.remove(accountId);
+        presetsByAccount.remove(accountId);
+        sessionStates.remove(accountId);
+        persistedPresetVersions.remove(accountId);
+        releasedPlayerStates.remove(accountId);
+        retainedInitialLoads.remove(accountId);
+    }
+
     /** 保存済みかつ退出済みの状態を破棄します。呼出元は本serviceのmonitorを保持します。 */
     private void evictReleasedPlayerState(UUID accountId) {
         if (!releasedPlayerStates.remove(accountId)) return;

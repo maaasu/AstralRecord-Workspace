@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -46,9 +47,19 @@ public final class AdminMessageBossBarEventHandler extends AbstractEventHandler 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
-                () -> bossBarService.removePlayer(event.getPlayer()),
+                () -> clearPlayerRuntime(event.getPlayer()),
                 LogId.E_3002,
                 "AdminMessageBossBarEventHandler.onPlayerQuit"
         );
+    }
+
+    /** 復旧時に BossBar 表示対象から player を外します。 */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        bossBarService.removePlayer(player);
     }
 }

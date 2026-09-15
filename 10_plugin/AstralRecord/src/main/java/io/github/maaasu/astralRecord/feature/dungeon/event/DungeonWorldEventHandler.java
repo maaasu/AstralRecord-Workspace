@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Location;
@@ -87,10 +88,19 @@ public final class DungeonWorldEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
-                () -> dungeonService.handleQuit(event.getPlayer().getUniqueId()),
+                () -> clearPlayerRuntime(event.getPlayer()),
                 LogId.E_7001,
                 event.getPlayer().getName(),
                 "quit"
         );
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        dungeonService.handleQuit(player.getUniqueId());
     }
 }

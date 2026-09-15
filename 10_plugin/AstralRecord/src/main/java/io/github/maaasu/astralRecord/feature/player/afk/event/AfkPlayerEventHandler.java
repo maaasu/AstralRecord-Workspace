@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.afk.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -45,7 +46,17 @@ public final class AfkPlayerEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> afkService.onPlayerQuit(event.getPlayer()), LogId.E_3002, "afk_quit:" + event.getPlayer().getName());
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    /** 復旧時に AFK 判定だけを破棄します。 */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
+        clearPlayerRuntime(event.getPlayer());
+    }
+
+    private void clearPlayerRuntime(@NotNull org.bukkit.entity.Player player) {
+        runSafely(() -> afkService.onPlayerQuit(player), LogId.E_3002, "afk_quit:" + player.getName());
     }
 
     /**

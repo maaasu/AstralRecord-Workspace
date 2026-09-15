@@ -36,6 +36,99 @@ import static org.mockito.Mockito.when;
 class InventoryPersistenceTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 復旧ロードのAPI取得失敗を空の正常stateとして返さず、後続の再試行でも完全取得を必須とする。
+     */
+    @Test
+    void recoveryLoadDoesNotPublishPartialStateAfterApiFailure() {
+        UUID accountId = UUID.randomUUID();
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        when(inventoryRepository.findByAccountId(accountId)).thenThrow(new IllegalStateException("unavailable"));
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository,
+            mock(EquipmentLoadoutRepository.class), mock(ItemService.class), mock(PlayerStateRepository.class));
+        persistence.discardBlockedAccount(accountId);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> persistence.load(accountId));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> persistence.load(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 確定拒否の初回遷移は例外と送信snapshotを一度だけ通知し、再試行では重複通知しない。
+     */
+    @Test
+    void reportsFirstBlockedTransitionOnlyWithOriginalFailureAndSnapshot() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.markDirty();
+        PlayerStateRepository repository = mock(PlayerStateRepository.class);
+        InventoryApiException failure = new InventoryApiException("POST", "/api/player-state/snapshots", 409, "conflict");
+        when(repository.saveSnapshot(anyString())).thenThrow(failure);
+        InventoryPersistence persistence = new InventoryPersistence(mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class), mock(ItemService.class), repository);
+        java.util.List<PlayerStateFailure> incidents = new java.util.ArrayList<>();
+        persistence.setFailureListener(incidents::add);
+
+        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+
+        assertEquals(1, incidents.size());
+        PlayerStateFailure incident = incidents.getFirst();
+        org.junit.jupiter.api.Assertions.assertSame(failure, incident.cause());
+        assertEquals(accountId, incident.accountId());
+        assertEquals("AUTO", incident.trigger());
+        verify(repository).saveSnapshot(incident.payload());
+        org.junit.jupiter.api.Assertions.assertTrue(persistence.isPlayerStateBlocked(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 保存不能の破棄後は旧stateを再保存せず、新しいstateだけが新snapshotで保存できる。
+     */
+    @Test
+    void discardedStateCannotBeSavedAfterFreshStateIsLoaded() {
+        UUID accountId = UUID.randomUUID();
+        PlayerStateRepository repository = snapshotRepository();
+        org.mockito.Mockito.doThrow(new InventoryApiException("POST", "/snapshot", 409, "conflict"))
+            .when(repository).saveSnapshot(anyString());
+        InventoryPersistence persistence = new InventoryPersistence(mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class), mock(ItemService.class), repository);
+        PlayerInventoryState stale = new PlayerInventoryState(accountId);
+        assertFalse(persistence.saveNow(stale));
+        persistence.discardBlockedAccount(accountId);
+        assertFalse(persistence.isPlayerStateBlocked(accountId));
+        assertFalse(persistence.saveNow(stale));
+        assertFalse(persistence.saveCriticalNow(stale));
+        verify(repository).saveSnapshot(anyString());
+        PlayerInventoryState fresh = new PlayerInventoryState(accountId);
+        org.mockito.Mockito.doAnswer(invocation ->
+            acknowledge(JsonParser.parseString(invocation.getArgument(0, String.class)).getAsJsonObject()))
+            .when(repository).saveSnapshot(anyString());
+        org.junit.jupiter.api.Assertions.assertTrue(persistence.saveNow(fresh));
+        verify(repository, org.mockito.Mockito.times(2)).saveSnapshot(anyString());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
+     * 検証契約: 一時的な通信失敗では保存不能の通知を発生させない。
+     */
+    @Test
+    void transientFailureDoesNotStartDestructiveRecovery() {
+        UUID accountId = UUID.randomUUID();
+        PlayerStateRepository repository = mock(PlayerStateRepository.class);
+        when(repository.saveSnapshot(anyString())).thenThrow(new InventoryApiException("POST", "/snapshot", 503, "unavailable"));
+        InventoryPersistence persistence = new InventoryPersistence(mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class), mock(ItemService.class), repository);
+        java.util.List<PlayerStateFailure> incidents = new java.util.ArrayList<>();
+        persistence.setFailureListener(incidents::add);
+        assertFalse(persistence.saveNow(new PlayerInventoryState(accountId)));
+        assertEquals(0, incidents.size());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 外部取引前の baseline は、BAG だけが dirty でも未変更の通貨残高を含む。
