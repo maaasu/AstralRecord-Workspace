@@ -63,6 +63,8 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.sell.command.SellCommand;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopCommand;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
+import io.github.maaasu.astralRecord.feature.sound.command.SoundCommand;
+import io.github.maaasu.astralRecord.feature.sound.command.SoundTabCompleter;
 import io.github.maaasu.astralRecord.feature.storage.command.StorageCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusBuffCommand;
@@ -256,6 +258,7 @@ public class CommandRegister {
         ParticleTabCompleter particleTabCompleter = new ParticleTabCompleter();
         cm.registerCommand("particle", particleCommand, particleTabCompleter);
         cm.registerCommand("p", particleCommand, particleTabCompleter);
+        cm.registerCommand("sound", new SoundCommand(), new SoundTabCompleter());
         cm.registerCommand("send", new SendCommand(), new SendTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("market", new MarketCommand());
