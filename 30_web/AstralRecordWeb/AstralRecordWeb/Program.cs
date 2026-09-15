@@ -9,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IMinecraftStatusProbe, MinecraftStatusProbe>();
+builder.Services.AddSingleton<MinecraftServerStatusService>();
 builder.Services
     .AddOptions<PublicSiteOptions>()
     .Bind(builder.Configuration.GetSection(PublicSiteOptions.SectionName))

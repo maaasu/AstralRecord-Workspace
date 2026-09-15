@@ -55,6 +55,14 @@
         </a>
     </section>
 
+    <section class="ar-server-strip" aria-label="現在のサーバー状況" data-server-status data-status-url="@Url.Page("/Index", "ServerStatus")" data-state="@Model.ServerStatus.State">
+        <div class="container ar-server-strip-inner">
+            <div class="ar-server-presence"><span class="ar-server-beacon" aria-hidden="true"></span><div><small>現在のサーバー状況</small><strong data-server-state>@Model.ServerStatus.Label</strong></div></div>
+            <div class="ar-server-population"><small>参加人数</small><strong><span data-server-players>@(Model.ServerStatus.Players?.ToString("N0") ?? "—")</span><span class="ar-server-capacity"> / <span data-server-maximum>@(Model.ServerStatus.MaximumPlayers?.ToString("N0") ?? "—")</span> 人</span></strong></div>
+            <div class="ar-server-checked"><span>@Model.PublicSite.JavaServerAddress</span><small>最終確認 <time data-server-checked>@Model.ServerStatus.CheckedAt.ToOffset(TimeSpan.FromHours(9)).ToString("HH:mm:ss")</time>（日本時間）</small></div>
+        </div>
+    </section>
+
     <section class="ar-home-section ar-feature-section" id="features" aria-labelledby="features-title">
         <div class="container">
             <div class="ar-home-heading">
@@ -244,3 +252,5 @@
     </section>
 
 </div>
+
+@section Scripts { <script src="~/js/server-status.js" asp-append-version="true"></script> }

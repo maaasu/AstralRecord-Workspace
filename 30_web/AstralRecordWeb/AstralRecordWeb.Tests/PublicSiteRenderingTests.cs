@@ -259,6 +259,7 @@ public sealed class PublicSiteRenderingTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.ConfigureServices(services => services.AddSingleton<IMinecraftStatusProbe, FixedOnlineStatusProbe>());
             builder.ConfigureAppConfiguration((_, configurationBuilder) =>
             {
                 configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
@@ -270,4 +271,10 @@ public sealed class PublicSiteRenderingTests
             });
         }
     }
+}
+
+internal sealed class FixedOnlineStatusProbe : IMinecraftStatusProbe
+{
+    public Task<MinecraftServerStatus> QueryAsync(string host, int port, CancellationToken cancellationToken)
+        => Task.FromResult(new MinecraftServerStatus("online", 17, 100, DateTimeOffset.UtcNow));
 }

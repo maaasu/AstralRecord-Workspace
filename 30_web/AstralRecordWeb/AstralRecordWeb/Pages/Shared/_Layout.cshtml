@@ -4,6 +4,7 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     var publicSite = PublicSiteOptionsAccessor.Value;
+    var isHomePage = string.Equals(ViewContext.RouteData.Values["page"] as string, "/Index", StringComparison.OrdinalIgnoreCase);
     var metaDescription = publicSite.IsOpenAlpha
         ? "Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。"
         : "Minecraft RPGサーバー Astral Record。クラス、スキル、装備を組み合わせて冒険しよう。";
@@ -18,6 +19,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/AstralRecordWeb.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/portal.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/skilltree.css" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
@@ -36,6 +38,10 @@
                 }
             </a>
             <div class="ar-nav-actions">
+                @if (!isHomePage)
+                {
+                    <a class="ar-nav-home" asp-page="/Index">ホーム</a>
+                }
                 <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
                    rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
                 <button class="ar-menu-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#site-menu"
@@ -53,11 +59,9 @@
         <div class="offcanvas-body">
             <nav class="ar-menu-section" aria-label="サイト案内">
                 <p class="ar-menu-label">サイト案内</p>
-                <a asp-page="/Index"><span>ホーム</span><span aria-hidden="true">↗</span></a>
                 <a asp-page="/Index" asp-fragment="features"><span>特徴</span><span aria-hidden="true">↗</span></a>
                 <a asp-page="/Index" asp-fragment="join"><span>参加情報</span><span aria-hidden="true">↗</span></a>
                 <a asp-page="/Releases/Index"><span>お知らせ</span><span aria-hidden="true">↗</span></a>
-                <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
             </nav>
             @if (User.Identity?.IsAuthenticated == true)
             {
@@ -65,6 +69,8 @@
                     <p class="ar-menu-label"><span class="ar-status-dot"></span>ログイン中</p>
                     <strong class="ar-menu-player">@User.Identity.Name</strong>
                     <a asp-page="/MyPage"><span>マイページ</span><span aria-hidden="true">↗</span></a>
+                    <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
+                    <a asp-page="/Market/Index"><span>マーケット</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Logout" data-logout-open><span>ログアウト</span><span aria-hidden="true">↗</span></a>
                 </nav>
                 var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminOnly");

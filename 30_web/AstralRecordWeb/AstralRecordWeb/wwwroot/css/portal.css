@@ -130,32 +130,6 @@ main, .ar-footer { position: relative; }
 .ar-player-card-footer strong { font: 1.7rem 'Cinzel', serif; color: #f1ca72; }
 .ar-empty { text-align: center; padding: 3rem 1rem; border: 1px dashed #8ae3db40; border-radius: 12px; color: #b8cddd; }
 .ar-pagination { display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 2rem; }
-.ar-tree-toolbar { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-.ar-tree-toolbar h2 { margin: 0; }
-.ar-tree-controls { display: flex; gap: .5rem; align-items: center; }
-.ar-tree-controls button { background: #142d40; color: #b9f2e9; border: 1px solid #8ae3db50; padding: .4rem .8rem; border-radius: 5px; }
-.ar-tree-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; border: 1px solid #8ae3db26; border-radius: 10px; overflow: hidden; }
-.ar-tree-viewport { min-width: 0; height: 540px; overflow: hidden; position: relative; background-color: #080f1c; background-image: radial-gradient(#47607777 1px, transparent 1px); background-size: 22px 22px; cursor: grab; touch-action: none; }
-.ar-tree-viewport:active { cursor: grabbing; }
-.ar-tree-viewport svg { width: 100%; height: 100%; display: block; }
-.ar-tree-edge { stroke: #52708c; stroke-width: 2; }
-.ar-tree-edge.is-unlocked { stroke: #8ae3db; filter: drop-shadow(0 0 3px #8ae3db66); }
-.ar-tree-node { cursor: pointer; outline: none; }
-.ar-tree-node rect { fill: #162639; stroke: #6d87a3; stroke-width: 2; transition: fill .2s, stroke .2s; }
-.ar-tree-node.is-unlocked rect { fill: #1c474b; stroke: #8ae3db; }
-.ar-tree-node.is-root rect { stroke: #f1ca72; stroke-width: 3; }
-.ar-tree-node:hover rect, .ar-tree-node:focus rect, .ar-tree-node[aria-pressed="true"] rect { stroke: #fff; stroke-width: 4; fill: #29415d; }
-.ar-tree-node text { fill: #e8f3ff; text-anchor: middle; pointer-events: none; font-size: 11px; }
-.ar-tree-node .ar-tree-symbol { font-size: 26px; fill: #91e9dd; }
-.ar-tree-detail { padding: 1.2rem; border-left: 1px solid #8ae3db26; background: #101c2c; font-size: .85rem; overflow-wrap: anywhere; }
-.ar-tree-detail h3 { font-size: 1rem; margin: .5rem 0 1rem; }
-.ar-tree-detail p { color: #b1c8da; white-space: pre-line; line-height: 1.8; }
-.ar-tree-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .8rem; font-size: .72rem; color: #b2c8da; }
-.ar-tree-legend span:first-child { color: #8ae3db; }
-.ar-tree-legend span:last-child { color: #f1ca72; }
-.ar-tree-accessible { margin-top: 1rem; font-size: .8rem; }
-.ar-tree-accessible ul { max-height: 300px; overflow: auto; padding-left: 1.3rem; }
-.ar-tree-accessible li { margin: .8rem 0; }
 @keyframes nebula-drift { to { transform: translate(15%, -12%) scale(1.2); } }
 @keyframes portal-arrive { from { opacity: 0; transform: translateY(25px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sky-voyage { to { scale: 1.12; } }
@@ -172,7 +146,7 @@ main, .ar-footer { position: relative; }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }
     .ar-stats { gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
-    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-tree-layout { grid-template-columns: 1fr; } .ar-tree-viewport { height: 400px; } .ar-tree-detail { border-left: 0; border-top: 1px solid #8ae3db26; }
+    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; }
     .ar-cosmos span { filter: blur(40px); } .ar-meteor { width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -180,4 +154,27 @@ main, .ar-footer { position: relative; }
     .ar-reveal-ready { opacity: 1; transform: none; }
 }
 
-.ar-tree-detail p.ar-condition-unmet { color: #ffb5a4; }
+
+.ar-nav-home { color: #dac6a0; text-decoration: none; font-size: .8rem; padding: .4rem 0; white-space: nowrap; }
+.ar-nav-home:hover { color: #fff0c6; }
+.ar-server-strip { position: relative; background: linear-gradient(90deg, #0c1825, #171726, #0c1825); border-block: 1px solid #d9b97c33; }
+.ar-server-strip-inner { display: flex; align-items: center; justify-content: space-between; gap: 1.4rem; padding-block: 1.7rem; }
+.ar-server-presence { display: flex; align-items: center; gap: 1rem; }
+.ar-server-presence small, .ar-server-population > small { display: block; color: #b9adc8; font-size: .7rem; margin-bottom: .4rem; }
+.ar-server-presence strong { font-size: 1.2rem; color: #d1c7dc; }
+.ar-server-beacon { width: 12px; height: 12px; border-radius: 50%; background: #aaa; box-shadow: 0 0 0 6px #ffffff08; }
+[data-state="online"] .ar-server-beacon { background: #8adebc; box-shadow: 0 0 0 6px #8adebc15, 0 0 24px #8adebc44; }
+[data-state="online"] .ar-server-presence strong { color: #9ee5c6; }
+[data-state="offline"] .ar-server-beacon { background: #cb8f9b; box-shadow: 0 0 0 6px #cb8f9b15; }
+[data-state="offline"] .ar-server-presence strong { color: #e4aebb; }
+.ar-server-population > strong { font: 1.7rem 'Cinzel', serif; color: #edd4a3; }
+.ar-server-capacity { font: .8rem 'Noto Sans JP', sans-serif; color: #a99ab5; }
+.ar-server-checked { display: grid; gap: .4rem; text-align: right; color: #c6b899; font-size: .75rem; }
+.ar-server-checked small { color: #a99ab5; font-size: .63rem; }
+@media (max-width: 600px) {
+    .ar-nav-home { font-size: .68rem; }
+    .ar-nav-actions { gap: .45rem; }
+    .ar-server-strip-inner { flex-wrap: wrap; padding-block: 1.4rem; }
+    .ar-server-presence strong { font-size: 1rem; }
+    .ar-server-checked { flex-basis: 100%; text-align: left; font-size: .7rem; }
+}
