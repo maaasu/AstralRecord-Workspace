@@ -24,7 +24,7 @@
             <div class="ar-player-grid">
                 @foreach (var p in results.Profiles)
                 {
-                    <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-includePrivate="@Model.IncludePrivate">
+                    <a class="ar-player-card" asp-page="/Players/Detail" asp-route-userUuid="@p.UserUuid" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">
                         <span class="ar-profile-badge @(p.IsPublic ? "" : "ar-profile-badge--private")">@(p.IsPublic ? "公開プロフィール" : "非公開・管理者閲覧")</span>
                         <h2>@p.Mcid</h2>
                         <p>@(p.CurrentAccount?.ClassName ?? "アカウント未選択")</p>

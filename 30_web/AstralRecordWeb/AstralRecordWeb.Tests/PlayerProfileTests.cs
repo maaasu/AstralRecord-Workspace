@@ -101,6 +101,30 @@ public sealed class PlayerProfileTests
     }
 
     [Fact]
+    public async Task PlayerDirectoryDetailAndBackLink_PreserveSearchState_WithoutGrantingPrivateAccess()
+    {
+        var api = new ProfileHandler { Published = true };
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+
+        var publicDirectory = WebUtility.HtmlDecode(await client.GetStringAsync("/players?mcid=Live%20Player&classId=swordsman&sort=level_asc&pageNumber=2"));
+        var publicDetailPath = Link(publicDirectory, "ar-player-card");
+        AssertSearchState(publicDetailPath, "Live Player", "swordsman", "level_asc", "2", "false");
+        Assert.DoesNotContain("includePrivate=true", publicDetailPath, StringComparison.OrdinalIgnoreCase);
+
+        await Login(client);
+        api.Admin = true;
+        var adminDirectory = WebUtility.HtmlDecode(await client.GetStringAsync("/players?mcid=Live%20Player&classId=swordsman&sort=level_asc&pageNumber=2&includePrivate=true"));
+        var adminDetailPath = Link(adminDirectory, "ar-player-card");
+        AssertSearchState(adminDetailPath, "Live Player", "swordsman", "level_asc", "2", "true");
+
+        var adminDetail = WebUtility.HtmlDecode(await client.GetStringAsync(adminDetailPath));
+        var backPath = Link(adminDetail, "ar-btn-outline");
+        Assert.Equal("/players", new Uri(client.BaseAddress!, backPath).AbsolutePath);
+        AssertSearchState(backPath, "Live Player", "swordsman", "level_asc", "2", "true");
+    }
+
+    [Fact]
     public async Task AdminDirectory_UsesRecheckedWebAdmin_AndLosesAccessWhenRevoked()
     {
         var api = new ProfileHandler { Admin = true };
@@ -148,6 +172,17 @@ public sealed class PlayerProfileTests
     }
 
     private static HttpClient Client(ProfileFactory factory) => factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+    private static string Link(string body, string className) => Regex.Match(body, $"<a[^>]*class=\"[^\"]*{className}[^\"]*\"[^>]*href=\"([^\"]+)\"").Groups[1].Value;
+    private static void AssertSearchState(string path, string mcid, string classId, string sort, string pageNumber, string includePrivate)
+    {
+        Assert.NotEmpty(path);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri("https://localhost" + path).Query);
+        Assert.Equal(mcid, query["mcid"].ToString());
+        Assert.Equal(classId, query["classId"].ToString());
+        Assert.Equal(sort, query["sort"].ToString());
+        Assert.Equal(pageNumber, query["pageNumber"].ToString());
+        Assert.Equal(includePrivate, query["includePrivate"].ToString(), ignoreCase: true);
+    }
     private static string Token(string body) => WebUtility.HtmlDecode(Regex.Match(body, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
     private static async Task Login(HttpClient client)
     {
