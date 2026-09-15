@@ -14,35 +14,27 @@ public sealed class NetworkController(
     IUserRepository userRepository,
     INetworkRuntimeService runtimeService,
     TimeProvider timeProvider,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    INetworkManagementRepository management) : ControllerBase
 {
     private const string AuthoritySyncHeader = "X-Authority-Sync-Key";
     [HttpGet("admissions/{uuid:guid}")]
     [ProducesResponseType<NetworkAdmissionResponse>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAdmission(Guid uuid)
+    public async Task<IActionResult> GetAdmission(Guid uuid, [FromQuery] string? serverId = null)
     {
         var user = await userRepository.GetByUuidAsync(uuid);
-        var nowLocal = timeProvider.GetLocalNow().DateTime;
-        if (user is null)
-        {
-            return Ok(new NetworkAdmissionResponse(
-                uuid, string.Empty, false, true, null, runtimeService.IsAuthority(uuid) ? 99 : 0,
-                false, null, null,
-                timeProvider.GetUtcNow().UtcDateTime));
-        }
-
-        var banned = user.BanIndefinite || user.BanDate is not null && user.BanDate > nowLocal;
-        return Ok(new NetworkAdmissionResponse(
-            user.Uuid,
-            user.Mcid,
-            true,
-            !banned,
-            banned ? "banned" : null,
-            runtimeService.IsAuthority(uuid) ? 99 : user.Permission,
-            user.BanIndefinite,
-            user.BanDate,
-            user.AccountId,
-            timeProvider.GetUtcNow().UtcDateTime));
+        var settings = await management.GetSettingsAsync();
+        var ban = await management.GetBanAsync(uuid);
+        var access = settings is null ? null : NetworkAccessPolicy.Evaluate(uuid, serverId ?? settings.LobbyServerId, settings, user?.Permission ?? 0);
+        var banned = ban?.IsActive ?? (user?.BanIndefinite == true || user?.BanDate > timeProvider.GetLocalNow().DateTime);
+        var banDate = ban is null ? user?.BanDate : ban.ExpiresAtUtc is DateTimeOffset expiry
+            ? TimeZoneInfo.ConvertTime(expiry, timeProvider.LocalTimeZone).DateTime : (DateTime?)null;
+        var authorityPermission = runtimeService.IsAuthority(uuid) ? Math.Max(99, user?.Permission ?? 0) : user?.Permission ?? 0;
+        return Ok(new NetworkAdmissionResponse(uuid, user?.Mcid ?? ban?.Mcid ?? string.Empty, user is not null,
+            !banned && (access?.Allowed ?? true), banned ? "banned" : access is { ChannelKnown: false } ? "unknown_channel" : access is { Allowed: false } ? "not_whitelisted" : null,
+            access?.Permission ?? authorityPermission, ban?.IsIndefinite ?? user?.BanIndefinite ?? false, banDate, user?.AccountId,
+            timeProvider.GetUtcNow().UtcDateTime, ban?.Reason, ban?.ExpiresAtUtc,
+            access?.DebugUser ?? false, access?.Whitelisted ?? false, access?.ChannelKnown ?? false, settings is not null));
     }
 
     [HttpPut("players/{uuid:guid}")]
@@ -122,15 +114,17 @@ public sealed class NetworkController(
         return Ok(runtimeService.GetChatAfter(afterSequence, source));
     }
 
-    /// <summary>Proxy設定を正本とするサーバー最高権限UUID一覧を置き換えます。</summary>
+    /// <summary>初期移行前の旧Proxy専用同期。ManagementDB初期化後は上書きを拒否します。</summary>
     [HttpPut("authorities")]
     [ProducesResponseType<IReadOnlyList<Guid>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult ReplaceAuthorities([FromBody] NetworkAuthorityUpdateRequest request)
+    public async Task<IActionResult> ReplaceAuthorities([FromBody] NetworkAuthorityUpdateRequest request)
     {
         if (!HasAuthoritySyncCredential())
             return Unauthorized();
+        if (await management.GetSettingsAsync() is not null)
+            return Conflict(new { message = "サーバー設定はManagementDBで管理されています。" });
         if (request.Uuids is null || request.Uuids.Any(uuid => uuid == Guid.Empty))
             return BadRequest();
         return Ok(runtimeService.ReplaceAuthorities(request));
@@ -139,13 +133,57 @@ public sealed class NetworkController(
     /// <summary>現在のサーバー最高権限UUID一覧を返します。</summary>
     [HttpGet("authorities")]
     [ProducesResponseType<IReadOnlyList<Guid>>(StatusCodes.Status200OK)]
-    public IActionResult GetAuthorities() => Ok(runtimeService.GetAuthorities());
+    public async Task<IActionResult> GetAuthorities() => Ok((await management.GetSettingsAsync())?.AuthorityUsers ?? runtimeService.GetAuthorities());
 
-    private bool HasAuthoritySyncCredential()
+    /// <summary>ProxyとRPGへ永続設定を返します。移行前は404です。</summary>
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetSettings() => await management.GetSettingsAsync() is { } settings ? Ok(settings) : NotFound();
+
+    /// <summary>既存Proxy YAMLを一度だけ初期移行します。保存済みなら現在値を返すだけです。</summary>
+    [HttpPost("settings/bootstrap")]
+    public async Task<IActionResult> Bootstrap([FromBody] ManagedNetworkSettings request)
     {
-        var expected = configuration["Network:AuthoritySyncKey"];
+        if (!HasAuthoritySyncCredential()) return Unauthorized();
+        try
+        {
+            var result = await management.BootstrapAsync(request);
+            return StatusCode(result.Created ? 201 : 200, result.Settings);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (NetworkManagementConflictException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
+    /// <summary>チャンネル固有のdebug/whitelistと実効権限を返します。</summary>
+    [HttpGet("channel-access/{uuid:guid}")]
+    public async Task<IActionResult> GetChannelAccess(Guid uuid, [FromQuery] string serverId)
+        => Ok(await management.GetChannelAccessAsync(uuid, serverId));
+
+    /// <summary>Proxyが接続中プレイヤーのBANを反映するための有効一覧です。</summary>
+    [HttpGet("bans/active")]
+    public async Task<IActionResult> GetActiveBans() => Ok(await management.GetActiveBansAsync());
+
+    /// <summary>信頼済みゲームサーバー向けにユーザーBANの現在版を返します。</summary>
+    [HttpGet("bans/{uuid:guid}")]
+    public async Task<IActionResult> GetRuntimeBan(Guid uuid) => await management.GetBanAsync(uuid) is { } ban ? Ok(ban) : NotFound();
+
+    /// <summary>既存ゲーム内BANコマンドを共通BAN正本へ保存します。nil actorは従来のSystemUser(Console)です。</summary>
+    [HttpPut("bans/{uuid:guid}")]
+    public async Task<IActionResult> UpdateRuntimeBan(Guid uuid, [FromQuery(Name = "actor_user_uuid"), Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] Guid actor, [FromBody] NetworkBanUpdateRequest request)
+    {
+        if (!HasDedicatedCredential("Network:ModerationKey", "X-Network-Moderation-Key")) return Unauthorized();
+        if (!await management.CanManageBanFromGameAsync(actor)) return StatusCode(403);
+        try { return await management.UpdateBanAsync(uuid, request, actor) is { } ban ? Ok(ban) : NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (NetworkManagementConflictException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
+    private bool HasAuthoritySyncCredential() => HasDedicatedCredential("Network:AuthoritySyncKey", AuthoritySyncHeader);
+
+    private bool HasDedicatedCredential(string configurationKey, string header)
+    {
+        var expected = configuration[configurationKey];
         var sharedApiKey = configuration["ApiKey:Key"];
-        var provided = Request.Headers[AuthoritySyncHeader].FirstOrDefault();
+        var provided = Request.Headers[header].FirstOrDefault();
         if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(provided))
             return false;
         if (!string.IsNullOrEmpty(sharedApiKey)

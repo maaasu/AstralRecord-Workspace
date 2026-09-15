@@ -68,7 +68,7 @@ record ProxyConfig(
             Map.copyOf(capacities),
             number(root, "transferCooldownSeconds", 30L),
             Math.max(1L, number(root, "tabRefreshSeconds", 2L)),
-            Math.max(5L, number(root, "presenceHeartbeatSeconds", 10L)),
+            Math.max(1L, number(root, "presenceHeartbeatSeconds", 10L)),
             text(api, "baseUrl", "http://127.0.0.1:5261"),
             text(api, "apiKey", ""),
             text(api, "authoritySyncKey", ""),

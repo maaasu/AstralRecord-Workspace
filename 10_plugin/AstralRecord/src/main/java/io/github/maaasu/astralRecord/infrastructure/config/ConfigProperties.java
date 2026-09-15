@@ -71,6 +71,7 @@ public class ConfigProperties {
     private long apiOperationTimeout;
     private boolean apiSslVerifyEnabled;
     private String apiServerId;
+    private String apiNetworkModerationKey;
 
     // Velocity network settings
     private boolean networkEnabled;
@@ -221,6 +222,7 @@ public class ConfigProperties {
         );
         this.apiSslVerifyEnabled = configManager.getConfig().getBoolean(ConfigKeys.API_SSL_VERIFY_ENABLED, true);
         this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
+        this.apiNetworkModerationKey = configManager.getConfig().getString(ConfigKeys.API_NETWORK_MODERATION_KEY, "");
         if (!this.apiSslVerifyEnabled) {
             Logger.log(LogId.W_1601);
         }
@@ -486,6 +488,14 @@ public class ConfigProperties {
      */
     public String getApiBaseUrl() {
         return apiBaseUrl;
+    }
+
+    /**
+     * Network BAN更新用のサーバー専用キーを返します。
+     * @return APIのNetwork:ModerationKeyと一致する値。未設定は空文字
+     */
+    public String getApiNetworkModerationKey() {
+        return apiNetworkModerationKey == null ? "" : apiNetworkModerationKey;
     }
 
     /**

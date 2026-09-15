@@ -108,6 +108,29 @@ public sealed class NetworkManagementTests
         Assert.Equal(0, api.BanPuts);
     }
 
+    [Fact]
+    public async Task SettingsPost_PreservesDisabledDiscord_AndRejectsInvalidNumber()
+    {
+        var api = new ManagementHandler { Admin = true };
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var body = await client.GetStringAsync("/Admin/Network");
+        Assert.Contains("name=\"Input.Channels[0].DiscordEnabled\" type=\"hidden\" value=\"false\"", body);
+        var fields = SettingsForm(Token(body));
+        fields.RemoveAll(pair => pair.Key == "Input.Channels[0].DiscordEnabled");
+        fields.Add(new("Input.Channels[0].DiscordEnabled", "false"));
+        using var saved = await client.PostAsync("/Admin/Network?handler=Save", new FormUrlEncodedContent(fields));
+        Assert.Equal(HttpStatusCode.Found, saved.StatusCode);
+        using var json = JsonDocument.Parse(api.LastSettingsBody);
+        Assert.False(json.RootElement.GetProperty("channels")[0].GetProperty("discordEnabled").GetBoolean());
+        fields.RemoveAll(pair => pair.Key == "Input.Channels[0].MaxPlayers");
+        fields.Add(new("Input.Channels[0].MaxPlayers", "invalid"));
+        using var rejected = await client.PostAsync("/Admin/Network?handler=Save", new FormUrlEncodedContent(fields));
+        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+        Assert.Equal(1, api.SettingsPuts);
+    }
+
     private static List<KeyValuePair<string, string>> SettingsForm(string? token = null)
     {
         var fields = new List<KeyValuePair<string, string>>

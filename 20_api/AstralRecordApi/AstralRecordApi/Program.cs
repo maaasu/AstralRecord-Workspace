@@ -117,6 +117,7 @@ builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutReposito
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
 builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
+builder.Services.AddScoped<INetworkManagementRepository, NetworkManagementRepository>();
 builder.Services.AddScoped<IWebPlayerProfileRepository, WebPlayerProfileRepository>();
 builder.Services.AddScoped<IReleaseNoteRepository, ReleaseNoteRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();

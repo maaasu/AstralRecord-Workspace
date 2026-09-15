@@ -80,6 +80,8 @@ api:
   baseUrl: "https://api.astralrecord.example.com"
   # Webログインチャレンジ発行元として API に送信するサーバー ID
   serverId: "main"
+  # network有効時の/ban専用キー。API Network:ModerationKeyと一致させ、共通APIキーとは別の値にする
+  networkModerationKey: ""
   # APIキー認証情報
   auth:
     apiKey: "your_api_key"

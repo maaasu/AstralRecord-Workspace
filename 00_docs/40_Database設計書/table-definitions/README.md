@@ -28,14 +28,15 @@
 | `AstralRecord` | `AstralRecord/migrations/20260910_market_listing_create_receipt.sql` | 出品作成の冪等結果台帳を追加。対応 API 配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260913_account_rebirth_progress.sql` | 転生進行カラムと初期制約を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260915_expand_rebirth_experience_remainder.sql` | 100EXP単位の変換に合わせて転生EXP端数の許容範囲を0～99へ拡張。対応 API 配置前に適用 |
+| `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 
-本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
+AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前にそのmanifestの適用と対象スキーマ検査を実行する。ManagementDBは下記の別途適用が必要であり、このツールの成功だけでは配置条件を満たさない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
 開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記migrationだけを管理する。
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 
-`ManagementDB` はWebログイン成功情報とWeb管理権限を保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外であるため、本番初回配置時に `ManagementDB/init.sql` を別途適用します。
+`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BANを保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql` をAPI配置前に別途適用します。適用コマンドと3表の確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
 
 ## AstralRecord
 
@@ -98,3 +99,6 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 |---|---|
 | `dbo.player` | `ManagementDB/dbo.player.md` |
 | `dbo.schema_migration` | `ManagementDB/dbo.schema_migration.md` |
+| `dbo.network_settings` | `ManagementDB/dbo.network_settings.md` |
+| `dbo.network_ban` | `ManagementDB/dbo.network_ban.md` |
+| `dbo.network_management_audit` | `ManagementDB/dbo.network_management_audit.md` |

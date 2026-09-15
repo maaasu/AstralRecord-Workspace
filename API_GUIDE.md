@@ -17,7 +17,8 @@
 - `ConnectionStrings:History`: HistoryDB 接続文字列
 - `ConnectionStrings:Management`: 長期保持用ManagementDB接続文字列。空ならSqlServerのDB名だけManagementDBへ変更する。ゲームDBリセットの対象に含めない。
 - `FileDatabase:RootPath`: 静的データファイルのルートパス
-- `Network:AuthoritySyncKey`: Proxyだけが最高権限UUID一覧をPUTするための専用キー
+- `Network:AuthoritySyncKey`: Proxyの旧YAML初回bootstrap用専用キー（移行前だけ旧authorities PUTも許可）
+- `Network:ModerationKey`: RPG `/ban` の更新専用キー。RPG `api.networkModerationKey`と一致させ、共通APIキーと分離する
 
 ## API 実装ルール
 
@@ -149,6 +150,10 @@
 | GET `/api/network/servers` | サーバー人数・権限別定員一覧取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
 | PUT / GET `/api/network/authorities` | Proxy最高権限UUIDの同期・取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
 | POST / GET `/api/network/chat` | Minecraft／Discordチャット・接続通知の短期中継 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
+| GET `/api/network/settings`・POST `/api/network/settings/bootstrap` | ManagementDB設定と旧Proxy YAML初回移行 | 同上 |
+| GET `/api/network/channel-access/{uuid}` | チャンネル別入場ロール | 同上 |
+| GET / PUT `/api/network/bans/{uuid}`・GET `/api/network/bans/active` | ゲーム内BAN更新・Proxyの有効BAN取得 | 同上 |
+| `/api/network-management/settings`・`players`・`bans/{uuid}` | WebAdmin専用設定・MCID検索・BAN管理 | 同上 |
 
 ## テスト運用ルール
 

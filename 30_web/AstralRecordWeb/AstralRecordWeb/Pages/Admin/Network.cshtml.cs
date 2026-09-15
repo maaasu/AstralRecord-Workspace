@@ -72,6 +72,11 @@ public sealed class NetworkModel(NetworkManagementApiClient networkManagementApi
     public async Task<IActionResult> OnPostSaveAsync(CancellationToken ct)
     {
         if (!TryGetActor(out var actor)) return Challenge();
+        if (ModelState.Any(entry => entry.Key.StartsWith("Input.", StringComparison.Ordinal) && entry.Value?.Errors.Count > 0))
+        {
+            ErrorMessage = "入力内容を確認してください。人数・秒数は整数で指定します。";
+            return Page();
+        }
         var result = await networkManagementApiClient.SaveSettingsAsync(actor, Input.ToSettings(), ct);
         if (result.Succeeded)
         {
@@ -133,7 +138,7 @@ public sealed class ManagedNetworkSettingsInput
     public ManagedNetworkSettings ToSettings() => new()
     {
         Revision = Revision,
-        LobbyServerId = LobbyServerId.Trim(),
+        LobbyServerId = LobbyServerId?.Trim() ?? string.Empty,
         TransferCooldownSeconds = TransferCooldownSeconds,
         TabRefreshSeconds = TabRefreshSeconds,
         PresenceHeartbeatSeconds = PresenceHeartbeatSeconds,
@@ -178,8 +183,8 @@ public sealed class ManagedNetworkChannelInput
 
     public ManagedNetworkChannel ToChannel() => new()
     {
-        ServerId = ServerId.Trim(),
-        DisplayName = DisplayName.Trim(),
+        ServerId = ServerId?.Trim() ?? string.Empty,
+        DisplayName = DisplayName?.Trim() ?? string.Empty,
         IsGame = IsGame,
         MaxPlayers = MaxPlayers,
         DonorExtraPlayers = DonorExtraPlayers,

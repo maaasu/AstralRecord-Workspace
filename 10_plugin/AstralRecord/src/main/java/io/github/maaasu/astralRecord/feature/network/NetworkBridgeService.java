@@ -89,8 +89,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             100L);
         long authorityRefreshTicks = Math.max(20L,
             plugin.getConfig().getLong("network.authorityRefreshTicks", 100L));
-        authorityTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
-            plugin, this::refreshAuthorityUsers, 0L, authorityRefreshTicks);
+        authorityTask = plugin.getServer().getScheduler().runTaskTimer(
+            plugin, this::scheduleAuthorityRefresh, 0L, authorityRefreshTicks);
     }
 
     public void stop() {
@@ -375,9 +375,26 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         }
     }
 
-    /** Network APIの最高権限一覧を非同期取得し、オンラインプレイヤーのOP状態へ反映する。 */
-    private void refreshAuthorityUsers() {
+    /** メインスレッドで更新対象UUIDを取得し、API照会だけを非同期へ渡す。重複起動は抑止する。 */
+    private void scheduleAuthorityRefresh() {
         if (!authorityRefreshRunning.compareAndSet(false, true)) return;
+        try {
+            Set<UUID> onlinePlayerIds = AstPlayerCache.getAll().stream()
+                .map(player -> player.getBukkit().getUniqueId())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+            plugin.getServer().getScheduler().runTaskAsynchronously(
+                plugin, () -> refreshAuthorityUsers(onlinePlayerIds));
+        } catch (RuntimeException exception) {
+            authorityRefreshRunning.set(false);
+            throw exception;
+        }
+    }
+
+    /**
+     * Network APIの最高権限とチャンネルロールを非同期取得する。
+     * @param onlinePlayerIds メインスレッドで確定した更新対象UUID。Bukkit Playerを保持しない
+     */
+    private void refreshAuthorityUsers(Set<UUID> onlinePlayerIds) {
         try {
             Set<UUID> authorities = authorityClient.getAuthorities();
             NetworkAuthorityRegistry.replace(authorities);
@@ -388,7 +405,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         } catch (RuntimeException | java.io.IOException exception) {
             logAuthorityWarningOnce(exception);
         } finally {
-            refreshOnlineChannelAccessRoles();
+            onlinePlayerIds.forEach(channelAccessService::refresh);
             authorityRefreshRunning.set(false);
             plugin.getServer().getScheduler().runTask(plugin, () ->
                 AstPlayerCache.getAll().forEach(AstPlayer::refreshEffectivePermission));
@@ -400,16 +417,6 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (authorityWarningLogged.compareAndSet(false, true)) {
             Logger.log(LogId.W_7120, failure, failure.getClass().getSimpleName());
         }
-    }
-
-    /** Network管理ロールをオンラインプレイヤー分だけ更新します。 */
-    private void refreshOnlineChannelAccessRoles() {
-        if (Bukkit.getServer() == null) {
-            return;
-        }
-        AstPlayerCache.getAll().forEach(player ->
-            channelAccessService.refresh(player.getBukkit().getUniqueId())
-        );
     }
 
     private @NotNull String displayName(@NotNull AstPlayer player) {

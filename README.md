@@ -47,6 +47,9 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/release-notes/publish`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `POST /api/release-notes/{slug}/retry-notification`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `GET /api/network/servers`（Lobbyのサーバー選択GUI向け人数・権限別定員）
+- `/api/network/settings`・`settings/bootstrap`（ManagementDB設定と旧YAML初回移行）、`channel-access/{uuid}`（チャンネル別ロール）
+- `/api/network/bans`（ProxyのBAN参照と専用キーで保護されたRPG `/ban`）、`/api/network-management`（WebAdmin用設定・MCID検索・BAN）
+- Webの `/Admin/Network` でサーバー設定、プレイヤー詳細の管理者操作でユーザー単位の無期限/期限付きBANを管理。初回配置は [ネットワーク運用手順](00_docs/10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) に従いManagementDBスキーマをAPIより先に更新する。
 - `GET /api/geyser/heads`（Extension起動時のマスターヘッドテクスチャ・登録プレイヤーUUID一覧）
 - `POST /api/web-auth/challenges` / `POST /api/web-auth/challenges/consume`（Webログインコードの発行・一回消費）
 - `GET /api/web-auth/users/by-mcid/{mcid}`（コンソール用の登録済みプレイヤーMCID解決）

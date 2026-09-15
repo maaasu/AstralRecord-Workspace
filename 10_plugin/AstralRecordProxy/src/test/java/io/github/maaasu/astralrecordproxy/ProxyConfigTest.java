@@ -139,4 +139,15 @@ class ProxyConfigTest {
         assertTrue(settings.isDiscordSourceServerExcluded("ch1"));
         assertEquals(36, settings.capacity("ch1").limitFor(99));
     }
+
+    @Test
+    void oneSecondHeartbeatSurvivesLegacyImportAndManagedRead() throws Exception {
+        Files.writeString(dataDirectory.resolve("config.yml"), "presenceHeartbeatSeconds: 1\n", StandardCharsets.UTF_8);
+        assertEquals(1L, ProxyConfig.load(dataDirectory).presenceHeartbeatSeconds());
+        ManagedNetworkSettings settings = ManagedNetworkSettings.fromJson(JsonParser.parseString("""
+            {"revision":1,"lobbyServerId":"lobby","presenceHeartbeatSeconds":1,
+             "channels":[{"serverId":"lobby","displayName":"Lobby","isGame":false}]}
+            """).getAsJsonObject());
+        assertEquals(1L, settings.presenceHeartbeatSeconds());
+    }
 }

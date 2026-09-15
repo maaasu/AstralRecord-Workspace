@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.network;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -53,6 +54,10 @@ public final class NetworkBanClient {
         Instant expiresAtUtc,
         String reason
     ) throws IOException, InterruptedException {
+        String moderationKey = ConfigProperties.getInstance().getApiNetworkModerationKey();
+        if (moderationKey.isBlank()) {
+            throw new IOException("Network moderation credential is not configured");
+        }
         String query = "?actor_user_uuid=" + encode(actorUserUuid.toString())
             + "&serverId=" + encode(serverId == null ? "" : serverId);
         String body = ApiRequestUtil.buildJsonBody(json -> {
@@ -71,6 +76,7 @@ public final class NetworkBanClient {
             return Unit.INSTANCE;
         });
         var request = ApiRequestUtil.buildRequestBuilder("/api/network/bans/" + userUuid + query)
+            .header("X-Network-Moderation-Key", moderationKey)
             .PUT(HttpRequest.BodyPublishers.ofString(body))
             .build();
         var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());

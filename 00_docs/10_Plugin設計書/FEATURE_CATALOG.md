@@ -36,7 +36,7 @@
 | 30 | [[30_0-概要]] | Java 用リソースパック要求と client status | `feature/resourcepack` |
 | 31 | [[31_0-概要]] | 検証用カカシの配置、共有ステータス調整、非致死・定期回復 | `feature/trainingdummy` |
 | 32 | [[32_0-概要]] | BSP ダンジョン生成、部屋戦闘、ゲート進行、一時ワールド回収 | `feature/dungeon` |
-| 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
+| 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、管理DB設定・ロール・BAN、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
 | 34 | [[34_0-概要]] | レベル1への転生、短縮レベル進行、EXPポイント変換、転生GUI | `feature/rebirth` |
 
 ## 更新規則

@@ -10,7 +10,13 @@ public sealed record NetworkAdmissionResponse(
     bool BanIndefinite,
     DateTime? BanDate,
     Guid? AccountId,
-    DateTime ServerTimeUtc);
+    DateTime ServerTimeUtc,
+    string? BanReason = null,
+    DateTimeOffset? BanExpiresAtUtc = null,
+    bool DebugUser = false,
+    bool Whitelisted = false,
+    bool ChannelKnown = false,
+    bool SettingsInitialized = false);
 
 public sealed record NetworkPlayerHeartbeatRequest(
     Guid Uuid,

@@ -1,40 +1,18 @@
--- 長期保持する運営管理DB。ゲームDBの初期化・リセットから独立する。
--- 再実行しても既存データを削除しない。既存スキーマ変更は個別migrationで行う。
-USE [master];
-GO
-IF DB_ID(N'ManagementDB') IS NULL
-    CREATE DATABASE [ManagementDB];
-GO
 USE [ManagementDB];
 GO
-IF OBJECT_ID(N'dbo.player', N'U') IS NULL
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+DECLARE @lockResult INT;
+EXEC @lockResult = sys.sp_getapplock
+    @Resource = N'ManagementDB.schema_migration', @LockMode = N'Exclusive',
+    @LockOwner = N'Transaction', @LockTimeout = 60000;
+IF @lockResult < 0 THROW 51000, 'ManagementDB migration lock unavailable.', 1;
+IF OBJECT_ID(N'dbo.schema_migration', N'U') IS NULL THROW 51010, 'Run ManagementDB init.sql first.', 1;
+IF EXISTS (SELECT 1 FROM dbo.schema_migration WHERE migration_id = N'20260916_managed_network_and_bans')
 BEGIN
-    CREATE TABLE dbo.player (
-        player_uuid UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_management_player PRIMARY KEY,
-        mcid NVARCHAR(100) NOT NULL,
-        web_admin BIT NOT NULL CONSTRAINT DF_management_player_web_admin DEFAULT (0),
-        is_profile_public BIT NOT NULL CONSTRAINT DF_management_player_is_profile_public DEFAULT (0),
-        created_at DATETIME2(3) NOT NULL CONSTRAINT DF_management_player_created_at DEFAULT SYSUTCDATETIME(),
-        updated_at DATETIME2(3) NOT NULL CONSTRAINT DF_management_player_updated_at DEFAULT SYSUTCDATETIME(),
-        first_web_login_at DATETIME2(3) NULL,
-        last_web_login_at DATETIME2(3) NULL,
-        CONSTRAINT CK_management_player_mcid CHECK (LEN(LTRIM(RTRIM(mcid))) > 0),
-        CONSTRAINT CK_management_player_updated CHECK (updated_at >= created_at),
-        CONSTRAINT CK_management_player_web_login CHECK (
-            (first_web_login_at IS NULL AND last_web_login_at IS NULL) OR
-            (first_web_login_at IS NOT NULL AND last_web_login_at IS NOT NULL AND last_web_login_at >= first_web_login_at))
-    );
+    COMMIT;
+    RETURN;
 END;
-GO
-IF OBJECT_ID(N'dbo.schema_migration', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.schema_migration (
-        migration_id NVARCHAR(150) NOT NULL CONSTRAINT PK_management_schema_migration PRIMARY KEY,
-        applied_at DATETIME2(3) NOT NULL CONSTRAINT DF_management_schema_migration_applied DEFAULT SYSUTCDATETIME()
-    );
-END;
-GO
-
 IF OBJECT_ID(N'dbo.network_settings', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.network_settings (
@@ -78,4 +56,6 @@ BEGIN
     );
     CREATE INDEX IX_network_management_audit_time ON dbo.network_management_audit(occurred_at_utc);
 END;
+INSERT INTO dbo.schema_migration(migration_id) VALUES(N'20260916_managed_network_and_bans');
+COMMIT;
 GO

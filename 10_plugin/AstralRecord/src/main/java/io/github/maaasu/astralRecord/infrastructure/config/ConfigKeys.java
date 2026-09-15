@@ -62,6 +62,7 @@ public final class ConfigKeys {
     public static final String API_OPERATION_TIMEOUT = "api.operationTimeout";
     public static final String API_SSL_VERIFY_ENABLED = "api.ssl.verifyEnabled";
     public static final String API_SERVER_ID = "api.serverId";
+    public static final String API_NETWORK_MODERATION_KEY = "api.networkModerationKey";
 
     // Velocity network settings
     public static final String NETWORK_ENABLED = "network.enabled";

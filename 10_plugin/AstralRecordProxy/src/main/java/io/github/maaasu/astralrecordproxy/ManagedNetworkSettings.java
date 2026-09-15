@@ -27,7 +27,7 @@ record ManagedNetworkSettings(
         lobbyServer = requiredServerId(lobbyServer, "lobbyServerId");
         transferCooldownSeconds = Math.max(0L, transferCooldownSeconds);
         tabRefreshSeconds = Math.max(1L, tabRefreshSeconds);
-        presenceHeartbeatSeconds = Math.max(5L, presenceHeartbeatSeconds);
+        presenceHeartbeatSeconds = Math.max(1L, presenceHeartbeatSeconds);
         serverAuthorityUsers = Set.copyOf(serverAuthorityUsers);
         Map<String, Channel> normalizedChannels = Map.copyOf(channels);
         channels = normalizedChannels;
