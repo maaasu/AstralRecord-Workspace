@@ -67,9 +67,9 @@ builder.Services.AddDbContext<HistoryDbContext>(options =>
         ?? throw new InvalidOperationException("Connection string 'History' is not configured."),
         sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
 
-builder.Services.AddDbContext<WebSiteDbContext>(options =>
+builder.Services.AddDbContext<ManagementDbContext>(options =>
     options.UseSqlServer(
-        ResolveWebSiteConnectionString(builder.Configuration),
+        ResolveManagementConnectionString(builder.Configuration),
         sqlServerOptions => sqlServerOptions
             .CommandTimeout(databaseCommandTimeoutSeconds)
             .EnableRetryOnFailure(
@@ -222,9 +222,9 @@ app.MapControllers().RequireAuthorization();
 
 app.Run();
 
-static string ResolveWebSiteConnectionString(IConfiguration configuration)
+static string ResolveManagementConnectionString(IConfiguration configuration)
 {
-    var explicitlyConfigured = configuration.GetConnectionString("WebSite");
+    var explicitlyConfigured = configuration.GetConnectionString("Management");
     if (!string.IsNullOrWhiteSpace(explicitlyConfigured))
         return explicitlyConfigured;
 
@@ -232,7 +232,7 @@ static string ResolveWebSiteConnectionString(IConfiguration configuration)
         ?? throw new InvalidOperationException("Connection string 'SqlServer' is not configured.");
     var connectionBuilder = new SqlConnectionStringBuilder(gameDatabaseConnection)
     {
-        InitialCatalog = "WebSiteDB",
+        InitialCatalog = "ManagementDB",
     };
     return connectionBuilder.ConnectionString;
 }

@@ -10,14 +10,15 @@
 | `AstralRecord` | プレイヤー、アカウント、インベントリ、装備個体などの動的データ | [[テーブル定義一覧]] |
 | `MasterDataDB` | `40_filebase` 由来の静的マスタデータを API 配信用に保持する DB | [[MasterDataDB設計]] / [[テーブル定義一覧]] |
 | `HistoryDB` | ログイン/ログアウトなどの履歴データを保持する DB | [[テーブル定義一覧]] |
-| `WebSiteDB` | Webログイン済みプレイヤーとWeb管理権限を保持する DB | [[テーブル定義一覧]] |
+| `ManagementDB` | ゲームリセットから独立してプレイヤー識別・運営情報を長期保持する DB | [[ManagementDB設計]] |
 
 ## 基本方針
 
 - 動的データ、静的マスタデータ、履歴データは DB を分離する。
 - filebase YAML は編集・レビューの正本、MasterDataDB は API が常時参照する配信用データストアとする。
 - 履歴データは `HistoryDB` に保存し、`AstralRecord` DB へ直接テーブルを追加しない。
-- Web利用者情報とWeb管理権限は `WebSiteDB` に保存し、ゲーム側のpermissionでは判定しない。
+- プレイヤーUUID単位の運営情報は `ManagementDB` に長期保持し、ゲームリセット・キャラクター削除から独立させる。Web管理権限をゲーム側permissionから判定しない。
+- ManagementDBは通常リセットしない。将来の寄付履歴も同DB内の独立した履歴テーブルで保持する方針とし、現在は未実装。詳細は [[ManagementDB設計]]。
 - API 起動時または Seeder API 実行時に filebase を読み、MasterDataDB へ upsert する。
 - Plugin は DB へ直接接続せず、AstralRecord API 経由でデータを操作する。
 

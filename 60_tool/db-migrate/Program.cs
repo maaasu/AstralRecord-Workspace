@@ -30,6 +30,10 @@ try
     }
 
     var connectionString = ResolveConnectionString(config, configPath);
+    var targetDatabase = new SqlConnectionStringBuilder(connectionString).InitialCatalog.Trim();
+    if (targetDatabase.Equals("ManagementDB", StringComparison.OrdinalIgnoreCase)
+        || targetDatabase.Equals("WebSiteDB", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Game migrations must not target persistent management databases.");
     await using var connection = new SqlConnection(connectionString);
     await connection.OpenAsync();
     await AcquireLockAsync(connection);

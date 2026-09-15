@@ -14,28 +14,28 @@ public class WebAuthRepositoryTests
 {
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.03-消費系.md
-    /// 検証契約: ハイフンなしの正規化コードは一度だけ消費でき、成功時にWebSiteDBへ既定権限のプレイヤーを記録する。
+    /// 検証契約: ハイフンなしの正規化コードは一度だけ消費でき、成功時にManagementDBへ既定権限のプレイヤーを記録する。
     /// </summary>
     [Fact]
     public async Task ConsumeChallengeAsync_AcceptsNormalizedCodeOnceAndCreatesWebUser()
     {
         await using var gameConnection = new SqliteConnection("Data Source=:memory:");
-        await using var webSiteConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
         await gameConnection.OpenAsync();
-        await webSiteConnection.OpenAsync();
+        await managementConnection.OpenAsync();
         var gameOptions = CreateGameOptions(gameConnection);
-        var webSiteOptions = CreateWebSiteOptions(webSiteConnection);
+        var managementOptions = CreateManagementOptions(managementConnection);
         var userId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await SeedGameUserAsync(gameOptions, userId, "Tester", accountId, now);
-        await using var webSiteSetup = new WebSiteDbContext(webSiteOptions);
-        await webSiteSetup.Database.EnsureCreatedAsync();
+        await using var managementSetup = new ManagementDbContext(managementOptions);
+        await managementSetup.Database.EnsureCreatedAsync();
 
         await using var gameContext = new AstralRecordDbContext(gameOptions);
-        await using var webSiteContext = new WebSiteDbContext(webSiteOptions);
-        var repository = CreateRepository(gameContext, webSiteContext);
+        await using var managementContext = new ManagementDbContext(managementOptions);
+        var repository = CreateRepository(gameContext, managementContext);
         var created = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "Tester", now));
 
         Assert.NotNull(created);
@@ -55,50 +55,52 @@ public class WebAuthRepositoryTests
         Assert.False(consumed.WebAdmin);
         Assert.Null(consumedAgain);
 
-        var webUser = await webSiteContext.WebUsers.SingleAsync();
-        Assert.Equal(userId, webUser.UserUuid);
+        var webUser = await managementContext.Players.SingleAsync();
+        Assert.Equal(userId, webUser.PlayerUuid);
         Assert.Equal("Tester", webUser.Mcid);
         Assert.False(webUser.WebAdmin);
-        Assert.Equal(webUser.FirstLoginAt, webUser.LastLoginAt);
+        Assert.Equal(webUser.FirstWebLoginAt, webUser.LastWebLoginAt);
     }
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/1-モデル定義/24_1.00-モデル定義.md
-    /// 検証契約: WebSiteDBへの再ログイン記録はMCIDと最終ログイン日時を更新しても、既存のWeb管理フラグを変更しない。
+    /// 検証契約: ManagementDBへの再ログイン記録はMCIDと最終ログイン日時を更新しても、既存のWeb管理フラグを変更しない。
     /// </summary>
     [Fact]
     public async Task ConsumeChallengeAsync_PreservesExistingWebAdminFlag()
     {
         await using var gameConnection = new SqliteConnection("Data Source=:memory:");
-        await using var webSiteConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
         await gameConnection.OpenAsync();
-        await webSiteConnection.OpenAsync();
+        await managementConnection.OpenAsync();
         var gameOptions = CreateGameOptions(gameConnection);
-        var webSiteOptions = CreateWebSiteOptions(webSiteConnection);
+        var managementOptions = CreateManagementOptions(managementConnection);
         var userId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
         var now = DateTime.UtcNow;
         await SeedGameUserAsync(gameOptions, userId, "BeforeRename", accountId, now);
-        await using (var webSiteSetup = new WebSiteDbContext(webSiteOptions))
+        await using (var managementSetup = new ManagementDbContext(managementOptions))
         {
-            await webSiteSetup.Database.EnsureCreatedAsync();
-            webSiteSetup.WebUsers.Add(new WebUserEntity
+            await managementSetup.Database.EnsureCreatedAsync();
+            managementSetup.Players.Add(new ManagementPlayerEntity
             {
-                UserUuid = userId,
+                PlayerUuid = userId,
                 Mcid = "BeforeRename",
                 WebAdmin = true,
-                FirstLoginAt = now.AddDays(-1),
-                LastLoginAt = now.AddDays(-1),
+                CreatedAt = now.AddDays(-1),
+                UpdatedAt = now.AddDays(-1),
+                FirstWebLoginAt = now.AddDays(-1),
+                LastWebLoginAt = now.AddDays(-1),
             });
-            await webSiteSetup.SaveChangesAsync();
+            await managementSetup.SaveChangesAsync();
         }
 
         await using var gameContext = new AstralRecordDbContext(gameOptions);
         var gameUser = await gameContext.Users.SingleAsync();
         gameUser.Mcid = "AfterRename";
         await gameContext.SaveChangesAsync();
-        await using var webSiteContext = new WebSiteDbContext(webSiteOptions);
-        var repository = CreateRepository(gameContext, webSiteContext);
+        await using var managementContext = new ManagementDbContext(managementOptions);
+        var repository = CreateRepository(gameContext, managementContext);
         var created = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "AfterRename", now));
 
         Assert.NotNull(created);
@@ -106,10 +108,10 @@ public class WebAuthRepositoryTests
 
         Assert.NotNull(consumed);
         Assert.True(consumed.WebAdmin);
-        var webUser = await webSiteContext.WebUsers.SingleAsync();
+        var webUser = await managementContext.Players.SingleAsync();
         Assert.True(webUser.WebAdmin);
         Assert.Equal("AfterRename", webUser.Mcid);
-        Assert.True(webUser.LastLoginAt > webUser.FirstLoginAt);
+        Assert.True(webUser.LastWebLoginAt > webUser.FirstWebLoginAt);
     }
 
     /// <summary>
@@ -120,20 +122,20 @@ public class WebAuthRepositoryTests
     public async Task ResolveUserByMcidAsync_RejectsAmbiguousMcid()
     {
         await using var gameConnection = new SqliteConnection("Data Source=:memory:");
-        await using var webSiteConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
         await gameConnection.OpenAsync();
-        await webSiteConnection.OpenAsync();
+        await managementConnection.OpenAsync();
         var gameOptions = CreateGameOptions(gameConnection);
-        var webSiteOptions = CreateWebSiteOptions(webSiteConnection);
+        var managementOptions = CreateManagementOptions(managementConnection);
         var now = DateTime.UtcNow;
         await SeedGameUserAsync(gameOptions, Guid.NewGuid(), "Duplicate", Guid.NewGuid(), now);
         await SeedGameUserAsync(gameOptions, Guid.NewGuid(), "Duplicate", Guid.NewGuid(), now);
-        await using var webSiteSetup = new WebSiteDbContext(webSiteOptions);
-        await webSiteSetup.Database.EnsureCreatedAsync();
+        await using var managementSetup = new ManagementDbContext(managementOptions);
+        await managementSetup.Database.EnsureCreatedAsync();
 
         await using var gameContext = new AstralRecordDbContext(gameOptions);
-        await using var webSiteContext = new WebSiteDbContext(webSiteOptions);
-        var repository = CreateRepository(gameContext, webSiteContext);
+        await using var managementContext = new ManagementDbContext(managementOptions);
+        var repository = CreateRepository(gameContext, managementContext);
 
         var resolved = await repository.ResolveUserByMcidAsync(" Duplicate ");
 
@@ -153,7 +155,7 @@ public class WebAuthRepositoryTests
         var now = DateTime.UtcNow;
         await SeedGameUserAsync(gameOptions, userId, "RetryTester", Guid.NewGuid(), now);
         await using var gameContext = new AstralRecordDbContext(gameOptions);
-        await using var webContext = new WebSiteDbContext(CreateWebSiteOptions(webConnection));
+        await using var webContext = new ManagementDbContext(CreateManagementOptions(webConnection));
         var repository = CreateRepository(gameContext, webContext);
         var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "RetryTester", now));
         Assert.NotNull(issued);
@@ -167,14 +169,54 @@ public class WebAuthRepositoryTests
         var retried = await repository.ConsumeChallengeAsync(request);
         Assert.NotNull(retried);
         Assert.Equal(userId, retried.UserUuid);
-        Assert.Single(await webContext.WebUsers.ToListAsync());
+        Assert.Single(await webContext.Players.ToListAsync());
         Assert.Null(await repository.ConsumeChallengeAsync(request));
+    }
+
+    [Fact]
+    public async Task ManagementPlayer_SurvivesGameResetAndSupportsFirstWebLoginLater()
+    {
+        await using var gameConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
+        await gameConnection.OpenAsync();
+        await managementConnection.OpenAsync();
+        var gameOptions = CreateGameOptions(gameConnection);
+        var userId = Guid.NewGuid();
+        var createdAt = DateTime.UtcNow.AddDays(-10);
+        await SeedGameUserAsync(gameOptions, userId, "BeforeReset", Guid.NewGuid(), createdAt);
+        await using var gameContext = new AstralRecordDbContext(gameOptions);
+        await using var managementContext = new ManagementDbContext(CreateManagementOptions(managementConnection));
+        await managementContext.Database.EnsureCreatedAsync();
+        managementContext.Players.Add(new ManagementPlayerEntity
+        {
+            PlayerUuid = userId, Mcid = "BeforeReset", WebAdmin = true,
+            CreatedAt = createdAt, UpdatedAt = createdAt,
+        });
+        await managementContext.SaveChangesAsync();
+        var repository = CreateRepository(gameContext, managementContext);
+
+        await gameContext.Accounts.ExecuteDeleteAsync();
+        await gameContext.Users.ExecuteDeleteAsync();
+        Assert.True(await repository.IsWebAdminAsync(userId));
+        Assert.Null((await managementContext.Players.AsNoTracking().SingleAsync()).FirstWebLoginAt);
+
+        await SeedGameUserAsync(gameOptions, userId, "AfterReset", Guid.NewGuid(), DateTime.UtcNow);
+        var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "AfterReset", DateTime.UtcNow));
+        Assert.NotNull(issued);
+        Assert.NotNull(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode }));
+        var retained = await managementContext.Players.AsNoTracking().SingleAsync();
+        Assert.Equal(createdAt, retained.CreatedAt);
+        Assert.Equal("AfterReset", retained.Mcid);
+        Assert.True(retained.WebAdmin);
+        Assert.NotNull(retained.FirstWebLoginAt);
+        Assert.Equal(retained.FirstWebLoginAt, retained.LastWebLoginAt);
+        Assert.True(retained.UpdatedAt > createdAt);
     }
 
     private static WebAuthRepository CreateRepository(
         AstralRecordDbContext gameContext,
-        WebSiteDbContext webSiteContext) =>
-        new(gameContext, webSiteContext, Microsoft.Extensions.Options.Options.Create(new WebAuthOptions
+        ManagementDbContext managementContext) =>
+        new(gameContext, managementContext, Microsoft.Extensions.Options.Options.Create(new WebAuthOptions
         {
             ChallengeMinutes = 5,
             LoginUrl = "https://example.com/Login",
@@ -191,8 +233,8 @@ public class WebAuthRepositoryTests
     private static DbContextOptions<AstralRecordDbContext> CreateGameOptions(SqliteConnection connection) =>
         new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
 
-    private static DbContextOptions<WebSiteDbContext> CreateWebSiteOptions(SqliteConnection connection) =>
-        new DbContextOptionsBuilder<WebSiteDbContext>().UseSqlite(connection).Options;
+    private static DbContextOptions<ManagementDbContext> CreateManagementOptions(SqliteConnection connection) =>
+        new DbContextOptionsBuilder<ManagementDbContext>().UseSqlite(connection).Options;
 
     private static async Task SeedGameUserAsync(
         DbContextOptions<AstralRecordDbContext> options,

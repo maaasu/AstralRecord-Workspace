@@ -9,7 +9,7 @@
 | `AstralRecord` | プレイヤー、アカウント、インベントリ、装備個体などの動的データ | `table-definitions/AstralRecord/` |
 | `MasterDataDB` | filebase 由来の配信用マスタデータ | `table-definitions/MasterDataDB/` |
 | `HistoryDB` | ログイン/ログアウトなどの履歴データ | `table-definitions/HistoryDB/` |
-| `WebSiteDB` | Webログイン済みプレイヤーとWeb管理権限 | `table-definitions/WebSiteDB/` |
+| `ManagementDB` | リセットしないプレイヤー識別・運営管理情報 | `table-definitions/ManagementDB/` |
 
 ## init.sql
 
@@ -18,7 +18,7 @@
 | `AstralRecord` | `AstralRecord/init.sql` |
 | `MasterDataDB` | `MasterDataDB/init.sql` |
 | `HistoryDB` | `HistoryDB/init.sql` |
-| `WebSiteDB` | `WebSiteDB/init.sql` |
+| `ManagementDB` | `ManagementDB/init.sql` |
 
 ## 本番 migration
 
@@ -33,7 +33,7 @@
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 
-`WebSiteDB` はWebログイン成功情報とWeb管理権限を保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外であるため、本番初回配置時に `WebSiteDB/init.sql` を別途適用します。
+`ManagementDB` はWebログイン成功情報とWeb管理権限を保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外であるため、本番初回配置時に `ManagementDB/init.sql` を別途適用します。
 
 ## AstralRecord
 
@@ -90,8 +90,9 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 |:--|:--|
 | `dbo.user_history` | `HistoryDB/dbo.user_history.md` |
 
-## WebSiteDB
+## ManagementDB
 
 | テーブル | 定義 |
 |---|---|
-| `dbo.web_user` | `WebSiteDB/dbo.web_user.md` |
+| `dbo.player` | `ManagementDB/dbo.player.md` |
+| `dbo.schema_migration` | `ManagementDB/dbo.schema_migration.md` |

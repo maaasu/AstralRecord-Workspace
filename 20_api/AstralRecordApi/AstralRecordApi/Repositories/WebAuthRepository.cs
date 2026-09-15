@@ -11,7 +11,7 @@ namespace AstralRecordApi.Repositories;
 
 public class WebAuthRepository(
     AstralRecordDbContext dbContext,
-    WebSiteDbContext webSiteDbContext,
+    ManagementDbContext managementDbContext,
     IOptions<WebAuthOptions> options) : IWebAuthRepository
 {
     private const string LoginCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -114,7 +114,7 @@ public class WebAuthRepository(
                 .ToListAsync();
 
             // Web利用者の保存失敗時は、未確定のコード消費をrollbackして再試行を許可する。
-            var webAdmin = await UpsertWebUserAsync(user.Uuid, user.Mcid, now);
+            var webAdmin = await RecordWebLoginAsync(user.Uuid, user.Mcid, now);
             await transaction.CommitAsync();
             return new ConsumedChallenge(user.Uuid, user.Mcid, user.Permission, user.AccountId, accountIds, webAdmin);
         });
@@ -159,58 +159,64 @@ public class WebAuthRepository(
     }
 
     public async Task<bool> IsWebAdminAsync(Guid userUuid) =>
-        await webSiteDbContext.WebUsers
+        await managementDbContext.Players
             .AsNoTracking()
-            .Where(user => user.UserUuid == userUuid)
+            .Where(user => user.PlayerUuid == userUuid)
             .Select(user => (bool?)user.WebAdmin)
             .SingleOrDefaultAsync() == true;
 
-    private async Task<bool> UpsertWebUserAsync(Guid userUuid, string mcid, DateTime loginAt)
+    private async Task<bool> RecordWebLoginAsync(Guid userUuid, string mcid, DateTime loginAt)
     {
-        var updated = await webSiteDbContext.WebUsers
-            .Where(user => user.UserUuid == userUuid)
+        var updated = await managementDbContext.Players
+            .Where(user => user.PlayerUuid == userUuid)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(user => user.Mcid, mcid)
-                .SetProperty(user => user.LastLoginAt, loginAt));
+                .SetProperty(user => user.FirstWebLoginAt, user => user.FirstWebLoginAt ?? loginAt)
+                .SetProperty(user => user.LastWebLoginAt, user => user.LastWebLoginAt > loginAt ? user.LastWebLoginAt : loginAt)
+                .SetProperty(user => user.UpdatedAt, user => user.UpdatedAt > loginAt ? user.UpdatedAt : loginAt));
 
         if (updated == 1)
         {
-            return await webSiteDbContext.WebUsers
+            return await managementDbContext.Players
                 .AsNoTracking()
-                .Where(user => user.UserUuid == userUuid)
+                .Where(user => user.PlayerUuid == userUuid)
                 .Select(user => user.WebAdmin)
                 .SingleAsync();
         }
 
-        var created = new WebUserEntity
+        var created = new ManagementPlayerEntity
         {
-            UserUuid = userUuid,
+            PlayerUuid = userUuid,
             Mcid = mcid,
             WebAdmin = false,
-            FirstLoginAt = loginAt,
-            LastLoginAt = loginAt,
+            CreatedAt = loginAt,
+            UpdatedAt = loginAt,
+            FirstWebLoginAt = loginAt,
+            LastWebLoginAt = loginAt,
         };
-        await webSiteDbContext.WebUsers.AddAsync(created);
+        await managementDbContext.Players.AddAsync(created);
 
         try
         {
-            await webSiteDbContext.SaveChangesAsync();
+            await managementDbContext.SaveChangesAsync();
             return false;
         }
         catch (DbUpdateException)
         {
-            webSiteDbContext.ChangeTracker.Clear();
-            var updatedAfterInsertRace = await webSiteDbContext.WebUsers
-                .Where(user => user.UserUuid == userUuid)
+            managementDbContext.ChangeTracker.Clear();
+            var updatedAfterInsertRace = await managementDbContext.Players
+                .Where(user => user.PlayerUuid == userUuid)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(user => user.Mcid, mcid)
-                    .SetProperty(user => user.LastLoginAt, loginAt));
+                    .SetProperty(user => user.FirstWebLoginAt, user => user.FirstWebLoginAt ?? loginAt)
+                    .SetProperty(user => user.LastWebLoginAt, user => user.LastWebLoginAt > loginAt ? user.LastWebLoginAt : loginAt)
+                    .SetProperty(user => user.UpdatedAt, user => user.UpdatedAt > loginAt ? user.UpdatedAt : loginAt));
             if (updatedAfterInsertRace != 1)
                 throw;
 
-            return await webSiteDbContext.WebUsers
+            return await managementDbContext.Players
                 .AsNoTracking()
-                .Where(user => user.UserUuid == userUuid)
+                .Where(user => user.PlayerUuid == userUuid)
                 .Select(user => user.WebAdmin)
                 .SingleAsync();
         }

@@ -91,6 +91,10 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 ## 使用方法
 
+`ManagementDB` はプレイヤー識別と運営情報を長期保持するDBで、ゲームDBリセット・再構築の対象外です。`db-rebuild` とゲーム用 `db-migrate` は、接続設定が `ManagementDB` または旧 `WebSiteDB` を指している場合も処理を拒否します。管理DBのスキーマ更新は専用の非破壊migrationで行います。
+
+保護処理は両ツールのDebugビルド後に `tests/management-db-protection.integration.ps1` で検証できます。SQL Serverへ接続しません。旧WebSiteDBからの移行は `ASTRALRECORD_SQLSERVER_TEST_CONNECTION` を設定して `tests/management-db-migration.integration.ps1` で検証します。この検証はランダム名の一時DBだけを作成・削除し、実データには触れません。
+
 1. 必要に応じて各専用ディレクトリの config を確認します。
 2. 直下の番号付き bat を実行します。
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。

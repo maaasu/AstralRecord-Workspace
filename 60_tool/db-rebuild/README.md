@@ -45,3 +45,4 @@ E:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --config E:\path\to\db-rebui
 - Without `--yes`, the tool asks for `REBUILD` confirmation.
 - Each database is recreated with `DbContext.Database.EnsureCreatedAsync()`.
 - Existing data is not preserved.
+- `ManagementDB` and legacy `WebSiteDB` are persistent management stores, never rebuild targets. The tool rejects either name in all three connections before deleting any database.

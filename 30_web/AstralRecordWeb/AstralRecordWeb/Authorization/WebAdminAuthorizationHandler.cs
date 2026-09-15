@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace AstralRecordWeb.Authorization;
 
-/// <summary>WebSiteDB の Web 管理フラグで管理画面の利用可否を判定します。</summary>
+/// <summary>ManagementDB の Web 管理フラグで管理画面の利用可否を判定します。</summary>
 public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClient)
     : AuthorizationHandler<WebAdminRequirement>
 {

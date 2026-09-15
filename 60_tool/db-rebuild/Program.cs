@@ -111,6 +111,15 @@ static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
     if (string.IsNullOrWhiteSpace(history))
         throw new InvalidOperationException("ConnectionStrings:History could not be resolved.");
 
+    // 全対象を先に検証し、途中までゲームDBを削除した後に管理DBを検出しないようにする。
+    foreach (var connectionString in new[] { sqlServer, masterData, history })
+    {
+        var database = new SqlConnectionStringBuilder(connectionString).InitialCatalog.Trim();
+        if (database.Equals("ManagementDB", StringComparison.OrdinalIgnoreCase)
+            || database.Equals("WebSiteDB", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Persistent management databases must not be rebuilt.");
+    }
+
     var fileDatabaseRootPath = ResolveFileDatabaseRootPath(
         configuredFileDatabaseRootPath,
         config.SourceApiAppsettingsPath,

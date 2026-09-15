@@ -15,6 +15,7 @@
 - `ConnectionStrings:SqlServer`: SQL Server 接続文字列
 - `ConnectionStrings:MasterData`: MasterDataDB 接続文字列
 - `ConnectionStrings:History`: HistoryDB 接続文字列
+- `ConnectionStrings:Management`: 長期保持用ManagementDB接続文字列。空ならSqlServerのDB名だけManagementDBへ変更する。ゲームDBリセットの対象に含めない。
 - `FileDatabase:RootPath`: 静的データファイルのルートパス
 - `Network:AuthoritySyncKey`: Proxyだけが最高権限UUID一覧をPUTするための専用キー
 
