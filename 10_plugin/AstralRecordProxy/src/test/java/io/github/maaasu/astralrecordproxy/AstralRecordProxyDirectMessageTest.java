@@ -32,7 +32,7 @@ class AstralRecordProxyDirectMessageTest {
         AstralRecordProxyPlugin plugin = new AstralRecordProxyPlugin(proxy, null, Path.of("target"));
         setConfig(plugin, new ProxyConfig(
             "lobby", List.of("ch1", "ch2"), Map.of(), Map.of(), 30L, 2L, 10L,
-            "https://example.invalid", "api-key", "sync-key", 3000, 500L, true,
+            "https://example.invalid", "api-key", "sync-key", 3000, 500L, 5L, true,
             List.of(), Set.of(authorityId)));
 
         plugin.deliverDirectMessage("ch1", sender, new BackendProtocol.DirectMessage(
@@ -79,6 +79,12 @@ class AstralRecordProxyDirectMessageTest {
             var field = AstralRecordProxyPlugin.class.getDeclaredField("config");
             field.setAccessible(true);
             field.set(plugin, config);
+            var managedField = AstralRecordProxyPlugin.class.getDeclaredField("managedSettings");
+            managedField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.concurrent.atomic.AtomicReference<ManagedNetworkSettings> managed =
+                (java.util.concurrent.atomic.AtomicReference<ManagedNetworkSettings>) managedField.get(plugin);
+            managed.set(config.legacySettings());
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("Proxy configuration setup failed", exception);
         }

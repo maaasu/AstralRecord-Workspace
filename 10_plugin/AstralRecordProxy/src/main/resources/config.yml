@@ -1,3 +1,5 @@
+# api.settingsRefreshSeconds 以外の以下の旧設定は、Management DBが未初期化の初回bootstrapだけに送信します。
+# bootstrap完了後はWebAdminが更新するManagement DBの設定だけを定常運用で使用します。
 lobbyServer: lobby
 gameServers:
   - ch1
@@ -41,5 +43,7 @@ api:
   authoritySyncKey: "your_authority_sync_key"
   timeoutMillis: 3000
   discordPollMillis: 500
+  # Management DB設定の取得周期。設定本文はAPIからのみ取得する。
+  settingsRefreshSeconds: 5
   # 開発環境で証明書とホスト名の検証を無効化する場合だけ使用する。本番では必ず false にする。
   allowInsecureTls: false

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -174,6 +175,27 @@ class AstralRecordProxyPluginTest {
         assertEquals(NamedTextColor.GOLD, converted.style().color());
         assertEquals(TextDecoration.State.TRUE, converted.style().decoration(TextDecoration.ITALIC));
         assertEquals(NamedTextColor.GRAY, bracket.style().color());
+    }
+
+    /** Management DBの無期限BANは理由を含めて切断理由へ表示する。 */
+    @Test
+    void indefiniteBanDisconnectReasonIncludesReason() {
+        Component reason = AstralRecordProxyPlugin.banDisconnectReason(
+            true, null, "迷惑行為", OffsetDateTime.parse("2026-09-16T00:00:00Z"));
+
+        assertEquals("このサーバーへの参加は禁止されています。\nBAN期限: 無期限\n理由: 迷惑行為",
+            PlainTextComponentSerializer.plainText().serialize(reason));
+    }
+
+    /** Management DBの有期限BANは残日数、解除日時、理由を切断理由へ表示する。 */
+    @Test
+    void temporaryBanDisconnectReasonIncludesRemainingDaysAndExpiry() {
+        Component reason = AstralRecordProxyPlugin.banDisconnectReason(false,
+            OffsetDateTime.parse("2026-09-18T00:00:00Z"), "不正利用",
+            OffsetDateTime.parse("2026-09-16T12:00:00Z"));
+
+        assertEquals("このサーバーへの参加は禁止されています。\nBAN期限: あと2日\n解除日時: 2026年9月18日 9:00\n理由: 不正利用",
+            PlainTextComponentSerializer.plainText().serialize(reason));
     }
 
     private ProxyConfig loadConfig(String content) throws Exception {

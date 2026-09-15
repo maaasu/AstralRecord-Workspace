@@ -27,10 +27,11 @@ record ProxyConfig(
     String authoritySyncKey,
     int apiTimeoutMillis,
     long discordPollMillis,
+    long settingsRefreshSeconds,
     boolean allowInsecureTls,
     List<String> discordExcludedSourceServers,
     Set<UUID> serverAuthorityUsers
-) {
+) implements NetworkSettings {
     static ProxyConfig load(Path dataDirectory) throws IOException {
         Files.createDirectories(dataDirectory);
         Path path = dataDirectory.resolve("config.yml");
@@ -73,32 +74,49 @@ record ProxyConfig(
             text(api, "authoritySyncKey", ""),
             (int) number(api, "timeoutMillis", 3000L),
             Math.max(250L, number(api, "discordPollMillis", 500L)),
+            Math.max(1L, number(api, "settingsRefreshSeconds", 5L)),
             bool(api, "allowInsecureTls", false),
             textList(discord, "excludedSourceServers"),
             uuidSet(root, "serverAuthorityUsers")
         );
     }
 
-    String channelName(String serverId) {
+    public String channelName(String serverId) {
         return channelNames.getOrDefault(serverId, serverId);
     }
 
-    boolean isGameServer(String serverId) {
+    public boolean isGameServer(String serverId) {
         return gameServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
     }
 
-    boolean isDiscordSourceServerExcluded(String serverId) {
+    public boolean isDiscordSourceServerExcluded(String serverId) {
         return serverId != null
             && discordExcludedSourceServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
     }
 
     /** 指定UUIDがProxy最高権限設定に含まれる場合trueを返す。 */
-    boolean isServerAuthority(UUID playerId) {
+    public boolean isServerAuthority(UUID playerId) {
         return playerId != null && serverAuthorityUsers.contains(playerId);
     }
 
-    ServerCapacity capacity(String serverId) {
+    public ServerCapacity capacity(String serverId) {
         return serverCapacities.getOrDefault(serverId, ServerCapacity.NONE);
+    }
+
+    /** YAML旧設定を初回Management DB bootstrap専用の設定値へ変換する。 */
+    ManagedNetworkSettings legacySettings() {
+        Map<String, ManagedNetworkSettings.Channel> channels = new LinkedHashMap<>();
+        channels.put(lobbyServer.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
+            lobbyServer, channelName(lobbyServer), false, capacity(lobbyServer),
+            !isDiscordSourceServerExcluded(lobbyServer), false, Set.of(), Set.of()));
+        for (String serverId : gameServers) {
+            channels.putIfAbsent(serverId.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
+                serverId, channelName(serverId), true, capacity(serverId),
+                !isDiscordSourceServerExcluded(serverId), false, Set.of(), Set.of()));
+        }
+        return new ManagedNetworkSettings(
+            0, lobbyServer, transferCooldownSeconds, tabRefreshSeconds, presenceHeartbeatSeconds,
+            serverAuthorityUsers, Map.copyOf(channels));
     }
 
     private static Map<String, Object> stringMap(Map<?, ?> source) {

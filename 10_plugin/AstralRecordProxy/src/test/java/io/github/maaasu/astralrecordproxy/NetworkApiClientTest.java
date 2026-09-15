@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordproxy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -44,7 +45,7 @@ class NetworkApiClientTest {
             Future<?> response = executor.submit(() -> serveOneRequest(server, responseBody));
             ProxyConfig config = new ProxyConfig(
                 "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
-                "https://127.0.0.1:" + server.getLocalPort(), "test-key", "sync-key", 3000, 500L, true,
+                "https://127.0.0.1:" + server.getLocalPort(), "test-key", "sync-key", 3000, 500L, 5L, true,
                 List.of(), java.util.Set.of());
 
             NetworkApiClient.DiscordChatBatch batch = new NetworkApiClient(config).getDiscordChat(0L).get(5, TimeUnit.SECONDS);
@@ -74,6 +75,19 @@ class NetworkApiClientTest {
         assertEquals("AstralRecord", body.get("authorMinecraftName").getAsString());
         assertEquals("AstralRecord#1", body.get("authorName").getAsString());
         assertEquals("konnichiha[こんにちは]", body.get("message").getAsString());
+    }
+
+    @Test
+    void admissionParsesBanReasonAndUtcExpiry() {
+        NetworkApiClient.Admission admission = NetworkApiClient.Admission.fromJson(JsonParser.parseString("""
+            {"admitted":false,"denyReason":"banned","permission":0,"banIndefinite":false,
+             "banExpiresAtUtc":"2026-09-18T00:00:00+00:00","banReason":"不正利用"}
+            """).getAsJsonObject());
+
+        assertEquals(false, admission.admitted());
+        assertEquals("banned", admission.denyReason());
+        assertEquals("2026-09-18T00:00Z", admission.banExpiresAtUtc().toString());
+        assertEquals("不正利用", admission.banReason());
     }
 
     private SSLContext createServerContext() throws Exception {

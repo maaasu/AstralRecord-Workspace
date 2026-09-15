@@ -4,6 +4,9 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
+import com.velocitypowered.api.event.connection.LoginEvent;
+import com.velocitypowered.api.event.EventTask;
+import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
@@ -20,6 +23,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.player.TabList;
 import com.velocitypowered.api.proxy.player.TabListEntry;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -29,6 +33,10 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,6 +56,9 @@ public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
     private static final int DONOR_PERMISSION = 5;
+    private static final ZoneId JAPAN_ZONE = ZoneId.of("Asia/Tokyo");
+    private static final DateTimeFormatter BAN_EXPIRY_FORMAT =
+        DateTimeFormatter.ofPattern("yyyy年M月d日 H:mm").withZone(JAPAN_ZONE);
     private static final MinecraftChannelIdentifier CHANNEL =
         MinecraftChannelIdentifier.from(BackendProtocol.CHANNEL);
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
@@ -64,8 +76,13 @@ public final class AstralRecordProxyPlugin {
     private final AtomicBoolean discordPollRunning = new AtomicBoolean();
     private final AtomicLong discordSequence = new AtomicLong();
     private final AtomicReference<String> discordGenerationId = new AtomicReference<>();
+    private final AtomicReference<ManagedNetworkSettings> managedSettings = new AtomicReference<>();
+    private final AtomicBoolean settingsRefreshRunning = new AtomicBoolean();
+    private final AtomicBoolean settingsFailureLogged = new AtomicBoolean();
     private ProxyConfig config;
     private NetworkApiClient api;
+    private ScheduledTask tabRefreshTask;
+    private ScheduledTask presenceHeartbeatTask;
 
     @Inject
     public AstralRecordProxyPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -89,40 +106,125 @@ public final class AstralRecordProxyPlugin {
         proxy.getCommandManager().register(
             proxy.getCommandManager().metaBuilder("server").plugin(this).build(),
             new ServerMenuCommand());
-        proxy.getScheduler().buildTask(this, this::refreshTabEntries)
-            .repeat(Duration.ofSeconds(config.tabRefreshSeconds())).schedule();
-        proxy.getScheduler().buildTask(this, this::refreshPresence)
-            .repeat(Duration.ofSeconds(config.presenceHeartbeatSeconds())).schedule();
         proxy.getScheduler().buildTask(this, this::pollDiscordChat)
             .repeat(Duration.ofMillis(config.discordPollMillis())).schedule();
-        refreshAuthorities();
-        logger.info("AstralRecordProxy enabled. lobby={}, gameServers={}", config.lobbyServer(), config.gameServers());
+        proxy.getScheduler().buildTask(this, this::refreshManagedSettings)
+            .repeat(Duration.ofSeconds(config.settingsRefreshSeconds())).schedule();
+        refreshManagedSettings();
+        logger.info("AstralRecordProxy enabled. Waiting for Management DB network settings.");
+    }
+
+    /** APIからManagement DB設定を取得し、初回だけYAML旧設定をbootstrapする。 */
+    private void refreshManagedSettings() {
+        if (!settingsRefreshRunning.compareAndSet(false, true)) return;
+        api.getManagedSettings().handle((settings, failure) -> {
+            if (failure == null) return CompletableFuture.completedFuture(settings);
+            return NetworkApiClient.isNotFound(failure)
+                ? api.bootstrapManagedSettings(config.legacySettings())
+                : CompletableFuture.<ManagedNetworkSettings>failedFuture(failure);
+        }).thenCompose(future -> future).whenComplete((settings, failure) -> {
+            settingsRefreshRunning.set(false);
+            if (failure != null) {
+                if (settingsFailureLogged.compareAndSet(false, true)) {
+                    logger.warn("Management DB network settings are unavailable; new logins are denied until settings load.", failure);
+                }
+                return;
+            }
+            settingsFailureLogged.set(false);
+            ManagedNetworkSettings previous = managedSettings.getAndSet(settings);
+            if (previous == null || previous.tabRefreshSeconds() != settings.tabRefreshSeconds()
+                || previous.presenceHeartbeatSeconds() != settings.presenceHeartbeatSeconds()) {
+                rescheduleManagedTasks(settings);
+            }
+            refreshActiveBans();
+        });
+    }
+
+    /** Management DB設定の周期変更を次回実行から反映する。 */
+    private void rescheduleManagedTasks(NetworkSettings settings) {
+        if (tabRefreshTask != null) tabRefreshTask.cancel();
+        if (presenceHeartbeatTask != null) presenceHeartbeatTask.cancel();
+        tabRefreshTask = proxy.getScheduler().buildTask(this, this::refreshTabEntries)
+            .repeat(Duration.ofSeconds(settings.tabRefreshSeconds())).schedule();
+        presenceHeartbeatTask = proxy.getScheduler().buildTask(this, this::refreshPresence)
+            .repeat(Duration.ofSeconds(settings.presenceHeartbeatSeconds())).schedule();
+    }
+
+    /** Management DBの有効BAN一覧に含まれる接続済みプレイヤーを切断する。 */
+    private void refreshActiveBans() {
+        api.getActiveBans().whenComplete((bans, failure) -> {
+            if (failure != null) {
+                logger.debug("Failed to refresh active network bans", failure);
+                return;
+            }
+            Map<UUID, NetworkApiClient.BanState> active = new ConcurrentHashMap<>();
+            bans.stream().filter(NetworkApiClient.BanState::active)
+                .forEach(ban -> active.put(ban.playerId(), ban));
+            proxy.getAllPlayers().forEach(player -> {
+                NetworkApiClient.BanState ban = active.get(player.getUniqueId());
+                if (ban != null) player.disconnect(banDisconnectReason(
+                    ban.indefinite(), ban.expiresAtUtc(), ban.reason(), OffsetDateTime.now()));
+            });
+        });
     }
 
     @Subscribe
     public void onChooseInitialServer(PlayerChooseInitialServerEvent event) {
-        proxy.getServer(config.lobbyServer()).ifPresent(event::setInitialServer);
+        NetworkSettings settings = settings();
+        if (settings != null) proxy.getServer(settings.lobbyServer()).ifPresent(event::setInitialServer);
+    }
+
+    /** Proxyログイン時にManagement DBのBAN・ロビー入場可否を確認する。 */
+    @Subscribe
+    public EventTask onLogin(LoginEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) {
+            event.setResult(ResultedEvent.ComponentResult.denied(
+                Component.text("認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED)));
+            return EventTask.async(() -> { });
+        }
+        return EventTask.withContinuation(continuation -> api.getAdmission(
+            event.getPlayer().getUniqueId(), settings.lobbyServer()).whenComplete((admission, failure) -> {
+                if (failure != null) {
+                    event.setResult(ResultedEvent.ComponentResult.denied(Component.text(
+                        "認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED)));
+                } else if (!admission.admitted()) {
+                    event.setResult(ResultedEvent.ComponentResult.denied(admissionDenyComponent(admission)));
+                }
+                continuation.resume();
+            }));
     }
 
     @Subscribe
     public void onServerPreConnect(ServerPreConnectEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) {
+            event.setResult(ServerPreConnectEvent.ServerResult.denied());
+            return;
+        }
         if (event.getPlayer().getCurrentServer().isPresent()) return;
         String target = event.getOriginalServer().getServerInfo().getName();
-        if (!target.equalsIgnoreCase(config.lobbyServer())) {
+        if (!target.equalsIgnoreCase(settings.lobbyServer())) {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
         }
     }
 
     @Subscribe
     public void onKickedFromServer(KickedFromServerEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) {
+            event.setResult(KickedFromServerEvent.DisconnectPlayer.create(
+                Component.text("認証サーバーに接続できません。", NamedTextColor.RED)));
+            return;
+        }
         String kickedServer = event.getServer().getServerInfo().getName();
-        if (kickedServer.equalsIgnoreCase(config.lobbyServer())) {
+        if (kickedServer.equalsIgnoreCase(settings.lobbyServer())) {
             Component reason = event.getServerKickReason().orElse(
                 Component.text("ロビーサーバーへ接続できません。", NamedTextColor.RED));
             event.setResult(KickedFromServerEvent.DisconnectPlayer.create(reason));
             return;
         }
-        proxy.getServer(config.lobbyServer()).ifPresentOrElse(
+        proxy.getServer(settings.lobbyServer()).ifPresentOrElse(
             lobby -> event.setResult(KickedFromServerEvent.RedirectPlayer.create(
                 lobby, Component.text("ロビーへ移動しました。", NamedTextColor.YELLOW))),
             () -> event.setResult(KickedFromServerEvent.DisconnectPlayer.create(
@@ -131,6 +233,8 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         Player player = event.getPlayer();
         authorityTransferPreparations.remove(player.getUniqueId());
         String serverId = event.getServer().getServerInfo().getName();
@@ -138,20 +242,22 @@ public final class AstralRecordProxyPlugin {
             if (current == null) {
                 return lobbyMetadata(player, serverId);
             }
-            return current.withServer(serverId, config.channelName(serverId));
+            return current.withServer(serverId, settings.channelName(serverId));
         });
-        if (config.isGameServer(serverId)) {
+        if (settings.isGameServer(serverId)) {
             lastGameConnectMillis.put(player.getUniqueId(), System.currentTimeMillis());
         }
     }
 
     @Subscribe
     public void onServerPostConnect(ServerPostConnectEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         String currentServer = event.getPlayer().getCurrentServer()
-            .map(connection -> connection.getServerInfo().getName()).orElse(config.lobbyServer());
+            .map(connection -> connection.getServerInfo().getName()).orElse(settings.lobbyServer());
         String previousServer = event.getPreviousServer() == null
             ? null : event.getPreviousServer().getServerInfo().getName();
-        String message = lifecycleMessage(event.getPlayer().getUsername(), previousServer, currentServer, config);
+        String message = lifecycleMessage(event.getPlayer().getUsername(), previousServer, currentServer, settings);
         if (message != null) {
             api.publishLifecycleMessage(currentServer, message).exceptionally(failure -> {
                 logger.warn("Failed to publish player lifecycle message", failure);
@@ -159,7 +265,7 @@ public final class AstralRecordProxyPlugin {
             });
         }
         if (event.getPreviousServer() != null
-            && config.isGameServer(event.getPreviousServer().getServerInfo().getName())) {
+            && settings.isGameServer(event.getPreviousServer().getServerInfo().getName())) {
             lastGameConnectMillis.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
         }
         refreshTabEntries();
@@ -167,6 +273,8 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         UUID playerId = event.getPlayer().getUniqueId();
         authorityTransferPreparations.remove(playerId);
         String currentServer = event.getPlayer().getCurrentServer()
@@ -175,7 +283,7 @@ public final class AstralRecordProxyPlugin {
                 PlayerMetadata current = metadata.get(playerId);
                 return current == null ? null : current.serverId();
             });
-        String lifecycleMessage = disconnectMessage(event.getPlayer().getUsername(), currentServer, config);
+        String lifecycleMessage = disconnectMessage(event.getPlayer().getUsername(), currentServer, settings);
         if (lifecycleMessage != null) {
             api.publishLifecycleMessage(currentServer, lifecycleMessage).exceptionally(failure -> {
                 logger.warn("Failed to publish player disconnect message", failure);
@@ -183,10 +291,10 @@ public final class AstralRecordProxyPlugin {
             });
         }
         boolean disconnectedFromGame = event.getPlayer().getCurrentServer()
-            .map(connection -> config.isGameServer(connection.getServerInfo().getName()))
+            .map(connection -> settings.isGameServer(connection.getServerInfo().getName()))
             .orElseGet(() -> {
                 PlayerMetadata current = metadata.get(playerId);
-                return current != null && config.isGameServer(current.serverId());
+                return current != null && settings.isGameServer(current.serverId());
             });
         if (disconnectedFromGame) {
             lastGameConnectMillis.put(playerId, System.currentTimeMillis());
@@ -210,11 +318,13 @@ public final class AstralRecordProxyPlugin {
         if (!(event.getSource() instanceof ServerConnection connection)) {
             return;
         }
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         try {
             BackendProtocol.Incoming incoming = BackendProtocol.decode(event.getData());
             if (incoming instanceof BackendProtocol.Connect connect) {
-                requestConnection(connection.getPlayer(), connection.getServerInfo().getName(),
-                    connect.targetServer(), connect.permission());
+                requestConnectionWithAdmission(connection.getPlayer(), connection.getServerInfo().getName(),
+                    connect.targetServer());
             } else if (incoming instanceof BackendProtocol.Metadata update) {
                 if (!connection.getPlayer().getUniqueId().equals(update.playerId())) {
                     return;
@@ -236,7 +346,7 @@ public final class AstralRecordProxyPlugin {
                 String sourceServerId = connection.getServerInfo().getName();
                 dispatchMinecraftChat(
                     sourceServerId,
-                    config,
+                    settings,
                     () -> broadcastMinecraftChat(chat),
                     () -> api.publishMinecraftChat(chat, sourceServerId).exceptionally(failure -> {
                         logger.warn("Failed to relay Minecraft chat to API", failure);
@@ -271,7 +381,7 @@ public final class AstralRecordProxyPlugin {
      */
     static void dispatchMinecraftChat(
         String sourceServerId,
-        ProxyConfig config,
+        NetworkSettings config,
         Runnable minecraftBroadcast,
         Runnable discordRelay
     ) {
@@ -290,7 +400,7 @@ public final class AstralRecordProxyPlugin {
      * @param config Proxy設定
      * @return 通知本文。通知対象外ならnull
      */
-    static String lifecycleMessage(String playerName, String previousServer, String currentServer, ProxyConfig config) {
+    static String lifecycleMessage(String playerName, String previousServer, String currentServer, NetworkSettings config) {
         if (previousServer == null) {
             return currentServer == null ? null : playerName + "さんがサーバーに参加しました";
         }
@@ -309,7 +419,7 @@ public final class AstralRecordProxyPlugin {
      * @param config Proxy設定
      * @return 通知本文。通知対象外ならnull
      */
-    static String disconnectMessage(String playerName, String currentServer, ProxyConfig config) {
+    static String disconnectMessage(String playerName, String currentServer, NetworkSettings config) {
         if (currentServer == null || config.isDiscordSourceServerExcluded(currentServer)) return null;
         return playerName + "さんがサーバーから退出しました";
     }
@@ -322,29 +432,54 @@ public final class AstralRecordProxyPlugin {
      * @param targetServer 接続先backend名
      * @param permission LobbyがAPI admissionから取得した権限
      */
+    /** backend切替の直前にManagement DBのBAN・チャンネルアクセスを再照会する。 */
+    private void requestConnectionWithAdmission(Player player, String sourceServer, String targetServer) {
+        api.getAdmission(player.getUniqueId(), targetServer).whenComplete((admission, failure) -> {
+            if (failure != null) {
+                player.sendMessage(Component.text("認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED));
+                return;
+            }
+            if (!admission.admitted()) {
+                Component reason = admissionDenyComponent(admission);
+                if (isBanDeny(admission)) {
+                    player.disconnect(reason);
+                } else {
+                    player.sendMessage(reason);
+                }
+                return;
+            }
+            requestConnection(player, sourceServer, targetServer, admission.permission());
+        });
+    }
+
     private void requestConnection(Player player, String sourceServer, String targetServer, int permission) {
-        boolean serverAuthority = config.isServerAuthority(player.getUniqueId());
+        NetworkSettings settings = settings();
+        if (settings == null) {
+            player.sendMessage(Component.text("認証サーバーに接続できません。", NamedTextColor.RED));
+            return;
+        }
+        boolean serverAuthority = settings.isServerAuthority(player.getUniqueId());
         int effectivePermission = serverAuthority ? 99 : permission;
         RegisteredServer target = proxy.getServer(targetServer).orElse(null);
-        if (target == null || (!config.isGameServer(targetServer)
-            && !targetServer.equalsIgnoreCase(config.lobbyServer()))) {
+        if (target == null || (!settings.isGameServer(targetServer)
+            && !targetServer.equalsIgnoreCase(settings.lobbyServer()))) {
             player.sendMessage(Component.text("接続先サーバーが見つかりません。", NamedTextColor.RED));
             return;
         }
-        if (config.isGameServer(targetServer)) {
+        if (settings.isGameServer(targetServer)) {
             String currentServer = player.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName())
                 .orElse(null);
-            boolean preparedAuthorityTransfer = !sourceServer.equalsIgnoreCase(config.lobbyServer())
+            boolean preparedAuthorityTransfer = !sourceServer.equalsIgnoreCase(settings.lobbyServer())
                 && isCurrentBackend(currentServer, sourceServer)
                 && consumeAuthorityTransferPreparation(player.getUniqueId(), sourceServer, targetServer);
             if (!canRequestGameServerFrom(
-                sourceServer, config, player.getUniqueId(), preparedAuthorityTransfer)) {
+                sourceServer, settings, player.getUniqueId(), preparedAuthorityTransfer)) {
                 player.sendMessage(Component.text("RPGサーバーへの接続はロビーから選択してください。", NamedTextColor.YELLOW));
                 return;
             }
             boolean currentlyInGame = player.getCurrentServer()
-                .map(connection -> config.isGameServer(connection.getServerInfo().getName()))
+                .map(connection -> settings.isGameServer(connection.getServerInfo().getName()))
                 .orElse(false);
             if (shouldRejectCurrentGameConnection(currentlyInGame, preparedAuthorityTransfer)) {
                 player.sendMessage(Component.text("RPGサーバーから戻る場合は /lobby を使用してください。", NamedTextColor.YELLOW));
@@ -359,7 +494,7 @@ public final class AstralRecordProxyPlugin {
                 player.sendMessage(Component.text("サーバーへ接続中です。", NamedTextColor.YELLOW));
                 return;
             }
-            ProxyConfig.ServerCapacity capacity = config.capacity(targetServer);
+            ProxyConfig.ServerCapacity capacity = settings.capacity(targetServer);
             int connectionLimit = capacity.limitFor(effectivePermission);
             if (connectionLimit > 0 && !reserveServerSlot(targetServer, target, connectionLimit)) {
                 pendingGameConnections.remove(player.getUniqueId());
@@ -383,13 +518,18 @@ public final class AstralRecordProxyPlugin {
      * @param requestedTarget 指定された接続先backend名
      */
     private void requestAuthorityServerCommand(Player player, String requestedTarget) {
-        if (!config.isServerAuthority(player.getUniqueId())) {
+        NetworkSettings settings = settings();
+        if (settings == null) {
+            player.sendMessage(Component.text("認証サーバーに接続できません。", NamedTextColor.RED));
+            return;
+        }
+        if (!settings.isServerAuthority(player.getUniqueId())) {
             player.sendMessage(Component.text(
                 "チャンネル名を指定した /server はProxy最高権限ユーザー専用です。",
                 NamedTextColor.YELLOW));
             return;
         }
-        String targetServer = config.gameServers().stream()
+        String targetServer = settings.gameServers().stream()
             .filter(serverId -> serverId.equalsIgnoreCase(requestedTarget))
             .findFirst().orElse(null);
         RegisteredServer target = targetServer == null ? null : proxy.getServer(targetServer).orElse(null);
@@ -413,11 +553,11 @@ public final class AstralRecordProxyPlugin {
                 "再接続まで " + remaining + " 秒お待ちください。", NamedTextColor.YELLOW));
             return;
         }
-        if (currentServer.equalsIgnoreCase(config.lobbyServer())) {
-            requestConnection(player, currentServer, targetServer, 99);
+        if (currentServer.equalsIgnoreCase(settings.lobbyServer())) {
+            requestConnectionWithAdmission(player, currentServer, targetServer);
             return;
         }
-        if (!config.isGameServer(currentServer)) {
+        if (!settings.isGameServer(currentServer)) {
             player.sendMessage(Component.text("現在のサーバーからチャンネル移動できません。", NamedTextColor.RED));
             return;
         }
@@ -441,7 +581,7 @@ public final class AstralRecordProxyPlugin {
 
     /** Proxy最高権限ユーザーへ/server引数として利用可能なRPG backend名を返す。 */
     static List<String> serverCommandSuggestions(
-        ProxyConfig config,
+        NetworkSettings config,
         UUID playerId,
         String currentServer,
         String prefix
@@ -487,10 +627,12 @@ public final class AstralRecordProxyPlugin {
     }
 
     private long cooldownRemaining(UUID playerId) {
+        NetworkSettings settings = settings();
+        if (settings == null) return 0L;
         Long last = lastGameConnectMillis.get(playerId);
         if (last == null) return 0L;
         long remaining = cooldownRemainingSeconds(
-            last, System.currentTimeMillis(), config.transferCooldownSeconds());
+            last, System.currentTimeMillis(), settings.transferCooldownSeconds());
         if (remaining == 0L) lastGameConnectMillis.remove(playerId, last);
         return remaining;
     }
@@ -498,7 +640,7 @@ public final class AstralRecordProxyPlugin {
     /** LobbyまたはProxy最高権限ユーザーの接続元だけRPG接続要求を許可する。 */
     static boolean canRequestGameServerFrom(
         String sourceServer,
-        ProxyConfig config,
+        NetworkSettings config,
         UUID playerId,
         boolean preparedAuthorityTransfer
     ) {
@@ -537,8 +679,10 @@ public final class AstralRecordProxyPlugin {
     }
 
     private void sendOpenMenu(Player player) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         player.getCurrentServer().ifPresent(connection -> {
-            if (!connection.getServerInfo().getName().equalsIgnoreCase(config.lobbyServer())
+            if (!connection.getServerInfo().getName().equalsIgnoreCase(settings.lobbyServer())
                 || !connection.sendPluginMessage(CHANNEL, BackendProtocol.openMenu())) {
                 player.sendMessage(Component.text("サーバー選択画面を開けませんでした。", NamedTextColor.RED));
             }
@@ -561,7 +705,9 @@ public final class AstralRecordProxyPlugin {
 
     /** Proxy最高権限UUIDに一致するプレイヤーだけへプライベートチャット監視を配信する。 */
     private void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
-        Component message = Component.text("[監視] [" + config.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
+        NetworkSettings settings = settings();
+        if (settings == null) return;
+        Component message = Component.text("[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
         if ("direct".equalsIgnoreCase(chat.type())) {
             message = message.append(Component.text(
                 "[DM] " + chat.senderName() + " → " + chat.targetName() + ": ", NamedTextColor.LIGHT_PURPLE));
@@ -573,7 +719,7 @@ public final class AstralRecordProxyPlugin {
         }
         Component completed = message.append(chatBodyComponent(chat.original(), chat.converted()));
         proxy.getAllPlayers().stream()
-            .filter(player -> config.isServerAuthority(player.getUniqueId()))
+            .filter(player -> settings.isServerAuthority(player.getUniqueId()))
             .forEach(player -> player.sendMessage(completed));
     }
 
@@ -676,9 +822,10 @@ public final class AstralRecordProxyPlugin {
     }
 
     private void refreshPresence() {
-        refreshAuthorities();
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         long cooldownCutoff = System.currentTimeMillis()
-            - TimeUnit.SECONDS.toMillis(config.transferCooldownSeconds());
+            - TimeUnit.SECONDS.toMillis(settings.transferCooldownSeconds());
         lastGameConnectMillis.entrySet().removeIf(entry -> entry.getValue() <= cooldownCutoff
             && !pendingGameConnections.contains(entry.getKey()));
         long nowMillis = System.currentTimeMillis();
@@ -686,26 +833,18 @@ public final class AstralRecordProxyPlugin {
             entry -> entry.getValue().expiresAtMillis() < nowMillis);
         for (Player player : proxy.getAllPlayers()) {
             String serverId = player.getCurrentServer()
-                .map(connection -> connection.getServerInfo().getName()).orElse(config.lobbyServer());
+                .map(connection -> connection.getServerInfo().getName()).orElse(settings.lobbyServer());
             PlayerMetadata value = metadata.computeIfAbsent(
                 player.getUniqueId(), ignored -> lobbyMetadata(player, serverId));
             if (!serverId.equalsIgnoreCase(value.serverId())) {
-                value = value.withServer(serverId, config.channelName(serverId));
+                value = value.withServer(serverId, settings.channelName(serverId));
                 metadata.put(player.getUniqueId(), value);
             }
             api.heartbeatPlayer(value).exceptionally(failure -> null);
         }
         for (RegisteredServer server : proxy.getAllServers()) {
-            refreshServerPresence(server);
+            refreshServerPresence(server, settings);
         }
-    }
-
-    /** Proxy設定の最高権限UUID一覧をNetwork APIへ全置換送信する。 */
-    private void refreshAuthorities() {
-        api.updateAuthorities(config.serverAuthorityUsers()).exceptionally(failure -> {
-            logger.warn("Failed to synchronize server authority users", failure);
-            return null;
-        });
     }
 
     /**
@@ -713,15 +852,15 @@ public final class AstralRecordProxyPlugin {
      *
      * @param server 状態を確認するVelocity登録サーバー
      */
-    private void refreshServerPresence(RegisteredServer server) {
+    private void refreshServerPresence(RegisteredServer server, NetworkSettings settings) {
         String serverId = server.getServerInfo().getName();
-        ProxyConfig.ServerCapacity capacity = config.capacity(serverId);
+        ProxyConfig.ServerCapacity capacity = settings.capacity(serverId);
         server.ping().whenComplete((ignored, failure) -> {
             boolean online = failure == null;
             if (!online) serverMspt.remove(serverId.toLowerCase(Locale.ROOT));
             api.heartbeatServer(
                 serverId,
-                config.channelName(serverId),
+                settings.channelName(serverId),
                 online ? server.getPlayersConnected().size() : 0,
                 online ? "online" : "offline",
                 capacity
@@ -730,6 +869,8 @@ public final class AstralRecordProxyPlugin {
     }
 
     private void refreshTabEntries() {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
         Set<UUID> onlineIds = new HashSet<>();
         proxy.getAllPlayers().forEach(player -> onlineIds.add(player.getUniqueId()));
         int totalPlayers = onlineIds.size();
@@ -749,7 +890,7 @@ public final class AstralRecordProxyPlugin {
             cached.keySet().removeIf(playerId -> !onlineIds.contains(playerId));
             for (Player target : proxy.getAllPlayers()) {
                 PlayerMetadata value = metadata.getOrDefault(
-                    target.getUniqueId(), lobbyMetadata(target, config.lobbyServer()));
+                    target.getUniqueId(), lobbyMetadata(target, settings.lobbyServer()));
                 Component displayName = tabDisplayName(value);
                 var entry = tabList.getEntry(target.getUniqueId());
                 if (entry.isEmpty()) {
@@ -843,9 +984,53 @@ public final class AstralRecordProxyPlugin {
     }
 
     private PlayerMetadata lobbyMetadata(Player player, String serverId) {
+        NetworkSettings settings = settings();
+        String channel = settings == null ? serverId : settings.channelName(serverId);
         return new PlayerMetadata(
-            player.getUniqueId(), player.getUsername(), serverId, config.channelName(serverId),
+            player.getUniqueId(), player.getUsername(), serverId, channel,
             player.getUsername(), null, null, false, 0);
+    }
+
+    private NetworkSettings settings() {
+        return managedSettings.get();
+    }
+
+    static boolean isBanDeny(NetworkApiClient.Admission admission) {
+        return "banned".equalsIgnoreCase(admission.denyReason())
+            || admission.banIndefinite() || admission.banExpiresAtUtc() != null;
+    }
+
+    static Component admissionDenyComponent(NetworkApiClient.Admission admission) {
+        if (isBanDeny(admission)) {
+            return banDisconnectReason(
+                admission.banIndefinite(), admission.banExpiresAtUtc(), admission.banReason(), OffsetDateTime.now());
+        }
+        return Component.text("このチャンネルは許可されたプレイヤーのみ参加できます。", NamedTextColor.RED);
+    }
+
+    /** BAN種別・期限・理由を含むプレイヤー向けの切断理由を生成する。 */
+    static Component banDisconnectReason(
+        boolean indefinite,
+        OffsetDateTime expiresAtUtc,
+        String reason,
+        OffsetDateTime now
+    ) {
+        Component message = Component.text("このサーバーへの参加は禁止されています。", NamedTextColor.RED);
+        if (indefinite || expiresAtUtc == null) {
+            message = message.append(Component.newline())
+                .append(Component.text("BAN期限: 無期限", NamedTextColor.YELLOW));
+        } else {
+            long remainingDays = Math.max(0L, ChronoUnit.DAYS.between(
+                now.atZoneSameInstant(JAPAN_ZONE).toLocalDate(),
+                expiresAtUtc.atZoneSameInstant(JAPAN_ZONE).toLocalDate()));
+            message = message.append(Component.newline())
+                .append(Component.text("BAN期限: あと" + remainingDays + "日", NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("解除日時: " + BAN_EXPIRY_FORMAT.format(expiresAtUtc), NamedTextColor.YELLOW));
+        }
+        String displayedReason = reason == null || reason.isBlank() ? "運営にお問い合わせください。" : reason.trim();
+        return message.append(Component.newline())
+            .append(Component.text("理由: " + displayedReason, NamedTextColor.WHITE));
     }
 
     /**
@@ -887,9 +1072,14 @@ public final class AstralRecordProxyPlugin {
                 player.sendMessage(Component.text("使用方法: /server <チャンネル名>", NamedTextColor.YELLOW));
                 return;
             }
+            NetworkSettings settings = settings();
+            if (settings == null) {
+                player.sendMessage(Component.text("認証サーバーに接続できません。", NamedTextColor.RED));
+                return;
+            }
             String current = player.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName()).orElse("");
-            if (current.equalsIgnoreCase(config.lobbyServer())) {
+            if (current.equalsIgnoreCase(settings.lobbyServer())) {
                 sendOpenMenu(player);
                 return;
             }
@@ -899,12 +1089,14 @@ public final class AstralRecordProxyPlugin {
         @Override
         public List<String> suggest(Invocation invocation) {
             if (!(invocation.source() instanceof Player player)) return List.of();
+            NetworkSettings settings = settings();
+            if (settings == null) return List.of();
             String current = player.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName()).orElse(null);
             String[] arguments = invocation.arguments();
             String prefix = arguments.length == 1 ? arguments[0] : "";
             return arguments.length <= 1
-                ? serverCommandSuggestions(config, player.getUniqueId(), current, prefix)
+                ? serverCommandSuggestions(settings, player.getUniqueId(), current, prefix)
                 : List.of();
         }
     }

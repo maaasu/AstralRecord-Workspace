@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 
 import java.net.URI;
 import java.net.Socket;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -13,9 +15,9 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,6 +63,35 @@ final class NetworkApiClient {
 
     CompletableFuture<Void> removePlayer(UUID playerId) {
         return send("DELETE", "/api/network/players/" + playerId, null).thenApply(ignored -> null);
+    }
+
+    /** Management DBを正本とするProxy設定を取得する。 */
+    CompletableFuture<ManagedNetworkSettings> getManagedSettings() {
+        return send("GET", "/api/network/settings", null)
+            .thenApply(json -> ManagedNetworkSettings.fromJson(gson.fromJson(json, JsonObject.class)));
+    }
+
+    /** APIが未初期化の場合だけYAML旧値をManagement DBへbootstrapする。 */
+    CompletableFuture<ManagedNetworkSettings> bootstrapManagedSettings(ManagedNetworkSettings legacySettings) {
+        return send("POST", "/api/network/settings/bootstrap", legacySettings.toBootstrapJson().toString(), authoritySyncKey)
+            .thenApply(json -> ManagedNetworkSettings.fromJson(gson.fromJson(json, JsonObject.class)));
+    }
+
+    /** 指定チャンネルへの接続可否とBAN状態を取得する。 */
+    CompletableFuture<Admission> getAdmission(UUID playerId, String serverId) {
+        String encodedServerId = URLEncoder.encode(serverId, StandardCharsets.UTF_8);
+        return send("GET", "/api/network/admissions/" + playerId + "?serverId=" + encodedServerId, null)
+            .thenApply(json -> Admission.fromJson(gson.fromJson(json, JsonObject.class)));
+    }
+
+    /** Management DBで現在有効なBAN一覧を取得する。 */
+    CompletableFuture<List<BanState>> getActiveBans() {
+        return send("GET", "/api/network/bans/active", null).thenApply(json -> {
+            JsonArray values = gson.fromJson(json, JsonArray.class);
+            List<BanState> result = new ArrayList<>();
+            if (values != null) values.forEach(value -> result.add(BanState.fromJson(value.getAsJsonObject())));
+            return List.copyOf(result);
+        });
     }
 
     /**
@@ -137,21 +168,6 @@ final class NetworkApiClient {
         return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
     }
 
-    /**
-     * Proxy設定の最高権限UUID一覧をAPIへ全置換送信する。
-     *
-     * @param authorityUsers 最高権限UUID集合
-     * @return API送信完了future
-     */
-    CompletableFuture<Void> updateAuthorities(Set<UUID> authorityUsers) {
-        JsonObject body = new JsonObject();
-        JsonArray uuids = new JsonArray();
-        authorityUsers.stream().map(UUID::toString).sorted().forEach(uuids::add);
-        body.add("uuids", uuids);
-        return send("PUT", "/api/network/authorities", body.toString(), authoritySyncKey)
-            .thenApply(ignored -> null);
-    }
-
     CompletableFuture<DiscordChatBatch> getDiscordChat(long afterSequence) {
         return send("GET", "/api/network/chat?source=discord&afterSequence=" + Math.max(0L, afterSequence), null)
             .thenApply(json -> {
@@ -193,7 +209,7 @@ final class NetworkApiClient {
         return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> {
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    throw new IllegalStateException("Network API returned HTTP " + response.statusCode());
+                    throw new NetworkApiException(response.statusCode());
                 }
                 return response.body();
             });
@@ -249,5 +265,56 @@ final class NetworkApiClient {
     }
 
     record DiscordChatBatch(String generationId, List<DiscordChat> messages) {
+    }
+
+    record Admission(
+        boolean admitted,
+        String denyReason,
+        int permission,
+        boolean banIndefinite,
+        OffsetDateTime banExpiresAtUtc,
+        String banReason
+    ) {
+        static Admission fromJson(JsonObject value) {
+            return new Admission(
+                value.has("admitted") && value.get("admitted").getAsBoolean(),
+                optionalText(value, "denyReason"),
+                value.has("permission") ? value.get("permission").getAsInt() : 0,
+                value.has("banIndefinite") && value.get("banIndefinite").getAsBoolean(),
+                optionalDate(value, "banExpiresAtUtc"), optionalText(value, "banReason"));
+        }
+    }
+
+    record BanState(UUID playerId, boolean active, boolean indefinite, OffsetDateTime expiresAtUtc, String reason) {
+        static BanState fromJson(JsonObject value) {
+            return new BanState(UUID.fromString(value.get("userUuid").getAsString()),
+                value.has("isActive") && value.get("isActive").getAsBoolean(),
+                value.has("isIndefinite") && value.get("isIndefinite").getAsBoolean(),
+                optionalDate(value, "expiresAtUtc"), optionalText(value, "reason"));
+        }
+    }
+
+    static boolean isNotFound(Throwable failure) {
+        Throwable cause = failure;
+        while (cause.getCause() != null && !(cause instanceof NetworkApiException)) cause = cause.getCause();
+        return cause instanceof NetworkApiException apiFailure && apiFailure.statusCode == 404;
+    }
+
+    private static String optionalText(JsonObject value, String name) {
+        return value.has(name) && !value.get(name).isJsonNull() ? value.get(name).getAsString() : null;
+    }
+
+    private static OffsetDateTime optionalDate(JsonObject value, String name) {
+        String raw = optionalText(value, name);
+        return raw == null || raw.isBlank() ? null : OffsetDateTime.parse(raw);
+    }
+
+    private static final class NetworkApiException extends IllegalStateException {
+        private final int statusCode;
+
+        private NetworkApiException(int statusCode) {
+            super("Network API returned HTTP " + statusCode);
+            this.statusCode = statusCode;
+        }
     }
 }

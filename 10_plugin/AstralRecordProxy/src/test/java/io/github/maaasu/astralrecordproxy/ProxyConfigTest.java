@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonParser;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -118,5 +119,24 @@ class ProxyConfigTest {
 
         assertEquals("shared", config.apiKey());
         assertEquals("proxy-only", config.authoritySyncKey());
+    }
+
+    @Test
+    void managedSettingsUsesChannelIdsForRoutingAndDiscordControl() {
+        UUID authority = UUID.randomUUID();
+        ManagedNetworkSettings settings = ManagedNetworkSettings.fromJson(JsonParser.parseString("""
+            {"revision":4,"lobbyServerId":"lobby","transferCooldownSeconds":45,
+             "tabRefreshSeconds":3,"presenceHeartbeatSeconds":12,"authorityUsers":["%s"],
+             "channels":[
+              {"serverId":"lobby","displayName":"ロビー","isGame":false,"maxPlayers":100,"discordEnabled":true,"whitelistEnabled":false,"debugUsers":[],"whitelistUsers":[]},
+              {"serverId":"ch1","displayName":"第一","isGame":true,"maxPlayers":30,"donorExtraPlayers":5,"adminExtraPlayers":1,"discordEnabled":false,"whitelistEnabled":true,"debugUsers":[],"whitelistUsers":[]}
+             ]}
+            """.formatted(authority)).getAsJsonObject());
+
+        assertEquals(List.of("ch1"), settings.gameServers());
+        assertEquals("第一", settings.channelName("CH1"));
+        assertTrue(settings.isServerAuthority(authority));
+        assertTrue(settings.isDiscordSourceServerExcluded("ch1"));
+        assertEquals(36, settings.capacity("ch1").limitFor(99));
     }
 }
