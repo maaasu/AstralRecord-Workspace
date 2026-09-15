@@ -1,0 +1,94 @@
+@page
+@model AstralRecordWeb.Pages.Market.IndexModel
+@{
+    ViewData["Title"] = "マーケット";
+}
+<link rel="stylesheet" href="~/css/market.css" asp-append-version="true" />
+
+<section class="market-page">
+    <header class="market-hero">
+        <p class="market-kicker">ASTRAL EXCHANGE</p>
+        <h1>マーケット</h1>
+        <p>公開中の出品を検索して、品物の詳細と価格を確認できます。</p>
+        <div class="market-unpublished" role="status">購入・出品機能は現在未公開です。閲覧と検索のみ利用できます。</div>
+    </header>
+
+    <div class="market-layout">
+        <aside class="market-search" aria-label="マーケット検索条件">
+            <div class="market-panel-title"><span>⌕</span><div><p>SEARCH</p><h2>出品を絞り込む</h2></div></div>
+            <form method="get" role="search">
+                <label>名前・ID・説明
+                    <input asp-for="Query" placeholder="例: Ancient Sword" autocomplete="off" />
+                </label>
+                <div class="market-filter-grid">
+                    <label>カテゴリ
+                        <select asp-for="Category"><option value="">すべて</option>@foreach (var value in Model.Categories) { <option value="@value">@value</option> }</select>
+                    </label>
+                    <label>レアリティ
+                        <select asp-for="Rarity"><option value="">すべて</option>@foreach (var value in Model.Rarities) { <option value="@value">@value</option> }</select>
+                    </label>
+                    <label>装備スロット
+                        <select asp-for="EquipmentSlot"><option value="">すべて</option>@foreach (var value in Model.EquipmentSlots) { <option value="@value">@value</option> }</select>
+                    </label>
+                    <label>並び順
+                        <select asp-for="Sort"><option value="newest">新着順</option><option value="price_asc">価格が低い順</option><option value="price_desc">価格が高い順</option></select>
+                    </label>
+                </div>
+
+                <fieldset><legend>単価</legend><div class="market-range"><input asp-for="MinimumPrice" type="number" min="0" placeholder="下限" /><span>〜</span><input asp-for="MaximumPrice" type="number" min="0" placeholder="上限" /></div></fieldset>
+                <fieldset><legend>必要レベル</legend><div class="market-range"><input asp-for="RequiredLevelMin" type="number" min="0" placeholder="下限" /><span>〜</span><input asp-for="RequiredLevelMax" type="number" min="0" placeholder="上限" /></div></fieldset>
+
+                @if (Model.NumericFilters.Count > 0)
+                {
+                    <details class="market-advanced" open>
+                        <summary>詳細数値フィルタ <span>出品データから生成</span></summary>
+                        <p>各項目は同時に指定できます。出品に値のない項目は一致しません。</p>
+                        <div class="market-numeric-filters">
+                            @foreach (var filter in Model.NumericFilters)
+                            {
+                                <label>@filter.Label <small>@filter.Minimum.ToString("0.####") 〜 @filter.Maximum.ToString("0.####")</small>
+                                    <span class="market-range"><input name="@Model.NumericMinimumName(filter)" type="number" step="any" min="@filter.Minimum.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="下限" value="@ViewContext.HttpContext.Request.Query[Model.NumericMinimumName(filter)]" /><span>〜</span><input name="@Model.NumericMaximumName(filter)" type="number" step="any" max="@filter.Maximum.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="上限" value="@ViewContext.HttpContext.Request.Query[Model.NumericMaximumName(filter)]" /></span>
+                                </label>
+                            }
+                        </div>
+                    </details>
+                }
+
+                <div class="market-search-actions"><button type="submit">検索する</button><a asp-page="/Market/Index">クリア</a></div>
+            </form>
+            <button type="button" class="market-list-button" disabled aria-disabled="true">＋ 出品する <small>現在未公開</small></button>
+        </aside>
+
+        <main class="market-results">
+            <div class="market-result-header"><div><p>ACTIVE LISTINGS</p><h2>出品一覧 <span>@Model.Listings.Count / @Model.TotalListingCount 件</span></h2></div><span class="market-readonly">READ ONLY</span></div>
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="market-error" role="alert">@Model.ErrorMessage</div>
+            }
+            else if (Model.Listings.Count == 0)
+            {
+                <div class="market-empty">条件に一致する公開出品はありません。</div>
+            }
+            else
+            {
+                <div class="market-list">
+                    @foreach (var entry in Model.Listings)
+                    {
+                        var listing = entry.Listing;
+                        <article class="market-listing">
+                            <div class="market-item-emblem" aria-hidden="true">@entry.Item?.Icon</div>
+                            <div class="market-item-main">
+                                <div class="market-item-tags"><span>@entry.Category</span>@if (!string.IsNullOrWhiteSpace(entry.Rarity)) { <span class="rarity">@entry.Rarity</span> } @if (!string.IsNullOrWhiteSpace(entry.EquipmentSlot)) { <span>@entry.EquipmentSlot</span> }</div>
+                                <h3>@entry.DisplayName</h3><p class="market-item-id">@listing.ItemId</p>
+                                @if (entry.Item?.Lore.Count > 0) { <p class="market-lore">@entry.Item.Lore.First()</p> }
+                            </div>
+                            <div class="market-price"><span>単価</span><strong>@listing.UnitPrice.ToString("N0")</strong><em>@listing.CurrencyId</em><small>残り @listing.RemainingQuantity.ToString("N0") / @listing.Quantity.ToString("N0")</small></div>
+                            <details class="market-details"><summary>詳細を見る</summary><div class="market-detail-grid"><section><h4>出品情報</h4><dl><dt>出品者</dt><dd>@Model.SellerName(listing)</dd><dt>合計価格</dt><dd>@listing.TotalPrice.ToString("N0") @listing.CurrencyId</dd><dt>出品日時</dt><dd>@listing.ListedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd><dt>期限</dt><dd>@listing.ExpiresAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd><dt>相場参照</dt><dd>@(listing.ReferenceUnitPrice?.ToString("N0") ?? "—")</dd></dl></section><section><h4>アイテム情報</h4><dl><dt>レアリティ</dt><dd>@(entry.Rarity ?? "—")</dd><dt>必要レベル</dt><dd>@(entry.RequiredLevel?.ToString() ?? "—")</dd><dt>売却価格</dt><dd>@(entry.Item?.SaleValue.ToString("N0") ?? "—")</dd><dt>スタック</dt><dd>@(entry.Item?.MaxStack.ToString() ?? "—")</dd></dl>@if (entry.Item?.Equipment?.Stats.Count > 0) { <ul class="market-stats">@foreach (var stat in entry.Item.Equipment.Stats) { <li><span>@stat.Status</span><strong>@Model.ItemStatText(stat)</strong><em>@stat.Type</em></li> }</ul> }</section></div></details>
+                            <button type="button" class="market-buy-button" disabled aria-disabled="true">購入する <small>現在未公開</small></button>
+                        </article>
+                    }
+                </div>
+            }
+        </main>
+    </div>
+</section>
