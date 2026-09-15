@@ -37,10 +37,10 @@
                 <div class="ar-tree-toolbar"><span class="ar-portal-sub">ドラッグで移動・ボタンで拡大縮小・ノードを選んで詳細を表示</span><div class="ar-tree-controls"><button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button><button type="button" data-tree-zoom="out" aria-label="スキルツリーを縮小">−</button><button type="button" data-tree-fit>全体表示</button></div></div>
                 <div class="ar-tree-layout">
                     <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ。矢印キーで移動、プラス・マイナスキーで拡大縮小"><svg role="group" aria-label="スキルツリーのノードと接続"></svg></div>
-                    <aside class="ar-tree-detail" aria-live="polite"><span class="ar-portal-eyebrow">ノード詳細</span><h3 data-node-name>ノードを選択</h3><p data-node-state>習得状況と効果を確認できます。</p><p data-node-cost></p><p data-node-lore></p><p data-node-effects></p></aside>
+                    <aside class="ar-tree-detail" aria-live="polite"><span class="ar-portal-eyebrow">ノード詳細</span><h3 data-node-name>ノードを選択</h3><p data-node-state>習得状況と効果を確認できます。</p><p data-node-cost></p><p data-node-requirement></p><p data-node-lore></p><p data-node-effects></p></aside>
                 </div>
                 <div class="ar-tree-legend"><span>◆ 解放済み</span><span>◇ 未解放</span><span>◆ 開始ノード</span></div>
-                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in account.SkillTree.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@string.Join(" / ", n.Lore)<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
+                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in account.SkillTree.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@n.RequirementText<br />@string.Join(" / ", n.Lore)<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
             </div>
         }
     </section>

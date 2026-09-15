@@ -16,9 +16,6 @@ public sealed class WebPlayerProfileRepository(
     IOptions<FileDatabaseOptions> fileDatabaseOptions,
     IOptions<WebPlayerProfileOptions> profileOptions) : IWebPlayerProfileRepository
 {
-    private const string GoldItemId = "99a00001";
-    private const string LegacyGoldItemId = "ast_gold";
-    private const string LegacyPreviousGoldItemId = "gold";
     private readonly string filebaseRoot = fileDatabaseOptions.Value.RootPath;
     private readonly string structureId = profileOptions.Value.SkillTreeStructureId.Trim();
 
@@ -29,67 +26,67 @@ public sealed class WebPlayerProfileRepository(
         Guid targetUserUuid, Guid viewerUserUuid, bool includePrivate)
     {
         var isAdmin = await IsWebAdminAsync(viewerUserUuid);
+        if (targetUserUuid != viewerUserUuid && !(includePrivate && isAdmin)
+            && !await managementDb.Players.AsNoTracking().AnyAsync(player => player.PlayerUuid == targetUserUuid && player.IsProfilePublic))
+            return null;
         var profile = await BuildProfileAsync(targetUserUuid);
         if (profile is null)
             return null;
-        return targetUserUuid == viewerUserUuid || profile.IsPublic || (includePrivate && isAdmin)
-            ? profile
-            : null;
+        if (targetUserUuid == viewerUserUuid || (includePrivate && isAdmin)) return profile;
+        return profile.IsPublic ? WithoutPermission(profile) : null;
     }
 
     public async Task<WebPlayerProfileSearchResponse> SearchAsync(
         Guid viewerUserUuid, string? mcid, string? classId, string? sort, int page, int pageSize, bool includePrivate)
     {
-        var isAdmin = await IsWebAdminAsync(viewerUserUuid);
-        var includesAllRegisteredPlayers = includePrivate && isAdmin;
+        var includesAllRegisteredPlayers = includePrivate && await IsWebAdminAsync(viewerUserUuid);
         var managementPlayers = await managementDb.Players.AsNoTracking().ToDictionaryAsync(player => player.PlayerUuid);
-        var publicPlayerIds = managementPlayers.Values.Where(player => player.IsProfilePublic)
-            .Select(player => player.PlayerUuid).ToArray();
-        var normalizedMcid = string.IsNullOrWhiteSpace(mcid) ? null : mcid.Trim();
+        var publicPlayerIds = managementPlayers.Values.Where(player => player.IsProfilePublic).Select(player => player.PlayerUuid).ToArray();
         var usersQuery = gameDb.Users.AsNoTracking().Where(user => !user.IsDeleted);
-        if (!includesAllRegisteredPlayers)
-            usersQuery = usersQuery.Where(user => publicPlayerIds.Contains(user.Uuid));
-        if (normalizedMcid is not null)
-            usersQuery = usersQuery.Where(user => user.Mcid.Contains(normalizedMcid));
-        var users = await usersQuery
-            .ToDictionaryAsync(user => user.Uuid);
+        if (!includesAllRegisteredPlayers) usersQuery = usersQuery.Where(user => publicPlayerIds.Contains(user.Uuid));
+        var users = await usersQuery.ToDictionaryAsync(user => user.Uuid);
         var accountIds = users.Values.Where(user => user.AccountId.HasValue).Select(user => user.AccountId!.Value).ToArray();
         var accounts = await gameDb.Accounts.AsNoTracking()
             .Where(account => accountIds.Contains(account.Uuid) && !account.IsDeleted)
             .ToDictionaryAsync(account => account.Uuid);
-
+        var classMap = await GetClassMapAsync();
         var candidateIds = new HashSet<Guid>(users.Keys);
-        if (includesAllRegisteredPlayers)
-            foreach (var player in managementPlayers.Values.Where(player => normalizedMcid is null || player.Mcid.Contains(normalizedMcid)))
-                candidateIds.Add(player.PlayerUuid);
-        var candidates = candidateIds
-            .Where(userId => string.IsNullOrWhiteSpace(classId)
-                || (users.TryGetValue(userId, out var user)
-                    && user.AccountId.HasValue
-                    && accounts.TryGetValue(user.AccountId.Value, out var account)
-                    && string.Equals(account.ClassId, classId.Trim(), StringComparison.OrdinalIgnoreCase)))
-            .Select(userId => new { UserId = userId, Level = TryGetLevel(userId, users, accounts), Mcid = users.TryGetValue(userId, out var user) ? user.Mcid : managementPlayers[userId].Mcid })
-            .OrderBy(candidate => sort == "level_asc" ? candidate.Level : -candidate.Level)
-            .ThenBy(candidate => candidate.Mcid, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var total = candidates.Count;
-        var selectedIds = candidates.Skip((page - 1) * pageSize).Take(pageSize).Select(candidate => candidate.UserId).ToArray();
-        var profiles = new List<WebPlayerProfileResponse>(selectedIds.Length);
-        foreach (var userId in selectedIds)
+        foreach (var player in managementPlayers.Values.Where(player => includesAllRegisteredPlayers || player.IsProfilePublic))
+            candidateIds.Add(player.PlayerUuid);
+        var candidates = candidateIds.Select(userId =>
         {
-            var profile = await BuildProfileAsync(userId);
-            if (profile is not null && (includesAllRegisteredPlayers || profile.IsPublic))
-                profiles.Add(includesAllRegisteredPlayers || userId == viewerUserUuid ? profile : WithoutPermission(profile));
-        }
-
+            users.TryGetValue(userId, out var user);
+            var account = user?.AccountId is Guid accountId && accounts.TryGetValue(accountId, out var found) && found.UserId == userId ? found : null;
+            return new { UserId = userId, Mcid = user?.Mcid ?? managementPlayers[userId].Mcid, Account = account };
+        })
+            .Where(item => string.IsNullOrWhiteSpace(mcid) || item.Mcid.Contains(mcid.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Where(item => string.IsNullOrWhiteSpace(classId) || string.Equals(item.Account?.ClassId, classId.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(item => sort == "level_asc" ? item.Account?.Level ?? -1 : -(long)(item.Account?.Level ?? -1))
+            .ThenBy(item => item.Mcid, StringComparer.OrdinalIgnoreCase).ThenBy(item => item.UserId)
+            .ToList();
+        var selected = candidates.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var selectedIds = selected.Select(item => item.UserId).ToArray();
+        // Recheck visibility after selection; do not build full account/skill-tree details for a list.
+        var publicIdsNow = await managementDb.Players.AsNoTracking()
+            .Where(player => selectedIds.Contains(player.PlayerUuid) && player.IsProfilePublic)
+            .Select(player => player.PlayerUuid).ToListAsync();
+        var profiles = selected.Where(item => includesAllRegisteredPlayers || publicIdsNow.Contains(item.UserId))
+            .Select(item => new WebPlayerProfileSummaryResponse
+            {
+                UserUuid = item.UserId, Mcid = item.Mcid, IsPublic = publicIdsNow.Contains(item.UserId),
+                CurrentAccount = item.Account is not { } account ? null : new WebPlayerAccountSummaryResponse
+                {
+                    AccountId = account.Uuid, AccountName = account.AccountName, PlayerLevel = account.Level,
+                    ClassId = account.ClassId,
+                    ClassName = classMap.TryGetValue(account.ClassId, out var c) ? StripLegacyColors(c.Name) : account.ClassId,
+                },
+            }).ToList();
         return new WebPlayerProfileSearchResponse
         {
             Profiles = profiles,
-            Classes = await GetClassFiltersAsync(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = total,
+            Classes = classMap.Values.OrderBy(c => c.Order).ThenBy(c => c.Id, StringComparer.Ordinal)
+                .Select(c => new WebPlayerProfileClassFilterResponse { Id = c.Id, Name = StripLegacyColors(c.Name) }).ToList(),
+            Page = page, PageSize = pageSize, TotalCount = candidates.Count,
         };
     }
 
@@ -142,14 +139,14 @@ public sealed class WebPlayerProfileRepository(
             .ToListAsync();
         var currentClassLevel = progress.FirstOrDefault(item =>
             string.Equals(item.ClassId, account.ClassId, StringComparison.OrdinalIgnoreCase))?.Level ?? account.ClassLevel;
-        var gold = await gameDb.InventoryEntries.AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.ItemId != null &&
-                (entry.ItemId == GoldItemId || entry.ItemId == LegacyGoldItemId || entry.ItemId == LegacyPreviousGoldItemId))
+        var currencyEntries = await gameDb.InventoryEntries.AsNoTracking()
+            .Where(entry => !entry.IsDeleted && entry.Quantity > 0)
             .Join(gameDb.Inventories.AsNoTracking().Where(inventory => !inventory.IsDeleted && inventory.IsEnabled
                     && inventory.AccountId == account.Uuid
                     && inventory.InventoryType == "CURRENCY" && inventory.InventoryProfile == "GAME"),
-                entry => entry.InventoryId, inventory => inventory.InventoryId, (entry, _) => (long?)entry.Quantity)
-            .SumAsync() ?? 0L;
+                entry => entry.InventoryId, inventory => inventory.InventoryId, (entry, _) => entry)
+            .ToListAsync();
+        var gold = GoldCurrencyBalanceSupport.TotalGold(currencyEntries);
         var unlockedNodes = await GetUnlockedNodesAsync(account.Uuid);
         var classAncestors = GetClassAncestors(account.ClassId, classMap);
         return new WebPlayerAccountProfileResponse
@@ -158,17 +155,17 @@ public sealed class WebPlayerProfileRepository(
             AccountName = account.AccountName,
             PlayerLevel = account.Level,
             ClassId = account.ClassId,
-            ClassName = classMap.TryGetValue(account.ClassId, out var currentClass) ? currentClass.Name : account.ClassId,
+            ClassName = classMap.TryGetValue(account.ClassId, out var currentClass) ? StripLegacyColors(currentClass.Name) : account.ClassId,
             ClassLevel = currentClassLevel,
             ClassProgresses = progress.Select(item => new WebPlayerClassProgressResponse
             {
                 ClassId = item.ClassId,
-                ClassName = classMap.TryGetValue(item.ClassId, out var classValue) ? classValue.Name : item.ClassId,
+                ClassName = classMap.TryGetValue(item.ClassId, out var classValue) ? StripLegacyColors(classValue.Name) : item.ClassId,
                 Level = item.Level,
             }).ToList(),
             Gold = gold,
             UpdatedAt = DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc),
-            SkillTree = await TryBuildSkillTreeAsync(account.Level, classAncestors, unlockedNodes),
+            SkillTree = await TryBuildSkillTreeAsync(account.Level, classAncestors, unlockedNodes, classMap),
         };
     }
 
@@ -186,7 +183,7 @@ public sealed class WebPlayerProfileRepository(
     }
 
     private async Task<WebSkillTreeProfileResponse> BuildSkillTreeAsync(
-        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes)
+        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes, IReadOnlyDictionary<string, ClassResponse> classMap)
     {
         var structurePath = Path.Combine(filebaseRoot, "35.features.skilltree", "structures", structureId + ".json");
         using var structureDocument = JsonDocument.Parse(await File.ReadAllTextAsync(structurePath));
@@ -202,8 +199,10 @@ public sealed class WebPlayerProfileRepository(
             using var nodeDocument = JsonDocument.Parse(await File.ReadAllTextAsync(nodePath));
             var node = nodeDocument.RootElement;
             var condition = node.TryGetProperty("unlockCondition", out var rawCondition) ? rawCondition : (JsonElement?)null;
-            if (!MeetsCondition(condition, playerLevel, classAncestors))
-                continue;
+            var meetsCondition = MeetsCondition(condition, playerLevel, classAncestors);
+            var pointType = node.GetProperty("pointType").GetString()!;
+            // Game visibility keeps PP requirements visible; CP belongs only to eligible classes/levels.
+            if (pointType != "PP" && !meetsCondition) continue;
             visibleIds.Add(nodeId);
             var effects = node.GetProperty("effects").EnumerateArray().Select(effect => effect.Clone()).ToList();
             profiles.Add(new WebSkillTreeNodeProfileResponse
@@ -213,7 +212,9 @@ public sealed class WebPlayerProfileRepository(
                 Icon = node.GetProperty("icon").GetString()!,
                 Lore = ReadStrings(node, "lore"),
                 Tags = ReadStrings(node, "tags"),
-                PointType = node.GetProperty("pointType").GetString()!,
+                PointType = pointType,
+                IsConditionMet = meetsCondition,
+                RequirementText = DescribeRequirement(condition, classMap),
                 PointCost = node.GetProperty("pointCost").GetInt32(),
                 UnlockCondition = condition?.Clone(),
                 Effects = effects,
@@ -243,11 +244,11 @@ public sealed class WebPlayerProfileRepository(
     }
 
     private async Task<WebSkillTreeProfileResponse> TryBuildSkillTreeAsync(
-        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes)
+        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes, IReadOnlyDictionary<string, ClassResponse> classMap)
     {
         try
         {
-            return await BuildSkillTreeAsync(playerLevel, classAncestors, unlockedNodes);
+            return await BuildSkillTreeAsync(playerLevel, classAncestors, unlockedNodes, classMap);
         }
         catch (IOException)
         {
@@ -271,22 +272,17 @@ public sealed class WebPlayerProfileRepository(
         .Select(MasterDataPayloadJson.Deserialize<SkillResponse>).Where(item => item is not null)
         .Cast<SkillResponse>().ToDictionary(item => item.Id, item => item.Name, StringComparer.OrdinalIgnoreCase);
 
-    private async Task<IReadOnlyList<WebPlayerProfileClassFilterResponse>> GetClassFiltersAsync() =>
-        (await GetClassMapAsync()).Values.OrderBy(value => value.Order).ThenBy(value => value.Id, StringComparer.Ordinal)
-            .Select(value => new WebPlayerProfileClassFilterResponse { Id = value.Id, Name = value.Name }).ToList();
-
-    private static int TryGetLevel(Guid userId, IReadOnlyDictionary<Guid, UserEntity> users, IReadOnlyDictionary<Guid, AccountEntity> accounts) =>
-        users.TryGetValue(userId, out var user) && user.AccountId.HasValue && accounts.TryGetValue(user.AccountId.Value, out var account)
-            ? account.Level : -1;
-
     private static HashSet<string> GetClassAncestors(string classId, IReadOnlyDictionary<string, ClassResponse> classMap)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { classId };
         var pending = new Queue<string>();
         pending.Enqueue(classId);
-        while (pending.TryDequeue(out var current) && classMap.TryGetValue(current, out var currentClass))
-        foreach (var ancestor in currentClass.UnlockClassLevel.Select(item => item.ClassId))
-            if (result.Add(ancestor)) pending.Enqueue(ancestor);
+        while (pending.TryDequeue(out var current))
+        {
+            if (!classMap.TryGetValue(current, out var currentClass)) continue;
+            foreach (var ancestor in currentClass.UnlockClassLevel.Select(item => item.ClassId))
+                if (result.Add(ancestor)) pending.Enqueue(ancestor);
+        }
         return result;
     }
 
@@ -298,6 +294,19 @@ public sealed class WebPlayerProfileRepository(
             && (!value.TryGetProperty("playerLevel", out var level) || playerLevel >= level.GetInt32());
     }
 
+    private static string DescribeRequirement(JsonElement? condition, IReadOnlyDictionary<string, ClassResponse> classMap)
+    {
+        if (!condition.HasValue) return string.Empty;
+        var requirements = new List<string>();
+        if (condition.Value.TryGetProperty("playerLevel", out var level)) requirements.Add($"必要プレイヤーレベル: {level.GetInt32()}");
+        if (condition.Value.TryGetProperty("classId", out var c))
+        {
+            var id = c.GetString() ?? string.Empty;
+            requirements.Add($"必要クラス: {(classMap.TryGetValue(id, out var master) ? StripLegacyColors(master.Name) : id)}");
+        }
+        return string.Join(" / ", requirements);
+    }
+
     private static IReadOnlyList<string> ReadStrings(JsonElement parent, string property) =>
         parent.TryGetProperty(property, out var value) ? value.EnumerateArray().Select(item => StripLegacyColors(item.GetString() ?? string.Empty)).ToList() : [];
 
@@ -307,13 +316,18 @@ public sealed class WebPlayerProfileRepository(
         if (type == "skill")
         {
             var id = effect.GetProperty("skillId").GetString() ?? string.Empty;
-            return skillNames.TryGetValue(id, out var name) ? name : id;
+            return skillNames.TryGetValue(id, out var name) ? StripLegacyColors(name) : id;
         }
         var statusId = effect.GetProperty("status").GetString() ?? string.Empty;
         var status = StatusTypes.TryGet(statusId, out var definition) ? definition!.DisplayName : statusId;
         var modifier = effect.GetProperty("modifierType").GetString() ?? string.Empty;
         var amount = effect.GetProperty("value").GetDouble();
-        return $"{status} {modifier} {amount}";
+        return modifier switch
+        {
+            "FLAT" => $"{status} {amount:+0.##;-0.##;0}",
+            "SCALAR" => $"{status} {amount * 100:+0.##;-0.##;0}%",
+            _ => $"{status} {modifier} {amount}",
+        };
     }
 
     private WebSkillTreeProfileResponse EmptySkillTree() => new()
@@ -327,5 +341,5 @@ public sealed class WebPlayerProfileRepository(
         CurrentAccount = profile.CurrentAccount,
     };
 
-    private static string StripLegacyColors(string value) => System.Text.RegularExpressions.Regex.Replace(value, "&[0-9A-FK-OR]", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static string StripLegacyColors(string value) => System.Text.RegularExpressions.Regex.Replace(value, "[&§][0-9A-FK-ORX]", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 }

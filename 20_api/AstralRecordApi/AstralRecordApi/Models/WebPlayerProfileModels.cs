@@ -59,6 +59,8 @@ public sealed class WebSkillTreeNodeProfileResponse
     public required double Y { get; init; }
     public required double Z { get; init; }
     public bool IsUnlocked { get; init; }
+    public bool IsConditionMet { get; init; } = true;
+    public string RequirementText { get; init; } = string.Empty;
     public string? ConsumedClassId { get; init; }
 }
 
@@ -75,7 +77,7 @@ public sealed class WebPlayerProfileVisibilityUpdateRequest
 
 public sealed class WebPlayerProfileSearchResponse
 {
-    public required IReadOnlyList<WebPlayerProfileResponse> Profiles { get; init; }
+    public required IReadOnlyList<WebPlayerProfileSummaryResponse> Profiles { get; init; }
     public required IReadOnlyList<WebPlayerProfileClassFilterResponse> Classes { get; init; }
     public required int Page { get; init; }
     public required int PageSize { get; init; }
@@ -86,4 +88,22 @@ public sealed class WebPlayerProfileClassFilterResponse
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
+}
+
+/// <summary>一覧用の概要。通貨・クラス進行・スキルツリーは詳細GETで取得する。</summary>
+public sealed class WebPlayerProfileSummaryResponse
+{
+    public required Guid UserUuid { get; init; }
+    public required string Mcid { get; init; }
+    public bool IsPublic { get; init; }
+    public WebPlayerAccountSummaryResponse? CurrentAccount { get; init; }
+}
+
+public sealed class WebPlayerAccountSummaryResponse
+{
+    public required Guid AccountId { get; init; }
+    public required string AccountName { get; init; }
+    public required int PlayerLevel { get; init; }
+    public required string ClassId { get; init; }
+    public required string ClassName { get; init; }
 }

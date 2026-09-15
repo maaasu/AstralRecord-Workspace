@@ -48,7 +48,7 @@ public sealed class WebPlayerProfileController(IWebPlayerProfileRepository repos
         [FromQuery(Name = "page_size")] int pageSize = 20,
         [FromQuery(Name = "include_private")] bool includePrivate = false)
     {
-        if (page < 1 || pageSize is < 1 or > 100
+        if (page is < 1 or > 100000 || pageSize is < 1 or > 100
             || sort is not ("level_desc" or "level_asc"))
             return BadRequest();
         return Ok(await repository.SearchAsync(viewerUserUuid, mcid, classId, sort, page, pageSize, includePrivate));

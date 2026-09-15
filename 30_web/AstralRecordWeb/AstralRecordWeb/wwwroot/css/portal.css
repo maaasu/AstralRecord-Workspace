@@ -179,3 +179,5 @@ main, .ar-footer { position: relative; }
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     .ar-reveal-ready { opacity: 1; transform: none; }
 }
+
+.ar-tree-detail p.ar-condition-unmet { color: #ffb5a4; }

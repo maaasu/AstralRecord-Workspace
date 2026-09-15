@@ -22,6 +22,21 @@ public sealed class WebPlayerProfileRepositoryTests
         await fixture.AddClassMasterAsync("paladin", "聖騎士", "adventurer");
         await fixture.AddProfileAsync(owner, "Owner", account, level: 42, isPublic: false, classId: "paladin");
         await fixture.AddProfileAsync(viewer, "Viewer", Guid.NewGuid(), level: 3, isPublic: false);
+        fixture.Game.AccountClassProgresses.Add(new AccountClassProgressEntity
+        {
+            AccountId = account, ClassId = "paladin", Level = 12, UpdatedAt = DateTime.UtcNow, UpdatedBy = owner,
+        });
+        var treeStateId = Guid.NewGuid();
+        fixture.Game.AccountSkillTreeStates.Add(new AccountSkillTreeStateEntity
+        {
+            AccountSkillTreeStateId = treeStateId, AccountId = account,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, CreatedBy = owner, UpdatedBy = owner,
+        });
+        fixture.Game.AccountSkillTreeUnlockedNodes.Add(new AccountSkillTreeUnlockedNodeEntity
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = treeStateId, NodeId = "1000",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, CreatedBy = owner, UpdatedBy = owner,
+        });
         fixture.Game.Inventories.Add(new InventoryEntity
         {
             InventoryId = Guid.NewGuid(), AccountId = account, InventoryType = "CURRENCY", InventoryProfile = "GAME",
@@ -51,8 +66,14 @@ public sealed class WebPlayerProfileRepositoryTests
         Assert.NotNull(mine);
         Assert.Equal(1234, mine.CurrentAccount!.Gold);
         Assert.Equal(account, mine.CurrentAccount.AccountId);
-        Assert.Single(mine.CurrentAccount.SkillTree.Nodes); // paladinの祖先adventurer条件とLv40条件だけを満たす。
-        Assert.False(mine.CurrentAccount.SkillTree.Nodes[0].IsUnlocked);
+        Assert.Equal(2, mine.CurrentAccount.SkillTree.Nodes.Count); // PP keeps unmet requirements visible; unrelated CP stays hidden.
+        Assert.True(mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1000").IsConditionMet);
+        Assert.False(mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1001").IsConditionMet);
+        Assert.Contains("50", mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1001").RequirementText);
+        Assert.True(mine.CurrentAccount.SkillTree.Nodes[0].IsUnlocked);
+        Assert.False(mine.CurrentAccount.SkillTree.Nodes[1].IsUnlocked);
+        Assert.Equal(12, mine.CurrentAccount.ClassLevel);
+        Assert.Contains(mine.CurrentAccount.SkillTree.Nodes[0].DisplayEffects, text => text.Contains("+10%"));
         Assert.NotNull(mismatchedProfile);
         Assert.Null(mismatchedProfile.CurrentAccount);
     }
@@ -94,6 +115,70 @@ public sealed class WebPlayerProfileRepositoryTests
         Assert.NotNull(updated);
         Assert.True(updated.IsPublic);
         Assert.NotNull(nowPublic);
+        Assert.Null(nowPublic.Permission);
+        await fixture.Repository.UpdateVisibilityAsync(privatePlayer, false);
+        Assert.Null(await fixture.Repository.GetProfileAsync(privatePlayer, publicPlayer, includePrivate: false));
+        Assert.Null(await fixture.Repository.GetProfileAsync(privatePlayer, publicPlayer, includePrivate: true));
+        Assert.NotNull(await fixture.Repository.GetProfileAsync(privatePlayer, admin, includePrivate: true));
+        fixture.Management.Players.Single(player => player.PlayerUuid == admin).WebAdmin = false;
+        await fixture.Management.SaveChangesAsync();
+        Assert.Null(await fixture.Repository.GetProfileAsync(privatePlayer, admin, includePrivate: true));
+    }
+
+    [Theory]
+    [InlineData("99a00002", 10L)]
+    [InlineData("99a00004", 1000L)]
+    [InlineData("99a00007", 1000000L)]
+    [InlineData("gold_coin", 10L)]
+    [InlineData("gold_block", 1000L)]
+    [InlineData("yggdrasil_star_core", 1000000L)]
+    public async Task Gold_ConvertsCanonicalAndLegacyDenominationsWithoutChangingInventory(string itemId, long value)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var owner = Guid.NewGuid();
+        var account = Guid.NewGuid();
+        await fixture.AddProfileAsync(owner, "Owner", account, 10, false);
+        var inventoryId = Guid.NewGuid();
+        fixture.Game.Inventories.Add(new InventoryEntity
+        {
+            InventoryId = inventoryId, AccountId = account, InventoryType = "CURRENCY", InventoryProfile = "GAME",
+            IsEnabled = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, CreatedBy = owner, UpdatedBy = owner,
+        });
+        foreach (var deleted in new[] { false, true })
+            fixture.Game.InventoryEntries.Add(new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(), InventoryId = inventoryId, ItemCategory = "currency", ItemId = itemId,
+                Quantity = 3, IsDeleted = deleted, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, CreatedBy = owner, UpdatedBy = owner,
+            });
+        await fixture.Game.SaveChangesAsync();
+        var result = await fixture.Repository.GetMyProfileAsync(owner);
+        Assert.Equal(value * 3, result!.CurrentAccount!.Gold);
+        Assert.Equal(2, await fixture.Game.InventoryEntries.CountAsync());
+        Assert.All(fixture.Game.InventoryEntries, entry => Assert.Equal(3, entry.Quantity));
+    }
+
+    [Fact]
+    public async Task Search_UsesCurrentMcidAndLightweightSummaryAndStablePaging()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var admin = Guid.NewGuid();
+        var owner = Guid.NewGuid();
+        await fixture.AddProfileAsync(admin, "Admin", Guid.NewGuid(), 10, false, webAdmin: true);
+        await fixture.AddProfileAsync(owner, "OldName", Guid.NewGuid(), 20, true);
+        fixture.Game.Users.Single(user => user.Uuid == owner).Mcid = "NewName";
+        await fixture.Game.SaveChangesAsync();
+        var old = await fixture.Repository.SearchAsync(admin, "OldName", null, "level_desc", 1, 20, true);
+        var current = await fixture.Repository.SearchAsync(admin, "newname", null, "level_desc", 1, 20, true);
+        Assert.Empty(old.Profiles);
+        Assert.Equal("NewName", Assert.Single(current.Profiles).Mcid);
+        var first = await fixture.Repository.SearchAsync(admin, null, null, "level_asc", 1, 1, true);
+        var second = await fixture.Repository.SearchAsync(admin, null, null, "level_asc", 2, 1, true);
+        Assert.Equal(admin, Assert.Single(first.Profiles).UserUuid);
+        Assert.Equal(owner, Assert.Single(second.Profiles).UserUuid);
+        Assert.Equal(2, first.TotalCount);
+        var json = System.Text.Json.JsonSerializer.Serialize(current);
+        Assert.DoesNotContain("SkillTree", json);
+        Assert.DoesNotContain("Gold", json);
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -148,13 +233,16 @@ public sealed class WebPlayerProfileRepositoryTests
             Directory.CreateDirectory(Path.Combine(result.filebaseRoot, "35.features.skilltree", "structures"));
             Directory.CreateDirectory(Path.Combine(result.filebaseRoot, "35.features.skilltree", "nodes"));
             await File.WriteAllTextAsync(Path.Combine(result.filebaseRoot, "35.features.skilltree", "structures", "starter.json"), """
-                {"structureId":"starter","name":"Test Tree","rootNodeId":"1000","nodes":[{"nodeId":"1000","x":0,"y":0,"z":0},{"nodeId":"1001","x":1,"y":0,"z":0}],"edges":[{"sourceNodeId":"1000","targetNodeId":"1001"}]}
+                {"structureId":"starter","name":"Test Tree","rootNodeId":"1000","nodes":[{"nodeId":"1000","x":0,"y":0,"z":0},{"nodeId":"1001","x":1,"y":0,"z":0},{"nodeId":"1002","x":2,"y":0,"z":0}],"edges":[{"sourceNodeId":"1000","targetNodeId":"1001"}]}
                 """);
             await File.WriteAllTextAsync(Path.Combine(result.filebaseRoot, "35.features.skilltree", "nodes", "1000.json"), """
-                {"nodeId":"1000","name":"&dTest Node","icon":"STONE","pointType":"PP","pointCost":0,"unlockCondition":{"classId":"adventurer","playerLevel":40},"effects":[{"type":"status","status":"STRENGTH","modifierType":"FLAT","value":1}]}
+                {"nodeId":"1000","name":"&dTest Node","icon":"STONE","pointType":"PP","pointCost":0,"unlockCondition":{"classId":"adventurer","playerLevel":40},"effects":[{"type":"status","status":"STRENGTH","modifierType":"FLAT","value":1},{"type":"status","status":"MAX_HEALTH","modifierType":"SCALAR","value":0.1}]}
                 """);
             await File.WriteAllTextAsync(Path.Combine(result.filebaseRoot, "35.features.skilltree", "nodes", "1001.json"), """
                 {"nodeId":"1001","name":"Hidden Node","icon":"STONE","pointType":"PP","pointCost":0,"unlockCondition":{"playerLevel":50},"effects":[]}
+                """);
+            await File.WriteAllTextAsync(Path.Combine(result.filebaseRoot, "35.features.skilltree", "nodes", "1002.json"), """
+                {"nodeId":"1002","name":"Other Class CP","icon":"STONE","pointType":"CP","pointCost":1,"unlockCondition":{"classId":"mage"},"effects":[]}
                 """);
             return result;
         }

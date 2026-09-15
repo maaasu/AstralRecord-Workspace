@@ -28,7 +28,9 @@
         const select = node => {
             groups.forEach((g, id) => g.setAttribute('aria-pressed', String(id === node.nodeId)));
             viewer.querySelector('[data-node-name]').textContent = node.name;
-            viewer.querySelector('[data-node-state]').textContent = node.isUnlocked ? '◆ 解放済み' : '◇ 未解放';
+            viewer.querySelector('[data-node-state]').textContent = node.isUnlocked ? '◆ 解放済み' : node.isConditionMet === false ? '◇ 未解放・必要条件未達' : '◇ 未解放';
+            viewer.querySelector('[data-node-requirement]').textContent = node.requirementText ?? '';
+            viewer.querySelector('[data-node-requirement]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
             viewer.querySelector('[data-node-cost]').textContent = `${node.pointType === 'PP' ? 'プレイヤーポイント' : 'クラスポイント'}（${node.pointType}）: ${node.pointCost}`;
             viewer.querySelector('[data-node-lore]').textContent = (node.lore ?? []).join('\n');
             viewer.querySelector('[data-node-effects]').textContent = (node.displayEffects ?? []).join('\n');

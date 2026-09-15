@@ -2,6 +2,12 @@ USE [ManagementDB];
 GO
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
+DECLARE @lockResult INT;
+EXEC @lockResult = sys.sp_getapplock
+    @Resource = N'ManagementDB.schema_migration', @LockMode = N'Exclusive',
+    @LockOwner = N'Transaction', @LockTimeout = 60000;
+IF @lockResult < 0
+    THROW 51000, 'ManagementDB migration lock unavailable.', 1;
 
 IF OBJECT_ID(N'dbo.schema_migration', N'U') IS NULL
     THROW 51010, 'dbo.schema_migration is missing. Run ManagementDB init.sql first.', 1;
