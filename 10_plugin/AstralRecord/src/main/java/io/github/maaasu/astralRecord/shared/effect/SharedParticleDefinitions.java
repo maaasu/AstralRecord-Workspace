@@ -948,7 +948,7 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_SPARK =
         new SharedParticleDefinition("skill_paladin_shield_impact_spark", Particle.ELECTRIC_SPARK, 1, 0.03D, 0.03D, 0.03D, 0.04D);
     public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_FLASH =
-        new SharedParticleDefinition("skill_paladin_shield_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        new SharedParticleDefinition("skill_paladin_shield_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
     public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_DEFENSE_DOWN =
         new SharedParticleDefinition(
             "skill_paladin_shield_impact_defense_down",
