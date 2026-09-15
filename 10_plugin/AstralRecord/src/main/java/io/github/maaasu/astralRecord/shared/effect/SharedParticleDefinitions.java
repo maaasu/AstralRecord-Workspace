@@ -945,16 +945,20 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_EXPLOSION =
         new SharedParticleDefinition("skill_paladin_shield_impact_explosion", Particle.EXPLOSION, 4, 0.35D, 0.25D, 0.35D, 0.0D);
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_SPARK =
+        new SharedParticleDefinition("skill_paladin_shield_impact_spark", Particle.ELECTRIC_SPARK, 1, 0.03D, 0.03D, 0.03D, 0.04D);
+    public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_FLASH =
+        new SharedParticleDefinition("skill_paladin_shield_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_PALADIN_SHIELD_IMPACT_DEFENSE_DOWN =
         new SharedParticleDefinition(
             "skill_paladin_shield_impact_defense_down",
             Particle.DUST,
             1,
+            0.01D,
+            0.01D,
+            0.01D,
             0.0D,
-            0.0D,
-            0.0D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(75, 90, 110), 1.20F)
+            new Particle.DustOptions(Color.fromRGB(55, 155, 255), 1.25F)
         );
     public static final SharedParticleDefinition SKILL_PALADIN_FORTRESS_DUST =
         new SharedParticleDefinition(

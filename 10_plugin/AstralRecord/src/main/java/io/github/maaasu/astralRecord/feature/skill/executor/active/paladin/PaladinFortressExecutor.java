@@ -33,6 +33,12 @@ public final class PaladinFortressExecutor extends PlayerActiveSkillExecutor {
         requirePositiveInt(params, "durationTicks");
         requirePositiveInt(params, "pulseIntervalTicks");
         requirePositiveInt(params, "tauntHoldTicks");
+        requirePositiveInt(params, "visualIntervalTicks");
+        int pulseIntervalTicks = params.getInt("pulseIntervalTicks", 0);
+        int visualIntervalTicks = params.getInt("visualIntervalTicks", 0);
+        if (pulseIntervalTicks % visualIntervalTicks != 0) {
+            throw new SkillParameterException("pulseIntervalTicks", "挑発間隔は演出間隔の倍数が必要です");
+        }
     }
 
     @Override
@@ -44,14 +50,17 @@ public final class PaladinFortressExecutor extends PlayerActiveSkillExecutor {
         int durationTicks = params.getInt("durationTicks", 220);
         int intervalTicks = params.getInt("pulseIntervalTicks", 20);
         int tauntHoldTicks = params.getInt("tauntHoldTicks", 21);
-        int executions = Math.max(1, (durationTicks + intervalTicks - 1) / intervalTicks);
+        int visualIntervalTicks = params.getInt("visualIntervalTicks", 5);
+        int executions = Math.max(1, (durationTicks + visualIntervalTicks - 1) / visualIntervalTicks);
+        int tauntEveryFrames = intervalTicks / visualIntervalTicks;
         Player player = context.player();
         World world = player.getWorld();
         AstEntity attacker = context.attacker();
         context.services().tasks().repeat(
-                player.getUniqueId(), ID, 0L, intervalTicks, executions,
+                player.getUniqueId(), ID, 0L, visualIntervalTicks, executions,
                 frame -> pulse(
-                        context, player, world, attacker, radius, height, maxTargets, tauntHoldTicks
+                        context, player, world, attacker, frame, visualIntervalTicks,
+                        tauntEveryFrames, durationTicks, radius, height, maxTargets, tauntHoldTicks
                 )
         );
         return context.success();
@@ -62,6 +71,10 @@ public final class PaladinFortressExecutor extends PlayerActiveSkillExecutor {
             @NotNull Player player,
             @NotNull World world,
             @NotNull AstEntity attacker,
+            int frame,
+            int visualIntervalTicks,
+            int tauntEveryFrames,
+            int durationTicks,
             double radius,
             double height,
             int maxTargets,
@@ -72,13 +85,22 @@ public final class PaladinFortressExecutor extends PlayerActiveSkillExecutor {
             return;
         }
         Location center = player.getLocation().clone().add(0.0D, 1.0D, 0.0D);
+        context.services().effects().point(center, SharedParticleDefinitions.CHALLENGING_ROAR_WARPED_SPORE);
+        if (frame % tauntEveryFrames != 0) {
+            return;
+        }
+        long remainingTicks = durationTicks - (long) frame * visualIntervalTicks;
+        if (remainingTicks <= 0L) {
+            return;
+        }
+        int effectiveTauntHoldTicks = (int) Math.min((long) tauntHoldTicks, remainingTicks);
         context.services().effects().ring(
                 player.getLocation().clone().add(0.0D, 0.10D, 0.0D),
                 radius, 48, SharedParticleDefinitions.SKILL_PALADIN_FORTRESS_DUST
         );
         context.services().targeting().inRadius(
                 player, center, radius, height, maxTargets, false
-        ).forEach(target -> context.services().combat().taunt(attacker, target, tauntHoldTicks));
+        ).forEach(target -> context.services().combat().taunt(attacker, target, effectiveTauntHoldTicks));
     }
 
     private static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {

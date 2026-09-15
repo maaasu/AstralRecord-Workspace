@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** 水色の盾面を前進させ、接触した敵を攻撃・減速・ノックバックするスキルです。 */
+/** 水色の盾面を視点方向へ前進させ、接触した敵を攻撃・減速・ノックバックするスキルです。 */
 public final class PaladinShieldBashExecutor extends PlayerActiveSkillExecutor {
     public static final String ID = "paladin_shield_bash";
 
@@ -65,6 +66,8 @@ public final class PaladinShieldBashExecutor extends PlayerActiveSkillExecutor {
         World world = player.getWorld();
         Location origin = player.getLocation().clone().add(0.0D, height * 0.5D, 0.0D);
         Vector direction = context.direction();
+        context.services().effects().sound(origin, Sound.ITEM_SHIELD_BLOCK, 0.95F, 1.35F);
+        context.services().effects().sound(origin, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.65F, 1.45F);
         Vector horizontal = direction.clone().setY(0.0D);
         if (horizontal.lengthSquared() <= 1.0E-8D) {
             horizontal.setZ(1.0D);
@@ -75,7 +78,7 @@ public final class PaladinShieldBashExecutor extends PlayerActiveSkillExecutor {
         context.services().tasks().repeat(
                 player.getUniqueId(), ID, 0L, 1L, travelTicks,
                 frame -> advance(
-                        context, player, world, origin, horizontal, right, frame,
+                        context, player, world, origin, direction, right, frame,
                         range, width, height, travelTicks, hitCooldownTicks, damageRatio,
                         speedReductionRatio, slowDurationTicks, knockbackStrength, lastHitFrames
                 )

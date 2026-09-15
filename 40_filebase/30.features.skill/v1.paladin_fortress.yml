@@ -11,6 +11,7 @@ icon: REINFORCED_DEEPSLATE
 lore:
   - "&7半径{skill.radius}m・上下{skill.height}mの敵を1秒ごとに最大{skill.maxTargets}体挑発する。"
   - "&7挑発中は脅威値に関係なく自身を攻撃対象にする。"
+  - "&7発動中は{skill.visualIntervalTicks}tickごとに要塞のオーラを表示する。"
   - "&7持続時間: Lv.1で11秒 / Lv.2で12秒"
 cooldownTicks: 360
 resourceType: ENERGY
@@ -25,12 +26,13 @@ levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 onCast:
   sound: entity.ravager.roar
 params:
-  radius: 8.0
+  radius: 12.0
   height: 8.0
   maxTargets: 24
   durationTicks: 220
   pulseIntervalTicks: 20
   tauntHoldTicks: 21
+  visualIntervalTicks: 5
 tags:
   - active
   - defense

@@ -84,11 +84,11 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力を
 
 `paladin_guard_convert` は最大Lv10のバインド必須パッシブです。防御力計算を除いた被ダメージを基準に、`軽減率×10 + 最大HPに対する実HPダメージ率×10` をGuardへ加算し、最大値を`スキルレベル×10`とします。10秒間Guardが増加しない場合、減少開始時点の値の10%を毎秒失い、再増加時は減少を停止して10秒待機へ戻ります。使用許可はGuardian枝のnode `1529` から与えます。
 
-`paladin_shield_bash` はGuard4、1秒cooldown、詠唱なし、最大Lv5です。幅1m・高さ2mの水色盾面を15tickかけて前方5mへ移動させ、接触した全Mobへ近接攻撃力の`Lv×10%`を与えます。同一対象の再命中間隔は3tickで、3秒間の移動速度90%低下とノックバック耐性を反映する後方ノックバックを適用します。使用許可はnode `1530` から与えます。
+`paladin_shield_bash` はGuard4、1秒cooldown、詠唱なし、最大Lv5です。幅1m・高さ2mの水色盾面を発動時に固定した視点方向へ15tickかけて5m移動させ、接触した全Mobへ近接攻撃力の`Lv×10%`を与えます。同一対象の再命中間隔は3tickで、3秒間の移動速度90%低下とノックバック耐性を反映する後方ノックバックを適用します。発動音は `entity.player.attack.sweep` を基音とし、盾音とアメジスト音をpitch変更付きで重ねます。使用許可はnode `1530` から与えます。
 
-`paladin_shield_impact` はGuard10、10秒cooldown、15tick詠唱、最大Lv5です。半径6mの全Mobへ近接攻撃力の`Lv×55%`を与え、全体防御を30%低下させる効果を5秒間適用します。発動時は `block.anvil.land` を再生します。使用許可はnode `1531` から与えます。
+`paladin_shield_impact` はGuard10、10秒cooldown、15tick詠唱、最大Lv5です。半径6mの全Mobへ近接攻撃力の`Lv×55%`を与え、全体防御を30%低下させる効果を5秒間適用します。発動時は `block.anvil.land` に攻撃音と盾音を重ね、5重の水色爆発ring、電気spark ring、flashを表示します。防御低下が成立した対象には、青色DUSTが上方から中心へ収束する下降ラインと終端ringを表示します。使用許可はnode `1531` から与えます。
 
-`paladin_fortress` はENG30、18秒cooldown、詠唱なし、最大Lv2です。半径8m・上下8mのMob最大24体を1秒ごとに挑発し、Lv1で11秒、Lv2で12秒維持します。使用許可はnode `1532` から与えます。
+`paladin_fortress` はENG30、18秒cooldown、詠唱なし、最大Lv2です。半径12m・上下8mのMob最大24体を1秒ごとに挑発し、Lv1で11秒、Lv2で12秒維持します。発動中は5tickごとにチャレンジングロアと同じ `CHALLENGING_ROAR_WARPED_SPORE` を表示し、挑発pulseごとに青色要塞ringを表示します。最終pulseの挑発保持は残り持続tickへ切り詰めます。使用許可はnode `1532` から与えます。
 
 `paladin_guardian_protect` はMP25、10秒cooldown、詠唱なし、最大Lv1です。視線方向を広い当たり判定で探索したパーティーメンバー1人を10秒間保護し、対象が受ける最終HPダメージの90%を発動者へ防御再計算なしで肩代わりします。対象へ発動者名と残り秒数を通知し、両者をEND_RODで結びます。使用許可はnode `1533` から与えます。
 

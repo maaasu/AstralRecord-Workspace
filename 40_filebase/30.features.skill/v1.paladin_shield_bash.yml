@@ -9,7 +9,7 @@ name: "&bシールドバッシュ"
 description: "&7前進する盾面で敵を打ち払い、強く減速させる。"
 icon: COPPER_GRATE
 lore:
-  - "&7幅{skill.width}m・高さ{skill.height}mの盾面を{skill.travelTicks}tickかけて前方{skill.range}mへ進める。"
+  - "&7幅{skill.width}m・高さ{skill.height}mの盾面を{skill.travelTicks}tickかけて視点方向へ{skill.range}m進める。"
   - "&7接触した全敵へ近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
   - "&7移動速度を{skill.movementSpeedReductionRatio:percent}%低下させ、後方へノックバックする。"
   - "&7減速時間: {skill.slowDurationTicks:seconds}秒 / 同一対象の再命中間隔: {skill.hitCooldownTicks}tick"
@@ -27,7 +27,7 @@ levels:
 learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
 onCast:
-  sound: item.shield.block
+  sound: entity.player.attack.sweep
 params:
   range: 5.0
   width: 1.0
