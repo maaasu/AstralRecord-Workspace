@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -53,6 +54,20 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
             ErrorMessage = ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden
                 ? "API の認証に失敗しました。Web 側の API キー設定を確認してください。"
                 : "アイテムマスタの取得に失敗しました。API と MasterDataDB の状態を確認してください。";
+            allItems = [];
+        }
+        catch (JsonException)
+        {
+            ErrorMessage = "アイテムマスタの形式が不正です。API と Web の更新状態を確認してください。";
+            allItems = [];
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorMessage = "アイテムマスタの取得がタイムアウトしました。しばらくしてから再試行してください。";
             allItems = [];
         }
 

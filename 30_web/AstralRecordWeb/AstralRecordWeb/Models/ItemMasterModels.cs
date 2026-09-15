@@ -19,11 +19,15 @@ public class ItemMasterResponse
 
     public required string Icon { get; init; }
 
+    public string? IconTexture { get; init; }
+
     public required string Rarity { get; init; }
 
     public int SaleValue { get; init; }
 
     public int? CustomModelData { get; init; }
+
+    public ItemAppearanceResponse? Appearance { get; init; }
 
     public int MaxStack { get; init; } = 64;
 
@@ -43,7 +47,16 @@ public class ItemMasterResponse
 
     public ItemRuneResponse? Rune { get; init; }
 
+    public ItemSigilResponse? Sigil { get; init; }
+
     public ItemOrbResponse? Orb { get; init; }
+}
+
+public class ItemAppearanceResponse
+{
+    public string? Color { get; init; }
+
+    public string? PotionType { get; init; }
 }
 
 public class ItemConsumableResponse
@@ -55,11 +68,17 @@ public class ItemConsumableResponse
 
 public class ItemConsumableOnUseResponse
 {
+    public string? UsingSound { get; init; }
+
     public string? Sound { get; init; }
 
     public string? Effect { get; init; }
 
     public int Amount { get; init; } = 1;
+
+    public long UseTimeTicks { get; init; } = 40;
+
+    public long CooldownTicks { get; init; } = 40;
 }
 
 public class ItemConsumableEffectResponse
@@ -87,17 +106,13 @@ public class ItemEquipmentResponse
 
     public int RequiredLevel { get; init; }
 
-    public IReadOnlyList<string> RequiredClasses { get; init; } = [];
+    public IReadOnlyList<ItemEquipmentRequiredClassResponse> RequiredClasses { get; init; } = [];
 
     public string? SetId { get; init; }
 
     public IReadOnlyList<ItemEquipmentStatResponse> Stats { get; init; } = [];
 
     public ItemEquipmentDurabilityResponse? Durability { get; init; }
-
-    public ItemEquipmentOnUseResponse? OnUse { get; init; }
-
-    public IReadOnlyList<string> Skills { get; init; } = [];
 
     public ItemEquipmentEnhanceResponse? Enhance { get; init; }
 
@@ -106,6 +121,13 @@ public class ItemEquipmentResponse
     public ItemEquipmentRuneResponse? Rune { get; init; }
 
     public IReadOnlyList<ItemEquipmentTranscendenceResponse> Transcendence { get; init; } = [];
+}
+
+public class ItemEquipmentRequiredClassResponse
+{
+    public required string ClassId { get; init; }
+
+    public int Level { get; init; } = 1;
 }
 
 public class ItemEquipmentStatResponse
@@ -129,17 +151,6 @@ public class ItemEquipmentDurabilityResponse
     public int? Max { get; init; }
 
     public int Consume { get; init; } = 1;
-}
-
-public class ItemEquipmentOnUseResponse
-{
-    public int? LeftClickCooldownTicks { get; init; }
-
-    public string? LeftClickSkillId { get; init; }
-
-    public int? RightClickCooldownTicks { get; init; }
-
-    public string? RightClickSkillId { get; init; }
 }
 
 public class ItemEquipmentEnhanceResponse
@@ -265,7 +276,6 @@ public class ItemRuneResponse
 
     public IReadOnlyList<ItemRuneStatResponse> Stats { get; init; } = [];
 
-    public IReadOnlyList<string> Skills { get; init; } = [];
 }
 
 public class ItemRuneStatResponse
@@ -288,8 +298,24 @@ public class ItemCurrencyResponse
     public string? ExpiresAt { get; init; }
 }
 
+public class ItemSigilResponse
+{
+    public required string EquipGroupId { get; init; }
+
+    public IReadOnlyList<ItemSigilModifierResponse> Modifiers { get; init; } = [];
+}
+
+public class ItemSigilModifierResponse
+{
+    public required string Status { get; init; }
+
+    public double Value { get; init; }
+}
+
 public class ItemBundleResponse
 {
+    public long OpenTimeTicks { get; init; } = 20;
+
     public string? LootTableId { get; init; }
 
     public IReadOnlyList<ItemBundleItemResponse> Items { get; init; } = [];
@@ -312,7 +338,37 @@ public class ItemBundleItemResponse
 
 public class ItemBundleOnUseResponse
 {
+    public ItemBundleSoundResponse? Sound { get; init; }
+
+    public ItemBundleParticleResponse? Particle { get; init; }
+}
+
+public class ItemBundleSoundResponse
+{
     public string? Sound { get; init; }
 
+    public double? Volume { get; init; }
+
+    public double? Pitch { get; init; }
+}
+
+public class ItemBundleParticleResponse
+{
     public string? Particle { get; init; }
+
+    public int? Count { get; init; }
+
+    public double? OriginOffsetX { get; init; }
+
+    public double? OriginOffsetY { get; init; }
+
+    public double? OriginOffsetZ { get; init; }
+
+    public double? OffsetX { get; init; }
+
+    public double? OffsetY { get; init; }
+
+    public double? OffsetZ { get; init; }
+
+    public double? Extra { get; init; }
 }
