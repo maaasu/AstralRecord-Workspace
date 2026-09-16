@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2027",
+  "name": "&8衰印の星環",
+  "icon": "WITHER_ROSE",
+  "tags": [
+    "status",
+    "offense",
+    "condition",
+    "weakness",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "WEAKNESS_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2037",
+  "name": "&6闇幕の極星",
+  "icon": "SCULK_CATALYST",
+  "tags": [
+    "status",
+    "offense",
+    "condition",
+    "blindness",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "BLINDNESS_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "CONDITION_DURATION_INCREASE",
+      "modifierType": "FLAT",
+      "value": 4
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

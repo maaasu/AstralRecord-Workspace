@@ -1,0 +1,41 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2097",
+  "name": "&d幻影の星路",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "mana",
+    "agility",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

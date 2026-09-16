@@ -1,0 +1,34 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2107",
+  "name": "&d双魂の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "primary",
+    "dexterity",
+    "intelligence",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

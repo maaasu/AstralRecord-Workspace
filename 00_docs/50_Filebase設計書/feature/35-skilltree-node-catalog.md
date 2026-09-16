@@ -278,6 +278,65 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 
+## ファントムアーチャー専門枝
+
+ファントムアーチャーは共通24node、Shadow 48node、Specter 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` であり、skill効果を持たない。
+
+### 共通パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-phantom-common-path` | `2000`, `2001`, `2008`, `2009`, `2016`, `2017` | RANGED_ATTACK / DEXTERITY `SCALAR +0.005`、MAX_ENERGY `FLAT +5` | `&5幽弓の星路` | `SPECTRAL_ARROW` | `status`, `offense`, `resource`, `dexterity`, `energy`, `dark` |
+| `status-phantom-common-ranged` | `2002`〜`2004`, `2006`, `2007` | RANGED_ATTACK `SCALAR +0.015` | `&5霊矢の星環` | `SPECTRAL_ARROW` | `status`, `offense`, `dark` |
+| `status-phantom-common-ranged-notable` | `2005` | RANGED_ATTACK `SCALAR +0.04`、ACCURACY `FLAT +3` | `&6幽弓の極星` | `CROSSBOW` | `status`, `offense`, `accuracy`, `dark` |
+| `status-phantom-common-agility` | `2010`〜`2012`, `2014`, `2015` | AGILITY `SCALAR +0.015` | `&5幻歩の星環` | `PHANTOM_MEMBRANE` | `status`, `agility`, `defense`, `dark` |
+| `status-phantom-common-agility-notable` | `2013` | AGILITY `SCALAR +0.04`、MOVEMENT_SPEED `FLAT +5`、EVASION `FLAT +2` | `&6虚歩の極星` | `ECHO_SHARD` | `status`, `agility`, `defense`, `dark` |
+| `status-phantom-common-energy` | `2018`〜`2020`, `2022`, `2023` | MAX_ENERGY `FLAT +5` | `&5霊脈の星環` | `SOUL_LANTERN` | `status`, `resource`, `energy`, `dark` |
+| `status-phantom-common-energy-notable` | `2021` | MAX_ENERGY `FLAT +20`、ENERGY_REGEN `FLAT +2`、ENERGY_COST_REDUCTION `FLAT +3` | `&6冥脈の極星` | `RECOVERY_COMPASS` | `status`, `resource`, `energy`, `dark` |
+
+共通領域の全取得値は RANGED_ATTACK `SCALAR +0.145`、DEXTERITY `SCALAR +0.03`、AGILITY `SCALAR +0.115`、MAX_ENERGY `FLAT +75`、ACCURACY `FLAT +3`、MOVEMENT_SPEED `FLAT +5`、EVASION `FLAT +2`、ENERGY_REGEN `FLAT +2`、ENERGY_COST_REDUCTION `FLAT +3` である。
+
+### Shadowパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-phantom-shadow-path` | `2024`, `2025`, `2032`, `2033`, `2040`, `2041`, `2048`, `2049`, `2056`, `2057`, `2064`, `2065` | RANGED_ATTACK `SCALAR +0.005`、DEXTERITY `SCALAR +0.003`、CONDITION_DURATION_INCREASE `FLAT +1` | `&8影縫いの星路` | `BLACK_DYE` | `status`, `offense`, `condition`, `dexterity`, `dark` |
+| `status-phantom-shadow-weakness` | `2026`〜`2028`, `2030`, `2031` | WEAKNESS_APPLY_CHANCE `FLAT +3` | `&8衰印の星環` | `WITHER_ROSE` | `status`, `offense`, `condition`, `weakness`, `dark` |
+| `status-phantom-shadow-weakness-notable` | `2029` | WEAKNESS_APPLY_CHANCE `FLAT +10`、CONDITION_DURATION_INCREASE `FLAT +4` | `&6蝕印の極星` | `WITHER_SKELETON_SKULL` | `status`, `offense`, `condition`, `weakness`, `dark` |
+| `status-phantom-shadow-blindness` | `2034`〜`2036`, `2038`, `2039` | BLINDNESS_APPLY_CHANCE `FLAT +3` | `&8盲印の星環` | `INK_SAC` | `status`, `offense`, `condition`, `blindness`, `dark` |
+| `status-phantom-shadow-blindness-notable` | `2037` | BLINDNESS_APPLY_CHANCE `FLAT +10`、CONDITION_DURATION_INCREASE `FLAT +4` | `&6闇幕の極星` | `SCULK_CATALYST` | `status`, `offense`, `condition`, `blindness`, `dark` |
+| `status-phantom-shadow-duration` | `2042`〜`2044`, `2046`, `2047` | CONDITION_DURATION_INCREASE `FLAT +2` | `&8永影の星環` | `CLOCK` | `status`, `condition`, `dark` |
+| `status-phantom-shadow-duration-notable` | `2045` | CONDITION_DURATION_INCREASE `FLAT +8`、SKILL_DAMAGE_INCREASE `FLAT +2` | `&6長夜の極星` | `ECHO_SHARD` | `status`, `offense`, `condition`, `dark` |
+| `status-phantom-shadow-skill-damage` | `2050`〜`2052`, `2054`, `2055` | SKILL_DAMAGE_INCREASE `FLAT +1` | `&8影撃の星環` | `SPECTRAL_ARROW` | `status`, `offense`, `dark` |
+| `status-phantom-shadow-skill-damage-notable` | `2053` | SKILL_DAMAGE_INCREASE `FLAT +4`、COOLDOWN_REDUCTION `FLAT +3` | `&6連影の極星` | `END_CRYSTAL` | `status`, `offense`, `dark` |
+| `status-phantom-shadow-penetration` | `2058`〜`2060`, `2062`, `2063` | RANGED_DEFENSE_PENETRATION_RATE `FLAT +1` | `&8破防の星環` | `TIPPED_ARROW` | `status`, `offense`, `accuracy`, `dark` |
+| `status-phantom-shadow-penetration-notable` | `2061` | RANGED_DEFENSE_PENETRATION_RATE `FLAT +4`、ACCURACY `FLAT +2` | `&6影穿の極星` | `NETHERITE_PICKAXE` | `status`, `offense`, `accuracy`, `dark` |
+| `status-phantom-shadow-critical` | `2066`〜`2068`, `2070`, `2071` | CRITICAL_RATE `FLAT +0.6`、CRITICAL_DAMAGE `FLAT +2` | `&8狩印の星環` | `QUARTZ` | `status`, `offense`, `luck`, `dark` |
+| `status-phantom-shadow-critical-notable` | `2069` | CRITICAL_RATE `FLAT +2`、CRITICAL_DAMAGE `FLAT +10`、SKILL_DAMAGE_INCREASE `FLAT +2` | `&6影狩の極星` | `ENDER_EYE` | `status`, `offense`, `luck`, `dark` |
+
+Shadow全取得値は、経路分を含めてRANGED_ATTACK `SCALAR +0.06`、DEXTERITY `SCALAR +0.036`、WEAKNESS_APPLY_CHANCE / BLINDNESS_APPLY_CHANCEを各 `FLAT +25`、CONDITION_DURATION_INCREASE `FLAT +38`、SKILL_DAMAGE_INCREASE `FLAT +13`、COOLDOWN_REDUCTION `FLAT +3`、RANGED_DEFENSE_PENETRATION_RATE `FLAT +9`、ACCURACY `FLAT +2`、CRITICAL_RATE `FLAT +5`、CRITICAL_DAMAGE `FLAT +20` である。
+
+### Specterパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-phantom-specter-path` | `2072`, `2073`, `2080`, `2081`, `2088`, `2089`, `2096`, `2097`, `2104`, `2105`, `2112`, `2113` | SKILL_DAMAGE_INCREASE `FLAT +0.5`、MAX_MANA `FLAT +5`、AGILITY `SCALAR +0.003` | `&d幻影の星路` | `AMETHYST_SHARD` | `status`, `offense`, `resource`, `mana`, `agility`, `astral`, `dark` |
+| `status-phantom-specter-cooldown` | `2074`〜`2076`, `2078`, `2079` | COOLDOWN_REDUCTION `FLAT +1.5` | `&d霊招の星環` | `CLOCK` | `status`, `resource`, `energy`, `astral`, `dark` |
+| `status-phantom-specter-cooldown-notable` | `2077` | COOLDOWN_REDUCTION `FLAT +5`、ENERGY_COST_REDUCTION `FLAT +2` | `&6百鬼招来の極星` | `RECOVERY_COMPASS` | `status`, `resource`, `energy`, `astral`, `dark` |
+| `status-phantom-specter-skill-damage` | `2082`〜`2084`, `2086`, `2087` | SKILL_DAMAGE_INCREASE `FLAT +1` | `&d幻撃の星環` | `GHAST_TEAR` | `status`, `offense`, `astral`, `dark` |
+| `status-phantom-specter-skill-damage-notable` | `2085` | SKILL_DAMAGE_INCREASE `FLAT +4`、RANGED_ATTACK `SCALAR +0.03` | `&6幻軍の極星` | `NETHER_STAR` | `status`, `offense`, `astral`, `dark` |
+| `status-phantom-specter-mana` | `2090`〜`2092`, `2094`, `2095` | MAX_MANA `FLAT +12` | `&d霊泉の星環` | `SOUL_LANTERN` | `status`, `resource`, `mana`, `astral`, `dark` |
+| `status-phantom-specter-mana-notable` | `2093` | MAX_MANA `FLAT +30`、MP_REGEN `FLAT +2` | `&6幽泉の極星` | `CONDUIT` | `status`, `resource`, `mana`, `astral`, `dark` |
+| `status-phantom-specter-energy` | `2098`〜`2100`, `2102`, `2103` | ENERGY_COST_REDUCTION `FLAT +1.5` | `&d省霊の星環` | `HONEY_BOTTLE` | `status`, `resource`, `energy`, `astral`, `dark` |
+| `status-phantom-specter-energy-notable` | `2101` | ENERGY_COST_REDUCTION `FLAT +5`、ENERGY_REGEN `FLAT +2` | `&6霊環の極星` | `ECHO_SHARD` | `status`, `resource`, `energy`, `astral`, `dark` |
+| `status-phantom-specter-dual-primary` | `2106`〜`2108`, `2110`, `2111` | DEXTERITY / INTELLIGENCE `SCALAR +0.01` | `&d双魂の星環` | `AMETHYST_SHARD` | `status`, `primary`, `dexterity`, `intelligence`, `astral`, `dark` |
+| `status-phantom-specter-dual-primary-notable` | `2109` | DEXTERITY / INTELLIGENCE `SCALAR +0.03` | `&6共鳴の極星` | `END_CRYSTAL` | `status`, `primary`, `dexterity`, `intelligence`, `astral`, `dark` |
+| `status-phantom-specter-mobility` | `2114`〜`2116`, `2118`, `2119` | AGILITY `SCALAR +0.01`、MOVEMENT_SPEED `FLAT +1` | `&d霊渡りの星環` | `PHANTOM_MEMBRANE` | `status`, `agility`, `defense`, `astral`, `dark` |
+| `status-phantom-specter-mobility-notable` | `2117` | AGILITY `SCALAR +0.03`、MOVEMENT_SPEED `FLAT +5`、EVASION `FLAT +3` | `&6幽界渡りの極星` | `ELYTRA` | `status`, `agility`, `defense`, `astral`, `dark` |
+
+Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`、MAX_MANA `FLAT +150`、AGILITY `SCALAR +0.116`、COOLDOWN_REDUCTION `FLAT +12.5`、ENERGY_COST_REDUCTION `FLAT +14.5`、RANGED_ATTACK `SCALAR +0.03`、MP_REGEN / ENERGY_REGENを各 `FLAT +2`、DEXTERITY / INTELLIGENCEを各 `SCALAR +0.08`、MOVEMENT_SPEED `FLAT +10`、EVASION `FLAT +3` である。
+
+
 ## カタログの更新規約
 
 - 新しい能力を採用したときは、対応する node JSON と同じ変更でこの表に追加します。

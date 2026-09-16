@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2085",
+  "name": "&6幻軍の極星",
+  "icon": "NETHER_STAR",
+  "tags": [
+    "status",
+    "offense",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.03
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

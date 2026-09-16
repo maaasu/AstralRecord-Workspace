@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2076",
+  "name": "&d霊招の星環",
+  "icon": "CLOCK",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "COOLDOWN_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

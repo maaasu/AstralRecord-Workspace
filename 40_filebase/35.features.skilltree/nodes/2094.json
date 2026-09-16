@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2094",
+  "name": "&d霊泉の星環",
+  "icon": "SOUL_LANTERN",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 12
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

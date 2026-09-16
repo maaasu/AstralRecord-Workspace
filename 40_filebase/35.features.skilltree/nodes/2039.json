@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2039",
+  "name": "&8盲印の星環",
+  "icon": "INK_SAC",
+  "tags": [
+    "status",
+    "offense",
+    "condition",
+    "blindness",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "BLINDNESS_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

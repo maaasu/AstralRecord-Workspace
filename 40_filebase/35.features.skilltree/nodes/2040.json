@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2040",
+  "name": "&8影縫いの星路",
+  "icon": "BLACK_DYE",
+  "tags": [
+    "status",
+    "offense",
+    "condition",
+    "dexterity",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    },
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "CONDITION_DURATION_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

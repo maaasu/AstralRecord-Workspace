@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2098",
+  "name": "&d省霊の星環",
+  "icon": "HONEY_BOTTLE",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

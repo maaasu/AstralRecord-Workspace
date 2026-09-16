@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2116",
+  "name": "&d霊渡りの星環",
+  "icon": "PHANTOM_MEMBRANE",
+  "tags": [
+    "status",
+    "agility",
+    "defense",
+    "astral",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

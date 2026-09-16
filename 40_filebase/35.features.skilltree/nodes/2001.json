@@ -1,0 +1,40 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2001",
+  "name": "&5幽弓の星路",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "dexterity",
+    "energy",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    },
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

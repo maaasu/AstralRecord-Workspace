@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2063",
+  "name": "&8破防の星環",
+  "icon": "TIPPED_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "accuracy",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

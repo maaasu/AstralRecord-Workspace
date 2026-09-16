@@ -63,7 +63,23 @@ Holyのskill nodeは1か所へ集約しない。パラディンシールド `152
 
 ウィザード領域はX `23`〜`88`、Z `-33.1`〜`41.3` に配置する。全体は共通魔導を東へ伸ばし、エレメンタルを北側、アーケインを南側へ分ける。ウィザード表示時に同時表示されるPP・冒険者・メイジedgeとの不要な交差を作らない。
 
-`starter` は全507node・515edgeで、全nodeの相対Yは0に統一する。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。
+`starter` は全627node・650edgeで、全nodeの相対Yは0に統一する。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。
+
+## ファントムアーチャー専門枝
+
+`starter` のファントムアーチャー領域は、`2000`〜`2119` のstatus node 120個で構成する。全nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` とし、skill効果は持たせない。既存ハンターの間接攻撃notable `1266` から共通領域の入口 `2000` へ接続する。
+
+| 系統 | status node | 全取得CP | 役割 |
+|:--|:--|--:|:--|
+| 共通 | `2000`〜`2023` | 24 | RANGED_ATTACK、DEXTERITY、AGILITY、MAX_ENERGY、機動 |
+| Shadow | `2024`〜`2071` | 48 | 衰弱・盲目付与、状態異常持続、SKILL_DAMAGE_INCREASE、間接防御貫通、会心 |
+| Specter | `2072`〜`2119` | 48 | COOLDOWN_REDUCTION、SKILL_DAMAGE_INCREASE、Mana / ENG効率、DEXTERITY / INTELLIGENCE、機動 |
+
+共通領域は6node円環3個、ShadowとSpecterはそれぞれ6node円環6個で構成し、各円環の間を2nodeの短い経路で接続する。共通最外周のnotable `2021` からShadowを西側、Specterを東側へ分け、両枝を外周方向へ左右対称に広げる。各円環は同系統statusを持つ5個の通常nodeと1個のnotableで構成する。
+
+Shadowはマークを付与してからまとめて攻撃する将来skillを想定し、現行実装で利用可能な衰弱・盲目の付与確率、状態異常持続、スキルダメージ、間接防御貫通、会心を伸ばす。Specterは将来の幻影召喚skillを直接参照せず、再使用回転、スキルダメージ、MP / ENG持続、器用さと知力、移動・回避を伸ばす。召喚固有statusは現行共有カタログに存在しないため追加せず、専用skill実装時に必要なら別taskで契約を拡張する。
+
+全statusは120CPである。共通を含むShadowまたはSpecterの全取得は72CPとなる。Lv80の79CPでは一方の完成形と他系統の入口まで、Lv100の99CPでは一方の完成形と他系統の途中まで取得できるが、両系統の全取得はできない。座標範囲はX `-62.1`〜`40.1`、Z `-90.4`〜`-17`、相対Yは0とする。
 
 ## コンテンツ設計
 
@@ -92,7 +108,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域を定義します。現行は507nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域、ファントムアーチャーの共通・Shadow・Specter領域を定義します。現行は627nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -120,6 +136,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | パラディン ホーリーコントロール | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン Guardian Guard系skill | 6 | パラディンCP 6 | `classId: paladin` |
 | ウィザード共通魔導 / エレメンタル / アーケイン | 120 | ウィザードCP 120（24 / 48 / 48） | `classId: wizard` |
+| ファントムアーチャー共通 / Shadow / Specter | 120 | ファントムアーチャーCP 120（24 / 48 / 48） | `classId: phantom_archer` |
 | 追加汎用PP | 28 | PP 28 | playerLevelのみ |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
@@ -139,6 +156,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` と、Guard系入口 `paladin_guard_convert` の1CP node `1529` を別方向へ分岐します。`1529`から盾攻撃側の`paladin_shield_bash` `1530`→`paladin_shield_impact` `1531`、防衛制御側の`paladin_fortress` `1532`→`paladin_guardian_protect` `1533` / `paladin_guardian_chain` `1534`へ接続し、Holy skillとは反対の西側へ配置します。Holy側の既存配置は維持し、skill nodeはstatus nodeへ混載しません。
 - ウィザードはメイジnode `1320` から24nodeの共通魔導へ入り、その終端から48nodeのエレメンタルと48nodeのアーケインへ分岐します。エレメンタルは火・氷・雷のダメージと貫通を同率で伸ばし、アーケインは最大MP、魔法攻撃力、知力、スキルダメージ、魔法防御貫通、詠唱短縮を伸ばします。120nodeはすべてstatus nodeとし、skill使用許可を混載しません。
+- ファントムアーチャーはハンターの間接攻撃notable `1266` から24nodeの共通領域へ入り、notable `2021` でShadowとSpecterへ分岐します。各専門枝は48nodeで、skill nodeを混載しません。Shadowはマーク型を支える状態異常・貫通・会心、Specterは幻影型を支えるスキル回転・リソース・複合能力・機動を担当します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用
