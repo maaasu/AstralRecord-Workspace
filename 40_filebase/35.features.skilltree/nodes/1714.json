@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1714",
+  "name": "&b見切りの星環",
+  "icon": "SPYGLASS",
+  "tags": [
+    "status",
+    "offense",
+    "defense",
+    "agility"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "EVASION",
+      "modifierType": "FLAT",
+      "value": 0.25
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

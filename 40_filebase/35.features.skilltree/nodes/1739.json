@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1739",
+  "name": "&c連斬の星環",
+  "icon": "IRON_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MELEE_ATTACK",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

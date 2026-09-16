@@ -276,6 +276,58 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `skill-paladin-guardian-protect` | `1533` | `skill / paladin_guardian_protect` | `&bガーディアンプロテクト` | `GLOBE_BANNER_PATTERN` | `defense` |
 | `skill-paladin-guardian-chain` | `1534` | `skill / paladin_guardian_chain` | `&3ガーディアンチェイン` | `LEAD` | `defense` |
 
+## ソードマスター専門枝
+
+ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: swordmaster` である。今回はskill使用許可nodeを含めない。
+
+### 共通剣技パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-swordmaster-common-path` | `1655`, `1656`, `1663`, `1664`, `1671`, `1672` | ATTACK / STRENGTH `SCALAR +0.005`、DEFENSE / MAGIC_DEFENSE `SCALAR +0.003` | `&d剣理の星路` | `IRON_SWORD` | `status`, `offense`, `defense`, `strength` |
+| `status-swordmaster-common-offense` | `1657`〜`1661` | ATTACK / STRENGTH `SCALAR +0.01` | `&d剣気の星環` | `IRON_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-common-offense-notable` | `1662` | ATTACK / STRENGTH `SCALAR +0.03` | `&6剣豪の極星` | `NETHERITE_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-common-accuracy` | `1665`〜`1669` | ACCURACY `FLAT +0.5` | `&d明鏡の星環` | `SPYGLASS` | `status`, `offense`, `agility` |
+| `status-swordmaster-common-accuracy-notable` | `1670` | ACCURACY `FLAT +2.5`、CRITICAL_RATE `FLAT +1.5` | `&6無明断ちの極星` | `ENDER_EYE` | `status`, `offense`, `agility` |
+| `status-swordmaster-common-defense` | `1673`〜`1677` | MAX_HEALTH `FLAT +20`、DEFENSE / MAGIC_DEFENSE `SCALAR +0.005` | `&d護身の星環` | `CHAINMAIL_CHESTPLATE` | `status`, `defense`, `health`, `durability` |
+| `status-swordmaster-common-defense-notable` | `1678` | MAX_HEALTH `FLAT +60`、DEFENSE / MAGIC_DEFENSE `SCALAR +0.02` | `&6金剛身の極星` | `TOTEM_OF_UNDYING` | `status`, `defense`, `health`, `durability` |
+
+### 剣聖パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-swordmaster-sword-saint-path` | `1679`, `1680`, `1687`, `1688`, `1695`, `1696`, `1703`, `1704`, `1711`, `1712`, `1719`, `1720` | SKILL_DAMAGE_INCREASE `FLAT +0.4`、COOLDOWN_REDUCTION `FLAT +0.2` | `&f一閃の星路` | `LIGHTNING_ROD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-saint-strike` | `1681`〜`1685` | MELEE_ATTACK `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +0.5` | `&f必殺の星環` | `IRON_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-saint-strike-notable` | `1686` | MELEE_ATTACK `FLAT +8`、SKILL_DAMAGE_INCREASE `FLAT +3` | `&6一刀両断の極星` | `NETHERITE_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-saint-critical` | `1689`〜`1693` | CRITICAL_DAMAGE `FLAT +3` | `&f会心の星環` | `QUARTZ` | `status`, `offense`, `astral` |
+| `status-swordmaster-sword-saint-critical-notable` | `1694` | CRITICAL_RATE `FLAT +3`、CRITICAL_DAMAGE `FLAT +10` | `&6天剣の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
+| `status-swordmaster-sword-saint-penetration` | `1697`〜`1701` | MELEE_DEFENSE_PENETRATION_RATE `FLAT +1` | `&f破甲の星環` | `FLINT` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-saint-penetration-notable` | `1702` | MELEE_DEFENSE_PENETRATION_RATE `FLAT +5`、DEFENSE_PENETRATION_RATE `FLAT +2` | `&6無鎧の極星` | `DIAMOND_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-saint-parry` | `1705`〜`1709` | DEFENSE / MAGIC_DEFENSE `SCALAR +0.005` | `&b受流しの星環` | `SHIELD` | `status`, `defense`, `durability` |
+| `status-swordmaster-sword-saint-parry-notable` | `1710` | DEFENSE / MAGIC_DEFENSE `SCALAR +0.02`、EVASION `FLAT +2` | `&6不動剣の極星` | `TOTEM_OF_UNDYING` | `status`, `defense`, `durability` |
+| `status-swordmaster-sword-saint-foresight` | `1713`〜`1717` | ACCURACY `FLAT +0.5`、EVASION `FLAT +0.25` | `&b見切りの星環` | `SPYGLASS` | `status`, `offense`, `defense`, `agility` |
+| `status-swordmaster-sword-saint-foresight-notable` | `1718` | ACCURACY `FLAT +2.5`、EVASION `FLAT +1.25`、CRITICAL_RATE `FLAT +2` | `&6明鏡止水の極星` | `ENDER_EYE` | `status`, `offense`, `defense`, `agility` |
+| `status-swordmaster-sword-saint-cooldown` | `1721`〜`1725` | COOLDOWN_REDUCTION `FLAT +0.8` | `&f残心の星環` | `CLOCK` | `status`, `offense`, `resource`, `energy` |
+| `status-swordmaster-sword-saint-cooldown-notable` | `1726` | COOLDOWN_REDUCTION `FLAT +4`、ENERGY_COST_REDUCTION `FLAT +5` | `&6刹那輪廻の極星` | `RECOVERY_COMPASS` | `status`, `offense`, `resource`, `energy` |
+
+### 剣舞パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-swordmaster-sword-dance-path` | `1727`, `1728`, `1735`, `1736`, `1743`, `1744`, `1751`, `1752`, `1759`, `1760`, `1767`, `1768` | ATTACK_SPEED `FLAT +0.5`、MAX_ENERGY `FLAT +2` | `&c連舞の星路` | `FEATHER` | `status`, `offense`, `resource`, `energy`, `agility` |
+| `status-swordmaster-sword-dance-speed` | `1729`〜`1733` | ATTACK_SPEED `FLAT +1` | `&c疾風の星環` | `FEATHER` | `status`, `offense`, `agility` |
+| `status-swordmaster-sword-dance-speed-notable` | `1734` | ATTACK_SPEED `FLAT +4`、MOVEMENT_SPEED `FLAT +4` | `&6神速の極星` | `RABBIT_FOOT` | `status`, `offense`, `agility` |
+| `status-swordmaster-sword-dance-combo` | `1737`〜`1741` | MELEE_ATTACK `FLAT +1`、ATTACK `SCALAR +0.005` | `&c連斬の星環` | `IRON_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-dance-combo-notable` | `1742` | MELEE_ATTACK `FLAT +5`、ATTACK `SCALAR +0.025` | `&6千刃の極星` | `DIAMOND_SWORD` | `status`, `offense`, `strength` |
+| `status-swordmaster-sword-dance-energy` | `1745`〜`1749` | ENERGY_COST_REDUCTION `FLAT +1` | `&b節気の星環` | `HONEY_BOTTLE` | `status`, `resource`, `energy`, `azure` |
+| `status-swordmaster-sword-dance-energy-notable` | `1750` | ENERGY_COST_REDUCTION `FLAT +5`、ENERGY_REGEN `FLAT +2` | `&6無窮の極星` | `BEACON` | `status`, `resource`, `energy` |
+| `status-swordmaster-sword-dance-sustain` | `1753`〜`1757` | MAX_HEALTH `FLAT +20`、LIFE_STEAL `FLAT +0.2` | `&c不倒の星環` | `GLOW_BERRIES` | `status`, `offense`, `resource`, `health`, `durability` |
+| `status-swordmaster-sword-dance-sustain-notable` | `1758` | MAX_HEALTH `FLAT +60`、LIFE_STEAL `FLAT +1.5` | `&6血華の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `offense`, `resource`, `health`, `durability` |
+| `status-swordmaster-sword-dance-critical` | `1761`〜`1765` | CRITICAL_RATE `FLAT +0.5` | `&d会心の星環` | `QUARTZ` | `status`, `offense` |
+| `status-swordmaster-sword-dance-critical-notable` | `1766` | CRITICAL_RATE `FLAT +2.5`、CRITICAL_DAMAGE `FLAT +8` | `&6乱舞の極星` | `NETHER_STAR` | `status`, `offense`, `agility` |
+| `status-swordmaster-sword-dance-finale` | `1769`〜`1773` | ATTACK_SPEED `FLAT +1`、SKILL_DAMAGE_INCREASE `FLAT +0.5` | `&c剣舞の星環` | `REDSTONE` | `status`, `offense`, `agility` |
+| `status-swordmaster-sword-dance-finale-notable` | `1774` | ATTACK_SPEED `FLAT +4`、SKILL_DAMAGE_INCREASE `FLAT +3`、MOVEMENT_SPEED `FLAT +3` | `&6終演の極星` | `NETHERITE_SWORD` | `status`, `offense`, `agility` |
+
 `1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 
 ## ファントムアーチャー専門枝

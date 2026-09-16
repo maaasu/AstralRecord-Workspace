@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1750",
+  "name": "&6無窮の極星",
+  "icon": "BEACON",
+  "tags": [
+    "status",
+    "resource",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

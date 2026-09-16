@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1692",
+  "name": "&f会心の星環",
+  "icon": "QUARTZ",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

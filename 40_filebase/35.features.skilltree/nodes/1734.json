@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1734",
+  "name": "&6神速の極星",
+  "icon": "RABBIT_FOOT",
+  "tags": [
+    "status",
+    "offense",
+    "agility"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 4
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

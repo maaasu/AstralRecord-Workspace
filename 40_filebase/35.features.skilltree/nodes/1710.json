@@ -1,0 +1,37 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1710",
+  "name": "&6不動剣の極星",
+  "icon": "TOTEM_OF_UNDYING",
+  "tags": [
+    "status",
+    "defense",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.02
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.02
+    },
+    {
+      "type": "status",
+      "status": "EVASION",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

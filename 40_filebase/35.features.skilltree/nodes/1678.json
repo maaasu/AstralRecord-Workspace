@@ -1,0 +1,38 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1678",
+  "name": "&6金剛身の極星",
+  "icon": "TOTEM_OF_UNDYING",
+  "tags": [
+    "status",
+    "defense",
+    "health",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 60
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.02
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.02
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

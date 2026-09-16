@@ -1,0 +1,38 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1676",
+  "name": "&d護身の星環",
+  "icon": "CHAINMAIL_CHESTPLATE",
+  "tags": [
+    "status",
+    "defense",
+    "health",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 20
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "SCALAR",
+      "value": 0.005
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

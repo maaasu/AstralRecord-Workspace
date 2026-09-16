@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1702",
+  "name": "&6無鎧の極星",
+  "icon": "DIAMOND_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MELEE_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1742",
+  "name": "&6千刃の極星",
+  "icon": "DIAMOND_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MELEE_ATTACK",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.025
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

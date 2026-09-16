@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1726",
+  "name": "&6刹那輪廻の極星",
+  "icon": "RECOVERY_COMPASS",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "COOLDOWN_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

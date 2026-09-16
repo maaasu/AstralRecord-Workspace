@@ -63,7 +63,7 @@ Holyのskill nodeは1か所へ集約しない。パラディンシールド `152
 
 ウィザード領域はX `23`〜`88`、Z `-33.1`〜`41.3` に配置する。全体は共通魔導を東へ伸ばし、エレメンタルを北側、アーケインを南側へ分ける。ウィザード表示時に同時表示されるPP・冒険者・メイジedgeとの不要な交差を作らない。
 
-`starter` は全627node・650edgeで、全nodeの相対Yは0に統一する。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。
+`starter` は全747node・785edgeで、全nodeの相対Yは0に統一する。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。
 
 ## ファントムアーチャー専門枝
 
@@ -80,6 +80,22 @@ Holyのskill nodeは1か所へ集約しない。パラディンシールド `152
 Shadowはマークを付与してからまとめて攻撃する将来skillを想定し、現行実装で利用可能な衰弱・盲目の付与確率、状態異常持続、スキルダメージ、間接防御貫通、会心を伸ばす。Specterは将来の幻影召喚skillを直接参照せず、再使用回転、スキルダメージ、MP / ENG持続、器用さと知力、移動・回避を伸ばす。召喚固有statusは現行共有カタログに存在しないため追加せず、専用skill実装時に必要なら別taskで契約を拡張する。
 
 全statusは120CPである。共通を含むShadowまたはSpecterの全取得は72CPとなる。Lv80の79CPでは一方の完成形と他系統の入口まで、Lv100の99CPでは一方の完成形と他系統の途中まで取得できるが、両系統の全取得はできない。座標範囲はX `-62.1`〜`40.1`、Z `-90.4`〜`-17`、相対Yは0とする。
+
+## ソードマスター専門枝
+
+`starter` のソードマスター領域は、status node `1655`〜`1774` の120個で構成する。全nodeを `pointType: CP`、`pointCost: 1`、`unlockCondition.classId: swordmaster` とし、既存ソードマンnode `1359` から共通剣技領域へ入る。今回はstatus nodeだけを定義し、skill使用許可nodeは追加しない。
+
+| 系統 | status node | 全取得CP | 役割 |
+|:--|:--|--:|:--|
+| 共通剣技 | `1655`〜`1678` | 24 | ATTACK、STRENGTH、ACCURACY、CRITICAL_RATE、MAX_HEALTH、物魔防御 |
+| 剣聖 | `1679`〜`1726` | 48 | MELEE_ATTACK、単発skill威力、会心、近接防御貫通、受け流し・見切りを表す防御/回避、COOLDOWN_REDUCTION |
+| 剣舞 | `1727`〜`1774` | 48 | ATTACK_SPEED、MELEE_ATTACK、ENG効率、LIFE_STEAL、会心、継続skill威力、機動 |
+
+共通剣技は3個、剣聖と剣舞はそれぞれ6個の6node円環で構成する。各円環の前に2nodeの導入経路を置き、円環は5個の通常nodeと1個のnotableを2経路で結ぶ。共通剣技の最外周notableから剣聖を東側、剣舞を西側へ分岐し、両ビルドを同時に取得しなくても独立して完成できる構造とする。
+
+全status 120CPで、共通剣技を含む各ビルドの全取得は72CPとなる。Lv80の79CPではいずれか一方を完成して7CPを他方へ配分でき、Lv100の99CPでは一方の完成形と他方の27CPまで取得できるが、両系統の全取得はできない。
+
+剣聖のパリィ・見切りはstatus nodeでは物魔防御・EVASION・ACCURACYとして表現し、能動的な受け流し判定は定義しない。敵撃破時のクールダウン完全リセットも条件付き挙動であり、現行status schemaでは表現できないため、status nodeでは `COOLDOWN_REDUCTION` として回転率だけを強化する。将来skillを追加するときに、撃破判定と完全リセットをskill側で実装する。
 
 ## コンテンツ設計
 
@@ -108,7 +124,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域、ファントムアーチャーの共通・Shadow・Specter領域を定義します。現行は627nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域、ファントムアーチャーの共通・Shadow・Specter領域、ソードマスターの共通剣技・剣聖・剣舞領域を定義します。現行は747nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -137,6 +153,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | パラディン Guardian Guard系skill | 6 | パラディンCP 6 | `classId: paladin` |
 | ウィザード共通魔導 / エレメンタル / アーケイン | 120 | ウィザードCP 120（24 / 48 / 48） | `classId: wizard` |
 | ファントムアーチャー共通 / Shadow / Specter | 120 | ファントムアーチャーCP 120（24 / 48 / 48） | `classId: phantom_archer` |
+| ソードマスター共通剣技 / 剣聖 / 剣舞 | 120 | ソードマスターCP 120（24 / 48 / 48） | `classId: swordmaster` |
 | 追加汎用PP | 28 | PP 28 | playerLevelのみ |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
@@ -157,6 +174,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` と、Guard系入口 `paladin_guard_convert` の1CP node `1529` を別方向へ分岐します。`1529`から盾攻撃側の`paladin_shield_bash` `1530`→`paladin_shield_impact` `1531`、防衛制御側の`paladin_fortress` `1532`→`paladin_guardian_protect` `1533` / `paladin_guardian_chain` `1534`へ接続し、Holy skillとは反対の西側へ配置します。Holy側の既存配置は維持し、skill nodeはstatus nodeへ混載しません。
 - ウィザードはメイジnode `1320` から24nodeの共通魔導へ入り、その終端から48nodeのエレメンタルと48nodeのアーケインへ分岐します。エレメンタルは火・氷・雷のダメージと貫通を同率で伸ばし、アーケインは最大MP、魔法攻撃力、知力、スキルダメージ、魔法防御貫通、詠唱短縮を伸ばします。120nodeはすべてstatus nodeとし、skill使用許可を混載しません。
 - ファントムアーチャーはハンターの間接攻撃notable `1266` から24nodeの共通領域へ入り、notable `2021` でShadowとSpecterへ分岐します。各専門枝は48nodeで、skill nodeを混載しません。Shadowはマーク型を支える状態異常・貫通・会心、Specterは幻影型を支えるスキル回転・リソース・複合能力・機動を担当します。
+- ソードマスターは共通剣技24nodeから剣聖48nodeと剣舞48nodeへ分岐します。剣聖は単発火力、会心、貫通、見切り、クールダウン短縮を伸ばし、剣舞は攻撃速度、ENG効率、継続火力、吸収回復を伸ばします。両枝ともskill nodeを混載せず、条件付き挙動は将来のskill実装へ残します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

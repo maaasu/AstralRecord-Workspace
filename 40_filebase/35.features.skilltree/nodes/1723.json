@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1723",
+  "name": "&f残心の星環",
+  "icon": "CLOCK",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "COOLDOWN_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 0.8
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

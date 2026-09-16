@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1659",
+  "name": "&d剣気の星環",
+  "icon": "IRON_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

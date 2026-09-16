@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1662",
+  "name": "&6剣豪の極星",
+  "icon": "NETHERITE_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.03
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "SCALAR",
+      "value": 0.03
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}
