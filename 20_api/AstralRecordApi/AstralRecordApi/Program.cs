@@ -119,6 +119,7 @@ builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
 builder.Services.AddScoped<INetworkManagementRepository, NetworkManagementRepository>();
 builder.Services.AddScoped<IWebPlayerProfileRepository, WebPlayerProfileRepository>();
+builder.Services.AddScoped<IWebBestiaryRepository, WebBestiaryRepository>();
 builder.Services.AddScoped<IReleaseNoteRepository, ReleaseNoteRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();

@@ -25,6 +25,7 @@ public sealed class WebPlayerAccountProfileResponse
     public required int ClassLevel { get; init; }
     public required IReadOnlyList<WebPlayerClassProgressResponse> ClassProgresses { get; init; }
     public required long Gold { get; init; }
+    public required long TotalMobDefeats { get; init; }
     public required DateTime UpdatedAt { get; init; }
     public required WebSkillTreeProfileResponse SkillTree { get; init; }
 }

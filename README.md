@@ -56,6 +56,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/web-auth/users/{userUuid}/authorization`（Web管理権限照会）
 - `GET /api/web-profiles` / `GET /api/web-profiles/{userUuid}?account_id=` / `GET /api/web-profiles/me`（Webプレイヤーのアカウント一覧・選択アカウント詳細・本人）
 - `PUT /api/web-profiles/me/visibility`（本人のWebプロフィール公開設定）
+- `GET /api/web-bestiary` / `GET /api/web-bestiary/{mobId}`（ログイン中の本人だけが閲覧できる討伐済みMob図鑑）
 
 ## AstralRecord Plugin
 

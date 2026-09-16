@@ -155,6 +155,9 @@ public sealed class WebPlayerProfileRepository(
                 entry => entry.InventoryId, inventory => inventory.InventoryId, (entry, _) => entry)
             .ToListAsync();
         var gold = GoldCurrencyBalanceSupport.TotalGold(currencyEntries);
+        var totalMobDefeats = await gameDb.AccountMobRecords.AsNoTracking()
+            .Where(record => record.AccountId == account.Uuid && !record.IsDeleted)
+            .SumAsync(record => (long?)record.DefeatCount) ?? 0L;
         var unlockedNodes = await GetUnlockedNodesAsync(account.Uuid);
         var classAncestors = GetClassAncestors(account.ClassId, classMap);
         return new WebPlayerAccountProfileResponse
@@ -173,6 +176,7 @@ public sealed class WebPlayerProfileRepository(
                 Level = item.Level,
             }).ToList(),
             Gold = gold,
+            TotalMobDefeats = totalMobDefeats,
             UpdatedAt = DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc),
             SkillTree = await TryBuildSkillTreeAsync(account.Level, classAncestors, unlockedNodes, classMap),
         };
