@@ -77,6 +77,24 @@ class NetworkApiClientTest {
         assertEquals("konnichiha[こんにちは]", body.get("message").getAsString());
     }
 
+    /**
+     * 設計入力: 00_docs/20_API設計書/feature/33-network/1-モデル定義/33_1.00-モデル定義.md
+     * 検証契約: Lifecycle通知はプレイヤー識別情報とアクション種別をNetwork APIへ登録する。
+     */
+    @Test
+    void lifecycleRequestIncludesPlayerIdentityAndAction() {
+        UUID playerId = UUID.randomUUID();
+
+        JsonObject body = NetworkApiClient.lifecycleRequest(
+            "ch1", playerId, "AstralRecord", "channel_connect", "AstralRecordさんが接続しました");
+
+        assertEquals(playerId.toString(), body.get("authorPlayerId").getAsString());
+        assertEquals("AstralRecord", body.get("authorMinecraftName").getAsString());
+        assertEquals("AstralRecord", body.get("authorName").getAsString());
+        assertEquals("lifecycle", body.get("kind").getAsString());
+        assertEquals("channel_connect", body.get("action").getAsString());
+    }
+
     @Test
     void admissionParsesBanReasonAndUtcExpiry() {
         NetworkApiClient.Admission admission = NetworkApiClient.Admission.fromJson(JsonParser.parseString("""

@@ -56,6 +56,9 @@ public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
     private static final int DONOR_PERMISSION = 5;
+    private static final String LIFECYCLE_ACTION_JOIN = "join";
+    private static final String LIFECYCLE_ACTION_CHANNEL_CONNECT = "channel_connect";
+    private static final String LIFECYCLE_ACTION_LEAVE = "leave";
     private static final ZoneId JAPAN_ZONE = ZoneId.of("Asia/Tokyo");
     private static final DateTimeFormatter BAN_EXPIRY_FORMAT =
         DateTimeFormatter.ofPattern("yyyy年M月d日 H:mm").withZone(JAPAN_ZONE);
@@ -253,16 +256,20 @@ public final class AstralRecordProxyPlugin {
     public void onServerPostConnect(ServerPostConnectEvent event) {
         NetworkSettings settings = settings();
         if (settings == null) return;
+        UUID playerId = event.getPlayer().getUniqueId();
+        String playerName = event.getPlayer().getUsername();
         String currentServer = event.getPlayer().getCurrentServer()
             .map(connection -> connection.getServerInfo().getName()).orElse(settings.lobbyServer());
         String previousServer = event.getPreviousServer() == null
             ? null : event.getPreviousServer().getServerInfo().getName();
-        String message = lifecycleMessage(event.getPlayer().getUsername(), previousServer, currentServer, settings);
-        if (message != null) {
-            api.publishLifecycleMessage(currentServer, message).exceptionally(failure -> {
-                logger.warn("Failed to publish player lifecycle message", failure);
-                return null;
-            });
+        LifecycleNotification notification = lifecycleNotification(playerName, previousServer, currentServer, settings);
+        if (notification != null) {
+            api.publishLifecycleMessage(
+                currentServer, playerId, playerName, notification.action(), notification.message())
+                .exceptionally(failure -> {
+                    logger.warn("Failed to publish player lifecycle message", failure);
+                    return null;
+                });
         }
         if (event.getPreviousServer() != null
             && settings.isGameServer(event.getPreviousServer().getServerInfo().getName())) {
@@ -283,12 +290,15 @@ public final class AstralRecordProxyPlugin {
                 PlayerMetadata current = metadata.get(playerId);
                 return current == null ? null : current.serverId();
             });
-        String lifecycleMessage = disconnectMessage(event.getPlayer().getUsername(), currentServer, settings);
-        if (lifecycleMessage != null) {
-            api.publishLifecycleMessage(currentServer, lifecycleMessage).exceptionally(failure -> {
-                logger.warn("Failed to publish player disconnect message", failure);
-                return null;
-            });
+        LifecycleNotification notification = disconnectNotification(
+            event.getPlayer().getUsername(), currentServer, settings);
+        if (notification != null) {
+            api.publishLifecycleMessage(
+                currentServer, playerId, event.getPlayer().getUsername(), notification.action(), notification.message())
+                .exceptionally(failure -> {
+                    logger.warn("Failed to publish player disconnect message", failure);
+                    return null;
+                });
         }
         boolean disconnectedFromGame = event.getPlayer().getCurrentServer()
             .map(connection -> settings.isGameServer(connection.getServerInfo().getName()))
@@ -401,14 +411,33 @@ public final class AstralRecordProxyPlugin {
      * @return 通知本文。通知対象外ならnull
      */
     static String lifecycleMessage(String playerName, String previousServer, String currentServer, NetworkSettings config) {
+        LifecycleNotification notification = lifecycleNotification(playerName, previousServer, currentServer, config);
+        return notification == null ? null : notification.message();
+    }
+
+    /**
+     * Proxy接続またはbackend切替のDiscord通知を、本文とアクション種別の組で生成する。
+     *
+     * @param playerName プレイヤー名
+     * @param previousServer 切替元backend。初回接続ではnull
+     * @param currentServer 接続先backend
+     * @param config Proxy設定
+     * @return 通知本文とアクション種別。通知対象外ならnull
+     */
+    static LifecycleNotification lifecycleNotification(
+        String playerName, String previousServer, String currentServer, NetworkSettings config
+    ) {
         if (previousServer == null) {
-            return currentServer == null ? null : playerName + "さんがサーバーに参加しました";
+            return currentServer == null ? null
+                : new LifecycleNotification(LIFECYCLE_ACTION_JOIN, playerName + "さんがサーバーに参加しました");
         }
         if (currentServer == null || config.isDiscordSourceServerExcluded(currentServer)) return null;
         if (previousServer.equalsIgnoreCase(currentServer)
             || config.isDiscordSourceServerExcluded(previousServer)) return null;
-        return playerName + "さんが" + config.channelName(previousServer)
-            + "から" + config.channelName(currentServer) + "へ接続しました";
+        return new LifecycleNotification(
+            LIFECYCLE_ACTION_CHANNEL_CONNECT,
+            playerName + "さんが" + config.channelName(previousServer)
+                + "から" + config.channelName(currentServer) + "へ接続しました");
     }
 
     /**
@@ -420,8 +449,23 @@ public final class AstralRecordProxyPlugin {
      * @return 通知本文。通知対象外ならnull
      */
     static String disconnectMessage(String playerName, String currentServer, NetworkSettings config) {
+        LifecycleNotification notification = disconnectNotification(playerName, currentServer, config);
+        return notification == null ? null : notification.message();
+    }
+
+    /**
+     * Proxyからの実切断のDiscord通知を、本文とアクション種別の組で生成する。
+     *
+     * @param playerName プレイヤー名
+     * @param currentServer 切断元backend
+     * @param config Proxy設定
+     * @return 通知本文とアクション種別。通知対象外ならnull
+     */
+    static LifecycleNotification disconnectNotification(
+        String playerName, String currentServer, NetworkSettings config
+    ) {
         if (currentServer == null || config.isDiscordSourceServerExcluded(currentServer)) return null;
-        return playerName + "さんがサーバーから退出しました";
+        return new LifecycleNotification(LIFECYCLE_ACTION_LEAVE, playerName + "さんがサーバーから退出しました");
     }
 
     /**
@@ -1054,6 +1098,9 @@ public final class AstralRecordProxyPlugin {
         String targetServer,
         long expiresAtMillis
     ) {
+    }
+
+    record LifecycleNotification(String action, String message) {
     }
 
     private final class ServerMenuCommand implements SimpleCommand {

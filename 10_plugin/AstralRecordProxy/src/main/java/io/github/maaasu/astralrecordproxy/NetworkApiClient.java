@@ -154,18 +154,44 @@ final class NetworkApiClient {
      * Minecraft由来のネットワーク接続通知を登録する。
      *
      * @param sourceServerId 通知発生元backend
+     * @param playerId 通知対象プレイヤーのUUID
+     * @param playerName 通知対象プレイヤーのMinecraft名
+     * @param action ライフサイクルアクション種別
      * @param message Discordへ表示する本文
      * @return API送信完了future
      */
-    CompletableFuture<Void> publishLifecycleMessage(String sourceServerId, String message) {
+    CompletableFuture<Void> publishLifecycleMessage(
+        String sourceServerId, UUID playerId, String playerName, String action, String message
+    ) {
+        return send("POST", "/api/network/chat",
+            lifecycleRequest(sourceServerId, playerId, playerName, action, message).toString())
+            .thenApply(ignored -> null);
+    }
+
+    /**
+     * Minecraft由来のネットワーク接続通知のAPI登録payloadを生成する。
+     *
+     * @param sourceServerId 通知発生元backend
+     * @param playerId 通知対象プレイヤーのUUID
+     * @param playerName 通知対象プレイヤーのMinecraft名
+     * @param action ライフサイクルアクション種別
+     * @param message Discordへ表示する本文
+     * @return プレイヤー識別情報とアクション種別を含むAPI登録payload
+     */
+    static JsonObject lifecycleRequest(
+        String sourceServerId, UUID playerId, String playerName, String action, String message
+    ) {
         JsonObject body = new JsonObject();
         body.addProperty("messageId", UUID.randomUUID().toString());
         body.addProperty("source", "minecraft");
         body.addProperty("sourceServerId", sourceServerId);
-        body.addProperty("authorName", "AstralRecord");
+        body.addProperty("authorName", playerName);
+        body.addProperty("authorPlayerId", playerId.toString());
+        body.addProperty("authorMinecraftName", playerName);
         body.addProperty("message", message);
         body.addProperty("kind", "lifecycle");
-        return send("POST", "/api/network/chat", body.toString()).thenApply(ignored -> null);
+        body.addProperty("action", action);
+        return body;
     }
 
     CompletableFuture<DiscordChatBatch> getDiscordChat(long afterSequence) {

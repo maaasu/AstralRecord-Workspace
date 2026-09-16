@@ -42,7 +42,11 @@ class LobbyApiClientTest {
             + "{\"sequence\":1,\"sourceServerId\":\"ch1\",\"authorName\":\"AstralRecord#1\","
             + "\"message\":\"こんにちは\",\"kind\":\"chat\",\"authorPlayerId\":\"" + playerId + "\","
             + "\"authorMinecraftName\":\"AstralRecord\"},"
-            + "{\"sequence\":2,\"sourceServerId\":\"ch2\",\"authorName\":\"LegacyPlayer\","
+            + "{\"sequence\":2,\"sourceServerId\":\"proxy\",\"authorName\":\"LegacyPlayer\","
+            + "\"message\":\"LegacyPlayerさんがサーバーに参加しました\",\"kind\":\"lifecycle\","
+            + "\"authorPlayerId\":\"" + playerId + "\",\"authorMinecraftName\":\"LegacyPlayer\","
+            + "\"action\":\"join\"},"
+            + "{\"sequence\":3,\"sourceServerId\":\"ch2\",\"authorName\":\"LegacyPlayer\","
             + "\"message\":\"legacy\",\"kind\":\"chat\"}]}")
             .getBytes(StandardCharsets.UTF_8);
 
@@ -59,11 +63,12 @@ class LobbyApiClientTest {
             LobbyApiClient.ChatBatch batch = new LobbyApiClient(config).getMinecraftChat(0L);
 
             assertEquals("test-generation", batch.generationId());
-            assertEquals(2, batch.messages().size());
+            assertEquals(3, batch.messages().size());
             assertEquals(playerId, batch.messages().get(0).authorPlayerId());
             assertEquals("AstralRecord", batch.messages().get(0).authorMinecraftName());
-            assertEquals(null, batch.messages().get(1).authorPlayerId());
-            assertEquals(null, batch.messages().get(1).authorMinecraftName());
+            assertEquals("join", batch.messages().get(1).action());
+            assertEquals(null, batch.messages().get(2).authorPlayerId());
+            assertEquals(null, batch.messages().get(2).authorMinecraftName());
             response.get(5, TimeUnit.SECONDS);
         }
     }

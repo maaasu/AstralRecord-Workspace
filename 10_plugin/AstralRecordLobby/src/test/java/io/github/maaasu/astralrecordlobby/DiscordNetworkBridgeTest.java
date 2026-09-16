@@ -159,4 +159,16 @@ class DiscordNetworkBridgeTest {
             "**🔔 AstralRecord システム • proxy**\n> Aliceがサーバーに参加しました",
             DiscordNetworkBridge.fallbackSystemMessage(message));
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 検証契約: ライフサイクルの参加・チャンネル接続・退出をDiscord Embedの色で識別できる。
+     */
+    @Test
+    void assignsDistinctColorsToLifecycleActions() {
+        assertEquals(0x57F287, DiscordNetworkBridge.lifecycleEmbedColor("join"));
+        assertEquals(0x5865F2, DiscordNetworkBridge.lifecycleEmbedColor("channel_connect"));
+        assertEquals(0xED4245, DiscordNetworkBridge.lifecycleEmbedColor("leave"));
+        assertEquals(0x5865F2, DiscordNetworkBridge.lifecycleEmbedColor(null));
+    }
 }

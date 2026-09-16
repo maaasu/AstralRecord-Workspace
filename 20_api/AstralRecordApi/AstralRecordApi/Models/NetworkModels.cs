@@ -66,7 +66,8 @@ public sealed record NetworkChatPublishRequest(
     string Message,
     string Kind = "chat",
     Guid? AuthorPlayerId = null,
-    string? AuthorMinecraftName = null);
+    string? AuthorMinecraftName = null,
+    string? Action = null);
 
 public sealed record NetworkChatMessageResponse(
     long Sequence,
@@ -78,6 +79,7 @@ public sealed record NetworkChatMessageResponse(
     string Kind,
     Guid? AuthorPlayerId,
     string? AuthorMinecraftName,
+    string? Action,
     DateTime CreatedAtUtc);
 
 public sealed record NetworkChatBatchResponse(

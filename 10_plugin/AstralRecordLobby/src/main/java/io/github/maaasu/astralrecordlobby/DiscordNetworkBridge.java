@@ -21,6 +21,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 final class DiscordNetworkBridge {
     private static final int DISCORD_WEBHOOK_NAME_MAX_LENGTH = 80;
+    private static final String LIFECYCLE_ACTION_JOIN = "join";
+    private static final String LIFECYCLE_ACTION_CHANNEL_CONNECT = "channel_connect";
+    private static final String LIFECYCLE_ACTION_LEAVE = "leave";
+    private static final int JOIN_EMBED_COLOR = 0x57F287;
+    private static final int CHANNEL_CONNECT_EMBED_COLOR = 0x5865F2;
+    private static final int LEAVE_EMBED_COLOR = 0xED4245;
     private static final int SYSTEM_EMBED_COLOR = 0x5865F2;
     private static final java.util.List<String> PLAYER_LIFECYCLE_KEYS = java.util.List.of(
         "MinecraftPlayerJoinMessage.Enabled",
@@ -220,8 +226,9 @@ final class DiscordNetworkBridge {
     /**
      * Network APIから取得したMinecraftメッセージを種別に応じたDiscord表示で送信する。
      *
-     * <p>接続通知はBotのEmbed、プレイヤー発言はMinecraftスキン付きWebhookを使用する。
-     * Webhook権限またはプレイヤー識別情報がない場合はプレーンテキストへ退避する。</p>
+     * <p>接続通知はアクション別色とMinecraftスキン付きauthor iconを持つBot Embed、
+     * プレイヤー発言はMinecraftスキン付きWebhookを使用する。権限またはプレイヤー識別情報が
+     * ない場合はプレーンテキストへ退避する。</p>
      *
      * @param destination 送信先Discordテキストチャンネル
      * @param message Network APIのMinecraftメッセージ
@@ -233,12 +240,20 @@ final class DiscordNetworkBridge {
                 sendFallbackMessage(destination, fallbackSystemMessage(message));
                 return;
             }
-            MessageEmbed embed = new EmbedBuilder()
-                .setColor(SYSTEM_EMBED_COLOR)
-                .setAuthor("AstralRecord システム")
+            EmbedBuilder builder = new EmbedBuilder()
+                .setColor(lifecycleEmbedColor(message.action()))
                 .setDescription(message.message())
-                .setFooter(message.sourceServerId())
-                .build();
+                .setFooter(message.sourceServerId());
+            if (isKnownLifecycleAction(message.action())
+                && message.authorPlayerId() != null && message.authorMinecraftName() != null) {
+                builder.setAuthor(
+                    message.authorName(),
+                    null,
+                    DiscordSRV.getAvatarUrl(message.authorMinecraftName(), message.authorPlayerId()));
+            } else {
+                builder.setAuthor("AstralRecord システム");
+            }
+            MessageEmbed embed = builder.build();
             destination.sendMessageEmbeds(embed).complete();
             return;
         }
@@ -257,6 +272,28 @@ final class DiscordNetworkBridge {
         }
 
         sendFallbackMessage(destination, fallbackPlayerMessage(message));
+    }
+
+    /**
+     * ライフサイクルアクションに対応するDiscord Embed色を返す。
+     *
+     * @param action Network APIのライフサイクルアクション
+     * @return 参加は緑、チャンネル接続は青、退出は赤。不明または未指定は既定の青
+     */
+    static int lifecycleEmbedColor(String action) {
+        return switch (action == null ? "" : action.toLowerCase(java.util.Locale.ROOT)) {
+            case LIFECYCLE_ACTION_JOIN -> JOIN_EMBED_COLOR;
+            case LIFECYCLE_ACTION_CHANNEL_CONNECT -> CHANNEL_CONNECT_EMBED_COLOR;
+            case LIFECYCLE_ACTION_LEAVE -> LEAVE_EMBED_COLOR;
+            default -> SYSTEM_EMBED_COLOR;
+        };
+    }
+
+    private static boolean isKnownLifecycleAction(String action) {
+        return switch (action == null ? "" : action.toLowerCase(java.util.Locale.ROOT)) {
+            case LIFECYCLE_ACTION_JOIN, LIFECYCLE_ACTION_CHANNEL_CONNECT, LIFECYCLE_ACTION_LEAVE -> true;
+            default -> false;
+        };
     }
 
     /**

@@ -92,6 +92,7 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
                 request.Kind.Trim().ToLowerInvariant(),
                 request.AuthorPlayerId,
                 request.AuthorMinecraftName?.Trim(),
+                request.Action?.Trim().ToLowerInvariant(),
                 timeProvider.GetUtcNow().UtcDateTime);
             chats.Enqueue(published);
             chatsById[published.MessageId] = published;

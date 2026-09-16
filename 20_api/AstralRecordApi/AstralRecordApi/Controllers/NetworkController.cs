@@ -94,6 +94,12 @@ public sealed class NetworkController(
             || string.IsNullOrWhiteSpace(request.AuthorName)
             || string.IsNullOrWhiteSpace(request.Message)
             || request.Kind is not ("chat" or "lifecycle")
+            || request.Action is not null
+                && request.Action is not ("join" or "channel_connect" or "leave")
+            || request.Kind == "chat" && request.Action is not null
+            || request.Action is not null && request.Source != "minecraft"
+            || request.Action is not null
+                && (!request.AuthorPlayerId.HasValue || request.AuthorMinecraftName is null)
             || request.AuthorName.Length > 64 || request.Message.Length > 512
             || request.AuthorPlayerId == Guid.Empty
             || request.AuthorMinecraftName is not null

@@ -83,7 +83,8 @@ final class LobbyApiClient {
                 value.get("message").getAsString(),
                 value.has("kind") ? value.get("kind").getAsString() : "chat",
                 optionalUuid(value, "authorPlayerId"),
-                optionalString(value, "authorMinecraftName")));
+                optionalString(value, "authorMinecraftName"),
+                optionalString(value, "action")));
         });
         return new ChatBatch(generationId, latestSequence, messages);
     }
@@ -239,8 +240,21 @@ final class LobbyApiClient {
         String message,
         String kind,
         UUID authorPlayerId,
-        String authorMinecraftName
+        String authorMinecraftName,
+        String action
     ) {
+        ChatMessage(
+            long sequence,
+            String sourceServerId,
+            String authorName,
+            String message,
+            String kind,
+            UUID authorPlayerId,
+            String authorMinecraftName
+        ) {
+            this(sequence, sourceServerId, authorName, message, kind,
+                authorPlayerId, authorMinecraftName, null);
+        }
     }
 
     record ChatBatch(String generationId, Long latestSequence, List<ChatMessage> messages) {

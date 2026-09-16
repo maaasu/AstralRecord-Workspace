@@ -141,6 +141,13 @@ class AstralRecordProxyPluginTest {
             AstralRecordProxyPlugin.lifecycleMessage("Player", "lobby", "ch1", config));
         assertEquals("Playerさんがサーバーから退出しました",
             AstralRecordProxyPlugin.disconnectMessage("Player", "ch1", config));
+
+        assertEquals("join", AstralRecordProxyPlugin.lifecycleNotification(
+            "Player", null, "lobby", config).action());
+        assertEquals("channel_connect", AstralRecordProxyPlugin.lifecycleNotification(
+            "Player", "lobby", "ch1", config).action());
+        assertEquals("leave", AstralRecordProxyPlugin.disconnectNotification(
+            "Player", "ch1", config).action());
     }
 
     /**

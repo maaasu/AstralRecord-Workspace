@@ -59,9 +59,11 @@ public sealed class NetworkRuntimeServiceTests
         var service = new NetworkRuntimeService(time);
 
         var message = service.PublishChat(new NetworkChatPublishRequest(
-            Guid.NewGuid(), "minecraft", "lobby", "AstralRecord", "参加しました", "LIFECYCLE"));
+            Guid.NewGuid(), "minecraft", "lobby", "AstralRecord", "参加しました", "LIFECYCLE",
+            null, null, "CHANNEL_CONNECT"));
 
         Assert.Equal("lifecycle", message.Kind);
+        Assert.Equal("channel_connect", message.Action);
     }
 
     [Fact]

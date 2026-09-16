@@ -116,6 +116,58 @@ public sealed class NetworkControllerTests
     }
 
     [Fact]
+    public void ChatPublishAcceptsLifecycleActionWithPlayerIdentity()
+    {
+        var runtime = new NetworkRuntimeService(TimeProvider.System);
+        var controller = Controller(runtime, providedSyncKey: null);
+        var playerId = Guid.NewGuid();
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "proxy", "AstralRecord", "参加しました", "lifecycle",
+            playerId, "AstralRecord", "join"));
+
+        var response = Assert.IsType<NetworkChatMessageResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal("join", response.Action);
+        Assert.Equal(playerId, response.AuthorPlayerId);
+    }
+
+    [Fact]
+    public void ChatPublishRejectsLifecycleActionWithoutPlayerIdentity()
+    {
+        var controller = Controller(new NetworkRuntimeService(TimeProvider.System), providedSyncKey: null);
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "proxy", "AstralRecord", "参加しました", "lifecycle",
+            null, null, "join"));
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
+    public void ChatPublishRejectsLifecycleActionOnChat()
+    {
+        var controller = Controller(new NetworkRuntimeService(TimeProvider.System), providedSyncKey: null);
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "minecraft", "ch1", "AstralRecord", "こんにちは", "chat",
+            Guid.NewGuid(), "AstralRecord", "join"));
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
+    public void ChatPublishRejectsLifecycleActionFromDiscord()
+    {
+        var controller = Controller(new NetworkRuntimeService(TimeProvider.System), providedSyncKey: null);
+
+        var result = controller.PublishChat(new NetworkChatPublishRequest(
+            Guid.NewGuid(), "discord", "lobby", "DiscordUser", "参加しました", "lifecycle",
+            Guid.NewGuid(), "AstralRecord", "join"));
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
     public async Task AuthorityReplacementAcceptsProxySyncKey()
     {
         var runtime = new NetworkRuntimeService(TimeProvider.System);
