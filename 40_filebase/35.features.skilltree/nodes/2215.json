@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2215",
+  "name": "&6無窮連矢の極星",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "wind",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DEGRADATION_DELAY",
+      "modifierType": "FLAT",
+      "value": 2.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

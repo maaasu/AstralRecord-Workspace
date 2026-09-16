@@ -1,0 +1,45 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2207",
+  "name": "&6疾風連射の極星",
+  "icon": "ELYTRA",
+  "tags": [
+    "status",
+    "offense",
+    "agility",
+    "wind",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "SCALAR",
+      "value": 0.03
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 3.0
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 10.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

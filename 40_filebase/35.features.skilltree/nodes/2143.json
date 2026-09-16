@@ -1,0 +1,51 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2143",
+  "name": "&6星狩の極星",
+  "icon": "NETHER_STAR",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "accuracy",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 3.0
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 40.0
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 3.0
+    },
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 1.0
+    },
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

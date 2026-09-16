@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2168",
+  "name": "&b精密射の星路",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "accuracy",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "FLAT",
+      "value": 1.0
+    },
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 0.75
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2135",
+  "name": "&6空走の極星",
+  "icon": "ELYTRA",
+  "tags": [
+    "status",
+    "agility",
+    "defense",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "EVASION",
+      "modifierType": "FLAT",
+      "value": 1.5
+    },
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 4.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

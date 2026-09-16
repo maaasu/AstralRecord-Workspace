@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2208",
+  "name": "&a連射の星路",
+  "icon": "TIPPED_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "energy",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "FLAT",
+      "value": 1.0
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

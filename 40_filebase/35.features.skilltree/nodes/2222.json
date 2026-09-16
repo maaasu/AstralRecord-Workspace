@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2222",
+  "name": "&a循環の星環",
+  "icon": "ENDER_PEARL",
+  "tags": [
+    "status",
+    "resource",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

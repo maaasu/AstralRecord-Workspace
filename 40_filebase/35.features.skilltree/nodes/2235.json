@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2235",
+  "name": "&a疾駆の星環",
+  "icon": "FEATHER",
+  "tags": [
+    "status",
+    "agility",
+    "defense",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "EVASION",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

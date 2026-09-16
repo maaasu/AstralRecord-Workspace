@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2137",
+  "name": "&d銀矢の星路",
+  "icon": "ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "accuracy",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "FLAT",
+      "value": 1.0
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

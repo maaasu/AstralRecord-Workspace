@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2147",
+  "name": "&b剛弓の星環",
+  "icon": "BOW",
+  "tags": [
+    "status",
+    "offense",
+    "dexterity",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

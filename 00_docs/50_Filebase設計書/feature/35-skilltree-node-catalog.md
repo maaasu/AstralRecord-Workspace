@@ -389,6 +389,59 @@ Shadow全取得値は、経路分を含めてRANGED_ATTACK `SCALAR +0.06`、DEXT
 Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`、MAX_MANA `FLAT +150`、AGILITY `SCALAR +0.116`、COOLDOWN_REDUCTION `FLAT +12.5`、ENERGY_COST_REDUCTION `FLAT +14.5`、RANGED_ATTACK `SCALAR +0.03`、MP_REGEN / ENERGY_REGENを各 `FLAT +2`、DEXTERITY / INTELLIGENCEを各 `SCALAR +0.08`、MOVEMENT_SPEED `FLAT +10`、EVASION `FLAT +3` である。
 
 
+## シャープシューター専門枝
+
+シャープシューターは共通射撃24node、Sniper 48node、Rapid 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` である。skill解放nodeは現時点で持たない。
+
+### 共通射撃パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-sharpshooter-common-path` | `2120`, `2121`, `2128`, `2129`, `2136`, `2137` | RANGED_ATTACK `FLAT +1`、ACCURACY `FLAT +0.5` | `&d銀矢の星路` | `ARROW` | `status`, `offense`, `accuracy`, `wind` |
+| `status-sharpshooter-common-power` | `2122`〜`2126` | RANGED_ATTACK `FLAT +1`、DEXTERITY `SCALAR +0.005` | `&d遠矢の星環` | `BOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-common-power-notable` | `2127` | RANGED_ATTACK `FLAT +4`、DEXTERITY `SCALAR +0.005` | `&6天穹射の極星` | `CROSSBOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-common-evasion` | `2130`〜`2134` | EVASION `FLAT +0.5`、MOVEMENT_SPEED `FLAT +1` | `&d風避の星環` | `FEATHER` | `status`, `agility`, `defense`, `wind` |
+| `status-sharpshooter-common-evasion-notable` | `2135` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6空走の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
+| `status-sharpshooter-common-resource` | `2138`〜`2142` | ACCURACY `FLAT +1`、MAX_ENERGY `FLAT +5` | `&d狩気の星環` | `ENDER_PEARL` | `status`, `resource`, `energy`, `accuracy` |
+| `status-sharpshooter-common-resource-notable` | `2143` | ACCURACY `FLAT +3`、MAX_ENERGY `FLAT +40`、ENERGY_REGEN `FLAT +3`、SUPER_CRITICAL_RATE `FLAT +1`、SUPER_CRITICAL_DAMAGE `FLAT +5` | `&6星狩の極星` | `NETHER_STAR` | `status`, `resource`, `energy`, `accuracy`, `astral` |
+
+### Sniperパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-sharpshooter-sniper-path` | `2144`, `2145`, `2152`, `2153`, `2160`, `2161`, `2168`, `2169`, `2176`, `2177`, `2184`, `2185` | RANGED_ATTACK `FLAT +1`、NORMAL_ATTACK_DAMAGE_INCREASE `FLAT +0.75` | `&b精密射の星路` | `SPECTRAL_ARROW` | `status`, `offense`, `accuracy`, `wind` |
+| `status-sharpshooter-sniper-power` | `2146`〜`2150` | RANGED_ATTACK `FLAT +2`、DEXTERITY `SCALAR +0.01` | `&b剛弓の星環` | `BOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-sniper-power-notable` | `2151` | RANGED_ATTACK `FLAT +6`、DEXTERITY `SCALAR +0.03` | `&6破城弓の極星` | `CROSSBOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-sniper-accuracy` | `2154`〜`2158` | ACCURACY `FLAT +2.5` | `&b照準の星環` | `SPYGLASS` | `status`, `offense`, `accuracy` |
+| `status-sharpshooter-sniper-accuracy-notable` | `2159` | ACCURACY `FLAT +5.5`、RANGED_DEFENSE_PENETRATION_RATE `FLAT +6` | `&6必中の極星` | `TARGET` | `status`, `offense`, `accuracy` |
+| `status-sharpshooter-sniper-critical` | `2162`〜`2166` | CRITICAL_RATE `FLAT +0.5`、CRITICAL_DAMAGE `FLAT +1` | `&b会心の星環` | `AMETHYST_SHARD` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-critical-notable` | `2167` | CRITICAL_RATE `FLAT +1.5`、CRITICAL_DAMAGE `FLAT +10` | `&6致命射の極星` | `RECOVERY_COMPASS` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-super-critical` | `2170`〜`2174` | SUPER_CRITICAL_RATE `FLAT +0.5` | `&d超星狙撃の星環` | `ECHO_SHARD` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-super-critical-notable` | `2175` | SUPER_CRITICAL_RATE `FLAT +1.5`、SUPER_CRITICAL_DAMAGE `FLAT +10` | `&6超星穿の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-lightning` | `2178`〜`2182` | LIGHTNING_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&e雷矢の星環` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
+| `status-sharpshooter-sniper-lightning-notable` | `2183` | LIGHTNING_DAMAGE_INCREASE `FLAT +8`、LIGHTNING_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6天雷の極星` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
+| `status-sharpshooter-sniper-evasion` | `2186`〜`2190` | EVASION `FLAT +0.5`、MOVEMENT_SPEED `FLAT +1` | `&b残影の星環` | `RABBIT_FOOT` | `status`, `agility`, `defense`, `wind` |
+| `status-sharpshooter-sniper-evasion-notable` | `2191` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6幻走の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
+
+### Rapidパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-sharpshooter-rapid-path` | `2192`, `2193`, `2200`, `2201`, `2208`, `2209`, `2216`, `2217`, `2224`, `2225`, `2232`, `2233` | RANGED_ATTACK `FLAT +1`、MAX_ENERGY `FLAT +5` | `&a連射の星路` | `TIPPED_ARROW` | `status`, `offense`, `resource`, `energy`, `wind` |
+| `status-sharpshooter-rapid-power` | `2194`〜`2198` | RANGED_ATTACK `FLAT +2`、DEXTERITY `SCALAR +0.01` | `&a連弓の星環` | `BOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-rapid-power-notable` | `2199` | RANGED_ATTACK `FLAT +6`、DEXTERITY `SCALAR +0.03` | `&6連弩の極星` | `CROSSBOW` | `status`, `offense`, `dexterity`, `wind` |
+| `status-sharpshooter-rapid-speed` | `2202`〜`2206` | ATTACK_SPEED `FLAT +2`、AGILITY `SCALAR +0.01` | `&a速射の星環` | `CLOCK` | `status`, `offense`, `agility`, `wind` |
+| `status-sharpshooter-rapid-speed-notable` | `2207` | ATTACK_SPEED `FLAT +8`、AGILITY `SCALAR +0.03`、CRITICAL_RATE `FLAT +3`、CRITICAL_DAMAGE `FLAT +10` | `&6疾風連射の極星` | `ELYTRA` | `status`, `offense`, `agility`, `wind`, `astral` |
+| `status-sharpshooter-rapid-normal` | `2210`〜`2214` | NORMAL_ATTACK_DAMAGE_INCREASE `FLAT +2`、NORMAL_ATTACK_DEGRADATION_DELAY `FLAT +0.5` | `&a連矢の星環` | `ARROW` | `status`, `offense`, `wind` |
+| `status-sharpshooter-rapid-normal-notable` | `2215` | NORMAL_ATTACK_DAMAGE_INCREASE `FLAT +8`、NORMAL_ATTACK_DEGRADATION_DELAY `FLAT +2.5` | `&6無窮連矢の極星` | `SPECTRAL_ARROW` | `status`, `offense`, `wind`, `astral` |
+| `status-sharpshooter-rapid-sustain` | `2218`〜`2222` | ENERGY_COST_REDUCTION `FLAT +1` | `&a循環の星環` | `ENDER_PEARL` | `status`, `resource`, `energy` |
+| `status-sharpshooter-rapid-sustain-notable` | `2223` | ENERGY_COST_REDUCTION / ENERGY_REGEN `FLAT +4` | `&6不息の極星` | `BEACON` | `status`, `resource`, `energy`, `astral` |
+| `status-sharpshooter-rapid-lightning` | `2226`〜`2230` | LIGHTNING_DAMAGE_INCREASE / SHOCKED_APPLY_CHANCE `FLAT +2`、NORMAL_ATTACK_DAMAGE_INCREASE `FLAT +1` | `&e電導の星環` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
+| `status-sharpshooter-rapid-lightning-notable` | `2231` | LIGHTNING_DAMAGE_INCREASE `FLAT +8`、SHOCKED_APPLY_CHANCE `FLAT +10`、NORMAL_ATTACK_DAMAGE_INCREASE `FLAT +4` | `&6雷群の極星` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked`, `astral` |
+| `status-sharpshooter-rapid-evasion` | `2234`〜`2238` | EVASION `FLAT +0.5`、MOVEMENT_SPEED `FLAT +1` | `&a疾駆の星環` | `FEATHER` | `status`, `agility`, `defense`, `wind` |
+| `status-sharpshooter-rapid-evasion-notable` | `2239` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6風翔の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
+
+
 ## カタログの更新規約
 
 - 新しい能力を採用したときは、対応する node JSON と同じ変更でこの表に追加します。

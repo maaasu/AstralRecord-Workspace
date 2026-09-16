@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2231",
+  "name": "&6雷群の極星",
+  "icon": "LIGHTNING_ROD",
+  "tags": [
+    "status",
+    "offense",
+    "lightning",
+    "shocked",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "SHOCKED_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 10.0
+    },
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 4.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

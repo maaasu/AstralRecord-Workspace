@@ -1,0 +1,38 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2226",
+  "name": "&e電導の星環",
+  "icon": "LIGHTNING_ROD",
+  "tags": [
+    "status",
+    "offense",
+    "lightning",
+    "shocked"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "SHOCKED_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

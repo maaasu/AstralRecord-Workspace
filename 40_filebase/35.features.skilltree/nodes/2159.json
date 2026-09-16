@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2159",
+  "name": "&6必中の極星",
+  "icon": "TARGET",
+  "tags": [
+    "status",
+    "offense",
+    "accuracy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 5.5
+    },
+    {
+      "type": "status",
+      "status": "RANGED_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 6.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

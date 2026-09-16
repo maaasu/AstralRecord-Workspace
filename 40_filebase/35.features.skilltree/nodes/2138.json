@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2138",
+  "name": "&d狩気の星環",
+  "icon": "ENDER_PEARL",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "accuracy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 1.0
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

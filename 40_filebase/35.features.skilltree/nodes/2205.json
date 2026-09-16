@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2205",
+  "name": "&a速射の星環",
+  "icon": "CLOCK",
+  "tags": [
+    "status",
+    "offense",
+    "agility",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

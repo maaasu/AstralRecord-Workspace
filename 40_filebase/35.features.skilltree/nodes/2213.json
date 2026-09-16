@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2213",
+  "name": "&a連矢の星環",
+  "icon": "ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DEGRADATION_DELAY",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}
