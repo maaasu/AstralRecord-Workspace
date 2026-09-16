@@ -1591,7 +1591,7 @@ public class SkillService {
     }
 
     /** 指定リソースの消費軽減率を基礎消費量へ適用します。 */
-    private double resolveResourceCost(
+    static double resolveResourceCost(
             @NotNull StatusSnapshot statusSnapshot,
             @NotNull SkillResourceType resourceType,
             double baseCost

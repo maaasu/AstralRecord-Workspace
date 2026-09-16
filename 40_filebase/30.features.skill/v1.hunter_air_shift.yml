@@ -1,0 +1,36 @@
+# design:
+#   motif: "風術 / 空中回避"
+#   progression: 3
+schemaVersion: 1
+id: hunter_air_shift
+type: SKILL
+implementationId: hunter_air_shift
+name: "&bエアーシフト"
+description: "&7空中で風を蹴り、自在に身をかわす機動パッシブ。"
+icon: WIND_CHARGE
+lore:
+  - "&7空中でしゃがみを押すと、移動入力方向へ高速移動する。"
+  - "&7方向入力がない場合は、視線の後方へ移動する。"
+  - "&7水平速度{skill.horizontalStrength}、上向き速度{skill.verticalStrength}。"
+  - "&7ジャスト回避が有効なら、発動時に同じ回避判定を開始する。"
+cooldownTicks: 0
+resourceType: ENERGY
+resourceCost: 15
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: false
+params:
+  horizontalStrength: 1.45
+  verticalStrength: 0.25
+  triggerSound: entity.wind_charge.wind_burst
+  triggerSoundVolume: 0.85
+  triggerSoundPitch: 1.15
+tags:
+  - passive
+  - defense

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
+import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
@@ -21,19 +22,22 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * スニーク入力を壁張り付き・ドッジのfallback候補として提供します。
+ * スニーク入力をエアーシフト・壁張り付き・ドッジのfallback候補として提供します。
  */
 public class PlayerSneakEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final AirActionService airActionService;
     private final DodgeService dodgeService;
+    private final AirShiftSkillRuntimeService airShiftSkillRuntimeService;
 
     public PlayerSneakEventHandler(
         AirActionService airActionService,
-        DodgeService dodgeService
+        DodgeService dodgeService,
+        AirShiftSkillRuntimeService airShiftSkillRuntimeService
     ) {
         this.airActionService = airActionService;
         this.dodgeService = dodgeService;
+        this.airShiftSkillRuntimeService = airShiftSkillRuntimeService;
     }
 
     @Override
@@ -66,6 +70,9 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
 
     private void handleSneak(@NotNull AstPlayer astPlayer, boolean sneaking) {
         if (sneaking) {
+            if (airShiftSkillRuntimeService.tryTrigger(astPlayer)) {
+                return;
+            }
             if (airActionService.tryStartWallCling(astPlayer)) {
                 return;
             }

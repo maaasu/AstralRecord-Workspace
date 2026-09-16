@@ -42,6 +42,8 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力を
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、必要素材は skill master の required items に定義します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与えます。`hunter_heal_arrow` はハンターの `usableSkills` へ追加せず、`starter` node `1284` から使用許可を与えます。
 
+`hunter_air_shift` はシャープシューターとファントムアーチャーの `usableSkills` から使用許可を与える、バインド不要の空中回避パッシブです。空中でスニークを押した瞬間の前後左右入力を視線基準で合成し、無入力時は後方へフォールバックします。通常ドッジと同じENG 15を消費し、水平1.45・上向き0.25のvelocity、風圧音、既存の空中パーティクルを発生させます。ジャスト回避が有効な場合は同じ直接攻撃無効化判定を開始します。最大Lvは1、初回習得素材は初級スキルジェム3個とします。
+
 `swordsman_shield_drain` は前方8m・全角110度から最大8体を選ぶ扇形近接攻撃です。各対象へ97.5%の基礎攻撃、敵Shieldへの3倍ブレイク、実減少量50%の自己Shield吸収を行い、消費リソースはMP10とします。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
 `administrator_shield_recharge` は最大Shieldを30増加し、シールド残存時の被弾またはスキルによる消費後8秒から最大Shieldの毎秒2%を再充填するバインド必須パッシブです。ただし `swordsman_shield_activate`（タンクシールドアクティベート）が有効でない限り、最大Shield補正があってもShieldの獲得・再充填は行いません。再充填中に被弾すると待機をやり直し、シールド破壊時は通常の回復仕様に従います。ソードマンではskilltree node `1202`、Administratorではclassの `usableSkills` から使用を許可します。
