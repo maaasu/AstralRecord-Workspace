@@ -109,6 +109,33 @@ public sealed class NetworkManagementTests
     }
 
     [Fact]
+    public async Task BanPost_PreservesPrivateAdminViewAndSelectedAccountOnRedirect()
+    {
+        var api = new ManagementHandler { Admin = true, MakeProfilePrivateAfterBan = true };
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var accountId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var path = $"/players/{ManagementHandler.TargetId:D}?mcid=Target&classId=adventurer&sort=level_asc&pageNumber=2&includePrivate=true&accountId={accountId:D}";
+        var body = WebUtility.HtmlDecode(await client.GetStringAsync(path));
+        var banForm = Regex.Match(body, "<form(?=[^>]*class=\"ar-ban-editor\")[^>]*>").Value;
+        Assert.Contains("handler=Ban", banForm, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("includePrivate=true", banForm, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains($"accountId={accountId:D}", banForm, StringComparison.OrdinalIgnoreCase);
+
+        using var saved = await client.PostAsync(path + "&handler=Ban", new FormUrlEncodedContent(BanForm(Token(body))));
+
+        Assert.Equal(HttpStatusCode.Found, saved.StatusCode);
+        var location = saved.Headers.Location!.ToString();
+        Assert.Contains("includePrivate=True", location, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains($"accountId={accountId:D}", location, StringComparison.OrdinalIgnoreCase);
+        using var redirected = await client.GetAsync(location);
+        Assert.Equal(HttpStatusCode.OK, redirected.StatusCode);
+        Assert.True(api.LastProfileIncludedPrivate);
+        Assert.Equal(accountId, api.LastProfileAccountId);
+    }
+
+    [Fact]
     public async Task SettingsPost_PreservesDisabledDiscord_AndRejectsInvalidNumber()
     {
         var api = new ManagementHandler { Admin = true };
@@ -268,6 +295,10 @@ public sealed class NetworkManagementTests
         public string LastSettingsBody { get; private set; } = string.Empty;
         public string LastBanBody { get; private set; } = string.Empty;
         public string? LastBanPath { get; private set; }
+        public bool MakeProfilePrivateAfterBan { get; set; }
+        public bool ProfileIsPrivate { get; private set; }
+        public bool LastProfileIncludedPrivate { get; private set; }
+        public Guid? LastProfileAccountId { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
@@ -294,10 +325,22 @@ public sealed class NetworkManagementTests
             if (path.StartsWith("/api/network-management/bans/", StringComparison.Ordinal))
             {
                 LastBanPath = path;
-                if (request.Method == HttpMethod.Put) { BanPuts++; LastBanBody = await request.Content!.ReadAsStringAsync(ct); }
+                if (request.Method == HttpMethod.Put)
+                {
+                    BanPuts++;
+                    LastBanBody = await request.Content!.ReadAsStringAsync(ct);
+                    ProfileIsPrivate = MakeProfilePrivateAfterBan;
+                }
                 return Json(Ban());
             }
-            if (path.StartsWith("/api/web-profiles/", StringComparison.Ordinal)) return Json(Profile());
+            if (path.StartsWith("/api/web-profiles/", StringComparison.Ordinal))
+            {
+                LastProfileIncludedPrivate = query.TryGetValue("include_private", out var privateValue)
+                    && bool.TryParse(privateValue, out var includePrivate) && includePrivate;
+                LastProfileAccountId = query.TryGetValue("account_id", out var accountValue)
+                    && Guid.TryParse(accountValue, out var accountId) ? accountId : null;
+                return ProfileIsPrivate && !LastProfileIncludedPrivate ? new(HttpStatusCode.NotFound) : Json(Profile());
+            }
             return new(HttpStatusCode.NotFound);
         }
 
@@ -308,9 +351,9 @@ public sealed class NetworkManagementTests
             channels = new[] { new { serverId = "lobby", displayName = "ロビー", isGame = false, maxPlayers = 100, donorExtraPlayers = 0, adminExtraPlayers = 0, discordEnabled = true, whitelistEnabled = false, debugUsers = Array.Empty<Guid>(), whitelistUsers = Array.Empty<Guid>() } },
         };
         private static object Ban() => new { userUuid = TargetId, mcid = "TargetPlayer", revision = 4, isBanned = false, isActive = false, isIndefinite = false, serverTimeUtc = "2026-09-16T00:00:00Z" };
-        private static object Profile() => new
+        private object Profile() => new
         {
-            userUuid = TargetId, mcid = "TargetPlayer", permission = 0, isPublic = true,
+            userUuid = TargetId, mcid = "TargetPlayer", permission = 0, isPublic = !ProfileIsPrivate,
             accounts = Array.Empty<object>(), currentAccount = (object?)null,
         };
         private static HttpResponseMessage Json(object value) => new(HttpStatusCode.OK) { Content = JsonContent.Create(value) };

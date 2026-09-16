@@ -30,7 +30,7 @@
                     @if (Model.BanState is { } ban)
                     {
                         <dl class="ar-ban-state"><div><dt>現在の状態</dt><dd>@(ban.IsActive ? "利用停止中" : "利用可能")</dd></div><div><dt>対象 UUID</dt><dd>@ban.UserUuid</dd></div><div><dt>期限</dt><dd>@(ban.IsActive ? (ban.IsIndefinite ? "無期限" : ban.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm zzz") ?? "未設定") : "—")</dd></div></dl>
-                        <form method="post" asp-page-handler="Ban" class="ar-ban-editor" data-ban-editor>
+                        <form method="post" asp-page-handler="Ban" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate" asp-route-accountId="@Model.AccountId" class="ar-ban-editor" data-ban-editor>
                             <input type="hidden" name="BanInput.ExpectedRevision" value="@ban.Revision" />
                             <label><input type="radio" name="BanInput.IsBanned" value="true" checked="@Model.BanInput.IsBanned" data-ban-mode="ban" />利用停止にする</label>
                             <label><input type="radio" name="BanInput.IsBanned" value="false" checked="@(!Model.BanInput.IsBanned)" data-ban-mode="unban" />解除する</label>
