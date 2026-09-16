@@ -28,7 +28,7 @@
             <div class="ar-alert" role="alert">@Model.ErrorMessage</div>
         }
 
-        <form method="post" class="ar-network-form" data-network-admin>
+        <form method="post" class="ar-network-form" data-network-admin data-player-search-url="@Url.Page("/Admin/Network", "SearchPlayers")">
             <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />
             <section class="ar-panel" aria-labelledby="network-base-title">
                 <h2 id="network-base-title">ネットワーク全体</h2>
@@ -44,30 +44,29 @@
 
             <section class="ar-panel" aria-labelledby="network-player-search-title">
                 <h2 id="network-player-search-title">プレイヤーを追加</h2>
-                <p class="ar-portal-sub">登録済み MCID の先頭文字で検索し、候補から選びます。保存されるのは内部 UUID です。</p>
+                <p class="ar-portal-sub">追加先を選び、MCIDを入力してください。候補から追加した後、「設定を保存する」で反映します。</p>
                 <div class="ar-network-search">
-                    <label>追加先
-                        <select name="UserListTarget" data-user-target>
-                            <option value="authority" selected="@(Model.UserListTarget == "authority")">全体の管理権限</option>
+                    <label>チャンネル
+                        <select name="PlayerTargetChannel" data-user-channel>
+                            <option value="authority" selected="@(Model.PlayerTargetChannel == "authority")">ネットワーク全体</option>
                             @for (var i = 0; i < Model.Input.Channels.Count; i++)
                             {
-                                <option value="debug:@i" selected="@(Model.UserListTarget == $"debug:{i}")">@Model.Input.Channels[i].DisplayName のデバッグ利用者</option>
-                                <option value="whitelist:@i" selected="@(Model.UserListTarget == $"whitelist:{i}")">@Model.Input.Channels[i].DisplayName のホワイトリスト</option>
+                                <option value="@i" selected="@(Model.PlayerTargetChannel == i.ToString())">@Model.Input.Channels[i].DisplayName</option>
                             }
                         </select>
                     </label>
-                    <label>MCID<input name="PlayerQuery" value="@Model.PlayerQuery" maxlength="16" autocomplete="off" /></label>
-                    <button type="submit" class="btn ar-btn-outline" formaction="?handler=SearchPlayer">候補を検索</button>
+                    <label>追加する利用者の種類
+                        <select name="PlayerTargetRole" data-user-role>
+                            <option value="debug" selected="@(Model.PlayerTargetRole != "whitelist")">デバッグ利用者</option>
+                            <option value="whitelist" selected="@(Model.PlayerTargetRole == "whitelist")">ホワイトリスト</option>
+                        </select>
+                    </label>
+                    <label>MCID<input name="PlayerQuery" value="@Model.PlayerQuery" maxlength="100" autocomplete="off" spellcheck="false" data-player-query aria-controls="network-player-candidates" aria-describedby="network-search-status" placeholder="入力すると候補を表示" /></label>
                 </div>
-                @if (Model.PlayerCandidates.Count > 0)
-                {
-                    <ul class="ar-network-candidates" aria-label="MCID 検索結果">
-                        @foreach (var player in Model.PlayerCandidates)
-                        {
-                            <li><span><strong>@player.Mcid</strong><small>@player.UserUuid</small></span><button type="button" class="btn ar-btn-outline" data-add-network-user data-user-uuid="@player.UserUuid" data-mcid="@player.Mcid">追加</button></li>
-                        }
-                    </ul>
-                }
+                <p id="network-search-status" class="ar-search-status" role="status" aria-live="polite" data-search-status>MCIDを入力すると候補が表示されます。</p>
+                <ul id="network-player-candidates" class="ar-network-candidates" aria-label="MCID 検索結果" data-player-candidates></ul>
+                <p class="ar-member-feedback" role="status" aria-live="polite" data-member-feedback></p>
+                <noscript><p class="ar-alert">プレイヤーを追加するにはJavaScriptを有効にしてください。</p></noscript>
             </section>
 
             <section class="ar-panel" aria-labelledby="network-authority-title">
@@ -91,7 +90,7 @@
                         <header><h3>チャンネル @(i + 1)</h3><button type="submit" class="btn ar-btn-outline" name="channelIndex" value="@i" formaction="?handler=RemoveChannel">このチャンネルを外す</button></header>
                         <div class="ar-network-grid">
                             <label>接続先識別子<input name="Input.Channels[@i].ServerId" value="@channel.ServerId" maxlength="64" required pattern="[A-Za-z0-9_.-]+" /></label>
-                            <label>表示名<input name="Input.Channels[@i].DisplayName" value="@channel.DisplayName" maxlength="100" required /></label>
+                            <label>表示名<input name="Input.Channels[@i].DisplayName" value="@channel.DisplayName" maxlength="100" required data-channel-label="@i" /></label>
                             <label>上限人数<input name="Input.Channels[@i].MaxPlayers" value="@channel.MaxPlayers" type="number" min="0" required /></label>
                             <label>支援者追加枠<input name="Input.Channels[@i].DonorExtraPlayers" value="@channel.DonorExtraPlayers" type="number" min="0" required /></label>
                             <label>管理者追加枠<input name="Input.Channels[@i].AdminExtraPlayers" value="@channel.AdminExtraPlayers" type="number" min="0" required /></label>

@@ -12,9 +12,9 @@ namespace AstralRecordWeb.Pages.Admin;
 public sealed class NetworkModel(NetworkManagementApiClient networkManagementApiClient) : PageModel
 {
     [BindProperty] public ManagedNetworkSettingsInput Input { get; set; } = new();
-    [BindProperty] public string PlayerQuery { get; set; } = string.Empty;
-    [BindProperty] public string UserListTarget { get; set; } = "authority";
-    public IReadOnlyList<NetworkManagedPlayer> PlayerCandidates { get; private set; } = [];
+    [BindProperty] public string? PlayerQuery { get; set; }
+    [BindProperty] public string PlayerTargetChannel { get; set; } = "0";
+    [BindProperty] public string PlayerTargetRole { get; set; } = "debug";
     public IReadOnlyDictionary<Guid, string> PlayerNames { get; private set; } = new Dictionary<Guid, string>();
     public bool IsUninitialized { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -50,23 +50,27 @@ public sealed class NetworkModel(NetworkManagementApiClient networkManagementApi
     public IActionResult OnPostRemoveChannel(int channelIndex)
     {
         if (channelIndex >= 0 && channelIndex < Input.Channels.Count)
+        {
             Input.Channels.RemoveAt(channelIndex);
+            if (int.TryParse(PlayerTargetChannel, out var selected))
+                PlayerTargetChannel = Input.Channels.Count == 0 ? "authority"
+                    : Math.Clamp(selected > channelIndex ? selected - 1 : selected, 0, Input.Channels.Count - 1).ToString();
+        }
         return Page();
     }
 
-    public async Task<IActionResult> OnPostSearchPlayerAsync(CancellationToken ct)
+    public async Task<IActionResult> OnGetSearchPlayersAsync(string? query, CancellationToken ct)
     {
         if (!TryGetActor(out var actor)) return Challenge();
-        if (string.IsNullOrWhiteSpace(PlayerQuery))
+        var prefix = query?.Trim() ?? string.Empty;
+        if (prefix.Length == 0) return new JsonResult(new { players = Array.Empty<NetworkManagedPlayer>() });
+        if (prefix.Length > 100) return new JsonResult(new { message = "MCIDは100文字以内で入力してください。" }) { StatusCode = 400 };
+        var result = await networkManagementApiClient.SearchPlayersAsync(actor, prefix, ct);
+        if (result.Succeeded) return new JsonResult(new { players = result.Value });
+        return new JsonResult(new { message = "候補を取得できませんでした。入力し直して再試行してください。" })
         {
-            ErrorMessage = "追加するプレイヤーの MCID を入力してください。";
-            return Page();
-        }
-
-        var result = await networkManagementApiClient.SearchPlayersAsync(actor, PlayerQuery.Trim(), ct);
-        if (!result.Succeeded) return ApiFailure(result);
-        PlayerCandidates = result.Value!;
-        return Page();
+            StatusCode = result.Status is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.Unauthorized ? 403 : 503,
+        };
     }
 
     public async Task<IActionResult> OnPostSaveAsync(CancellationToken ct)

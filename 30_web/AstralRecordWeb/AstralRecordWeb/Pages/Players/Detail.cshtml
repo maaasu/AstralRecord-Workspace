@@ -32,12 +32,24 @@
                         <dl class="ar-ban-state"><div><dt>現在の状態</dt><dd>@(ban.IsActive ? "利用停止中" : "利用可能")</dd></div><div><dt>対象 UUID</dt><dd>@ban.UserUuid</dd></div><div><dt>期限</dt><dd>@(ban.IsActive ? (ban.IsIndefinite ? "無期限" : ban.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm zzz") ?? "未設定") : "—")</dd></div></dl>
                         <form method="post" asp-page-handler="Ban" class="ar-ban-editor" data-ban-editor>
                             <input type="hidden" name="BanInput.ExpectedRevision" value="@ban.Revision" />
-                            <label><input type="radio" name="BanInput.IsBanned" value="true" checked="@ban.IsActive" data-ban-mode="ban" />利用停止にする</label>
-                            <label><input type="radio" name="BanInput.IsBanned" value="false" checked="@(!ban.IsActive)" data-ban-mode="unban" />解除する</label>
+                            <label><input type="radio" name="BanInput.IsBanned" value="true" checked="@Model.BanInput.IsBanned" data-ban-mode="ban" />利用停止にする</label>
+                            <label><input type="radio" name="BanInput.IsBanned" value="false" checked="@(!Model.BanInput.IsBanned)" data-ban-mode="unban" />解除する</label>
                             <div data-ban-fields>
-                                <label><input name="BanInput.IsIndefinite" type="checkbox" value="true" checked="@ban.IsIndefinite" data-ban-indefinite />無期限</label>
-                                <label>期限（日本時間）<input name="BanInput.ExpiresAtLocal" type="datetime-local" value="@(ban.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-ddTHH:mm"))" data-ban-expiry /></label>
-                                <label>理由<textarea name="BanInput.Reason" maxlength="500" rows="3" data-ban-reason>@ban.Reason</textarea></label>
+                                <label><input name="BanInput.IsIndefinite" type="checkbox" value="true" checked="@Model.BanInput.IsIndefinite" data-ban-indefinite />無期限</label>
+                                <fieldset class="ar-ban-expiry" data-ban-expiry-fields>
+                                    <legend>解除日時（日本時間）</legend>
+                                    <div class="ar-ban-date-row">
+                                        <label>日付<input name="BanInput.ExpiresOn" type="date" value="@Model.BanInput.ExpiresOn" data-ban-date /></label>
+                                        <label>時刻<input name="BanInput.ExpiresTime" type="time" value="@Model.BanInput.ExpiresTime" step="60" data-ban-time /></label>
+                                        <button type="button" class="btn ar-btn-outline" data-ban-calendar>カレンダーを開く</button>
+                                    </div>
+                                    <div class="ar-ban-presets" aria-label="解除日時をまとめて設定">
+                                        <button type="button" class="btn ar-btn-outline" data-ban-days="1">1日後</button>
+                                        <button type="button" class="btn ar-btn-outline" data-ban-days="7">7日後</button>
+                                        <button type="button" class="btn ar-btn-outline" data-ban-days="30">30日後</button>
+                                    </div>
+                                </fieldset>
+                                <label>理由<textarea name="BanInput.Reason" maxlength="500" rows="3" data-ban-reason>@Model.BanInput.Reason</textarea></label>
                             </div>
                             <button type="button" class="btn ar-btn-primary" data-ban-open>内容を確認する</button>
                         </form>

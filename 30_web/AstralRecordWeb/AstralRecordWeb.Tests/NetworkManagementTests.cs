@@ -131,6 +131,78 @@ public sealed class NetworkManagementTests
         Assert.Equal(1, api.SettingsPuts);
     }
 
+    [Fact]
+    public async Task LivePlayerSearch_RechecksAdminAndUsesCookieActorWithoutPostingSettings()
+    {
+        var api = new ManagementHandler();
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        var url = "/Admin/Network?handler=SearchPlayers&query=Target&actor_user_uuid=" + Guid.NewGuid();
+        using var anonymous = await client.GetAsync(url);
+        Assert.Equal(HttpStatusCode.Found, anonymous.StatusCode);
+        await Login(client);
+        using var denied = await client.GetAsync(url);
+        Assert.Equal(HttpStatusCode.Found, denied.StatusCode);
+        Assert.Equal(0, api.SearchGets);
+        api.Admin = true;
+        using var response = await client.GetAsync(url);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType!.MediaType);
+        Assert.True(response.Headers.CacheControl!.NoStore);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("TargetPlayer", json.RootElement.GetProperty("players")[0].GetProperty("mcid").GetString());
+        Assert.Equal(ManagementHandler.ActorId, api.LastActor);
+        Assert.Equal("Target", api.LastSearchQuery);
+        Assert.Equal(0, api.SettingsPuts);
+        api.Admin = false;
+        using var revoked = await client.GetAsync(url);
+        Assert.Equal(HttpStatusCode.Found, revoked.StatusCode);
+        Assert.Equal(1, api.SearchGets);
+    }
+
+    [Fact]
+    public async Task LivePlayerSearch_HandlesEmptyQueryAndUpstreamFailure()
+    {
+        var api = new ManagementHandler { Admin = true };
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        using var empty = await client.GetAsync("/Admin/Network?handler=SearchPlayers&query=%20");
+        Assert.Equal(HttpStatusCode.OK, empty.StatusCode);
+        Assert.Equal(0, api.SearchGets);
+        using var tooLong = await client.GetAsync("/Admin/Network?handler=SearchPlayers&query=" + new string('x', 101));
+        Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+        Assert.Equal(0, api.SearchGets);
+        api.SearchFailure = true;
+        using var failed = await client.GetAsync("/Admin/Network?handler=SearchPlayers&query=Target");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, failed.StatusCode);
+        Assert.Equal(0, api.SettingsPuts);
+    }
+
+    [Theory]
+    [InlineData("2027-02-30")]
+    [InlineData("0001-01-01")]
+    [InlineData("2000-01-01")]
+    public async Task InvalidBanDate_RejectsUpdateAndKeepsAdminEditorAndInput(string invalidDate)
+    {
+        var api = new ManagementHandler { Admin = true };
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var path = $"/players/{ManagementHandler.TargetId:D}";
+        var body = await client.GetStringAsync(path);
+        var fields = BanForm(Token(body));
+        fields.RemoveAll(pair => pair.Key == "BanInput.ExpiresOn");
+        fields.Add(new("BanInput.ExpiresOn", invalidDate));
+        using var failed = await client.PostAsync(path + "?handler=Ban", new FormUrlEncodedContent(fields));
+        Assert.Equal(HttpStatusCode.OK, failed.StatusCode);
+        Assert.Equal(0, api.BanPuts);
+        var failedBody = WebUtility.HtmlDecode(await failed.Content.ReadAsStringAsync());
+        Assert.Contains("data-ban-editor", failedBody);
+        Assert.Contains(invalidDate, failedBody);
+        Assert.Contains("テスト利用停止", failedBody);
+    }
+
     private static List<KeyValuePair<string, string>> SettingsForm(string? token = null)
     {
         var fields = new List<KeyValuePair<string, string>>
@@ -150,7 +222,7 @@ public sealed class NetworkManagementTests
     {
         var fields = new List<KeyValuePair<string, string>>
         {
-            new("BanInput.ExpectedRevision", "4"), new("BanInput.IsBanned", "true"), new("BanInput.ExpiresAtLocal", "2026-12-31T14:00"), new("BanInput.Reason", "テスト利用停止"),
+            new("BanInput.ExpectedRevision", "4"), new("BanInput.IsBanned", "true"), new("BanInput.ExpiresOn", "2026-12-31"), new("BanInput.ExpiresTime", "14:00"), new("BanInput.Reason", "テスト利用停止"),
         };
         if (token is not null) fields.Add(new("__RequestVerificationToken", token));
         return fields;
@@ -188,6 +260,9 @@ public sealed class NetworkManagementTests
         public int SettingsGets { get; private set; }
         public int SettingsPuts { get; private set; }
         public int BanPuts { get; private set; }
+        public int SearchGets { get; private set; }
+        public string? LastSearchQuery { get; private set; }
+        public bool SearchFailure { get; set; }
         public Guid? LastActor { get; private set; }
         public string? LastApiKey { get; private set; }
         public string LastSettingsBody { get; private set; } = string.Empty;
@@ -209,7 +284,13 @@ public sealed class NetworkManagementTests
                 LastSettingsBody = await request.Content!.ReadAsStringAsync(ct);
                 return Json(Settings());
             }
-            if (path == "/api/network-management/players") return Json(new[] { new { userUuid = TargetId, mcid = "TargetPlayer" } });
+            if (path == "/api/network-management/players")
+            {
+                SearchGets++;
+                LastSearchQuery = query["query"].ToString();
+                return SearchFailure ? new(HttpStatusCode.ServiceUnavailable)
+                    : Json(new[] { new { userUuid = TargetId, mcid = "TargetPlayer" } });
+            }
             if (path.StartsWith("/api/network-management/bans/", StringComparison.Ordinal))
             {
                 LastBanPath = path;

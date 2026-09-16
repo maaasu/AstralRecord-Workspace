@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Globalization;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -37,7 +38,7 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
         IsPrivateView = Profile is { IsPublic: false };
         if (!result.Succeeded) ErrorMessage = "プレイヤー情報を取得できませんでした。時間をおいて再読み込みしてください。";
         if (IsWebAdmin)
-            await LoadBanStateAsync(userUuid, ct);
+            await LoadBanStateAsync(userUuid, ct, initializeInput: true);
         return Page();
     }
 
@@ -45,19 +46,28 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
     {
         if (userUuid == Guid.Empty) return NotFound();
         if (!(await authorization.AuthorizeAsync(User, null, "WebAdminOnly")).Succeeded) return Forbid();
+        IsWebAdmin = true;
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor)) return Challenge();
+
+        if (ModelState.Any(entry => entry.Key.StartsWith("BanInput.", StringComparison.Ordinal) && entry.Value?.Errors.Count > 0))
+        {
+            BanErrorMessage = "利用停止の入力内容を確認してください。";
+            await LoadProfileAndBanAsync(userUuid, ct);
+            return Page();
+        }
 
         DateTimeOffset? expiresAtUtc = null;
         if (BanInput.IsBanned && !BanInput.IsIndefinite)
         {
-            if (!DateTime.TryParse(BanInput.ExpiresAtLocal, out var expiresAtLocal))
+            if (!DateTimeOffset.TryParseExact($"{BanInput.ExpiresOn}T{BanInput.ExpiresTime}+09:00", "yyyy-MM-dd'T'HH:mmzzz",
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiresAtLocal))
             {
                 BanErrorMessage = "期限付き BAN には日時を指定してください。";
                 await LoadProfileAndBanAsync(userUuid, ct);
                 return Page();
             }
 
-            expiresAtUtc = new DateTimeOffset(DateTime.SpecifyKind(expiresAtLocal, DateTimeKind.Unspecified), TimeSpan.FromHours(9)).ToUniversalTime();
+            expiresAtUtc = expiresAtLocal.ToUniversalTime();
             if (expiresAtUtc <= DateTimeOffset.UtcNow)
             {
                 BanErrorMessage = "BAN の期限は現在より後の日時を指定してください。";
@@ -103,11 +113,20 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
         await LoadBanStateAsync(userUuid, ct);
     }
 
-    private async Task LoadBanStateAsync(Guid userUuid, CancellationToken ct)
+    private async Task LoadBanStateAsync(Guid userUuid, CancellationToken ct, bool initializeInput = false)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor)) return;
         var result = await networkManagementApiClient.GetBanAsync(actor, userUuid, ct);
         BanState = result.Value;
+        if (initializeInput && BanState is { } state)
+        {
+            var localExpiry = state.ExpiresAtUtc?.ToOffset(TimeSpan.FromHours(9));
+            BanInput = new NetworkBanInput
+            {
+                ExpectedRevision = state.Revision, IsBanned = true, IsIndefinite = state.IsIndefinite,
+                ExpiresOn = localExpiry?.ToString("yyyy-MM-dd"), ExpiresTime = localExpiry?.ToString("HH:mm"), Reason = state.Reason,
+            };
+        }
         if (!result.Succeeded)
             BanErrorMessage = result.Status == System.Net.HttpStatusCode.NotFound
                 ? "このプレイヤーの利用停止状態はまだ管理対象として登録されていません。"
@@ -120,6 +139,7 @@ public sealed class NetworkBanInput
     public int ExpectedRevision { get; set; }
     public bool IsBanned { get; set; }
     public bool IsIndefinite { get; set; }
-    public string? ExpiresAtLocal { get; set; }
+    public string? ExpiresOn { get; set; }
+    public string? ExpiresTime { get; set; }
     public string? Reason { get; set; }
 }
