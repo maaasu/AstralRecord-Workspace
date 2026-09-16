@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -171,10 +172,10 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
             DamageImmune = mob.DamageImmune, Icon = ReadString(node, "icon") ?? mob.Icon,
             IconTexture = ReadString(node, "iconTexture") ?? mob.IconTexture,
             Lore = ReadStrings(node, "lore") ?? mob.Lore, Tags = ReadStrings(node, "tags") ?? mob.Tags,
-            Skin = mob.Skin, Variant = ReadJson<MobVariantResponse>(node, "variant") ?? mob.Variant,
+            Skin = mob.Skin, Variant = ReadMergedJson(node, "variant", mob.Variant),
             Equipment = mob.Equipment, BaseStats = ReadStats(node, "baseStats") ?? mob.BaseStats,
             Shield = mob.Shield, Ai = mob.Ai, Interactions = mob.Interactions,
-            Drops = ReadDrops(node, "drops") ?? mob.Drops, Challenge = mob.Challenge, Levels = mob.Levels,
+            Drops = ReadDrops(node, "drops", mob.Drops), Challenge = mob.Challenge, Levels = mob.Levels,
         };
     }
 
@@ -189,37 +190,46 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
             }).ToList();
     }
 
-    private static MobDropsResponse? ReadDrops(JsonElement element, string property)
+    private static MobDropsResponse? ReadDrops(JsonElement element, string property, MobDropsResponse? baseline)
     {
-        if (!element.TryGetProperty(property, out var drops) || drops.ValueKind != JsonValueKind.Object) return null;
-        var items = drops.TryGetProperty("items", out var rawItems) && rawItems.ValueKind == JsonValueKind.Array
-            ? rawItems.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object).Select(item => new MobDropItemResponse
-            {
-                ItemId = ReadRef(item, "itemId"), Rate = ReadDouble(item, "rate") ?? 0, Amount = ReadString(item, "amount") ?? "1",
-                LuckAffected = ReadBool(item, "luckAffected") ?? true, Hidden = ReadBool(item, "hidden") ?? false,
-            }).ToList() : [];
-        return new MobDropsResponse
-        {
-            Exp = ReadPositiveInt(drops, "exp") ?? 0,
-            Money = ReadJson<MobMoneyDropResponse>(drops, "money"), Items = items, LootTable = ReadRefOrNull(drops, "lootTable"),
-        };
+        if (!element.TryGetProperty(property, out var drops)) return baseline;
+        if (drops.ValueKind == JsonValueKind.Null) return null;
+        if (drops.ValueKind != JsonValueKind.Object) return baseline;
+        return MergeJson(baseline, drops);
     }
 
-    private static T? ReadJson<T>(JsonElement element, string property) where T : class =>
-        element.TryGetProperty(property, out var raw) && raw.ValueKind == JsonValueKind.Object ? raw.Deserialize<T>() : null;
+    private static T? ReadMergedJson<T>(JsonElement element, string property, T? baseline) where T : class
+    {
+        if (!element.TryGetProperty(property, out var raw)) return baseline;
+        if (raw.ValueKind == JsonValueKind.Null) return null;
+        return raw.ValueKind == JsonValueKind.Object ? MergeJson(baseline, raw) : baseline;
+    }
+
+    /// <summary>Plugin の profile merge と同じく、オブジェクトだけを再帰マージし、配列とスカラは差し替えます。</summary>
+    private static T? MergeJson<T>(T? baseline, JsonElement overrideValue) where T : class
+    {
+        JsonNode node = baseline is null
+            ? new JsonObject()
+            : JsonNode.Parse(JsonSerializer.Serialize(baseline, MasterDataPayloadJson.Options))!;
+        MergeObjects((JsonObject)node, JsonNode.Parse(overrideValue.GetRawText())!.AsObject());
+        return JsonSerializer.Deserialize<T>(node.ToJsonString(), MasterDataPayloadJson.Options);
+    }
+
+    private static void MergeObjects(JsonObject baseline, JsonObject overrideValue)
+    {
+        foreach (var pair in overrideValue)
+        {
+            if (baseline[pair.Key] is JsonObject current && pair.Value is JsonObject nested)
+                MergeObjects(current, nested);
+            else
+                baseline[pair.Key] = pair.Value?.DeepClone();
+        }
+    }
     private static string? ReadString(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind == JsonValueKind.String ? raw.GetString() : null;
     private static bool? ReadBool(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind is JsonValueKind.True or JsonValueKind.False ? raw.GetBoolean() : null;
     private static int? ReadPositiveInt(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.TryGetInt32(out var value) && value > 0 ? value : null;
     private static double? ReadDouble(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.TryGetDouble(out var value) ? value : null;
     private static IReadOnlyList<string>? ReadStrings(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind == JsonValueKind.Array ? raw.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String).Select(value => value.GetString() ?? string.Empty).ToList() : null;
-    private static string ReadRef(JsonElement element, string property) => ReadRefOrNull(element, property) ?? string.Empty;
-    private static string? ReadRefOrNull(JsonElement element, string property)
-    {
-        if (!element.TryGetProperty(property, out var raw)) return null;
-        if (raw.ValueKind == JsonValueKind.String) return raw.GetString();
-        return raw.ValueKind == JsonValueKind.Object && raw.TryGetProperty("ref", out var reference) && reference.ValueKind == JsonValueKind.String
-            ? reference.GetString()?.Split(':', 2).Last() : null;
-    }
     private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
     private static string? StripOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : StripLegacyColors(value);
     private static string StripLegacyColors(string value) => Regex.Replace(value, "[&§][0-9A-FK-ORX]", string.Empty, RegexOptions.IgnoreCase);
