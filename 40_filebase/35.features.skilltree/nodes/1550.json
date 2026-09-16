@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1550",
+  "name": "&6星界叡智の極星",
+  "icon": "KNOWLEDGE_BOOK",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "SCALAR",
+      "value": 0.03
+    },
+    {
+      "type": "status",
+      "status": "CAST_TIME_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 3.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

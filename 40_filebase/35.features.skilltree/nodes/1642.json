@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1642",
+  "name": "&6魔力崩星の極星",
+  "icon": "NETHER_STAR",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

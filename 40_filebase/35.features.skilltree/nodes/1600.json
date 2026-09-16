@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1600",
+  "name": "&6轟天の極星",
+  "icon": "AMETHYST_BLOCK",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "lightning"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 6.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

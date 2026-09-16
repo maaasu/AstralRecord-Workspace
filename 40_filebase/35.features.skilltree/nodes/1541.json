@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1541",
+  "name": "&d魔導の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.01
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

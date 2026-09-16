@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1605",
+  "name": "&e雷穿の星環",
+  "icon": "COPPER_INGOT",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "lightning"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_PENETRATION",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

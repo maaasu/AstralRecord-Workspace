@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1589",
+  "name": "&b氷穿の星環",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ICE_PENETRATION",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

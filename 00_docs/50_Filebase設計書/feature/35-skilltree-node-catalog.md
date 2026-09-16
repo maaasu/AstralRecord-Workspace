@@ -154,6 +154,58 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 `playerLevel: 2147483647` は絶対ロックではなく、専用ロック項目がない現行schema内の暫定表現です。予約枠は後続nodeを持たないleafとし、実skill IDは追加しません。
 
+## ウィザード専門枝
+
+ウィザード領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全nodeは1CPで、`unlockCondition.classId: wizard`を持つ。スキル使用許可nodeはこの領域へ置かない。
+
+### 共通魔導パッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-wizard-common-path` | `1535`, `1536`, `1543`, `1544`, `1551`, `1552` | MAGIC_ATTACK / INTELLIGENCE `SCALAR +0.003`、MAX_MANA `FLAT +5` | `&d秘奥の星路` | `BLAZE_ROD` | `status`, `offense`, `resource`, `mana`, `astral` |
+| `status-wizard-common-magic` | `1537`〜`1541` | MAGIC_ATTACK `SCALAR +0.01` | `&d魔導の星環` | `AMETHYST_SHARD` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-common-magic-notable` | `1542` | MAGIC_ATTACK `SCALAR +0.03`、MAGIC_DEFENSE_PENETRATION_RATE `FLAT +3` | `&6大魔導の極星` | `ENCHANTING_TABLE` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-common-intelligence` | `1545`〜`1549` | INTELLIGENCE `SCALAR +0.01` | `&d叡智の星環` | `BOOK` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-common-intelligence-notable` | `1550` | INTELLIGENCE `SCALAR +0.03`、CAST_TIME_REDUCTION `FLAT +3` | `&6星界叡智の極星` | `KNOWLEDGE_BOOK` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-common-mana` | `1553`〜`1557` | MAX_MANA `FLAT +12` | `&b蒼泉の星環` | `LAPIS_LAZULI` | `status`, `resource`, `mana`, `azure` |
+| `status-wizard-common-mana-notable` | `1558` | MAX_MANA `FLAT +35`、MP_REGEN `FLAT +1.5` | `&6深蒼泉の極星` | `CONDUIT` | `status`, `resource`, `mana`, `azure`, `astral` |
+
+### エレメンタルパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-wizard-elemental-path` | `1559`〜`1570` | FIRE / ICE / LIGHTNING_DAMAGE_INCREASE `FLAT +0.5` | `&d三相の星路` | `PRISMARINE_SHARD` | `status`, `offense`, `element`, `fire`, `ice`, `lightning` |
+| `status-wizard-elemental-fire` | `1571`〜`1575` | FIRE_DAMAGE_INCREASE `FLAT +2` | `&c紅蓮の星環` | `BLAZE_POWDER` | `status`, `offense`, `element`, `fire` |
+| `status-wizard-elemental-fire-notable` | `1576` | FIRE_DAMAGE_INCREASE `FLAT +6` | `&6灼天の極星` | `BLAZE_ROD` | `status`, `offense`, `element`, `fire` |
+| `status-wizard-elemental-fire-penetration` | `1577`〜`1581` | FIRE_PENETRATION `FLAT +1` | `&c灼穿の星環` | `MAGMA_CREAM` | `status`, `offense`, `element`, `fire` |
+| `status-wizard-elemental-fire-penetration-notable` | `1582` | FIRE_PENETRATION `FLAT +4` | `&6炎界穿孔の極星` | `FIRE_CHARGE` | `status`, `offense`, `element`, `fire` |
+| `status-wizard-elemental-ice` | `1583`〜`1587` | ICE_DAMAGE_INCREASE `FLAT +2` | `&b氷晶の星環` | `PACKED_ICE` | `status`, `offense`, `element`, `ice`, `azure` |
+| `status-wizard-elemental-ice-notable` | `1588` | ICE_DAMAGE_INCREASE `FLAT +6` | `&6凍天の極星` | `BLUE_ICE` | `status`, `offense`, `element`, `ice`, `azure` |
+| `status-wizard-elemental-ice-penetration` | `1589`〜`1593` | ICE_PENETRATION `FLAT +1` | `&b氷穿の星環` | `PRISMARINE_CRYSTALS` | `status`, `offense`, `element`, `ice`, `azure` |
+| `status-wizard-elemental-ice-penetration-notable` | `1594` | ICE_PENETRATION `FLAT +4` | `&6氷界穿孔の極星` | `HEART_OF_THE_SEA` | `status`, `offense`, `element`, `ice`, `azure` |
+| `status-wizard-elemental-lightning` | `1595`〜`1599` | LIGHTNING_DAMAGE_INCREASE `FLAT +2` | `&e雷光の星環` | `LIGHTNING_ROD` | `status`, `offense`, `element`, `lightning` |
+| `status-wizard-elemental-lightning-notable` | `1600` | LIGHTNING_DAMAGE_INCREASE `FLAT +6` | `&6轟天の極星` | `AMETHYST_BLOCK` | `status`, `offense`, `element`, `lightning` |
+| `status-wizard-elemental-lightning-penetration` | `1601`〜`1605` | LIGHTNING_PENETRATION `FLAT +1` | `&e雷穿の星環` | `COPPER_INGOT` | `status`, `offense`, `element`, `lightning` |
+| `status-wizard-elemental-lightning-penetration-notable` | `1606` | LIGHTNING_PENETRATION `FLAT +4` | `&6雷界穿孔の極星` | `END_ROD` | `status`, `offense`, `element`, `lightning` |
+
+### アーケインパッケージ
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `status-wizard-arcane-path` | `1607`〜`1618` | MAX_MANA `FLAT +8`、MAGIC_ATTACK `SCALAR +0.003`、SKILL_DAMAGE_INCREASE `FLAT +0.3` | `&5星界魔力の星路` | `ENDER_EYE` | `status`, `offense`, `resource`, `mana`, `astral` |
+| `status-wizard-arcane-mana` | `1619`〜`1623` | MAX_MANA `FLAT +20` | `&b深淵魔泉の星環` | `LAPIS_BLOCK` | `status`, `resource`, `mana`, `astral` |
+| `status-wizard-arcane-mana-notable` | `1624` | MAX_MANA `FLAT +60` | `&6無尽魔泉の極星` | `CONDUIT` | `status`, `resource`, `mana`, `astral` |
+| `status-wizard-arcane-magic` | `1625`〜`1629` | MAGIC_ATTACK `SCALAR +0.015` | `&5純魔の星環` | `AMETHYST_SHARD` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-magic-notable` | `1630` | MAGIC_ATTACK `SCALAR +0.05` | `&6純魔奔流の極星` | `END_CRYSTAL` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-intelligence` | `1631`〜`1635` | INTELLIGENCE `SCALAR +0.015` | `&5叡智昇華の星環` | `BOOK` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-intelligence-notable` | `1636` | INTELLIGENCE `SCALAR +0.05` | `&6叡智超越の極星` | `KNOWLEDGE_BOOK` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-skill-damage` | `1637`〜`1641` | SKILL_DAMAGE_INCREASE `FLAT +1.2` | `&d魔力炸裂の星環` | `FIREWORK_STAR` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-skill-damage-notable` | `1642` | SKILL_DAMAGE_INCREASE `FLAT +5` | `&6魔力崩星の極星` | `NETHER_STAR` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-penetration` | `1643`〜`1647` | MAGIC_DEFENSE_PENETRATION_RATE `FLAT +1.2` | `&5魔障穿孔の星環` | `ENDER_PEARL` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-penetration-notable` | `1648` | MAGIC_DEFENSE_PENETRATION_RATE `FLAT +5` | `&6虚空穿孔の極星` | `RESPAWN_ANCHOR` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-cast` | `1649`〜`1653` | CAST_TIME_REDUCTION `FLAT +1.5` | `&d高速詠唱の星環` | `CLOCK` | `status`, `offense`, `mana`, `astral` |
+| `status-wizard-arcane-cast-notable` | `1654` | CAST_TIME_REDUCTION `FLAT +6` | `&6無詠唱境界の極星` | `ENCHANTED_BOOK` | `status`, `offense`, `mana`, `astral` |
+
 ## パラディン専門枝
 
 パラディンは共通防御24node、Holy 48node、Guardian 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: paladin` である。`SCALAR` は基礎値へ加算する割合、`FLAT` は表示単位の実数加算として使い分ける。削除済み ID `1378`、`1396`、`1417`、`1435`、`1456`、`1474` は再利用しない。

@@ -47,7 +47,23 @@ Holyのskill nodeは1か所へ集約しない。パラディンシールド `152
 | 南 | 1082 → 1515 | 1515〜1521 |
 | 西 | 1083 → 1488 | 1488〜1494 |
 
-`starter` は全387node・428edgeで、全nodeの相対Yは0に統一する。パラディン領域の座標範囲はX `-74`〜`68`、Z `9`〜`68` とし、東西へ広がる大きな外周シルエットを作る。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。パラディン表示時に同時表示されるPP・冒険者・ソードマンedgeとの不要な交差を作らない。
+パラディン領域の座標範囲はX `-33.9`〜`31.3`、Z `-32.8`〜`31.9` とし、東西へ広がる大きな外周シルエットを作る。パラディン表示時に同時表示されるPP・冒険者・ソードマンedgeとの不要な交差を作らない。
+
+## ウィザード専門枝
+
+`starter` のウィザード領域は、`1535`〜`1654` のstatus node 120個で構成する。全nodeは `pointCost: 1`、`unlockCondition.classId: wizard` とし、skill nodeを置かない。既存メイジnode `1320` から共通魔導へ入り、その終端 `1558` からエレメンタルとアーケインへ分岐する。
+
+| 系統 | status node | 全取得CP | 役割 |
+|:--|:--|--:|:--|
+| 共通魔導 | `1535`〜`1558` | 24 | MAGIC_ATTACK、INTELLIGENCE、MAX_MANA、MAGIC_DEFENSE_PENETRATION_RATE、CAST_TIME_REDUCTION、MP_REGEN |
+| エレメンタル | `1559`〜`1606` | 48 | 火・氷・雷の属性ダメージと属性貫通 |
+| アーケイン | `1607`〜`1654` | 48 | MAX_MANA、MAGIC_ATTACK、INTELLIGENCE、SKILL_DAMAGE_INCREASE、MAGIC_DEFENSE_PENETRATION_RATE、CAST_TIME_REDUCTION |
+
+共通魔導を含む各専門枝の全取得は72CP、全領域は120CPである。Lv100の99CPでは一方の完成形と他系統の一部まで取得できるが、両系統の全取得はできない。エレメンタルは火・氷・雷を均等に伸ばす複数属性型とする。アーケインは高い固定MP消費を持つskillを支える最大MPと攻撃statusへ集中するが、実際のMP消費量に比例してダメージを増やす未実装効果やskill自体は追加しない。
+
+ウィザード領域はX `23`〜`88`、Z `-33.1`〜`41.3` に配置する。全体は共通魔導を東へ伸ばし、エレメンタルを北側、アーケインを南側へ分ける。ウィザード表示時に同時表示されるPP・冒険者・メイジedgeとの不要な交差を作らない。
+
+`starter` は全507node・515edgeで、全nodeの相対Yは0に統一する。同一座標、自己接続、無向edge重複を持たず、rootから全nodeへ到達できることを必須とする。
 
 ## コンテンツ設計
 
@@ -76,7 +92,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放と、パラディンの共通防御・Holy・Guardian領域および各固有skill解放を定義します。現行は387nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域を定義します。現行は507nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -103,6 +119,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | パラディン パラディンシールド | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン ホーリーコントロール | 1 | パラディンCP 1 | `classId: paladin` |
 | パラディン Guardian Guard系skill | 6 | パラディンCP 6 | `classId: paladin` |
+| ウィザード共通魔導 / エレメンタル / アーケイン | 120 | ウィザードCP 120（24 / 48 / 48） | `classId: wizard` |
 | 追加汎用PP | 28 | PP 28 | playerLevelのみ |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
@@ -121,6 +138,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・ENG効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。Shield破壊専門円環の全取得値は `SHIELD_BREAK +2` とし、ソードマンの `+8` より低く設定します。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` と、Guard系入口 `paladin_guard_convert` の1CP node `1529` を別方向へ分岐します。`1529`から盾攻撃側の`paladin_shield_bash` `1530`→`paladin_shield_impact` `1531`、防衛制御側の`paladin_fortress` `1532`→`paladin_guardian_protect` `1533` / `paladin_guardian_chain` `1534`へ接続し、Holy skillとは反対の西側へ配置します。Holy側の既存配置は維持し、skill nodeはstatus nodeへ混載しません。
+- ウィザードはメイジnode `1320` から24nodeの共通魔導へ入り、その終端から48nodeのエレメンタルと48nodeのアーケインへ分岐します。エレメンタルは火・氷・雷のダメージと貫通を同率で伸ばし、アーケインは最大MP、魔法攻撃力、知力、スキルダメージ、魔法防御貫通、詠唱短縮を伸ばします。120nodeはすべてstatus nodeとし、skill使用許可を混載しません。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1536",
+  "name": "&d秘奥の星路",
+  "icon": "BLAZE_ROD",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

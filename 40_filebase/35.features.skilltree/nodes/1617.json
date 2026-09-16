@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1617",
+  "name": "&5星界魔力の星路",
+  "icon": "ENDER_EYE",
+  "tags": [
+    "status",
+    "offense",
+    "resource",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.003
+    },
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 0.3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

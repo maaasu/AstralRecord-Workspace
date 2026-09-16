@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1647",
+  "name": "&5魔障穿孔の星環",
+  "icon": "ENDER_PEARL",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 1.2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

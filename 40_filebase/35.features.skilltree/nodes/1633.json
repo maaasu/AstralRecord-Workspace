@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1633",
+  "name": "&5叡智昇華の星環",
+  "icon": "BOOK",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "SCALAR",
+      "value": 0.015
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

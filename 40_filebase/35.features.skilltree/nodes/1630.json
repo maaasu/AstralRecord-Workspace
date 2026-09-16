@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1630",
+  "name": "&6純魔奔流の極星",
+  "icon": "END_CRYSTAL",
+  "tags": [
+    "status",
+    "offense",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "SCALAR",
+      "value": 0.05
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

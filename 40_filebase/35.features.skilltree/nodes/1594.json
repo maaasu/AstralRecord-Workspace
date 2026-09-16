@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1594",
+  "name": "&6氷界穿孔の極星",
+  "icon": "HEART_OF_THE_SEA",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ICE_PENETRATION",
+      "modifierType": "FLAT",
+      "value": 4.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

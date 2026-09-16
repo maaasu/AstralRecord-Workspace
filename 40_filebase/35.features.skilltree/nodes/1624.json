@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1624",
+  "name": "&6無尽魔泉の極星",
+  "icon": "CONDUIT",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 60.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}
