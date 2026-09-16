@@ -9,7 +9,7 @@ const MOB_ENTITY_TYPES = new Set([
     'SLIME', 'SNIFFER', 'SNOW_GOLEM', 'SPIDER', 'SQUID', 'STRAY', 'STRIDER', 'TADPOLE',
     'TROPICAL_FISH', 'TURTLE', 'VEX', 'VILLAGER', 'VINDICATOR', 'WANDERING_TRADER',
     'WARDEN', 'WITCH', 'WITHER', 'WITHER_SKELETON', 'WOLF', 'ZOGLIN', 'ZOMBIE',
-    'ZOMBIE_HORSE', 'ZOMBIE_VILLAGER', 'ZOMBIFIED_PIGLIN'
+    'ZOMBIE_HORSE', 'ZOMBIE_VILLAGER', 'ZOMBIFIED_PIGLIN', 'PARCHED'
 ]);
 
 const MOB_IMAGE_URLS = new Map([
@@ -69,18 +69,22 @@ function render(target, imageClass) {
 
     const image = document.createElement('img');
     image.className = imageClass;
-    image.src = src;
     image.alt = target.dataset.mobName ? `${target.dataset.mobName}の外見` : 'Minecraft バニラモブの外見';
     image.loading = 'lazy';
     image.decoding = 'async';
     image.referrerPolicy = 'no-referrer';
-    image.addEventListener('load', () => { target.dataset.mobVisualState = 'loaded'; }, { once: true });
+    image.addEventListener('load', () => {
+        target.dataset.mobVisualState = 'loaded';
+        const fallbackLabel = target.querySelector('[data-mob-visual-fallback]');
+        if (fallbackLabel) fallbackLabel.hidden = true;
+    }, { once: true });
     image.addEventListener('error', () => {
         image.remove();
         fallback(target);
     }, { once: true });
     target.dataset.mobVisualState = 'loading';
     target.append(image);
+    image.src = src;
 }
 
 function observe(selector, imageClass) {

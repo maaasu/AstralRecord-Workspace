@@ -4,6 +4,8 @@ import { mobEntityType, mobImagePath } from '../AstralRecordWeb/wwwroot/js/mob-v
 
 test('known Bukkit entity types resolve to local mob image paths', () => {
     assert.equal(mobEntityType(' zombie '), 'ZOMBIE');
+    assert.equal(mobEntityType('parched'), 'PARCHED');
+    assert.match(mobImagePath('PARCHED'), /^https:\/\/minecraft\.wiki\/images\//);
     assert.match(mobImagePath('WITHER_SKELETON'), /^https:\/\/minecraft\.wiki\/images\//);
     assert.match(mobImagePath('WITCH'), /^https:\/\/minecraft\.wiki\/images\//);
 });
