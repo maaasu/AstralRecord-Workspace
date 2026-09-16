@@ -72,6 +72,7 @@ import io.github.maaasu.astralRecord.feature.item.event.ItemChatShareEventHandle
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskGui;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskUseService;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
@@ -1690,6 +1691,11 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
+        inventoryService.setCastDiskHotbarIconService(new CastDiskHotbarIconService(
+            skillBindPresetService,
+            learnedSkillService,
+            skillService
+        ));
         skillBindPresetService.setLocalStatePersistence(inventoryService);
         inventoryPersistence.registerStateParticipant(learnedSkillService::snapshotPlayerState);
         inventoryPersistence.registerStateParticipant(skillBindPresetService::snapshotPlayerState);

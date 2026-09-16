@@ -58,6 +58,9 @@ final class HotbarRenderer {
                 : equipped
                     ? itemStackResolver.resolveForEquippedDisplay(entry, accountId, equippedSetCounts)
                     : itemStackResolver.resolve(entry, accountId);
+            if (entry != null && itemStack != null) {
+                itemStackResolver.applyHotbarDisplayIcon(entry, accountId, itemStack);
+            }
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 itemStack = createHotbarDummyItem(dbSlot, astPlayer.isBedrock());
             }
@@ -73,6 +76,9 @@ final class HotbarRenderer {
                 ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock())
                 : currentOffhand
             : itemStackResolver.resolveForEquippedDisplay(offhandEntry, accountId, equippedSetCounts);
+        if (offhandEntry != null && offhandStack != null) {
+            itemStackResolver.applyHotbarDisplayIcon(offhandEntry, accountId, offhandStack);
+        }
         if (offhandStack == null || offhandStack.getType() == Material.AIR) {
             offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock());
         }

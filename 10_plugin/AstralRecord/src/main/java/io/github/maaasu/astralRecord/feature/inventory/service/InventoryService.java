@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
@@ -180,6 +181,17 @@ public class InventoryService {
      */
     public @NotNull InventoryClickGuard getClickGuard() {
         return clickGuard;
+    }
+
+    /**
+     * スキルキャストディスクのホットバー表示アイコン解決を接続します。
+     *
+     * @param castDiskHotbarIconService 表示アイコン解決サービス
+     */
+    public void setCastDiskHotbarIconService(
+        @NotNull CastDiskHotbarIconService castDiskHotbarIconService
+    ) {
+        itemStackResolver.setCastDiskHotbarIconService(castDiskHotbarIconService);
     }
 
     /**

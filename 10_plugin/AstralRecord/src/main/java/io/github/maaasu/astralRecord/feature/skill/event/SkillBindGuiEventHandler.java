@@ -765,6 +765,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (astPlayer != null) {
             presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
             passiveSkillService.reconcileNow(astPlayer);
+            inventoryService.refreshManagedInventoryUi(astPlayer);
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
         }
         GuiSound.TOGGLE.play(player);
@@ -833,6 +834,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null) {
                     passiveSkillService.reconcileNow(current);
+                    inventoryService.refreshManagedInventoryUi(current);
                     if (skillBoundId != null) {
                         skillBoundListener.accept(current, skillBoundId);
                     }

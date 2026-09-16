@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
@@ -42,6 +43,7 @@ final class InventoryItemStackResolver {
 
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
+    private @Nullable CastDiskHotbarIconService castDiskHotbarIconService;
 
     InventoryItemStackResolver(
         @NotNull ItemService itemService,
@@ -49,6 +51,11 @@ final class InventoryItemStackResolver {
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
+    }
+
+    /** スキルキャストディスクのホットバー表示アイコン解決を設定します。 */
+    void setCastDiskHotbarIconService(@NotNull CastDiskHotbarIconService castDiskHotbarIconService) {
+        this.castDiskHotbarIconService = castDiskHotbarIconService;
     }
 
     /**
@@ -103,6 +110,22 @@ final class InventoryItemStackResolver {
         @NotNull Map<String, Integer> equippedSetCounts
     ) {
         return resolve(entry, expectedAccountId, false, equippedSetCounts);
+    }
+
+    /** ホットバー表示用 ItemStack へスキルキャストディスクの動的アイコンを反映します。 */
+    void applyHotbarDisplayIcon(
+        @NotNull InventoryEntryModel entry,
+        @NotNull UUID expectedAccountId,
+        @NotNull ItemStack itemStack
+    ) {
+        if (castDiskHotbarIconService == null || entry.getInstanceId() == null) {
+            return;
+        }
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
+        ItemModel itemModel = instance == null ? null : itemService.findLoadedById(instance.getItemId());
+        if (itemModel != null) {
+            castDiskHotbarIconService.apply(itemStack, itemModel, entry.getMetadataJson(), expectedAccountId);
+        }
     }
 
     private @Nullable ItemStack resolve(

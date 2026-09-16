@@ -492,6 +492,35 @@ public class ItemStackFactory {
     }
 
     /**
+     * クライアント送信用 ItemStack の表示アイコンを上書きします。
+     *
+     * <p>元の Bukkit ItemStack の Material は変更せず、packet adapter が参照する
+     * {@code astralrecord:icon} と {@code astralrecord:icon_texture} だけを更新します。</p>
+     *
+     * @param item 表示アイコンを上書きする ItemStack
+     * @param icon 表示に使用する Material
+     * @param iconTexture PLAYER_HEAD 用 textures 値。不要な場合は null
+     */
+    public static void overrideDisplayIcon(
+            @NotNull ItemStack item,
+            @NotNull Material icon,
+            @Nullable String iconTexture
+    ) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(KEY_ICON, PersistentDataType.STRING, icon.name());
+        if (icon == Material.PLAYER_HEAD && iconTexture != null && !iconTexture.isBlank()) {
+            pdc.set(KEY_ICON_TEXTURE, PersistentDataType.STRING, iconTexture.trim());
+        } else {
+            pdc.remove(KEY_ICON_TEXTURE);
+        }
+        item.setItemMeta(meta);
+    }
+
+    /**
      * ItemStack に埋め込まれた customModelData を取得します。
      *
      * @param item 判定対象
