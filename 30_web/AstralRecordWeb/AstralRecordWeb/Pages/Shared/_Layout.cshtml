@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="~/AstralRecordWeb.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/portal.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/skilltree.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
@@ -42,6 +43,16 @@
                 {
                     <a class="ar-nav-home" asp-page="/Index">ホーム</a>
                 }
+                <div class="ar-header-session" aria-label="ログイン状態">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-page="/MyPage" class="ar-header-account"><span class="ar-header-session-label"><i class="ar-status-dot" aria-hidden="true"></i>ログイン中</span><strong>@User.Identity.Name</strong></a>
+                    }
+                    else
+                    {
+                        <span class="ar-header-session-label">未ログイン</span><a asp-page="/Login" class="ar-header-login">ログイン</a>
+                    }
+                </div>
                 <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
                    rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
                 <button class="ar-menu-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#site-menu"
@@ -62,6 +73,8 @@
                 <a asp-page="/Index" asp-fragment="features"><span>特徴</span><span aria-hidden="true">↗</span></a>
                 <a asp-page="/Index" asp-fragment="join"><span>参加情報</span><span aria-hidden="true">↗</span></a>
                 <a asp-page="/Releases/Index"><span>お知らせ</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Terms"><span>利用規約</span><span aria-hidden="true">↗</span></a>
+                <a asp-page="/Privacy"><span>プライバシーポリシー</span><span aria-hidden="true">↗</span></a>
             </nav>
             @if (User.Identity?.IsAuthenticated == true)
             {
@@ -69,6 +82,7 @@
                     <p class="ar-menu-label"><span class="ar-status-dot"></span>ログイン中</p>
                     <strong class="ar-menu-player">@User.Identity.Name</strong>
                     <a asp-page="/MyPage"><span>マイページ</span><span aria-hidden="true">↗</span></a>
+                    <a asp-page="/Bestiary/Index"><span>討伐モブ図鑑</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Market/Index"><span>マーケット</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Logout" data-logout-open><span>ログアウト</span><span aria-hidden="true">↗</span></a>

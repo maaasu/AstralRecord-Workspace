@@ -72,6 +72,13 @@ builder.Services.AddHttpClient<PlayerProfileApiClient>((serviceProvider, httpCli
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
 });
+builder.Services.AddHttpClient<BestiaryApiClient>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+});
 builder.Services.AddHttpClient<WebAuthApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

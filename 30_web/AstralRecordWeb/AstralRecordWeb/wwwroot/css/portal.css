@@ -98,7 +98,7 @@ main, .ar-footer { position: relative; }
 .ar-profile-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; padding-top: 2rem; margin: 0; position: relative; z-index: 1; }
 .ar-profile-facts dt { color: #acc3d6; font-size: .72rem; font-weight: 400; margin-bottom: .45rem; }
 .ar-profile-facts dd { font-size: .83rem; overflow-wrap: anywhere; margin: 0; }
-.ar-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.3rem 0; }
+.ar-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.3rem 0; }
 .ar-stat { position: relative; padding: 1.5rem; border: 1px solid #91c9e233; border-radius: 12px; background: linear-gradient(140deg, #172d40dc, #0e1626); overflow: hidden; animation: portal-arrive .9s .1s both; }
 .ar-stat:nth-child(2) { animation-delay: .2s; }
 .ar-stat:nth-child(3) { animation-delay: .3s; }
@@ -187,7 +187,7 @@ main, .ar-footer { position: relative; }
     .ar-home-hero { min-height: 720px; } .ar-home-title { font-size: clamp(2.4rem, 8vw, 3.5rem); }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }
-    .ar-stats { gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
+    .ar-stats { grid-template-columns: repeat(2, 1fr); gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
     .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-network-grid, .ar-network-access-lists, .ar-network-search, .ar-ban-state, .ar-ban-confirm { grid-template-columns: 1fr; } .ar-network-channels > header, .ar-network-channel > header { align-items: flex-start; flex-direction: column; }
     .ar-cosmos span { filter: blur(40px); } .ar-meteor { width: 100px; }
 }
@@ -227,3 +227,41 @@ main, .ar-footer { position: relative; }
 .ar-account-picker select:disabled { opacity: .65; }
 .ar-account-picker p { grid-column: 1 / -1; color: #ad9cbb; font-size: .7rem; margin: 0; }
 @media (max-width: 600px) { .ar-account-picker { grid-template-columns: 1fr; } }
+
+/* Header identity stays visible alongside the public navigation. */
+.ar-header-session { display: flex; align-items: center; gap: .65rem; font-size: .75rem; min-width: 0; }
+.ar-header-session-label { color: #b2bfd2; white-space: nowrap; font-size: .67rem; }
+.ar-header-account { display: grid; gap: .15rem; text-decoration: none; color: #c6eee5; min-width: 0; }
+.ar-header-account strong { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; }
+.ar-header-account:hover { color: #fff; }
+.ar-header-login { border: 1px solid #8ae3db66; border-radius: 5px; padding: .45rem .7rem; color: #c6eee5; text-decoration: none; white-space: nowrap; }
+.ar-header-login:hover { background: #8ae3db15; color: #fff; }
+.ar-login-ownership { padding: 1rem; margin: 1.2rem 0; border: 1px solid #d9b97c44; border-left: 3px solid #d9b97c; border-radius: 6px; color: #d8cfbc; font-size: .8rem; line-height: 1.9; background: #d9b97c09; }
+.ar-login-ownership a { display: block; color: #a9e7db; margin-top: .4rem; }
+/* Legal pages share the portal palette, arrival motion, and scroll reveal. */
+.ar-legal-page { background: transparent; }
+.ar-legal-hero { background-color: #070c17; }
+.ar-legal-hero .ar-hero-overlay { background: linear-gradient(180deg, #070c1733, #070c17); }
+.ar-legal-hero .ar-home-kicker { color: #8ae3db; animation: portal-arrive .7s both; }
+.ar-legal-hero .ar-page-hero-title { animation: portal-arrive .8s .1s both; color: #edf8f5; text-shadow: 0 8px 40px #0008; }
+.ar-legal-hero .ar-page-hero-sub { animation: portal-arrive .9s .2s both; }
+.ar-legal-stars { animation: star-breathe 8s ease-in-out infinite alternate; opacity: .65; }
+.ar-legal-shell { background: linear-gradient(145deg, #17283be8, #0c1627f5); border: 1px solid #8ae3db30; border-top-color: #d9b97c88; border-radius: 14px; }
+.ar-legal-shell .ar-terms-heading { color: #e7d4ad; }
+.ar-legal-shell .ar-terms-num { color: #a9e7db; border-color: #8ae3db44; background: #8ae3db08; }
+.ar-legal-shell .ar-terms-section:target, #web-login-rules:target { scroll-margin-top: calc(var(--ar-navbar-h) + 1.5rem); }
+@media (max-width: 767px) {
+    .ar-header-session { gap: .35rem; }.ar-header-session { flex-direction: column; gap: .15rem; }.ar-header-account strong { max-width: 90px; }
+}
+@media (max-width: 575px) {
+    :root { --ar-navbar-h: 108px; }
+    .ar-navbar > .container { flex-wrap: wrap; row-gap: .5rem; }
+    .ar-navbar .ar-nav-actions { width: 100%; justify-content: flex-end; gap: .7rem; }
+    .ar-header-account strong { max-width: 80px; }.ar-header-login { padding: .35rem .5rem; font-size: .7rem; }
+    .ar-header-session-label { font-size: .58rem; }.ar-header-account .ar-status-dot { width: 5px; height: 5px; margin-right: .3rem; }
+    .ar-legal-hero, .ar-legal-hero .container { min-height: 300px; }
+    .ar-legal-shell { border-radius: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ar-legal-hero .ar-home-kicker, .ar-legal-hero .ar-page-hero-title, .ar-legal-hero .ar-page-hero-sub, .ar-legal-stars { animation: none; }
+}

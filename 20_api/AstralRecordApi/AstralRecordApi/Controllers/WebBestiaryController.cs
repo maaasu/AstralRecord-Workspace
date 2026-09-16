@@ -5,6 +5,7 @@ namespace AstralRecordApi.Controllers;
 
 /// <summary>ログイン中の本人だけが閲覧できる Mob 討伐記録を返します。</summary>
 [ApiController]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/web-bestiary")]
 public sealed class WebBestiaryController(IWebBestiaryRepository repository) : ControllerBase
 {

@@ -167,7 +167,7 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
         {
             SchemaVersion = mob.SchemaVersion, Id = mob.Id, Type = mob.Type, Category = mob.Category,
             Name = ReadString(node, "name") ?? mob.Name, Title = ReadString(node, "title") ?? mob.Title,
-            Level = profile.Level!.Value, EntityType = ReadString(node, "entityType") ?? mob.EntityType,
+            Level = profile.Level!.Value, EntityType = mob.EntityType,
             NameVisible = ReadBool(node, "nameVisible") ?? mob.NameVisible,
             DamageImmune = mob.DamageImmune, Icon = ReadString(node, "icon") ?? mob.Icon,
             IconTexture = ReadString(node, "iconTexture") ?? mob.IconTexture,
@@ -228,7 +228,6 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
     private static string? ReadString(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind == JsonValueKind.String ? raw.GetString() : null;
     private static bool? ReadBool(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind is JsonValueKind.True or JsonValueKind.False ? raw.GetBoolean() : null;
     private static int? ReadPositiveInt(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.TryGetInt32(out var value) && value > 0 ? value : null;
-    private static double? ReadDouble(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.TryGetDouble(out var value) ? value : null;
     private static IReadOnlyList<string>? ReadStrings(JsonElement element, string property) => element.TryGetProperty(property, out var raw) && raw.ValueKind == JsonValueKind.Array ? raw.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String).Select(value => value.GetString() ?? string.Empty).ToList() : null;
     private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
     private static string? StripOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : StripLegacyColors(value);

@@ -16,7 +16,8 @@
                         <span>ゲーム内で <code>/web login</code> を実行し、表示されたコードを入力してください。</span>
                     </div>
 
-                    <form method="post" aria-describedby="login-guide">
+                    <p class="ar-login-ownership" id="login-ownership">Webログインには、ご自身のMinecraftアカウントのみを使用してください。自分以外のMinecraftアカウントでログインした場合は、利用制限やBANなどの処分の対象となります。<a asp-page="/Terms" asp-fragment="web-login-rules">利用規約を確認する</a></p>
+                    <form method="post" aria-describedby="login-guide login-ownership">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
                         <div class="mb-3">
                             <label asp-for="LoginCode" class="form-label">ログインコード</label>

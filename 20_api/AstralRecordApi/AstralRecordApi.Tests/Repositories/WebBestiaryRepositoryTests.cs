@@ -33,6 +33,7 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal(5, Assert.Single(list.Mobs).Level);
         Assert.NotNull(detail);
         Assert.Equal(5, detail.Mob.Level);
+        Assert.Equal("ZOMBIE", detail.Mob.EntityType);
         Assert.Equal("最大HP", Assert.Single(detail.Mob.BaseStats).DisplayName);
         Assert.Equal("1200", detail.Mob.BaseStats[0].DisplayValue);
         Assert.Equal("visible_item", Assert.Single(detail.Mob.Drops.Items).ItemId);
@@ -84,7 +85,7 @@ public sealed class WebBestiaryRepositoryTests
         public async Task AddMobAsync()
         {
             var now = DateTime.UtcNow;
-            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "mob.enemy", MasterId = "test_mob", SchemaVersion = 1, SourceFilePath = "test.yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = """{"schemaVersion":1,"id":"test_mob","type":"MOB","category":"ENEMY","name":"&aテストモブ","level":1,"entityType":"ZOMBIE","baseStats":[{"status":"MAX_HEALTH","value":100}],"drops":{"exp":10,"money":{"min":2,"max":4},"items":[{"itemId":"visible_item","rate":50,"amount":"1","hidden":false},{"itemId":"secret_item","rate":1,"amount":"1","hidden":true}],"lootTable":"secret_table"},"levels":[{"level":5,"baseStats":[{"status":"MAX_HEALTH","value":1200}],"drops":{"exp":20}}]}""" });
+            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "mob.enemy", MasterId = "test_mob", SchemaVersion = 1, SourceFilePath = "test.yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = """{"schemaVersion":1,"id":"test_mob","type":"MOB","category":"ENEMY","name":"&aテストモブ","level":1,"entityType":"ZOMBIE","baseStats":[{"status":"MAX_HEALTH","value":100}],"drops":{"exp":10,"money":{"min":2,"max":4},"items":[{"itemId":"visible_item","rate":50,"amount":"1","hidden":false},{"itemId":"secret_item","rate":1,"amount":"1","hidden":true}],"lootTable":"secret_table"},"levels":[{"level":5,"entityType":"CREEPER","baseStats":[{"status":"MAX_HEALTH","value":1200}],"drops":{"exp":20}}]}""" });
             await Master.SaveChangesAsync();
         }
         public async Task AddItemAsync(string id, string name, string icon)

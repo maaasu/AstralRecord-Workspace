@@ -14,6 +14,77 @@ namespace AstralRecordWeb.Tests;
 public sealed class PlayerProfileTests
 {
     [Fact]
+    public async Task Bestiary_RequiresLogin_UsesCookieIdentity_AndOwnedAccountLinks()
+    {
+        var api = new ProfileHandler();
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+        foreach (var path in new[] { "/bestiary", "/bestiary/zombie" })
+        {
+            using var anonymous = await client.GetAsync(path);
+            Assert.Equal(HttpStatusCode.Found, anonymous.StatusCode);
+            Assert.StartsWith("https://localhost/Login", anonymous.Headers.Location?.ToString());
+        }
+        Assert.DoesNotContain(api.Calls, uri => uri.StartsWith("/api/web-bestiary"));
+        await Login(client);
+        using var list = await client.GetAsync($"/bestiary?viewer_user_uuid={Guid.NewGuid()}&userUuid={Guid.NewGuid()}");
+        var body = WebUtility.HtmlDecode(await list.Content.ReadAsStringAsync());
+        Assert.True(list.StatusCode == HttpStatusCode.OK, body);
+        Assert.Contains("no-store", list.Headers.CacheControl?.ToString());
+        Assert.Contains("森のゾンビ", body);
+        Assert.Contains("1,234", body);
+        Assert.Contains($"/bestiary/zombie?accountId={ProfileHandler.FirstAccountId}", body);
+        Assert.Contains(api.Calls, uri => uri == $"/api/web-bestiary?viewer_user_uuid={ProfileHandler.UserId}");
+        using var detail = await client.GetAsync($"/bestiary/zombie?accountId={ProfileHandler.FirstAccountId}&viewer_user_uuid={Guid.NewGuid()}");
+        var detailBody = WebUtility.HtmlDecode(await detail.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        Assert.Contains("no-store", detail.Headers.CacheControl?.ToString());
+        Assert.Contains("1,234", detailBody);
+        Assert.Contains("25%", detailBody);
+        Assert.Contains("100 ～ 200", detailBody);
+        Assert.Contains("2026/09/15 21:34", detailBody);
+        Assert.Contains("森のかけら", detailBody);
+        Assert.Contains("標準レベル", detailBody);
+        Assert.Contains("data-mob-viewer", detailBody);
+        var header = Regex.Match(body, "<div[^>]*class=\"ar-header-session\"[\\s\\S]*?</div>").Value;
+        Assert.Contains("ログイン中", header);
+        Assert.Contains("CookiePlayer", header);
+        Assert.DoesNotContain("未ログイン", header);
+        using var module = await client.GetAsync("/js/mob-viewer.mjs");
+        Assert.Equal(HttpStatusCode.OK, module.StatusCode);
+        Assert.Contains(module.Content.Headers.ContentType!.MediaType, new[] { "text/javascript", "application/javascript" });
+        using var image = await client.GetAsync("/images/mobs/zombie.png");
+        Assert.Equal(HttpStatusCode.OK, image.StatusCode);
+        Assert.Equal("image/png", image.Content.Headers.ContentType!.MediaType);
+        Assert.Contains(api.Calls, uri => uri == $"/api/web-bestiary/zombie?viewer_user_uuid={ProfileHandler.UserId}&account_id={ProfileHandler.FirstAccountId}");
+    }
+
+    [Fact]
+    public async Task Bestiary_DeniesUnknownMobAndForeignAccount_AndSeparatesFailureFromEmpty()
+    {
+        var api = new ProfileHandler();
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        foreach (var path in new[] { "/bestiary/undefeated", $"/bestiary?accountId={Guid.NewGuid()}", $"/bestiary/zombie?accountId={Guid.NewGuid()}" })
+        {
+            using var response = await client.GetAsync(path);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+        var filtered = WebUtility.HtmlDecode(await client.GetStringAsync("/bestiary?query=notfound"));
+        Assert.Contains("条件に一致するモブがいません", filtered);
+        api.EmptyBestiary = true;
+        var empty = WebUtility.HtmlDecode(await client.GetStringAsync("/bestiary"));
+        Assert.Contains("まだ討伐したモブの記録はありません", empty);
+        api.FailProfiles = true;
+        var failed = WebUtility.HtmlDecode(await client.GetStringAsync("/bestiary"));
+        Assert.Contains("冒険記録を取得できませんでした", failed);
+        Assert.DoesNotContain("まだ討伐したモブの記録はありません", failed);
+        using var invalid = await client.GetAsync("/bestiary?accountId=invalid");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
     public async Task MyPage_UsesLiveSelectedAccount_AndOnlyVisibilityCanBeChanged()
     {
         var api = new ProfileHandler();
@@ -101,6 +172,10 @@ public sealed class PlayerProfileTests
         Assert.Contains("プレイヤーのプロフィール", detail);
         Assert.DoesNotContain("プロフィールを公開する", detail);
         Assert.DoesNotContain("権限レベル", detail);
+        Assert.Contains("総討伐数", detail);
+        Assert.Contains("1,234", detail);
+        Assert.DoesNotContain($"/bestiary?accountId={ProfileHandler.FirstAccountId}", detail);
+        Assert.DoesNotContain("自分の図鑑を開く", detail);
     }
 
     [Fact]
@@ -220,6 +295,7 @@ public sealed class PlayerProfileTests
         {
             services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
+            services.AddHttpClient<BestiaryApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             services.AddHttpClient<NetworkManagementApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
         });
     }
@@ -234,6 +310,7 @@ public sealed class PlayerProfileTests
         public bool Published { get; set; }
         public bool Admin { get; set; }
         public bool FailProfiles { get; set; }
+        public bool EmptyBestiary { get; set; }
         public bool MultiSlot { get; set; }
         public string? LastVisibilityViewer { get; private set; }
 
@@ -247,6 +324,24 @@ public sealed class PlayerProfileTests
             if (uri.AbsolutePath.StartsWith("/api/network-management/bans/", StringComparison.Ordinal))
                 return Json(new { userUuid = UserId, mcid = "LivePlayer", revision = 1, isBanned = false, isActive = false, isIndefinite = false, serverTimeUtc = "2026-09-16T00:00:00Z" });
             if (FailProfiles) return new(HttpStatusCode.ServiceUnavailable);
+            if (uri.AbsolutePath.StartsWith("/api/web-bestiary"))
+            {
+                var bestiaryQuery = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+                var accountId = bestiaryQuery.GetValueOrDefault("account_id").ToString();
+                if (accountId.Length > 0 && accountId != FirstAccountId.ToString()) return new(HttpStatusCode.NotFound);
+                if (uri.AbsolutePath != "/api/web-bestiary" && uri.AbsolutePath != "/api/web-bestiary/zombie") return new(HttpStatusCode.NotFound);
+                var account = new { accountId = FirstAccountId, accountName = "選択中の冒険者", slotIndex = 0 };
+                var mob = new
+                {
+                    mobId = "zombie", name = "森のゾンビ", category = "ENEMY", level = 5, entityType = "ZOMBIE", defeatCount = 1234L,
+                    firstDefeatedAt = "2026-09-01T00:00:00Z", lastDefeatedAt = "2026-09-15T12:34:56Z", lore = new[] { "森を彷徨う敵。" },
+                    baseStats = new[] { new { status = "HP", displayName = "体力", value = 120, displayValue = "120" } },
+                    drops = new { exp = 40, money = new { min = 100, max = 200 }, items = new[] { new { itemId = "fragment", name = "森のかけら", rate = 25.0, amount = "1-2", luckAffected = true } }, hasAdditionalDrops = true },
+                };
+                return uri.AbsolutePath == "/api/web-bestiary"
+                    ? Json(new { currentAccount = account, accounts = new[] { account }, mobs = EmptyBestiary ? Array.Empty<object>() : new object[] { mob }, totalDefeats = EmptyBestiary ? 0L : 1234L })
+                    : Json(new { currentAccount = account, accounts = new[] { account }, mob, totalDefeats = 1234L });
+            }
             if (request.Method == HttpMethod.Put)
             {
                 var data = await request.Content!.ReadFromJsonAsync<JsonElement>(ct);
@@ -259,7 +354,7 @@ public sealed class PlayerProfileTests
             var currentAccount = new
             {
                 accountId = secondSelected ? SecondAccountId : FirstAccountId, accountName = secondSelected ? "別の冒険者" : "選択中の冒険者", slotIndex = secondSelected ? 1 : 0, playerLevel = secondSelected ? 21 : 37,
-                classId = "swordsman", className = "剣士", classLevel = 12, gold = 543210L, updatedAt = "2026-09-15T12:34:56Z",
+                classId = "swordsman", className = "剣士", classLevel = 12, gold = 543210L, totalMobDefeats = 1234L, updatedAt = "2026-09-15T12:34:56Z",
                 classProgresses = new[] { new { classId = "swordsman", className = "剣士", level = 12 } },
                 skillTree = new { structureId = "main", name = "冒険の始まり", rootNodeId = "1000", nodes = new[] { new { nodeId = "1000", name = "力の覚醒", icon = "DIAMOND_SWORD", pointType = "PP", pointCost = 1, x = 0, y = 0, z = 0, isUnlocked = true } }, edges = Array.Empty<object>() },
             };

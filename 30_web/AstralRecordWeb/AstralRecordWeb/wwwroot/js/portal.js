@@ -32,7 +32,7 @@
                 observer.unobserve(entry.target);
             }
         }), { threshold: .08 });
-        document.querySelectorAll('.ar-feature-card, .ar-world-copy, .ar-discord-panel, .ar-edition-card, .ar-player-card').forEach(element => {
+        document.querySelectorAll('.ar-feature-card, .ar-world-copy, .ar-discord-panel, .ar-edition-card, .ar-player-card, .ar-legal-shell .ar-terms-section').forEach(element => {
             element.classList.add('ar-reveal-ready');
             observer.observe(element);
         });

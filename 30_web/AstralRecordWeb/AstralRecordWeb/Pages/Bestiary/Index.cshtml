@@ -1,0 +1,57 @@
+@page "/bestiary"
+@model AstralRecordWeb.Pages.Bestiary.IndexModel
+@using AstralRecordWeb.Models
+@{ ViewData["Title"] = "討伐モブ図鑑"; }
+@section Styles { <link rel="stylesheet" href="~/css/bestiary.css" asp-append-version="true" /> }
+<section class="ar-portal ar-bestiary"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">BESTIARY · あなたの冒険記録</p><h1>討伐モブ図鑑</h1><p class="ar-portal-sub">戦いの記憶を辿り、次の冒険に備える。</p></div><a asp-page="/MyPage" class="btn ar-btn-outline">マイページへ</a></header>
+    <p class="ar-bestiary-private">◇ この図鑑はあなた専用です。討伐したモブだけが記録されます。</p>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Record is { } record)
+    {
+        @if (record.Accounts.Count > 0)
+        {
+            <form method="get" class="ar-panel ar-account-picker"><label for="bestiary-account">冒険者の記録</label><select name="accountId" id="bestiary-account">
+                @foreach (var account in record.Accounts) { <option value="@account.AccountId" selected="@(account.AccountId == record.AccountId)">スロット @account.SlotIndex: @account.AccountName</option> }
+            </select><button type="submit" class="btn ar-btn-outline">表示する</button><p>自分のアカウントの記録を切り替えられます。ゲーム内の選択アカウントは変わりません。</p></form>
+        }
+        @if (record.AccountId is null) { <div class="ar-empty">表示するアカウントがありません。ゲーム内でアカウントを選択するか、上の一覧から選んでください。</div> }
+        else
+        {
+            <div class="ar-bestiary-summary"><div><span>記録中の冒険者</span><strong>@record.AccountName</strong></div><div><span>発見したモブ</span><strong>@record.Mobs.Count.ToString("N0") <small>種</small></strong></div><div><span>総討伐数</span><strong>@record.TotalDefeats.ToString("N0") <small>体</small></strong></div></div>
+            <form method="get" class="ar-panel ar-filter-grid" role="search" aria-label="討伐済みモブを検索">
+                <input type="hidden" name="accountId" value="@record.AccountId" />
+                <div><label for="mob-query">モブ名</label><input id="mob-query" name="query" value="@Model.Query" maxlength="100" type="search" placeholder="名前で探す…" /></div>
+                <div><label for="mob-category">分類</label><select id="mob-category" asp-for="Category"><option value="">すべて</option><option value="ENEMY">通常モブ</option><option value="BOSS">ボス</option></select></div>
+                <div><label for="mob-sort">並び順</label><select id="mob-sort" asp-for="Sort"><option value="recent">最近討伐した順</option><option value="count">討伐数の多い順</option><option value="level">標準レベル順</option><option value="name">名前順</option></select></div>
+                <button type="submit" class="btn ar-btn-primary">絞り込む</button>
+            </form>
+            @if (record.Mobs.Count == 0) { <div class="ar-empty"><h2>冒険の記録は、ここから。</h2><p>まだ討伐したモブの記録はありません。ゲーム内でモブを討伐すると図鑑に追加されます。</p></div> }
+            else if (Model.Mobs.Count == 0) { <div class="ar-empty">条件に一致するモブがいません。<a asp-page="Index" asp-route-accountId="@record.AccountId">絞り込みを解除</a></div> }
+            else
+            {
+                <p class="ar-portal-sub">@Model.MatchingCount.ToString("N0") 件の記録 · モブを選択すると詳細を確認できます。</p>
+                <div class="ar-bestiary-grid">
+                @foreach (var mob in Model.Mobs)
+                {
+                    <a class="ar-mob-card" asp-page="Detail" asp-route-mobId="@mob.MobId" asp-route-accountId="@record.AccountId">
+                        <div class="ar-mob-card-top"><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span><span>Lv. @mob.Level</span></div>
+                        <div class="ar-mob-thumbnail" data-mob-thumbnail data-entity-type="@mob.EntityType" data-mob-name="@mob.Name"><span data-mob-visual-fallback>@mob.EntityType</span></div>
+                        <h2>@mob.Name</h2><div class="ar-mob-card-footer"><span>討伐数 <strong>@mob.DefeatCount.ToString("N0")</strong></span><span aria-hidden="true">↗</span></div>
+                    </a>
+                }
+                </div>
+                @if (Model.PageCount > 1)
+                {
+                    <nav class="ar-pagination" aria-label="図鑑のページ">
+                        @if (Model.PageNumber > 1) { <a asp-page="Index" asp-route-accountId="@record.AccountId" asp-route-query="@Model.Query" asp-route-category="@Model.Category" asp-route-sort="@Model.Sort" asp-route-pageNumber="@(Model.PageNumber - 1)">← 前へ</a> }
+                        <span>@Model.PageNumber / @Model.PageCount</span>
+                        @if (Model.PageNumber < Model.PageCount) { <a asp-page="Index" asp-route-accountId="@record.AccountId" asp-route-query="@Model.Query" asp-route-category="@Model.Category" asp-route-sort="@Model.Sort" asp-route-pageNumber="@(Model.PageNumber + 1)">次へ →</a> }
+                    </nav>
+                }
+            }
+            <p class="ar-bestiary-note">保存済みの討伐記録です。ゲーム内の変更が反映されるまで時間がかかる場合があります。</p>
+        }
+    }
+</div></section>
+@section Scripts { <script type="module" src="~/js/mob-viewer.mjs" asp-append-version="true"></script> }

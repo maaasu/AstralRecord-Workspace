@@ -24,6 +24,7 @@
         <article class="ar-stat"><p>プレイヤーレベル</p><strong>@account.PlayerLevel.ToString("N0")</strong><small>Lv.</small></article>
         <article class="ar-stat"><p>所持金</p><strong>@account.Gold.ToString("N0")</strong><small>Gold</small></article>
         <article class="ar-stat"><p>クラスレベル</p><strong>@account.ClassLevel.ToString("N0")</strong><small>@account.ClassName</small></article>
+        <article class="ar-stat"><p>総討伐数</p><strong>@account.TotalMobDefeats.ToString("N0")</strong><small>体</small></article>
     </div>
     <p class="ar-portal-sub">保存済みの最新情報です。ゲーム内の変更が反映されるまで時間がかかる場合があります。<br />最終保存：@(DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm:ss"))（日本時間）</p>
     <section class="ar-panel"><h2>クラスの成長記録</h2><div class="ar-class-list">@foreach (var c in account.ClassProgresses) { <div class="ar-class-chip"><span>@c.ClassName</span><strong>Lv. @c.Level</strong></div> }</div></section>
