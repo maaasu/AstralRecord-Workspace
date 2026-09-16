@@ -274,7 +274,13 @@ public class PlayerHudService {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
             }
-            playerHudView.renderBars(player, snapshot, playerLevel, experienceProgress);
+            playerHudView.renderBars(
+                player,
+                snapshot,
+                playerLevel,
+                experienceProgress,
+                statusService.getShieldDisplayCapacity(astPlayer)
+            );
             if (!proxyOwnsTabHeader) {
                 playerHudView.renderTabList(
                     player,
@@ -389,7 +395,8 @@ public class PlayerHudService {
             currentDps,
             guard.active(),
             guard.current(),
-            guard.maximum()
+            guard.maximum(),
+            statusService.getShieldDisplayCapacity(astPlayer)
         );
     }
 

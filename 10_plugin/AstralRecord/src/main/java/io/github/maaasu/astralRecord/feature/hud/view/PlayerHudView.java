@@ -123,6 +123,43 @@ public class PlayerHudView {
         double currentGuard,
         double maximumGuard
     ) {
+        renderActionBar(
+            player,
+            snapshot,
+            activeConditions,
+            shieldRechargeState,
+            currentDps,
+            showGuard,
+            currentGuard,
+            maximumGuard,
+            snapshot.getMaxValue(StatusType.MAX_SHIELD)
+        );
+    }
+
+    /**
+     * 通常リソース・ガード・状態異常・DPSを同じアクションバーへ描画します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param activeConditions 現在有効な状態異常
+     * @param shieldRechargeState シールドリチャージ状態。通常時は {@code null}
+     * @param currentDps 直近10秒の平均秒間与ダメージ
+     * @param showGuard ガード要素を表示するか
+     * @param currentGuard 現在ガード
+     * @param maximumGuard 最大ガード
+     * @param shieldDisplayCapacity 通常Shieldまたは一時Shieldの現在の表示上限
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions,
+        ShieldRechargeState shieldRechargeState,
+        double currentDps,
+        boolean showGuard,
+        double currentGuard,
+        double maximumGuard,
+        double shieldDisplayCapacity
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
@@ -133,7 +170,7 @@ public class PlayerHudView {
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(guardActionText(showGuard, currentGuard, maximumGuard))
-            .append(shieldActionText(snapshot, shieldRechargeState))
+            .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
             .append(conditionActionText(activeConditions))
             .append(dpsActionText(currentDps)));
     }
@@ -172,6 +209,31 @@ public class PlayerHudView {
         int playerLevel,
         double experienceProgress
     ) {
+        renderBars(
+            player,
+            snapshot,
+            playerLevel,
+            experienceProgress,
+            snapshot.getMaxValue(StatusType.MAX_SHIELD)
+        );
+    }
+
+    /**
+     * HP、MP、ENG、Shield およびアカウント経験値を vanilla HUD へ描画します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param playerLevel アカウントプレイヤーレベル
+     * @param experienceProgress 現在レベル内経験値の進捗（0.0-1.0）
+     * @param shieldDisplayCapacity 通常Shieldまたは一時Shieldの現在の表示上限
+     */
+    public void renderBars(
+        Player player,
+        StatusSnapshot snapshot,
+        int playerLevel,
+        double experienceProgress,
+        double shieldDisplayCapacity
+    ) {
         setHealthBar(player, ratio(snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH)));
         player.setFoodLevel((int) Math.round(ratio(snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY)) * 20.0D));
         player.setSaturation(0.0F);
@@ -179,7 +241,7 @@ public class PlayerHudView {
         player.sendExperienceChange((float) ratio(experienceProgress, 1.0D), Math.max(0, playerLevel));
         setArmorBar(player, ratio(
             snapshot.getCurrentShield(),
-            Math.max(snapshot.getMaxValue(StatusType.MAX_SHIELD), snapshot.getCurrentShield())
+            shieldDisplayCapacity(snapshot, shieldDisplayCapacity)
         ));
     }
 
@@ -820,8 +882,12 @@ public class PlayerHudView {
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY)));
     }
 
-    private Component shieldActionText(StatusSnapshot snapshot, ShieldRechargeState rechargeState) {
-        double maxShield = Math.max(snapshot.getMaxValue(StatusType.MAX_SHIELD), snapshot.getCurrentShield());
+    private Component shieldActionText(
+        StatusSnapshot snapshot,
+        ShieldRechargeState rechargeState,
+        double shieldDisplayCapacity
+    ) {
+        double maxShield = shieldDisplayCapacity(snapshot, shieldDisplayCapacity);
         if (maxShield <= 0.0D) {
             return Component.empty();
         }
@@ -837,6 +903,10 @@ public class PlayerHudView {
                 .append(Component.text(")", NamedTextColor.GOLD, TextDecoration.BOLD));
         }
         return separated(framed(shield));
+    }
+
+    private double shieldDisplayCapacity(StatusSnapshot snapshot, double shieldDisplayCapacity) {
+        return Math.max(0.0D, Math.max(snapshot.getCurrentShield(), shieldDisplayCapacity));
     }
 
     private Component guardActionText(boolean showGuard, double current, double maximum) {

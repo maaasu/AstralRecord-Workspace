@@ -5,7 +5,7 @@
 クラス名: `PlayerHudView`
 物理名: `renderActionBar`
 
-HP、MP、ENG の現在値 / 最大値を表示し、ガードコンバートのバインド中は現在値が0でもGUARD、`MAX_SHIELD > 0` の場合だけSHを追加する。HP、MP、ENG、GUARD、SH、状態異常要約、DPSの各要素は`〚`と`〛`で囲み、要素間を半角空白で分離する。Shield リチャージ中も現在 Shield / 最大値を維持し、SH の内側へオレンジ色の `(RC 残り秒数)` を0.1秒単位で併記する。有効な状態異常は固定優先順位で最大3件を右側へ併記し、種別ごとの色、太字の識別記号・表示名、残り秒数で装飾する。4件目以降は `+N` で省略数を示し、リチャージ中の残り時間とSH値を優先する。
+HP、MP、ENG の現在値 / 最大値を表示し、ガードコンバートのバインド中は現在値が0でもGUARD、通常Shieldまたは一時Shieldの表示上限が正数の場合だけSHを追加する。通常Shieldの表示上限は`MAX_SHIELD`、有効な一時Shieldは付与量とし、`MAX_SHIELD` を持つがタンクシールドアクティベートが無効なプレイヤーでも一時Shieldの付与量を優先する。HP、MP、ENG、GUARD、SH、状態異常要約、DPSの各要素は`〚`と`〛`で囲み、要素間を半角空白で分離する。Shield リチャージ中も現在 Shield / 最大値を維持し、SH の内側へオレンジ色の `(RC 残り秒数)` を0.1秒単位で併記する。有効な状態異常は固定優先順位で最大3件を右側へ併記し、種別ごとの色、太字の識別記号・表示名、残り秒数で装飾する。4件目以降は `+N` で省略数を示し、リチャージ中の残り時間とSH値を優先する。
 
 ## 2. 一時 ActionBar 描画
 
@@ -25,7 +25,7 @@ HP、MP、ENG の現在値 / 最大値を表示し、ガードコンバートの
 | ENG / MAX_ENERGY | food level 0..20、saturation 0 |
 | MP / MAX_MANA | `MAX_ABSORPTION` を 20 に保ち、absorption 0..20 へ写像。最大10個の黄色いハートで表示。独自HP / Shieldダメージでは消費しない |
 | account EXP / player level | Paper の経験値表示パケットへレベル内進捗とアカウントプレイヤーレベルを渡す。vanilla経験値の実値は変更しない |
-| shield / MAX_SHIELD | armor attribute 0..20。リチャージ中も現在 Shield / 最大値の比率を使用 |
+| shield / 表示上限 | armor attribute 0..20。通常Shieldは`MAX_SHIELD`、有効な一時Shieldは付与量を上限にして現在 Shield との比率を使用する。リチャージ中も通常Shieldの現在値 / 最大値の比率を使用 |
 
 ## 4. sidebar 描画・解除
 
