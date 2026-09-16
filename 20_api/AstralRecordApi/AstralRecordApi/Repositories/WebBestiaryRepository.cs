@@ -94,7 +94,7 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
 
     private async Task<Dictionary<string, ItemResponse>> LoadItemsAsync(IEnumerable<string> ids)
     {
-        var requested = ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToArray();
+        var requested = ids.Select(NormalizeDropItemId).Where(id => id.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
         if (requested.Length == 0) return new(StringComparer.Ordinal);
         var entries = await masterDb.Entries.AsNoTracking().Where(entry => !entry.IsDeleted
                 && entry.MasterType == "item" && requested.Contains(entry.MasterId))
@@ -146,13 +146,24 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
 
     private static WebBestiaryDropItemResponse MapDrop(MobDropItemResponse drop, IReadOnlyDictionary<string, ItemResponse> items)
     {
-        var item = items.GetValueOrDefault(drop.ItemId);
+        var itemId = NormalizeDropItemId(drop.ItemId);
+        var item = items.GetValueOrDefault(itemId);
         return new WebBestiaryDropItemResponse
         {
-            ItemId = drop.ItemId, Name = item is null ? "未登録のアイテム" : StripLegacyColors(item.Name),
+            ItemId = itemId, Name = item is null ? "未登録のアイテム" : StripLegacyColors(item.Name),
             Icon = item?.Icon ?? "BARRIER", IconTexture = item?.IconTexture, Rate = drop.Rate,
             Amount = drop.Amount, LuckAffected = drop.LuckAffected,
         };
+    }
+
+    // The shared payload reader unwraps {"ref":"item:..."} but keeps its namespace.
+    // Item masters are keyed by the bare ID; legacy bare-ID drops remain supported.
+    private static string NormalizeDropItemId(string? value)
+    {
+        var reference = value?.Trim() ?? string.Empty;
+        const string prefix = "item:";
+        return reference.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? reference[prefix.Length..].Trim() : reference;
     }
 
     /// <summary>Plugin の未指定レベル解決と同じく、levels の最小有効 level を共通定義へ上書きします。</summary>

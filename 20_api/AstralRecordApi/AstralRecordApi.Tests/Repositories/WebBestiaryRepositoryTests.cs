@@ -9,8 +9,12 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class WebBestiaryRepositoryTests
 {
-    [Fact]
-    public async Task Detail_UsesOwnedAccountAndStandardLevel_WithoutHiddenDrops()
+    [Theory]
+    [InlineData("\"visible_item\"")]
+    [InlineData("\"item:visible_item\"")]
+    [InlineData("{\"ref\":\"item:visible_item\"}")]
+    [InlineData("{\"ref\":\" ITEM:visible_item \"}")]
+    public async Task Detail_UsesOwnedAccountAndStandardLevel_WithoutHiddenDrops(string itemReferenceJson)
     {
         await using var fixture = await Fixture.CreateAsync();
         var userId = Guid.NewGuid();
@@ -19,8 +23,8 @@ public sealed class WebBestiaryRepositoryTests
         await fixture.AddAccountAsync(userId, accountId, "main", active: true);
         await fixture.AddAccountAsync(userId, otherAccountId, "sub", active: false);
         await fixture.AddRecordAsync(accountId, "test_mob", 3);
-        await fixture.AddMobAsync();
-        await fixture.AddItemAsync("visible_item", "表示アイテム", "EMERALD");
+        await fixture.AddMobAsync(itemReferenceJson);
+        await fixture.AddItemAsync("visible_item", "&a表示アイテム", "EMERALD");
 
         var list = await fixture.Repository.GetListAsync(userId, null);
         var detail = await fixture.Repository.GetDetailAsync(userId, null, "test_mob");
@@ -37,6 +41,8 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal("最大HP", Assert.Single(detail.Mob.BaseStats).DisplayName);
         Assert.Equal("1200", detail.Mob.BaseStats[0].DisplayValue);
         Assert.Equal("visible_item", Assert.Single(detail.Mob.Drops.Items).ItemId);
+        Assert.Equal("表示アイテム", detail.Mob.Drops.Items[0].Name);
+        Assert.Equal("EMERALD", detail.Mob.Drops.Items[0].Icon);
         Assert.Equal(20, detail.Mob.Drops.Exp);
         Assert.NotNull(detail.Mob.Drops.Money);
         Assert.Equal(2, detail.Mob.Drops.Money.Min);
@@ -44,6 +50,46 @@ public sealed class WebBestiaryRepositoryTests
         Assert.True(detail.Mob.Drops.HasAdditionalDrops);
         Assert.Null(forged);
         Assert.Null(unrecorded);
+    }
+
+    [Theory]
+    [InlineData("\"missing_item\"", "missing_item")]
+    [InlineData("{\"ref\":\"item:missing_item\"}", "missing_item")]
+    [InlineData("{\"ref\":\"mob.enemy:visible_item\"}", "mob.enemy:visible_item")]
+    public async Task Detail_UnresolvedOrWrongTypeReference_RemainsUnregistered(string reference, string expectedId)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var user = Guid.NewGuid();
+        var account = Guid.NewGuid();
+        await fixture.AddAccountAsync(user, account, "main", active: true);
+        await fixture.AddRecordAsync(account, "test_mob", 1);
+        await fixture.AddMobAsync(reference);
+        await fixture.AddItemAsync("visible_item", "登録済み素材", "EMERALD");
+
+        var detail = await fixture.Repository.GetDetailAsync(user, null, "test_mob");
+
+        var drop = Assert.Single(detail!.Mob.Drops.Items);
+        Assert.Equal(expectedId, drop.ItemId);
+        Assert.Equal("未登録のアイテム", drop.Name);
+        Assert.Equal("BARRIER", drop.Icon);
+    }
+
+    [Fact]
+    public async Task Detail_DeletedItem_IsNotExposedAsRegisteredDrop()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var user = Guid.NewGuid();
+        var account = Guid.NewGuid();
+        await fixture.AddAccountAsync(user, account, "main", active: true);
+        await fixture.AddRecordAsync(account, "test_mob", 1);
+        await fixture.AddMobAsync("{\"ref\":\"item:visible_item\"}");
+        await fixture.AddItemAsync("visible_item", "削除済み素材", "EMERALD");
+        (await fixture.Master.Entries.SingleAsync(entry => entry.MasterType == "item")).IsDeleted = true;
+        await fixture.Master.SaveChangesAsync();
+
+        var detail = await fixture.Repository.GetDetailAsync(user, null, "test_mob");
+
+        Assert.Equal("未登録のアイテム", Assert.Single(detail!.Mob.Drops.Items).Name);
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -82,10 +128,12 @@ public sealed class WebBestiaryRepositoryTests
             Game.AccountMobRecords.Add(new AccountMobRecordEntity { AccountMobRecordId = Guid.NewGuid(), AccountId = accountId, MobId = mobId, MobCategory = "ENEMY", DefeatCount = count, FirstDefeatedAt = now, LastDefeatedAt = now, CreatedAt = now, UpdatedAt = now, CreatedBy = accountId, UpdatedBy = accountId });
             await Game.SaveChangesAsync();
         }
-        public async Task AddMobAsync()
+        public async Task AddMobAsync(string itemReferenceJson)
         {
             var now = DateTime.UtcNow;
             Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "mob.enemy", MasterId = "test_mob", SchemaVersion = 1, SourceFilePath = "test.yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = """{"schemaVersion":1,"id":"test_mob","type":"MOB","category":"ENEMY","name":"&aテストモブ","level":1,"entityType":"ZOMBIE","baseStats":[{"status":"MAX_HEALTH","value":100}],"drops":{"exp":10,"money":{"min":2,"max":4},"items":[{"itemId":"visible_item","rate":50,"amount":"1","hidden":false},{"itemId":"secret_item","rate":1,"amount":"1","hidden":true}],"lootTable":"secret_table"},"levels":[{"level":5,"entityType":"CREEPER","baseStats":[{"status":"MAX_HEALTH","value":1200}],"drops":{"exp":20}}]}""" });
+            var mob = Master.ChangeTracker.Entries<MasterDataEntryEntity>().Single(entry => entry.Entity.MasterType == "mob.enemy").Entity;
+            mob.PayloadJson = mob.PayloadJson.Replace("\"visible_item\"", itemReferenceJson, StringComparison.Ordinal);
             await Master.SaveChangesAsync();
         }
         public async Task AddItemAsync(string id, string name, string icon)
