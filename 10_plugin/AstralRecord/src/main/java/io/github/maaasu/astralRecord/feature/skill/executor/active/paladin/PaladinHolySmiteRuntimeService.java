@@ -13,7 +13,7 @@ import java.util.UUID;
  * 実行中のホーリースマイト聖柱の表示状態と残り持続時間を管理します。
  * <p>
  * 柱の表示と攻撃は executor の task が所有し、このサービスはホーリースマイトと
- * パラディンシールドの柱に対する寿命更新、検索、移動を仲介します。
+ * パラディンシールドの柱に対する検索、移動、生成時持続時間への更新を仲介します。
  */
 public final class PaladinHolySmiteRuntimeService {
 
@@ -35,26 +35,9 @@ public final class PaladinHolySmiteRuntimeService {
             @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
             int durationTicks
     ) {
-        register(pillarId, state, durationTicks, true);
-    }
-
-    /**
-     * 新しい聖柱とホーリーフィールド更新の適格性を登録します。
-     *
-     * @param pillarId 発動単位の一意ID
-     * @param state 表示中の聖柱状態
-     * @param durationTicks 生成時の持続tick
-     * @param holyFieldRefreshEligible ホーリーフィールドの寿命更新対象にする場合は true
-     */
-    public void register(
-            @NotNull UUID pillarId,
-            @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
-            int durationTicks,
-            boolean holyFieldRefreshEligible
-    ) {
         int safeDurationTicks = Math.max(1, durationTicks);
         pillarsById.put(pillarId, new PillarRuntime(
-                state, safeDurationTicks, safeDurationTicks, holyFieldRefreshEligible));
+                state, safeDurationTicks, safeDurationTicks));
     }
 
     /**
@@ -70,34 +53,6 @@ public final class PaladinHolySmiteRuntimeService {
         }
         runtime.remainingTicks--;
         return runtime.remainingTicks > 0;
-    }
-
-    /**
-     * 指定した水平範囲内にある全ホーリースマイト聖柱を、各柱の生成時持続時間へ戻します。
-     * world が異なる柱と範囲外の柱は更新しません。
-     *
-     * @param center 更新前のホーリーフィールド中心
-     * @param radius ホーリーフィールドの水平半径
-     */
-    public void refreshWithin(@NotNull Location center, double radius) {
-        if (center.getWorld() == null) {
-            return;
-        }
-        double radiusSquared = Math.max(0.0D, radius) * Math.max(0.0D, radius);
-        for (PillarRuntime runtime : pillarsById.values()) {
-            Location pillarCenter = runtime.state.center();
-            if (!runtime.holyFieldRefreshEligible
-                    || !runtime.state.isActive()
-                    || pillarCenter.getWorld() == null
-                    || !center.getWorld().equals(pillarCenter.getWorld())) {
-                continue;
-            }
-            double deltaX = pillarCenter.getX() - center.getX();
-            double deltaZ = pillarCenter.getZ() - center.getZ();
-            if (deltaX * deltaX + deltaZ * deltaZ <= radiusSquared) {
-                runtime.remainingTicks = runtime.durationTicks;
-            }
-        }
     }
 
     /**
@@ -147,23 +102,21 @@ public final class PaladinHolySmiteRuntimeService {
     }
 
     /**
-     * 聖柱を指定地点へ移動し、旧表示を即時破棄して残り持続時間を更新します。
+     * 聖柱を指定地点へ移動し、旧表示を即時破棄して生成時の持続時間へ戻します。
      *
      * @param pillar 移動対象の聖柱
      * @param destination 移動先
-     * @param resetDurationTicks 移動後の残り持続tick
      */
     public void moveTo(
             @NotNull PaladinHolySmiteExecutor.HolyPillarState pillar,
-            @NotNull Location destination,
-            int resetDurationTicks
+            @NotNull Location destination
     ) {
         for (PillarRuntime runtime : pillarsById.values()) {
             if (runtime.state != pillar || !pillar.isActive()) {
                 continue;
             }
             pillar.moveTo(destination);
-            runtime.remainingTicks = Math.max(1, resetDurationTicks);
+            runtime.remainingTicks = runtime.durationTicks;
             return;
         }
     }
@@ -184,19 +137,16 @@ public final class PaladinHolySmiteRuntimeService {
     private static final class PillarRuntime {
         private final PaladinHolySmiteExecutor.HolyPillarState state;
         private final int durationTicks;
-        private final boolean holyFieldRefreshEligible;
         private int remainingTicks;
 
         private PillarRuntime(
                 @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
                 int durationTicks,
-                int remainingTicks,
-                boolean holyFieldRefreshEligible
+                int remainingTicks
         ) {
             this.state = state;
             this.durationTicks = durationTicks;
             this.remainingTicks = remainingTicks;
-            this.holyFieldRefreshEligible = holyFieldRefreshEligible;
         }
     }
 }

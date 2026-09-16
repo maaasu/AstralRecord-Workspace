@@ -169,7 +169,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
         String scope = ID + ":fallback:" + pillarId;
         try {
             state.spawnDisplays();
-            holySmiteRuntimeService.register(pillarId, state, durationTicks, false);
+            holySmiteRuntimeService.register(pillarId, state, durationTicks);
             context.services().tasks().repeat(
                     context.player().getUniqueId(),
                     scope,

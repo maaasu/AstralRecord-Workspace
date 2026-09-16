@@ -1572,7 +1572,7 @@ public final class AstralRecord extends JavaPlugin {
         normalAttackDegradationService = new NormalAttackDegradationService(statusService);
         paladinHolySmiteRuntimeService = new PaladinHolySmiteRuntimeService();
         paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(
-            statusService, partyService, paladinHolySmiteRuntimeService
+            statusService, partyService
         );
         var paladinGuardRuntimeService = new PaladinGuardRuntimeService();
         var paladinGuardianProtectRuntimeService = new PaladinGuardianProtectRuntimeService();

@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * パラディンのホーリーフィールドの中心・残り時間、範囲内ステータス補正、聖柱更新を管理します。
+ * パラディンのホーリーフィールドの中心・残り時間と範囲内ステータス補正を管理します。
  * <p>
  * 発動者ごとに1つだけフィールドを保持し、範囲外・パーティー離脱・終了時にはこのサービスが付与済み補正を
  * 即時に解除します。ハンマー通常攻撃は発動者が自身のフィールド内にいる場合だけ中心と持続時間を更新します。
@@ -29,7 +29,6 @@ public final class PaladinHolyFieldRuntimeService {
     private static final long TEMPORARY_BUFF_DURATION_SECONDS = Integer.MAX_VALUE / 20L;
     private final StatusService statusService;
     private final PartyService partyService;
-    private final PaladinHolySmiteRuntimeService holySmiteRuntimeService;
     private final Map<UUID, FieldState> fieldsByCaster = new HashMap<>();
 
     /**
@@ -37,16 +36,13 @@ public final class PaladinHolyFieldRuntimeService {
      *
      * @param statusService ステータス補正の付与・解除サービス
      * @param partyService パーティー所属確認サービス
-     * @param holySmiteRuntimeService 範囲内の聖柱持続時間を更新するサービス
      */
     public PaladinHolyFieldRuntimeService(
             @NotNull StatusService statusService,
-            @NotNull PartyService partyService,
-            @NotNull PaladinHolySmiteRuntimeService holySmiteRuntimeService
+            @NotNull PartyService partyService
     ) {
         this.statusService = statusService;
         this.partyService = partyService;
-        this.holySmiteRuntimeService = holySmiteRuntimeService;
     }
 
     /**
@@ -122,8 +118,7 @@ public final class PaladinHolyFieldRuntimeService {
 
     /**
      * 発動者によるハンマー通常攻撃を処理します。
-     * 発動者が自身のフィールド内にいる場合だけ、更新前のフィールド内にあるホーリースマイト聖柱を
-     * 各柱の生成時持続時間へ戻した後、中心を現在位置へ移し、フィールド持続時間も初期値へ戻します。
+     * 発動者が自身のフィールド内にいる場合だけ、中心を現在位置へ移し、フィールド持続時間を初期値へ戻します。
      *
      * @param caster 通常攻撃を発生させたプレイヤー
      */
@@ -133,7 +128,6 @@ public final class PaladinHolyFieldRuntimeService {
         if (state == null || !isWithin(state, caster.getBukkit())) {
             return;
         }
-        holySmiteRuntimeService.refreshWithin(state.center, state.radius);
         state.center = caster.getBukkit().getLocation().clone();
         state.remainingTicks = state.durationTicks;
     }

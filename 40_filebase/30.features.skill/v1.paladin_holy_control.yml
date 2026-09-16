@@ -10,7 +10,7 @@ description: "&7最寄りの聖柱を操り、味方を支援する。"
 icon: COMPARATOR
 lore:
   - "&7HPを{skill.hpCost}消費して、半径{skill.pillarSearchRadius}m以内の最寄りの聖柱を自身へ移動する。"
-  - "&7移動前の聖柱を削除し、移動後の持続時間を{skill.relocatedPillarDurationTicks:seconds}秒へ戻す。"
+  - "&7移動前の聖柱を削除し、移動した聖柱の持続時間を生成時の持続時間へ戻す。"
   - "&7聖柱がある間、半径{skill.effectRadius}m以内のパーティーメンバーのスキル与ダメージを{skill.partyDamageIncrease}%増加する。"
   - "&7同範囲の敵Mobの被ダメージを{skill.mobDamageTakenIncrease}%増加する。"
   - "&7毎秒、範囲内のパーティーメンバーをHP{skill.hpRecovery}、発動者の最大MPの{skill.mpRecoveryMaxManaRatio:percent}%回復する。"
@@ -39,4 +39,3 @@ params:
   mobDamageTakenIncrease: 5.0
   hpRecovery: 87.0
   mpRecoveryMaxManaRatio: 0.10
-  relocatedPillarDurationTicks: 200
