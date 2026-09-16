@@ -230,7 +230,7 @@ public class EquipmentService(
         return RuneTargetMatcher.Matches(equipment, runeItem.Rune);
     }
 
-    private static EquipmentInstanceResponse MapToResponse(
+    internal static EquipmentInstanceResponse MapToResponse(
         EquipmentInstanceEntity instance,
         IEnumerable<EquipmentInstanceStatRollEntity> statRolls,
         IEnumerable<EquipmentInstanceEnchantEntity> enchants,

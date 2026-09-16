@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.market.gui;
 
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -406,9 +407,21 @@ public final class MarketGui {
 
     private @NotNull ItemStack listingItem(@NotNull MarketListing listing, boolean ownListing) {
         ItemModel model = itemService.findLoadedById(listing.itemId());
-        ItemStack stack = model == null
-            ? new ItemStack(Material.CHEST)
-            : itemStackFactory.createShopDisplay(model, Math.max(1, (int) Math.min(64L, listing.remainingQuantity())));
+        EquipmentInstance equipmentInstance = listing.equipmentInstance();
+        ItemStack stack;
+        if (model == null) {
+            stack = new ItemStack(Material.CHEST);
+        } else if (equipmentInstance != null
+            && listing.instanceId() != null
+            && equipmentInstance.getEquipmentInstanceId().equalsIgnoreCase(listing.instanceId().toString())
+            && equipmentInstance.getItemId().equalsIgnoreCase(listing.itemId())) {
+            stack = itemStackFactory.asDisplayStack(itemStackFactory.create(model, equipmentInstance, 1));
+        } else {
+            stack = itemStackFactory.createShopDisplay(
+                model,
+                Math.max(1, (int) Math.min(64L, listing.remainingQuantity()))
+            );
+        }
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return stack;

@@ -66,13 +66,17 @@ public class MarketRepository(
                     account => new SellerAccountIdentity(account.AccountName, account.SlotIndex));
         var listingIds = result.Select(listing => listing.ListingId).ToArray();
         var pendingProceedsByListing = await LoadPendingProceedsByListingAsync(listingIds);
+        var equipmentInstances = await LoadEquipmentInstancesAsync(result);
 
         return result
             .Select(listing => MapListing(
                 listing,
                 sellerAccounts.GetValueOrDefault(listing.SellerAccountId, SellerAccountIdentity.Empty),
                 Array.Empty<Guid>(),
-                pendingProceedsByListing.GetValueOrDefault(listing.ListingId)))
+                pendingProceedsByListing.GetValueOrDefault(listing.ListingId),
+                equipmentInstance: listing.InstanceId.HasValue
+                    ? equipmentInstances.GetValueOrDefault(listing.InstanceId.Value)
+                    : null))
             .ToList();
     }
 
@@ -86,11 +90,15 @@ public class MarketRepository(
             return null;
 
         var pendingProceedsByListing = await LoadPendingProceedsByListingAsync([listingId]);
+        var equipmentInstances = await LoadEquipmentInstancesAsync([listing]);
         return MapListing(
             listing,
             await GetSellerAccountAsync(listing.SellerAccountId) ?? SellerAccountIdentity.Empty,
             Array.Empty<Guid>(),
-            pendingProceedsByListing.GetValueOrDefault(listing.ListingId));
+            pendingProceedsByListing.GetValueOrDefault(listing.ListingId),
+            equipmentInstance: listing.InstanceId.HasValue
+                ? equipmentInstances.GetValueOrDefault(listing.InstanceId.Value)
+                : null);
     }
 
     public async Task<MarketAccountSummaryResponse?> GetAccountSummaryAsync(Guid accountId)
@@ -263,11 +271,15 @@ public class MarketRepository(
                     Quantity = source.Quantity,
                 }));
             await dbContext.MarketPriceSnapshots.AddAsync(CreateSnapshot(quote, listing.ListingId, null, now));
+            var equipmentInstances = await LoadEquipmentInstancesAsync([listing]);
             var response = MapListing(
                 listing,
                 sellerAccountIdentity,
                 request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
-                0L);
+                0L,
+                equipmentInstance: listing.InstanceId.HasValue
+                    ? equipmentInstances.GetValueOrDefault(listing.InstanceId.Value)
+                    : null);
             await dbContext.MarketListingCreateReceipts.AddAsync(new MarketListingCreateReceiptEntity
             {
                 OperationId = request.OperationId,
@@ -1646,12 +1658,58 @@ public class MarketRepository(
         return account is null ? null : new SellerAccountIdentity(account.AccountName, account.SlotIndex);
     }
 
+    private async Task<IReadOnlyDictionary<Guid, EquipmentInstanceResponse>> LoadEquipmentInstancesAsync(
+        IEnumerable<MarketListingEntity> listings)
+    {
+        var instanceIds = listings
+            .Where(listing => string.Equals(listing.InstanceType, "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                && listing.InstanceId.HasValue)
+            .Select(listing => listing.InstanceId!.Value)
+            .Distinct()
+            .ToArray();
+        if (instanceIds.Length == 0)
+            return new Dictionary<Guid, EquipmentInstanceResponse>();
+
+        var instances = await dbContext.EquipmentInstances
+            .AsNoTracking()
+            .Where(instance => instanceIds.Contains(instance.EquipmentInstanceId) && !instance.IsDeleted)
+            .ToListAsync();
+        if (instances.Count == 0)
+            return new Dictionary<Guid, EquipmentInstanceResponse>();
+
+        var availableIds = instances.Select(instance => instance.EquipmentInstanceId).ToArray();
+        var statRolls = await dbContext.EquipmentInstanceStatRolls
+            .AsNoTracking()
+            .Where(stat => availableIds.Contains(stat.EquipmentInstanceId))
+            .ToListAsync();
+        var enchants = await dbContext.EquipmentInstanceEnchants
+            .AsNoTracking()
+            .Where(enchant => availableIds.Contains(enchant.EquipmentInstanceId))
+            .ToListAsync();
+        var runes = await dbContext.EquipmentInstanceRunes
+            .AsNoTracking()
+            .Where(rune => availableIds.Contains(rune.EquipmentInstanceId))
+            .ToListAsync();
+
+        var statRollsByInstance = statRolls.ToLookup(stat => stat.EquipmentInstanceId);
+        var enchantsByInstance = enchants.ToLookup(enchant => enchant.EquipmentInstanceId);
+        var runesByInstance = runes.ToLookup(rune => rune.EquipmentInstanceId);
+        return instances.ToDictionary(
+            instance => instance.EquipmentInstanceId,
+            instance => EquipmentService.MapToResponse(
+                instance,
+                statRollsByInstance[instance.EquipmentInstanceId],
+                enchantsByInstance[instance.EquipmentInstanceId],
+                runesByInstance[instance.EquipmentInstanceId]));
+    }
+
     private static MarketListingResponse MapListing(
         MarketListingEntity entity,
         SellerAccountIdentity sellerAccount,
         IReadOnlyList<Guid>? sourceInventoryEntryIds = null,
         long pendingProceeds = 0L,
-        IReadOnlyList<Guid>? affectedInventoryEntryIds = null) => new()
+        IReadOnlyList<Guid>? affectedInventoryEntryIds = null,
+        EquipmentInstanceResponse? equipmentInstance = null) => new()
     {
         ListingId = entity.ListingId,
         SellerAccountId = entity.SellerAccountId,
@@ -1663,6 +1721,7 @@ public class MarketRepository(
         ItemId = entity.ItemId,
         InstanceType = entity.InstanceType,
         InstanceId = entity.InstanceId,
+        EquipmentInstance = equipmentInstance,
         SourceInventoryEntryIds = sourceInventoryEntryIds ?? Array.Empty<Guid>(),
         AffectedInventoryEntryIds = affectedInventoryEntryIds ?? Array.Empty<Guid>(),
         Quantity = entity.Quantity,

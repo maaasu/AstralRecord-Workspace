@@ -12,6 +12,7 @@ public sealed class MarketListingResponse
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }
     public Guid? InstanceId { get; init; }
+    public MarketEquipmentInstanceResponse? EquipmentInstance { get; init; }
     public long Quantity { get; init; }
     public long RemainingQuantity { get; init; }
     public string CurrencyId { get; init; } = string.Empty;
@@ -38,7 +39,45 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
     private static string PlainText(string value) => System.Text.RegularExpressions.Regex.Replace(value, "[&§][0-9A-FK-ORX]", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     public string? EquipmentSlot => Item?.Equipment?.Slot;
     public int? RequiredLevel => Item?.Equipment?.RequiredLevel;
+    public MarketEquipmentInstanceResponse? EquipmentInstance => Listing.EquipmentInstance;
     public IReadOnlyDictionary<string, decimal> NumericAttributes { get; init; } = new Dictionary<string, decimal>();
+}
+
+public sealed class MarketEquipmentInstanceResponse
+{
+    public Guid EquipmentInstanceId { get; init; }
+    public string ItemId { get; init; } = string.Empty;
+    public int EnhanceLevel { get; init; }
+    public int RuneMaxSlots { get; init; }
+    public int TranscendenceRank { get; init; }
+    public int? DurabilityMax { get; init; }
+    public int? DurabilityValue { get; init; }
+    public IReadOnlyList<MarketEquipmentStatRollResponse> StatRolls { get; init; } = [];
+    public IReadOnlyList<MarketEquipmentEnchantResponse> Enchants { get; init; } = [];
+    public IReadOnlyList<MarketEquipmentRuneResponse> Runes { get; init; } = [];
+}
+
+public sealed class MarketEquipmentStatRollResponse
+{
+    public string Status { get; init; } = string.Empty;
+    public string Min { get; init; } = string.Empty;
+    public string Max { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
+}
+
+public sealed class MarketEquipmentEnchantResponse
+{
+    public int SlotIndex { get; init; }
+    public string EnchantMasterId { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public string Type { get; init; } = string.Empty;
+    public decimal Value { get; init; }
+}
+
+public sealed class MarketEquipmentRuneResponse
+{
+    public int SlotIndex { get; init; }
+    public string ItemId { get; init; } = string.Empty;
 }
 
 public sealed record MarketNumericFilterDefinition(

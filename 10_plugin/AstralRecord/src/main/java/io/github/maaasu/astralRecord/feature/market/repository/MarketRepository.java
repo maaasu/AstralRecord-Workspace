@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.feature.market.repository;
 
 import com.google.gson.JsonArray;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.market.model.MarketAccountSummary;
 import io.github.maaasu.astralRecord.feature.market.model.MarketCancelRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
@@ -43,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * AstralRecord API の market エンドポイントと通信し、読み取り結果を短時間キャッシュする repository です。
  */
 public class MarketRepository {
+    private static final Gson GSON = new Gson();
     private static final Duration LIST_TTL = Duration.ofSeconds(15);
     private static final Duration DETAIL_TTL = Duration.ofSeconds(30);
     private static final Duration QUOTE_TTL = Duration.ofSeconds(5);
@@ -455,6 +458,7 @@ public class MarketRepository {
             string(obj, "itemId", ""),
             nullableString(obj, "instanceType"),
             nullableUuid(obj, "instanceId"),
+            equipmentInstance(obj),
             longValue(obj, "quantity", 0),
             longValue(obj, "remainingQuantity", longValue(obj, "quantity", 0)),
             string(obj, "currencyId", ""),
@@ -479,6 +483,21 @@ public class MarketRepository {
             uuidList(obj, "sourceInventoryEntryIds"),
             uuidList(obj, "affectedInventoryEntryIds")
         );
+    }
+
+    /**
+     * マーケット出品レスポンスに含まれる装備個体情報を解析します。
+     *
+     * @param obj 出品レスポンス JSON
+     * @return 有効な equipmentInstance object がある場合は装備個体、旧 API 応答や null の場合は {@code null}
+     */
+    private @Nullable EquipmentInstance equipmentInstance(@NotNull JsonObject obj) {
+        if (!obj.has("equipmentInstance")
+            || obj.get("equipmentInstance").isJsonNull()
+            || !obj.get("equipmentInstance").isJsonObject()) {
+            return null;
+        }
+        return GSON.fromJson(obj.getAsJsonObject("equipmentInstance"), EquipmentInstance.class);
     }
 
     private @NotNull MarketListing parseCancelListing(

@@ -14,6 +14,11 @@ public class MarketListingResponse
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }
     public Guid? InstanceId { get; init; }
+    /// <summary>
+    /// 装備個体の購入前確認に使用する現在の個体情報です。
+    /// EQUIPMENT 出品で個体が存在する場合だけ設定され、スタック品では null です。
+    /// </summary>
+    public EquipmentInstanceResponse? EquipmentInstance { get; init; }
     /// <summary>出品作成・取消応答で返す escrow 元 entry の一覧です。取消の実際の再同期先は AffectedInventoryEntryIds です。</summary>
     public IReadOnlyList<Guid> SourceInventoryEntryIds { get; init; } = Array.Empty<Guid>();
     /// <summary>取消で実際に更新した inventory entry の一覧です。既存 stack へ併合した場合は併合先を返します。</summary>

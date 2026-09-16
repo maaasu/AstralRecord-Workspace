@@ -62,6 +62,53 @@ public sealed class MarketBrowserTests
     }
 
     [Fact]
+    public async Task MarketPage_UsesEquipmentInstanceValuesForPurchaseDecisionFilters()
+    {
+        var equipment = new MarketEquipmentInstanceResponse
+        {
+            EquipmentInstanceId = Guid.NewGuid(),
+            ItemId = "astral_blade",
+            EnhanceLevel = 8,
+            TranscendenceRank = 2,
+            RuneMaxSlots = 3,
+            DurabilityMax = 120,
+            DurabilityValue = 91,
+            StatRolls =
+            [
+                new MarketEquipmentStatRollResponse
+                {
+                    Status = "physical_attack",
+                    Min = "18",
+                    Max = "24",
+                },
+            ],
+            Enchants =
+            [
+                new MarketEquipmentEnchantResponse
+                {
+                    Status = "critical_rate",
+                    Type = "scalar",
+                    Value = 0.04m,
+                },
+            ],
+            Runes = [new MarketEquipmentRuneResponse { SlotIndex = 0, ItemId = "market_rune" }],
+        };
+        var handler = new MarketFixtureHandler(_ => [Listing("astral_blade", 500, equipment: equipment)]);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(httpClient));
+
+        await page.OnGetAsync(CancellationToken.None);
+
+        var listing = Assert.Single(page.Listings);
+        Assert.NotNull(listing.EquipmentInstance);
+        Assert.Equal(equipment.EquipmentInstanceId, listing.EquipmentInstance!.EquipmentInstanceId);
+        Assert.Equal(8, listing.NumericAttributes["instance.enhance_level"]);
+        Assert.Equal(18, listing.NumericAttributes["instance.stat.physical_attack.min"]);
+        Assert.Equal(24, listing.NumericAttributes["instance.stat.physical_attack.max"]);
+        Assert.Equal(0.04m, listing.NumericAttributes["instance.enchant.critical_rate.scalar"]);
+    }
+
+    [Fact]
     public async Task MarketPage_ShowsRetrievalErrorWithoutSubstitutingListings()
     {
         using var httpClient = new HttpClient(new FixedResponseHandler(HttpStatusCode.ServiceUnavailable))
@@ -129,7 +176,11 @@ public sealed class MarketBrowserTests
         return page;
     }
 
-    private static MarketListingResponse Listing(string itemId, long price, string? valuation = null) => new()
+    private static MarketListingResponse Listing(
+        string itemId,
+        long price,
+        string? valuation = null,
+        MarketEquipmentInstanceResponse? equipment = null) => new()
     {
         ListingId = Guid.NewGuid(),
         SellerAccountId = Guid.NewGuid(),
@@ -143,6 +194,9 @@ public sealed class MarketBrowserTests
         TotalPrice = price,
         PriceFloor = 1,
         ValuationSnapshotJson = valuation,
+        InstanceType = equipment is null ? null : "EQUIPMENT",
+        InstanceId = equipment?.EquipmentInstanceId,
+        EquipmentInstance = equipment,
         Status = "ACTIVE",
         ListedAt = DateTime.UtcNow,
         ExpiresAt = DateTime.UtcNow.AddDays(1),

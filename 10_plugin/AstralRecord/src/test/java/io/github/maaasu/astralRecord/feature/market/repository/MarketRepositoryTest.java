@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,56 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class MarketRepositoryTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## 出品一覧・詳細
+     * 検証契約: 装備出品は購入前 tooltip に使う個体情報を MarketListing へ保持する。
+     */
+    @Test
+    void listingDetailParsesEquipmentInstanceForPurchasePreview() throws Exception {
+        UUID listingId = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        String body = """
+            {
+              "listingId":"%s",
+              "sellerAccountId":"%s",
+              "itemCategory":"equipment",
+              "itemId":"market_blade",
+              "instanceType":"EQUIPMENT",
+              "instanceId":"%s",
+              "quantity":1,
+              "remainingQuantity":1,
+              "equipmentInstance":{
+                "equipmentInstanceId":"%s",
+                "accountId":"%s",
+                "itemId":"market_blade",
+                "enhanceLevel":8,
+                "runeMaxSlots":3,
+                "transcendenceRank":2,
+                "durabilityMax":120,
+                "durabilityValue":91,
+                "createdAt":"2026-09-16T00:00:00Z",
+                "updatedAt":"2026-09-16T00:00:00Z",
+                "statRolls":[{"statRollId":"%s","status":"physical_attack","min":"18","max":"24","sortOrder":0}],
+                "enchants":[],
+                "runes":[]
+              }
+            }
+            """.formatted(listingId, sellerId, instanceId, instanceId, sellerId, UUID.randomUUID());
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<String> listingResponse = response(200, body);
+        when(client.send(any(HttpRequest.class), anyStringBodyHandler())).thenReturn(listingResponse);
+
+        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
+            var listing = new MarketRepository().findListing(listingId).orElseThrow();
+            assertNotNull(listing.equipmentInstance());
+            assertEquals(8, listing.equipmentInstance().getEnhanceLevel());
+            assertEquals("18", listing.equipmentInstance().getStatRolls().getFirst().getMin());
+            assertEquals("24", listing.equipmentInstance().getStatRolls().getFirst().getMax());
+        }
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 4. 購入

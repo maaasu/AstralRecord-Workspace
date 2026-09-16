@@ -255,6 +255,47 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task EquipmentListingResponsesIncludePurchaseDecisionDetails()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+
+        var created = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+
+        Assert.True(created.Succeeded);
+        AssertEquipmentDetails(created.Value!.EquipmentInstance, harness.EquipmentInstanceId);
+
+        var listings = await harness.Repository.GetListingsAsync(new MarketListingQuery
+        {
+            SellerAccountId = harness.AccountId,
+            Page = 1,
+            PageSize = 10,
+        });
+        var listing = Assert.Single(listings);
+        AssertEquipmentDetails(listing.EquipmentInstance, harness.EquipmentInstanceId);
+
+        var detail = await harness.Repository.GetListingAsync(listing.ListingId);
+        Assert.NotNull(detail);
+        AssertEquipmentDetails(detail!.EquipmentInstance, harness.EquipmentInstanceId);
+    }
+
+    private static void AssertEquipmentDetails(
+        EquipmentInstanceResponse? equipment,
+        Guid expectedInstanceId)
+    {
+        Assert.NotNull(equipment);
+        Assert.Equal(expectedInstanceId, equipment!.EquipmentInstanceId);
+        Assert.Equal(7, equipment.EnhanceLevel);
+        Assert.Equal(2, equipment.TranscendenceRank);
+        Assert.Equal(3, equipment.RuneMaxSlots);
+        var roll = Assert.Single(equipment.StatRolls);
+        Assert.Equal("physical_attack", roll.Status);
+        Assert.Equal("18", roll.Min);
+        Assert.Equal("24", roll.Max);
+        Assert.Equal("flat", Assert.Single(equipment.Enchants).Type);
+        Assert.Equal("market_rune", Assert.Single(equipment.Runes).ItemId);
+    }
+
+    [Fact]
     public async Task CreateListing_RejectsEquipmentWithoutEscrowSourceBeforeQuote()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
@@ -1182,6 +1223,50 @@ public class MarketRepositoryEquipmentListingTests
                 EquipmentInstanceId = equipmentInstanceId,
                 AccountId = accountId,
                 ItemId = "market_equipment",
+                EnhanceLevel = 7,
+                RuneMaxSlots = 3,
+                TranscendenceRank = 2,
+                DurabilityMax = 120,
+                DurabilityValue = 93,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+            });
+            dbContext.EquipmentInstanceStatRolls.Add(new EquipmentInstanceStatRollEntity
+            {
+                StatRollId = Guid.NewGuid(),
+                EquipmentInstanceId = equipmentInstanceId,
+                Status = "physical_attack",
+                RandomMin = "18",
+                RandomMax = "24",
+                SortOrder = 0,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+            });
+            dbContext.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
+            {
+                EnchantId = Guid.NewGuid(),
+                EquipmentInstanceId = equipmentInstanceId,
+                SlotIndex = 0,
+                EnchantMasterId = "market_enchant",
+                EffectId = "market_effect",
+                Status = "physical_attack",
+                Type = "flat",
+                Value = 4,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+            });
+            dbContext.EquipmentInstanceRunes.Add(new EquipmentInstanceRuneEntity
+            {
+                RuneId = Guid.NewGuid(),
+                EquipmentInstanceId = equipmentInstanceId,
+                SlotIndex = 0,
+                ItemId = "market_rune",
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = accountId,

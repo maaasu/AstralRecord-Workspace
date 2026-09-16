@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.market.model;
 
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
@@ -17,6 +18,7 @@ public record MarketListing(
     String itemId,
     @Nullable String instanceType,
     @Nullable UUID instanceId,
+    @Nullable EquipmentInstance equipmentInstance,
     long quantity,
     long remainingQuantity,
     String currencyId,

@@ -1163,6 +1163,7 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         return new MarketListing(
             UUID.randomUUID(), accountId, "market-test", 0, null, sourceEntryId,
             ItemCategory.MATERIAL.getApiValue(), "market_test_material", null, null,
+            null,
             1L, 1L, "gold", 1L, 1L, 1L, null, null, "HIGH", null, null,
             status, null, now, now.plusSeconds(86_400L), null, null, 1, now, now,
             pendingProceeds, List.of(), List.of(sourceEntryId)

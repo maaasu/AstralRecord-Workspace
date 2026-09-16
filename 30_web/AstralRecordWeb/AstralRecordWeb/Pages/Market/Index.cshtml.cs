@@ -92,6 +92,14 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     public string ItemStatText(ItemEquipmentStatResponse stat) => stat.Value is null
         ? string.Empty
         : string.Equals(stat.Value.Min, stat.Value.Max, StringComparison.Ordinal) ? stat.Value.Min : $"{stat.Value.Min} - {stat.Value.Max}";
+    public static string InstanceStatText(MarketEquipmentStatRollResponse stat) =>
+        string.Equals(stat.Min, stat.Max, StringComparison.Ordinal) ? stat.Min : $"{stat.Min} - {stat.Max}";
+    public static string InstanceTypeLabel(string? instanceType) => instanceType?.ToUpperInvariant() switch
+    {
+        "EQUIPMENT" => "個体装備",
+        null or "" => "スタック品",
+        _ => "個体アイテム",
+    };
 
     private IEnumerable<MarketListingItem> ApplyFilters(
         IEnumerable<MarketListingItem> listings,
@@ -179,6 +187,22 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
         Add(values, "item.max_stack", item?.MaxStack);
         Add(values, "equipment.required_level", item?.Equipment?.RequiredLevel);
 
+        if (listing.EquipmentInstance is { } equipment)
+        {
+            Add(values, "instance.enhance_level", equipment.EnhanceLevel);
+            Add(values, "instance.transcendence_rank", equipment.TranscendenceRank);
+            Add(values, "instance.rune_max_slots", equipment.RuneMaxSlots);
+            Add(values, "instance.durability_max", equipment.DurabilityMax);
+            Add(values, "instance.durability_value", equipment.DurabilityValue);
+            foreach (var stat in equipment.StatRolls)
+            {
+                Add(values, $"instance.stat.{stat.Status}.min", ParseDecimal(stat.Min));
+                Add(values, $"instance.stat.{stat.Status}.max", ParseDecimal(stat.Max));
+            }
+            foreach (var enchant in equipment.Enchants)
+                Add(values, $"instance.enchant.{enchant.Status}.{enchant.Type}", enchant.Value);
+        }
+
         if (item?.Equipment is not null)
         {
             foreach (var stat in item.Equipment.Stats)
@@ -238,6 +262,12 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     private static string NumericLabel(string key) => key.Replace("listing.", "出品: ", StringComparison.Ordinal)
         .Replace("item.", "アイテム: ", StringComparison.Ordinal)
         .Replace("equipment.", "装備: ", StringComparison.Ordinal)
+        .Replace("instance.", "個体: ", StringComparison.Ordinal)
+        .Replace("enhance_level", "強化値", StringComparison.Ordinal)
+        .Replace("transcendence_rank", "超越ランク", StringComparison.Ordinal)
+        .Replace("rune_max_slots", "ルーン枠", StringComparison.Ordinal)
+        .Replace("durability_value", "現在耐久値", StringComparison.Ordinal)
+        .Replace("durability_max", "最大耐久値", StringComparison.Ordinal)
         .Replace(".", " / ", StringComparison.Ordinal);
     private static bool Contains(string? source, string value) => source?.Contains(value, StringComparison.OrdinalIgnoreCase) == true;
     private static bool EqualsIgnoreCase(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
