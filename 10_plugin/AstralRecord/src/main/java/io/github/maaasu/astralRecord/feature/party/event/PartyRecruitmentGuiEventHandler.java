@@ -73,7 +73,13 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         this.inventoryService = inventoryService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    /**
+     * 募集 GUI の操作を処理します。
+     * 募集内容入力用の金床では、結果スロットのクリックだけ取消済みイベントでも受け付けます。
+     *
+     * @param event Bukkit のインベントリクリックイベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();
@@ -81,6 +87,10 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
             boolean messageInput = messageAnvilGui.isInventory(topInventory);
             boolean board = boardGui.isInventory(topInventory);
             if (!settings && !messageInput && !board) {
+                return;
+            }
+            if (event.isCancelled()
+                && (!messageInput || event.getRawSlot() != PartyRecruitmentMessageAnvilGui.RESULT_SLOT)) {
                 return;
             }
             event.setCancelled(true);
