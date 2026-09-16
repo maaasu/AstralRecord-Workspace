@@ -10,7 +10,7 @@ description: "&7シールドを強化し、被弾後の再充填を支える防�
 icon: SHIELD
 lore:
   - "&7最大シールドを{skill.maxShield}増加する。"
-  - "&7シールド残存時の被弾後、{skill.rechargeDelaySeconds}秒後から最大シールドの毎秒{skill.rechargePercentPerSecond}%を再充填する。"
+  - "&7シールド残存時の被弾またはスキルによる消費後、{skill.rechargeDelaySeconds}秒後から最大シールドの毎秒{skill.rechargePercentPerSecond}%を再充填する。"
   - "&7再充填中に被弾すると、再充填待機をやり直す。"
   - "&7シールド破壊時は通常の回復仕様に従う。"
 cooldownTicks: 0

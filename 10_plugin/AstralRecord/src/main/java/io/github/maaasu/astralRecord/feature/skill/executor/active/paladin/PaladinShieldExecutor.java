@@ -46,7 +46,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
      * 共有発動スキルサービス、ステータスサービス、パーティーサービスで初期化します。
      *
      * @param services 共有発動スキルサービス
-     * @param statusService 一時シールド付与と現在シールド消費を行うサービス
+     * @param statusService 現在シールドの消費と残存シールドの再充填開始を行うサービス
      * @param partyService 付与対象を解決するパーティーサービス
      * @param holySmiteRuntimeService 聖柱の検索と残り持続時間を管理するサービス
      */
@@ -97,6 +97,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
 
         double transferredShield = currentShield * transferRatio;
         statusService.consumeShield(caster, transferredShield);
+        statusService.startShieldRechargeWhileRetained(caster, System.currentTimeMillis());
         renderCasterAura(context);
         List<Player> targets = findTargets(context.player(), targetRange);
         if (targets.isEmpty()) {

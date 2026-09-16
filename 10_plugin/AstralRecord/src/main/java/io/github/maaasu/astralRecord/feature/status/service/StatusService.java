@@ -479,7 +479,7 @@ public class StatusService {
      * シールド残存中だけ、設定済み再充填パッシブの段階回復を開始します。
      *
      * @param player 対象プレイヤー
-     * @param nowMs 被ダメージ時刻（epoch milliseconds）
+     * @param nowMs 被ダメージまたはShield消費の発生時刻（epoch milliseconds）
      * @return 開始後の状態。タンクシールドアクティベートが無効、Shieldが0以下、満タン、または再充填パッシブ未設定の場合は {@code null}
      */
     public @Nullable ShieldRechargeState startShieldRechargeWhileRetained(@NotNull AstPlayer player, long nowMs) {
@@ -666,7 +666,7 @@ public class StatusService {
      * パッシブスキル由来のプレイヤーシールド再充填設定を適用します。
      *
      * @param player 対象プレイヤー
-     * @param delaySeconds Shield残存時の被ダメージ後に段階回復を開始するまでの秒数
+     * @param delaySeconds Shield残存時の被ダメージまたはスキルによるShield消費後に段階回復を開始するまでの秒数
      * @param rechargePercentPerSecond Shield残存時の最大シールドに対する毎秒回復率（%）
      */
     public void configureShieldRecharge(

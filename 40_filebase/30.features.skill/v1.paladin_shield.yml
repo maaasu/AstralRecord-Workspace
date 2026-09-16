@@ -11,6 +11,7 @@ icon: SHIELD
 lore:
   - "&7現在シールドが{skill.minimumCurrentShield}以上のときだけ発動できる。"
   - "&7現在シールドの{skill.transferRatio:percent}%を消費する。"
+  - "&7シールド残存時にリチャージパッシブが有効なら、消費後の再充填待機を開始する。"
   - "&7半径{skill.targetRange}m以内のパーティーメンバー全員へ、消費量と同じ一時シールドを付与する。"
   - "&7一時シールドは{skill.temporaryShieldDurationTicks:seconds}秒間有効で、後からの付与で値と時間を上書きする。"
   - "&7対象がいない場合は、ホーリースマイトの聖柱を{skill.temporaryShieldDurationTicks:seconds}秒間建てる。"
