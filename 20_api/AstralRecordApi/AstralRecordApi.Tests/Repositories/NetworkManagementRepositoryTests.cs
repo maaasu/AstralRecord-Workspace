@@ -4,6 +4,9 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -172,6 +175,82 @@ public sealed class NetworkManagementRepositoryTests
         Assert.True((await fixture.Repository.GetBanAsync(fixture.UserId))!.IsActive);
     }
 
+    [Theory]
+    [InlineData("bootstrap", false)]
+    [InlineData("settings", false)]
+    [InlineData("ban", false)]
+    [InlineData("bootstrap", true)]
+    [InlineData("settings", true)]
+    [InlineData("ban", true)]
+    public async Task RetryingTransaction_DoesNotDuplicateRevisionOrAudit(string operation, bool loseCommitAcknowledgement)
+    {
+        var fault = new TransientFault();
+        await using var fixture = await Fixture.Create(loseCommitAcknowledgement
+            ? new LoseCommitAcknowledgement(fault) : new FailAfterSave(fault));
+        Assert.True(fixture.Management.Database.CreateExecutionStrategy().RetriesOnFailure);
+        if (operation == "settings") await fixture.Repository.BootstrapAsync(Settings());
+        fault.Armed = true;
+        switch (operation)
+        {
+            case "bootstrap":
+                var created = await fixture.Repository.BootstrapAsync(Settings());
+                Assert.True(created.Created);
+                Assert.Equal(1, created.Settings.Revision);
+                break;
+            case "settings":
+                var updated = await fixture.Repository.UpdateSettingsAsync(Settings(1, "更新済み"), fixture.UserId);
+                Assert.Equal(2, updated.Revision);
+                Assert.Equal("更新済み", updated.Channels[0].DisplayName);
+                break;
+            default:
+                var banned = await fixture.Repository.UpdateBanAsync(fixture.UserId, new() { IsBanned = true }, fixture.UserId);
+                Assert.Equal(1, banned!.Revision);
+                Assert.True(banned.IsActive);
+                Assert.Single(await fixture.Management.Players.ToListAsync());
+                break;
+        }
+        Assert.Equal(1, fault.Failures);
+        Assert.Equal(operation == "settings" ? 2 : 1, await fixture.Management.NetworkAudits.CountAsync());
+    }
+
+    private sealed class TransientFaultException : Exception;
+    private sealed class TransientFault
+    {
+        public bool Armed { get; set; }
+        public int Failures { get; private set; }
+        public void ThrowOnce()
+        {
+            if (!Armed) return;
+            Armed = false;
+            Failures++;
+            throw new TransientFaultException();
+        }
+    }
+    private sealed class FailAfterSave(TransientFault fault) : SaveChangesInterceptor
+    {
+        public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+        {
+            fault.ThrowOnce();
+            return ValueTask.FromResult(result);
+        }
+    }
+    private sealed class LoseCommitAcknowledgement(TransientFault fault) : DbTransactionInterceptor
+    {
+        public override Task TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken = default)
+        {
+            fault.ThrowOnce();
+            return Task.CompletedTask;
+        }
+    }
+    private sealed class RetryingStrategyFactory(ExecutionStrategyDependencies dependencies) : IExecutionStrategyFactory
+    {
+        public IExecutionStrategy Create() => new RetryingStrategy(dependencies);
+    }
+    private sealed class RetryingStrategy(ExecutionStrategyDependencies dependencies) : ExecutionStrategy(dependencies, 3, TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is TransientFaultException;
+    }
+
     private static ManagedNetworkSettings Settings(int revision = 0, string name = "ロビー") => new()
     {
         Revision = revision, Channels = [new() { ServerId = "lobby", DisplayName = name }],
@@ -194,13 +273,14 @@ public sealed class NetworkManagementRepositoryTests
         public ManagementDbContext Management { get; private set; } = null!;
         public NetworkManagementRepository Repository => new(Management, Game, Clock);
 
-        public static async Task<Fixture> Create()
+        public static async Task<Fixture> Create(params IInterceptor[] interceptors)
         {
             var fixture = new Fixture();
             await fixture.gameConnection.OpenAsync();
             await fixture.managementConnection.OpenAsync();
             fixture.Game = new(new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(fixture.gameConnection).Options);
-            fixture.Management = new(new DbContextOptionsBuilder<ManagementDbContext>().UseSqlite(fixture.managementConnection).Options);
+            fixture.Management = new(new DbContextOptionsBuilder<ManagementDbContext>().UseSqlite(fixture.managementConnection)
+                .ReplaceService<IExecutionStrategyFactory, RetryingStrategyFactory>().AddInterceptors(interceptors).Options);
             await fixture.Management.Database.EnsureCreatedAsync();
             await fixture.Game.Database.ExecuteSqlRawAsync("""
                 CREATE TABLE user (

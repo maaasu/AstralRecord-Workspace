@@ -22,13 +22,12 @@ public sealed class NetworkManagementRepository(
         return Copy(settings, row.Revision, includePlayers ? await ResolvePlayersAsync(AllUserIds(settings)) : []);
     }
 
-    public async Task<(ManagedNetworkSettings Settings, bool Created)> BootstrapAsync(ManagedNetworkSettings request)
+    public Task<(ManagedNetworkSettings Settings, bool Created)> BootstrapAsync(ManagedNetworkSettings request)
+        => ExecuteWriteAsync<(ManagedNetworkSettings Settings, bool Created)>(async auditId =>
     {
-        await using var transaction = await managementDb.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var row = await LockSettingsAsync();
         if (row is not null)
         {
-            await transaction.CommitAsync();
             return (Copy(Deserialize(row), row.Revision, []), false);
         }
         var normalized = Normalize(request);
@@ -36,37 +35,37 @@ public sealed class NetworkManagementRepository(
         {
             Id = 1, Revision = 1, SettingsJson = Serialize(normalized), UpdatedAtUtc = Now(),
         });
-        AddAudit("settings.bootstrap", null, null, null, Serialize(normalized));
+        AddAudit(auditId, "settings.bootstrap", null, null, null, Serialize(normalized));
         await SaveAsync();
-        await transaction.CommitAsync();
         return ((await GetSettingsAsync())!, true);
-    }
+    });
 
     public async Task<ManagedNetworkSettings> UpdateSettingsAsync(ManagedNetworkSettings request, Guid actorUuid)
     {
         var normalized = Normalize(request);
-        await using var transaction = await managementDb.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var row = await LockSettingsAsync();
-        if ((row?.Revision ?? 0) != request.Revision) throw new NetworkManagementConflictException();
-        var previous = row is null ? null : Deserialize(row);
-        var newUserIds = AllUserIds(normalized).Except(previous is null ? [] : AllUserIds(previous)).ToArray();
-        var knownIds = await gameDb.Users.AsNoTracking().Where(user => !user.IsDeleted && newUserIds.Contains(user.Uuid))
-            .Select(user => user.Uuid).ToListAsync();
-        if (newUserIds.Except(knownIds).Any()) throw new ArgumentException("追加するプレイヤーは登録済みMCIDの候補から選択してください。");
-        var before = row?.SettingsJson;
-        if (row is null)
+        return await ExecuteWriteAsync(async auditId =>
         {
-            row = new ManagedNetworkSettingsEntity { Id = 1 };
-            managementDb.NetworkSettings.Add(row);
-        }
-        row.SettingsJson = Serialize(normalized);
-        row.Revision++;
-        row.UpdatedAtUtc = Now();
-        row.UpdatedBy = actorUuid;
-        AddAudit("settings.update", actorUuid, null, before, row.SettingsJson);
-        await SaveAsync();
-        await transaction.CommitAsync();
-        return (await GetSettingsAsync(includePlayers: true))!;
+            var row = await LockSettingsAsync();
+            if ((row?.Revision ?? 0) != request.Revision) throw new NetworkManagementConflictException();
+            var previous = row is null ? null : Deserialize(row);
+            var newUserIds = AllUserIds(normalized).Except(previous is null ? [] : AllUserIds(previous)).ToArray();
+            var knownIds = await gameDb.Users.AsNoTracking().Where(user => !user.IsDeleted && newUserIds.Contains(user.Uuid))
+                .Select(user => user.Uuid).ToListAsync();
+            if (newUserIds.Except(knownIds).Any()) throw new ArgumentException("追加するプレイヤーは登録済みMCIDの候補から選択してください。");
+            var before = row?.SettingsJson;
+            if (row is null)
+            {
+                row = new ManagedNetworkSettingsEntity { Id = 1 };
+                managementDb.NetworkSettings.Add(row);
+            }
+            row.SettingsJson = Serialize(normalized);
+            row.Revision++;
+            row.UpdatedAtUtc = Now();
+            row.UpdatedBy = actorUuid;
+            AddAudit(auditId, "settings.update", actorUuid, null, before, row.SettingsJson);
+            await SaveAsync();
+            return (await GetSettingsAsync(includePlayers: true))!;
+        });
     }
 
     public async Task<IReadOnlyList<NetworkManagedPlayer>> SearchPlayersAsync(string? query)
@@ -131,30 +130,51 @@ public sealed class NetworkManagementRepository(
         var identity = await gameDb.Users.AsNoTracking().Where(x => x.Uuid == userUuid && !x.IsDeleted).Select(x => x.Mcid).FirstOrDefaultAsync()
             ?? await managementDb.Players.AsNoTracking().Where(x => x.PlayerUuid == userUuid).Select(x => x.Mcid).FirstOrDefaultAsync();
         if (identity is null) return null;
-        await using var transaction = await managementDb.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var row = managementDb.Database.IsSqlServer()
-            ? await managementDb.NetworkBans.FromSqlInterpolated($"SELECT * FROM dbo.network_ban WITH (UPDLOCK,HOLDLOCK) WHERE user_uuid = {userUuid}").SingleOrDefaultAsync()
-            : await managementDb.NetworkBans.SingleOrDefaultAsync(x => x.UserUuid == userUuid);
-        if ((row?.Revision ?? 0) != request.ExpectedRevision) throw new NetworkManagementConflictException();
-        var before = row is null ? null : Serialize(row);
-        if (row is null)
+        return await ExecuteWriteAsync(async auditId =>
         {
-            row = new ManagedNetworkBanEntity { UserUuid = userUuid };
-            managementDb.NetworkBans.Add(row);
-        }
-        row.IsBanned = request.IsBanned;
-        row.ExpiresAtUtc = request.IsBanned ? request.ExpiresAtUtc?.UtcDateTime : null;
-        row.Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
-        row.Revision++;
-        row.UpdatedAtUtc = Now();
-        row.UpdatedBy = actorUuid;
-        // Retain identity even for players who have never signed in to the website or after a game reset.
-        if (!await managementDb.Players.AnyAsync(x => x.PlayerUuid == userUuid))
-            managementDb.Players.Add(new ManagementPlayerEntity { PlayerUuid = userUuid, Mcid = identity, CreatedAt = Now(), UpdatedAt = Now() });
-        AddAudit(request.IsBanned ? "ban.update" : "ban.clear", actorUuid, userUuid, before, Serialize(row));
-        await SaveAsync();
-        await transaction.CommitAsync();
-        return BanResponse(row, identity);
+            var row = managementDb.Database.IsSqlServer()
+                ? await managementDb.NetworkBans.FromSqlInterpolated($"SELECT * FROM dbo.network_ban WITH (UPDLOCK,HOLDLOCK) WHERE user_uuid = {userUuid}").SingleOrDefaultAsync()
+                : await managementDb.NetworkBans.SingleOrDefaultAsync(x => x.UserUuid == userUuid);
+            if ((row?.Revision ?? 0) != request.ExpectedRevision) throw new NetworkManagementConflictException();
+            var before = row is null ? null : Serialize(row);
+            if (row is null)
+            {
+                row = new ManagedNetworkBanEntity { UserUuid = userUuid };
+                managementDb.NetworkBans.Add(row);
+            }
+            row.IsBanned = request.IsBanned;
+            row.ExpiresAtUtc = request.IsBanned ? request.ExpiresAtUtc?.UtcDateTime : null;
+            row.Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+            row.Revision++;
+            row.UpdatedAtUtc = Now();
+            row.UpdatedBy = actorUuid;
+            // Retain identity even for players who have never signed in to the website or after a game reset.
+            if (!await managementDb.Players.AnyAsync(x => x.PlayerUuid == userUuid))
+                managementDb.Players.Add(new ManagementPlayerEntity { PlayerUuid = userUuid, Mcid = identity, CreatedAt = Now(), UpdatedAt = Now() });
+            AddAudit(auditId, request.IsBanned ? "ban.update" : "ban.clear", actorUuid, userUuid, before, Serialize(row));
+            await SaveAsync();
+            return BanResponse(row, identity);
+        });
+    }
+
+    // Retry the entire transaction, not individual SQL commands. The stable audit ID also
+    // detects a commit whose acknowledgement was lost, so revision/audit are never applied twice.
+    private async Task<T> ExecuteWriteAsync<T>(Func<Guid, Task<T>> operation)
+    {
+        var auditId = Guid.NewGuid();
+        T result = default!;
+        var hasResult = false;
+        return await managementDb.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            managementDb.ChangeTracker.Clear();
+            if (hasResult && await managementDb.NetworkAudits.AsNoTracking().AnyAsync(x => x.AuditId == auditId))
+                return result;
+            await using var transaction = await managementDb.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            result = await operation(auditId);
+            hasResult = true;
+            await transaction.CommitAsync();
+            return result;
+        });
     }
 
     private Task<ManagedNetworkSettingsEntity?> LockSettingsAsync() => managementDb.Database.IsSqlServer()
@@ -237,9 +257,9 @@ public sealed class NetworkManagementRepository(
         ?? throw new InvalidDataException("Managed network settings are empty.");
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
     private DateTime Now() => clock.GetUtcNow().UtcDateTime;
-    private void AddAudit(string operation, Guid? actor, Guid? target, string? before, string after) => managementDb.NetworkAudits.Add(new()
+    private void AddAudit(Guid auditId, string operation, Guid? actor, Guid? target, string? before, string after) => managementDb.NetworkAudits.Add(new()
     {
-        AuditId = Guid.NewGuid(), Operation = operation, ActorUuid = actor, TargetUuid = target,
+        AuditId = auditId, Operation = operation, ActorUuid = actor, TargetUuid = target,
         BeforeJson = before, AfterJson = after, OccurredAtUtc = Now(),
     });
 }
