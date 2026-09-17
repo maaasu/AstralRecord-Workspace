@@ -19,6 +19,7 @@ public class WebLoginChallengeCreateResponse
 public class WebLoginChallengeConsumeRequest
 {
     public string LoginCode { get; set; } = string.Empty;
+    public Guid? ExpectedUserUuid { get; set; }
 }
 
 public class WebLoginChallengeConsumeResponse
@@ -29,6 +30,57 @@ public class WebLoginChallengeConsumeResponse
     public bool WebAdmin { get; set; }
     public Guid? CurrentAccountId { get; set; }
     public IReadOnlyList<Guid> AccountIds { get; set; } = [];
+    public Guid SessionVersion { get; set; }
+}
+
+public class WebPasswordLoginRequest
+{
+    public string LoginId { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class WebCredentialResponse
+{
+    public string? LoginId { get; set; }
+    public bool Enabled { get; set; }
+    public Guid SessionVersion { get; set; }
+}
+
+public class WebCredentialUpdateRequest
+{
+    public Guid SessionVersion { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string? CurrentPassword { get; set; }
+    public string? NewPassword { get; set; }
+    public DateTimeOffset? CodeAuthenticatedAt { get; set; }
+}
+
+public enum WebPasswordLoginStatus
+{
+    Succeeded,
+    Invalid,
+    Throttled,
+}
+
+public sealed class WebPasswordLoginResult
+{
+    public WebPasswordLoginStatus Status { get; init; }
+    public WebLoginChallengeConsumeResponse? Response { get; init; }
+}
+
+public enum WebCredentialUpdateStatus
+{
+    Succeeded,
+    Invalid,
+    Stale,
+    Throttled,
+    NotFound,
+}
+
+public sealed class WebCredentialUpdateResult
+{
+    public WebCredentialUpdateStatus Status { get; init; }
+    public WebCredentialResponse? Response { get; init; }
 }
 
 public class WebLoginChallengeUserResolveResponse

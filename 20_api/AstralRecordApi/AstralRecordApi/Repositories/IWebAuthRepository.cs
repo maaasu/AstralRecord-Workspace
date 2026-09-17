@@ -11,4 +11,10 @@ public interface IWebAuthRepository
     Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid);
 
     Task<bool> IsWebAdminAsync(Guid userUuid);
+
+    Task<WebPasswordLoginResult> LoginWithPasswordAsync(WebPasswordLoginRequest request);
+
+    Task<WebCredentialResponse?> GetCredentialAsync(Guid userUuid);
+
+    Task<WebCredentialUpdateResult> UpdateCredentialAsync(Guid userUuid, WebCredentialUpdateRequest request);
 }

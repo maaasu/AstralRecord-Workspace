@@ -78,4 +78,31 @@ BEGIN
     );
     CREATE INDEX IX_network_management_audit_time ON dbo.network_management_audit(occurred_at_utc);
 END;
+IF OBJECT_ID(N'dbo.web_credential', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.web_credential (
+        player_uuid UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_web_credential PRIMARY KEY,
+        login_id NVARCHAR(64) NULL,
+        password_hash NVARCHAR(512) NULL,
+        enabled BIT NOT NULL CONSTRAINT DF_web_credential_enabled DEFAULT (0),
+        session_version UNIQUEIDENTIFIER NOT NULL,
+        created_at_utc DATETIME2(3) NOT NULL CONSTRAINT DF_web_credential_created DEFAULT SYSUTCDATETIME(),
+        updated_at_utc DATETIME2(3) NOT NULL CONSTRAINT DF_web_credential_updated DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT CK_web_credential_enabled_hash CHECK ((enabled = 0 AND password_hash IS NULL) OR (enabled = 1 AND login_id IS NOT NULL AND password_hash IS NOT NULL)),
+        CONSTRAINT CK_web_credential_updated CHECK (updated_at_utc >= created_at_utc)
+    );
+    CREATE UNIQUE INDEX UX_web_credential_login_id ON dbo.web_credential(login_id) WHERE login_id IS NOT NULL;
+END;
+IF OBJECT_ID(N'dbo.web_credential_login_attempt', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.web_credential_login_attempt (
+        login_id NVARCHAR(64) NOT NULL CONSTRAINT PK_web_credential_login_attempt PRIMARY KEY,
+        failed_attempts INT NOT NULL,
+        window_started_at_utc DATETIME2(3) NOT NULL,
+        locked_until_utc DATETIME2(3) NULL,
+        revision INT NOT NULL,
+        CONSTRAINT CK_web_credential_login_attempt_count CHECK (failed_attempts > 0),
+        CONSTRAINT CK_web_credential_login_attempt_revision CHECK (revision > 0)
+    );
+END;
 GO

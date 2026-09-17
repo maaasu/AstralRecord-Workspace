@@ -213,6 +213,164 @@ public class WebAuthRepositoryTests
         Assert.True(retained.UpdatedAt > createdAt);
     }
 
+    [Fact]
+    public async Task ConsumeChallengeAsync_WrongExpectedUserDoesNotConsumeCode()
+    {
+        await using var gameConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
+        await gameConnection.OpenAsync();
+        await managementConnection.OpenAsync();
+        var gameOptions = CreateGameOptions(gameConnection);
+        var managementOptions = CreateManagementOptions(managementConnection);
+        var userId = Guid.NewGuid();
+        await SeedGameUserAsync(gameOptions, userId, "SubjectCheck", Guid.NewGuid(), DateTime.UtcNow);
+        await using var setup = new ManagementDbContext(managementOptions);
+        await setup.Database.EnsureCreatedAsync();
+        await using var game = new AstralRecordDbContext(gameOptions);
+        await using var management = new ManagementDbContext(managementOptions);
+        var repository = CreateRepository(game, management);
+        var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "SubjectCheck", DateTime.UtcNow));
+
+        Assert.NotNull(issued);
+        Assert.Null(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode, ExpectedUserUuid = Guid.NewGuid() }));
+        Assert.NotNull(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode, ExpectedUserUuid = userId }));
+    }
+
+    [Fact]
+    public async Task Credentials_UseCasRotateSessionAndRejectStaleUpdate()
+    {
+        var fixture = await PasswordFixture.CreateAsync();
+        await using (fixture)
+        {
+            var initial = await fixture.Repository.GetCredentialAsync(fixture.UserId);
+            Assert.NotNull(initial);
+            var enabled = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
+            {
+                SessionVersion = initial.SessionVersion,
+                Action = "enable",
+                NewPassword = "CobaltHarbor!29",
+                CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+            });
+            Assert.Equal(WebCredentialUpdateStatus.Succeeded, enabled.Status);
+            Assert.NotNull(enabled.Response);
+            Assert.NotEqual(initial.SessionVersion, enabled.Response.SessionVersion);
+            Assert.NotNull(enabled.Response.LoginId);
+
+            var stale = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
+            {
+                SessionVersion = initial.SessionVersion,
+                Action = "disable",
+                CurrentPassword = "CobaltHarbor!29",
+            });
+            Assert.Equal(WebCredentialUpdateStatus.Stale, stale.Status);
+
+            var login = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest
+            {
+                LoginId = enabled.Response.LoginId!, Password = "CobaltHarbor!29",
+            });
+            Assert.Equal(WebPasswordLoginStatus.Succeeded, login.Status);
+            Assert.Equal(enabled.Response.SessionVersion, login.Response!.SessionVersion);
+        }
+    }
+
+    [Fact]
+    public async Task PasswordLogin_UsesManagementIdentityAfterGameResetButRejectsExplicitDeletion()
+    {
+        var fixture = await PasswordFixture.CreateAsync();
+        await using (fixture)
+        {
+            var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
+            var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
+            {
+                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+            })).Response!;
+            await fixture.Game.Users.ExecuteDeleteAsync();
+            var afterReset = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
+            Assert.Equal(WebPasswordLoginStatus.Succeeded, afterReset.Status);
+            Assert.Equal(0, afterReset.Response!.Permission);
+            Assert.Empty(afterReset.Response.AccountIds);
+
+            await SeedGameUserAsync(fixture.GameOptions, fixture.UserId, "PasswordTester", Guid.NewGuid(), DateTime.UtcNow);
+            var restored = await fixture.Game.Users.SingleAsync();
+            restored.IsDeleted = true;
+            await fixture.Game.SaveChangesAsync();
+            Assert.Null(await fixture.Repository.GetCredentialAsync(fixture.UserId));
+            var deleted = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
+            Assert.Equal(WebPasswordLoginStatus.Invalid, deleted.Status);
+        }
+    }
+
+    [Fact]
+    public async Task PasswordLogin_PersistsFailedAttemptsAndThrottlesId()
+    {
+        var fixture = await PasswordFixture.CreateAsync();
+        await using (fixture)
+        {
+            var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
+            var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
+            {
+                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+            })).Response!;
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                var result = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "wrong password" });
+                Assert.Equal(WebPasswordLoginStatus.Invalid, result.Status);
+            }
+            var throttled = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
+            Assert.Equal(WebPasswordLoginStatus.Throttled, throttled.Status);
+        }
+    }
+
+    private sealed class PasswordFixture : IAsyncDisposable
+    {
+        private readonly SqliteConnection gameConnection;
+        private readonly SqliteConnection managementConnection;
+        public DbContextOptions<AstralRecordDbContext> GameOptions { get; private init; } = null!;
+        public Guid UserId { get; private init; }
+        public AstralRecordDbContext Game { get; private init; } = null!;
+        public ManagementDbContext Management { get; private init; } = null!;
+        public WebAuthRepository Repository { get; private init; } = null!;
+
+        private PasswordFixture(SqliteConnection gameConnection, SqliteConnection managementConnection)
+        {
+            this.gameConnection = gameConnection;
+            this.managementConnection = managementConnection;
+        }
+
+        public static async Task<PasswordFixture> CreateAsync()
+        {
+            var gameConnection = new SqliteConnection("Data Source=:memory:");
+            var managementConnection = new SqliteConnection("Data Source=:memory:");
+            await gameConnection.OpenAsync();
+            await managementConnection.OpenAsync();
+            var gameOptions = CreateGameOptions(gameConnection);
+            var managementOptions = CreateManagementOptions(managementConnection);
+            var userId = Guid.NewGuid();
+            await SeedGameUserAsync(gameOptions, userId, "PasswordTester", Guid.NewGuid(), DateTime.UtcNow);
+            var managementSetup = new ManagementDbContext(managementOptions);
+            await managementSetup.Database.EnsureCreatedAsync();
+            var game = new AstralRecordDbContext(gameOptions);
+            var management = new ManagementDbContext(managementOptions);
+            var repository = CreateRepository(game, management);
+            var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "PasswordTester", DateTime.UtcNow));
+            Assert.NotNull(issued);
+            Assert.NotNull(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode }));
+            await managementSetup.DisposeAsync();
+            return new PasswordFixture(gameConnection, managementConnection)
+            {
+                GameOptions = gameOptions, UserId = userId, Game = game, Management = management, Repository = repository,
+            };
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Game.DisposeAsync();
+            await Management.DisposeAsync();
+            await gameConnection.DisposeAsync();
+            await managementConnection.DisposeAsync();
+        }
+    }
+
     private static WebAuthRepository CreateRepository(
         AstralRecordDbContext gameContext,
         ManagementDbContext managementContext) =>

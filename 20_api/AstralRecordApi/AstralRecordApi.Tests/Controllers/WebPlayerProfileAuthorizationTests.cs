@@ -37,6 +37,9 @@ public sealed class WebPlayerProfileAuthorizationTests
         public Task<WebLoginChallengeCreateResponse?> CreateChallengeAsync(WebLoginChallengeCreateRequest request) => throw new NotSupportedException();
         public Task<WebLoginChallengeConsumeResponse?> ConsumeChallengeAsync(WebLoginChallengeConsumeRequest request) => throw new NotSupportedException();
         public Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid) => throw new NotSupportedException();
+        public Task<WebPasswordLoginResult> LoginWithPasswordAsync(WebPasswordLoginRequest request) => throw new NotSupportedException();
+        public Task<WebCredentialResponse?> GetCredentialAsync(Guid userUuid) => throw new NotSupportedException();
+        public Task<WebCredentialUpdateResult> UpdateCredentialAsync(Guid userUuid, WebCredentialUpdateRequest request) => throw new NotSupportedException();
     }
 
     private sealed class Profiles : IWebPlayerProfileRepository

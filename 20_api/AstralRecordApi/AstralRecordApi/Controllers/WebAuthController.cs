@@ -54,6 +54,55 @@ public class WebAuthController(IWebAuthRepository webAuthRepository) : Controlle
         return Ok(consumed);
     }
 
+    /// <summary>固定ログインIDとパスワードでWebセッション情報を取得します。</summary>
+    /// <response code="200">認証に成功した。</response>
+    /// <response code="400">IDまたはパスワードが不正、あるいは利用停止中。</response>
+    /// <response code="429">同じIDの試行回数上限に達した。</response>
+    [HttpPost("password/login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> LoginWithPassword([FromBody] WebPasswordLoginRequest request)
+    {
+        var result = await webAuthRepository.LoginWithPasswordAsync(request);
+        return result.Status switch
+        {
+            WebPasswordLoginStatus.Succeeded => Ok(result.Response),
+            WebPasswordLoginStatus.Throttled => StatusCode(StatusCodes.Status429TooManyRequests, new { message = "login is temporarily unavailable." }),
+            _ => BadRequest(new { message = "login is invalid." }),
+        };
+    }
+
+    /// <summary>Web固定ログインID・有効状態・セッション版を取得します。</summary>
+    [HttpGet("users/{userUuid:guid}/credentials")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCredential(Guid userUuid)
+    {
+        var credential = await webAuthRepository.GetCredentialAsync(userUuid);
+        return credential is null ? NotFound(new { message = "credentials are not available." }) : Ok(credential);
+    }
+
+    /// <summary>Web固定ログインID・パスワードを有効化、変更、または無効化します。</summary>
+    /// <remarks>呼出元Webは保護Cookieからのみ sessionVersion と codeAuthenticatedAt を導出します。</remarks>
+    [HttpPost("users/{userUuid:guid}/credentials")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCredential(Guid userUuid, [FromBody] WebCredentialUpdateRequest request)
+    {
+        var result = await webAuthRepository.UpdateCredentialAsync(userUuid, request);
+        return result.Status switch
+        {
+            WebCredentialUpdateStatus.Succeeded => Ok(result.Response),
+            WebCredentialUpdateStatus.Stale => Unauthorized(new { message = "session is stale." }),
+            WebCredentialUpdateStatus.NotFound => NotFound(new { message = "credentials are not available." }),
+            WebCredentialUpdateStatus.Throttled => StatusCode(StatusCodes.Status429TooManyRequests, new { message = "credentials are temporarily unavailable." }),
+            _ => BadRequest(new { message = "credential update is invalid." }),
+        };
+    }
+
     /// <summary>MCID から一意に解決できるプレイヤーを取得します。</summary>
     /// <param name="mcid">完全一致で検索する Minecraft ID。</param>
     /// <response code="200">プレイヤーを一意に解決できた。</response>
