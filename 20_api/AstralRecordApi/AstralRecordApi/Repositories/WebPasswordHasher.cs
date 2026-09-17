@@ -10,6 +10,9 @@ internal static class WebPasswordHasher
     private const int Iterations = 310_000;
     private const int SaltSize = 16;
     private const int HashSize = 32;
+    private static readonly string DummyHash = Hash(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)));
+
+    public static void VerifyDummy(string password) => Verify(password, DummyHash);
 
     public static string Hash(string password)
     {

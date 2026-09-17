@@ -84,7 +84,7 @@ public class WebAuthController(IWebAuthRepository webAuthRepository) : Controlle
     }
 
     /// <summary>Web固定ログインID・パスワードを有効化、変更、または無効化します。</summary>
-    /// <remarks>呼出元Webは保護Cookieからのみ sessionVersion と codeAuthenticatedAt を導出します。</remarks>
+    /// <remarks>呼出元Webは保護Cookieから sessionVersion と codeAuthenticationProof を導出し、APIが証明を検証します。</remarks>
     [HttpPost("users/{userUuid:guid}/credentials")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

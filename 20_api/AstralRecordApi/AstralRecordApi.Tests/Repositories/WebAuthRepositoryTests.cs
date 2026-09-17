@@ -1,3 +1,5 @@
+using AstralRecordApi.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -203,7 +205,8 @@ public class WebAuthRepositoryTests
         await SeedGameUserAsync(gameOptions, userId, "AfterReset", Guid.NewGuid(), DateTime.UtcNow);
         var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "AfterReset", DateTime.UtcNow));
         Assert.NotNull(issued);
-        Assert.NotNull(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode }));
+        var consumed = await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode });
+            Assert.NotNull(consumed);
         var retained = await managementContext.Players.AsNoTracking().SingleAsync();
         Assert.Equal(createdAt, retained.CreatedAt);
         Assert.Equal("AfterReset", retained.Mcid);
@@ -249,7 +252,7 @@ public class WebAuthRepositoryTests
                 SessionVersion = initial.SessionVersion,
                 Action = "enable",
                 NewPassword = "CobaltHarbor!29",
-                CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+                CodeAuthenticationProof = fixture.CodeProof,
             });
             Assert.Equal(WebCredentialUpdateStatus.Succeeded, enabled.Status);
             Assert.NotNull(enabled.Response);
@@ -282,7 +285,7 @@ public class WebAuthRepositoryTests
             var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
             var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
             {
-                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticationProof = fixture.CodeProof,
             })).Response!;
             await fixture.Game.Users.ExecuteDeleteAsync();
             var afterReset = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
@@ -309,7 +312,7 @@ public class WebAuthRepositoryTests
             var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
             var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new WebCredentialUpdateRequest
             {
-                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+                SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticationProof = fixture.CodeProof,
             })).Response!;
             for (var attempt = 0; attempt < 10; attempt++)
             {
@@ -321,12 +324,87 @@ public class WebAuthRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task Credentials_RequireRealCodeProof_ReserveIdAcrossDisable_AndRejectOldProof()
+    {
+        await using var fixture = await PasswordFixture.CreateAsync();
+        var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
+        var forged = new WebCredentialUpdateRequest
+        {
+            SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29",
+            CodeAuthenticationProof = DateTimeOffset.UtcNow.ToString("O"),
+        };
+        Assert.Equal(WebCredentialUpdateStatus.Invalid, (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, forged)).Status);
+        forged.CodeAuthenticationProof = fixture.CodeProof;
+        var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, forged)).Response!;
+        Assert.NotNull(enabled);
+        var oldProof = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = enabled.SessionVersion, Action = "disable", CodeAuthenticationProof = fixture.CodeProof,
+        });
+        Assert.Equal(WebCredentialUpdateStatus.Invalid, oldProof.Status);
+        var disabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = enabled.SessionVersion, Action = "disable", CodeAuthenticationProof = enabled.CodeAuthenticationProof,
+        })).Response!;
+        Assert.False(disabled.Enabled);
+        Assert.Equal(enabled.LoginId, disabled.LoginId);
+        Assert.Equal(enabled.CodeAuthenticatedAt, disabled.CodeAuthenticatedAt);
+        Assert.Null((await fixture.Management.WebCredentials.AsNoTracking().SingleAsync()).PasswordHash);
+        var login = await fixture.Repository.LoginWithPasswordAsync(new() { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
+        Assert.Equal(WebPasswordLoginStatus.Invalid, login.Status);
+        var restored = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = disabled.SessionVersion, Action = "enable", NewPassword = "SilverCanyon!84", CodeAuthenticationProof = disabled.CodeAuthenticationProof,
+        })).Response!;
+        Assert.True(restored.Enabled);
+        Assert.Equal(enabled.LoginId, restored.LoginId);
+    }
+
+    [Fact]
+    public async Task CurrentPasswordAttempts_SharePersistentLimit_ButCodeRecoveryStillWorks()
+    {
+        await using var fixture = await PasswordFixture.CreateAsync();
+        var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
+        var enabled = (await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = initial.SessionVersion, Action = "enable", NewPassword = "CobaltHarbor!29", CodeAuthenticationProof = fixture.CodeProof,
+        })).Response!;
+        for (var i = 0; i < 10; i++)
+        {
+            var wrong = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+            {
+                SessionVersion = enabled.SessionVersion, Action = "disable", CurrentPassword = "incorrect",
+            });
+            Assert.Equal(WebCredentialUpdateStatus.Invalid, wrong.Status);
+        }
+        var blocked = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = enabled.SessionVersion, Action = "disable", CurrentPassword = "CobaltHarbor!29",
+        });
+        Assert.Equal(WebCredentialUpdateStatus.Throttled, blocked.Status);
+        Assert.Equal(WebPasswordLoginStatus.Throttled, (await fixture.Repository.LoginWithPasswordAsync(new()
+        {
+            LoginId = enabled.LoginId!, Password = "CobaltHarbor!29",
+        })).Status);
+        var recovery = await fixture.Repository.UpdateCredentialAsync(fixture.UserId, new()
+        {
+            SessionVersion = enabled.SessionVersion, Action = "change", NewPassword = "SilverCanyon!84", CodeAuthenticationProof = enabled.CodeAuthenticationProof,
+        });
+        Assert.Equal(WebCredentialUpdateStatus.Succeeded, recovery.Status);
+        Assert.Equal(WebPasswordLoginStatus.Succeeded, (await fixture.Repository.LoginWithPasswordAsync(new()
+        {
+            LoginId = enabled.LoginId!, Password = "SilverCanyon!84",
+        })).Status);
+    }
+
     private sealed class PasswordFixture : IAsyncDisposable
     {
         private readonly SqliteConnection gameConnection;
         private readonly SqliteConnection managementConnection;
         public DbContextOptions<AstralRecordDbContext> GameOptions { get; private init; } = null!;
         public Guid UserId { get; private init; }
+        public string CodeProof { get; private init; } = string.Empty;
         public AstralRecordDbContext Game { get; private init; } = null!;
         public ManagementDbContext Management { get; private init; } = null!;
         public WebAuthRepository Repository { get; private init; } = null!;
@@ -354,11 +432,12 @@ public class WebAuthRepositoryTests
             var repository = CreateRepository(game, management);
             var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "PasswordTester", DateTime.UtcNow));
             Assert.NotNull(issued);
-            Assert.NotNull(await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode }));
+            var consumed = await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode });
+            Assert.NotNull(consumed);
             await managementSetup.DisposeAsync();
             return new PasswordFixture(gameConnection, managementConnection)
             {
-                GameOptions = gameOptions, UserId = userId, Game = game, Management = management, Repository = repository,
+                GameOptions = gameOptions, UserId = userId, Game = game, Management = management, Repository = repository, CodeProof = consumed.CodeAuthenticationProof!,
             };
         }
 
@@ -378,7 +457,7 @@ public class WebAuthRepositoryTests
         {
             ChallengeMinutes = 5,
             LoginUrl = "https://example.com/Login",
-        }));
+        }), new WebCodeProofProtector(new EphemeralDataProtectionProvider()));
 
     private static WebLoginChallengeCreateRequest CreateChallengeRequest(Guid userId, string mcid, DateTime now) => new()
     {

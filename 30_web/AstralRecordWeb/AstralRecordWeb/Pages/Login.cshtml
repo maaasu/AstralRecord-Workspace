@@ -11,6 +11,9 @@
             <div class="col-12 col-md-9 col-lg-6">
                 <div class="ar-login-card">
                     <h1 id="login-title">プレイヤーログイン</h1>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+                    <details open="@(Model.PasswordMode ? null : "open")">
+                    <summary class="h5">Minecraftのログインコードでログイン</summary>
                     <div class="ar-login-card__notice" id="login-guide">
                         <strong>ゲーム内でログインコードを発行してください。</strong>
                         <span>ゲーム内で <code>/web login</code> を実行し、表示されたコードを入力してください。</span>
@@ -18,15 +21,32 @@
 
                     <p class="ar-login-ownership" id="login-ownership">Webログインには、ご自身のMinecraftアカウントのみを使用してください。自分以外のMinecraftアカウントでログインした場合は、利用制限やBANなどの処分の対象となります。<a asp-page="/Terms" asp-fragment="web-login-rules">利用規約を確認する</a></p>
                     <form method="post" aria-describedby="login-guide login-ownership">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
                         <div class="mb-3">
                             <label asp-for="LoginCode" class="form-label">ログインコード</label>
                             <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase"
-                                   autocomplete="one-time-code" placeholder="ABCD-EFGH" />
+                                   autocomplete="one-time-code" maxlength="32" required placeholder="ABCD-EFGH" />
                             <span asp-validation-for="LoginCode" class="text-danger"></span>
                         </div>
                         <button type="submit" class="btn ar-home-button ar-home-button--primary w-100">ログイン</button>
                     </form>
+                    </details>
+                    <hr />
+                    <details open="@(Model.PasswordMode ? "open" : null)">
+                        <summary class="h5">ログインID・パスワードでログイン</summary>
+                        <p>マイページで有効にした方が利用できます。</p>
+                        <form method="post" asp-page-handler="Password">
+                            <div class="mb-3">
+                                <label asp-for="LoginId" class="form-label">ログインID</label>
+                                <input asp-for="LoginId" class="form-control" autocomplete="username" maxlength="64" required />
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label">パスワード</label>
+                                <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" maxlength="256" required />
+                            </div>
+                            <button type="submit" class="btn ar-home-button ar-home-button--primary w-100">ID・パスワードでログイン</button>
+                        </form>
+                        <p class="mt-3">IDやパスワードを忘れた場合は、Minecraftのコードでログインして「ログイン設定」を開いてください。サーバー停止中は、再開後にコードを発行してください。</p>
+                    </details>
 
                     <p class="ar-login-card__foot">
                         サーバーへの参加にWebログインは必要ありません。

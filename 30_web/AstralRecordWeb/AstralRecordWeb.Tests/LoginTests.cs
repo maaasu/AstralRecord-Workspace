@@ -159,6 +159,7 @@ public sealed partial class LoginTests
         HttpStatusCode authorizationStatusCode = HttpStatusCode.OK) : HttpMessageHandler
     {
         private readonly Guid userUuid = Guid.NewGuid();
+        private readonly Guid version = Guid.NewGuid();
 
         public int ConsumeCallCount { get; private set; }
         public int AuthorizationCallCount { get; private set; }
@@ -173,12 +174,18 @@ public sealed partial class LoginTests
                 return Task.FromResult(JsonResponse(HttpStatusCode.OK, new WebLoginChallengeConsumeResponse
                 {
                     UserUuid = userUuid,
+                    SessionVersion = version,
+                    CodeAuthenticatedAt = DateTimeOffset.UtcNow,
+                    CodeAuthenticationProof = "fixture-proof",
                     Mcid = "Tester",
                     Permission = permission,
                     WebAdmin = webAdmin,
                     AccountIds = [],
                 }));
             }
+
+            if (request.RequestUri?.AbsolutePath == $"/api/web-auth/users/{userUuid:D}/credentials")
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK, new WebCredentialState { SessionVersion = version }));
 
             if (request.RequestUri?.AbsolutePath == "/api/item")
                 return Task.FromResult(JsonResponse(HttpStatusCode.OK, Array.Empty<object>()));

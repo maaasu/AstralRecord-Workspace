@@ -1,0 +1,18 @@
+@page
+@model ReauthenticateModel
+@{ ViewData["Title"] = "本人確認"; }
+<section class="ar-portal"><div class="container">
+    <div class="ar-panel">
+        <h1>Minecraftで本人確認</h1>
+        <p>設定の有効化・パスワードの再設定、管理画面の利用には本人確認が必要です。</p>
+        <p>現在ログインしている <strong>@User.Identity?.Name</strong> のMinecraftアカウントで <code>/web login</code> を実行してください。確認は5分間有効です。</p>
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <input type="hidden" asp-for="ReturnUrl" />
+            <label asp-for="LoginCode" class="form-label">ログインコード</label>
+            <input asp-for="LoginCode" class="form-control mb-3" maxlength="32" autocomplete="one-time-code" required placeholder="ABCD-EFGH" />
+            <button type="submit" class="btn ar-btn-primary">本人確認する</button>
+            <a asp-page="/MyPage" class="btn ar-btn-outline">マイページに戻る</a>
+        </form>
+    </div>
+</div></section>

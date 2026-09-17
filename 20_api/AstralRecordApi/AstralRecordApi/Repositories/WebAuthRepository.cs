@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Data.Common;
+using AstralRecordApi.Authentication;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -13,7 +14,8 @@ namespace AstralRecordApi.Repositories;
 public class WebAuthRepository(
     AstralRecordDbContext dbContext,
     ManagementDbContext managementDbContext,
-    IOptions<WebAuthOptions> options) : IWebAuthRepository
+    IOptions<WebAuthOptions> options,
+    WebCodeProofProtector codeProof) : IWebAuthRepository
 {
     private const string LoginCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private const string LoginIdAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -139,8 +141,11 @@ public class WebAuthRepository(
         if (consumed is null)
             return null;
 
+        var codeAt = DateTimeOffset.UtcNow;
         return new WebLoginChallengeConsumeResponse
         {
+            CodeAuthenticatedAt = codeAt,
+            CodeAuthenticationProof = codeProof.Issue(consumed.UserUuid, consumed.SessionVersion, codeAt),
             UserUuid = consumed.UserUuid,
             Mcid = consumed.Mcid,
             Permission = consumed.Permission,
@@ -209,7 +214,7 @@ public class WebAuthRepository(
     public async Task<WebPasswordLoginResult> LoginWithPasswordAsync(WebPasswordLoginRequest request)
     {
         var loginId = NormalizeLoginId(request.LoginId);
-        if (loginId.Length == 0 || loginId.Length > 64 || request.Password is null)
+        if (loginId.Length == 0 || loginId.Length > 64 || request.Password is null || request.Password.Length > 256)
             return new() { Status = WebPasswordLoginStatus.Invalid };
 
         var now = DateTime.UtcNow;
@@ -224,6 +229,7 @@ public class WebAuthRepository(
             .SingleOrDefaultAsync(item => item.LoginId == loginId);
         if (credential is null || !credential.Enabled || credential.PasswordHash is null)
         {
+            WebPasswordHasher.VerifyDummy(request.Password);
             await RecordFailedPasswordAttemptAsync(loginId, now);
             return new() { Status = WebPasswordLoginStatus.Invalid };
         }
@@ -269,8 +275,8 @@ public class WebAuthRepository(
             return new() { Status = WebCredentialUpdateStatus.Stale };
 
         var now = DateTime.UtcNow;
-        var hasRecentCode = request.CodeAuthenticatedAt is { } codeAt &&
-            codeAt <= new DateTimeOffset(now) && codeAt >= new DateTimeOffset(now.AddMinutes(-5));
+        var codeAt = codeProof.Validate(request.CodeAuthenticationProof, userUuid, credential.SessionVersion, new DateTimeOffset(now));
+        var hasRecentCode = codeAt.HasValue;
         var action = request.Action?.Trim().ToLowerInvariant();
         var isEnable = action == "enable";
         var isChange = action == "change";
@@ -287,10 +293,19 @@ public class WebAuthRepository(
         {
             if (!credential.Enabled)
                 return new() { Status = WebCredentialUpdateStatus.Invalid };
-            var currentPasswordValid = credential.PasswordHash is not null && request.CurrentPassword is not null &&
-                WebPasswordHasher.Verify(request.CurrentPassword, credential.PasswordHash) != WebPasswordVerification.Failed;
-            if (!hasRecentCode && !currentPasswordValid)
-                return new() { Status = WebCredentialUpdateStatus.Invalid };
+            if (!hasRecentCode)
+            {
+                var attempt = await managementDbContext.WebCredentialLoginAttempts.AsNoTracking()
+                    .SingleOrDefaultAsync(item => item.LoginId == credential.LoginId);
+                if (attempt?.LockedUntilUtc > now) return new() { Status = WebCredentialUpdateStatus.Throttled };
+                var currentPasswordValid = credential.PasswordHash is not null && request.CurrentPassword is { Length: <= 256 } &&
+                    WebPasswordHasher.Verify(request.CurrentPassword, credential.PasswordHash) != WebPasswordVerification.Failed;
+                if (!currentPasswordValid)
+                {
+                    await RecordFailedPasswordAttemptAsync(credential.LoginId!, now);
+                    return new() { Status = WebCredentialUpdateStatus.Invalid };
+                }
+            }
             if (isChange && !IsPasswordAllowed(request.NewPassword, credential.LoginId))
                 return new() { Status = WebCredentialUpdateStatus.Invalid };
             if (isDisable && (request.NewPassword is not null || request.CurrentPassword is null && !hasRecentCode))
@@ -319,7 +334,13 @@ public class WebAuthRepository(
                 return new()
                 {
                     Status = WebCredentialUpdateStatus.Succeeded,
-                    Response = new WebCredentialResponse { LoginId = nextLoginId, Enabled = !isDisable, SessionVersion = nextVersion },
+                    Response = new WebCredentialResponse
+                    {
+                        LoginId = nextLoginId, Enabled = !isDisable, SessionVersion = nextVersion,
+                        // 世代だけを更新し、本人確認の期限は延長しない。
+                        CodeAuthenticatedAt = codeAt,
+                        CodeAuthenticationProof = codeAt.HasValue ? codeProof.Issue(userUuid, nextVersion, codeAt.Value) : null,
+                    },
                 };
             }
             catch (DbException) when (credential.LoginId is null)
@@ -515,6 +536,9 @@ public class WebAuthRepository(
         await managementDbContext.WebCredentialLoginAttempts
             .Where(item => item.LoginId == loginId)
             .ExecuteDeleteAsync();
+        foreach (var entry in managementDbContext.ChangeTracker.Entries<WebCredentialLoginAttemptEntity>()
+                     .Where(entry => entry.Entity.LoginId == loginId).ToList())
+            entry.State = EntityState.Detached;
     }
 
     private static string NormalizeLoginId(string? loginId) => loginId?.Trim().ToUpperInvariant() ?? string.Empty;

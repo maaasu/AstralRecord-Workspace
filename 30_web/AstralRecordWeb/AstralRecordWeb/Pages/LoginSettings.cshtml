@@ -1,0 +1,45 @@
+@page
+@model LoginSettingsModel
+@{ ViewData["Title"] = "ログイン設定"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><h1>ログイン設定</h1><a asp-page="/MyPage" class="btn ar-btn-outline">マイページに戻る</a></header>
+    @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+    @if (Model.Credentials is { } settings)
+    {
+        <section class="ar-panel">
+            <h2>ID・パスワードでのログイン</h2>
+            <p>現在：<strong>@(settings.Enabled ? "有効" : "無効")</strong>。この機能は任意です。Minecraftのログインコードは引き続き利用できます。</p>
+            @if (settings.Enabled)
+            {
+                <label for="login-id" class="form-label">あなたのログインID</label>
+                <div class="input-group mb-3">
+                    <input id="login-id" class="form-control" readonly value="@settings.LoginId" />
+                    <button id="copy-login-id" type="button" class="btn ar-btn-outline">コピー</button>
+                </div>
+                <p id="copy-status" role="status"></p>
+                <p>IDはあなた専用で、Minecraft名を変更しても変わりません。他のプレイヤーには表示されません。</p>
+            }
+            <p>有効化と、パスワードを忘れた場合の再設定にはMinecraftで本人確認をしてください。</p>
+            <a asp-page="/Reauthenticate" asp-route-returnUrl="@Url.Page("/LoginSettings")" class="btn ar-btn-outline mb-3">Minecraftで本人確認する</a>
+            @if (Model.HasRecentCode) { <p class="text-success">Minecraftで本人確認済みです（確認から5分間有効）。</p> }
+            <form method="post">
+                @if (settings.Enabled && !Model.HasRecentCode)
+                {
+                    <div class="mb-3"><label asp-for="CurrentPassword" class="form-label">現在のパスワード</label><input asp-for="CurrentPassword" type="password" class="form-control" autocomplete="current-password" maxlength="256" /></div>
+                }
+                <div class="mb-3"><label asp-for="NewPassword" class="form-label">新しいパスワード</label><input asp-for="NewPassword" type="password" class="form-control" autocomplete="new-password" maxlength="256" aria-describedby="password-guide" /></div>
+                <p id="password-guide">15〜128文字。よく使われるパスワードや単純な繰り返しは使えません。長いフレーズやパスワードマネージャーをご利用ください。定期的な変更は不要です。</p>
+                <div class="mb-3"><label asp-for="ConfirmPassword" class="form-label">新しいパスワード（確認）</label><input asp-for="ConfirmPassword" type="password" class="form-control" autocomplete="new-password" maxlength="256" /></div>
+                <p>保存・無効化すると、他の端末のログインは解除されます。</p>
+                <button type="submit" name="action" value="@(settings.Enabled ? "change" : "enable")" class="btn ar-btn-primary">@(settings.Enabled ? "パスワードを変更する" : "設定して有効にする")</button>
+                @if (settings.Enabled)
+                {
+                    <button type="submit" name="action" value="disable" class="btn ar-btn-outline">ID・パスワードでのログインを無効にする</button>
+                    <p class="mt-3">無効化すると保存済みパスワードを削除します。IDは保持され、再有効化にはMinecraftでの本人確認と新しいパスワードが必要です。</p>
+                }
+            </form>
+        </section>
+    }
+</div></section>
+@section Scripts { <script src="~/js/login-settings.js" asp-append-version="true"></script> }

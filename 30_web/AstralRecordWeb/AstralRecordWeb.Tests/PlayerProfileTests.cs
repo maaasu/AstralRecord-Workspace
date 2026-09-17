@@ -319,7 +319,8 @@ public sealed class PlayerProfileTests
             var uri = request.RequestUri!;
             Calls.Add(uri.PathAndQuery);
             Methods.Add(request.Method);
-            if (uri.AbsolutePath.EndsWith("challenges/consume")) return Json(new { userUuid = UserId, mcid = "CookiePlayer", permission = 99, accountIds = Array.Empty<Guid>() });
+            if (uri.AbsolutePath.EndsWith("challenges/consume")) return Json(new { codeAuthenticatedAt = DateTimeOffset.UtcNow, codeAuthenticationProof = "fixture-proof", sessionVersion = UserId, userUuid = UserId, mcid = "CookiePlayer", permission = 99, accountIds = Array.Empty<Guid>() });
+            if (uri.AbsolutePath.EndsWith("credentials")) return Json(new { sessionVersion = UserId, enabled = false });
             if (uri.AbsolutePath.EndsWith("authorization")) return Json(new { webAdmin = Admin });
             if (uri.AbsolutePath.StartsWith("/api/network-management/bans/", StringComparison.Ordinal))
                 return Json(new { userUuid = UserId, mcid = "LivePlayer", revision = 1, isBanned = false, isActive = false, isIndefinite = false, serverTimeUtc = "2026-09-16T00:00:00Z" });

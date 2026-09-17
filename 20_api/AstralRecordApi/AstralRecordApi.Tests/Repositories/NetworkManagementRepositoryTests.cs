@@ -156,7 +156,8 @@ public sealed class NetworkManagementRepositoryTests
     {
         await using var fixture = await Fixture.Create();
         var authorization = new WebAuthRepository(fixture.Game, fixture.Management,
-            Microsoft.Extensions.Options.Options.Create(new AstralRecordApi.Options.WebAuthOptions()));
+            Microsoft.Extensions.Options.Options.Create(new AstralRecordApi.Options.WebAuthOptions()),
+            new AstralRecordApi.Authentication.WebCodeProofProtector(new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider()));
         var controller = new AstralRecordApi.Controllers.NetworkManagementController(fixture.Repository, authorization);
         Assert.Equal(403, Assert.IsType<Microsoft.AspNetCore.Mvc.StatusCodeResult>(await controller.GetSettings(fixture.UserId)).StatusCode);
         fixture.Management.Players.Add(new ManagementPlayerEntity

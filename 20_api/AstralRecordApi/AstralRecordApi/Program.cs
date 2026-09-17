@@ -4,6 +4,7 @@ using AstralRecordApi.Options;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ builder.Logging.AddSimpleConsole(options =>
 });
 
 // Add services to the container.
+builder.Services.AddDataProtection().SetApplicationName("AstralRecordApi.WebAuthentication");
+builder.Services.AddSingleton<WebCodeProofProtector>();
 
 builder.Services.Configure<FileDatabaseOptions>(
     builder.Configuration.GetSection(FileDatabaseOptions.SectionName));

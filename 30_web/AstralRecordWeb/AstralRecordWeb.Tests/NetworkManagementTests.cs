@@ -306,7 +306,8 @@ public sealed class NetworkManagementTests
             LastApiKey = request.Headers.TryGetValues("X-Api-Key", out var keys) ? keys.Single() : null;
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri.Query);
             if (query.TryGetValue("actor_user_uuid", out var actor) && Guid.TryParse(actor, out var parsed)) LastActor = parsed;
-            if (path.EndsWith("/challenges/consume")) return Json(new { userUuid = ActorId, mcid = "AdminPlayer", permission = 0, accountIds = Array.Empty<Guid>() });
+            if (path.EndsWith("/challenges/consume")) return Json(new { codeAuthenticatedAt = DateTimeOffset.UtcNow, codeAuthenticationProof = "fixture-proof", sessionVersion = ActorId, userUuid = ActorId, mcid = "AdminPlayer", permission = 0, accountIds = Array.Empty<Guid>() });
+            if (path.EndsWith("/credentials")) return Json(new { sessionVersion = ActorId, enabled = false });
             if (path.EndsWith("/authorization")) return Json(new { webAdmin = Admin });
             if (path == "/api/network-management/settings")
             {

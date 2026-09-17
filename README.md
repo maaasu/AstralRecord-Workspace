@@ -78,6 +78,13 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - 管理・公開用の Web UI を管理する。
 - API を利用して管理画面や公開画面を構成する。
 
+### Webログイン
+
+- 初回はMinecraftの `/web login` で発行したコードを使用する。マイページの `/LoginSettings` から、任意の固定ログインID・パスワードを有効化できる。
+- ID・パスワード方式: `POST /api/web-auth/password/login`。設定取得・更新: `GET/POST /api/web-auth/users/{userUuid}/credentials`。認証情報はManagementDBに長期保持する。
+- 設定変更は現在のパスワードまたは直近コード認証で本人確認し、他端末のセッションを失効させる。有効化・忘れた場合の復旧と管理画面は直近5分以内のMinecraftコード認証を使う。
+- 既存環境ではManagementDBの `20260917_web_credentials.sql` を適用してからAPI、Webの順で切り替える（通常のdb-migrate対象外）。既存Cookieは再ログインが必要。認証情報・試行制限・DB更新はAPI設計feature 24、画面仕様はWeb設計feature 01を参照。
+
 ### 討伐モブ図鑑
 
 - ログイン後、マイページまたはメニューの「討伐モブ図鑑」から `/bestiary` を開く。

@@ -67,6 +67,8 @@
 | DELETE `/api/login-bonus/accounts/{accountId}/claims/{claimDate}` | 報酬付与失敗時のログインボーナス受取登録取消 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
 | POST `/api/web-auth/challenges` | Web ログインチャレンジ発行 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | POST `/api/web-auth/challenges/consume` | Web ログインチャレンジ消費 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
+| POST `/api/web-auth/password/login` | 任意のID・パスワードによるWebログイン | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
+| GET / POST `/api/web-auth/users/{userUuid}/credentials` | 本人のログイン設定取得・更新、セッション失効世代取得 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/web-auth/users/by-mcid/{mcid}` | コンソール指定用の登録済みプレイヤーMCID解決 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/web-auth/users/{userUuid}/authorization` | Web管理権限照会 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace AstralRecordWeb.Authorization;
 
 /// <summary>ManagementDB の Web 管理フラグで管理画面の利用可否を判定します。</summary>
-public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClient)
+public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClient, TimeProvider clock)
     : AuthorizationHandler<WebAdminRequirement>
 {
     protected override async Task HandleRequirementAsync(
@@ -16,8 +16,11 @@ public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClie
         if (!Guid.TryParse(userUuidText, out var userUuid))
             return;
 
-        if (await webAuthApiClient.IsWebAdminAsync(userUuid, CancellationToken.None))
+        if (!await webAuthApiClient.IsWebAdminAsync(userUuid, CancellationToken.None)) return;
+        if (WebSession.RecentCodeTime(context.User, clock).HasValue)
             context.Succeed(requirement);
+        else if (context.Resource is HttpContext httpContext)
+            httpContext.Items[WebSession.NeedsCodeItem] = true;
     }
 }
 

@@ -24,6 +24,8 @@ public class WebLoginChallengeConsumeRequest
 
 public class WebLoginChallengeConsumeResponse
 {
+    public string? CodeAuthenticationProof { get; set; }
+    public DateTimeOffset? CodeAuthenticatedAt { get; set; }
     public Guid UserUuid { get; set; }
     public string Mcid { get; set; } = string.Empty;
     public int Permission { get; set; }
@@ -41,6 +43,8 @@ public class WebPasswordLoginRequest
 
 public class WebCredentialResponse
 {
+    public string? CodeAuthenticationProof { get; set; }
+    public DateTimeOffset? CodeAuthenticatedAt { get; set; }
     public string? LoginId { get; set; }
     public bool Enabled { get; set; }
     public Guid SessionVersion { get; set; }
@@ -52,7 +56,7 @@ public class WebCredentialUpdateRequest
     public string Action { get; set; } = string.Empty;
     public string? CurrentPassword { get; set; }
     public string? NewPassword { get; set; }
-    public DateTimeOffset? CodeAuthenticatedAt { get; set; }
+    public string? CodeAuthenticationProof { get; set; }
 }
 
 public enum WebPasswordLoginStatus
