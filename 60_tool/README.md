@@ -19,6 +19,7 @@
 | 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して最新 `init.sql` から3 DBを再作成 |
 | 12 | `12-build-network-plugins.bat` | Lobby / Velocity Proxy / Geyser Extensionをビルドし、ローカル出力フォルダへJARを生成 |
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
+| 14 | `14-management-db-migrate.bat` | ManagementDB の明示登録済み migration を非破壊で適用・検査 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -63,6 +64,11 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 │  ├─ DbMigrateTool.csproj
 │  ├─ Program.cs
 │  └─ db-migrate.config.json
+├─ management-db-migrate/
+│  ├─ ManagementDbMigrateTool.csproj
+│  ├─ Program.cs
+│  ├─ management-db-migrate.config.json
+│  └─ README.md
 ├─ db-reset-except-release-notes/
 │  ├─ DbResetExceptReleaseNotesTool.csproj
 │  ├─ Program.cs
@@ -101,7 +107,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 `01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
 
-`01-deploy-debug.bat` は API を有効にしている場合、API配置前に `db-migrate` を実行し、宣言済み migration の適用と対象スキーマの検査に失敗したら配置を中止します。`02-deploy-debug-plugin-only.bat` では API と DB migration を実行しません。個別に migration だけを実行する場合は `13-db-migrate.bat` を使用します。migration は `60_tool/db-migrate/db-migrate.config.json` の manifest に明示されたものだけを対象にし、DB再構築や既存データの削除は行いません。
+`01-deploy-debug.bat` と `10-release-management-deploy.bat` は API を有効にしている場合、API/Webを停止・配置する前にゲーム用 `db-migrate` と ManagementDB 専用migrationを順に実行します。どちらかの適用・スキーマ検査に失敗した場合、IIS停止、`app_offline.htm`、バイナリコピーを行わずに配置を中止します。`02-deploy-debug-plugin-only.bat` では API とDB migrationを実行しません。個別にゲーム用migrationだけを実行する場合は `13-db-migrate.bat`、ManagementDBだけを実行する場合は `14-management-db-migrate.bat` を使用します。両runnerはmanifestに明示されたmigrationだけを対象にし、DB再構築や既存データの削除は行いません。
 
 `10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。現在の本番API接続先は `https://device_server:444` です。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
 

@@ -324,6 +324,23 @@ function Invoke-DatabaseMigrations {
     }
 }
 
+function Invoke-ManagementDatabaseMigrations {
+    param($MigrationConfig)
+
+    if ($null -eq $MigrationConfig -or -not $MigrationConfig.enabled) {
+        throw "ManagementDB migration must be enabled when API deployment is enabled."
+    }
+
+    Assert-PathExists -Label "ManagementDB migration project" -Path $MigrationConfig.projectPath
+    Assert-PathExists -Label "ManagementDB migration config" -Path $MigrationConfig.configPath
+
+    Write-Step "Applying and validating ManagementDB migrations"
+    & dotnet run --project $MigrationConfig.projectPath -- --config $MigrationConfig.configPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "ManagementDB migration failed. API and WEB deployment were not started."
+    }
+}
+
 function Build-Plugin {
     param(
         $Component,
@@ -579,6 +596,7 @@ try {
 
     if ($config.api.enabled) {
         Invoke-DatabaseMigrations -MigrationConfig $config.databaseMigrations
+        Invoke-ManagementDatabaseMigrations -MigrationConfig $config.managementDatabaseMigrations
     }
 
     if ($null -ne $script:iisResetCommand -and ($config.api.enabled -or $config.web.enabled)) {

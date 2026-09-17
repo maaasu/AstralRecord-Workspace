@@ -1,0 +1,44 @@
+{
+  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\server\\AstralRecordApi\\appsettings.json",
+  "connectionStrings": {
+    "management": ""
+  },
+  "migrationsRootPath": "../../00_docs/40_Database設計書/table-definitions/ManagementDB/migrations",
+  "migrations": [
+    {
+      "id": "20260917_web_credentials",
+      "fileName": "20260917_web_credentials.sql",
+      "commandTimeoutSeconds": 120,
+      "tables": [
+        {
+          "name": "web_credential",
+          "primaryKey": "PK_web_credential",
+          "columns": [
+            { "name": "player_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "login_id", "sqlType": "nvarchar", "maxLengthBytes": 128, "isNullable": true },
+            { "name": "password_hash", "sqlType": "nvarchar", "maxLengthBytes": 1024, "isNullable": true },
+            { "name": "enabled", "sqlType": "bit", "maxLengthBytes": 1, "isNullable": false },
+            { "name": "session_version", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "created_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "updated_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_web_credential_enabled_hash", "CK_web_credential_updated" ],
+          "filteredUniqueIndexes": [ "UX_web_credential_login_id" ]
+        },
+        {
+          "name": "web_credential_login_attempt",
+          "primaryKey": "PK_web_credential_login_attempt",
+          "columns": [
+            { "name": "login_id", "sqlType": "nvarchar", "maxLengthBytes": 128, "isNullable": false },
+            { "name": "failed_attempts", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false },
+            { "name": "window_started_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "locked_until_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": true },
+            { "name": "revision", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_web_credential_login_attempt_count", "CK_web_credential_login_attempt_revision" ],
+          "filteredUniqueIndexes": []
+        }
+      ]
+    }
+  ]
+}

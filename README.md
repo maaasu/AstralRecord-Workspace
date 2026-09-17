@@ -83,7 +83,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - 初回はMinecraftの `/web login` で発行したコードを使用する。マイページの `/LoginSettings` から、任意の固定ログインID・パスワードを有効化できる。
 - ID・パスワード方式: `POST /api/web-auth/password/login`。設定取得・更新: `GET/POST /api/web-auth/users/{userUuid}/credentials`。認証情報はManagementDBに長期保持する。
 - 設定変更は現在のパスワードまたは直近コード認証で本人確認し、他端末のセッションを失効させる。有効化・忘れた場合の復旧と管理画面は直近5分以内のMinecraftコード認証を使う。
-- 既存環境ではManagementDBの `20260917_web_credentials.sql` を適用してからAPI、Webの順で切り替える（通常のdb-migrate対象外）。既存Cookieは再ログインが必要。認証情報・試行制限・DB更新はAPI設計feature 24、画面仕様はWeb設計feature 01を参照。
+- `01-deploy-debug.bat` と `10-release-management-deploy.bat` は、API/Web配置前にManagementDBの明示登録済みmigration（現在は `20260917_web_credentials.sql`）を自動適用・検査する。単独の手動復旧時は `14-management-db-migrate.bat` を使う。既存Cookieは再ログインが必要。認証情報・試行制限・DB更新はAPI設計feature 24、画面仕様はWeb設計feature 01を参照。
 
 ### 討伐モブ図鑑
 
