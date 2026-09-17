@@ -30,7 +30,10 @@ public class MarketPriceService(
             ? Median(sample.Prices)
             : null;
 
-        var confidence = ResolveConfidence(sample.Prices.Count);
+        // 個体条件が異なる item 単位の履歴は参考価格に留め、件数だけで出品制限を有効にしない。
+        var confidence = request.InstanceId.HasValue && sample.Scope == "ITEM_ONLY"
+            ? "LOW"
+            : ResolveConfidence(sample.Prices.Count);
         var allowed = ResolveAllowedRange(sellPrice, suggestedUnitPrice, sample.Prices, confidence);
         var judgement = ResolveJudgement(request.UnitPrice, sellPrice, allowed.Min, allowed.Max, confidence);
 

@@ -230,6 +230,122 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal("BLOCK_AT_OR_BELOW_SELL_VALUE", quote.Judgement);
     }
 
+    [Theory]
+    [InlineData(4, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
+    [InlineData(13, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
+    [InlineData(20, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
+    [InlineData(4, true, "LOW", "LOW_CONFIDENCE_ALLOW")]
+    [InlineData(5, true, "MEDIUM", "BLOCK_OUT_OF_MARKET_RANGE")]
+    [InlineData(20, true, "HIGH", "BLOCK_OUT_OF_MARKET_RANGE")]
+    public async Task MarketPriceQuote_EquipmentRequiresComparableHistoryForPriceGuard(
+        int sampleCount, bool sameSignature, string confidence, string judgement)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var service = new MarketPriceService(harness.DbContext, new StaticItemRepository(CreateEquipmentMarketItem()));
+        var request = new MarketPriceQuoteRequest
+        {
+            ItemCategory = "equipment", ItemId = "market_equipment",
+            InstanceType = "EQUIPMENT", InstanceId = harness.EquipmentInstanceId,
+            Quantity = 1, UnitPrice = 500_000,
+        };
+        var initial = await service.CreateQuoteAsync(request);
+        Assert.NotNull(initial);
+        await AddPriceHistoryAsync(harness, "equipment", "market_equipment", sampleCount,
+            sameSignature ? initial.ValuationSignature! : "equipment|market_equipment|EQUIPMENT|0|0|0|");
+
+        var quote = await service.CreateQuoteAsync(request);
+
+        Assert.NotNull(quote);
+        Assert.Equal(confidence, quote.Confidence);
+        Assert.Equal(judgement, quote.Judgement);
+        Assert.Equal(sameSignature && sampleCount >= 5 ? "EXACT_SIGNATURE" : "ITEM_ONLY", quote.ReferenceScope);
+        Assert.Equal(sampleCount, quote.SampleCount);
+        Assert.Equal(50_000L, quote.ReferenceUnitPrice);
+        request.UnitPrice = 2_600;
+        Assert.Equal("BLOCK_AT_OR_BELOW_SELL_VALUE", (await service.CreateQuoteAsync(request))!.Judgement);
+    }
+
+    [Fact]
+    public async Task MarketPriceQuote_StackItemHistoryStillEnforcesPriceGuard()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        await AddPriceHistoryAsync(harness, "material", "market_material", 13, "legacy-signature");
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 2_600)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1, UnitPrice = 500_000,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal("ITEM_ONLY", quote.ReferenceScope);
+        Assert.Equal("MEDIUM", quote.Confidence);
+        Assert.Equal("BLOCK_OUT_OF_MARKET_RANGE", quote.Judgement);
+    }
+
+    [Fact]
+    public async Task CreateListing_EnhancedEquipmentWithOnlyDifferentHistory_PreservesRollsAndEscrowsOnce()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var equipment = await harness.DbContext.EquipmentInstances.SingleAsync();
+        equipment.EnhanceLevel = 15;
+        await AddPriceHistoryAsync(harness, "equipment", "market_equipment", 13,
+            "equipment|market_equipment|EQUIPMENT|0|0|0|");
+        var service = new MarketPriceService(harness.DbContext, new StaticItemRepository(CreateEquipmentMarketItem()));
+        var repository = new MarketRepository(harness.DbContext, service, new FixedLimitService(10));
+        var request = harness.CreateRequest();
+        request.UnitPrice = 500_000;
+
+        var result = await repository.CreateListingAsync(request);
+        var replay = await repository.CreateListingAsync(request);
+
+        Assert.True(result.Succeeded, result.ErrorCode);
+        Assert.True(replay.Succeeded, replay.ErrorCode);
+        Assert.Equal(result.Value!.ListingId, replay.Value!.ListingId);
+        Assert.Equal("LOW", result.Value.PriceConfidence);
+        Assert.Equal(15, result.Value.EquipmentInstance!.EnhanceLevel);
+        var roll = Assert.Single(result.Value.EquipmentInstance.StatRolls);
+        Assert.Equal("18", roll.Min);
+        Assert.Equal("24", roll.Max);
+        var entry = await harness.DbContext.InventoryEntries.SingleAsync(e => e.InventoryEntryId == harness.EquipmentEntryId);
+        Assert.True(entry.IsDeleted);
+        Assert.Equal(0, entry.Quantity);
+        Assert.Single(await harness.DbContext.MarketListings.ToListAsync());
+        Assert.Single(await harness.DbContext.MarketListingCreateReceipts.ToListAsync());
+    }
+
+    private static ItemResponse CreateEquipmentMarketItem() => new()
+    {
+        SchemaVersion = 1, Id = "market_equipment", Category = "equipment", SaleValue = 2_600,
+        Name = "Market Equipment", Icon = "IRON_CHESTPLATE", Rarity = "COMMON",
+        Equipment = new ItemEquipmentResponse
+        {
+            Slot = "CHEST",
+            Stats = [new ItemEquipmentStatResponse
+            {
+                Status = "physical_attack", Type = "FLAT",
+                Value = new ItemEquipmentStatValueResponse { Min = "15~20", Max = "21~25" },
+            }],
+        },
+    };
+
+    private static async Task AddPriceHistoryAsync(
+        MarketHarness harness, string category, string itemId, int count, string signature)
+    {
+        var now = DateTime.UtcNow;
+        harness.DbContext.MarketTransactions.AddRange(Enumerable.Range(0, count).Select(_ => new MarketTransactionEntity
+        {
+            TransactionId = Guid.NewGuid(), ListingId = Guid.NewGuid(),
+            SellerAccountId = harness.AccountId, BuyerAccountId = Guid.NewGuid(),
+            ItemCategory = category, ItemId = itemId, Quantity = 1, CurrencyId = "gold",
+            UnitPrice = 50_000, TotalPrice = 50_000, SellerProceeds = 50_000,
+            ValuationSignature = signature, IdempotencyKey = Guid.NewGuid().ToString(),
+            CompletedAt = now, CreatedAt = now, CreatedBy = harness.AccountId,
+        }));
+        await harness.DbContext.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task ListingResponsesIncludeSellerAccountName()
     {
