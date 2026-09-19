@@ -281,10 +281,13 @@ public class WorldService {
      */
     @Nullable
     public synchronized org.bukkit.World resolveLoadedWorld(@NotNull WorldMasterData data) {
+        List<File> expectedWorldFolders = resolveWorldFolderCandidates(
+                normalizeWorldPath(data.baseWorldPath())
+        );
         org.bukkit.World cached = resolvedBukkitWorldsById.get(data.id());
         if (cached != null) {
             org.bukkit.World stillLoaded = Bukkit.getWorld(cached.getUID());
-            if (stillLoaded != null) {
+            if (stillLoaded != null && matchesWorldDefinition(stillLoaded, data, expectedWorldFolders)) {
                 cacheResolvedWorld(data, stillLoaded);
                 return stillLoaded;
             }
@@ -292,27 +295,23 @@ public class WorldService {
             worldIdByBukkitWorldId.remove(cached.getUID());
         }
 
-        for (String candidate : baseWorldNameCandidates(data)) {
-            org.bukkit.World world = Bukkit.getWorld(candidate);
-            if (world != null) {
+        for (org.bukkit.World world : bukkitWorldsSupplier.get()) {
+            if (matchesWorldDefinition(world, data, expectedWorldFolders)) {
                 cacheResolvedWorld(data, world);
                 return world;
             }
         }
 
-        for (File baseWorldFolder : resolveWorldFolderCandidates(normalizeWorldPath(data.baseWorldPath()))) {
-            for (org.bukkit.World world : bukkitWorldsSupplier.get()) {
-                if (sameNormalizedPath(world.getWorldFolder(), baseWorldFolder)) {
-                    cacheResolvedWorld(data, world);
-                    return world;
-                }
+        // Bukkit の名前解決は、実フォルダ一致を確認できる場合だけ互換経路として使う。
+        // 論理 ID やフォルダ名と同名の自動生成ワールドを管理ワールドへ誤結合しない。
+        for (String candidate : baseWorldNameCandidates(data)) {
+            org.bukkit.World world = Bukkit.getWorld(candidate);
+            if (world != null && matchesWorldDefinition(world, data, expectedWorldFolders)) {
+                cacheResolvedWorld(data, world);
+                return world;
             }
         }
-        org.bukkit.World world = Bukkit.getWorld(data.id());
-        if (world != null) {
-            cacheResolvedWorld(data, world);
-        }
-        return world;
+        return null;
     }
 
     /**
@@ -869,6 +868,24 @@ public class WorldService {
         if (candidate != null && !candidate.isBlank()) {
             candidates.add(candidate);
         }
+    }
+
+    private boolean matchesWorldDefinition(
+            @NotNull org.bukkit.World world,
+            @NotNull WorldMasterData data,
+            @NotNull List<File> expectedWorldFolders
+    ) {
+        if (!expectedWorldFolders.isEmpty()
+                && expectedWorldFolders.stream()
+                .anyMatch(candidate -> sameNormalizedPath(world.getWorldFolder(), candidate))) {
+            return true;
+        }
+
+        // 旧定義の単純なワールド名は Bukkit の world container 直下を意味する。
+        // ディレクトリを含む設定では、同名だけの互換解決を許可しない。
+        String normalizedPath = normalizeWorldPath(data.baseWorldPath());
+        return !normalizedPath.contains("/")
+                && baseWorldNameCandidates(data).contains(world.getName());
     }
 
     @NotNull

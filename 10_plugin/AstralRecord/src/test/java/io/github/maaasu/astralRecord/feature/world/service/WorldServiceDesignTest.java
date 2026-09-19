@@ -199,14 +199,45 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## Bukkit world 解決
+     * 検証契約: 論理IDまたはフォルダ末尾と同名でも、baseWorldPathと異なる実フォルダのBukkit worldは管理対象へ解決しない。
+     */
+    @Test
+    void doesNotResolveSameNamedWorldWhenFolderDoesNotMatchBaseWorldPath() {
+        WorldRepository repository = mock(WorldRepository.class);
+        World generatedWorld = server().addSimpleWorld("starlit_nox");
+        WorldService service = new WorldService(
+                repository,
+                () -> new File("target/test-world-container"),
+                () -> List.of(generatedWorld)
+        );
+        WorldMasterData base = world(
+                "starlit_nox",
+                "Base",
+                WorldType.BASE,
+                "plugins/AstralRecord/worlds/base/starlit_nox",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+
+        assertNull(service.resolveLoadedWorld(base));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
      * 章・見出し: # 17_3-サービス > ## 定義 snapshot 読み込み・反映
      * 検証契約: autoLoad=falseの既存worldは定義索引へ結び付けるがRPG gameruleを変更しない。
      */
     @Test
     void loadAllDoesNotApplyGameRulesToAutoLoadDisabledWorld() {
         WorldRepository repository = mock(WorldRepository.class);
-        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
         World loadedWorld = server().addSimpleWorld("manual_field");
+        File worldContainer = loadedWorld.getWorldFolder().getParentFile();
+        WorldService service = new WorldService(
+                repository,
+                () -> worldContainer,
+                () -> List.of(loadedWorld)
+        );
         WorldMasterData manual = world(
             "manual_field",
             "Manual Field",
@@ -519,6 +550,7 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         World loadedWorld = mock(World.class);
         Location bukkitSpawn = new Location(loadedWorld, 21.5D, 82.0D, -7.5D, 135.0F, 12.0F);
         when(loadedWorld.getUID()).thenReturn(java.util.UUID.randomUUID());
+        when(loadedWorld.getWorldFolder()).thenReturn(new File("target/test-world-container/temp_spawn"));
         when(loadedWorld.getSpawnLocation()).thenReturn(bukkitSpawn);
         WorldMasterData temp = world(
                 "[temp]temp_spawn",

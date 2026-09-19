@@ -569,4 +569,84 @@ class WorldJoinSpawnEventHandlerTest {
         verify(worldService).teleportToSpawnAsync(oldPlayer, worldData);
         verify(worldService, never()).resolveLoadedWorld(worldData);
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
+     * 検証契約: 初回転送が同期例外で開始できなくても、参加後検証から1回だけ再転送する。
+     */
+    @Test
+    void synchronousJoinSpawnFailureStillSchedulesRetry() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        WorldService worldService = mock(WorldService.class);
+        WorldMasterData worldData = new WorldMasterData(
+            1,
+            "starlit_nox",
+            "Base",
+            WorldType.BASE,
+            "plugins/AstralRecord/worlds/base/starlit_nox",
+            "plugins/AstralRecord/_world_instances/starlit_nox",
+            true,
+            false,
+            0,
+            false,
+            false,
+            false,
+            false,
+            WorldSpawnLocation.defaultLocation(),
+            "",
+            null,
+            null,
+            null
+        );
+        Player player = mock(Player.class);
+        PlayerJoinEvent event = mock(PlayerJoinEvent.class);
+        World initialWorld = mock(World.class);
+        UUID playerUuid = UUID.randomUUID();
+        List<Runnable> joinTasks = new ArrayList<>();
+        List<Runnable> verificationTasks = new ArrayList<>();
+        List<Long> verificationDelays = new ArrayList<>();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(event.getPlayer()).thenReturn(player);
+        when(player.getName()).thenReturn("synchronous-failure-player");
+        when(player.getUniqueId()).thenReturn(playerUuid);
+        when(player.isOnline()).thenReturn(true);
+        when(player.getWorld()).thenReturn(initialWorld);
+        when(server.getPlayer(playerUuid)).thenReturn(player);
+        when(worldService.getById("starlit_nox")).thenReturn(worldData);
+        when(worldService.resolveLoadedWorld(worldData)).thenReturn(null);
+        when(worldService.teleportToSpawnAsync(player, worldData))
+            .thenThrow(new IllegalStateException("synchronous failure"))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        doAnswer(invocation -> {
+            joinTasks.add(invocation.getArgument(1, Runnable.class));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            verificationTasks.add(invocation.getArgument(1, Runnable.class));
+            verificationDelays.add(invocation.getArgument(2, Long.class));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskLater(eq(plugin), any(Runnable.class), anyLong());
+
+        WorldJoinSpawnEventHandler handler = new WorldJoinSpawnEventHandler(
+            plugin,
+            "starlit_nox",
+            worldService
+        );
+
+        try (MockedStatic<Logger> ignoredLogger = mockStatic(Logger.class)) {
+            handler.onPlayerJoin(event);
+            joinTasks.getFirst().run();
+
+            assertEquals(List.of(40L), verificationDelays);
+            verificationTasks.getFirst().run();
+
+            verify(worldService, times(2)).teleportToSpawnAsync(player, worldData);
+            assertEquals(List.of(40L, 10L), verificationDelays);
+        }
+    }
 }
