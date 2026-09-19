@@ -1,10 +1,10 @@
-# Filebase 並列作業の流れ
+# ファイルベース 並列作業の流れ
 
 `40_filebase` を実際に並列編集するときだけ読む。
 
-1. YAML一ファイル単位ではなく、area / combat / economyなど独立検証できるpackage単位で分ける。
-2. Prepare前に、package名、owned paths、予約ID/ID prefix、shared-file owner、依存、finalize順を決める。
-3. packageごとにtask branchと専用worktreeを作る。同じworkspaceの作業ツリー、Git index、HEADを共有しない。
-4. packageごとにworker検証、品質ゲート、scoped commitまで完了し、finalize前はworktreeを保持する。
-5. finalizeは依存順に一件ずつ行い、最新local `develop`へrebase後に全体ID重複と変更参照を再検証する。
-6. worktreeを作らない並列作業は、読み取り専用のYAML案・ID/reference manifestに限る。反映とcommitは単一の統合taskが直列で行う。
+1. YAML 一ファイル単位ではなく、領域、戦闘、経済など独立して検証できるパッケージ単位で分ける。
+2. 準備前に、パッケージ名、所有パス、予約 ID／ID 接頭辞、共有ファイルの所有者、依存関係、完了処理の順序を決める。
+3. パッケージごとに作業ブランチと専用作業ツリーを作る。同じワークスペースの作業ツリー、Git インデックス、HEAD を共有しない。
+4. パッケージごとに担当の検証、品質ゲート、対象を絞ったコミットまで完了し、完了処理前は作業ツリーを保持する。
+5. 完了処理は依存順に一件ずつ行い、最新のローカル `develop` へリベース後に全体 ID の重複と変更参照を再検証する。
+6. 作業ツリーを作らない並列作業は、読み取り専用の YAML 案・ID／参照マニフェストに限る。反映とコミットは単一の統合作業が直列で行う。

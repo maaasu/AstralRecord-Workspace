@@ -1,15 +1,15 @@
 # レビュー記録の形式
 
-この file は `$astralrecord-code-review` と `$astralrecord-docs-review` が作成し、対応する fix skill が更新するレビュー記録の唯一の正本である。
+このファイルは `$astralrecord-code-review` と `$astralrecord-docs-review` が作成し、対応する修正スキルが更新するレビュー記録の唯一の正本である。
 
-## 保存場所と Git contract
+## 保存場所と Git の取り決め
 
 1. 記録を作成する前に `git rev-parse --show-toplevel` で `<task-root>` を解決する。
-2. メインの `develop` checkout にレビュー記録を書き込まない。選択した root が `develop` 上の `E:\AstralRecord-Workspace` なら、先に専用の `codex/review-*` worktree を Prepare する。
+2. メインの `develop` チェックアウトにレビュー記録を書き込まない。選択したルートが `develop` 上の `E:\AstralRecord-Workspace` なら、先に専用の `codex/review-*` 作業ツリーを準備する。
 3. 1件以上の指摘を引き渡す必要がある場合、記録は `<task-root>\00_docs\99_資料\レビュー結果` にだけ保存する。指摘がないレビューでは記録を作成しない。
-4. 実装 workflow では、実装 task worktree を作成した場合、その中に記録を保持する。
-5. 新しく準備した review worktree で standalone review を行う場合、記録があれば `$astralrecord-git-worktree-develop` の Finalize に検証済み記録の stage と commit を任せ、merge 前に完了させる。既存 task worktree では、その記録だけを明示 path で commit し、finalize の所有権は変更しない。
-6. 記録の所有者は1人の正規 writer とする。読み取り専用 reviewer は候補指摘を返してよいが、同じ Markdown file を並列編集してはならない。
+4. 実装の作業手順で実装用の作業ツリーを作成した場合は、その中に記録を保持する。
+5. 新しく準備したレビュー用作業ツリーで単独レビューを行う場合、記録があれば `$astralrecord-git-worktree-develop` の完了処理に検証済み記録のステージングとコミットを任せ、マージ前に完了させる。既存の作業ツリーでは、その記録だけを明示パスでコミットし、完了処理の所有権は変更しない。
+6. 記録の所有者は1人の正規の編集担当とする。読み取り専用のレビュアーは候補指摘を返してよいが、同じ Markdown ファイルを並列編集してはならない。
 
 ## ファイル名
 
@@ -21,22 +21,22 @@
 ```
 
 - `<skill-name>` は `code-review` または `docs-review` のいずれかとする。
-- prefix の後と skill name の前には ASCII space を1つ使う。
-- filename では全角 `：` と `／` を使う。
-- fix skill が file name を変更するときも timestamp と skill name を保持する。
-- 少なくとも1件の指摘が `修正状態: 未修正` の間は count prefix を使う。
+- 接頭辞の後とスキル名の前には ASCII スペースを1つ使う。
+- ファイル名では全角 `：` と `／` を使う。
+- 修正スキルがファイル名を変更するときも、時刻とスキル名を保持する。
+- 少なくとも1件の指摘が `修正状態: 未修正` の間は件数の接頭辞を使う。
 - すべての指摘が `修正済み` で `未確認/質問` が `なし。` の場合だけ `[完了]` を使う。
-- 完了 prefix と count prefix を組み合わせない。
+- 完了の接頭辞と件数の接頭辞を組み合わせない。
 
 ## 正規本文
 
-次の見出し、metadata label、field name、順序を正確に使う。summary 節を追加せず、見出し名を変えず、空の節を省略せず、`/` を別の文字へ変更しない。
+次の見出し、メタデータラベル、項目名、順序を正確に使う。要約節を追加せず、見出し名を変えず、空の節を省略せず、`/` を別の文字へ変更しない。
 
 ```markdown
 # AstralRecord レビュー記録
 - フォーマット版: `1`
 - 使用スキル: `code-review` | `docs-review`
-- 対象パス: `<stable workspace-relative review target path>`
+- 対象パス: `<ワークスペース相対の安定したレビュー対象パス>`
 - 作成日時: `yyyy-MM-ddTHH:mm:ss+09:00`
 - 完了状態: `未完了` | `完了`
 - 指摘修正数 / 指摘数: `<fixed-count> / <finding-count>`
@@ -44,7 +44,7 @@
 ## 指摘一覧
 
 ### AR-CODE-001 [高] <短い指摘タイトル>
-- 種別: `<allowed type from the selected review skill>`
+- 種別: `<選択したレビュースキルで許可された種別>`
 - 対象: `<path>:<line>` | `<path>`
 - 関連箇所: `<path>:<line>` | `なし`
 - 根拠: <根拠>
@@ -62,26 +62,26 @@
 - 関連指摘: `AR-CODE-001` | `なし`
 - 確認事項: <確認事項>
 - 判断が必要な理由: <理由>
-- 確認結果: `未確認` | <confirmed answer or adopted decision>
+- 確認結果: `未確認` | <確認済みの回答または採用した判断>
 - 確認状態: `未確認` | `確認済み`
 
 ## 修正スキル入力サマリ
 - 自動修正候補: `AR-CODE-001`, `AR-CODE-003` | `なし`
 - 要確認: `AR-CODE-002`, `Q-CODE-001` | `なし`
 - 推奨修正順: `AR-CODE-001` -> `AR-CODE-003` | `なし`
-- 対象範囲: `<review target path>`
+- 対象範囲: `<レビュー対象パス>`
 
 ## 確認した範囲
-- 対象領域: <project or docs area>
+- 対象領域: <プロジェクトまたは設計書領域>
 - 読んだルール/設計書: <paths> | `なし`
-- 読んだソース: <paths or globs> | `なし（設計書レビューのため）`
-- 実行した検査: <commands/results> | `未実行（理由: ...）`
+- 読んだソース: <パスまたは検索パターン> | `なし（設計書レビューのため）`
+- 実行した検査: <コマンドと結果> | `未実行（理由: ...）`
 
 ## 対象外
-- <intentionally excluded scope and reason> | `なし`
+- <意図的に対象外とした範囲と理由> | `なし`
 ```
 
-docs review では `AR-CODE-*` / `Q-CODE-*` を `AR-DOC-*` / `Q-DOC-*` に置き換える。
+設計書レビューでは `AR-CODE-*` / `Q-CODE-*` を `AR-DOC-*` / `Q-DOC-*` に置き換える。
 記録に指摘がある場合、指摘または質問がない節には、見出しの次の行に `指摘なし。` または `なし。` だけを記載する。その他の節はすべて残す。指摘のないレビューでは記録を作成せず、未解決の質問を別途報告する。
 
 ## 状態ルール
@@ -90,12 +90,12 @@ docs review では `AR-CODE-*` / `Q-CODE-*` を `AR-DOC-*` / `Q-DOC-*` に置き
 - 新しい指摘は必ず `修正状態: 未修正` で開始する。
 - `指摘修正数` は状態が `修正済み` の指摘数と一致させる。
 - 新しい質問は `確認結果: 未確認` と `確認状態: 未確認` で開始する。確認済みの質問も安定した ID とともに記録へ残し、`確認結果` に提示・採用した回答、`確認状態` に `確認済み` を記載する。
-- 未解決の質問がある場合、すべての指摘を修正済みにしても `完了状態: 未完了` と count filename prefix を維持する。
-- fix skill は既存の指摘本文を削除、要約、並べ替え、番号変更してはならない。
-- summary には未解決の項目だけを含める。修正済み ID は3つの summary list すべてから削除する。
-- worktree cleanup で記録が古くならないよう、repository の対象は安定した workspace 相対 path で保存する。repository 外の対象だけ絶対 path を使う。
-- 修正と re-review の間も `対象パス`、`使用スキル`、`作成日時` を保持する。
-- re-review では既存の state を更新し、新しい指摘だけを次の ID で追加する。
+- 未解決の質問がある場合、すべての指摘を修正済みにしても `完了状態: 未完了` と件数のファイル名接頭辞を維持する。
+- 修正スキルは既存の指摘本文を削除、要約、並べ替え、番号変更してはならない。
+- 要約には未解決の項目だけを含める。修正済み ID は3つの要約一覧すべてから削除する。
+- 作業ツリーの整理で記録が古くならないよう、リポジトリ内の対象は安定したワークスペース相対パスで保存する。リポジトリ外の対象だけ絶対パスを使う。
+- 修正と再レビューの間も `対象パス`、`使用スキル`、`作成日時` を保持する。
+- 再レビューでは既存の状態を更新し、新しい指摘だけを次の ID で追加する。
 - 重要度の値は `[高]`、`[中]`、`[低]`、`[情報]` のいずれかとする。
 
 ## 必須ツール
@@ -106,7 +106,7 @@ docs review では `AR-CODE-*` / `Q-CODE-*` を `AR-DOC-*` / `Q-DOC-*` に置き
 python <task-root>\.codex\skills\_shared\scripts\validate_review_record.py <record-path>
 ```
 
-記録の metadata や filename を手動で書き換えず、updater で修正済み ID を更新する。
+記録のメタデータやファイル名を手動で書き換えず、更新ツールで修正済み ID を更新する。
 
 ```powershell
 python <task-root>\.codex\skills\_shared\scripts\update_review_record.py <record-path> --fixed AR-CODE-001 AR-CODE-003

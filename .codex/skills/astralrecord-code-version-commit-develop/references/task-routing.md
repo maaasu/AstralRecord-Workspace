@@ -1,34 +1,34 @@
-# Task の振り分け
+# 作業の振り分け
 
-この参照は、統合入口を使う変更で対象workerや品質ゲートを決めるときだけ読む。差分のない質問・診断や、専用skillへ直接進む例外経路では読まない。分類後は不要なプロジェクト資料を読まない。
+この参照は、統合入口を使う変更で担当スキルや品質ゲートを決めるときだけ読む。差分のない質問・診断や、専用スキルへ直接進む例外経路では読まない。分類後は不要なプロジェクト資料を読まない。
 
 ## 最初の分岐
 
 | 条件 | 動作 |
 |:--|:--|
-| 回答、説明、診断、読み取り専用レビューで差分なし | 統合skillを起動しない。worktree/build/commit不要 |
-| typo、コメント、表示文言、非動作metadataの一ファイル | Light gate。対象資料とworker、独立reviewerだけ |
-| feature、behavior、executable script、schema/data contract、workspace skill logic、複数ファイル | Standard gate |
-| `40_filebase` の並列作成 | package単位のworktree。`parallel-filebase.md`も読む |
-| 既存レビュー記録の修正 | Review-fix entry。記録のあるworktreeを再利用できるか先に確認 |
+| 回答、説明、診断、読み取り専用レビューで差分なし | 統合スキルを起動しない。作業ツリー/ビルド/コミット不要 |
+| 誤字、コメント、表示文言、非動作メタデータの一ファイル | 軽量品質ゲート。対象資料と担当、独立レビュー担当だけ |
+| 機能、挙動、実行可能なスクリプト、スキーマ/データ契約、ワークスペーススキルの処理、複数ファイル | 標準品質ゲート |
+| `40_filebase` の並列作成 | パッケージ単位の作業ツリー。`parallel-filebase.md`も読む |
+| 既存レビュー記録の修正 | レビュー修正の入口。記録のある作業ツリーを再利用できるか先に確認 |
 
 ## 参照の読み込み予算
 
-- 分類後に読む: 対象workerの `SKILL.md`。ルート `AGENTS.md` は既読なら読み直さない。
-- Git操作時だけ読む: worktree管理参照。Prepare/Finalizeを担当するGit skillの案内に従う。
-- 対象だけ読む: Plugin/API/Web/Architect/Filebase/Toolsの `Read Next`。複数対象でない限り他projectのguideは読まない。
-- Standard gateだけ読む: `quality-gate.md`、対象projectのbuild/test policy、review固有reference。
-- Filebase並列だけ読む: `parallel-filebase.md`、該当カテゴリのschema/checklist。
-- Pluginのtest traceabilityは、test source、Plugin POM、許可design input、test-policy pathのいずれかが差分に含まれるときだけ読む・実行する。
-- Plugin versionは、rebase後にPlugin source/resource/build fileが残るときだけ読む・実行する。
+- 分類後に読む: 担当スキルの `SKILL.md`。ルート `AGENTS.md` は既読なら読み直さない。
+- Git操作時だけ読む: 作業ツリー管理参照。準備/完了処理を担当するGit スキルの案内に従う。
+- 対象だけ読む: プラグイン/API/Web/Architect/Filebase/Toolsの `Read Next`。複数対象でない限り他プロジェクトのガイドは読まない。
+- 標準品質ゲートだけ読む: `quality-gate.md`、対象プロジェクトのビルド/テスト方針、レビュー固有参照。
+- ファイルベース並列だけ読む: `parallel-filebase.md`、該当カテゴリのスキーマ/チェックリスト。
+- プラグインのテストのトレーサビリティは、テストソース、プラグイン POM、許可設計入力、テスト方針のパスのいずれかが差分に含まれるときだけ読む・実行する。
+- プラグイン版番号は、リベース後にプラグインソース/リソース/ビルドファイルが残るときだけ読む・実行する。
 
 ## 対象別の省略
 
 | 対象 | 読まないもの |
 |:--|:--|
-| API / Web | Minecraft Plugin guide、Plugin version、Plugin test traceability |
-| docsのみ | 実装worker、Java/C# build、Plugin version |
-| Filebaseのみ | Java/API/Web build、Plugin version。ただしschema・ID・変更参照は維持 |
-| `.codex/skills`のみ | Plugin guide、Plugin version、Minecraft test。`$skill-creator`とskill reviewは維持 |
-| Architect候補編集 | AstralRecord Plugin/API guide。`$astralarchitect-builder`とArchitect規則だけ |
-| typo/comment/metadata | full build、Round 2、specialist。対象projectの既存必須checkは除外しない |
+| API / Web | Minecraft プラグインガイド、プラグイン版番号、プラグインテストのトレーサビリティ |
+| 設計書のみ | 実装担当、Java/C# ビルド、プラグイン版番号 |
+| ファイルベースのみ | Java/API/Web ビルド、プラグイン版番号。ただしスキーマ・ID・変更参照は維持 |
+| `.codex/skills`のみ | プラグインガイド、プラグイン版番号、Minecraft テスト。`$skill-creator`とスキルレビューは維持 |
+| Architect候補編集 | AstralRecord プラグイン/API ガイド。`$astralarchitect-builder`とArchitect規則だけ |
+| 誤字/コメント/メタデータ | 全体ビルド、第2回レビュー、専門担当。対象プロジェクトの既存必須確認は除外しない |

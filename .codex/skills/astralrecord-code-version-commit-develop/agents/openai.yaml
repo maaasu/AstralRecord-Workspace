@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord 実装から develop 反映"
   short_description: "実装・独立レビュー・自動修正を経て develop へ反映する"
-  default_prompt: "$astralrecord-code-version-commit-develop を使って、E:\\AstralRecord-Workspace\\<target-path> の変更を task worktree 上で実装し、独立レビュー、自動修正、再レビューの品質ゲート後に develop へ merge して結果を報告してください。"
+  default_prompt: "$astralrecord-code-version-commit-develop を使って、E:\\AstralRecord-Workspace\\<target-path> の変更を専用の作業ツリーで実装し、独立レビュー、自動修正、再レビューの品質ゲート後に develop へマージして結果を報告してください。"

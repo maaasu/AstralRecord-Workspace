@@ -1,11 +1,11 @@
 ---
 name: astralrecord-unused-properties-prune
-description: '`10_plugin/AstralRecord` の `player.properties` と `logger.properties` について、対応する `PlayerMsgId.java` / `LogId.java` と Java・Kotlin ソース全体を照合し、未使用定義の一覧化と削除を行う。properties のみにある定義、enum のみにある定義、enum と properties の両方にあるが enum ファイル以外から参照されていない定義を調べたいときに使う。'
+description: '`10_plugin/AstralRecord` の `player.properties` と `logger.properties` について、対応する `PlayerMsgId.java` / `LogId.java` と Java・Kotlin ソース全体を照合し、未使用定義の一覧化と削除を行う。properties のみにある定義、列挙型のみにある定義、列挙型と properties の両方にあるものの列挙型ファイル以外から参照されていない定義を調べたいときに使う。'
 ---
 
 # AstralRecord 未使用プロパティ整理
 
-`player.properties` と `logger.properties` の掃除専用 skill として扱う。
+`player.properties` と `logger.properties` の掃除専用スキルとして扱う。
 一覧検索は必ず同梱スクリプトで行い、その結果を根拠に AI が削除する。
 
 ## 対象
@@ -32,7 +32,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-unused-properties-pr
 4. 削除するときは対応をそろえる。
    - `properties のみに存在`: `*.properties` から削除する。
    - `enum のみに存在`: `PlayerMsgId.java` または `LogId.java` から削除する。
-   - `enum だけが接続点になっている定義`: `*.properties` と enum の両方から同じキーを削除する。
+   - `enum だけが接続点になっている定義`: `*.properties` と列挙型の両方から同じキーを削除する。
 5. 削除後に同じスクリプトを再実行し、対象キーがレポートから消えたことを確認する。
 
 ## 注意
@@ -40,7 +40,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-unused-properties-pr
 - 一覧取得のために広い grep を手で繰り返さない。まずスクリプトを使う。
 - 参照判定は `src/main/java` / `src/main/kotlin` を対象にしたキー文字列照合で行う。結果に違和感がある場合だけ周辺コードを追加確認する。
 - 既存の番号帯コメントや並びは不用意に崩さない。
-- この skill は削除対象の洗い出しと削除に集中し、無関係なメッセージ整理やリネームはしない。
+- このスキルは削除対象の洗い出しと削除に集中し、無関係なメッセージ整理やリネームはしない。
 
 ## 出力
 

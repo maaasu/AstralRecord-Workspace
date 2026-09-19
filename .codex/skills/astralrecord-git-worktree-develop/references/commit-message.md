@@ -1,25 +1,25 @@
-# Commit message の reference
+# コミットメッセージの参照
 
-正本には `E:\AstralRecord-Workspace\COMMIT_RULES.md` を使う。この file は選択の簡易指針だけを示す。
+正本には `E:\AstralRecord-Workspace\COMMIT_RULES.md` を使う。このファイルは選択の簡易指針だけを示す。
 
-## Type の選択
+## 種別の選択
 
-- `feat`: feature またはユーザーから見える capability
-- `fix`: bug fix または誤った挙動
-- `docs`: documentation だけ
-- `refactor`: 挙動を保持した code cleanup
-- `test`: test だけ
-- `build`: build、dependency、CI、packaging
-- `chore`: workspace tooling、skill、maintenance、metadata
+- `feat`: 機能、またはユーザーから見える能力
+- `fix`: 不具合修正、または誤った挙動
+- `docs`: 文書だけ
+- `refactor`: 挙動を保持したコード整理
+- `test`: テストだけ
+- `build`: ビルド、依存関係、CI、パッケージング
+- `chore`: ワークスペースツール整備、スキル、保守、メタデータ
 
-## Summary のルール
+## 要約のルール
 
-- 簡潔な subject line を1つ使う。
-- 日本語で依頼された task では日本語を優先する。
-- process ではなく実際の diff を記載する。
-- 除外した local file に言及しない。
+- 簡潔な件名行を1つ使う。
+- 日本語で依頼された作業では日本語を優先する。
+- 処理ではなく実際の差分を記載する。
+- 除外したローカルファイルに言及しない。
 
-Examples:
+例:
 
 - `chore: worktree 運用 skill を追加`
 - `docs: skill README の git 運用説明を更新`

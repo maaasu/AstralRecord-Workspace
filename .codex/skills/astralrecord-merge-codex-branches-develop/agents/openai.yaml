@@ -1,4 +1,4 @@
 interface:
-  display_name: "AstralRecord codex branch 一括反映"
-  short_description: "local codex/* branch を監査・反映し管理ファイルを更新する"
-  default_prompt: "$astralrecord-merge-codex-branches-develop を使って、E:\\AstralRecord-Workspace の local codex/* branch を監査し、結果を報告してください。"
+  display_name: "AstralRecord codex ブランチ一括反映"
+  short_description: "ローカルの codex/* ブランチを監査・反映し、管理ファイルを更新する"
+  default_prompt: "$astralrecord-merge-codex-branches-develop を使って、E:\\AstralRecord-Workspace のローカル codex/* ブランチを監査し、結果を報告してください。"
