@@ -34,7 +34,7 @@ Use these rules when adding APIs, changing endpoint contracts, or updating API d
 2. Do not put persistence logic in Controllers.
 3. Do not reuse Entities as DTOs.
 4. Treat API contract changes as changes that may affect Plugin, Web, Database, and Filebase.
-5. Update the root `README.md` AstralRecord API endpoint list when API endpoints are added or changed.
+5. Keep the root `README.md` AstralRecord API section as a reference index. Update its links only when the documentation entry points change; document endpoint details in the relevant API design docs rather than adding an endpoint list to the root README.
 6. Update detailed API design docs under `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` when they exist for the changed endpoint.
 7. Update Controller XML doc comments (`/// <summary>`) when adding or changing endpoints.
 8. Review sample requests, response examples, and explanatory text when contracts change.

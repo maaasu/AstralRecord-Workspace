@@ -1,213 +1,58 @@
 # AstralRecord Workspace
 
-AstralRecord のモノレポです。各プロジェクトの作業ルールは、ルート `AGENTS.md`、この README、workspace-local skill の `references/`、および本リポジトリ直下の各 `*_GUIDE.md` を優先してください。
+AstralRecord のモノレポです。この README はプロジェクトと資料の入口です。作業の進め方・Skillの選択は [AGENTS.md](AGENTS.md)、実装ルールや仕様は対象の資料を参照してください。
 
 ## プロジェクト一覧
 
-| Project | Role | Main Stack | Rules |
-|:--|:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) / `$astralrecord-code` |
-| `10_plugin/AstralRecordLobby/` | Lobby Plugin | Java, Paper, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
-| `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | Java, Velocity, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
-| `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド登録 | Java, Geyser API, Maven | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) / `$astralrecord-code` |
-| `10_plugin/AstralArchitect/` | AI-assisted Minecraft building Plugin | Java, Paper, FAWE, Maven, Python | [AstralArchitect README](10_plugin/AstralArchitect/README.md) / `$astralarchitect-builder` |
-| `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | [API_GUIDE.md](API_GUIDE.md) / `$astralrecord-code` |
-| `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | この README の「AstralRecord Web」 |
-| `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
-| `40_filebase/` | File-based master data | YAML, Markdown | この README の「AstralRecord Filebase」 |
-| `50_resourcepack/` | Minecraft Resource Pack（現在は開発停止・将来用に保持） | JSON, PNG, PowerShell | この README の「AstralRecord Resource Pack」 |
-| `60_tool/` | Workspace build, deploy, and development tools | BAT, PowerShell, C#, TypeScript | [60_tool README](60_tool/README.md) |
+| プロジェクト | 役割 | 参照先 |
+|:--|:--|:--|
+| `10_plugin/AstralRecord/` | Minecraft MMO RPG Plugin | [Pluginガイド](PLUGIN_GUIDE.md) |
+| `10_plugin/AstralRecordLobby/` | Lobby Plugin | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) |
+| `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) |
+| `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド登録 | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) |
+| `10_plugin/AstralArchitect/` | AI建築候補の作成・適用 | [AstralArchitect README](10_plugin/AstralArchitect/README.md) |
+| `20_api/AstralRecordApi/` | Plugin・Web向けREST API | [APIガイド](API_GUIDE.md) |
+| `30_web/AstralRecordWeb/` | 管理・公開用Web UI | [Webの資料](#astralrecord-web) |
+| `00_docs/40_Database設計書/` | SQL Serverのスキーマ・テーブル定義 | [Database設計書](00_docs/40_Database設計書/README.md) |
+| `40_filebase/` | YAML・JSONのマスタデータ | [Filebaseの資料](#astralrecord-filebase) |
+| `50_resourcepack/` | Resource Pack（開発停止中） | [Resource Packの資料](#astralrecord-resource-pack) |
+| `60_tool/` | ビルド・配置・開発ツール | [ツール一覧・運用手順](60_tool/README.md) |
 
 ## コミットルール
 
-コミット対象の選別、除外対象、コミットメッセージ形式は [COMMIT_RULES.md](COMMIT_RULES.md) を参照してください。
+対象ファイルの選別・除外対象・メッセージ形式は [COMMIT_RULES.md](COMMIT_RULES.md) を参照してください。
 
 ## AstralRecord API
 
-`20_api/AstralRecordApi/` は Plugin と Web が利用する REST API です。SQL Server とアプリケーション間の契約を提供します。詳細仕様、エンドポイント一覧、実装ルールは [API_GUIDE.md](API_GUIDE.md) を参照してください。
-
-主な master data endpoint 例:
-- `GET /api/gathering`
-- `GET /api/gathering/{gatheringId}`
-- `GET /api/gathering-spawner`
-- `GET /api/gathering-spawner/{spawnerId}`
-- `GET /api/user/mcids?prefix={prefix}`（参加履歴のある Minecraft ID 補完候補）
-- `GET /api/user/by-ip?globalIp={globalIp}&excludeUuid={uuid}`（同一グローバルIPの別登録済みユーザー有無照合）
-- `POST /api/equipment/durability`
-- `POST /api/player-state/snapshots`（初回保存前に強化・装着した新規装備を含む、Pluginで確定した所持品・装備・プレイヤー進行の原子保存。ACKは保存済み版情報のみ）
-- `POST /api/equipment/orb-operations`（確定結果と現在のインベントリ正本を同梱し、Pluginの操作後GETを削減）
-- `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils`（シジル・SIGIL_ATTACHオーブ消費、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
-- `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
-- `POST /api/trade/commit`（[Trade API 設計](00_docs/20_API設計書/feature/22-trade/22_README.md)）
-- `POST /api/market/listings/{listingId}/claim-proceeds`（[Market API 設計](00_docs/20_API設計書/feature/23-market/23_README.md)）
-- `GET /api/market/listing-create-results/{operationId}`（出品作成の冪等結果照会、[Market API 設計](00_docs/20_API設計書/feature/23-market/23_README.md)）
-- `GET /api/mail/unread-count?account_id={account_id}`（ログイン通知用の未読件数のみを取得）
-- `POST /api/inventory/accounts/{accountId}/repair-equipment-entry-item-ids`（[Inventory API 設計](00_docs/20_API設計書/feature/13-inventory/13_README.md)）
-- `POST /api/account-skilltree/{accountId}/repair-invalid-state`（[SkillTree API 設計](00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md)）
-- `POST /api/release-notes/publish`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
-- `POST /api/release-notes/{slug}/retry-notification`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
-- `GET /api/network/servers`（Lobbyのサーバー選択GUI向け人数・権限別定員）
-- `/api/network/settings`・`settings/bootstrap`（ManagementDB設定と旧YAML初回移行）、`channel-access/{uuid}`（チャンネル別ロール）
-- `/api/network/bans`（ProxyのBAN参照と専用キーで保護されたRPG `/ban`）、`/api/network-management`（WebAdmin用設定・MCID検索・BAN）
-- Webの `/Admin/Network` でサーバー設定、プレイヤー詳細の管理者操作でユーザー単位の無期限/期限付きBANを管理。初回配置は [ネットワーク運用手順](00_docs/10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) に従いManagementDBスキーマをAPIより先に更新する。
-- `GET /api/geyser/heads`（Extension起動時のマスターヘッドテクスチャ・登録プレイヤーUUID一覧）
-- `POST /api/web-auth/challenges` / `POST /api/web-auth/challenges/consume`（Webログインコードの発行・一回消費）
-- `GET /api/web-auth/users/by-mcid/{mcid}`（コンソール用の登録済みプレイヤーMCID解決）
-- `GET /api/web-auth/users/{userUuid}/authorization`（Web管理権限照会）
-- `GET /api/web-profiles` / `GET /api/web-profiles/{userUuid}?account_id=` / `GET /api/web-profiles/me`（Webプレイヤーのアカウント一覧・選択アカウント詳細・本人）
-- `PUT /api/web-profiles/me/visibility`（本人のWebプロフィール公開設定）
-- `GET /api/web-bestiary` / `GET /api/web-bestiary/{mobId}`（ログイン中の本人だけが閲覧できる討伐済みMob図鑑）
+- [APIガイド](API_GUIDE.md): 実装ルール。
+- [API設計書](00_docs/20_API設計書/README.md): 機能別の契約・エンドポイント仕様。
+- [ネットワーク運用手順](00_docs/10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md): ManagementDBを含む初回配置。
 
 ## AstralRecord Plugin
 
-`10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、詳細ルールは [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) と `.codex/skills/astralrecord-code/references/plugin-code.md` を参照してください。
+- [Pluginガイド](PLUGIN_GUIDE.md): 実装・メッセージ・共通基盤のルール。
+- [プレイヤー保存契約](00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md): ローカル状態、非同期保存、ACK、外部取引の境界。
 
-設計方針として、Plugin はライトビハインド方式を採用しています。そのためクラッシュ発生時の未反映データや書き込み途中の整合性までは考慮対象としておらず、クラッシュ耐性に関する考慮は不要です。
+設計方針としてライトビハインド方式を採用し、クラッシュ時の未反映データや書き込み途中の整合性への対応は対象外とします。
 
-プレイヤー状態の決定元はPluginとし、通常の装備・スキル・進行変更と素材・通貨消費はローカルで一体確定します。APIには完成状態を非同期保存し、ACKで現在値を上書きしません。ユーザー設定、外部取引、旧outbox移行を含む境界は [プレイヤー保存契約](00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md) を正本とします。
-
-- AstralRecord Plugin では legacy color code の共通定義として `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil` を使い、`org.bukkit.ChatColor` は新規利用しません。
-- プレイヤー向けメッセージ送信は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` を正本とし、`Player#sendMessage(...)` や `AstPlayer#sendMessage(...)` を新規利用しません。
-- 全体チャット・パーティーチャット・ダイレクトメッセージは Plugin 管理メッセージとして扱い、将来の Web / Discord 連携を見据えて `PlayerMessageService` 経由で拡張します。
 ## AstralRecord Web
 
-`30_web/AstralRecordWeb/AstralRecordWeb/` は管理・公開用の Web UI を提供します。
+`30_web/AstralRecordWeb/AstralRecordWeb/` は ASP.NET Core Razor Pages によるWeb UIです。ページは `Pages/` に配置し、Page Modelパターンを使用します。
 
-### 役割
-
-- 管理・公開用の Web UI を管理する。
-- API を利用して管理画面や公開画面を構成する。
-
-### Webログイン
-
-- 初回はMinecraftの `/web login` で発行したコードを使用する。マイページの `/LoginSettings` から、任意の固定ログインID・パスワードを有効化できる。
-- ID・パスワード方式: `POST /api/web-auth/password/login`。設定取得・更新: `GET/POST /api/web-auth/users/{userUuid}/credentials`。認証情報はManagementDBに長期保持する。
-- 設定変更は現在のパスワードまたは直近コード認証で本人確認し、他端末のセッションを失効させる。有効化・忘れた場合の復旧と管理画面は直近5分以内のMinecraftコード認証を使う。
-- `01-deploy-debug.bat` と `10-release-management-deploy.bat` は、API/Web配置前にManagementDBの明示登録済みmigration（現在は `20260917_web_credentials.sql`）を自動適用・検査する。単独の手動復旧時は `14-management-db-migrate.bat` を使う。既存Cookieは再ログインが必要。認証情報・試行制限・DB更新はAPI設計feature 24、画面仕様はWeb設計feature 01を参照。
-
-### 討伐モブ図鑑
-
-- ログイン後、マイページまたはメニューの「討伐モブ図鑑」から `/bestiary` を開く。
-- 本人所有のアカウントを選択し、討伐済みモブを名前・分類で検索できる。詳細 `/bestiary/{mobId}` は討伐数、初回・最終討伐日時、標準レベルの能力値・基礎経験値・公開ドロップを表示する。
-- 未討伐モブや他人のアカウントはURLを直接指定しても閲覧できない。プレイヤープロフィールには総討伐数だけを表示し、他人のモブ別記録への導線は設けない。
-- 撃破時のレベルは記録されないため、現在のマスタの最小レベルプロファイルを表示する。隠しドロップはレスポンスにも含めず、追加抽選は有無だけ表示する。
-
-### ディレクトリ方針
-
-- Razor Pages は `Pages/` に置く。
-- `.cshtml` と `.cshtml.cs` はセットで管理する。
-- 画面ごとの責務をページ単位で閉じる。
-
-### 実装方針
-
-- Razor Pages の Page Model パターンを守る。
-- 既存の UI、レイアウト、ナビゲーション構造に合わせる。
-- API 依存がある画面では契約変更の影響を確認する。
-
-### ドキュメント運用
-
-- 大きな導線変更や運用変更があれば、必要に応じて README や関連資料を更新する。
-
-### 補助プロンプト
-
-- `.agents/prompts/pages.md`: Razor Pages 追加・変更時の確認観点と更新手順を扱う。
+- [ページ作成・変更手順](30_web/AstralRecordWeb/.agents/prompts/pages.md): ファイル構成、責務分割、UI・API契約・導線の確認。
+- [Web設計書](00_docs/30_Web設計書/README.md): 画面・認証・画面遷移。
+- [プロフィール・討伐モブ図鑑のAPI設計](00_docs/20_API設計書/feature/35-web-profile/35_README.md): 公開範囲、本人の討伐記録、能力値・ドロップ表示。
+- [ログイン・本人確認の運用](00_docs/30_Web設計書/feature/01-web-auth/5-例外・ログ・運用/01_5.00-例外・ログ・運用.md): 認証方式の切替、Cookie、配置時の注意。
+- [配置・DB更新手順](60_tool/README.md): API/Web配置前のmigrationと単独復旧。
 
 ## AstralRecord Filebase
 
-`40_filebase/` は YAML などの file 系マスタデータと、そのスキーマ資料を管理します。SQL Server の DB / テーブル定義は管理しません（DB 定義は `00_docs/40_Database設計書/` を対象）。
+- [Filebase作業ルール](40_filebase/AGENTS.md): 対象資料の選択と関連実装への影響確認。
+- [Filebase設計書](00_docs/50_Filebase設計書/README.md): カテゴリ別仕様・スキーマ・作成時チェックリスト。
+- [型・定数の生成手順](60_tool/README.md): 共有ステータス・タグカタログ変更後の再生成と検証。
 
-### 作業方針
-
-- file マスタを変更する場合は、Plugin と API の読み込み処理、Resource Pack の参照、関連ドキュメントへの影響を確認する。
-- `config.yml` のパス解決ルールと各 YAML スキーマ定義を優先する。
-- マスタデータの ID、カテゴリ、参照先が実装やリソースパックと矛盾しないか確認する。
-- ステータスID・日本語名・表示メタデータは`40_filebase/75.shared.status/v1.status_types.yml`を正本とし、変更後は`60_tool\generate-status-types.ps1`でKotlin/C#/TypeScript型を再生成する。
-- マスターデータのタグID・日本語名・用途は`40_filebase/76.shared.tag/v1.tags.yml`を正本とし、変更後は`60_tool\generate-tag-types.ps1`でJava/C#/TypeScript定数を再生成する。同スクリプトは全filebaseのタグ参照も検証する。
-
-### スキーマ定義ファイルの配置
-
-- 各フォルダ直下のスキーマ定義 Markdown は `docs.<name>.YAMLスキーマ定義.md` の形式で配置する（例: `bundle/docs.bundle.YAMLスキーマ定義.md`）。
-- ファイル名の先頭に `docs.` を付け、スキーマ定義であることを明示する慣習です。
-- `.` 先頭は Obsidian で非表示となるため使用しない。
+フォルダ直下のスキーマMarkdownは `docs.<name>.YAMLスキーマ定義.md` とします。Obsidianで非表示になる `.` 始まりの名前は使いません。SQL Serverの定義は [Database設計書](00_docs/40_Database設計書/README.md) で管理します。
 
 ## AstralRecord Resource Pack
 
-`50_resourcepack/` は将来の作成再開に備えて保持している Minecraft Java Edition 向けリソースパックの雛形です。現在は開発を停止しているため、通常の実装・設計・マスターデータ作業では対象外として無視してください。リソースパックの作成や修正を再開するときに、この節と `50_resourcepack/AGENTS.md` を確認してください。
-
-### 対象バージョン
-
-- Minecraft Java Edition: 1.21.11
-- Resource pack format: 75
-- サーバープラグイン側バージョン情報の参照元: `10_plugin/AstralRecord/pom.xml`
-
-Minecraft の対象バージョンは、`10_plugin/AstralRecord/pom.xml` に定義されている `io.papermc.paper:paper-api` のバージョンから判断します。`pom.xml` のバージョンが変わった場合は、`pack.mcmeta` の `pack_format` 更新が必要か確認してください。
-
-現在確認済みの値:
-
-- `paper-api`: `1.21.11-R0.1-SNAPSHOT`
-- Minecraft Java Edition: `1.21.11`
-- Resource pack `pack_format`: `75`
-
-### ディレクトリ構成
-
-```text
-50_resourcepack/
-  pack.mcmeta
-  assets/
-    astralrecord/
-      lang/
-      models/
-        item/
-      textures/
-        item/
-      sounds/
-    minecraft/
-      models/
-      textures/
-```
-
-独自アセットは原則として `astralrecord` 名前空間に配置します。`minecraft` 名前空間は、バニラアセットを意図的に上書きする場合だけ使用してください。
-
-### 必ず確認する情報
-
-アセット、モデル、メタデータを編集する前に、存在する場合は以下のファイルを確認してください。
-
-- `resourcepack.config.json`
-- `10_plugin/AstralRecord/pom.xml`
-- `10_plugin/AstralRecord/src/main/resources/plugin.yml`
-- `40_filebase/config.yml`
-
-参照先の管理には `resourcepack.config.json` を使います。基本はこのディレクトリからの相対パスを優先してください。相対パスで解決できない環境では、`resourcepack.config.json` の `absolutePathOverrides` を確認してください。
-
-### アセット作成ルール
-
-- ファイル名とディレクトリ名は小文字で統一する。
-- 独自アセットには `astralrecord` 名前空間を使う。
-- `minecraft` 名前空間は、バニラアセットを意図的に上書きする場合だけ使う。
-- テクスチャは `.png`、モデルは `.json` を基本とする。
-- モデル識別子、テクスチャ名、言語キーは、プラグインや DB 定義のアイテム識別子と対応させる。
-- ユーザーが明示的に求めた場合、または作業に必要な場合を除き、大きなバイナリアセットは追加しない。
-- 生成された zip は、リリース運用で必要な場合を除きコミットしない。
-
-### ビルド
-
-このディレクトリから実行します。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/build-resourcepack.ps1
-```
-
-生成先は `dist/AstralRecordResourcePack.zip` です。
-
-### 検証
-
-構造を変更した後は、以下を確認してください。
-
-- `pack.mcmeta` が有効な JSON であること。
-- モデルファイルが有効な JSON であること。
-- モデルから参照しているテクスチャが存在すること。
-- `scripts/build-resourcepack.ps1` で `dist/AstralRecordResourcePack.zip` を作成できること。
-
-### GitHub Copilot
-
-`.github/copilot-instructions.md` は参照用のブリッジファイルです。リソースパックの指示を変更する場合は、この README の本セクションを更新してください。
+現在は開発停止中です。作成・修正を再開するときだけ、[Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。対象バージョン・アセット構成・ビルド・検証手順はそちらで管理します。
