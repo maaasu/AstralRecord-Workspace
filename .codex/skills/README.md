@@ -6,15 +6,17 @@
 
 ## 共通ルーティング
 
+変更作業の入口と例外はルート `AGENTS.md` の実行ルールで選びます。下表のworkerは、統合入口で分類した後に読む担当skillです。
+
 | 目的 | skill |
 |:--|:--|
 | worktree作成・finalize・merge | `$astralrecord-git-worktree-develop` |
 | 実装から品質ゲート・develop反映 | `$astralrecord-code-version-commit-develop` |
-| 新規実装・仕様反映 | `$astralrecord-code` |
-| Minecraft内スキル | `$astralrecord-skill-author` |
-| 本番filebase作成 | `$astralrecord-master-data-author` |
-| 指定filebaseの高速直接作成 | `$astralrecord-master-data-create-direct` |
-| skill定義・参照・script更新 | `$skill-creator` |
+| 新規実装・仕様反映のworker | `$astralrecord-code` |
+| Minecraft内スキルのworker | `$astralrecord-skill-author` |
+| 本番filebase作成のworker | `$astralrecord-master-data-author` |
+| 指定filebaseの高速直接作成（単一ライターの例外経路） | `$astralrecord-master-data-create-direct` |
+| skill定義・参照・script更新のworker | `$skill-creator` |
 | 開始・終了コミットや指定されたお知らせ内容からリリースノートMDの下書きを作成 | `$astralrecord-release-note-author` |
 | 現在のtask差分だけcommit | `$astralrecord-commit-current-diff` |
 | コード・workspace skillレビュー | `$astralrecord-code-review` |
@@ -39,7 +41,7 @@
 
 ## 差分のあるtask
 
-- 差分が発生する場合は、並列作業の有無にかかわらず、まず統合入口でtaskの種類とgateを分類します。
+- 統合入口を使う変更では、並列作業の有無にかかわらず、そこでtaskの種類とgateを分類します。専用skillへ直接進む例外はルート `AGENTS.md` の実行ルールに従います。
 - 並列作業では、YAML単位ではなく独立して検証できるpackage単位でworktreeを分けます。
 - filebaseの直接develop commitは、明示的な単一ライター作業に限ります。
 - Pluginの版番号更新は、rebase後のfinalizeで必要な場合だけ行います。

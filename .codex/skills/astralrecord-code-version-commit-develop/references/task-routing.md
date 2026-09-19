@@ -1,6 +1,6 @@
 # Task Routing
 
-この参照は、対象workerや品質ゲートを決めるときだけ読む。分類後は不要なプロジェクト資料を読まない。
+この参照は、統合入口を使う変更で対象workerや品質ゲートを決めるときだけ読む。差分のない質問・診断や、専用skillへ直接進む例外経路では読まない。分類後は不要なプロジェクト資料を読まない。
 
 ## 最初の分岐
 
@@ -14,7 +14,8 @@
 
 ## 参照の読み込み予算
 
-- 常に読む: ルート `AGENTS.md`、worktree管理参照、対象workerの `SKILL.md`。
+- 分類後に読む: 対象workerの `SKILL.md`。ルート `AGENTS.md` は既読なら読み直さない。
+- Git操作時だけ読む: worktree管理参照。Prepare/Finalizeを担当するGit skillの案内に従う。
 - 対象だけ読む: Plugin/API/Web/Architect/Filebase/Toolsの `Read Next`。複数対象でない限り他projectのguideは読まない。
 - Standard gateだけ読む: `quality-gate.md`、対象projectのbuild/test policy、review固有reference。
 - Filebase並列だけ読む: `parallel-filebase.md`、該当カテゴリのschema/checklist。

@@ -12,10 +12,11 @@ description: AstralRecord で差分を作る実装・設計書反映・本番fil
 ## 最初の分類
 
 1. `質問・説明・診断・読み取り専用レビュー`で差分が不要なら、このskillを起動せず回答する。
-2. 差分が必要なら、先に [task-routing.md](references/task-routing.md) を読み、`対象`、`変更種別`、`Light/Standard gate`、`必要な参照`を決める。
-3. ルート `AGENTS.md` と worktree管理参照を読み、対象プロジェクトの `Read Next` と対象workerだけを読む。無関係なskillやguideを読まない。
-4. `Standard gate` または workspace skill logic の変更では [quality-gate.md](references/quality-gate.md) を読む。Light gateでは読まない。
-5. `40_filebase` の並列作業だけ [parallel-filebase.md](references/parallel-filebase.md) を読む。
+2. ルート `AGENTS.md` の単一ライターによるfilebase直接更新の例外は、分類・Prepareの前に `$astralrecord-master-data-create-direct` へ渡す。そのskillの適用条件に合わない場合は、この統合入口を使う。
+3. 差分が必要なら、先に [task-routing.md](references/task-routing.md) を読み、`対象`、`変更種別`、`Light/Standard gate`、`必要な参照`を決める。
+4. ルート `AGENTS.md` に従い、対象プロジェクトの `Read Next` と対象workerだけを読む。worktree管理参照はPrepare/FinalizeでGit skillから読む。既読資料や無関係なskill・guideを読み直さない。
+5. `Standard gate` または workspace skill logic の変更では [quality-gate.md](references/quality-gate.md) を読む。Light gateでは読まない。
+6. `40_filebase` の並列作業だけ [parallel-filebase.md](references/parallel-filebase.md) を読む。
 
 ## Workerの選択
 

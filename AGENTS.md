@@ -1,13 +1,13 @@
 # AstralRecord Monorepo Guide
 
-対象プロジェクトをパスまたは技術用語から判定し、対象の `Read Next` だけを読んでください。複数プロジェクトにまたがる場合だけ、各対象を分けて扱います。対象が判定できない場合は確認してください。
+まず依頼が質問・診断か、変更を伴う作業かを判定し、下の実行ルールで入口を選んでください。対象プロジェクトはパスまたは技術用語から判定し、対象の `Read Next` だけを読みます。複数プロジェクトにまたがる場合だけ、各対象を分けて扱います。対象が判定できない場合は確認してください。
 
 | 対象 | 判定 | Read Next |
 |:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` / `$astralrecord-code` |
-| `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` / `$astralrecord-code` |
+| `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` |
+| `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` |
 | `10_plugin/AstralArchitect/` | AI建築 / Java・Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
-| `20_api/AstralRecordApi/` | REST API / C# | `API_GUIDE.md` / `$astralrecord-code` |
+| `20_api/AstralRecordApi/` | REST API / C# | `API_GUIDE.md` |
 | `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema docs | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | YAML master data | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
@@ -19,6 +19,7 @@
 
 - 質問、説明、診断、読み取り専用レビューは、変更・commit・buildを伴わない限り worktree を作らない。
 - 差分を作る実装・設計書・filebase・skill変更は、原則 `$astralrecord-code-version-commit-develop` を入口にする。既存 task worktree の差分commitだけなら `$astralrecord-commit-current-diff` を使う。
+- 例外として、指定filebaseを明示的な単一ライター作業で直接更新する場合は `$astralrecord-master-data-create-direct` の適用条件を確認する。コード変更・複数project変更・並列編集や、branch/worktree/merge方式の指定がある場合は統合入口を使う。
 - 並列編集では task ごとに専用 branch / git worktree を使う。worktreeを省略するために同じ作業ツリーを共有してはいけない。
 - skillを使うときは `.codex/skills/README.md` のカタログで候補を絞り、対象 `SKILL.md` と必要な参照だけを読む。無関係なskill、プロジェクトガイド、参照資料を先読みしない。
 - 詳細なレビュー、build、test、Git、filebase検証の規則は各skillを正本とする。ここに重複して書かない。
@@ -48,5 +49,5 @@
 
 ## Skillの選択
 
-- 新規実装や仕様反映は対象プロジェクトのworker、`.codex/skills` の変更は `$skill-creator`、レビュー指摘の修正は対応するfix skillを使う。
-- taskの早期終了条件とLight/Standard gateの選択は `$astralrecord-code-version-commit-develop/references/task-routing.md` を読む。
+- 統合入口を使う変更では、そこで分類した後に対象workerを読む。`.codex/skills` の変更は `$skill-creator`、レビュー指摘の修正は対応するfix skillを使う。
+- `$astralrecord-code-version-commit-develop/references/task-routing.md` は統合入口を使う変更でだけ読む。差分のない質問・説明・診断・読み取り専用レビューでは読まない。
