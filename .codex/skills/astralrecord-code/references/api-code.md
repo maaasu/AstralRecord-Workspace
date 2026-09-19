@@ -1,47 +1,47 @@
-# API Code
+# API コード
 
-Use this reference for implementation under `E:\AstralRecord-Workspace\20_api\AstralRecordApi`.
+`E:\AstralRecord-Workspace\20_api\AstralRecordApi` 配下を実装するときにこの reference を使う。
 
-## Required Reads
+## 必読資料
 
-1. `E:\AstralRecord-Workspace\AGENTS.md`.
-2. `E:\AstralRecord-Workspace\README.md` AstralRecord API section.
-3. Relevant detailed docs under `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\`.
+1. `E:\AstralRecord-Workspace\AGENTS.md`。
+2. `E:\AstralRecord-Workspace\README.md` の AstralRecord API 節。
+3. `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` 配下の関連する詳細設計書。
 
-## Responsibilities
+## 責務
 
-1. Keep endpoint definitions in `Controllers/`.
-2. Keep request and response DTOs in `Models/`.
-3. Keep DB entities in `Data/Entities/`.
-4. Keep persistence access in `Repositories/`, pairing `I<Feature>Repository` with `<Feature>Repository`.
-5. Keep authentication, options, and shared utilities in their established directories.
+1. endpoint 定義は `Controllers/` に置く。
+2. request/response DTO は `Models/` に置く。
+3. DB entity は `Data/Entities/` に置く。
+4. persistence access は `Repositories/` に置き、`I<Feature>Repository` と `<Feature>Repository` を対にする。
+5. authentication、option、shared utility は既存のディレクトリに置く。
 
-## Runtime and Settings
+## Runtime と設定
 
-1. Runtime is .NET 10.
-2. Framework is ASP.NET Core Web API.
-3. Mutable data is read from SQL Server.
-4. Static data is read from file-system data definitions.
-5. Settings are managed by `AstralRecordApi/appsettings.json` and `AstralRecordApi/appsettings.Development.json`.
-6. `ConnectionStrings:SqlServer` is the SQL Server connection string.
-7. `FileDatabase:RootPath` is the static data root path.
+1. Runtime は .NET 10。
+2. Framework は ASP.NET Core Web API。
+3. 可変データは SQL Server から読む。
+4. static data は file-system data definition から読む。
+5. 設定は `AstralRecordApi/appsettings.json` と `AstralRecordApi/appsettings.Development.json` で管理する。
+6. `ConnectionStrings:SqlServer` は SQL Server connection string。
+7. `FileDatabase:RootPath` は static data の root path。
 
-## API Change Rules
+## API 変更ルール
 
-Use these rules when adding APIs, changing endpoint contracts, or updating API documentation.
+API の追加、endpoint contract の変更、API 設計書の更新では次のルールを使う。
 
-1. Keep Controller, DTO, Repository, and Entity responsibilities separate.
-2. Do not put persistence logic in Controllers.
-3. Do not reuse Entities as DTOs.
-4. Treat API contract changes as changes that may affect Plugin, Web, Database, and Filebase.
-5. Keep the root `README.md` AstralRecord API section as a reference index. Update its links only when the documentation entry points change; document endpoint details in the relevant API design docs rather than adding an endpoint list to the root README.
-6. Update detailed API design docs under `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` when they exist for the changed endpoint.
-7. Update Controller XML doc comments (`/// <summary>`) when adding or changing endpoints.
-8. Review sample requests, response examples, and explanatory text when contracts change.
-9. Follow the existing `ApiKeyAuthenticationHandler` pattern for authentication.
+1. Controller、DTO、Repository、Entity の責務を分離する。
+2. Controllers に persistence logic を置かない。
+3. Entity を DTO として再利用しない。
+4. API contract の変更は Plugin、Web、Database、Filebase に影響し得る変更として扱う。
+5. ルート `README.md` の AstralRecord API 節は参照索引として維持する。documentation entry point が変わった場合だけ link を更新し、endpoint の詳細は対応する API 設計書に記載する。ルート README に endpoint 一覧を追加しない。
+6. 変更した endpoint に対応する詳細 API 設計書が `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` 配下にある場合は更新する。
+7. endpoint を追加または変更した場合は Controller の XML doc comment（`/// <summary>`）を更新する。
+8. contract が変わった場合は sample request、response example、説明文を確認する。
+9. authentication には既存の `ApiKeyAuthenticationHandler` pattern に従う。
 
-## Verification
+## 検証
 
-1. Prefer targeted tests for the changed Controller/Service/Repository.
-2. Use `dotnet build` from `E:\AstralRecord-Workspace\20_api\AstralRecordApi` when the change affects compile-time contracts.
-3. For Database/Filebase-backed endpoints, also check the corresponding definitions under `00_docs/40_Database設計書` or `40_filebase`.
+1. 変更した Controller/Service/Repository に対する targeted test を優先する。
+2. compile-time contract に影響する変更では、`E:\AstralRecord-Workspace\20_api\AstralRecordApi` から `dotnet build` を使う。
+3. Database/Filebase を利用する endpoint では、`00_docs/40_Database設計書` または `40_filebase` 配下の対応する定義も確認する。

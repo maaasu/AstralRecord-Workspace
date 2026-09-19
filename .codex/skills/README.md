@@ -1,4 +1,4 @@
-# AstralRecord Workspace Skills Catalog
+# AstralRecord Workspace skill カタログ
 
 このファイルはskillの選択用カタログです。実行時は対象skillの `SKILL.md` だけを読み、リンクされた参照は現在のtaskに必要な場合だけ読みます。詳細な手順、チェックリスト、報告形式は各skillに重複させません。
 

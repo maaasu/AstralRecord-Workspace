@@ -1,4 +1,4 @@
-# Parallel Filebase Flow
+# Filebase 並列作業の流れ
 
 `40_filebase` を実際に並列編集するときだけ読む。
 

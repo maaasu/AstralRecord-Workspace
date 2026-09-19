@@ -1,43 +1,43 @@
-# Design-Driven Implementation
+# 設計駆動実装
 
-Use this reference when a user asks to implement from a design document, spec, docs feature folder, or path under `E:\AstralRecord-Workspace\00_docs`.
+ユーザーが設計書、spec、docs feature folder、または `E:\AstralRecord-Workspace\00_docs` 配下の path から実装するよう求めた場合にこの reference を使う。
 
-## Input Handling
+## 入力の扱い
 
-1. Normalize all given paths to absolute paths.
-2. Identify the implementation project implied by the docs path:
-   - `00_docs/10_Plugin設計書`: usually `10_plugin/AstralRecord`.
-   - API/Web docs, when added later: map to the matching project named by the docs tree or user request.
-3. Read the docs root README, target feature overview, and directly referenced docs that define behavior or contracts.
-4. Treat implementation path names in docs as intended locations, but still verify the real project layout before editing.
+1. 指定されたすべての path を絶対パスに正規化する。
+2. docs path が示す実装 project を特定する。
+   - `00_docs/10_Plugin設計書`: 通常は `10_plugin/AstralRecord`。
+   - 将来 API/Web docs が追加された場合: docs tree またはユーザー依頼が示す対応 project に割り当てる。
+3. docs root README、対象 feature 概要、挙動または contract を定義する直接参照 docs を読む。
+4. docs 内の実装 path 名は意図された場所として扱うが、編集前に実際の project layout も確認する。
 
-## Extraction Checklist
+## 抽出チェックリスト
 
-Extract only what is needed for the requested implementation:
+依頼された実装に必要なものだけを抽出する。
 
-- feature responsibility and non-goals.
-- commands, routes, screens, event handlers, scheduled tasks, or integration entry points.
-- models, DTOs, entities, repositories, filebase keys, resource IDs, enums, constants, and item/material IDs.
-- state transitions, persistence rules, idempotency, concurrency, rollback, and migration behavior.
-- validation, permission/authentication, error handling, user messages, logs, and observability.
-- tests or acceptance criteria written in the docs.
-- unresolved items and design decisions not yet made.
+- feature の責務と対象外。
+- command、route、screen、event handler、scheduled task、integration entry point。
+- model、DTO、entity、repository、filebase key、resource ID、enum、constant、item/material ID。
+- state transition、persistence rule、idempotency、concurrency、rollback、migration behavior。
+- validation、permission/authentication、error handling、user message、log、observability。
+- docs に記載された test または acceptance criteria。
+- 未決事項と、まだ行われていない設計判断。
 
-## Decision Rules
+## 判断ルール
 
-- Implement explicit design decisions; do not fill unresolved decisions with guesses.
-- If the user asks for a narrow change, implement only that slice even when the docs describe a larger feature.
-- If docs and code disagree, inspect nearby history/patterns enough to avoid breaking existing behavior. Report material mismatches.
-- If the design requires changes across Plugin/API/Web/Database/Filebase/Resourcepack, stage the reasoning by project and verify each boundary contract.
-- Do not update design docs unless the user asked for docs changes or the implementation reveals a necessary documentation mismatch.
+- 明示された設計判断を実装し、未決の判断を推測で埋めない。
+- ユーザーが狭い変更を依頼した場合、docs が大きな feature を説明していても、その範囲だけを実装する。
+- docs と code が一致しない場合は、既存挙動を壊さないために近隣の history/pattern を必要な範囲だけ確認する。重要な不一致は報告する。
+- 設計が Plugin/API/Web/Database/Filebase/Resourcepack をまたぐ変更を要求する場合は、project ごとに reasoning を分け、各境界 contract を検証する。
+- ユーザーが docs 変更を求めておらず、実装が必要な文書不一致を明らかにしていない限り、設計書を更新しない。
 
-## Verification
+## 検証
 
-Prefer project-local checks:
+project-local check を優先する。
 
-- Plugin: Maven compile/test or the narrow module command documented by the root `README.md` / `references/plugin-code.md`.
-- API: `dotnet build` / targeted tests from the API project, following `references/api-code.md`.
-- Web: `dotnet build` / page-level checks from the Web project.
-- Database/Filebase/Resourcepack: run documented validators or syntax checks when available.
+- Plugin: ルート `README.md` / `references/plugin-code.md` に記載された Maven compile/test または module を絞った command。
+- API: `references/api-code.md` に従った API project の `dotnet build` / targeted test。
+- Web: Web project の `dotnet build` / page-level check。
+- Database/Filebase/Resourcepack: 利用できる場合は文書化された validator または syntax check。
 
-If a check is unavailable, explain the blocker and include a manual consistency check summary.
+check を利用できない場合は blocker を説明し、手動で行った整合性確認の概要を含める。

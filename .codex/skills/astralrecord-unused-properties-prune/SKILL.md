@@ -1,9 +1,9 @@
 ---
 name: astralrecord-unused-properties-prune
-description: `10_plugin/AstralRecord` の `player.properties` と `logger.properties` について、対応する `PlayerMsgId.java` / `LogId.java` と Java・Kotlin ソース全体を照合し、未使用定義の一覧化と削除を行う。properties のみにある定義、enum のみにある定義、enum と properties の両方にあるが enum ファイル以外から参照されていない定義を調べたいときに使う。
+description: '`10_plugin/AstralRecord` の `player.properties` と `logger.properties` について、対応する `PlayerMsgId.java` / `LogId.java` と Java・Kotlin ソース全体を照合し、未使用定義の一覧化と削除を行う。properties のみにある定義、enum のみにある定義、enum と properties の両方にあるが enum ファイル以外から参照されていない定義を調べたいときに使う。'
 ---
 
-# AstralRecord Unused Properties Prune
+# AstralRecord 未使用プロパティ整理
 
 `player.properties` と `logger.properties` の掃除専用 skill として扱う。
 一覧検索は必ず同梱スクリプトで行い、その結果を根拠に AI が削除する。

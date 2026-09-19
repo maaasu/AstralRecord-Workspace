@@ -3,15 +3,15 @@ name: astralrecord-plugin-test
 description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、コンテンツ非依存の共通ロジックに限定した JUnit 恒久テスト、使い捨て診断テスト、一時 Purpur/Paper サーバー、実サーバー clone による integration 検証基盤を整備する。設計トレーサビリティを保った小規模テスト整理、AI デバッグ用の最小再現を行い、プラグイン本体の機能仕様変更を主目的としないときに使う。
 ---
 
-# AstralRecord Plugin Test
+# AstralRecord Plugin テスト
 
-## Core Rule
+## 基本ルール
 
 `10_plugin/AstralRecord` のテストと検証基盤だけを扱います。恒久テストは採用済み設計契約を入力とし、コンテンツ非依存の共通ロジックに限定し、各 test method から設計箇所と検証契約を追跡可能にします。個別コンテンツや一時的な診断は恒久テストへ混ぜません。主目的が機能実装や仕様変更なら `$astralrecord-code` を使い、この skill では小規模な共通ロジックテスト、一時診断、dev server、live server clone を使う再現手順に集中します。
 
 作業開始時に `git rev-parse --show-toplevel` を実行して現在の task checkout を `<task-root>` として解決し、以後の設計入力・ソース・script はすべて同じ `<task-root>` から読む。main workspace の固定パスへ読み替えない。live server の外部配置先だけは `scripts/dev-server.config.json` の設定値を正本とする。
 
-## Permanent Test Scope and Production Master Data Policy
+## 恒久テストの範囲と本番マスターデータの扱い
 
 - 恒久テストは、コンテンツ非依存で複数機能から再利用される共通ロジックであり、純粋な計算・入力正規化・共通の状態遷移・不変条件・冪等性・補償・データ保全・権限境界のいずれかを守るものに限る。決定的に検証でき、不具合時の影響が大きい、または手作業で見逃しやすいことも必須とする。
 - 個別スキル・個別Mobスキル・ボスギミック・アイテム・クエストの固有ロジック、倍率・射程・対象数・クールダウン・個別params・ID一覧・マスタ値は恒久テストにしない。
@@ -21,7 +21,7 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 - 通常のPlugin JUnit / MockBukkitテストでは、本番 `<task-root>\40_filebase` を読み込まず、参照せず、接続しない。マスタ形状が必要なら、テスト内の最小固定fixture、inline payload、またはtest doubleを使う。本番ファイルから期待値を組み立てない。
 - YAML読込機構自体のテストで `@TempDir` 等の隔離入力を使うことは許可するが、本番マスタファイルを入力にしてはならない。live server cloneを使う明示的な統合検証は、通常の恒久テストとは別の検証層として扱う。
 
-## Required Context
+## 必須コンテキスト
 
 1. `<task-root>\AGENTS.md`
 2. `<task-root>\README.md` の AstralRecord Plugin セクション
@@ -32,7 +32,7 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 
 対象が `10_plugin/AstralRecord` 以外なら、この skill は使わず対象プロジェクト向け skill に切り替えます。
 
-## Workflow
+## 手順
 
 1. 検証目的を分類する
    - 採用済み設計契約であり、上記の恒久テスト適格性をすべて満たす: 恒久テストにする
@@ -61,7 +61,7 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
    - スクリプトは `-NoStart` 付きで準備まで確認する
    - live server clone 検証は `-UseLiveServerClone` と `-RefreshLiveServerClone` の必要有無を明示する
 
-## Permanent Test Traceability
+## 恒久テストのトレーサビリティ
 
 恒久テストでは、`@Test`、`@ParameterizedTest`、`@RepeatedTest`、`@TestFactory`、`@TestTemplate` を持つ各 method の連続 annotation stack の直前へ次の Javadoc を付ける。`@DisplayName`、`@Tag`、`@Timeout` 等は Javadoc と test annotation の間に置いてよいが、別の宣言や説明文を挟まない。
 
@@ -97,7 +97,7 @@ python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability
 
 この validator は test source を変更した場合だけの検査ではない。task diff が `astralrecord-code/references/plugin-code.md` の「Plugin Test Traceability Gate」に列挙した test source、Plugin POM、許可設計入力、test-policy path のいずれかを追加・変更・rename・削除した場合は、POM・設計書・テスト方針だけの変更でも review handoff 前に必ず実行する。Plugin の shade 出力先が main workspace に固定されているため、この検査を `mvn verify` で代用しない。
 
-## Ad Hoc Test Lifecycle
+## 一時テストのライフサイクル
 
 設計契約ではない一度限りの診断は、ファイルと class を `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` として追加し、恒久テストへ残さない。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。次の順序を守る。
 
@@ -111,7 +111,7 @@ python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability
 
 一時テストを `@Disabled` にして残す、Surefire 対象外の名前へ変える、support class に移して温存する、設計入力を捏造して恒久化することは禁止する。
 
-## Heuristics
+## 判断の目安
 
 - 個別スキル、個別Mob、GUI、View、表示コピー、Lore、演出、マスタ内容のテストを恒久化しない。新規コンテンツ変更の恒久テスト追加は原則0件とする。
 - `MockBukkit` で無理に `AstralRecord` 本体をロードしない。`ProtocolLib` や外部依存に引っかかるなら、対象 class を isolated にテストする。
@@ -121,7 +121,7 @@ python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability
 - 現在の live server source root は `scripts/dev-server.config.json` を正本として扱う。
 - `velocityEnabled: true` の環境では `paper-global.yml` など proxy 設定をスクリプトで再生成しない。live clone に含まれる設定をそのまま使う。
 
-## Packet Integration Autotest
+## Packet integration 自動テスト
 
 ProtocolLib や packet-only 表示の実動作を調べるときは、feature ごとに一時 probe plugin または probe command を用意し、live clone test server に配置する。目的は、Codex が player 接続後に server-side で対象動作を再実行し、packet の送信順・短時間 destroy・metadata 更新などを `logs/latest.log` から反復確認できる状態にすること。
 
@@ -133,7 +133,7 @@ Packet probe の標準要件:
 - log marker は feature 名を含む安定した prefix にする。例: `ACTION_RING_PACKET`, `SKILLTREE_PACKET`, `MOB_NAMEPLATE_PACKET`。
 - client 側の目視確認を完全には置き換えない。packet-level の再現証跡として扱う。
 
-### Packet Test Bot
+### Packet test bot の利用
 
 player 接続が必要な packet integration 検証では、ユーザーの Minecraft クライアント接続の代わりに packet test bot を使える。bot は `minecraft-protocol` の offline auth で test server に参加し、probe plugin が online player を対象に server-side 実行できる状態を作る。
 
@@ -149,7 +149,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <task-root>\10_plugin\Astral
 
 bot は packet-level の自律検証用であり、client 側の見た目確認を完全には置き換えない。画面上の配置・視認性・操作感を確認したい場合は実クライアント確認を併用する。
 
-## Action Ring Packet Autotest Example
+## Action Ring packet autotest の例
 
 アクションリングの packet-only 表示を実サーバー寄りに再現するときは、専用 helper を使う。
 
@@ -187,7 +187,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <task-root>\10_plugin\Astral
 
 これは packet-level の再現証跡として扱う。client 側の目視確認を完全には置き換えないが、player 接続後に Codex が反復可能な server-side packet 実動作チェックを行うための入口として使う。
 
-## Example Prompts
+## 使用例
 
 ```text
 $astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の既存テストを恒久テスト適格性で分類し、共通ロジックだけに整理してください。
@@ -205,9 +205,9 @@ $astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の 
 $astralrecord-plugin-test を使って、<task-root>\10_plugin\AstralRecord の設定済み動作サーバー一式を clone して integration dev server を準備し、結果を報告してください。
 ```
 
-## Report Format
+## 報告形式
 
-Write the result in Japanese.
+結果は日本語で記載する。
 
 ```markdown
 ## 実施結果

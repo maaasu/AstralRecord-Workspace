@@ -1,26 +1,26 @@
-# Plugin Code
+# Plugin コード
 
-Use this reference for implementation under `E:\AstralRecord-Workspace\10_plugin\AstralRecord`.
+`E:\AstralRecord-Workspace\10_plugin\AstralRecord` 配下を実装するときにこの reference を使う。
 
-## Required Reads
+## 必読資料
 
-1. `E:\AstralRecord-Workspace\AGENTS.md`.
-2. `E:\AstralRecord-Workspace\README.md` AstralRecord Plugin section.
+1. `E:\AstralRecord-Workspace\AGENTS.md`。
+2. `E:\AstralRecord-Workspace\README.md` の AstralRecord Plugin 節。
 
-## Migrated `/code` Checklist
+## 移行済み `/code` チェックリスト
 
-After applying README rules, verify:
+README のルールを適用した後、次を確認する。
 
-1. The feature is contained under `feature/<feature>/` unless README defines a shared/core placement.
-2. Game logic is not placed in `infrastructure/`.
-3. `core/` contains only command/event registration entry points and other README-approved bootstrapping.
-4. Bukkit/Paper thread constraints are respected; do not call main-thread-only API from async work.
-5. Player handling uses `AstPlayer` where appropriate; avoid passing `org.bukkit.entity.Player` through domain logic unnecessarily.
-6. DB access is contained in the repository layer.
-7. Values already represented by enums/constants are not hard-coded as strings.
-8. Logs and player messages are not written inline; use the specialized rules below when touching them.
-9. Public externally-called methods include Japanese JavaDoc/KDoc covering arguments, return value, exceptions, and preconditions.
-10. Legacy color code handling must use the plugin shared definition `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil`; do not use `org.bukkit.ChatColor` in plugin code.
+1. README が shared/core placement を定義していない限り、feature は `feature/<feature>/` 配下に収める。
+2. game logic を `infrastructure/` に置かない。
+3. `core/` には command/event registration entry point と、README が許可する bootstrap だけを置く。
+4. Bukkit/Paper の thread 制約を守り、async work から main-thread-only API を呼ばない。
+5. 適切な箇所では player handling に `AstPlayer` を使い、domain logic に `org.bukkit.entity.Player` を不要に渡さない。
+6. DB access は repository layer に閉じ込める。
+7. enum/constant ですでに表現されている値を string として hard-code しない。
+8. log と player message を inline に書かない。触れる場合は下記の専門ルールを使う。
+9. public で外部から呼ばれる method には、引数、戻り値、例外、precondition を説明する日本語 JavaDoc/KDoc を付ける。
+10. legacy color code の処理には Plugin 共通定義 `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil` を使う。Plugin code で `org.bukkit.ChatColor` を使わない。
 11. GUI の共通挙動は各 GUI に重複実装せず shared 側へ寄せる。ホットバーの閉じるアイコン / インベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` と `HotbarShortcutClickSupport` を使い、GUI ごとの個別 open/click/close 分岐を増やさない。
 12. 通常の AstralRecord item tooltip では、共通 Lore のカテゴリ表示の右へ ` | <item ID>` を濃い灰色で表示する。それ以外の GUI名・lore・メッセージへ item ID・master ID・status ID などの内部識別子を出さない。マスタの表示名を使い、解決できない場合は ID を fallback にせず「未登録の素材」などの汎用表示と操作不可の案内を使う。管理者向け画面では必要に応じて内部 ID を表示できる。
 
@@ -31,80 +31,80 @@ After applying README rules, verify:
 - マスター由来の `iconTexture` はAPIカタログから取得するため、Extensionの固定定数へ複製しない。実プレイヤーのスキンやNPC全身スキンも固定GUI定数と区別する。
 - Geyserのヘッド定義は起動時登録であり、プレイ中のアイコン描画から未知のテクスチャを動的登録する設計にしない。APIとExtensionの契約・起動時の取得失敗・再起動による反映条件を確認する。
 
-## Language Selection
+## 言語の選択
 
-- Match the language of the existing file first.
-- For a new file, follow the local directory's existing style.
-- Use README rules for Java/Kotlin decisions.
+- まず既存 file の言語に合わせる。
+- 新規 file では、対象 directory の既存 style に従う。
+- Java/Kotlin の判断には README のルールを使う。
 
-## Logs
+## Log のルール
 
-Use these rules when adding or changing log messages, `LogId`, or `logger.properties`.
+log message、`LogId`、`logger.properties` を追加または変更するときは次のルールを使う。
 
-1. Do not write log text directly in code.
-2. Use the existing logger wrapper and `LogId`.
-3. Add or update `logger.properties` and the matching `LogId` together.
-4. Call logs through the existing logger API.
-5. Preserve `Throwable` when logging exceptions.
-6. Avoid `printStackTrace()`-only handling and new IDs that duplicate an existing ID's meaning.
-7. Before choosing a new ID, search `LogId.java`, `logger.properties`, and nearby call sites for an existing common definition with the same meaning.
-8. For every reused or newly selected `LogId`, compare the property text with the actual operation and verify that formatter placeholders exactly match the non-`Throwable` arguments. A numerically valid ID with a different meaning is not reusable.
-9. After any Plugin source/resource edit, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` before committing. Do not finish while it reports direct logger calls, human-readable fixed text hidden in changed `LogId` arguments, any log placeholder-count mismatch, duplicate resource keys, or ID/property drift.
+1. code に log text を直接書かない。
+2. 既存の logger wrapper と `LogId` を使う。
+3. `logger.properties` と対応する `LogId` は同時に追加・更新する。
+4. log は既存の logger API 経由で呼ぶ。
+5. exception を log するときは `Throwable` を保持する。
+6. `printStackTrace()` だけの処理や、既存 ID と意味が重複する新規 ID を避ける。
+7. 新しい ID を選ぶ前に、同じ意味を持つ既存の共通定義がないか `LogId.java`、`logger.properties`、近隣 call site を検索する。
+8. 再利用または新規選択したすべての `LogId` について、property text と実際の operation を比較し、formatter placeholder が `Throwable` 以外の引数と完全に一致することを確認する。数値的に有効でも意味が異なる ID は再利用できない。
+9. Plugin source/resource を編集した後は、commit 前に `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` を実行する。direct logger call、変更した `LogId` 引数に隠れた人間向け固定文、log placeholder 数の不一致、重複 resource key、ID/property のずれが報告される状態で完了しない。
 
-## Player Messages
+## Player message のルール
 
-Use these rules when adding or changing player-facing messages, `MsgId`, or `player.properties`.
+player 向け message、`MsgId`、`player.properties` を追加または変更するときは次のルールを使う。
 
-1. Do not write message text directly in code.
-2. Route player notifications through `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService`.
-3. Update `player.properties` and `MsgId` together.
-4. `AstPlayer.sendMessage(...)` is legacy compatibility only. Do not use it in new or modified code.
-5. Do not call `Player#sendMessage(...)` directly for plugin-managed player messaging. Use `PlayerMessageService` so the common tag/prefix and chat routing rules stay consistent.
-6. Do not pass string literals directly to `sendInfo`, `sendSuccess`, `sendError`, `sendMessage`, or new player-message helper methods unless the API is explicitly for managed chat formatting.
-7. Check color codes, placeholders, and existing wording style.
-8. When a placeholder receives a color-coded item name or other display string, put `&r` immediately after that placeholder and reapply the intended color or decoration for the following template text. The replacement value's color must not bleed into text outside the placeholder.
-9. For a success notification after gold is consumed, include the settled amount in the exact `（消費ゴールド: {0}）` format, pass the actual consumed amount as an argument, and never hard-code the amount in the message text.
-10. Avoid changing an existing message's meaning without checking all call sites.
-11. When a player-facing message includes filebase/master-data display strings such as `name`, `title`, `description`, or lore text, route the value through `PlayerMsgResource` / `PlayerMessageService` formatting or explicitly normalize it with `ColorCodeUtil`; raw `&` color codes from master data must never be displayed to players.
-12. Before choosing a new player message ID, search `PlayerMsgId.java`, feature-specific `*MsgId`, and `player.properties`; update every authoritative enum and the property in the same patch.
-13. Run the Plugin resource validation script from the Logs section after edits; it also rejects direct `sendMessage` calls, string literals passed to command message helpers, duplicate property keys, and player ID/property drift.
+1. code に message text を直接書かない。
+2. player notification は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` 経由にする。
+3. `player.properties` と `MsgId` は同時に更新する。
+4. `AstPlayer.sendMessage(...)` は legacy compatibility のためだけに残す。新規または変更 code で使わない。
+5. Plugin 管理の player messaging で `Player#sendMessage(...)` を直接呼ばない。共通 tag/prefix と chat routing rule を一貫させるため `PlayerMessageService` を使う。
+6. API が managed chat formatting 用だと明示されていない限り、string literal を `sendInfo`、`sendSuccess`、`sendError`、`sendMessage`、または新しい player-message helper method に直接渡さない。
+7. color code、placeholder、既存の wording style を確認する。
+8. placeholder に color-coded item name または別の display string が入る場合、その placeholder の直後に `&r` を置き、後続の template text に意図した color/decor を再適用する。replacement value の color を placeholder 外の text に漏らさない。
+9. gold 消費後の success notification では、確定した金額を正確な `（消費ゴールド: {0}）` 形式で含め、実際に消費した金額を引数で渡す。message text に金額を hard-code しない。
+10. 既存 message の意味を変更する場合は、すべての call site を確認する。
+11. player 向け message に `name`、`title`、`description`、lore text など filebase/master-data の display string が含まれる場合は、`PlayerMsgResource` / `PlayerMessageService` の formatting を通すか、`ColorCodeUtil` で明示的に normalize する。master data の raw `&` color code を player に表示しない。
+12. 新しい player message ID を選ぶ前に、`PlayerMsgId.java`、feature 固有の `*MsgId`、`player.properties` を検索し、すべての正本 enum と property を同じ patch で更新する。
+13. 編集後は Log 節の Plugin resource validation script を実行する。この script は direct `sendMessage` call、command message helper に渡す string literal、重複 property key、player ID/property のずれも拒否する。
 
-## Database, API, and Filebase Contracts
+## Database・API・Filebase の contract
 
-Use these rules when adding or changing plugin-side DB access, features that depend on DB contracts, schema-related work, or features that depend on file-based master data.
+Plugin 側の DB access、DB contract に依存する feature、schema 関連作業、file-based master data に依存する feature を追加または変更するときは次のルールを使う。
 
-1. Check repository input/output models.
-2. Check API contracts in `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\`.
-3. Check SQL Server definitions under `E:\AstralRecord-Workspace\00_docs\40_Database設計書\`.
-4. Check file-based master data and YAML schemas under `E:\AstralRecord-Workspace\40_filebase\`.
-5. Before writing DB-schema-dependent code, verify that `00_docs\40_Database設計書` definitions and implementation agree.
-6. Before writing filebase-dependent code, verify that `40_filebase` YAML and schema definitions agree.
-7. If table or column changes are involved, check whether `00_docs\40_Database設計書` needs a matching update.
-8. If file master structure changes are involved, check whether `40_filebase` needs a matching update.
-9. Do not finish API and Plugin contract changes on only one side.
-10. Avoid hard-coding DB names or YAML paths without checking Database/Filebase definitions.
-11. For player-owned runtime state such as inventory and equipment durability, treat the Plugin-side loaded state as authoritative during gameplay. Avoid blocking API writes in combat or hot paths; durability and similarly low-criticality state should be marked dirty and flushed through the same save boundaries as player inventory (autosave, logout, plugin disable, or explicit save), prioritizing server performance over immediate API consistency.
+1. repository の input/output model を確認する。
+2. `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` の API contract を確認する。
+3. `E:\AstralRecord-Workspace\00_docs\40_Database設計書\` 配下の SQL Server 定義を確認する。
+4. `E:\AstralRecord-Workspace\40_filebase\` 配下の file-based master data と YAML schema を確認する。
+5. DB schema に依存する code を書く前に、`00_docs\40_Database設計書` の定義と実装が一致することを確認する。
+6. filebase に依存する code を書く前に、`40_filebase` の YAML と schema 定義が一致することを確認する。
+7. table または column の変更を含む場合は、`00_docs\40_Database設計書` に対応する更新が必要か確認する。
+8. file master 構造の変更を含む場合は、`40_filebase` に対応する更新が必要か確認する。
+9. API と Plugin の contract 変更を片側だけで完了させない。
+10. Database/Filebase の定義を確認せず、DB name や YAML path を hard-code しない。
+11. inventory や equipment durability など player 所有の runtime state では、gameplay 中の正本を Plugin 側の loaded state とする。combat または hot path で API write を block しない。durability など同様に criticality の低い state は dirty として記録し、player inventory と同じ save boundary（autosave、logout、Plugin disable、明示的 save）で flush する。即時の API 整合性より server performance を優先する。
 
-## Plugin Docs
+## Plugin 設計書
 
-Use these rules only when the user asks to create or modify plugin design docs under `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\`.
+ユーザーが `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\` 配下の Plugin 設計書を作成または変更するよう依頼した場合だけ、次のルールを使う。
 
-1. Read `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\README.md`.
-2. If a feature is identified, read its `NN_0-概要.md` entry point and `FEATURE_CATALOG.md` when implementation ownership matters.
-3. Read corresponding implementation code to avoid speculative descriptions.
-4. Use the root categories `0/1/2/3/4/5/6/8/9` only when the category has content; only category `0` is mandatory.
-5. Name files `NN_<category>-<meaningful-name>.md`. Do not add `.00` / `.01` detail numbers.
-6. Keep a single category document at the feature root. Create a category directory only when the category has multiple documents.
-7. Split long files by coherent responsibility and use a meaningful name rather than a sequence number.
-8. Put accepted but unimplemented specifications in category `8` and unresolved design decisions in category `9`; do not guess or mix the states.
-9. Keep the feature overview and `FEATURE_CATALOG.md` aligned when responsibility or ownership changes.
-10. Use either uniquely resolvable Wiki links or relative Markdown links according to the root docs rules.
-11. Treat method docs as processing contracts, not a mandatory inventory of every physical method.
-12. Do not duplicate full logger/player message text when a properties file is the authoritative source.
+1. `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\README.md` を読む。
+2. feature が特定されている場合は、その `NN_0-概要.md` entry point と、実装 ownership が関係する場合の `FEATURE_CATALOG.md` を読む。
+3. 推測的な説明を避けるため、対応する実装 code を読む。
+4. root category `0/1/2/3/4/5/6/8/9` は内容がある場合だけ使う。category `0` だけは必須とする。
+5. file name は `NN_<category>-<meaningful-name>.md` とする。`.00` / `.01` の detail number を追加しない。
+6. feature root には category document を1つだけ置く。category directory は複数の document がある場合だけ作る。
+7. 長い file は一貫した責務で分割し、sequence number ではなく意味のある name を使う。
+8. 受け入れ済みだが未実装の仕様は category `8`、未決の設計判断は category `9` に置く。推測したり state を混在させたりしない。
+9. 責務または ownership が変わる場合は feature 概要と `FEATURE_CATALOG.md` を整合させる。
+10. root docs rule に従い、一意に解決できる Wiki link または相対 Markdown link を使う。
+11. method docs は処理 contract として扱い、すべての物理 method の必須一覧とはみなさない。
+12. properties file が正本の場合、logger/player message text 全体を重複記載しない。
 
-## Plugin Test Traceability Gate
+## Plugin test のトレーサビリティゲート
 
-Run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` from the repository root whenever the task diff adds, changes, renames, or deletes any of the following paths. This gate is mandatory even when no test source changed and the diff is design-doc-only or test-policy-only.
+task diff が次の path のいずれかを追加、変更、rename、削除する場合は、repository root から `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` を実行する。test source が変わらず design-doc-only または test-policy-only の diff でも、この gate は必須とする。
 
 - `10_plugin/AstralRecord/src/test/**/*`
 - `10_plugin/AstralRecord/pom.xml`
@@ -116,30 +116,30 @@ Run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceab
 - `.codex/skills/astralrecord-code-version-commit-develop/SKILL.md`
 - `.codex/skills/astralrecord-docs-fix/SKILL.md`
 
-Run the gate before the final Maven test run and before review handoff. Do not leave an untraced test method, disabled or conditionally skipped test, nonstandard Maven test source, compiler/Surefire-excluded test, Kotlin JUnit annotation alias, or ad-hoc `AdHoc*Test` / `*OneShotTest` source in the final diff. Do not substitute `mvn verify` for this command because the Plugin shade configuration writes to the main workspace distribution path.
+final Maven test 実行前と review handoff 前に gate を実行する。trace されていない test method、disabled または条件付きで skip される test、標準外の Maven test source、compiler/Surefire から除外された test、Kotlin JUnit annotation alias、ad-hoc `AdHoc*Test` / `*OneShotTest` source を最終 diff に残さない。Plugin shade configuration がメイン workspace の配布先へ書き込むため、この command を `mvn verify` で代替しない。
 
-## Custom Instruction Examples
+## 個別実装指示の例
 
-For direct requests such as `表示アイテムを apple から iron_ingot に変更`:
+`表示アイテムを apple から iron_ingot に変更` のような直接依頼では次を行う。
 
-1. Search for both the old value and nearby feature terminology.
-2. Prefer enum/material/constants/resource definitions over string replacement.
-3. Update tests, filebase references, messages, and docs only when the changed contract requires it or the user asks.
-4. Run a targeted compile or test and inspect the diff for accidental broad replacements.
+1. 旧値と近隣 feature の用語を両方検索する。
+2. string replacement より enum/material/constant/resource の定義を優先する。
+3. 変更された contract が要求する場合、またはユーザーが依頼した場合だけ test、filebase reference、message、docs を更新する。
+4. targeted compile または test を実行し、意図しない広範囲置換がないか diff を確認する。
 
-## Particle Rules
+## Particle ルール
 
-1. Particle rendering must go through io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService.
-2. Do not call World#spawnParticle(...) or Player#spawnParticle(...) directly in feature code.
-3. Shared particle species, aliases, and default visual parameters must be defined in io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions.
-4. Do not duplicate Particle.valueOf(...) parsing in feature code; use the shared resolver.
-5. Recurring particle tasks must have bounded cadence, point count, and viewer scans. Avoid per-tick or near-per-tick always-on effects unless there is an explicit profiling-backed reason.
-6. When a recurring effect renders multiple points for the same center, batch nearby-viewer resolution through ParticleDisplayService instead of calling spawnForNearbyViewers once per point.
-7. Skip recurring particle work for worlds or centers that have no possible viewers, and keep packet count proportional to visible players rather than loaded worlds.
+1. Particle rendering は io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService 経由にする。
+2. feature code から World#spawnParticle(...) または Player#spawnParticle(...) を直接呼ばない。
+3. shared particle species、alias、既定 visual parameter は io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions に定義する。
+4. feature code に Particle.valueOf(...) の parse を重複させず、shared resolver を使う。
+5. recurring particle task には cadence、point count、viewer scan の上限を設ける。明示的な profiling の根拠がない限り、毎 tick またはそれに近い常時有効 effect を避ける。
+6. recurring effect が同じ center に複数 point を描画する場合、point ごとに spawnForNearbyViewers を呼ばず、ParticleDisplayService 経由で nearby-viewer resolution を batch 化する。
+7. viewer が存在し得ない world または center の recurring particle work は skip し、packet count は loaded world ではなく表示対象 player 数に比例させる。
 
-## Player Teleport Rules
+## Player teleport ルール
 
-1. Player teleport behavior must preserve the player's yaw / pitch from immediately before teleporting.
-2. New player teleport features must use `io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService` or an existing service method that delegates to it, such as `WorldService#teleportPlayerAsync(...)`.
-3. Do not call `Player#teleport(...)` or `Player#teleportAsync(...)` directly for plugin-managed player movement unless the feature explicitly requires target-defined yaw / pitch and documents that exception.
-4. Entity, display, packet, or visual-only movement is outside this rule and may keep using its existing movement API.
+1. Player teleport の挙動では、teleport 直前の player の yaw / pitch を保持する。
+2. 新しい player teleport feature では `io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService`、または `WorldService#teleportPlayerAsync(...)` のようにこれへ委譲する既存 service method を使う。
+3. feature が target-defined yaw / pitch を明示的に必要とし、その例外を文書化していない限り、Plugin 管理の player movement で `Player#teleport(...)` や `Player#teleportAsync(...)` を直接呼ばない。
+4. entity、display、packet、visual-only movement はこのルールの対象外であり、既存の movement API を使い続けてよい。

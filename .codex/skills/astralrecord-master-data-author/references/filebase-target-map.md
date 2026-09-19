@@ -1,12 +1,12 @@
-# Filebase Target Map
+# Filebase 対象マップ
 
-Use this map after reading the master design documents. Always read the target schema before editing.
+master 設計書を読んだ後にこの map を使う。編集前に必ず対象 schema を読む。
 
-## Core Files
+## 主要ファイル
 
-| Purpose | Directory | Schema |
+| 用途 | ディレクトリ | Schema |
 |:--|:--|:--|
-| Shared status names | Plugin source | `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt` |
+| 共通 status 名 | Plugin source | `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt` |
 | Items common fields | `40_filebase/10.features.item` | `40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md` |
 | Equipment | `40_filebase/10.features.item/equipment` | `40_filebase/10.features.item/equipment/docs.equipment.YAMLスキーマ定義.md` |
 | Materials | `40_filebase/10.features.item/material` | `40_filebase/10.features.item/material/docs.material.YAMLスキーマ定義.md` |
@@ -28,16 +28,16 @@ Use this map after reading the master design documents. Always read the target s
 | Loot pools | `40_filebase/80.shared.loot/pool` | `40_filebase/80.shared.loot/pool/docs.pool.YAMLスキーマ定義.md` |
 | Loot tables | `40_filebase/80.shared.loot/table` | `40_filebase/80.shared.loot/table/docs.table.YAMLスキーマ定義.md` |
 
-## ID Guidance
+## ID の指針
 
-- Use lowercase snake_case.
-- Prefer production names over debug names.
-- Use an area or feature prefix only when the requested context defines it and the prefix improves ownership clarity.
-- Keep item IDs stable and simple because loot, shop, recipe, equipment, and mob definitions will reference them.
+- lowercase snake_case を使う。
+- debug 用の名前より本番向けの名前を優先する。
+- area または feature prefix は、依頼の context が定義しており ownership の明確化に役立つ場合だけ使う。
+- loot、shop、recipe、equipment、mob 定義から参照されるため、item ID は安定して単純に保つ。
 
-## Reference Prefixes
+## Reference の prefix
 
-| Target | Prefix |
+| 対象 | Prefix |
 |:--|:--|
 | Item | `item:` |
 | Skill | `skill:` |
@@ -48,4 +48,4 @@ Use this map after reading the master design documents. Always read the target s
 | Rune | `rune:` |
 | Set effect | `set:` |
 
-Represent references using the style already used in the target schema or nearby files.
+reference は対象 schema または近隣 file がすでに使っている形式で記載する。

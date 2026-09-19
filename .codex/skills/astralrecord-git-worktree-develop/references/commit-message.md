@@ -1,23 +1,23 @@
-# Commit Message Reference
+# Commit message の reference
 
-Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth. This file only gives quick selection guidance.
+正本には `E:\AstralRecord-Workspace\COMMIT_RULES.md` を使う。この file は選択の簡易指針だけを示す。
 
-## Type Selection
+## Type の選択
 
-- `feat`: feature or user-visible capability
-- `fix`: bug fix or incorrect behavior
-- `docs`: documentation only
-- `refactor`: behavior-preserving code cleanup
-- `test`: tests only
-- `build`: build, dependency, CI, packaging
-- `chore`: workspace tooling, skills, maintenance, metadata
+- `feat`: feature またはユーザーから見える capability
+- `fix`: bug fix または誤った挙動
+- `docs`: documentation だけ
+- `refactor`: 挙動を保持した code cleanup
+- `test`: test だけ
+- `build`: build、dependency、CI、packaging
+- `chore`: workspace tooling、skill、maintenance、metadata
 
-## Summary Rules
+## Summary のルール
 
-- Use one concise subject line.
-- Prefer Japanese when the task was requested in Japanese.
-- Describe the actual diff, not the process.
-- Do not mention excluded local files.
+- 簡潔な subject line を1つ使う。
+- 日本語で依頼された task では日本語を優先する。
+- process ではなく実際の diff を記載する。
+- 除外した local file に言及しない。
 
 Examples:
 

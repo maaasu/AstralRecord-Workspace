@@ -3,11 +3,11 @@ name: astralrecord-skill-author
 description: AstralRecord の Minecraft 内で使うアクティブ・パッシブスキルを新規追加または仕様変更する専門 skill。職業スキル、攻撃・回復・補助・移動・範囲効果、スキルジェム、管理者付与、ショップ販売、演出、DPS を含む戦闘スキルの設計・filebase・Plugin 実装・テスト・設計書同期が必要な依頼で使う。ChatGPT などから渡されたスキル案を、既存仕様に基づく正確な数値・status・YAML・実装へ確定する依頼にも使う。依頼情報が不足する場合は実装前に必要事項を質問する。
 ---
 
-# AstralRecord Minecraft Skill Author
+# AstralRecord Minecraft 内スキル作成
 
 Minecraft 内のゲームスキルを扱う。Codex 自体の skill 作成には使わず、`$skill-creator` を使う。
 
-## Intake
+## 依頼内容の確認
 
 1. 次のどれかが未確定で、既存仕様から安全に決められない場合は、ファイルを変更せず不足項目だけを質問する。
    - 対象職業、スキル名、既存スキルとの関係（新規 / 変更）、おおまかな役割
@@ -32,13 +32,13 @@ ChatGPT などの上流案は、ゲームデザインの入力として扱い、
 
 表示名と内部 ID は分けて扱う。表示名は日本語カタカナを基本にし、効果や題材に漢字・ひらがなが自然なら許容する（例：「ファイアボール」「四面楚歌」）。`id`、`implementationId`、executor 登録キーは既存の lowercase snake_case 規約と重複状況を根拠に Codex 側で確定する。依頼者が表示名を固定指定した場合は、黙って変更せず、既存命名規則と衝突するときだけ確認する。
 
-## Icon Selection Rule
+## Icon 選択ルール
 
 - 新規の item または skill（スキルジェムを含む）を定義するときは、既存コンテンツで使用済みの `icon` を確認し、原則として再利用しない。
 - ただし、モチーフや用途から特定の `icon` が明らかに適切で、別の `icon` に置き換える方が不自然な場合は、既存コンテンツで使用済みでも再利用してよい。ノクスリンゴに `apple` を使うケースが該当する。
 - 単なる見た目の近さや実装都合だけでは例外にしない。例外を適用した場合は、採用理由を報告へ記載する。
 
-## Workflow
+## 手順
 
 1. 通常は `$astralrecord-code-version-commit-develop` の task worktree / 品質ゲートを使う。すでに準備済みの task worktree ではこの skill を worker として実行する。
 2. `AGENTS.md`、`PLUGIN_GUIDE.md`、`$astralrecord-code` の `references/plugin-code.md`、対象職業の戦闘バランス設計書、`40_filebase/AGENTS.md`、関連する既存 skill / gem / shop YAML を読む。
@@ -50,7 +50,7 @@ ChatGPT などの上流案は、ゲームデザインの入力として扱い、
 5. Particle は `ParticleDisplayService` と共有定義を使う。Plugin の damage / target / thread / message 規約を崩さない。
 6. 変更に応じて filebase 参照、Plugin resource check、設計トレーサビリティ、恒久テスト適格性を満たす共通テストを検証する。個別スキルはfilebase validator、実装レビュー、実サーバーまたは実クライアントで確認し、切り分けの一時テストは確認後に削除する。品質ゲートのレビュー・修正・再レビューと commit / develop merge は統合入口の手順に従う。
 
-## Scope Decision
+## 対象範囲の判断
 
 - 実装済みの仕組みだけで表現できる場合は、filebase と設計書の変更を優先する。
 - executor、判定、ダメージ、演出、GUI、管理者操作などの新しい振る舞いが必要なら Plugin 実装を含める。
@@ -59,6 +59,6 @@ ChatGPT などの上流案は、ゲームデザインの入力として扱い、
 - 依頼者が固定値を指定した場合は固定条件として保持し、戦闘バランスや実装規則と衝突する場合は、上書きせず確認する。
 - 未決事項は「未対応事項」ではなく、実装前の質問として返す。推測で戦闘バランスを確定しない。
 
-## Report
+## 報告
 
 日本語で、ChatGPT 案から採用・変更した意図、確定した効果・数値・DPS 前提・入手経路・演出・検証結果・未決事項を簡潔に報告する。上流案の数値から変更した場合は、既存スキル・設計書・実装制約のどれを根拠に変更したかを記載する。

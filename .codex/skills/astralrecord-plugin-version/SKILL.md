@@ -3,81 +3,81 @@ name: astralrecord-plugin-version
 description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` のバージョン番号を更新する。`pom.xml` の版番号を正本として、機能追加・不具合修正・リリース準備・開発版採番のたびに一貫した版番号へ更新したい場合に使う。並列 task 運用では、最新版の local develop へ rebase 済みの task worktree で finalize 直前にだけ実行する。
 ---
 
-# AstralRecord Plugin Version
+# AstralRecord Plugin 版番号
 
-## Core Rule
+## 基本ルール
 
-Treat `E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml` as the only source of truth for the plugin version. Do not edit `src/main/resources/plugin.yml` for versioning because it already resolves `version: ${project.version}` from Maven filtering.
+Plugin 版番号の正本は `E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml` だけとする。`src/main/resources/plugin.yml` は Maven filtering によって `version: ${project.version}` を解決するため、版番号更新のために編集しない。
 
-In the default task-branch workflow, run this skill only after the task branch has been rebased onto the latest local `develop` and immediately before the final merge or release commit. Do not pre-bump `pom.xml` inside multiple parallel task worktrees that still share the same old base commit.
+既定の task-branch workflow では、task branch を最新の local `develop` に rebase した後、最終 merge または release commit の直前にだけこの skill を実行する。同じ古い base commit を共有する複数の並列 task worktree 内で、`pom.xml` を先に bump しない。
 
-Use a SemVer-based scheme:
+SemVer ベースの方式を使う。
 
-- Normal and development builds: `MAJOR.MINOR.PATCH`
-- Pre-release candidates when explicitly requested: `MAJOR.MINOR.PATCH-alpha.N`, `...-beta.N`, `...-rc.N`
+- 通常 build と開発 build: `MAJOR.MINOR.PATCH`
+- 明示的に要求された pre-release candidate: `MAJOR.MINOR.PATCH-alpha.N`、`...-beta.N`、`...-rc.N`
 
-Do not embed the future commit hash into `project.version` in the default workflow. That ordering is fragile because the version must be written before commit, while the final commit hash exists only after commit. If traceability is needed, report the resulting commit hash separately after the commit step instead of baking it into the plugin version.
+既定 workflow では、将来の commit hash を `project.version` に埋め込まない。版番号は commit 前に書く必要がある一方、最終 commit hash は commit 後にだけ存在するため、その順序は壊れやすい。追跡性が必要なら Plugin 版番号に埋め込まず、commit 後に得られた commit hash を別途報告する。
 
-## Required Context
+## 必須コンテキスト
 
-1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
-2. Read `E:\AstralRecord-Workspace\PLUGIN_GUIDE.md`.
-3. Read `E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml`.
-4. Confirm that `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\resources\plugin.yml` still uses `${project.version}`.
-5. Confirm that the current task worktree has already been rebased onto the latest local `develop`, or that the request is an explicit standalone release/version-management task.
+1. `E:\AstralRecord-Workspace\AGENTS.md` を読む。
+2. `E:\AstralRecord-Workspace\PLUGIN_GUIDE.md` を読む。
+3. `E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml` を読む。
+4. `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\resources\plugin.yml` が引き続き `${project.version}` を使っていることを確認する。
+5. 現在の task worktree が最新の local `develop` にすでに rebase 済みであること、または依頼が standalone の release/version-management task であることを確認する。
 
-Stop and ask only if the target is not the plugin project or if the user explicitly wants a non-standard version string.
+対象が Plugin project ではない場合、またはユーザーが non-standard version string を明示的に求めた場合だけ停止して質問する。
 
-## Version Selection Rule
+## 版番号選択ルール
 
-Choose the base bump from the implemented change:
+実装した変更から基本 bump を選ぶ。
 
-- `major`: incompatible command/config/data contract change, or behavior that requires coordinated manual migration
-- `minor`: backward-compatible feature addition or meaningful new capability
-- `patch`: bug fix, tuning, small internal change, docs-aligned behavior fix
-- `none`: only when the user explicitly says to keep the same core version and refresh only the development suffix
+- `major`: 互換性のない command/config/data contract の変更、または協調した手動 migration が必要な挙動変更。
+- `minor`: 後方互換のある feature 追加、または意味のある新しい capability。
+- `patch`: bug fix、調整、小規模な内部変更、設計書と整合させる挙動修正。
+- `none`: ユーザーが core version を同じに保ち、development suffix だけを更新すると明示した場合だけ。
 
-Choose the version form:
+version 形式を選ぶ。
 
-- If the user asks for a release or development version, or the request is part of an implementation workflow before commit, write `MAJOR.MINOR.PATCH`.
-- If the request is part of the normal task workflow, assume the implementation commit and rebase are already complete and this is the last mutable step before the merge.
-- If the user explicitly asks for staged release testing, use `alpha`, `beta`, or `rc` with a sequence number.
+- ユーザーが release または development version を求めた場合、または commit 前の実装 workflow の一部である場合は `MAJOR.MINOR.PATCH` を書く。
+- 通常の task workflow の一部である場合は、実装 commit と rebase がすでに完了しており、merge 前の最後の変更可能な手順であるとみなす。
+- ユーザーが staged release testing を明示的に求めた場合は、連番付きの `alpha`、`beta`、`rc` を使う。
 
-Default assumption when the request is ambiguous: use a normal version and bump `patch`.
+依頼が曖昧な場合の既定は、通常 version の `patch` bump とする。
 
-## Workflow
+## 手順
 
-1. Inspect the current plugin version in `pom.xml`.
-2. Confirm that this worktree is the rebased finalize target, or that the task is a deliberate standalone release/versioning operation.
-3. Infer or confirm the bump level from the implementation scope.
-4. Run the bundled updater:
+1. `pom.xml` の現在の Plugin 版番号を確認する。
+2. この worktree が rebase 済みの finalize 対象であること、または task が意図的な standalone release/versioning 操作であることを確認する。
+3. 実装範囲から bump level を判断または確認する。
+4. 同梱 updater を実行する。
 
 ```text
 python E:\AstralRecord-Workspace\.codex\skills\astralrecord-plugin-version\scripts\update_plugin_version.py --pom E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml --kind release --bump patch
 ```
 
-5. Re-read `pom.xml` and verify the written version string.
-6. Confirm that `plugin.yml` still uses `${project.version}` and therefore needs no direct edit.
-7. Report the old version, new version, bump reason, and whether the change is intended as dev or release.
+5. `pom.xml` を再読し、書き込まれた version string を確認する。
+6. `plugin.yml` が引き続き `${project.version}` を使っており、直接編集が不要であることを確認する。
+7. 旧版、新版、bump 理由、dev 用か release 用かを報告する。
 
-Use explicit overrides when needed:
+必要な場合は明示的な override を使う。
 
 ```text
 python E:\AstralRecord-Workspace\.codex\skills\astralrecord-plugin-version\scripts\update_plugin_version.py --pom E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml --set-version 1.3.0-rc.1
 ```
 
-## Decision Notes
+## 判断メモ
 
-- Legacy versions with development or Maven snapshot suffixes are normalized to their `MAJOR.MINOR.PATCH` core when the next normal version is written. Example: `--bump none` on `1.0-SNAPSHOT` or `1.0.0-dev.12` gives `1.0.0`, while the default `--bump patch` gives `1.0.1`.
-- Pre-release sequence numbers start at `1` and increment from the current matching `alpha`, `beta`, or `rc` version.
-- Do not decrement or rewrite unrelated metadata.
-- Do not edit artifactId, groupId, plugin name, or Minecraft `api-version`.
-- If the requested change touches only docs or non-plugin projects, do not use this skill.
-- In a parallel task workflow, never run this skill before the task branch has been rebased onto the latest local `develop`.
+- development または Maven snapshot suffix を持つ legacy version は、次の通常 version を書くとき `MAJOR.MINOR.PATCH` の core に正規化する。例: `1.0-SNAPSHOT` または `1.0.0-dev.12` に `--bump none` を使うと `1.0.0`、既定の `--bump patch` では `1.0.1` になる。
+- pre-release の連番は `1` から開始し、現在の一致する `alpha`、`beta`、`rc` version から増加させる。
+- 無関係な metadata を減らしたり書き換えたりしない。
+- artifactId、groupId、plugin name、Minecraft `api-version` を編集しない。
+- 依頼された変更が docs または Plugin 以外の project だけに触れる場合は、この skill を使わない。
+- 並列 task workflow では、task branch を最新の local `develop` に rebase する前にこの skill を実行しない。
 
-## Report Format
+## 報告形式
 
-Write the result in Japanese.
+結果は日本語で記載する。
 
 ```markdown
 ## バージョン更新結果

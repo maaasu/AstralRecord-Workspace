@@ -3,7 +3,7 @@ name: astralrecord-code-version-commit-develop
 description: AstralRecord で差分を作る実装・設計書反映・本番filebase作成の統合入口。task branch / worktree、対象worker、必要な品質ゲート、commit、rebase、develop反映を対象に応じて実行する。差分のない質問・診断・読み取り専用レビューには使わない。
 ---
 
-# AstralRecord Code Version Commit Develop
+# AstralRecord 実装・版番号・commit・develop 反映
 
 ## 目的
 
@@ -18,7 +18,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番fil
 5. `Standard gate` または workspace skill logic の変更では [quality-gate.md](references/quality-gate.md) を読む。Light gateでは読まない。
 6. `40_filebase` の並列作業だけ [parallel-filebase.md](references/parallel-filebase.md) を読む。
 
-## Workerの選択
+## Worker の選択
 
 - 既存 `AR-CODE-*` 指摘の修正 → `$astralrecord-code-fix`
 - 既存 `AR-DOC-*` 指摘の修正 → `$astralrecord-docs-fix`
@@ -27,7 +27,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番fil
 - `.codex/skills` の定義・参照・script・`agents/openai.yaml` → `$skill-creator`
 - その他のPlugin/API/Web/docs-linked実装 → `$astralrecord-code`
 
-## 必須ワークフロー
+## 必須 workflow
 
 1. `$astralrecord-git-worktree-develop` のPrepareで、local `develop`からtask branch / worktreeを作る。
 2. 対象workerをそのworktree内で一度に一人のwriterとして実行し、最小の対象資料だけを読んで検証する。
@@ -54,11 +54,11 @@ description: AstralRecord で差分を作る実装・設計書反映・本番fil
 - Plugin成果物を変更したfinalizeでの版番号更新。
 - 処理終了時の `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` 更新。
 
-## サブエージェント方針
+## sub-agent 方針
 
 - 利用可能なら実装者とRound 1 reviewerを分ける。
 - Standard gateのRound 2 reviewerはfixerと分ける。
-- trivialな一ファイル変更は独立reviewer一人でよい。
+- 単純な一ファイル変更は独立 reviewer 一人でよい。
 - 専門家はmulti-file、複数project、security、concurrency、data integrityのときだけ追加する。
 
 ## 最終報告

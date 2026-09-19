@@ -3,157 +3,157 @@ name: astralrecord-git-worktree-develop
 description: AstralRecord workspace の git 運用専用スキル。branch / git worktree 作成、task worktree の commit、develop への rebase / fast-forward merge、成功時の branch / worktree cleanup、worktree 管理コンテンツ更新が明示された場合に使う。実装修正や filebase 作成を含む通常依頼は、まず統合入口 `$astralrecord-code-version-commit-develop` を優先し、このスキルはその prepare / finalize 下位手順として使う。プラグイン変更時の `pom.xml` 版番号更新は finalize で最新 develop へ rebase した後だけ行う。
 ---
 
-# AstralRecord Git Worktree Develop
+# AstralRecord Git Worktree 運用
 
-## Core Rule
+## 基本ルール
 
-Never implement a task directly on `develop`. Create a task branch and a dedicated git worktree for each task, do the work there, and merge back to `develop` only after a scoped commit and a clean rebase.
+`develop` に直接 task を実装しない。task ごとに task branch と専用 git worktree を作成し、そこで作業する。範囲を限定した commit と clean な rebase が完了してから `develop` に merge する。
 
-When a task changes the plugin deliverable under `10_plugin/AstralRecord`, do not update `pom.xml` during the parallel implementation phase. Rebase the task branch onto the latest local `develop` first, then run `$astralrecord-plugin-version` only inside that rebased task worktree immediately before the final merge.
+task が `10_plugin/AstralRecord` 配下の Plugin 成果物を変更する場合、並列実装段階では `pom.xml` を更新しない。まず task branch を最新の local `develop` に rebase し、その後、最終 merge の直前に rebase 済み task worktree 内だけで `$astralrecord-plugin-version` を実行する。
 
-Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commit message format.
+commit message の形式は `E:\AstralRecord-Workspace\COMMIT_RULES.md` を正本とする。
 
 worktree 管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を正本として扱う。
 
-## Supported Modes
+## 対応モード
 
-This skill supports two modes.
+この skill は2つの mode に対応する。
 
-- Prepare mode: create a task branch and a dedicated worktree from local `develop`, then report the branch name and worktree path for follow-up work.
-- Finalize mode: from an existing task worktree, inspect and commit requested uncommitted task files when present, or accept a clean branch with existing task commits ahead of `develop`; then rebase, run plugin versioning only when needed, fast-forward merge, and clean up when safe.
+- Prepare mode: local `develop` から task branch と専用 worktree を作成し、後続作業用に branch 名と worktree path を報告する。
+- Finalize mode: 既存の task worktree で、要求された未 commit の task file があれば確認して commit する。未 commit file がなく clean branch が `develop` より先行する task commit を持つ場合はそれを受け入れる。その後 rebase し、必要な場合だけ Plugin versioning を実行し、安全なら fast-forward merge と cleanup を行う。
 
-This skill manages one requested task branch/worktree at a time. For historical cleanup of already merged `codex/*` branches, stale worktree metadata, or leftover task worktrees outside the current finalize target, hand off to `$astralrecord-prune-codex-worktrees`.
+この skill は一度に1つの依頼済み task branch/worktree を管理する。すでに merge 済みの `codex/*` branch の履歴的な cleanup、古い worktree metadata、現在の finalize 対象外に残る task worktree は `$astralrecord-prune-codex-worktrees` に引き継ぐ。
 
-If the request is ambiguous, infer the mode from the wording:
+依頼が曖昧な場合は、文言から mode を判断する。
 
-- `prepare`, `start`, `create branch`, `create worktree` -> Prepare mode
-- `commit`, `merge`, `finalize`, `close task`, `cleanup` -> Finalize mode
+- `prepare`、`start`、`create branch`、`create worktree` → Prepare mode
+- `commit`、`merge`、`finalize`、`close task`、`cleanup` → Finalize mode
 
-## Workflow
+## 手順
 
-1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
-2. Read `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
-3. Read `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md`.
-4. Inspect repository state:
+1. `E:\AstralRecord-Workspace\AGENTS.md` を読む。
+2. `E:\AstralRecord-Workspace\COMMIT_RULES.md` を読む。
+3. `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を読む。
+4. repository 状態を確認する。
    - `git status --short --branch`
    - `git worktree list`
-5. Decide the task slug:
-   - Prefer a stable slug derived from the requested task.
-   - Use lowercase ASCII, digits, and hyphens only.
-   - Default branch format: `codex/<task-slug>`.
-6. In Prepare mode:
-   - The main workspace branch must be `develop`.
-   - Base the task branch on the current local `develop` HEAD. Do not silently pull, fetch, or switch to another base branch.
-   - Default worktree root: `E:\AstralRecord-Worktrees\<task-slug>`.
-   - If the branch or worktree already exists, stop and report it unless the user explicitly asked to reuse it.
-   - Create the branch and worktree.
-   - Regenerate `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` with `--write-management`, then report the exact branch name and worktree path.
-7. In Finalize mode:
-   - Confirm the current worktree is on a dedicated task branch, not `develop`.
-   - Run:
+5. task slug を決める。
+   - 依頼内容から安定した slug を作ることを優先する。
+   - 小文字 ASCII、数字、hyphen だけを使う。
+   - 既定の branch 形式は `codex/<task-slug>` とする。
+6. Prepare mode の場合:
+   - メイン workspace の branch は `develop` でなければならない。
+   - task branch は現在の local `develop` HEAD を基点にする。別の base branch を暗黙に pull、fetch、switch しない。
+   - 既定の worktree root は `E:\AstralRecord-Worktrees\<task-slug>` とする。
+   - branch または worktree がすでに存在する場合は、ユーザーが再利用を明示していない限り停止して報告する。
+   - branch と worktree を作成する。
+   - `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を `--write-management` で再生成し、正確な branch 名と worktree path を報告する。
+7. Finalize mode の場合:
+   - 現在の worktree が `develop` ではなく専用 task branch 上にあることを確認する。
+    - 次を実行する。
      - `git status --porcelain=v1 -uall`
      - `git diff --stat`
-     - targeted `git diff -- <path>`
-   - Decide commit state:
-     - If requested uncommitted task files exist, follow the stage/check/commit steps below.
-     - If the worktree is clean, require at least one task commit in `develop..HEAD`; inspect `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`, `git diff --name-status develop...HEAD`, and targeted committed diffs. Continue only when every ahead commit and changed path belongs to the requested task. Skip the new commit and continue to rebase.
-     - If a clean branch contains unrelated, unexplained, or mixed-scope ahead commits, stop before rebase/merge and retain the worktree for explicit separation or approval.
-     - If the worktree is clean and `develop..HEAD` is empty, stop because there is nothing to finalize.
-   - Only when requested uncommitted task files exist:
-     - Run `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <worktree-root>`.
-     - Stage only requested task files with explicit paths. Review-only tasks may stage their validated Markdown record under `00_docs/99_資料/レビュー結果`. Never use `git add .` or `git add -A`.
-     - Run `git diff --cached --stat` and `git diff --cached --check`.
-     - Run `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>`.
-     - Commit the requested task diff with a Japanese summary that follows `COMMIT_RULES.md`.
-   - Rebase the task branch onto local `develop`.
-   - If the rebase incorporates upstream changes that intersect the reviewed paths, affected call sites, contracts, tests, or resources, pause before merge and rerun targeted verification plus review confirmation against the rebased tree. If a canonical record exists, update the same record and validate it again; if the confirmation has no findings, no record is required. Apply the integrated quality-gate blocking criteria. If a new finding needs a fix, return to the quality gate; stop and retain the worktree on any failure or unresolved blocker.
-   - If post-rebase confirmation or its fix pass changes the canonical record or any task file, run the worktree-local classifier, stage only those explicit paths, rerun cached diff/check/mojibake validation, and create a separate scoped post-rebase quality commit before filebase validation, versioning, or merge. Never merge or clean up with those updates uncommitted.
-   - If the rebased branch changes `40_filebase` YAML, run post-rebase filebase validation before merge:
-     - Parse every changed YAML again with the applicable schema or the repository's available YAML validation command.
-     - Scan all `40_filebase/**/*.yml` on the rebased tree for duplicate master IDs, including duplicates introduced in different files that Git would not report as conflicts.
-     - Resolve every reference introduced or changed by the task against the rebased tree, including item, skill, buff, mob, loot, shop, spawner, and world references applicable to the changed categories.
-     - Re-read the changed YAML against `00_docs/50_Filebase設計書/作成時チェックリスト.md` and the relevant category schema.
-     - Stop and retain the branch/worktree if validation fails or if a duplicate/reference result cannot be resolved safely. Do not merge first and repair later.
-   - After the rebase, determine whether the branch materially changes the plugin deliverable:
-     - Plugin source under `10_plugin/AstralRecord/src/`
-     - Plugin resources such as `plugin.yml`, `config.yml`, message resources, logger resources
-     - Plugin build files under `10_plugin/AstralRecord/`
-   - If the rebased branch still contains plugin deliverable changes, invoke `$astralrecord-plugin-version` in that rebased worktree and create a separate scoped commit for `10_plugin/AstralRecord/pom.xml`.
-   - If rebase succeeds and any required version-bump commit completes, fast-forward merge the task branch into `develop`.
-   - After a successful fast-forward merge, always remove the task worktree and delete the task branch before reporting completion, unless the user explicitly requested retention. Do not leave completed task worktrees for later cleanup.
-   - Regenerate `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` with `--write-management` after success, failure, or intentional retention.
-8. If any merge or rebase conflict occurs:
-   - Stop immediately.
-   - Do not delete the branch or worktree.
-   - Regenerate the worktree management file so the retained worktree is visible as unmerged, dirty, or detached.
-   - Report the blocking files and the current state.
-9. If the plugin version update or its commit fails:
-   - Stop immediately.
-   - Do not delete the branch or worktree.
-   - Regenerate the worktree management file before reporting.
-   - Report the failure and keep the rebased worktree for follow-up.
-10. After a successful finalize, if the user also asked to prune older merged `codex/*` branches or leftover task worktrees, run `$astralrecord-prune-codex-worktrees` as a separate follow-up cleanup step.
+      - 対象を絞った `git diff -- <path>`
+    - commit 状態を決める。
+      - 要求された未 commit の task file がある場合は、下記の stage/check/commit 手順に従う。
+      - worktree が clean の場合は、`develop..HEAD` に少なくとも1つの task commit があることを必須とする。`git log --oneline develop..HEAD`、`git diff --stat develop...HEAD`、`git diff --name-status develop...HEAD`、対象を絞った committed diff を確認する。先行するすべての commit と変更 path が要求された task に属する場合だけ続行する。新しい commit は省略して rebase に進む。
+      - clean branch に無関係、説明不能、または複数範囲の先行 commit がある場合は、rebase/merge 前に停止し、明示的な分離または承認のため worktree を保持する。
+      - worktree が clean で `develop..HEAD` が空の場合は finalize するものがないため停止する。
+    - 要求された未 commit の task file がある場合だけ次を行う。
+      - `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <worktree-root>` を実行する。
+      - 要求された task file だけを明示的な path で stage する。レビューだけの task では、検証済み Markdown 記録を `00_docs/99_資料/レビュー結果` 配下へ stage してよい。`git add .` や `git add -A` は使わない。
+      - `git diff --cached --stat` と `git diff --cached --check` を実行する。
+      - `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>` を実行する。
+      - `COMMIT_RULES.md` に従う日本語 summary で要求された task diff を commit する。
+    - task branch を local `develop` に rebase する。
+    - rebase により、レビュー済み path、影響する call site、contract、test、resource と交差する upstream 変更が入った場合は、merge 前に停止し、rebase 後の tree に対して対象 verification と review confirmation を再実行する。正規記録がある場合は同じ記録を更新して再検証する。confirmation に指摘がなければ記録は不要とする。統合品質ゲートの blocking criteria を適用する。新しい指摘に修正が必要なら quality gate に戻り、失敗または未解決 blocker があれば停止して worktree を保持する。
+    - rebase 後の confirmation またはその修正 pass が正規記録や task file を変更した場合は、worktree-local classifier を実行し、明示した path だけを stage し、cached diff/check/mojibake 検証を再実行する。その後、filebase 検証、versioning、merge の前に rebase 後品質用の範囲限定 commit を別に作る。更新を未 commit のまま merge や cleanup を行わない。
+    - rebase 済み branch が `40_filebase` の YAML を変更する場合は、merge 前に rebase 後の filebase 検証を行う。
+      - 変更された各 YAML を、適用可能な schema または repository で利用できる YAML 検証 command でもう一度 parse する。
+      - rebase 後の tree の全 `40_filebase/**/*.yml` を走査し、Git が conflict と報告しない別 file 間で導入された重複を含め、master ID の重複を確認する。
+      - task が導入または変更したすべての reference を rebase 後の tree に対して解決する。対象 category に該当する item、skill、buff、mob、loot、shop、spawner、world reference を含める。
+      - 変更 YAML を `00_docs/50_Filebase設計書/作成時チェックリスト.md` と関連 category schema に照らして再読する。
+      - 検証が失敗した場合、または重複/reference の結果を安全に解決できない場合は branch/worktree を保持して停止する。先に merge して後で修正しない。
+    - rebase 後、branch が Plugin 成果物を実質的に変更するか確認する。
+      - `10_plugin/AstralRecord/src/` 配下の Plugin source。
+      - `plugin.yml`、`config.yml`、message resource、logger resource などの Plugin resource。
+      - `10_plugin/AstralRecord/` 配下の Plugin build file。
+    - rebase 済み branch に Plugin 成果物の変更が残る場合は、その rebase 済み worktree で `$astralrecord-plugin-version` を起動し、`10_plugin/AstralRecord/pom.xml` の版番号 commit を別の範囲限定 commit として作成する。
+    - rebase が成功し、必要な版番号 commit も完了した場合は、task branch を `develop` に fast-forward merge する。
+    - fast-forward merge が成功した後は、ユーザーが保持を明示していない限り、完了報告前に必ず task worktree を削除し task branch を削除する。完了済み task worktree を後の cleanup に残さない。
+    - 成功、失敗、意図した保持のいずれの場合も、`--write-management` で `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を再生成する。
+8. merge または rebase conflict が発生した場合:
+    - 直ちに停止する。
+    - branch または worktree を削除しない。
+    - worktree 管理ファイルを再生成し、保持した worktree が unmerged、dirty、detached のいずれかとして見えるようにする。
+    - blocker となった file と現在の状態を報告する。
+9. Plugin version update またはその commit が失敗した場合:
+    - 直ちに停止する。
+    - branch または worktree を削除しない。
+    - 報告前に worktree 管理ファイルを再生成する。
+    - 失敗を報告し、rebase 済み worktree を follow-up 用に保持する。
+10. finalize 成功後、ユーザーが古い merge 済み `codex/*` branch または残った task worktree の prune も依頼していた場合は、別の follow-up cleanup として `$astralrecord-prune-codex-worktrees` を実行する。
 
-## Safety Checks
+## 安全確認
 
-Stop before mutating git state if:
+次のいずれかに該当する場合は、Git state を変更する前に停止する。
 
-- The main workspace is not on `develop` when preparing a task worktree.
-- Finalize mode is invoked from `develop` instead of a task branch worktree.
-- The target task branch or worktree path already exists and reuse was not explicitly requested.
-- `develop` has uncommitted changes before the merge step.
-- The selected files mix unrelated work that cannot be separated safely.
-- The worktree is clean and the task branch has no commits ahead of `develop`.
-- Rebase or merge produces conflicts.
-- Post-rebase filebase validation finds duplicate IDs, unresolved changed references, invalid YAML/schema content, or an ambiguous result.
-- A plugin version update is required but cannot be completed cleanly after the rebase.
+- task worktree を Prepare するとき、メイン workspace が `develop` 上にない。
+- task branch worktree ではなく `develop` から Finalize mode を起動している。
+- 対象 task branch または worktree path がすでに存在し、再利用が明示されていない。
+- merge 手順前の `develop` に未 commit 変更がある。
+- 選択したファイルに無関係な作業が混在し、安全に分離できない。
+- worktree が clean で、task branch に `develop` より先行する commit がない。
+- rebase または merge で conflict が発生する。
+- rebase 後の filebase 検証で ID 重複、解決できない変更 reference、無効な YAML/schema 内容、または曖昧な結果が見つかる。
+- Plugin version update が必要だが、rebase 後に clean に完了できない。
 
-## Worktree Conventions
+## Worktree の規約
 
-- Main workspace: `E:\AstralRecord-Workspace`
+- メイン workspace: `E:\AstralRecord-Workspace`
 - Task branch prefix: `codex/`
-- Default task worktree root: `E:\AstralRecord-Worktrees\<task-slug>`
-- Worktree management file: `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`
+- 既定の task worktree root: `E:\AstralRecord-Worktrees\<task-slug>`
+- Worktree 管理ファイル: `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`
 
-When another skill needs to operate inside the task worktree, remap paths by replacing the workspace root prefix:
+別の skill が task worktree 内で操作する必要がある場合は、workspace root prefix を置き換えて path を読み替える。
 
 ```text
 E:\AstralRecord-Workspace\<relative-path>
 -> E:\AstralRecord-Worktrees\<task-slug>\<relative-path>
 ```
 
-## Commit Scope Rules
+## Commit 範囲のルール
 
-- Commit only files that belong to the requested task.
-- Exclude local build outputs, IDE settings, machine-local config, secrets, logs, temp files, and unrelated user changes.
-- `.codex/skills/` is commit-eligible when the requested task is a skill creation or skill update.
-- `00_docs/99_資料/レビュー結果/*.md` is commit-eligible when it is the validated canonical artifact of the requested review or quality gate.
-- Use `git restore --staged -- <path>` when an unrelated file was staged by mistake.
-- When plugin versioning is required, keep the implementation commit and the `pom.xml` version-bump commit scoped separately.
+- 依頼された task に属するファイルだけを commit する。
+- local build output、IDE 設定、マシン固有 config、秘密情報、log、temp、無関係なユーザー変更を除外する。
+- 依頼が skill の作成または更新の場合、`.codex/skills/` は commit 対象にできる。
+- `00_docs/99_資料/レビュー結果/*.md` は、依頼された review または quality gate の検証済み正規成果物である場合に commit 対象にできる。
+- 無関係なファイルを誤って stage した場合は `git restore --staged -- <path>` を使う。
+- Plugin versioning が必要な場合、実装 commit と `pom.xml` の版番号 commit を別の範囲に保つ。
 
-## Cleanup Rules
+## Cleanup のルール
 
-Successful finalize includes cleanup. Remove the task worktree and delete the task branch in the same turn as the successful `develop` merge when all of the following are true:
+finalize 成功には cleanup を含める。次のすべてを満たす場合、`develop` merge 成功と同じ turn で task worktree と task branch を削除する。
 
-- The task branch was committed successfully.
-- Rebase onto `develop` succeeded.
-- `develop` fast-forward merge succeeded.
-- The user did not explicitly request to keep the branch or worktree.
+- task branch の commit が成功している。
+- `develop` への rebase が成功している。
+- `develop` の fast-forward merge が成功している。
+- ユーザーが branch または worktree の保持を明示していない。
 
-Do not report a finalize as fully complete while the completed task worktree or merged task branch still exists. If cleanup fails after a successful merge, report the merge as successful but the finalize as cleanup-blocked, including the exact worktree and branch that still need removal.
+完了した task worktree または merge 済み task branch が残っている間は、finalize を完全完了として報告しない。merge 成功後に cleanup が失敗した場合は、merge は成功、finalize は cleanup-blocked と報告し、削除が必要な正確な worktree と branch を含める。
 
-Keep the branch and worktree when:
+次の場合は branch と worktree を保持する。
 
-- Rebase or merge conflicts occurred.
-- Verification failed and follow-up edits are expected.
-- The user asked to keep the task workspace for review or later edits.
-- The post-rebase plugin version update could not be completed cleanly.
+- rebase または merge conflict が発生した。
+- 検証が失敗し、follow-up 編集が見込まれる。
+- ユーザーが review または後続編集のため task workspace の保持を依頼した。
+- rebase 後の Plugin version update を clean に完了できなかった。
 
-This skill's own cleanup scope ends at the current task branch/worktree. Use `$astralrecord-prune-codex-worktrees` for accumulated cross-task cleanup.
+この skill 自身の cleanup 範囲は現在の task branch/worktree までとする。複数 task にまたがる蓄積 cleanup には `$astralrecord-prune-codex-worktrees` を使う。
 
-## Worktree Management Content
+## Worktree 管理ファイルの内容
 
-Create or refresh `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` during Prepare and Finalize flows by running:
+Prepare と Finalize の flow では、次を実行して `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を作成または更新する。
 
 ```powershell
 python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktrees\scripts\prune_codex_worktrees.py --repo E:\AstralRecord-Workspace --worktree-root E:\AstralRecord-Worktrees --write-management
@@ -161,9 +161,9 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
 
 finalize が途中停止した場合も更新する。管理ファイルの目的は、worktree が残っている理由を説明できるようにすること。生成ファイルの `## 手動メモ` セクションは人間の判断欄として保持する。
 
-If the management file shows `DIRTY_WORKTREE`, `UNMERGED_WORKTREE`, `UNMERGED_BRANCH`, `DETACHED_WORKTREE`, `UNREGISTERED_PATH`, or `NON_GIT_DIRECTORY`, include those items in the final report instead of saying cleanup is complete.
+管理ファイルに `DIRTY_WORKTREE`、`UNMERGED_WORKTREE`、`UNMERGED_BRANCH`、`DETACHED_WORKTREE`、`UNREGISTERED_PATH`、`NON_GIT_DIRECTORY` が表示される場合は、cleanup 完了とは言わず、それらを最終報告に含める。
 
-## Example Prompts
+## 使用例
 
 ```text
 $astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の変更用 task branch / worktree を作成し、branch 名と worktree パスを報告してください。
@@ -185,9 +185,9 @@ $astralrecord-git-worktree-develop を使って、並列実装後の E:\AstralRe
 $astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の現在の task worktree を finalize し、その後に不要な codex/* branch / task worktree の掃除が必要なら $astralrecord-prune-codex-worktrees に引き継いでください。
 ```
 
-## Report Format
+## 報告形式
 
-Write the result in Japanese.
+結果は日本語で記載する。
 
 ```markdown
 ## Git結果
@@ -213,7 +213,7 @@ Write the result in Japanese.
 - `rebase`: 成功 / 失敗 / 未実施
 - `develop merge`: 成功 / 失敗 / 未実施
 
-## Cleanup
+## Cleanup の結果
 - `worktree`: 削除 / 保持
 - `branch`: 削除 / 保持
 

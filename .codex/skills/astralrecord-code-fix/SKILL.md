@@ -3,116 +3,116 @@ name: astralrecord-code-fix
 description: astralrecord-code-review のレビュー結果に基づき AstralRecord モノレポのソースコード、実装データ、workspace skill を修正する。AR-CODE 指摘 ID からプラグイン/API/Web/DB/filebase/resourcepack/.codex skills の指摘を、レビュー結果を正として最小変更で解決したい場合に使う。
 ---
 
-# AstralRecord Code Fix
+# AstralRecord コード修正
 
-## Core Rule
+## 基本ルール
 
-Fix source code, implementation-adjacent data such as filebase/resourcepack assets, or workspace skill definitions based on a review result, then update any design documents in `00_docs/` whose described behavior is changed by those fixes. Do not invent new design intent. If a finding is marked `要確認` or `設計判断待ち`, leave it unresolved unless the user explicitly supplies the missing decision in the request.
+レビュー結果に基づき、ソースコード、filebase/resourcepack などの実装隣接データ、または workspace skill 定義を修正し、その修正によって記載内容が変わる `00_docs/` の設計書があれば更新する。新しい設計意図を作らない。指摘が `要確認` または `設計判断待ち` の場合は、依頼で不足している判断が明示されない限り未解決のまま残す。
 
-Use the review result as the authority for what to change. Follow the target project's documented coding rules (root guide, project `README.md` / `AGENTS.md`, `astralrecord-code/references/*`) when making the edits. Keep edits minimal — do not bundle unrelated refactors.
+何を変更するかはレビュー結果を正とする。編集時は対象プロジェクトの文書化されたコーディングルール（ルートガイド、プロジェクトの `README.md` / `AGENTS.md`、`astralrecord-code/references/*`）に従う。編集は最小限にし、無関係なリファクタリングを混在させない。
 
-Read `<task-root>\.codex\skills\_shared\review-record-format.md` completely before parsing or updating a saved review record. The canonical schema and updater are mandatory.
+保存済みレビュー記録を解析または更新する前に、`<task-root>\.codex\skills\_shared\review-record-format.md` を最後まで読む。正規スキーマと更新スクリプトは必須とする。
 
-This skill handles both implementation fixes and corresponding docs sync in one pass. Use `$astralrecord-docs-fix` only when the change is design-doc-only. New work without a review result belongs to `$astralrecord-code`, or `$skill-creator` for `.codex/skills`.
+この skill は、実装修正と対応する設計書同期を一度の作業で扱う。変更が設計書だけの場合に限り `$astralrecord-docs-fix` を使う。レビュー結果のない新規作業は `$astralrecord-code`、`.codex/skills` の場合は `$skill-creator` の対象とする。
 
-## Inputs
+## 入力
 
-Accept either:
+次のいずれかを受け付ける。
 
-- A code target path (file, feature directory, or project) plus a review result path or pasted review text.
-- A request that references review finding IDs already present in the conversation, such as `AR-CODE-001`.
+- コード対象パス（ファイル、feature ディレクトリ、またはプロジェクト）と、レビュー結果のパスまたは貼り付けたレビュー本文。
+- `AR-CODE-001` のように、会話中にすでに示されたレビュー指摘 ID を参照する依頼。
 
-If no review result or finding detail is available, ask for the review result before editing.
+レビュー結果または指摘の詳細がない場合は、編集前にレビュー結果を求める。
 
-## Required Context
+## 必須コンテキスト
 
-1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
-2. Identify the target project from the review result `対象範囲` / `確認した範囲` or from the absolute paths in each finding:
-   - `10_plugin/AstralRecord` → Minecraft Plugin (Java/Kotlin, Paper/Spigot, Maven)
-   - `10_plugin/AstralArchitect` → AI-assisted Minecraft building Plugin (Java/Paper/FAWE/Python)
-   - `20_api/AstralRecordApi` → REST API (ASP.NET Core, C#)
-   - `30_web/AstralRecordWeb` → Web (Razor Pages)
-   - `40_filebase/` → file-based master data (YAML/Markdown)
-   - `50_resourcepack/` → Minecraft Resource Pack (JSON/PNG)
-   - `00_docs/40_Database設計書/` → SQL Server schema docs
-   - `.codex/skills/` → Workspace skills (Markdown/Python/YAML)
-   - `60_tool/` → Workspace build/deploy/development tools (PowerShell/C#/TypeScript/BAT)
-3. Read documented rules for the target project before editing:
-   - Plugin: root `PLUGIN_GUIDE.md`, project `README.md` / `AGENTS.md`, and `astralrecord-code/references/plugin-code.md`.
-   - AstralArchitect: `10_plugin/AstralArchitect/AGENTS.md` and its linked project rules.
-   - API: root `API_GUIDE.md`, project `README.md` / `AGENTS.md`, and `astralrecord-code/references/api-code.md`.
-   - Web: root `README.md` "AstralRecord Web" section and `30_web/AstralRecordWeb/AGENTS.md`.
-   - Filebase / Resourcepack / Database: the corresponding section of root `README.md` and the area's `AGENTS.md` / `README.md`.
-   - Workspace skills: `.codex/skills/README.md`, the target `SKILL.md`, linked references/scripts, and `$skill-creator` instructions.
-   - Tools: `60_tool/README.md` and any local `AGENTS.md` or linked tool documentation.
-4. When a finding references a design document, read that design doc to understand the contract before editing the code.
-5. If the target project cannot be determined, stop and ask the project-selection question from the root `AGENTS.md`.
+1. `E:\AstralRecord-Workspace\AGENTS.md` を読む。
+2. レビュー結果の `対象範囲` / `確認した範囲`、または各指摘の絶対パスから対象プロジェクトを特定する。
+   - `10_plugin/AstralRecord` → Minecraft Plugin（Java/Kotlin、Paper/Spigot、Maven）
+   - `10_plugin/AstralArchitect` → AI 支援 Minecraft 建築 Plugin（Java/Paper/FAWE/Python）
+   - `20_api/AstralRecordApi` → REST API（ASP.NET Core、C#）
+   - `30_web/AstralRecordWeb` → Web（Razor Pages）
+   - `40_filebase/` → ファイルベースのマスターデータ（YAML/Markdown）
+   - `50_resourcepack/` → Minecraft Resource Pack（JSON/PNG）
+   - `00_docs/40_Database設計書/` → SQL Server スキーマ設計書
+   - `.codex/skills/` → Workspace skill（Markdown/Python/YAML）
+   - `60_tool/` → Workspace の build/deploy/development ツール（PowerShell/C#/TypeScript/BAT）
+3. 編集前に対象プロジェクトの文書化されたルールを読む。
+   - Plugin: ルートの `PLUGIN_GUIDE.md`、プロジェクトの `README.md` / `AGENTS.md`、`astralrecord-code/references/plugin-code.md`。
+   - AstralArchitect: `10_plugin/AstralArchitect/AGENTS.md` と、そこからリンクされたプロジェクトルール。
+   - API: ルートの `API_GUIDE.md`、プロジェクトの `README.md` / `AGENTS.md`、`astralrecord-code/references/api-code.md`。
+   - Web: ルート `README.md` の「AstralRecord Web」節と `30_web/AstralRecordWeb/AGENTS.md`。
+   - Filebase / Resourcepack / Database: ルート `README.md` の該当節と、対象領域の `AGENTS.md` / `README.md`。
+   - Workspace skill: `.codex/skills/README.md`、対象の `SKILL.md`、リンクされた references/scripts、`$skill-creator` の指示。
+   - Tools: `60_tool/README.md` と、対象にある `AGENTS.md` またはリンクされたツール文書。
+4. 指摘が設計書を参照する場合は、コード編集前にその設計書を読み、contract を理解する。
+5. 対象 project を特定できない場合は停止し、ルート `AGENTS.md` の project selection question を尋ねる。
 
-## Workflow
+## 手順
 
-1. Identify the code target path(s) and the review source.
-   - Resolve `<task-root>` with `git rev-parse --show-toplevel`.
-   - Require a dedicated non-`develop` task branch/worktree before editing code or the review record. If absent, use the integrated worktree flow instead of writing on `develop`.
-   - When the supplied record path is under `E:\AstralRecord-Workspace`, remap it to the same relative path under `<task-root>` and update only that worktree copy.
-   - If the supplied record is inside a different task worktree, stop and require the integrated review-fix entry to reuse that record's worktree. Never split fixes and the canonical record across branches.
-2. Parse the review result using the `astralrecord-code-review` report format:
+1. コード対象パスとレビュー元を特定する。
+   - `git rev-parse --show-toplevel` で `<task-root>` を解決する。
+   - コードまたはレビュー記録を編集する前に、`develop` ではない専用 task branch/worktree を必須とする。ない場合は `develop` に書き込まず、統合 worktree 手順を使う。
+   - 提供された記録パスが `E:\AstralRecord-Workspace` 配下なら、`<task-root>` 配下の同じ相対パスに読み替え、その worktree のコピーだけを更新する。
+   - 提供された記録が別の task worktree 内にある場合は停止し、その記録の worktree を再利用する統合 review-fix 入口を要求する。修正と正規記録を branch 間で分割しない。
+2. `astralrecord-code-review` の報告形式でレビュー結果を解析する。
    - `AR-CODE-*` finding IDs.
    - `種別`, `対象`, `関連箇所`, `根拠`, `問題`, `影響`, `修正方針`, `修正対象候補`, `修正可否`, `確信度`, `修正状態`.
-   - `修正スキル入力サマリ` (自動修正候補 / 要確認 / 推奨修正順 / 対象範囲) when present.
-3. Select findings to fix:
-   - Fix all `修正可否: 自動修正可` findings by default.
-   - If the user names specific IDs, fix only those IDs.
-   - Do not fix `要確認` or `設計判断待ち` findings unless the user provides the required decision.
-   - Honor `推奨修正順` when present so dependent fixes land in a coherent order.
-4. Read the minimum necessary code for each fix:
-   - The file at `対象` and its `関連箇所`.
-   - Call sites, tests, fixtures, and resource files that gate the behavior.
-   - Existing enums, IDs, repositories, DTOs, services, helpers, messages, and resource conventions to match local patterns.
-5. Apply the smallest code change that resolves the finding while preserving:
-   - Surrounding language, naming, package/layer structure, DI style, error handling, and test patterns.
-   - The project's documented coding rules.
-   - Unrelated behavior — no opportunistic refactors.
-6. After editing code, identify design documents that describe the changed behavior:
-   - Start from paths named in each finding's `関連箇所` / `根拠`.
-   - Also check `00_docs/10_Plugin設計書/feature/` (plugin), `00_docs/20_API設計書/` (API), and the relevant area docs for the target project.
-   - For each affected doc, apply the minimal edit that keeps it consistent with the fixed code: update method signatures, behavior descriptions, field definitions, or state diagrams as needed.
-   - Do not restructure documents beyond what the fix requires.
-7. After editing, re-read changed snippets and verify that each fixed finding is addressed.
-8. Verify:
-    - Run the narrowest meaningful build / test / static-analysis check for the touched project.
-    - For feature/behavior fixes, executable scripts, schemas/data contracts, workspace skill logic, multi-file fixes, or security/concurrency/data-integrity fixes, capture complete verification output including standard error and inspect warnings as well as the exit status. Resolve warnings introduced by the fix and rerun the same check. For a remaining warning, classify it as pre-existing (verify against current local `develop` when practical) or external/toolchain-originated, and report the command, warning summary, classification, and reason. Do not mark a finding fixed while a new unexplained warning or a fix-originated warning remains, unless the user explicitly approved its deferral.
-    - For Plugin source/resource fixes, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` and resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers before marking any finding fixed. Verify manually that reused IDs describe the actual operation.
-   - If a full build is too expensive or blocked, run targeted compile / test / lint checks and report what was not run.
-9. If the review source is a saved record under `<task-root>\00_docs\99_資料\レビュー結果`, update only fixed states and derived metadata with:
+    - `修正スキル入力サマリ`（自動修正候補 / 要確認 / 推奨修正順 / 対象範囲）がある場合はそれも読む。
+3. 修正対象の指摘を選ぶ。
+   - 既定では `修正可否: 自動修正可` の指摘をすべて修正する。
+   - ユーザーが特定の ID を指定した場合は、その ID だけを修正する。
+   - 必要な判断がユーザーから与えられない限り、`要確認` または `設計判断待ち` の指摘は修正しない。
+   - `推奨修正順` がある場合は、依存する修正が整合した順序で入るよう従う。
+4. 各修正に必要な最小限のコードを読む。
+   - `対象` とその `関連箇所` のファイル。
+   - 挙動を左右する呼び出し元、テスト、fixture、resource ファイル。
+   - 既存の enum、ID、repository、DTO、service、helper、message、resource の慣例。
+5. 指摘を解消する最小限のコード変更を、次を保ちながら適用する。
+   - 周辺の言語、命名、package/layer 構成、DI 方式、エラー処理、テストパターン。
+   - プロジェクトの文書化されたコーディングルール。
+   - 無関係な挙動。便乗したリファクタリングは行わない。
+6. コード編集後、変更された挙動を記載する設計書を特定する。
+   - 各指摘の `関連箇所` / `根拠` に記載されたパスから確認する。
+   - `00_docs/10_Plugin設計書/feature/`（plugin）、`00_docs/20_API設計書/`（API）、対象プロジェクトの関連領域の文書も確認する。
+   - 影響する各設計書に対し、修正後のコードと一致する最小限の編集を行う。必要に応じてメソッドシグネチャ、挙動説明、フィールド定義、状態図を更新する。
+   - 修正に必要な範囲を超えて設計書を再構成しない。
+7. 編集後、変更箇所を再読し、各修正対象の指摘が解消されていることを確認する。
+8. 検証する。
+    - 変更したプロジェクトに対して、意味のある最小限の build / test / static-analysis check を実行する。
+    - feature/behavior 修正、実行可能 script、schema/data contract、workspace skill logic、複数ファイル修正、security/concurrency/data-integrity 修正では、標準エラーを含む完全な検証出力を取得し、終了コードだけでなく警告も確認する。修正が原因の警告は解消して同じ check を再実行する。残った警告は既存（可能なら現在の local `develop` で確認）か外部/toolchain 起因かを分類し、command、警告概要、分類、理由を報告する。新規の未説明警告または修正起因の警告が残る指摘を修正済みとして扱わない。ただしユーザーが明示的に先送りを承認した場合を除く。
+    - Plugin の source/resource 修正では `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` を実行し、ID/property のずれ、重複 key、log placeholder の不一致、直接の logger/message 呼び出し、command message helper に渡された文字列リテラルを解消してから修正済みとする。再利用した ID の property 文言が実際の操作を表すことも手動確認する。
+   - full build が高コストまたはブロックされる場合は、対象を絞った compile / test / lint check を実行し、未実行のものを報告する。
+9. レビュー元が `<task-root>\00_docs\99_資料\レビュー結果` 配下の保存済み記録なら、修正済み状態と派生メタデータだけを次のコマンドで更新する。
 
 ```powershell
 python <task-root>\.codex\skills\_shared\scripts\update_review_record.py <record-path> --fixed <AR-CODE-IDs>
 ```
 
-   - Do not manually rename the record, rewrite metadata, delete finding fields, summarize finding text, reorder findings, or renumber IDs.
-   - Preserve its original timestamp, target path, and `code-review` skill name.
-   - Add `--resolve-question '<Q-CODE-ID>=<confirmed answer>'` once per question only when the answer was supplied or unambiguously confirmed; otherwise omit it and keep the question `未確認`.
-   - Validate the returned path again with `validate_review_record.py` and do not report the record update complete on failure.
+   - 記録の名前変更、メタデータの書き換え、指摘フィールドの削除、指摘本文の要約、指摘順の変更、ID の振り直しを手動で行わない。
+   - 元の timestamp、対象パス、`code-review` skill 名を保持する。
+   - 回答が提示済みまたは明確に確認できる場合だけ、質問ごとに一度 `--resolve-question '<Q-CODE-ID>=<confirmed answer>'` を追加する。それ以外は省略し、質問を `未確認` のまま残す。
+   - 返されたパスを `validate_review_record.py` で再検証し、失敗した場合は記録の更新完了を報告しない。
 
-## Editing Guardrails
+## 編集時の制約
 
-- Keep changes limited to code, implementation-adjacent data, workspace skill definitions, and directly-affected design documents under `00_docs/` unless a finding explicitly points elsewhere.
-- Design doc edits must be minimal and traceable to a fixed finding. Do not restructure, rewrite, or extend beyond what the code change requires.
-- Prefer fixing the authoritative location over duplicating fixes across multiple files.
-- Do not introduce new abstractions, helpers, or configuration toggles beyond what the finding requires.
-- Resolve `未確認/質問` (`Q-CODE-*`) only when the answer is already present in the review result, supplied by the user, or unambiguously confirmed from the required context. Otherwise leave them unresolved and list them in the report.
-- Do not change public APIs, command names, message IDs, log categories, table names, item IDs, or resource keys unless the finding explicitly requires it.
-- Preserve Japanese terminology and message wording already used in the project.
+- 変更は、指摘が明示的に別の場所を指していない限り、コード、実装隣接データ、workspace skill 定義、`00_docs/` 配下の直接影響する設計書に限定する。
+- 設計書の編集は修正済み指摘に追跡可能な最小限とする。コード変更に必要な範囲を超えて再構成・書き換え・拡張をしない。
+- 複数ファイルへ説明を重複させず、正本の場所を修正することを優先する。
+- 指摘が要求していない新しい抽象化、helper、設定 toggle を導入しない。
+- `未確認/質問`（`Q-CODE-*`）は、レビュー結果、ユーザーの指定、または必須コンテキストから明確に確認できる場合だけ解決する。それ以外は未解決のまま報告に残す。
+- 指摘が明示的に要求しない限り、public API、command 名、message ID、log category、table 名、item ID、resource key を変更しない。
+- プロジェクト内ですでに使われている日本語の用語と message 文言を維持する。
 
-## Out of Scope
+## 対象外
 
-- Design-doc-only changes outside `00_docs/40_Database設計書` → `$astralrecord-docs-fix`. SQL Server schema docs and workspace skill Markdown remain in this skill's implementation-artifact scope.
-- New work without a review result → `$astralrecord-code`, or `$skill-creator` for `.codex/skills`.
-- Large-scale refactors. Keep each fix minimal; defer structural redesign to a separate task.
+- `00_docs/40_Database設計書` 以外の設計書だけの変更 → `$astralrecord-docs-fix`。SQL Server schema docs と workspace skill Markdown はこの skill の実装成果物範囲に含む。
+- レビュー結果のない新規作業 → `$astralrecord-code`、`.codex/skills` の場合は `$skill-creator`。
+- 大規模リファクタリング。各修正を最小限にし、構造的な再設計は別タスクへ分離する。
 
-## Report Format
+## 報告形式
 
-Write the result in Japanese.
+結果は日本語で記載する。
 
 ```markdown
 ## 修正結果
@@ -141,7 +141,7 @@ Write the result in Japanese.
 - なし / <追加のdocs整備や設計判断が必要な項目>
 ```
 
-## Extension Points
+## 拡張ポイント
 
 プロジェクト固有の修正観点が増えたら、本文に詰め込まず `references/` に追加する。命名規則:
 

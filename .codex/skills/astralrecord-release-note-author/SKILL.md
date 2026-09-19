@@ -3,11 +3,11 @@ name: astralrecord-release-note-author
 description: 開始・終了コミットの変更内容、指定されたお知らせ内容、またはその両方から、AstralRecordのプレイヤー向けリリースノートMarkdownだけを作成する。リリースノート作成時に使用し、commit・push・デプロイは行わない。
 ---
 
-# AstralRecord Release Note Author
+# AstralRecord リリースノート作成
 
 開始コミットから終了コミットまでの変更、ユーザーが指定したお知らせ内容、またはその両方をプレイヤー向けに整理し、`00_docs/70_リリースノート/` に下書きMarkdownを1件だけ作成する。
 
-## Invocation
+## 呼び出し形式
 
 このスキルは、用途に応じて次のいずれかの形式で引数を受け取る。既存の変更範囲形式はそのまま使用できる。
 
@@ -52,14 +52,14 @@ $astralrecord-release-note-author <開始コミット> <終了コミット> <リ
 
 入力形式が正しくても開始コミットが終了コミットの祖先でない場合は、作成を停止し、理由と上の正しい入力形式を返す。
 
-## Scope
+## 対象範囲
 
 - 作成対象は `00_docs/70_リリースノート/` 配下のリリースノートMarkdown 1件だけ。
 - commit、stage、push、branch/worktreeの作成・切替、merge、デプロイは行わない。
 - 既存の未コミット差分を変更・削除・stageしない。作成先ファイルが既に存在する場合は上書きせず、別の一意なファイル名にする。
 - 公開・Discord通知は行わない。作成物は必ず `status: draft` と `notifyDiscord: false` にする。
 
-## Workflow
+## 手順
 
 1. 3つの入力形式のどれに該当するかを判定し、リリースノートバージョンと、指定されている場合はお知らせ内容を検証する。
 2. 開始・終了コミットを使う形式だけ、`git rev-parse --verify <ref>^{commit}` で両参照をcommit SHAへ解決し、`git merge-base --is-ancestor <開始SHA> <終了SHA>` で範囲の妥当性を確認する。
@@ -85,7 +85,7 @@ notifyDiscord: false
 
 10. 作成後にMDを再読込して、front matterの必須7項目、`status: draft`、`notifyDiscord: false`、slug形式、作成先の一意性を確認する。お知らせ内容が指定されている場合は、重要な情報が本文へ反映されていることも照合する。最後に `git diff --check -- <作成ファイル>` を実行し、検証に失敗した場合は公開・commitを行わず、問題を報告する。
 
-## Required result
+## 必須の結果
 
 成功時は、作成したMDの絶対パスと、作成したリリースノートMDだけを後でコミットするための**推奨コミットメッセージ**を必ず出力する。リリースノートMDの追加はドキュメント変更なので、`feat` ではなく `docs` を使う。
 

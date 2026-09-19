@@ -1,86 +1,86 @@
-# Plugin Design Docs Reference
+# Plugin 設計書 reference
 
-Use this reference for paths under `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書`.
+`E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` 配下の path にはこの reference を使う。
 
-## Required Context
+## 必須コンテキスト
 
-Before reviewing a feature, read:
+feature をレビューする前に次を読む。
 
-- `00_docs/10_Plugin設計書/README.md`.
-- `00_docs/10_Plugin設計書/FEATURE_CATALOG.md` when implementation ownership matters.
-- the target feature overview, such as `feature/01-user/01_0-概要.md`.
-- model, use-case, method-contract, flow, operation, planned-specification, and unresolved-decision docs relevant to the reviewed behavior.
+- `00_docs/10_Plugin設計書/README.md`。
+- 実装 ownership が関係する場合は `00_docs/10_Plugin設計書/FEATURE_CATALOG.md`。
+- `feature/01-user/01_0-概要.md` のような対象 feature 概要。
+- レビュー対象の挙動に関係する model、use-case、method-contract、flow、operation、planned-specification、未決事項の設計書。
 
-Follow both Wiki links and relative Markdown links when they define terms, models, methods, flows, dependencies, or unresolved items. Do not inspect implementation paths while running a docs-only review; paths in `FEATURE_CATALOG.md` are ownership labels only.
+用語、model、method、flow、dependency、未決事項を定義する場合は Wiki link と相対 Markdown link の両方をたどる。docs-only review 中は実装 path を inspection しない。`FEATURE_CATALOG.md` の path は ownership label としてだけ扱う。
 
-## Structure Rules To Check
+## 確認する構造ルール
 
-Use the root design README as the source of truth. Current expected structure:
+ルート設計 README を正本とする。現在想定する構造は次のとおり。
 
-- Feature directory: `2-digit-number-feature-name`, for example `01-user`.
-- Required feature entry point: `<feature-number>_0-概要.md` directly under the feature directory.
-- No feature-level `<feature-number>_README.md`.
-- Optional categories:
-  - `1`: model definitions.
-  - `2`: use cases.
-  - `3`: method specifications and processing contracts.
-  - `4`: integration flows.
-  - `5`: exceptions, logs, and operations.
-  - `6`: development and extension guides.
-  - `8`: accepted but unimplemented specifications.
-  - `9`: unresolved decisions only.
-- Markdown file name: `<feature-number>_<category-number>-<meaningful-name>.md`.
-- A category with one Markdown file is flattened into the feature directory.
-- A category directory is used only when it contains multiple Markdown files.
-- H1 matches the file name without `.md`.
-- File names are unique across the Plugin design-doc tree and do not use brackets or spaces.
-- Wiki links and relative Markdown links are both valid. A pathless Wiki link must resolve uniquely.
-- Empty category directories, empty unresolved-decision docs, and detail-number names such as `.00` or `.01` are not valid.
+- feature directory: `2-digit-number-feature-name`。例: `01-user`。
+- 必須の feature entry point: feature directory 直下の `<feature-number>_0-概要.md`。
+- feature level の `<feature-number>_README.md` は置かない。
+- 任意の category:
+  - `1`: model 定義。
+  - `2`: use case。
+  - `3`: method 仕様と処理 contract。
+  - `4`: integration flow。
+  - `5`: exception、log、operation。
+  - `6`: development と extension の guide。
+  - `8`: 受け入れ済みだが未実装の仕様。
+  - `9`: 未決の判断だけ。
+- Markdown の file name: `<feature-number>_<category-number>-<meaningful-name>.md`。
+- Markdown file が1つだけの category は feature directory に flat に置く。
+- category directory は複数の Markdown file を含む場合だけ使う。
+- H1 は `.md` を除いた file name と一致させる。
+- file name は Plugin 設計書 tree 全体で一意にし、bracket や space を使わない。
+- Wiki link と相対 Markdown link はどちらも有効。path のない Wiki link は一意に解決できなければならない。
+- 空の category directory、空の未決事項設計書、`.00` や `.01` のような detail-number name は無効。
 
-## Feature Overview Rules
+## Feature 概要のルール
 
-The feature overview is the navigation and responsibility entry point. Review whether it contains the information needed for the feature rather than requiring fixed headings:
+feature 概要は navigation と責務の entry point である。固定見出しを要求するのではなく、feature に必要な情報が含まれるかをレビューする。
 
-- purpose, responsibilities, and non-goals.
-- major boundaries and invariants.
-- dependent features and cross-feature contracts.
-- related data, settings, and authoritative sources.
-- links to the design docs needed to understand the feature.
-- feature-specific change impact only when it adds value beyond the root rules.
+- 目的、責務、対象外。
+- 主要な境界と不変条件。
+- 依存する feature と cross-feature contract。
+- 関連 data、setting、正本となる source。
+- feature を理解するために必要な設計書への link。
+- root rule を超える価値がある場合だけ feature 固有の変更影響。
 
-Implementation ownership paths belong in `FEATURE_CATALOG.md`, not in a duplicated per-feature table of contents.
+実装 ownership path は `FEATURE_CATALOG.md` に置き、feature ごとに重複した table of contents には置かない。
 
-## Method Contract Rules To Check
+## 確認する Method contract ルール
 
-For category `3` docs:
+category `3` の設計書では次を確認する。
 
-- Focus on externally meaningful or cross-feature contracts, not a complete method inventory.
-- Require the inputs, outputs, preconditions, rejection conditions, important decisions, delegation, state changes, persistence/thread boundaries, and failure behavior that are relevant to the documented contract.
-- Class names, physical method names, and event names are optional. When present, they must be internally consistent with the design being reviewed, but a clear table or grouped contract is not defective merely because fixed labels are absent.
-- Logical names should remain understandable Japanese noun phrases where practical.
-- Cross-file references may use Wiki links or relative Markdown links.
-- Logs/messages should identify the ID, level/type, trigger, arguments, meaning, and operational response as needed. Do not require a full message template when a properties file is the documented source of truth.
+- 完全な method 一覧ではなく、外部から意味のある contract または cross-feature contract に焦点を当てる。
+- 文書化された contract に関係する input、output、precondition、rejection condition、重要な判断、delegation、state change、persistence/thread boundary、failure behavior を必須とする。
+- class name、物理的な method name、event name は任意。記載する場合はレビュー対象の設計と内部整合させる。ただし固定 label がなくても明確な table または grouped contract は欠陥ではない。
+- 論理名は、可能な範囲で理解しやすい日本語の名詞句にする。
+- file 間 reference には Wiki link または相対 Markdown link を使える。
+- log/message には必要に応じて ID、level/type、trigger、argument、意味、運用上の対応を示す。properties file が正本として文書化されている場合、完全な message template は要求しない。
 
-## Integration Flow Rules To Check
+## 確認する Integration flow ルール
 
-- Require an integration-flow document only when the behavior crosses components or cannot be understood from local contracts alone.
-- Mermaid is required only when a diagram materially clarifies participants, branching, asynchronous work, compensation, or state transitions.
-- A simple flow may use prose or a table.
-- When a diagram is present, check that its labels and sequence agree with the surrounding design.
+- 挙動が component をまたぐ、または local contract だけでは理解できない場合だけ integration-flow document を要求する。
+- Mermaid は participant、分岐、非同期処理、compensation、state transition を図で示すことが実質的に明確化する場合だけ必須とする。
+- 単純な flow は prose または table でよい。
+- 図がある場合は、label と sequence が周辺の設計と一致するか確認する。
 
-## Design Review Focus
+## 設計レビューの重点
 
-Prioritize design-level issues:
+設計レベルの問題を優先する。
 
-- Does the flow match the method contracts and the feature overview?
-- Are model fields sufficient for the stated use cases and lifecycle?
-- Are responsibilities divided cleanly between event, command, service, repository, cache/session, task, adapter/listener, and operation docs?
-- Are cross-feature calls explicit enough to know ownership and dependency direction?
-- Are failure paths, null/not-found behavior, retries, logging, player-facing messages, and operational response documented where needed?
-- Are state transitions clear for login/logout, cache/session, save timing, cooldowns, buffs/status effects, item ownership, loot grants, and other gameplay lifecycles?
-- Are current behavior, accepted future work, and unresolved decisions clearly separated?
-- Does documentation avoid duplicating authoritative implementation paths and message templates?
+- flow は method contract と feature 概要に一致しているか。
+- model field は記載された use case と lifecycle に十分か。
+- event、command、service、repository、cache/session、task、adapter/listener、operation docs の責務はきれいに分かれているか。
+- cross-feature call は ownership と dependency direction が分かるほど明示されているか。
+- failure path、null/not-found behavior、retry、logging、player 向け message、運用上の対応が必要な場所に記載されているか。
+- login/logout、cache/session、save timing、cooldown、buff/status effect、item ownership、loot grant、その他 gameplay lifecycle の state transition は明確か。
+- current behavior、受け入れた将来作業、未決の判断が明確に分かれているか。
+- 文書が正本となる実装 path や message template を重複させていないか。
 
-## When Intent Is Missing
+## 意図が不足している場合
 
-Gather intent from the overview, use cases, flow diagrams, category `8`, category `9`, and related feature docs. If the intended behavior still cannot be determined, report it as `未確認/質問` with the exact decision needed rather than forcing a defect.
+概要、use case、flow diagram、category `8`、category `9`、関連 feature docs から意図を集める。それでも意図した挙動を決められない場合は、無理に欠陥とせず、必要な判断を具体的に示した `未確認/質問` として報告する。
