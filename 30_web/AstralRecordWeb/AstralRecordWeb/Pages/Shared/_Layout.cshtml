@@ -87,7 +87,7 @@
                     <a asp-page="/Market/Index"><span>マーケット</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Logout" data-logout-open><span>ログアウト</span><span aria-hidden="true">↗</span></a>
                 </nav>
-                var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminOnly");
+                var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminVisible");
                 @if (webAdminAuthorization.Succeeded)
                 {
                     <nav class="ar-menu-section ar-menu-admin" aria-label="管理者専用">

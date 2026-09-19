@@ -79,6 +79,11 @@ builder.Services
     });
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("WebAdminVisible", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.Requirements.Add(new WebAdminRequirement(requireRecentCode: false));
+    });
     options.AddPolicy("WebAdminOnly", policy =>
     {
         policy.RequireAuthenticatedUser();

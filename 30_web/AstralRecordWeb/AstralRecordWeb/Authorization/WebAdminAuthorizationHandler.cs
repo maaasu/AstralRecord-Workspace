@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace AstralRecordWeb.Authorization;
 
-/// <summary>ManagementDB の Web 管理フラグで管理画面の利用可否を判定します。</summary>
+/// <summary>ManagementDB の Web 管理フラグと本人確認状態で管理機能の可否を判定します。</summary>
 public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClient, TimeProvider clock)
     : AuthorizationHandler<WebAdminRequirement>
 {
@@ -17,7 +17,7 @@ public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClie
             return;
 
         if (!await webAuthApiClient.IsWebAdminAsync(userUuid, CancellationToken.None)) return;
-        if (WebSession.RecentCodeTime(context.User, clock).HasValue)
+        if (!requirement.RequireRecentCode || WebSession.RecentCodeTime(context.User, clock).HasValue)
             context.Succeed(requirement);
         else if (context.Resource is HttpContext httpContext)
             httpContext.Items[WebSession.NeedsCodeItem] = true;
@@ -25,4 +25,7 @@ public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClie
 }
 
 /// <summary>Web 管理者であることを要求します。</summary>
-public sealed class WebAdminRequirement : IAuthorizationRequirement;
+public sealed class WebAdminRequirement(bool requireRecentCode = true) : IAuthorizationRequirement
+{
+    public bool RequireRecentCode { get; } = requireRecentCode;
+}

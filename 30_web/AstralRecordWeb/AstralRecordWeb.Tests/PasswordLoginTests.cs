@@ -25,6 +25,8 @@ public sealed class PasswordLoginTests
         var body = WebUtility.HtmlDecode(await client.GetStringAsync("/LoginSettings"));
         Assert.Contains(api.LoginId, body);
         Assert.DoesNotContain("Minecraftで本人確認済み", body);
+        Assert.Contains("管理者専用", body);
+        Assert.Contains("/Admin/Items", body);
         using var denied = await client.GetAsync("/Admin/Items");
         Assert.Equal("/Reauthenticate", denied.Headers.Location?.OriginalString.Split('?')[0]);
 
@@ -37,6 +39,36 @@ public sealed class PasswordLoginTests
         clock.Now = clock.Now.AddMinutes(6);
         using var expired = await client.GetAsync("/Admin/Items");
         Assert.StartsWith("/Reauthenticate?", expired.Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task PasswordLogin_NonWebAdminDoesNotShowAdminMenu()
+    {
+        var api = new AuthHandler { WebAdmin = false };
+        await using var factory = new AuthFactory(api, new());
+        using var client = Client(factory);
+        await Login(client, password: true);
+
+        var body = WebUtility.HtmlDecode(await client.GetStringAsync("/LoginSettings"));
+
+        Assert.DoesNotContain("管理者専用", body);
+        Assert.DoesNotContain("/Admin/Items", body);
+        Assert.True(api.AuthorizationCalls > 0);
+    }
+
+    [Fact]
+    public async Task PasswordLogin_AuthorizationApiFailureDoesNotShowAdminMenu()
+    {
+        var api = new AuthHandler { AuthorizationStatusCode = HttpStatusCode.InternalServerError };
+        await using var factory = new AuthFactory(api, new());
+        using var client = Client(factory);
+        await Login(client, password: true);
+
+        var body = WebUtility.HtmlDecode(await client.GetStringAsync("/LoginSettings"));
+
+        Assert.DoesNotContain("管理者専用", body);
+        Assert.DoesNotContain("/Admin/Items", body);
+        Assert.True(api.AuthorizationCalls > 0);
     }
 
     [Fact]
@@ -213,7 +245,10 @@ public sealed class PasswordLoginTests
         public bool RejectUpdate { get; set; }
         public bool FailState { get; set; }
         public bool RejectLogin { get; set; }
+        public bool WebAdmin { get; set; } = true;
+        public HttpStatusCode AuthorizationStatusCode { get; set; } = HttpStatusCode.OK;
         public int Logins { get; private set; }
+        public int AuthorizationCalls { get; private set; }
         public int Updates { get; private set; }
         public Guid? LastExpectedUuid { get; private set; }
         public Guid LastUpdateUuid { get; private set; }
@@ -247,7 +282,13 @@ public sealed class PasswordLoginTests
                 }
                 return Json(new WebCredentialState { SessionVersion = Version, LoginId = LoginId, Enabled = Enabled, CodeAuthenticationProof = request.Method == HttpMethod.Post ? LastUpdate?.CodeAuthenticationProof : null, CodeAuthenticatedAt = request.Method == HttpMethod.Post && LastUpdate?.CodeAuthenticationProof is not null ? codeAuthenticatedAt : null });
             }
-            if (path.EndsWith("/authorization")) return Json(new { webAdmin = true });
+            if (path.EndsWith("/authorization"))
+            {
+                AuthorizationCalls++;
+                return AuthorizationStatusCode == HttpStatusCode.OK
+                    ? Json(new { webAdmin = WebAdmin })
+                    : new HttpResponseMessage(AuthorizationStatusCode);
+            }
             if (path == "/api/item") return Json(Array.Empty<object>());
             return new(HttpStatusCode.NotFound);
         }
