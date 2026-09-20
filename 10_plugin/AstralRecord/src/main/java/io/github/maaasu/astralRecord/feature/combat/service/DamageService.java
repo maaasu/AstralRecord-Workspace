@@ -421,7 +421,7 @@ public final class DamageService {
             return;
         }
 
-        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
+        if (isInvulnerable(victim)) {
             return;
         }
 
@@ -754,7 +754,7 @@ public final class DamageService {
         if (victim.isPlayer() && isPlayerDead(victim.id())) {
             return new DamageResult(0.0D);
         }
-        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
+        if (isInvulnerable(victim)) {
             return new DamageResult(0.0D);
         }
 
@@ -998,7 +998,7 @@ public final class DamageService {
         if (victim.isPlayer() && isPlayerDead(victim.id())) {
             return new DamageResult(0.0D);
         }
-        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
+        if (isInvulnerable(victim)) {
             return new DamageResult(0.0D);
         }
         if (conditionService != null && conditionService.isDamageImmune(victim)) {
@@ -1144,7 +1144,9 @@ public final class DamageService {
             double damage,
             @NotNull AttackType attackType
     ) {
-        if (!(damage > 0.0D) || isPlayerDead(protector.getBukkit().getUniqueId())) {
+        if (!(damage > 0.0D)
+                || isPlayerDead(protector.getBukkit().getUniqueId())
+                || protector.getBukkit().isInvulnerable()) {
             return;
         }
         AstEntity target = AstEntity.player(protector);
@@ -2167,6 +2169,13 @@ public final class DamageService {
 
     private @Nullable Entity resolveBukkitEntity(@Nullable UUID entityId) {
         return entityId == null ? null : Bukkit.getEntity(entityId);
+    }
+
+    private boolean isInvulnerable(@NotNull AstEntity victim) {
+        if (victim.isPlayer() && victim.player() != null) {
+            return victim.player().getBukkit().isInvulnerable();
+        }
+        return victim.isMob() && victim.mob() != null && victim.mob().damageImmune();
     }
 
     private boolean isPlayerDead(@NotNull UUID playerId) {

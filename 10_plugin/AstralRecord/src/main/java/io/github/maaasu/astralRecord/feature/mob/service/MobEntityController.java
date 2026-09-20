@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -86,6 +87,7 @@ public class MobEntityController {
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
 
     /**
      * コントローラを初期化します。
@@ -95,6 +97,15 @@ public class MobEntityController {
     public MobEntityController(@NotNull Plugin plugin) {
         this.instanceIdKey = new NamespacedKey(plugin, "mob_instance_id");
         this.templateIdKey = new NamespacedKey(plugin, "mob_template_id");
+    }
+
+    /**
+     * Mob の無敵状態を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
     }
 
     /**
@@ -205,7 +216,7 @@ public class MobEntityController {
         MobTemplate template = instance.template();
         armorStand.setPersistent(false);
         armorStand.setGravity(false);
-        armorStand.setInvulnerable(template.damageImmune());
+        configureInvulnerability(armorStand, template.damageImmune());
         armorStand.setCollidable(false);
         armorStand.setSilent(true);
         armorStand.customName(null);
@@ -299,7 +310,7 @@ public class MobEntityController {
         MobTemplate template = instance.template();
         interaction.setPersistent(false);
         interaction.setGravity(false);
-        interaction.setInvulnerable(template.damageImmune());
+        configureInvulnerability(interaction, template.damageImmune());
         interaction.setSilent(true);
         interaction.customName(null);
         interaction.setCustomNameVisible(false);
@@ -315,7 +326,7 @@ public class MobEntityController {
         Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
-        display.setInvulnerable(template.damageImmune());
+        configureInvulnerability(display, template.damageImmune());
         display.setSilent(true);
         display.customName(null);
         display.setCustomNameVisible(false);
@@ -336,7 +347,7 @@ public class MobEntityController {
         Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
-        display.setInvulnerable(template.damageImmune());
+        configureInvulnerability(display, template.damageImmune());
         display.setSilent(true);
         display.customName(null);
         display.setCustomNameVisible(false);
@@ -366,7 +377,7 @@ public class MobEntityController {
         mob.setAI(true);
         mob.setAware(true);
         disablePiglinZombification(mob);
-        mob.setInvulnerable(instance.damageImmune());
+        configureInvulnerability(mob, instance.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
         mob.setCanPickupItems(false);
@@ -385,6 +396,13 @@ public class MobEntityController {
         mob.getPathfinder().setCanPassDoors(true);
         mob.getPathfinder().setCanFloat(true);
         applyStationaryNpcAttributes(template, mob);
+    }
+
+    private void configureInvulnerability(@NotNull Entity entity, boolean invulnerable) {
+        entity.setInvulnerable(invulnerable);
+        if (invulnerable && invulnerabilityVisualService != null) {
+            invulnerabilityVisualService.observe(entity);
+        }
     }
 
     /**

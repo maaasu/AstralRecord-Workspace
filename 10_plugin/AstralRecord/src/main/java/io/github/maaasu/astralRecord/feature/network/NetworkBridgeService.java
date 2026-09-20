@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -33,6 +34,7 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -55,6 +57,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     private final NetworkChannelAccessService channelAccessService = NetworkChannelAccessService.getInstance();
     private final AtomicBoolean authorityRefreshRunning = new AtomicBoolean();
     private final AtomicBoolean authorityWarningLogged = new AtomicBoolean();
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private BukkitTask metadataTask;
     private BukkitTask authorityTask;
 
@@ -73,6 +76,15 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         this.enabled = plugin.getConfig().getBoolean("network.enabled", true);
         this.channelName = plugin.getConfig().getString("network.channelName", "dev");
         this.lobbyServer = plugin.getConfig().getString("network.lobbyServer", "lobby");
+    }
+
+    /**
+     * チャンネル転送中のプレイヤー無敵を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
     }
 
     public void start() {
@@ -214,7 +226,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             tradeService.cancelRelatedSessions(bukkit);
         }
         bukkit.closeInventory();
-        bukkit.setInvulnerable(true);
+        setPlayerInvulnerable(bukkit, true);
         CompletableFuture<Boolean> playerStateSave;
         CompletableFuture<Void> questStateSave;
         try {
@@ -222,7 +234,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             questStateSave = questService.flushState(player.getAccount().getUuid());
         } catch (RuntimeException failure) {
             releaseTransfer(playerId);
-            bukkit.setInvulnerable(false);
+            setPlayerInvulnerable(bukkit, false);
             PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7153);
             return;
         }
@@ -235,7 +247,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
                 }
                 if (failure != null || !Boolean.TRUE.equals(playerStateSave.getNow(false))) {
                     releaseTransfer(playerId);
-                    bukkit.setInvulnerable(false);
+                    setPlayerInvulnerable(bukkit, false);
                     PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7153);
                     return;
                 }
@@ -243,7 +255,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
                     BackendProtocol.sendConnect(plugin, bukkit, targetServer);
                 } catch (RuntimeException connectFailure) {
                     releaseTransfer(playerId);
-                    bukkit.setInvulnerable(false);
+                    setPlayerInvulnerable(bukkit, false);
                     PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7154);
                     return;
                 }
@@ -251,7 +263,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
                     boolean stillPending = transfers.contains(playerId);
                     releaseTransfer(playerId);
                     if (bukkit.isOnline() && stillPending) {
-                        bukkit.setInvulnerable(false);
+                        setPlayerInvulnerable(bukkit, false);
                         PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7154);
                     }
                 }, 100L);
@@ -353,6 +365,14 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     private void releaseTransfer(@NotNull UUID playerId) {
         transfers.remove(playerId);
         transitionGuard.end(playerId, PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER);
+    }
+
+    private void setPlayerInvulnerable(@NotNull Player player, boolean value) {
+        if (invulnerabilityVisualService == null) {
+            player.setInvulnerable(value);
+        } else {
+            invulnerabilityVisualService.setInvulnerable(player, value);
+        }
     }
 
     private void publishMetadata(@NotNull AstPlayer player) {

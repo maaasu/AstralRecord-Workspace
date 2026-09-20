@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -54,6 +55,7 @@ public final class PlayerDeathService {
     private final String joinSpawnWorldId;
     private final Map<UUID, DeathState> deaths = new ConcurrentHashMap<>();
     private Consumer<UUID> deathStartedListener = ignored -> { };
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private BukkitTask task;
 
     /**
@@ -83,6 +85,15 @@ public final class PlayerDeathService {
         this.worldService = worldService;
         this.displayTextService = displayTextService;
         this.joinSpawnWorldId = joinSpawnWorldId;
+    }
+
+    /**
+     * 死亡中プレイヤーの無敵状態を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
     }
 
     /**
@@ -260,7 +271,7 @@ public final class PlayerDeathService {
         if (state != null) {
             destroyVisuals(state);
         }
-        player.setInvulnerable(false);
+        setPlayerInvulnerable(player, false);
         showToOtherPlayers(player);
         player.resetTitle();
     }
@@ -289,7 +300,7 @@ public final class PlayerDeathService {
         } else if (player.getLocation().distanceSquared(state.deathLocation()) > 0.01D) {
             PlayerTeleportService.teleport(player, state.deathLocation());
         }
-        player.setInvulnerable(true);
+        setPlayerInvulnerable(player, true);
         hideFromOtherPlayers(player);
         spawnVisuals(player, state);
         showCountdownTitle(player, state.remainingSeconds(System.currentTimeMillis()));
@@ -308,7 +319,7 @@ public final class PlayerDeathService {
             return;
         }
         destroyVisuals(state);
-        player.setInvulnerable(false);
+        setPlayerInvulnerable(player, false);
         statusService.restoreAll(astPlayer, HealthRecoveryContext.self("死亡復帰"));
         showToOtherPlayers(player);
         player.resetTitle();
@@ -329,6 +340,14 @@ public final class PlayerDeathService {
             return;
         }
         worldService.teleportToSpawnAsync(player, worldData);
+    }
+
+    private void setPlayerInvulnerable(@NotNull Player player, boolean value) {
+        if (invulnerabilityVisualService == null) {
+            player.setInvulnerable(value);
+        } else {
+            invulnerabilityVisualService.setInvulnerable(player, value);
+        }
     }
 
     private void removeFromMobCombat(@NotNull UUID playerId) {

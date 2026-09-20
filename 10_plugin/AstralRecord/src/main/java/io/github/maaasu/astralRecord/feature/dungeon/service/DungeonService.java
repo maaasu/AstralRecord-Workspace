@@ -72,6 +72,7 @@ import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
@@ -126,6 +127,7 @@ public final class DungeonService {
     }
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
+    private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.FIVE_SECONDS_TICKS;
     private static final long BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS = 1L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
@@ -169,6 +171,7 @@ public final class DungeonService {
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
 
@@ -475,6 +478,15 @@ public final class DungeonService {
      */
     public void setAfkService(@NotNull AfkService afkService) {
         this.afkService = afkService;
+    }
+
+    /**
+     * ダンジョン部屋入室時のプレイヤー無敵を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
     }
 
     /**
@@ -1472,6 +1484,9 @@ public final class DungeonService {
             session.currentRoomByParticipant.put(player.getUniqueId(), currentRoomId);
         }
         if (!java.util.Objects.equals(previousRoomId, currentRoomId)) {
+            if (currentRoomId != null) {
+                grantRoomEntryInvulnerability(player);
+            }
             refreshOpenMaps(session);
         }
         for (DungeonLayout.Room room : session.layout.rooms()) {
@@ -1479,6 +1494,25 @@ public final class DungeonService {
                 activateRoom(session, room.id());
                 return;
             }
+        }
+    }
+
+    private void grantRoomEntryInvulnerability(@NotNull Player player) {
+        if (invulnerabilityVisualService != null) {
+            invulnerabilityVisualService.grantTemporary(
+                    player,
+                    PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS
+            );
+            return;
+        }
+        boolean wasInvulnerable = player.isInvulnerable();
+        player.setInvulnerable(true);
+        if (!wasInvulnerable) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    player.setInvulnerable(false);
+                }
+            }, PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS);
         }
     }
 
@@ -1754,6 +1788,7 @@ public final class DungeonService {
                 if (failure == null && Boolean.TRUE.equals(success)
                         && canRunActiveRoomEntry(session, player, roomId)) {
                     session.currentRoomByParticipant.put(playerId, roomId);
+                    grantRoomEntryInvulnerability(player);
                     refreshOpenMaps(session);
                 }
             }));

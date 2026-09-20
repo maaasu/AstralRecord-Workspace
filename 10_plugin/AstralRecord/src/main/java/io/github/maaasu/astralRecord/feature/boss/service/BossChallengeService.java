@@ -43,6 +43,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
@@ -88,6 +89,7 @@ public final class BossChallengeService {
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
+    private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = InvulnerabilityVisualService.FIVE_SECONDS_TICKS;
     private static final int ENTRY_RING_POINTS = 10;
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
@@ -111,6 +113,7 @@ public final class BossChallengeService {
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
@@ -245,6 +248,15 @@ public final class BossChallengeService {
         this.challengeParticipationRegistry = challengeParticipationRegistry;
         this.arrivalGuard = arrivalGuard;
         this.hubWorldId = hubWorldId;
+    }
+
+    /**
+     * ボス生成時の参加者無敵を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
     }
 
     /**
@@ -1355,6 +1367,7 @@ public final class BossChallengeService {
                 return;
             }
             applyParticipantScaling(challenge, boss);
+            grantParticipantInvulnerability(challenge);
 
             challenge.bossMobInstanceId(boss.instanceId());
             challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
@@ -1378,6 +1391,27 @@ public final class BossChallengeService {
             endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
         } finally {
             fieldInstanceService.releaseStartupChunkTickets(challenge.challengeId());
+        }
+    }
+
+    private void grantParticipantInvulnerability(@NotNull BossChallengeInstance challenge) {
+        for (Player player : participantsInField(challenge)) {
+            if (invulnerabilityVisualService != null) {
+                invulnerabilityVisualService.grantTemporary(
+                        player,
+                        PLAYER_RESPAWN_INVULNERABILITY_TICKS
+                );
+                continue;
+            }
+            boolean wasInvulnerable = player.isInvulnerable();
+            player.setInvulnerable(true);
+            if (!wasInvulnerable) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.setInvulnerable(false);
+                    }
+                }, PLAYER_RESPAWN_INVULNERABILITY_TICKS);
+            }
         }
     }
 

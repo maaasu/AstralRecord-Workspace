@@ -343,6 +343,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegi
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHandler;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
 import org.bukkit.inventory.EquipmentSlot;
@@ -390,6 +391,7 @@ public final class AstralRecord extends JavaPlugin {
     private AirActionService airActionService;
     private PlayerHudService playerHudService;
     private PlayerDeathService playerDeathService;
+    private InvulnerabilityVisualService invulnerabilityVisualService;
     private ResourcePackService resourcePackService;
     private GuideService guideService;
     private GuideActionService guideActionService;
@@ -536,7 +538,9 @@ public final class AstralRecord extends JavaPlugin {
         adminWorldTeleportItemService = new AdminWorldTeleportItemService();
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
+        invulnerabilityVisualService = new InvulnerabilityVisualService(this);
         mobService = new MobService(this, new MobRepository());
+        mobService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
         trainingDummyGui = new TrainingDummyGui();
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
@@ -747,6 +751,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (playerDeathService != null) {
             playerDeathService.stop();
+        }
+        if (invulnerabilityVisualService != null) {
+            invulnerabilityVisualService.stop();
         }
         if (conditionTickTask != null) {
             conditionTickTask.stop();
@@ -1238,6 +1245,7 @@ public final class AstralRecord extends JavaPlugin {
             displayTextService,
             joinSpawnWorldId
         );
+        playerDeathService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         mobCombatService.setPlayerDeathService(playerDeathService);
         damageService = new DamageService(
             statusService,
@@ -1308,6 +1316,7 @@ public final class AstralRecord extends JavaPlugin {
             challengeParticipationRegistry,
             arrivalGuard
         );
+        bossChallengeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
             this,
@@ -1331,6 +1340,7 @@ public final class AstralRecord extends JavaPlugin {
             challengeParticipationRegistry,
             arrivalGuard
         );
+        dungeonService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         dungeonService.setAfkService(afkService);
         dungeonService.setClearListener((player, dungeonId) ->
             guideService.recordCondition(player, GuideConditionType.DUNGEON_CLEARED, dungeonId)
@@ -1877,6 +1887,7 @@ public final class AstralRecord extends JavaPlugin {
             questService,
             playerSessionTransitionGuard
         );
+        networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         networkBridgeService.start();
         playerMessageService.setNetworkChatBridge(networkBridgeService);
     }
@@ -2404,6 +2415,7 @@ public final class AstralRecord extends JavaPlugin {
         statusRegenTask.start(this);
         displayTextService.start(this);
         overheadDisplayService.start(this);
+        invulnerabilityVisualService.start();
         playerDeathService.start();
         conditionTickTask.start(this);
         conditionDisplayTask.start(this);

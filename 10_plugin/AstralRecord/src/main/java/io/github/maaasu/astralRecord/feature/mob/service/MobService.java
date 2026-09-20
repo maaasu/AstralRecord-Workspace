@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -74,6 +76,7 @@ public class MobService {
     private final MobRepository repository;
     private final MobEntityController entityController;
     private final NpcPlayerSkinPacketService playerSkinPacketService;
+    private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private ConditionService conditionService;
     private Consumer<UUID> destroyListener = ignored -> { };
     private BiConsumer<MobInstance, Double> healthRecoveryListener = (instance, amount) -> { };
@@ -83,6 +86,8 @@ public class MobService {
     private final Map<UUID, UUID> instanceByEntity = new LinkedHashMap<>();
     /** インスタンスごとに、頭上 packet display を表示するプレイヤー UUID 集合を保持。 */
     private final Map<UUID, Set<UUID>> viewers = new LinkedHashMap<>();
+    /** 無敵化前の player-skin NPC 発光状態を復元するための状態。 */
+    private final Map<UUID, Boolean> invulnerabilityGlowBefore = new HashMap<>();
 
     /**
      * サービスを初期化します。
@@ -95,6 +100,16 @@ public class MobService {
         this.repository = repository;
         this.entityController = new MobEntityController(plugin);
         this.playerSkinPacketService = new NpcPlayerSkinPacketService(plugin, this.entityController);
+    }
+
+    /**
+     * Mob の無敵状態を黄色発光へ同期するサービスを設定します。
+     *
+     * @param service 無敵表示サービス
+     */
+    public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
+        this.invulnerabilityVisualService = service;
+        this.entityController.setInvulnerabilityVisualService(service);
     }
 
     /**
@@ -170,6 +185,41 @@ public class MobService {
         }
         if (instance.template().usesPlayerSkinPacketView()) {
             playerSkinPacketService.setGlowing(instance, glowing);
+        }
+    }
+
+    /**
+     * Mob の実行時ダメージ無効化と Bukkit Entity の無敵状態を同期します。
+     *
+     * @param instance 対象 Mob
+     * @param value 無敵化する場合は {@code true}
+     */
+    public void setDamageImmune(@NotNull MobInstance instance, boolean value) {
+        instance.damageImmune(value);
+        if (instance.template().usesPlayerSkinPacketView()) {
+            UUID instanceId = instance.instanceId();
+            String profileName = playerSkinPacketService.profileName(instance);
+            if (value) {
+                invulnerabilityGlowBefore.putIfAbsent(instanceId, instance.glowing());
+                setGlowing(instance, true);
+            } else {
+                Boolean restoreGlowing = invulnerabilityGlowBefore.remove(instanceId);
+                if (restoreGlowing != null) {
+                    setGlowing(instance, restoreGlowing);
+                }
+            }
+            if (invulnerabilityVisualService != null) {
+                invulnerabilityVisualService.setYellowGlowEntry(profileName, value);
+            }
+        }
+        Entity entity = entityController.getEntity(instance);
+        if (entity == null) {
+            return;
+        }
+        if (invulnerabilityVisualService == null) {
+            entity.setInvulnerable(value);
+        } else {
+            invulnerabilityVisualService.setInvulnerable(entity, value);
         }
     }
 
@@ -545,6 +595,9 @@ public class MobService {
         }
 
         instances.put(instanceId, instance);
+        if (instance.damageImmune() && invulnerabilityVisualService != null) {
+            setDamageImmune(instance, true);
+        }
         trackEntity(instance.instanceId(), entity.getUniqueId());
         if (instance.displayEntityId() != null) {
             trackEntity(instance.instanceId(), instance.displayEntityId());
@@ -569,6 +622,7 @@ public class MobService {
         if (conditionService != null) {
             conditionService.clearAll(AstEntity.mob(instance));
         }
+        clearInvulnerabilityGlowEntry(instance);
         playerSkinPacketService.remove(instance);
         viewers.remove(instanceId);
         untrackEntity(instance.bukkitEntityId());
@@ -627,6 +681,7 @@ public class MobService {
             if (conditionService != null) {
                 conditionService.clearAll(AstEntity.mob(instance));
             }
+            clearInvulnerabilityGlowEntry(instance);
             playerSkinPacketService.remove(instance);
             entityController.remove(instance);
             destroyListener.accept(instance.instanceId());
@@ -637,6 +692,16 @@ public class MobService {
         playerSkinPacketService.removeAll();
         Logger.log(LogId.I_5701, count);
         return count;
+    }
+
+    private void clearInvulnerabilityGlowEntry(@NotNull MobInstance instance) {
+        invulnerabilityGlowBefore.remove(instance.instanceId());
+        if (invulnerabilityVisualService != null && instance.template().usesPlayerSkinPacketView()) {
+            invulnerabilityVisualService.setYellowGlowEntry(
+                    playerSkinPacketService.profileName(instance),
+                    false
+            );
+        }
     }
 
     /**

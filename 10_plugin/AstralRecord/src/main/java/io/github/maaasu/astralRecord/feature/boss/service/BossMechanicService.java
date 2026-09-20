@@ -798,11 +798,7 @@ public final class BossMechanicService {
         @NotNull Location arenaCenter
     ) {
         finishBirdMeteor(boss.instanceId());
-        boss.damageImmune(true);
-        Entity entity = mobService.entityController().getEntity(boss);
-        if (entity != null && entity.isValid()) {
-            entity.setInvulnerable(true);
-        }
+        mobService.setDamageImmune(boss, true);
 
         BossBar bossBar = Bukkit.createBossBar("§cバードメテオ", BarColor.RED, BarStyle.SOLID);
         bossBar.setProgress(1.0D);
@@ -826,11 +822,7 @@ public final class BossMechanicService {
         finishBirdMeteorCharge(boss.instanceId());
         finishBirdMeteor(boss.instanceId());
         Location chargeLocation = arenaCenter.clone().add(0.0D, 5.0D, 0.0D);
-        boss.damageImmune(true);
-        Entity entity = mobService.entityController().getEntity(boss);
-        if (entity != null && entity.isValid()) {
-            entity.setInvulnerable(true);
-        }
+        mobService.setDamageImmune(boss, true);
         mobService.resetPosition(boss, chargeLocation);
         birdMeteorChargeStates.put(
             boss.instanceId(),
@@ -983,11 +975,7 @@ public final class BossMechanicService {
      */
     private void restoreTemplateDamageImmunity(@NotNull MobInstance boss) {
         boolean templateDamageImmune = boss.template().damageImmune();
-        boss.damageImmune(templateDamageImmune);
-        Entity entity = mobService.entityController().getEntity(boss);
-        if (entity != null && entity.isValid()) {
-            entity.setInvulnerable(templateDamageImmune);
-        }
+        mobService.setDamageImmune(boss, templateDamageImmune);
     }
 
     /**
