@@ -11,6 +11,12 @@ icon: FIREWORK_ROCKET
 lore:
   - "&7射程{skill.range}m、半径{skill.radius}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。最大{skill.maxTargets}体。"
   - "&7敵または地形への着弾時だけ衝撃波が発生する。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ衝撃波を発生させる。"
+      - "&7消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 12
@@ -69,6 +75,9 @@ tags:
 #   impact: "衝突地点を中心に半径radius、上下radiusの範囲から最大maxTargets体へ、中心・外周で差のない無属性の間接攻撃を1回与える。持続エリア、状態異常、ノックバックは発生しない。"
 #   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは通常Mobと同じく対象になる。中心から対象へのブロック遮蔽がある敵は命中しない。"
 params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ・ブラストアロー"
+  inheritanceDurationTicks: 600
   range: 14.0
   radius: 4.5
   damageRatio: 1.74

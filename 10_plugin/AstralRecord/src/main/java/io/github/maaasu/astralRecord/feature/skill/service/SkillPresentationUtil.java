@@ -352,6 +352,7 @@ public final class SkillPresentationUtil {
     ) {
         Map<String, Object> values = new HashMap<>();
         values.putAll(definition.getParams());
+        values.put("name", plainName(definition, ""));
         values.put("cooldownTicks", definition.getCooldownTicks());
         values.put("level", level);
         values.put("maxLevel", definition.getMaxLevel());

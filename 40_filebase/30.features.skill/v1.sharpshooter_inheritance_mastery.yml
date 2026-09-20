@@ -11,6 +11,7 @@ icon: SPECTRAL_ARROW
 lore:
   - "&7パッシブスロットへのバインド中のみ有効。"
   - "&7通常攻撃のダメージ倍率が{skill.normalAttackDamageMultiplier:percent}%になる。"
+  - "&7継承によって発動するスキルのダメージ倍率が{skill.inheritedSkillDamageMultiplier:percent}%になる。"
   - "&7継承バフの効果を通常攻撃へ反映する。"
   - "&7通常攻撃1回ごとに、使用した各継承バフの残り時間を1回分消費する。"
   - "&7同名の継承バフを再付与すると、残り時間を新しい付与時間へ戻す。"
@@ -29,10 +30,17 @@ passive:
   bindRequired: true
 params:
   normalAttackDamageMultiplier: 0.5
+  inheritedSkillDamageMultiplier: 0.5
   inheritanceBuffs:
     - buffId: buff:hunter_arrow_rain_inheritance
       durationConsumptionTicks: 600
       sourceSkillId: skill:hunter_arrow_rain
+    - buffId: buff:adventurer_blast_arrow_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:adventurer_blast_arrow
+    - buffId: buff:hunter_crash_arrow_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:hunter_crash_arrow
 tags:
   - passive
   - ranged

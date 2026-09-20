@@ -19,6 +19,7 @@ import java.util.Set;
 public final class SharpshooterInheritanceMasterySkillExecutor implements SkillExecutor {
     public static final String ID = "sharpshooter_inheritance_mastery";
     public static final double NORMAL_ATTACK_DAMAGE_MULTIPLIER = 0.5D;
+    public static final double INHERITED_SKILL_DAMAGE_MULTIPLIER = 0.5D;
 
     @Override
     public @NotNull String implementationId() {
@@ -51,6 +52,19 @@ public final class SharpshooterInheritanceMasterySkillExecutor implements SkillE
             throw new SkillParameterException(
                     "normalAttackDamageMultiplier",
                     NORMAL_ATTACK_DAMAGE_MULTIPLIER + " を指定してください"
+            );
+        }
+        double inheritedSkillDamageMultiplier = params.getDouble(
+                "inheritedSkillDamageMultiplier", Double.NaN
+        );
+        if (!Double.isFinite(inheritedSkillDamageMultiplier)
+                || Double.compare(
+                        inheritedSkillDamageMultiplier,
+                        INHERITED_SKILL_DAMAGE_MULTIPLIER
+                ) != 0) {
+            throw new SkillParameterException(
+                    "inheritedSkillDamageMultiplier",
+                    INHERITED_SKILL_DAMAGE_MULTIPLIER + " を指定してください"
             );
         }
         validateInheritanceBuffs(skill);

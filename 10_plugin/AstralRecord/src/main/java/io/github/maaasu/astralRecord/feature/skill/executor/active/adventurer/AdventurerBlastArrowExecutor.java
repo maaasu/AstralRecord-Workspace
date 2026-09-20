@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -21,6 +22,15 @@ import org.jetbrains.annotations.NotNull;
 public final class AdventurerBlastArrowExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "adventurer_blast_arrow";
+    private InheritanceBuffService inheritanceBuffService;
+
+    /**
+     * 継承バフを管理するサービスを設定します。
+     * @param service 継承バフサービス
+     */
+    public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
+        this.inheritanceBuffService = service;
+    }
 
     /** 共有発動スキルサービスで初期化します。 */
     public AdventurerBlastArrowExecutor(@NotNull ActiveSkillServices services) {
@@ -76,6 +86,18 @@ public final class AdventurerBlastArrowExecutor extends PlayerActiveSkillExecuto
                 }
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_ARROW_SHOOT, 1.15F, 0.90F);
+        if (inheritanceBuffService != null) {
+            inheritanceBuffService.grant(context, (impact, damageMultiplier) -> detonate(
+                    context,
+                    context.attacker(),
+                    impact.location(),
+                    impact.location(),
+                    new boolean[]{false},
+                    radius,
+                    maxTargets,
+                    damageRatio * damageMultiplier
+            ));
+        }
         return context.success();
     }
 

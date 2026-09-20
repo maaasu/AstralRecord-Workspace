@@ -1,0 +1,13 @@
+# design:
+#   motif: "盾砕き / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: hunter_crash_arrow_inheritance
+type: BUFF
+name: "&a継承バフ・クラッシュアロー"
+lore:
+  - "&7次の通常攻撃の命中対象へ盾破壊攻撃を行う。"
+durationTicks: 600
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

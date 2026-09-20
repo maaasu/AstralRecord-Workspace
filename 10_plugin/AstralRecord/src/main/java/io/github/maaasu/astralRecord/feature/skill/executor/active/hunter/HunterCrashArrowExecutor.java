@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Sound;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,15 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "hunter_crash_arrow";
     static final double DEFAULT_SUPER_STAR_CRITICAL_CHANCE = 50.0D;
+    private InheritanceBuffService inheritanceBuffService;
+
+    /**
+     * 継承バフを管理するサービスを設定します。
+     * @param service 継承バフサービス
+     */
+    public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
+        this.inheritanceBuffService = service;
+    }
 
     /** 共有発動スキルサービスで初期化します。 */
     public HunterCrashArrowExecutor(@NotNull ActiveSkillServices services) {
@@ -75,6 +85,23 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
                 1.15F,
                 0.75F
         );
+        if (inheritanceBuffService != null) {
+            inheritanceBuffService.grant(
+                    context,
+                    impact -> impact.target() != null
+                            && impact.target().isMob()
+                            && impact.target().currentHealth() > 0.0D,
+                    (impact, damageMultiplier) -> context.services().combat().hitWithSuperStarCriticalChance(
+                            attacker,
+                            java.util.Objects.requireNonNull(impact.target()),
+                            AttackType.RANGED,
+                            DamageElement.NONE,
+                            damageRatio * damageMultiplier,
+                            shieldBreakMultiplier,
+                            superStarCriticalChance
+                    )
+            );
+        }
         return context.success();
     }
 

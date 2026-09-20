@@ -56,6 +56,8 @@
 
 `sharpshooter_inheritance_mastery` は、継承バフごとに次の項目を定義します。
 
+`params.inheritedSkillDamageMultiplier` は継承によって発動する元スキルのダメージ倍率へ掛ける有限の正数です。現行の継承の心得では `0.5` を指定します。通常攻撃自身へ掛ける `params.normalAttackDamageMultiplier` とは別に適用します。
+
 | キー | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `buffId` | String | 必須 | `buff:` 接頭辞付きの継承バフ参照 |
@@ -80,6 +82,7 @@
 | 記法 | 内容 |
 | --- | --- |
 | `{skill.range}` | 数値を自動整形して表示 |
+| `{skill.name}` | 色コードを除いたスキル表示名 |
 | `{skill.damageRatio:percent}` | `1.25` を `125` として表示 |
 | `{skill.damageRatios[0]:percent}` | 数値配列の指定要素を表示 |
 | `{skill.damageRatios:percent}` | 数値配列を ` / ` 区切りで表示 |
