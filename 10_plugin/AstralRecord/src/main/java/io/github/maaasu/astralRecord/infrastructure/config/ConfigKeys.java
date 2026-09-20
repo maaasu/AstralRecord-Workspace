@@ -64,6 +64,11 @@ public final class ConfigKeys {
     public static final String API_SERVER_ID = "api.serverId";
     public static final String API_NETWORK_MODERATION_KEY = "api.networkModerationKey";
 
+    // マスターデータ自動再読込
+    public static final String MASTER_DATA_AUTO_RELOAD_ENABLED = "masterData.autoReload.enabled";
+    public static final String MASTER_DATA_AUTO_RELOAD_POLL_INTERVAL_SECONDS =
+            "masterData.autoReload.pollIntervalSeconds";
+
     // Velocity network settings
     public static final String NETWORK_ENABLED = "network.enabled";
     public static final String NETWORK_CHANNEL_NAME = "network.channelName";

@@ -244,6 +244,53 @@ public enum LogId {
     E_1600(1600),
     // endregion
 
+    // region /infrastructure/api/MasterDataAutoReloadService.java
+    /**
+     * マスターデータ自動再読込の監視を開始しました (間隔: %d秒)
+     */
+    I_1602(1602),
+    /**
+     * マスターデータ自動再読込の初回基準を記録しました: seedRunId=%s, status=%s, lastSucceededAt=%s
+     */
+    I_1603(1603),
+    /**
+     * 新しい成功済み Seeder 実行を検知しました: seedRunId=%s, lastSucceededAt=%s
+     */
+    I_1604(1604),
+    /**
+     * マスターデータ自動再読込が完了しました: seedRunId=%s, loaded=%d
+     */
+    I_1605(1605),
+    /**
+     * MasterDataDB health API がエラーレスポンスを返しました (HTTP %d)
+     */
+    W_1602(1602),
+    /**
+     * MasterDataDB health API の lastSeedRunId がありません: status=%s, lastSucceededAt=%s
+     */
+    W_1603(1603),
+    /**
+     * MasterDataDB health API の成功応答に lastSucceededAt がありません: seedRunId=%s
+     */
+    W_1604(1604),
+    /**
+     * 別のマスターデータ再読込が実行中のため、完了後に再確認します: seedRunId=%s
+     */
+    W_1605(1605),
+    /**
+     * MasterDataDB health API の取得に失敗しました: %s
+     */
+    E_1601(1601),
+    /**
+     * MasterDataDB health API の JSON 解析に失敗しました: %s
+     */
+    E_1602(1602),
+    /**
+     * マスターデータ自動再読込に失敗しました: seedRunId=%s, reason=%s
+     */
+    E_1603(1603),
+    // endregion
+
     // ==================== feature ====================
 
     // region /feature/user/event/UserLoginEventHandler.java
