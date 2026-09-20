@@ -1,6 +1,6 @@
 # 01_README
 
-Web `web-auth` feature は、Minecraft内で発行した一回限りのコードを `/Login` で消費し、ASP.NET Core Cookie認証を開始します。ログイン成功時はAPIがManagementDBへプレイヤー利用者情報を記録し、Web管理機能は専用の `web_admin` フラグで判定します。
+Web `web-auth` feature は、Minecraft内で発行した一回限りのコードを `/Login` で消費し、ASP.NET Core Cookie認証を開始します。ログイン成功時はAPIがManagementDBへプレイヤー利用者情報を記録し、Web管理機能は専用の `web_admin` フラグで判定します。「このブラウザを信頼する」を選択した管理者は、最後の管理画面利用から7日間、重要度で分割せず管理者画面・操作を利用できます。
 
 ## ドキュメント一覧（推奨順）
 

@@ -42,11 +42,20 @@ $databaseConnectionBuilder['Initial Catalog'] = $databaseName
     $project = Join-Path $RepoRoot '60_tool\management-db-migrate\ManagementDbMigrateTool.csproj'
     & dotnet run --no-build --project $project -- --config $configPath
     if ($LASTEXITCODE -ne 0) { throw 'Management migration runner failed on the isolated database.' }
-    foreach ($sql in @("SELECT COUNT(*) FROM sys.tables WHERE name=N'web_credential'", "SELECT COUNT(*) FROM sys.tables WHERE name=N'web_credential_login_attempt'", "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.web_credential') AND name=N'UX_web_credential_login_id'", "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260917_web_credentials'")) {
+    foreach ($sql in @(
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'web_credential'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'web_credential_login_attempt'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'web_trusted_browser'",
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.web_credential') AND name=N'UX_web_credential_login_id'",
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.web_trusted_browser') AND name=N'UX_web_trusted_browser_token_hash'",
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260917_web_credentials'",
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260920_trusted_admin_browser'"
+    )) {
         if ([int](Invoke-Sql $databaseName $sql -Scalar) -ne 1) { throw "Schema verification failed: $sql" }
     }
     & dotnet run --no-build --project $project -- --config $configPath
-    if ($LASTEXITCODE -ne 0 -or [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260917_web_credentials'" -Scalar) -ne 1) { throw 'Management migration rerun was not idempotent.' }
+    if ($LASTEXITCODE -ne 0 -or
+        [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id IN (N'20260917_web_credentials', N'20260920_trusted_admin_browser')" -Scalar) -ne 2) { throw 'Management migration rerun was not idempotent.' }
 
     $negativeRoot = Join-Path $temporaryRoot 'altered'
     [void][IO.Directory]::CreateDirectory($negativeRoot)

@@ -18,6 +18,7 @@ public class ConfigProperties {
     private static final int DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_ATTEMPTS = 3;
     private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS = 250L;
     private static final long DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS = 2_000L;
+    private static final long DEFAULT_MASTER_DATA_AUTO_RELOAD_POLL_INTERVAL_SECONDS = 30L;
     private static final String DEFAULT_CHAT_GOOGLE_IME_ENDPOINT = "https://www.google.com/transliterate";
     private static final int DEFAULT_CHAT_GOOGLE_IME_TIMEOUT_MILLIS = 1_500;
 
@@ -72,6 +73,10 @@ public class ConfigProperties {
     private boolean apiSslVerifyEnabled;
     private String apiServerId;
     private String apiNetworkModerationKey;
+
+    // マスターデータ自動再読込
+    private boolean masterDataAutoReloadEnabled;
+    private long masterDataAutoReloadPollIntervalSeconds;
 
     // Velocity network settings
     private boolean networkEnabled;
@@ -223,6 +228,17 @@ public class ConfigProperties {
         this.apiSslVerifyEnabled = configManager.getConfig().getBoolean(ConfigKeys.API_SSL_VERIFY_ENABLED, true);
         this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
         this.apiNetworkModerationKey = configManager.getConfig().getString(ConfigKeys.API_NETWORK_MODERATION_KEY, "");
+        this.masterDataAutoReloadEnabled = configManager.getConfig().getBoolean(
+                ConfigKeys.MASTER_DATA_AUTO_RELOAD_ENABLED,
+                true
+        );
+        this.masterDataAutoReloadPollIntervalSeconds = Math.max(
+                1L,
+                configManager.getConfig().getLong(
+                        ConfigKeys.MASTER_DATA_AUTO_RELOAD_POLL_INTERVAL_SECONDS,
+                        DEFAULT_MASTER_DATA_AUTO_RELOAD_POLL_INTERVAL_SECONDS
+                )
+        );
         if (!this.apiSslVerifyEnabled) {
             Logger.log(LogId.W_1601);
         }
@@ -537,6 +553,24 @@ public class ConfigProperties {
      */
     public String getApiServerId() {
         return apiServerId;
+    }
+
+    /**
+     * マスターデータの自動再読込が有効かを返します。
+     *
+     * @return 自動再読込を行う場合は {@code true}
+     */
+    public boolean isMasterDataAutoReloadEnabled() {
+        return masterDataAutoReloadEnabled;
+    }
+
+    /**
+     * MasterDataDB health API の監視間隔を秒単位で返します。
+     *
+     * @return 1秒以上の監視間隔
+     */
+    public long getMasterDataAutoReloadPollIntervalSeconds() {
+        return masterDataAutoReloadPollIntervalSeconds;
     }
 
     /**

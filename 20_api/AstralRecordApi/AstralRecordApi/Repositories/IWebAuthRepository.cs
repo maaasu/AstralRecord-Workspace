@@ -8,6 +8,8 @@ public interface IWebAuthRepository
 
     Task<WebLoginChallengeConsumeResponse?> ConsumeChallengeAsync(WebLoginChallengeConsumeRequest request);
 
+    Task<bool> IsTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, string? token);
+
     Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid);
 
     Task<bool> IsWebAdminAsync(Guid userUuid);

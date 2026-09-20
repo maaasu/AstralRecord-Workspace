@@ -22,6 +22,8 @@ public class WebAuthRepository(
     private const int LoginAttemptLimit = 10;
     private static readonly TimeSpan LoginAttemptWindow = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan LoginAttemptLock = TimeSpan.FromMinutes(15);
+    private const int TrustedBrowserTokenBytes = 32;
+    private static readonly TimeSpan TrustedBrowserIdleWindow = TimeSpan.FromDays(7);
     private readonly WebAuthOptions webAuthOptions = options.Value;
 
     public async Task<WebLoginChallengeCreateResponse?> CreateChallengeAsync(WebLoginChallengeCreateRequest request)
@@ -134,8 +136,11 @@ public class WebAuthRepository(
             // Web利用者の保存失敗時は、未確定のコード消費をrollbackして再試行を許可する。
             var webAdmin = await RecordWebLoginAsync(user.Uuid, user.Mcid, now);
             var sessionVersion = await EnsureCredentialAsync(user.Uuid, now);
+            var trustedBrowserToken = request.IssueTrustedBrowser && webAdmin
+                ? await IssueTrustedBrowserAsync(user.Uuid, sessionVersion, now)
+                : null;
             await transaction.CommitAsync();
-            return new ConsumedChallenge(user.Uuid, user.Mcid, user.Permission, user.AccountId, accountIds, webAdmin, sessionVersion);
+            return new ConsumedChallenge(user.Uuid, user.Mcid, user.Permission, user.AccountId, accountIds, webAdmin, sessionVersion, trustedBrowserToken);
         });
 
         if (consumed is null)
@@ -146,6 +151,7 @@ public class WebAuthRepository(
         {
             CodeAuthenticatedAt = codeAt,
             CodeAuthenticationProof = codeProof.Issue(consumed.UserUuid, consumed.SessionVersion, codeAt),
+            TrustedBrowserToken = consumed.TrustedBrowserToken,
             UserUuid = consumed.UserUuid,
             Mcid = consumed.Mcid,
             Permission = consumed.Permission,
@@ -187,6 +193,32 @@ public class WebAuthRepository(
             .Where(user => user.PlayerUuid == userUuid)
             .Select(user => (bool?)user.WebAdmin)
             .SingleOrDefaultAsync() == true;
+
+    public async Task<bool> IsTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, string? token)
+    {
+        if (userUuid == Guid.Empty || sessionVersion == Guid.Empty || string.IsNullOrWhiteSpace(token) || token.Length > 256)
+            return false;
+
+        var credentialVersion = await managementDbContext.WebCredentials
+            .AsNoTracking()
+            .Where(item => item.PlayerUuid == userUuid)
+            .Select(item => (Guid?)item.SessionVersion)
+            .SingleOrDefaultAsync();
+        if (credentialVersion != sessionVersion)
+            return false;
+
+        var now = DateTime.UtcNow;
+        var cutoff = now.Subtract(TrustedBrowserIdleWindow);
+        var tokenHash = HashTrustedBrowserToken(token);
+        var updated = await managementDbContext.WebTrustedBrowsers
+            .Where(item => item.PlayerUuid == userUuid &&
+                item.SessionVersion == sessionVersion &&
+                item.TokenHash == tokenHash &&
+                item.RevokedAtUtc == null &&
+                item.LastUsedAtUtc >= cutoff)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.LastUsedAtUtc, now));
+        return updated == 1;
+    }
 
     public async Task<WebCredentialResponse?> GetCredentialAsync(Guid userUuid)
     {
@@ -443,6 +475,27 @@ public class WebAuthRepository(
         }
     }
 
+    private async Task<string> IssueTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, DateTime now)
+    {
+        var bytes = new byte[TrustedBrowserTokenBytes];
+        RandomNumberGenerator.Fill(bytes);
+        var token = Convert.ToBase64String(bytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+        await managementDbContext.WebTrustedBrowsers.AddAsync(new WebTrustedBrowserEntity
+        {
+            TrustedBrowserId = Guid.NewGuid(),
+            PlayerUuid = userUuid,
+            SessionVersion = sessionVersion,
+            TokenHash = HashTrustedBrowserToken(token),
+            CreatedAtUtc = now,
+            LastUsedAtUtc = now,
+        });
+        await managementDbContext.SaveChangesAsync();
+        return token;
+    }
+
     private async Task<WebLoginChallengeConsumeResponse?> CreatePasswordLoginResponseAsync(Guid userUuid, Guid sessionVersion)
     {
         var gameUser = await dbContext.Users
@@ -603,6 +656,9 @@ public class WebAuthRepository(
         return Convert.ToHexString(bytes);
     }
 
+    private static string HashTrustedBrowserToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
     private static string NormalizeLoginCode(string loginCode) =>
         loginCode.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
 
@@ -613,5 +669,6 @@ public class WebAuthRepository(
         Guid? CurrentAccountId,
         IReadOnlyList<Guid> AccountIds,
         bool WebAdmin,
-        Guid SessionVersion);
+        Guid SessionVersion,
+        string? TrustedBrowserToken);
 }

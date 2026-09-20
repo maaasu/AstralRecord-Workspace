@@ -48,6 +48,34 @@ public sealed partial class LoginTests
     }
 
     [Fact]
+    public async Task Post_WithTrustedBrowserChoice_IssuesTrustedAdminCookie()
+    {
+        var apiHandler = new WebAuthApiHandler(webAdmin: true);
+        await using var factory = new LoginWebApplicationFactory(apiHandler);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = new Uri("https://localhost"),
+            HandleCookies = true,
+        });
+
+        var antiforgeryToken = await GetAntiforgeryTokenAsync(client);
+        using var postResponse = await client.PostAsync("/Login", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = WebUtility.HtmlDecode(antiforgeryToken),
+            ["LoginCode"] = "ABCD-EFGH",
+            ["TrustBrowser"] = "true",
+        }));
+
+        Assert.Equal(HttpStatusCode.Found, postResponse.StatusCode);
+        Assert.Contains(
+            postResponse.Headers.GetValues("Set-Cookie"),
+            cookie => cookie.StartsWith("__Host-AstralRecordTrustedAdmin=", StringComparison.Ordinal)
+                && cookie.Contains("httponly", StringComparison.OrdinalIgnoreCase)
+                && cookie.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task AdminPage_WithGamePermission99AndFalseWebAdmin_IsDenied()
     {
         var apiHandler = new WebAuthApiHandler(webAdmin: false, permission: 99);
@@ -177,6 +205,7 @@ public sealed partial class LoginTests
                     SessionVersion = version,
                     CodeAuthenticatedAt = DateTimeOffset.UtcNow,
                     CodeAuthenticationProof = "fixture-proof",
+                    TrustedBrowserToken = webAdmin ? "trusted-browser-token" : null,
                     Mcid = "Tester",
                     Permission = permission,
                     WebAdmin = webAdmin,

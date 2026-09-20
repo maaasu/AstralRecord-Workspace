@@ -42,6 +42,37 @@ public sealed class PasswordLoginTests
     }
 
     [Fact]
+    public async Task PasswordLogin_CanTrustBrowser_AndAdminAccessUsesSlidingSevenDayWindow()
+    {
+        var api = new AuthHandler();
+        var clock = new TestClock();
+        await using var factory = new AuthFactory(api, clock);
+        using var client = Client(factory);
+        await Login(client, password: true);
+
+        using var verified = await Post(client, "/Reauthenticate", new()
+        {
+            ["LoginCode"] = "SELF-CODE",
+            ["TrustBrowser"] = "true",
+            ["ReturnUrl"] = "/Admin/Items",
+        });
+        Assert.Equal("/Admin/Items", verified.Headers.Location?.OriginalString);
+
+        clock.Now = clock.Now.AddMinutes(6);
+        using var firstUse = await client.GetAsync("/Admin/Items");
+        Assert.Equal(HttpStatusCode.OK, firstUse.StatusCode);
+
+        clock.Now = clock.Now.AddDays(6);
+        using var secondUse = await client.GetAsync("/Admin/Items");
+        Assert.Equal(HttpStatusCode.OK, secondUse.StatusCode);
+
+        clock.Now = clock.Now.AddDays(8);
+        using var expired = await client.GetAsync("/Admin/Items");
+        Assert.StartsWith("/Reauthenticate?", expired.Headers.Location?.OriginalString);
+        Assert.True(api.TrustedBrowserValidations >= 3);
+    }
+
+    [Fact]
     public async Task PasswordLogin_NonWebAdminDoesNotShowAdminMenu()
     {
         var api = new AuthHandler { WebAdmin = false };
@@ -210,11 +241,11 @@ public sealed class PasswordLoginTests
         fields["__RequestVerificationToken"] = Token(await client.GetStringAsync(path.Split('?')[0]));
         return await client.PostAsync(path, new FormUrlEncodedContent(fields));
     }
-    private static async Task Login(HttpClient client, bool password)
+    private static async Task Login(HttpClient client, bool password, bool trustBrowser = false)
     {
         using var response = await Post(client, password ? "/Login?handler=Password" : "/Login", password
             ? new() { ["LoginId"] = "ar-test", ["Password"] = "current-password-secret" }
-            : new() { ["LoginCode"] = "SELF-CODE" });
+            : new() { ["LoginCode"] = "SELF-CODE", ["TrustBrowser"] = trustBrowser.ToString().ToLowerInvariant() });
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
     }
 
@@ -246,13 +277,16 @@ public sealed class PasswordLoginTests
         public bool FailState { get; set; }
         public bool RejectLogin { get; set; }
         public bool WebAdmin { get; set; } = true;
+        public bool TrustedBrowserValid { get; set; } = true;
         public HttpStatusCode AuthorizationStatusCode { get; set; } = HttpStatusCode.OK;
         public int Logins { get; private set; }
         public int AuthorizationCalls { get; private set; }
+        public int TrustedBrowserValidations { get; private set; }
         public int Updates { get; private set; }
         public Guid? LastExpectedUuid { get; private set; }
         public Guid LastUpdateUuid { get; private set; }
         public WebCredentialUpdateRequest? LastUpdate { get; private set; }
+        private DateTimeOffset? trustedBrowserLastUsed;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var path = request.RequestUri!.AbsolutePath;
@@ -260,12 +294,15 @@ public sealed class PasswordLoginTests
             {
                 Logins++;
                 if (RejectLogin) return new(HttpStatusCode.BadRequest);
+                var issueTrustedBrowser = false;
                 if (path.EndsWith("/challenges/consume"))
                 {
                     codeAuthenticatedAt = Clock.Now;
-                    LastExpectedUuid = (await request.Content!.ReadFromJsonAsync<WebLoginChallengeConsumeRequest>(ct))!.ExpectedUserUuid;
+                    var challengeRequest = (await request.Content!.ReadFromJsonAsync<WebLoginChallengeConsumeRequest>(ct))!;
+                    LastExpectedUuid = challengeRequest.ExpectedUserUuid;
+                    issueTrustedBrowser = challengeRequest.IssueTrustedBrowser;
                 }
-                return Json(new WebLoginChallengeConsumeResponse { UserUuid = ReturnWrongUser ? Guid.NewGuid() : UserUuid, SessionVersion = Version, Mcid = "Tester", CodeAuthenticatedAt = path.EndsWith("/challenges/consume") ? Clock.Now : null, CodeAuthenticationProof = path.EndsWith("/challenges/consume") ? "fixture-proof" : null });
+                return Json(new WebLoginChallengeConsumeResponse { UserUuid = ReturnWrongUser ? Guid.NewGuid() : UserUuid, SessionVersion = Version, Mcid = "Tester", CodeAuthenticatedAt = path.EndsWith("/challenges/consume") ? Clock.Now : null, CodeAuthenticationProof = path.EndsWith("/challenges/consume") ? "fixture-proof" : null, TrustedBrowserToken = issueTrustedBrowser && WebAdmin ? "trusted-browser-token" : null });
             }
             if (path.EndsWith("/credentials"))
             {
@@ -288,6 +325,17 @@ public sealed class PasswordLoginTests
                 return AuthorizationStatusCode == HttpStatusCode.OK
                     ? Json(new { webAdmin = WebAdmin })
                     : new HttpResponseMessage(AuthorizationStatusCode);
+            }
+            if (path.EndsWith("/trusted-browsers/validate"))
+            {
+                TrustedBrowserValidations++;
+                var validation = await request.Content!.ReadFromJsonAsync<WebTrustedBrowserValidationRequest>(ct);
+                var trusted = TrustedBrowserValid &&
+                    validation?.SessionVersion == Version &&
+                    validation.Token == "trusted-browser-token" &&
+                    (!trustedBrowserLastUsed.HasValue || Clock.Now - trustedBrowserLastUsed.Value <= TimeSpan.FromDays(7));
+                if (trusted) trustedBrowserLastUsed = Clock.Now;
+                return Json(new WebTrustedBrowserValidationResponse { Trusted = trusted });
             }
             if (path == "/api/item") return Json(Array.Empty<object>());
             return new(HttpStatusCode.NotFound);

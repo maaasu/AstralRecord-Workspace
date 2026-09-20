@@ -95,6 +95,12 @@ api:
     # 自己署名証明書や内部CA証明書を使用している場合は false に設定してください
     verifyEnabled: true
 
+# MasterDataDB Seeder の成功を検知したマスターデータ自動再読込
+masterData:
+  autoReload:
+    enabled: true
+    pollIntervalSeconds: 30
+
 # リソースパック設定
 resourcePack:
   enabled: false

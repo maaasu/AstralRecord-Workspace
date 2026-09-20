@@ -4,12 +4,14 @@ public class WebLoginChallengeConsumeRequest
 {
     public string LoginCode { get; set; } = string.Empty;
     public Guid? ExpectedUserUuid { get; set; }
+    public bool IssueTrustedBrowser { get; set; }
 }
 
 public class WebLoginChallengeConsumeResponse
 {
     public string? CodeAuthenticationProof { get; set; }
     public DateTimeOffset? CodeAuthenticatedAt { get; set; }
+    public string? TrustedBrowserToken { get; set; }
     public Guid SessionVersion { get; set; }
     public Guid UserUuid { get; set; }
     public string Mcid { get; set; } = string.Empty;
@@ -17,6 +19,17 @@ public class WebLoginChallengeConsumeResponse
     public bool WebAdmin { get; set; }
     public Guid? CurrentAccountId { get; set; }
     public IReadOnlyList<Guid> AccountIds { get; set; } = [];
+}
+
+public sealed class WebTrustedBrowserValidationRequest
+{
+    public Guid SessionVersion { get; set; }
+    public string? Token { get; set; }
+}
+
+public sealed class WebTrustedBrowserValidationResponse
+{
+    public bool Trusted { get; set; }
 }
 
 public sealed class WebCredentialState

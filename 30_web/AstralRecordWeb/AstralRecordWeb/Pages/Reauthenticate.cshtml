@@ -11,6 +11,11 @@
             <input type="hidden" asp-for="ReturnUrl" />
             <label asp-for="LoginCode" class="form-label">ログインコード</label>
             <input asp-for="LoginCode" class="form-control mb-3" maxlength="32" autocomplete="one-time-code" required placeholder="ABCD-EFGH" />
+            <div class="form-check mb-3">
+                <input asp-for="TrustBrowser" class="form-check-input" />
+                <label asp-for="TrustBrowser" class="form-check-label">このブラウザを信頼する</label>
+                <div class="form-text">選択すると、このブラウザでは管理者モードを最終利用から7日間維持します。共有端末では選択しないでください。</div>
+            </div>
             <button type="submit" class="btn ar-btn-primary">本人確認する</button>
             <a asp-page="/MyPage" class="btn ar-btn-outline">マイページに戻る</a>
         </form>

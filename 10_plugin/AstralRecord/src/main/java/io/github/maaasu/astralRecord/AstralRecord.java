@@ -331,6 +331,7 @@ import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.api.ApiHealthChecker;
+import io.github.maaasu.astralRecord.infrastructure.api.MasterDataAutoReloadService;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfig;
 import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfigUtil;
@@ -533,6 +534,7 @@ public final class AstralRecord extends JavaPlugin {
     private String joinSpawnWorldId;
     private final AtomicReference<CompletableFuture<Integer>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
+    private MasterDataAutoReloadService masterDataAutoReloadService;
 
     @Override
     public void onLoad() {
@@ -633,10 +635,23 @@ public final class AstralRecord extends JavaPlugin {
 
         // 4. イベントとコマンドを登録
         registerPluginFeatures();
+
+        ConfigProperties config = ConfigProperties.getInstance();
+        if (config.isMasterDataAutoReloadEnabled()) {
+            masterDataAutoReloadService = new MasterDataAutoReloadService(
+                this,
+                config.getMasterDataAutoReloadPollIntervalSeconds()
+            );
+            masterDataAutoReloadService.start();
+        }
     }
 
     @Override
     public void onDisable() {
+        if (masterDataAutoReloadService != null) {
+            masterDataAutoReloadService.stop();
+            masterDataAutoReloadService = null;
+        }
         if (networkBridgeService != null) {
             networkBridgeService.stop();
             networkBridgeService = null;
