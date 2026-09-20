@@ -21,3 +21,15 @@ public sealed class WebCredentialLoginAttemptEntity
     public DateTime? LockedUntilUtc { get; set; }
     public int Revision { get; set; }
 }
+
+/// <summary>Web管理モードを信頼したブラウザの失効可能なトークンを保持します。</summary>
+public sealed class WebTrustedBrowserEntity
+{
+    public Guid TrustedBrowserId { get; set; }
+    public Guid PlayerUuid { get; set; }
+    public Guid SessionVersion { get; set; }
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime LastUsedAtUtc { get; set; }
+    public DateTime? RevokedAtUtc { get; set; }
+}

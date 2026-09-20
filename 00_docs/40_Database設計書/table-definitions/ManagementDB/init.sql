@@ -115,3 +115,19 @@ BEGIN
     );
 END;
 GO
+IF OBJECT_ID(N'dbo.web_trusted_browser', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.web_trusted_browser (
+        trusted_browser_id UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_web_trusted_browser PRIMARY KEY,
+        player_uuid UNIQUEIDENTIFIER NOT NULL,
+        session_version UNIQUEIDENTIFIER NOT NULL,
+        token_hash NVARCHAR(128) NOT NULL,
+        created_at_utc DATETIME2(3) NOT NULL CONSTRAINT DF_web_trusted_browser_created DEFAULT SYSUTCDATETIME(),
+        last_used_at_utc DATETIME2(3) NOT NULL CONSTRAINT DF_web_trusted_browser_last_used DEFAULT SYSUTCDATETIME(),
+        revoked_at_utc DATETIME2(3) NULL,
+        CONSTRAINT CK_web_trusted_browser_last_used CHECK (last_used_at_utc >= created_at_utc)
+    );
+    CREATE UNIQUE INDEX UX_web_trusted_browser_token_hash ON dbo.web_trusted_browser(token_hash);
+    CREATE INDEX IX_web_trusted_browser_player_session ON dbo.web_trusted_browser(player_uuid, session_version);
+END;
+GO

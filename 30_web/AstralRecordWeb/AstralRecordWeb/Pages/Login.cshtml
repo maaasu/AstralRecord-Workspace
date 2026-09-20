@@ -27,6 +27,11 @@
                                    autocomplete="one-time-code" maxlength="32" required placeholder="ABCD-EFGH" />
                             <span asp-validation-for="LoginCode" class="text-danger"></span>
                         </div>
+                        <div class="form-check mb-3">
+                            <input asp-for="TrustBrowser" class="form-check-input" />
+                            <label asp-for="TrustBrowser" class="form-check-label">このブラウザを信頼する</label>
+                            <div class="form-text">選択すると、このブラウザでは管理者モードを最終利用から7日間維持します。共有端末では選択しないでください。</div>
+                        </div>
                         <button type="submit" class="btn ar-home-button ar-home-button--primary w-100">ログイン</button>
                     </form>
                     </details>

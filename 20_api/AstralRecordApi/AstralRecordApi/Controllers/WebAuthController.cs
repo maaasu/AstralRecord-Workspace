@@ -133,4 +133,18 @@ public class WebAuthController(IWebAuthRepository webAuthRepository) : Controlle
         var webAdmin = await webAuthRepository.IsWebAdminAsync(userUuid);
         return Ok(new WebAuthorizationResponse { WebAdmin = webAdmin });
     }
+
+    /// <summary>信頼済みブラウザのトークンを検証し、利用時刻を更新します。</summary>
+    /// <param name="userUuid">確認するプレイヤー UUID。</param>
+    /// <param name="request">現在のセッション世代とブラウザトークン。</param>
+    /// <response code="200">トークンの有効性を返した。</response>
+    [HttpPost("users/{userUuid:guid}/trusted-browsers/validate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ValidateTrustedBrowser(
+        Guid userUuid,
+        [FromBody] WebTrustedBrowserValidationRequest request)
+    {
+        var trusted = await webAuthRepository.IsTrustedBrowserAsync(userUuid, request.SessionVersion, request.Token);
+        return Ok(new WebTrustedBrowserValidationResponse { Trusted = trusted });
+    }
 }

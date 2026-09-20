@@ -28,7 +28,7 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
     public async Task<IActionResult> OnGetAsync(Guid userUuid, CancellationToken ct)
     {
         if (userUuid == Guid.Empty) return NotFound();
-        IsWebAdmin = (await authorization.AuthorizeAsync(User, null, "WebAdminOnly")).Succeeded;
+        IsWebAdmin = (await authorization.AuthorizeAsync(User, HttpContext, "WebAdminOnly")).Succeeded;
         if (IncludePrivate && !IsWebAdmin) return Forbid();
         Guid? viewer = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
         var result = await profiles.GetProfileAsync(userUuid, viewer, IncludePrivate, AccountId, ct);
@@ -45,7 +45,7 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
     public async Task<IActionResult> OnPostBanAsync(Guid userUuid, CancellationToken ct)
     {
         if (userUuid == Guid.Empty) return NotFound();
-        if (!(await authorization.AuthorizeAsync(User, null, "WebAdminOnly")).Succeeded) return Forbid();
+        if (!(await authorization.AuthorizeAsync(User, HttpContext, "WebAdminOnly")).Succeeded) return Forbid();
         IsWebAdmin = true;
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor)) return Challenge();
 

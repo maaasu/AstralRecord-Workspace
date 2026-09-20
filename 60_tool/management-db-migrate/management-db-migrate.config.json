@@ -39,6 +39,29 @@
           "filteredUniqueIndexes": []
         }
       ]
+    },
+    {
+      "id": "20260920_trusted_admin_browser",
+      "fileName": "20260920_trusted_admin_browser.sql",
+      "commandTimeoutSeconds": 120,
+      "tables": [
+        {
+          "name": "web_trusted_browser",
+          "primaryKey": "PK_web_trusted_browser",
+          "columns": [
+            { "name": "trusted_browser_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "player_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "session_version", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "token_hash", "sqlType": "nvarchar", "maxLengthBytes": 256, "isNullable": false },
+            { "name": "created_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "last_used_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "revoked_at_utc", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": true }
+          ],
+          "checkConstraints": [ "CK_web_trusted_browser_last_used" ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": [ "UX_web_trusted_browser_token_hash" ]
+        }
+      ]
     }
   ]
 }

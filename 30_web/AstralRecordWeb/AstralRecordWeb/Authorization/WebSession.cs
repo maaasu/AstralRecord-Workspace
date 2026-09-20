@@ -13,6 +13,8 @@ public static class WebSession
     public const string CodeTimeClaim = "codeAuthenticatedAt";
     public const string CodeProofClaim = "codeAuthenticationProof";
     public const string NeedsCodeItem = "WebAdminNeedsCode";
+    public const string TrustedBrowserCookieName = "__Host-AstralRecordTrustedAdmin";
+    public static readonly TimeSpan TrustedBrowserIdleWindow = TimeSpan.FromDays(7);
 
     public static DateTimeOffset? RecentCodeTime(ClaimsPrincipal user, TimeProvider clock)
     {
@@ -54,5 +56,22 @@ public static class WebSession
             identity.AddClaim(new(CodeProofClaim, state.CodeAuthenticationProof));
         }
         return context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+    }
+
+    public static string? GetTrustedBrowserToken(HttpContext context) =>
+        context.Request.Cookies[TrustedBrowserCookieName];
+
+    public static void SetTrustedBrowserCookie(HttpContext context, string token, TimeProvider clock)
+    {
+        context.Response.Cookies.Append(TrustedBrowserCookieName, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            IsEssential = true,
+            Expires = clock.GetUtcNow().Add(TrustedBrowserIdleWindow),
+            MaxAge = TrustedBrowserIdleWindow,
+        });
     }
 }

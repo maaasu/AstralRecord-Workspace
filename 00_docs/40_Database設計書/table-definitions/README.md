@@ -30,6 +30,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260915_expand_rebirth_experience_remainder.sql` | 100EXP単位の変換に合わせて転生EXP端数の許容範囲を0～99へ拡張。対応 API 配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
+| `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
 
 AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前にそのmanifestの適用と対象スキーマ検査を実行する。ManagementDBは下記の別途適用が必要であり、このツールの成功だけでは配置条件を満たさない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
@@ -37,7 +38,7 @@ AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json` 
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 
-`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証を保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql` と `20260917_web_credentials.sql` をAPI配置前に別途適用します。適用コマンドと3表の確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
+`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証・信頼済みブラウザを保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql`、`20260917_web_credentials.sql`、`20260920_trusted_admin_browser.sql` をAPI配置前に別途適用します。適用コマンドと確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
 
 ## AstralRecord
 
@@ -105,3 +106,4 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.network_management_audit` | `ManagementDB/dbo.network_management_audit.md` |
 | `dbo.web_credential` | `ManagementDB/dbo.web_credential.md` |
 | `dbo.web_credential_login_attempt` | `ManagementDB/dbo.web_credential_login_attempt.md` |
+| `dbo.web_trusted_browser` | `ManagementDB/dbo.web_trusted_browser.md` |

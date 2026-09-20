@@ -23,7 +23,7 @@ public class IndexModel(PlayerProfileApiClient profiles, IAuthorizationService a
 
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
-        IsAdmin = (await authorization.AuthorizeAsync(User, null, "WebAdminOnly")).Succeeded;
+        IsAdmin = (await authorization.AuthorizeAsync(User, HttpContext, "WebAdminOnly")).Succeeded;
         if (IncludePrivate && !IsAdmin) return Forbid();
         Guid? viewer = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
         PageNumber = Math.Clamp(PageNumber, 1, 100000);

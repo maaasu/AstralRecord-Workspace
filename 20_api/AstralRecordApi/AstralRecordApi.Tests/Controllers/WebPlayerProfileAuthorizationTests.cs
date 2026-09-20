@@ -34,6 +34,7 @@ public sealed class WebPlayerProfileAuthorizationTests
     {
         public bool Admin { get; set; }
         public Task<bool> IsWebAdminAsync(Guid userUuid) => Task.FromResult(Admin);
+        public Task<bool> IsTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, string? token) => throw new NotSupportedException();
         public Task<WebLoginChallengeCreateResponse?> CreateChallengeAsync(WebLoginChallengeCreateRequest request) => throw new NotSupportedException();
         public Task<WebLoginChallengeConsumeResponse?> ConsumeChallengeAsync(WebLoginChallengeConsumeRequest request) => throw new NotSupportedException();
         public Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid) => throw new NotSupportedException();

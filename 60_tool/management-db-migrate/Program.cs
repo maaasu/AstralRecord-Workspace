@@ -7,6 +7,9 @@ const string ManagementDatabase = "ManagementDB";
 const string WebCredentialsMigrationId = "20260917_web_credentials";
 const string WebCredentialsMigrationFileName = "20260917_web_credentials.sql";
 const string WebCredentialsMigrationSha256 = "F0A41E24D0364ADAC6BD058941A2DB54239B130A923139AE8CC4ABD6FF12058B";
+const string TrustedBrowserMigrationId = "20260920_trusted_admin_browser";
+const string TrustedBrowserMigrationFileName = "20260920_trusted_admin_browser.sql";
+const string TrustedBrowserMigrationSha256 = "3F5F0DCD5872C60F3A4A2463C961053C5D36D255A88B34DBB6D209F5F4622B6B";
 var options = CommandLineOptions.Parse(args);
 if (options.ShowHelp)
 {
@@ -49,7 +52,7 @@ try
             else
             {
                 Console.WriteLine($"Applying management migration: {migration.FileName}");
-                var script = await ReadKnownMigrationScriptAsync(migrationsRoot, targetDatabase);
+                var script = await ReadKnownMigrationScriptAsync(migrationsRoot, targetDatabase, migration.FileName!);
                 await ExecuteMigrationAsync(connection, transaction, migration, script, targetDatabase);
                 if (!await IsAppliedAsync(connection, transaction, migration.Id!))
                     throw new InvalidOperationException($"Migration did not record its completion: {migration.Id}");
@@ -132,10 +135,12 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
         throw new DirectoryNotFoundException("Management migration directory was not found.");
     if (config.Migrations.Count == 0)
         throw new InvalidOperationException("At least one explicit management migration must be configured.");
-    if (config.Migrations.Count != 1
+    if (config.Migrations.Count != 2
         || !string.Equals(config.Migrations[0].Id, WebCredentialsMigrationId, StringComparison.Ordinal)
-        || !string.Equals(config.Migrations[0].FileName, WebCredentialsMigrationFileName, StringComparison.Ordinal))
-        throw new InvalidOperationException($"Only the reviewed ManagementDB migration {WebCredentialsMigrationFileName} may be applied by this runner.");
+        || !string.Equals(config.Migrations[0].FileName, WebCredentialsMigrationFileName, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[1].Id, TrustedBrowserMigrationId, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[1].FileName, TrustedBrowserMigrationFileName, StringComparison.Ordinal))
+        throw new InvalidOperationException($"Only the reviewed ManagementDB migrations {WebCredentialsMigrationFileName} and {TrustedBrowserMigrationFileName} may be applied by this runner.");
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     foreach (var migration in config.Migrations)
@@ -146,7 +151,7 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
             throw new InvalidOperationException("Every management migration needs a unique fileName.");
         if (migration.Tables.Count == 0)
             throw new InvalidOperationException($"Schema expectations are missing: {migration.FileName}");
-        var script = ReadKnownMigrationScript(migrationsRoot, targetDatabase);
+        var script = ReadKnownMigrationScript(migrationsRoot, targetDatabase, migration.FileName);
         if (string.IsNullOrWhiteSpace(script))
             throw new InvalidOperationException($"Migration file is empty: {migration.FileName}");
         foreach (Match match in Regex.Matches(script, @"(?im)^\s*USE\s+\[?([A-Za-z0-9_]+)\]?\s*;?\s*$"))
@@ -155,20 +160,22 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
     }
 }
 
-static async Task<string> ReadKnownMigrationScriptAsync(string migrationsRoot, string targetDatabase)
+static async Task<string> ReadKnownMigrationScriptAsync(string migrationsRoot, string targetDatabase, string fileName)
 {
-    var path = GetMigrationPath(migrationsRoot, WebCredentialsMigrationFileName);
+    var path = GetMigrationPath(migrationsRoot, fileName);
     var bytes = await File.ReadAllBytesAsync(path);
-    return PrepareKnownMigrationScript(bytes, targetDatabase);
+    return PrepareKnownMigrationScript(bytes, targetDatabase, fileName);
 }
 
-static string ReadKnownMigrationScript(string migrationsRoot, string targetDatabase)
+static string ReadKnownMigrationScript(string migrationsRoot, string targetDatabase, string? fileName)
 {
-    var bytes = File.ReadAllBytes(GetMigrationPath(migrationsRoot, WebCredentialsMigrationFileName));
-    return PrepareKnownMigrationScript(bytes, targetDatabase);
+    if (string.IsNullOrWhiteSpace(fileName))
+        throw new InvalidOperationException("Migration fileName is required.");
+    var bytes = File.ReadAllBytes(GetMigrationPath(migrationsRoot, fileName));
+    return PrepareKnownMigrationScript(bytes, targetDatabase, fileName);
 }
 
-static string PrepareKnownMigrationScript(byte[] bytes, string targetDatabase)
+static string PrepareKnownMigrationScript(byte[] bytes, string targetDatabase, string fileName)
 {
     var offset = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
     var script = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
@@ -176,12 +183,19 @@ static string PrepareKnownMigrationScript(byte[] bytes, string targetDatabase)
         .Replace("\r\n", "\n", StringComparison.Ordinal)
         .Replace("\r", "\n", StringComparison.Ordinal);
     var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(script)));
-    if (!string.Equals(hash, WebCredentialsMigrationSha256, StringComparison.Ordinal))
-        throw new InvalidOperationException("Management migration script hash does not match the reviewed 20260917_web_credentials.sql.");
+    if (!string.Equals(hash, ExpectedMigrationHash(fileName), StringComparison.Ordinal))
+        throw new InvalidOperationException($"Management migration script hash does not match the reviewed {fileName}.");
     return string.Equals(targetDatabase, ManagementDatabase, StringComparison.OrdinalIgnoreCase)
         ? script
         : script.Replace("USE [ManagementDB];", $"USE [{targetDatabase}];", StringComparison.Ordinal);
 }
+
+static string ExpectedMigrationHash(string fileName) => fileName switch
+{
+    WebCredentialsMigrationFileName => WebCredentialsMigrationSha256,
+    TrustedBrowserMigrationFileName => TrustedBrowserMigrationSha256,
+    _ => throw new InvalidOperationException($"Migration file is not approved by this runner: {fileName}"),
+};
 
 static string GetMigrationPath(string root, string fileName)
 {
@@ -264,6 +278,9 @@ static async Task ValidateMigrationAsync(SqlConnection connection, SqlTransactio
         foreach (var name in table.FilteredUniqueIndexes)
             if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=@id AND name=@name AND is_disabled=0 AND is_unique=1 AND has_filter=1;", ("@id", objectId.Value), ("@name", name)) != 1)
                 throw new InvalidOperationException($"Expected filtered unique index was not found: {name}");
+        foreach (var name in table.UniqueIndexes)
+            if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=@id AND name=@name AND is_disabled=0 AND is_unique=1 AND has_filter=0;", ("@id", objectId.Value), ("@name", name)) != 1)
+                throw new InvalidOperationException($"Expected unique index was not found: {name}");
     }
     if (!await IsAppliedAsync(connection, transaction, migration.Id!))
         throw new InvalidOperationException($"Migration history row was not found: {migration.Id}");
@@ -280,6 +297,6 @@ static async Task<int?> ScalarIntAsync(SqlConnection connection, SqlTransaction 
 internal sealed class ManagementMigrationConfig { public string? SourceApiAppsettingsPath { get; init; } public string? ExpectedDatabase { get; init; } public ManagementConnections ConnectionStrings { get; init; } = new(); public string? MigrationsRootPath { get; init; } public List<ManagementMigration> Migrations { get; init; } = new(); }
 internal sealed class ManagementConnections { public string? Management { get; init; } }
 internal sealed class ManagementMigration { public string? Id { get; init; } public string? FileName { get; init; } public int? CommandTimeoutSeconds { get; init; } public List<TableExpectation> Tables { get; init; } = new(); }
-internal sealed class TableExpectation { public string? Name { get; init; } public string? PrimaryKey { get; init; } public List<ColumnExpectation> Columns { get; init; } = new(); public List<string> CheckConstraints { get; init; } = new(); public List<string> FilteredUniqueIndexes { get; init; } = new(); }
+internal sealed class TableExpectation { public string? Name { get; init; } public string? PrimaryKey { get; init; } public List<ColumnExpectation> Columns { get; init; } = new(); public List<string> CheckConstraints { get; init; } = new(); public List<string> FilteredUniqueIndexes { get; init; } = new(); public List<string> UniqueIndexes { get; init; } = new(); }
 internal sealed class ColumnExpectation { public string? Name { get; init; } public string? SqlType { get; init; } public int? MaxLengthBytes { get; init; } public byte? Precision { get; init; } public byte? Scale { get; init; } public bool? IsNullable { get; init; } }
 internal sealed record CommandLineOptions(string? ConfigPath, bool ShowHelp, bool ValidateOnly) { public static CommandLineOptions Parse(string[] args) { string? config = null; var validate = false; for (var i=0;i<args.Length;i++) { if (args[i] is "--help" or "-h") return new(null, true, false); if (args[i].Equals("--config", StringComparison.OrdinalIgnoreCase)) { if (++i >= args.Length) throw new ArgumentException("A path is required after --config."); config=args[i]; continue; } if (args[i].Equals("--validate-only", StringComparison.OrdinalIgnoreCase)) { validate=true; continue; } throw new ArgumentException($"Unknown argument: {args[i]}"); } return new(config, false, validate); } }

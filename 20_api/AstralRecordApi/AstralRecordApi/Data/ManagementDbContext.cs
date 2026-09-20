@@ -12,6 +12,7 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
     public DbSet<NetworkManagementAuditEntity> NetworkAudits => Set<NetworkManagementAuditEntity>();
     public DbSet<WebCredentialEntity> WebCredentials => Set<WebCredentialEntity>();
     public DbSet<WebCredentialLoginAttemptEntity> WebCredentialLoginAttempts => Set<WebCredentialLoginAttemptEntity>();
+    public DbSet<WebTrustedBrowserEntity> WebTrustedBrowsers => Set<WebTrustedBrowserEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +86,20 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
             entity.Property(x => x.WindowStartedAtUtc).HasColumnName("window_started_at_utc");
             entity.Property(x => x.LockedUntilUtc).HasColumnName("locked_until_utc");
             entity.Property(x => x.Revision).HasColumnName("revision").IsConcurrencyToken();
+        });
+        modelBuilder.Entity<WebTrustedBrowserEntity>(entity =>
+        {
+            entity.ToTable("web_trusted_browser", "dbo");
+            entity.HasKey(x => x.TrustedBrowserId);
+            entity.Property(x => x.TrustedBrowserId).HasColumnName("trusted_browser_id");
+            entity.Property(x => x.PlayerUuid).HasColumnName("player_uuid");
+            entity.Property(x => x.SessionVersion).HasColumnName("session_version");
+            entity.Property(x => x.TokenHash).HasColumnName("token_hash").HasMaxLength(128);
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(x => x.LastUsedAtUtc).HasColumnName("last_used_at_utc");
+            entity.Property(x => x.RevokedAtUtc).HasColumnName("revoked_at_utc");
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.PlayerUuid, x.SessionVersion });
         });
     }
 }

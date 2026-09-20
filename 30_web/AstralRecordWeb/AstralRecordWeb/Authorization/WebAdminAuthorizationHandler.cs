@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace AstralRecordWeb.Authorization;
 
-/// <summary>ManagementDB の Web 管理フラグと本人確認状態で管理機能の可否を判定します。</summary>
+/// <summary>ManagementDB の Web 管理フラグと本人確認状態または信頼済みブラウザで管理機能の可否を判定します。</summary>
 public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClient, TimeProvider clock)
     : AuthorizationHandler<WebAdminRequirement>
 {
@@ -17,8 +17,28 @@ public sealed class WebAdminAuthorizationHandler(WebAuthApiClient webAuthApiClie
             return;
 
         if (!await webAuthApiClient.IsWebAdminAsync(userUuid, CancellationToken.None)) return;
-        if (!requirement.RequireRecentCode || WebSession.RecentCodeTime(context.User, clock).HasValue)
+        if (!requirement.RequireRecentCode)
+        {
             context.Succeed(requirement);
+            return;
+        }
+
+        var sessionVersionText = context.User.FindFirstValue(WebSession.VersionClaim);
+        var trustedBrowserToken = context.Resource is HttpContext requestContext
+            ? WebSession.GetTrustedBrowserToken(requestContext)
+            : null;
+        if (Guid.TryParse(sessionVersionText, out var sessionVersion) &&
+            !string.IsNullOrWhiteSpace(trustedBrowserToken) &&
+            await webAuthApiClient.IsTrustedBrowserAsync(userUuid, sessionVersion, trustedBrowserToken, CancellationToken.None))
+        {
+            if (context.Resource is HttpContext trustedHttpContext)
+                WebSession.SetTrustedBrowserCookie(trustedHttpContext, trustedBrowserToken, clock);
+            context.Succeed(requirement);
+        }
+        else if (WebSession.RecentCodeTime(context.User, clock).HasValue)
+        {
+            context.Succeed(requirement);
+        }
         else if (context.Resource is HttpContext httpContext)
             httpContext.Items[WebSession.NeedsCodeItem] = true;
     }

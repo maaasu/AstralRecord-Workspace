@@ -65,6 +65,84 @@ public class WebAuthRepositoryTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.03-消費系.md
+    /// 検証契約: 信頼済みブラウザはコード認証で発行され、最終利用から7日間だけ更新されながら有効になる。
+    /// </summary>
+    [Fact]
+    public async Task ConsumeChallengeAsync_IssuesTrustedBrowserTokenWithSlidingSevenDayExpiry()
+    {
+        await using var gameConnection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
+        await gameConnection.OpenAsync();
+        await managementConnection.OpenAsync();
+        var gameOptions = CreateGameOptions(gameConnection);
+        var managementOptions = CreateManagementOptions(managementConnection);
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await SeedGameUserAsync(gameOptions, userId, "TrustedTester", Guid.NewGuid(), now);
+        await using (var managementSetup = new ManagementDbContext(managementOptions))
+        {
+            await managementSetup.Database.EnsureCreatedAsync();
+            managementSetup.Players.Add(new ManagementPlayerEntity
+            {
+                PlayerUuid = userId,
+                Mcid = "TrustedTester",
+                WebAdmin = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+            await managementSetup.SaveChangesAsync();
+        }
+
+        await using var gameContext = new AstralRecordDbContext(gameOptions);
+        await using var managementContext = new ManagementDbContext(managementOptions);
+        var repository = CreateRepository(gameContext, managementContext);
+        var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "TrustedTester", now));
+        Assert.NotNull(issued);
+
+        var consumed = await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest
+        {
+            LoginCode = issued.LoginCode,
+            IssueTrustedBrowser = true,
+        });
+
+        Assert.NotNull(consumed);
+        Assert.True(consumed.WebAdmin);
+        Assert.NotNull(consumed.TrustedBrowserToken);
+        var token = consumed.TrustedBrowserToken!;
+        Assert.True(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
+
+        var trustedBrowser = await managementContext.WebTrustedBrowsers.AsNoTracking().SingleAsync();
+        trustedBrowser.CreatedAtUtc = DateTime.UtcNow.AddDays(-6).AddMinutes(-1);
+        trustedBrowser.LastUsedAtUtc = DateTime.UtcNow.AddDays(-6);
+        managementContext.WebTrustedBrowsers.Update(trustedBrowser);
+        await managementContext.SaveChangesAsync();
+        Assert.True(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
+        managementContext.ChangeTracker.Clear();
+        var refreshed = await managementContext.WebTrustedBrowsers.AsNoTracking().SingleAsync();
+        Assert.True(refreshed.LastUsedAtUtc > DateTime.UtcNow.AddDays(-6));
+
+        refreshed.CreatedAtUtc = DateTime.UtcNow.AddDays(-7).AddMinutes(-1);
+        refreshed.LastUsedAtUtc = DateTime.UtcNow.AddDays(-7).AddSeconds(-1);
+        managementContext.WebTrustedBrowsers.Update(refreshed);
+        await managementContext.SaveChangesAsync();
+        Assert.False(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
+
+        refreshed.LastUsedAtUtc = DateTime.UtcNow;
+        managementContext.WebTrustedBrowsers.Update(refreshed);
+        await managementContext.SaveChangesAsync();
+        var enabled = await repository.UpdateCredentialAsync(userId, new WebCredentialUpdateRequest
+        {
+            SessionVersion = consumed.SessionVersion,
+            Action = "enable",
+            NewPassword = "CobaltHarbor!29",
+            CodeAuthenticationProof = consumed.CodeAuthenticationProof,
+        });
+        Assert.Equal(WebCredentialUpdateStatus.Succeeded, enabled.Status);
+        Assert.False(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/1-モデル定義/24_1.00-モデル定義.md
     /// 検証契約: ManagementDBへの再ログイン記録はMCIDと最終ログイン日時を更新しても、既存のWeb管理フラグを変更しない。
     /// </summary>

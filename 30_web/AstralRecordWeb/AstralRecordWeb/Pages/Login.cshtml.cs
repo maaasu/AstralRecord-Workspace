@@ -13,11 +13,12 @@ namespace AstralRecordWeb.Pages;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [RequestSizeLimit(16384)]
 [RequestFormLimits(ValueLengthLimit = 1024, ValueCountLimit = 16)]
-public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
+public class LoginModel(WebAuthApiClient webAuthApiClient, TimeProvider clock) : PageModel
 {
     [BindProperty] public string? LoginCode { get; set; }
     [BindProperty] public string? LoginId { get; set; }
     [BindProperty] public string? Password { get; set; }
+    [BindProperty] public bool TrustBrowser { get; set; }
     public bool PasswordMode { get; private set; }
 
     public void OnGet() { }
@@ -29,7 +30,7 @@ public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
             ModelState.AddModelError(string.Empty, "ログインコードを入力してください。");
             return Page();
         }
-        return await CompleteAsync(await webAuthApiClient.ConsumeAsync(LoginCode, ct), true);
+        return await CompleteAsync(await webAuthApiClient.ConsumeAsync(LoginCode, ct, issueTrustedBrowser: TrustBrowser), true);
     }
 
     public async Task<IActionResult> OnPostPasswordAsync(CancellationToken ct)
@@ -55,6 +56,8 @@ public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
         else
         {
             await WebSession.SignInAsync(HttpContext, session, code ? session.CodeAuthenticatedAt : null);
+            if (code && TrustBrowser && !string.IsNullOrWhiteSpace(session.TrustedBrowserToken))
+                WebSession.SetTrustedBrowserCookie(HttpContext, session.TrustedBrowserToken, clock);
             return RedirectToPage("/MyPage");
         }
         return Page();

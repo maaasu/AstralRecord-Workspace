@@ -6,7 +6,11 @@ namespace AstralRecordWeb.Services;
 
 public class WebAuthApiClient(HttpClient httpClient, ILogger<WebAuthApiClient> logger)
 {
-    public async Task<WebLoginChallengeConsumeResult> ConsumeAsync(string loginCode, CancellationToken cancellationToken, Guid? expectedUserUuid = null)
+    public async Task<WebLoginChallengeConsumeResult> ConsumeAsync(
+        string loginCode,
+        CancellationToken cancellationToken,
+        Guid? expectedUserUuid = null,
+        bool issueTrustedBrowser = false)
     {
         var normalizedCode = NormalizeLoginCode(loginCode);
         if (string.IsNullOrWhiteSpace(normalizedCode))
@@ -16,7 +20,12 @@ public class WebAuthApiClient(HttpClient httpClient, ILogger<WebAuthApiClient> l
         {
             using var response = await httpClient.PostAsJsonAsync(
                 "/api/web-auth/challenges/consume",
-                new WebLoginChallengeConsumeRequest { LoginCode = normalizedCode, ExpectedUserUuid = expectedUserUuid },
+                new WebLoginChallengeConsumeRequest
+                {
+                    LoginCode = normalizedCode,
+                    ExpectedUserUuid = expectedUserUuid,
+                    IssueTrustedBrowser = issueTrustedBrowser,
+                },
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -105,6 +114,36 @@ public class WebAuthApiClient(HttpClient httpClient, ILogger<WebAuthApiClient> l
             ex is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
         {
             logger.LogWarning(ex, "Web administrator authorization API request failed.");
+            return false;
+        }
+    }
+
+    /// <summary>信頼済みブラウザトークンをAPIで検証し、成功時は最終利用時刻を更新します。</summary>
+    public async Task<bool> IsTrustedBrowserAsync(
+        Guid userUuid,
+        Guid sessionVersion,
+        string? token,
+        CancellationToken cancellationToken)
+    {
+        if (userUuid == Guid.Empty || sessionVersion == Guid.Empty || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        try
+        {
+            using var response = await httpClient.PostAsJsonAsync(
+                $"/api/web-auth/users/{userUuid:D}/trusted-browsers/validate",
+                new WebTrustedBrowserValidationRequest { SessionVersion = sessionVersion, Token = token },
+                cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var validation = await response.Content.ReadFromJsonAsync<WebTrustedBrowserValidationResponse>(cancellationToken);
+            return validation?.Trusted == true;
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested &&
+            ex is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
+        {
+            logger.LogWarning(ex, "Trusted browser validation API request failed.");
             return false;
         }
     }
