@@ -391,7 +391,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## シャープシューター専門枝
 
-シャープシューターは共通射撃24node、Sniper 48node、Rapid 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` である。skill解放nodeは現時点で持たない。
+シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48nodeを定義する。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` である。skill解放nodeは現時点で持たない。これらの定義は現行の `starter` には未配置である。
 
 ### 共通射撃パッケージ
 
