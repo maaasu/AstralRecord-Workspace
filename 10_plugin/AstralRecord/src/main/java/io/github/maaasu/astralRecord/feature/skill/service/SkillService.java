@@ -1665,7 +1665,8 @@ public class SkillService {
                 definition.getAllowedSigilIds(),
                 definition.getLearnRequiredItems(),
                 definition.getLevelUpRequiredItems(),
-                definition.getIconTexture()
+                definition.getIconTexture(),
+                definition.getConditionalLore()
         );
     }
 

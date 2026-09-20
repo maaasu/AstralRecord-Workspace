@@ -5,6 +5,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition
+import io.github.maaasu.astralRecord.feature.skill.model.SkillConditionalLoreDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType
 import io.github.maaasu.astralRecord.feature.skill.model.SkillLevelDefinition
@@ -112,6 +113,7 @@ class SkillRepository {
             description = obj.get("description")?.takeIf { !it.isJsonNull }?.asString,
             icon = obj.get("icon")?.takeIf { !it.isJsonNull }?.asString,
             lore = parseStringList(obj.getAsJsonArray("lore")),
+            conditionalLore = parseConditionalLore(obj.getAsJsonArray("conditionalLore")),
             cooldownTicks = obj.get("cooldownTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
             manaCost = obj.get("manaCost")?.takeIf { !it.isJsonNull }?.asDouble ?: 0.0,
             castTimeTicks = obj.get("castTimeTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
@@ -142,6 +144,23 @@ class SkillRepository {
                 amount = obj.get("amount")?.asInt ?: 1,
             )
         }.filter { it.itemId.isNotBlank() && it.amount > 0 }
+    }
+
+    private fun parseConditionalLore(array: JsonArray?): List<SkillConditionalLoreDefinition> {
+        if (array == null) return emptyList()
+        return array.filter { it.isJsonObject }.mapNotNull { element ->
+            val obj = element.asJsonObject
+            val requiredSkillId = obj.get("requiredSkillId")?.takeIf { !it.isJsonNull }?.asString?.trim()
+                .orEmpty()
+            if (requiredSkillId.isBlank()) {
+                null
+            } else {
+                SkillConditionalLoreDefinition(
+                    requiredSkillId = requiredSkillId,
+                    lines = parseStringList(obj.getAsJsonArray("lines")),
+                )
+            }
+        }
     }
 
     private fun parseLevels(array: JsonArray?): List<SkillLevelDefinition> {

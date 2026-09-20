@@ -110,7 +110,8 @@ public final class LearnedSkillResolver {
             base.getAllowedSigilIds(),
             base.getLearnRequiredItems(),
             base.getLevelUpRequiredItems(),
-            base.getIconTexture()
+            base.getIconTexture(),
+            base.getConditionalLore()
         );
         return new ResolvedLearnedSkill(learned, resolved, statusBonuses, sigilIds);
     }

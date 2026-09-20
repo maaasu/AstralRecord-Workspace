@@ -13,6 +13,12 @@ lore:
   - "&7敵または地形に当たると、半径{skill.radius}mの範囲へ{skill.arrowCount}本の雨矢を3本ずつ連続して降らせる。"
   - "&7雨矢は1本につき最初の敵へ間接攻撃力{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
   - "&7雨矢は初弾の着弾高度以上の地形を貫通し、それより低い地形で消滅する。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7継承の心得が有効なら、継承バフ・アローレインを30秒付与する。"
+      - "&7通常攻撃のヒット地点で30秒分を消費し、同じ雨矢を発生させる。"
+      - "&7消費リソースと性能はアローレインを参照する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 16

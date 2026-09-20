@@ -152,6 +152,22 @@ public final class SkillPresentationUtil {
         @Nullable SkillDefinition definition,
         @Nullable TextColor fallbackColor
     ) {
+        return skillDescriptionAndLore(definition, Set.of(), fallbackColor);
+    }
+
+    /**
+     * スキルマスターの説明と lore を、閲覧者の使用許可を反映して GUI 用の行へ変換します。
+     *
+     * @param definition スキル定義
+     * @param permittedSkillIds 閲覧者に許可されたスキル ID 一覧
+     * @param fallbackColor カラーコード未指定時の色
+     * @return 説明と表示条件を満たした lore の表示行
+     */
+    public static @NotNull List<Component> skillDescriptionAndLore(
+        @Nullable SkillDefinition definition,
+        @NotNull Collection<String> permittedSkillIds,
+        @Nullable TextColor fallbackColor
+    ) {
         if (definition == null) {
             return List.of();
         }
@@ -164,6 +180,7 @@ public final class SkillPresentationUtil {
         for (String line : definition.getLore()) {
             appendMasterLine(lines, renderPlaceholdersComponent(line, values, fallbackColor));
         }
+        appendConditionalLore(lines, definition, permittedSkillIds, values, fallbackColor);
         return List.copyOf(lines);
     }
 
@@ -178,6 +195,28 @@ public final class SkillPresentationUtil {
         return skillDescriptionAndFlavorLore(
             definition,
             definition == null ? Map.of() : baseDescriptionValues(definition),
+            Set.of(),
+            fallbackColor
+        );
+    }
+
+    /**
+     * 習得個体を持たない画面向けに、使用許可を満たす条件付き説明を含めて表示します。
+     *
+     * @param definition スキル定義
+     * @param permittedSkillIds 閲覧者に許可されたスキル ID 一覧
+     * @param fallbackColor カラーコード未指定時の色
+     * @return 表示用の説明行
+     */
+    public static @NotNull List<Component> skillDescriptionAndFlavorLore(
+        @Nullable SkillDefinition definition,
+        @NotNull Collection<String> permittedSkillIds,
+        @Nullable TextColor fallbackColor
+    ) {
+        return skillDescriptionAndFlavorLore(
+            definition,
+            definition == null ? Map.of() : baseDescriptionValues(definition),
+            permittedSkillIds,
             fallbackColor
         );
     }
@@ -193,10 +232,27 @@ public final class SkillPresentationUtil {
         @Nullable ResolvedLearnedSkill resolved,
         @Nullable TextColor fallbackColor
     ) {
+        return skillDescriptionAndFlavorLore(resolved, Set.of(), fallbackColor);
+    }
+
+    /**
+     * 習得レベル・シジル補正と閲覧者の使用許可を反映したスキル説明を表示します。
+     *
+     * @param resolved レベル・シジル補正済みのスキル
+     * @param permittedSkillIds 閲覧者に許可されたスキル ID 一覧
+     * @param fallbackColor カラーコード未指定時の色
+     * @return 補正済みかつ表示条件を満たした説明行
+     */
+    public static @NotNull List<Component> skillDescriptionAndFlavorLore(
+        @Nullable ResolvedLearnedSkill resolved,
+        @NotNull Collection<String> permittedSkillIds,
+        @Nullable TextColor fallbackColor
+    ) {
         if (resolved == null) return List.of();
         return skillDescriptionAndFlavorLore(
             resolved.definition(),
             descriptionValues(resolved),
+            permittedSkillIds,
             fallbackColor
         );
     }
@@ -204,6 +260,7 @@ public final class SkillPresentationUtil {
     private static @NotNull List<Component> skillDescriptionAndFlavorLore(
         @Nullable SkillDefinition definition,
         @NotNull Map<String, Object> values,
+        @NotNull Collection<String> permittedSkillIds,
         @Nullable TextColor fallbackColor
     ) {
         if (definition == null) {
@@ -222,7 +279,36 @@ public final class SkillPresentationUtil {
             }
             appendMasterLine(lines, renderResolvedLineComponent(line, values, fallbackColor));
         }
+        appendConditionalLore(lines, definition, permittedSkillIds, values, fallbackColor);
         return List.copyOf(lines);
+    }
+
+    /** 条件スキルの使用許可がある場合だけ、対応する追加説明行を追記します。 */
+    private static void appendConditionalLore(
+        @NotNull List<Component> lines,
+        @NotNull SkillDefinition definition,
+        @NotNull Collection<String> permittedSkillIds,
+        @NotNull Map<String, Object> values,
+        @Nullable TextColor fallbackColor
+    ) {
+        Set<String> normalizedPermissions = permittedSkillIds.stream()
+            .map(SkillPresentationUtil::normalizeSkillReference)
+            .filter(value -> !value.isBlank())
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        for (var conditionalLore : definition.getConditionalLore()) {
+            if (!normalizedPermissions.contains(normalizeSkillReference(conditionalLore.getRequiredSkillId()))) {
+                continue;
+            }
+            for (String line : conditionalLore.getLines()) {
+                appendMasterLine(lines, renderResolvedLineComponent(line, values, fallbackColor));
+            }
+        }
+    }
+
+    private static @NotNull String normalizeSkillReference(@Nullable String value) {
+        if (value == null) return "";
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith("skill:") ? normalized.substring("skill:".length()) : normalized;
     }
 
     private static @NotNull Component renderResolvedLineComponent(

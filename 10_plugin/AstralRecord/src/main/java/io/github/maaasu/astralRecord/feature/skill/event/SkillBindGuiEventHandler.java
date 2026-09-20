@@ -926,7 +926,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int returnPage,
         boolean mutationInProgress
     ) {
-        Inventory inventory = gui.createDetailInventory(session, entry, returnPage, mutationInProgress);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) return;
+        Inventory inventory = gui.createDetailInventory(
+            session,
+            entry,
+            returnPage,
+            mutationInProgress,
+            permissionService.permittedSkillIds(astPlayer)
+        );
         if (inventory != null) {
             GuiOpenSupport.open(player, inventory);
         }

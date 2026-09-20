@@ -21,6 +21,9 @@ public class SkillResponse
 
     public IReadOnlyList<string> Lore { get; init; } = [];
 
+    /// <summary>使用許可を持つ閲覧者だけへ追加表示する説明行です。</summary>
+    public IReadOnlyList<SkillConditionalLoreResponse> ConditionalLore { get; init; } = [];
+
     public long CooldownTicks { get; init; }
 
     public string? CooldownId { get; init; }
@@ -72,6 +75,16 @@ public class SkillSummaryResponse
     public string? IconTexture { get; init; }
 
     public IReadOnlyList<string> Tags { get; init; } = [];
+}
+
+/// <summary>特定スキルの使用許可を条件とするスキル説明行です。</summary>
+public class SkillConditionalLoreResponse
+{
+    /// <summary>表示条件となるスキル参照。<c>skill:</c> 接頭辞を使用します。</summary>
+    public required string RequiredSkillId { get; init; }
+
+    /// <summary>条件を満たした閲覧者へ表示する説明行です。</summary>
+    public IReadOnlyList<string> Lines { get; init; } = [];
 }
 
 public class SkillOnCastResponse

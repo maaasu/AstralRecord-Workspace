@@ -19,6 +19,9 @@
 | `icon` | String | 任意 | `null` | Material 名 |
 | `iconTexture` | String | 任意 | `null` | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定する |
 | `lore` | List<String> | 任意 | `[]` | 効果、条件、対象、数値などの詳細表示。1行1要素を基本とする |
+| `conditionalLore` | List | 任意 | `[]` | 指定スキルの使用許可を持つ閲覧者だけへ追加表示する説明行 |
+| `conditionalLore[].requiredSkillId` | String | 必須 | - | 表示条件となる `skill:` 接頭辞付きスキル参照 |
+| `conditionalLore[].lines` | List<String> | 任意 | `[]` | 条件を満たした閲覧者へ表示する説明行 |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
 | `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |
 | `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` / `GUARD` |
@@ -48,6 +51,19 @@
 | `levelUpRequiredItems[].amount` | Integer | 任意 | `1` | 消費個数。1以上 |
 | `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
+
+### 継承の心得の `params.inheritanceBuffs[]`
+
+`sharpshooter_inheritance_mastery` は、継承バフごとに次の項目を定義します。
+
+| キー | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `buffId` | String | 必須 | `buff:` 接頭辞付きの継承バフ参照 |
+| `durationConsumptionTicks` | Long | 必須 | 通常攻撃1回で消費する継承バフの残り時間。1以上の整数 |
+| `sourceSkillId` | String | `resourceType` / `resourceCost` 未指定時 | `skill:` 接頭辞付きの付与元スキル参照。付与元のレベル・シジル反映済み効果と、MPを含む複合リソース消費を参照する |
+| `resourceType` / `resourceCost` | String / Double | `sourceSkillId` 未指定時 | 継承効果ごとの固定追加リソース消費。両方を指定し、`sourceSkillId` と併記しない |
+
+`sourceSkillId` も固定リソース定義もない継承バフは、追加リソースを消費しません。
 
 `swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`params.consumeAllCurrentMana: true` と `params.levelFiveRequiredManaRatio: 0.80` は、反撃成立時の現在MP全消費とLv.5の必要MP比率を定義します。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` は共通消費を重ねないための定義であり、反撃成立時のMP全消費はexecutorが行います。
 

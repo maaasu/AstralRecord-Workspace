@@ -169,6 +169,9 @@ public final class SkillBindGui {
         int pageIndex
     ) {
         int displayCount = entries.size() + unlearnedDefinitions.size();
+        Set<String> permittedSkillIds = permittedSkillDefinitions.stream()
+            .map(SkillDefinition::getId)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
         int page = normalizePage(pageIndex, displayCount);
         int pages = totalPages(displayCount);
         Inventory inventory = Bukkit.createInventory(
@@ -183,9 +186,9 @@ public final class SkillBindGui {
         int contentSlotOffset = contentSlotOffset(page, session.selectedBindType());
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start + contentSlotOffset, index < entries.size()
-                ? createLearnedSkillItem(entries.get(index), true)
+                ? createLearnedSkillItem(entries.get(index), true, permittedSkillIds)
                 : createUnlearnedSkillItem(
-                    unlearnedDefinitions.get(index - entries.size()), session.processingSkillId()));
+                    unlearnedDefinitions.get(index - entries.size()), session.processingSkillId(), permittedSkillIds));
         }
 
         for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
@@ -246,7 +249,7 @@ public final class SkillBindGui {
         @NotNull SkillManagerEntry entry,
         int returnPage
     ) {
-        return createDetailInventory(session, entry, returnPage, false);
+        return createDetailInventory(session, entry, returnPage, false, Set.of());
     }
 
     /**
@@ -264,6 +267,26 @@ public final class SkillBindGui {
         int returnPage,
         boolean mutationInProgress
     ) {
+        return createDetailInventory(session, entry, returnPage, mutationInProgress, Set.of());
+    }
+
+    /**
+     * スキル詳細画面を、閲覧者の使用許可を反映して生成します。
+     *
+     * @param session 編集中セッション
+     * @param entry 詳細表示する習得済みスキル
+     * @param returnPage スキルマネージャーへ戻るページ番号
+     * @param mutationInProgress レベルアップなどのスキル更新処理中かどうか
+     * @param permittedSkillIds 閲覧者に許可されたスキル ID 一覧
+     * @return 表示用の詳細画面 inventory
+     */
+    public @NotNull Inventory createDetailInventory(
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage,
+        boolean mutationInProgress,
+        @NotNull Set<String> permittedSkillIds
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(
                 SkillBindScreen.DETAIL,
@@ -275,7 +298,7 @@ public final class SkillBindGui {
             Component.text("スキル詳細", NamedTextColor.AQUA)
         );
         fill(inventory);
-        inventory.setItem(DETAIL_SKILL_SLOT, createLearnedSkillItem(entry, false));
+        inventory.setItem(DETAIL_SKILL_SLOT, createLearnedSkillItem(entry, false, permittedSkillIds));
         if (mutationInProgress) {
             ItemStack processing = GuiItems.processingItem();
             inventory.setItem(DETAIL_BIND_SLOT, processing.clone());
@@ -541,9 +564,13 @@ public final class SkillBindGui {
         return Component.text(" Lv." + level + "/" + maxLevel, normalColor);
     }
 
-    private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {
+    private ItemStack createLearnedSkillItem(
+        SkillManagerEntry entry,
+        boolean listDisplay,
+        @NotNull Set<String> permittedSkillIds
+    ) {
         List<Component> lore = new ArrayList<>();
-        appendLearnedSkillDetails(lore, entry);
+        appendLearnedSkillDetails(lore, entry, permittedSkillIds);
         if (listDisplay) {
             lore.add(separator());
             lore.add(Component.text(
@@ -568,13 +595,16 @@ public final class SkillBindGui {
 
     private ItemStack createUnlearnedSkillItem(
         @NotNull SkillDefinition skill,
-        @Nullable String processingSkillId
+        @Nullable String processingSkillId,
+        @NotNull Set<String> permittedSkillIds
     ) {
         if (processingSkillId != null && processingSkillId.equalsIgnoreCase(skill.getId())) {
             return GuiItems.processingItem();
         }
         List<Component> lore = new ArrayList<>();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+            skill, permittedSkillIds, NamedTextColor.GRAY
+        ));
         lore.add(separator());
         lore.add(Component.text("未習得", NamedTextColor.RED));
         appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材");
@@ -609,9 +639,15 @@ public final class SkillBindGui {
     }
 
     /** 一覧・設定済みスロットで共通に表示する、習得済みスキルのプレイヤー向け詳細です。 */
-    private void appendLearnedSkillDetails(@NotNull List<Component> lore, @NotNull SkillManagerEntry entry) {
+    private void appendLearnedSkillDetails(
+        @NotNull List<Component> lore,
+        @NotNull SkillManagerEntry entry,
+        @NotNull Set<String> permittedSkillIds
+    ) {
         SkillDefinition skill = entry.definition();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(entry.resolved(), NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+            entry.resolved(), permittedSkillIds, NamedTextColor.GRAY
+        ));
         if (!lore.isEmpty()) {
             lore.add(separator());
         }

@@ -47,6 +47,13 @@ data class SkillDefinition @JvmOverloads constructor(
     val learnRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
     val levelUpRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
     val iconTexture: String? = null,
+    val conditionalLore: List<SkillConditionalLoreDefinition> = emptyList(),
+)
+
+/** 特定スキルの使用許可を持つ閲覧者だけへ表示する説明行です。 */
+data class SkillConditionalLoreDefinition(
+    val requiredSkillId: String,
+    val lines: List<String> = emptyList(),
 )
 
 data class SkillRequiredItemDefinition(
