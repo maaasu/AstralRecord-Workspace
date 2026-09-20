@@ -16,7 +16,7 @@ lore:
   - "&7ジャスト回避が有効なら、発動時に同じ回避判定を開始する。"
 cooldownTicks: 0
 resourceType: ENERGY
-resourceCost: 0
+resourceCost: 15
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 1

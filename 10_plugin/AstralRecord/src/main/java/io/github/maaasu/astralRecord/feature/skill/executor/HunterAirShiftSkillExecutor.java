@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor;
 
+import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -60,10 +61,10 @@ public final class HunterAirShiftSkillExecutor implements SkillExecutor {
             throw new SkillParameterException("resourceType", "ENERGY を指定してください");
         }
         Double resourceCost = skill.getResourceCost();
-        if (resourceCost == null || Double.compare(resourceCost, 0.0D) != 0) {
+        if (resourceCost == null || Double.compare(resourceCost, DodgeService.DEFAULT_ENERGY_COST) != 0) {
             throw new SkillParameterException(
                     "resourceCost",
-                    "ENGを消費しないため 0 を指定してください"
+                    "通常ドッジと同じ " + DodgeService.DEFAULT_ENERGY_COST + " を指定してください"
             );
         }
 
