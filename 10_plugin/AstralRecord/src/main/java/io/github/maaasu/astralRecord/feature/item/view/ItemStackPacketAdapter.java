@@ -90,6 +90,7 @@ public class ItemStackPacketAdapter {
     private final @Nullable SkillPermissionService skillPermissionService;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
     private boolean registered = false;
@@ -170,7 +171,7 @@ public class ItemStackPacketAdapter {
                 );
                 boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
                     viewer.getUniqueId()
-                );
+                ) && actionRingHoldEligibleSnapshots.getOrDefault(viewer.getUniqueId(), false);
                 boolean actionRingOpen = actionRingService.isOpen(viewer);
                 int selectedHotbarSlot = actionRingOpen
                     ? actionRingService.getSelectedHotbarSlot(viewer)
@@ -250,13 +251,14 @@ public class ItemStackPacketAdapter {
                 selectedHotbarSlots.remove(event.getPlayer().getUniqueId());
                 permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
                 bedrockSnapshots.remove(event.getPlayer().getUniqueId());
+                actionRingHoldEligibleSnapshots.remove(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
 
         plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            this::refreshSkillPermissionSnapshots,
+            this::refreshDisplaySnapshots,
             1L,
             1L
         );
@@ -266,15 +268,17 @@ public class ItemStackPacketAdapter {
     }
 
     /**
-     * パケット表示に必要な使用許可と Bedrock 判定をメインスレッドで受信者別にスナップショット化します。
-     * パケット送信側ではこの不変値だけを参照し、プレイヤー本体やスキルツリーへアクセスしません。
+     * パケット表示に必要な使用許可、Bedrock 判定、アクションリング長押し適格性を
+     * メインスレッドで受信者別にスナップショット化します。パケット送信側ではこの不変値だけを参照し、
+     * プレイヤー本体やスキルツリーへアクセスしません。
      */
-    private void refreshSkillPermissionSnapshots() {
+    private void refreshDisplaySnapshots() {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
                 permittedSkillSnapshots.remove(player.getUniqueId());
                 bedrockSnapshots.remove(player.getUniqueId());
+                actionRingHoldEligibleSnapshots.remove(player.getUniqueId());
                 continue;
             }
             boolean nextBedrock = astPlayer.isBedrock();
@@ -282,6 +286,13 @@ public class ItemStackPacketAdapter {
             boolean displaySnapshotChanged = (previousBedrock == null && nextBedrock)
                 || (previousBedrock != null && previousBedrock != nextBedrock);
             boolean permittedSkillSnapshotChanged = false;
+            boolean nextActionRingHoldEligible = actionRingService.hasMultipleConfiguredActions(astPlayer);
+            Boolean previousActionRingHoldEligible = actionRingHoldEligibleSnapshots.put(
+                player.getUniqueId(),
+                nextActionRingHoldEligible
+            );
+            boolean actionRingHoldEligibilityChanged = previousActionRingHoldEligible == null
+                || previousActionRingHoldEligible != nextActionRingHoldEligible;
             if (skillPermissionService != null) {
                 Set<String> nextPermittedSkillIds = Set.copyOf(skillPermissionService.permittedSkillIds(astPlayer));
                 Set<String> previousPermittedSkillIds = permittedSkillSnapshots.put(
@@ -293,7 +304,7 @@ public class ItemStackPacketAdapter {
             }
             if (displaySnapshotChanged) {
                 refreshEquipmentView(player, true);
-            } else if (permittedSkillSnapshotChanged) {
+            } else if (permittedSkillSnapshotChanged || actionRingHoldEligibilityChanged) {
                 player.updateInventory();
             }
         }

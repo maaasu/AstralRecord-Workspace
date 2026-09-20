@@ -146,7 +146,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         if (context.family() == InputFamily.RIGHT_CLICK
             && isPlayerMode(astPlayer)
             && isWeapon(astPlayer)) {
-            boolean holdSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId());
+            boolean holdSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())
+                && actionRingService.hasMultipleConfiguredActions(astPlayer);
             // 長押しはクライアント側の仮想トライデント使用を始められる AIR 入力だけで受け付ける。
             // 従来モードは block / entity 右クリックも含めた既存の入力範囲を維持する。
             if (holdSelectEnabled && snapshot.action() != Action.RIGHT_CLICK_AIR) {

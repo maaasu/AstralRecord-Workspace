@@ -140,7 +140,23 @@ public final class SkillActionRingService {
             GuiSound.CLOSE.play(player);
             return;
         }
-        open(astPlayer);
+        if (configuredActionCount(astPlayer) == 0) {
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().sendClickable(player, PlayerMsgId.P_5856, "/skill gui");
+            return;
+        }
+        if (!hasUsableMainHandWeapon(astPlayer)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        List<SlotView> slots = resolveSlots(astPlayer, caster);
+        if (slots.size() == 1) {
+            castSlot(astPlayer, slots.getFirst(), 1, 1);
+            return;
+        }
+        open(astPlayer, PlayerMsgId.P_5854, slots, caster);
     }
 
     /**
@@ -174,9 +190,27 @@ public final class SkillActionRingService {
         }
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        List<SlotView> slots = resolveSlots(astPlayer, caster);
+        if (slots.size() < 2) {
+            return false;
+        }
+        return open(astPlayer, selectionInstruction, slots, caster);
+    }
+
+    private boolean open(
+        @NotNull AstPlayer astPlayer,
+        @NotNull PlayerMsgId selectionInstruction,
+        @NotNull List<SlotView> slots,
+        @NotNull PlayerSkillCaster caster
+    ) {
+        Player player = astPlayer.getBukkit();
+        UUID playerId = player.getUniqueId();
+        if (sessions.containsKey(playerId)) {
+            return false;
+        }
         RingSession session = RingSession.create(
             player,
-            resolveSlots(astPlayer, caster),
+            slots,
             actionRingDisplay,
             skillService,
             caster,
@@ -292,13 +326,28 @@ public final class SkillActionRingService {
         if (!sessions.remove(player.getUniqueId(), session)) {
             return;
         }
-        String skillId = session.selectedSkillId();
-        int selectedSlot = session.selectedIndex + 1;
+        SlotView selectedSlot = session.selectedSlot();
+        int selectedPosition = session.selectedIndex + 1;
+        int slotCount = session.slots.size();
         destroySession(player, session);
+        castSlot(astPlayer, selectedSlot, selectedPosition, slotCount);
+    }
+
+    private boolean castSlot(
+        @NotNull AstPlayer astPlayer,
+        @Nullable SlotView slot,
+        int selectedPosition,
+        int slotCount
+    ) {
+        if (slot == null) {
+            return false;
+        }
+        Player player = astPlayer.getBukkit();
+        String skillId = slot.skillId();
         String skillDisplayName = "未設定";
         if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
             if (itemWeaponAttackService == null) {
-                return;
+                return false;
             }
             itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
             skillDisplayName = "武器通常攻撃";
@@ -315,11 +364,20 @@ public final class SkillActionRingService {
                 List.of()
             );
             if (!castResult.success()) {
-                return;
+                return false;
             }
+        } else {
+            return false;
         }
         GuiSound.RING_CAST.play(player);
-        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillDisplayName);
+        PlayerMessageService.getInstance().send(
+            astPlayer,
+            PlayerMsgId.P_5807,
+            slotCount,
+            selectedPosition,
+            skillDisplayName
+        );
+        return true;
     }
 
     /**
@@ -390,19 +448,7 @@ public final class SkillActionRingService {
 
     private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster) {
         List<SlotView> slots = new ArrayList<>(SLOT_COUNT);
-        UUID accountId = astPlayer.getAccount().getUuid();
-        int selectedPresetIndex = presetService.selectedPresetIndex(accountId);
-        List<String> activeSlots = presetService.getPresets(accountId).stream()
-            .filter(preset -> preset.isUnlocked() && preset.getPresetIndex() == selectedPresetIndex)
-            .findFirst()
-            .map(SkillBindPreset::getActiveSkillSlots)
-            .orElse(List.of());
-        for (int index = 0; index < SLOT_COUNT; index++) {
-            String skillId = index < activeSlots.size() ? activeSlots.get(index) : null;
-            if (skillId == null || skillId.isBlank()) {
-                slots.add(new SlotView(null, null, "未設定", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
-                continue;
-            }
+        for (String skillId : configuredActionSkillIds(astPlayer)) {
             if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
                 String weaponSkillId = itemWeaponAttackService == null ? null : itemWeaponAttackService.currentLeftClickSkillId(astPlayer);
                 SkillDefinition definition = weaponSkillId == null ? null : skillService.registry().getDefinition(weaponSkillId);
@@ -439,6 +485,38 @@ public final class SkillActionRingService {
             slots.add(new SlotView(skillId, definition, displayName, material, owned, availability, resolved));
         }
         return slots;
+    }
+
+    /**
+     * 現在選択中のプリセットに設定されているアクションスキル数を返します。
+     *
+     * <p>スキルの習得状態や発動可否には依存せず、空でないバインド数だけを数えます。</p>
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 設定済みアクションスキル数
+     */
+    public int configuredActionCount(@NotNull AstPlayer astPlayer) {
+        return configuredActionSkillIds(astPlayer).size();
+    }
+
+    /**
+     * 現在選択中のプリセットにアクションリング選択が必要な数のスキルがあるか返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 2件以上設定されている場合は {@code true}
+     */
+    public boolean hasMultipleConfiguredActions(@NotNull AstPlayer astPlayer) {
+        return configuredActionCount(astPlayer) >= 2;
+    }
+
+    private @NotNull List<String> configuredActionSkillIds(@NotNull AstPlayer astPlayer) {
+        SkillBindPreset preset = selectedPreset(astPlayer);
+        if (preset == null) {
+            return List.of();
+        }
+        return preset.getActiveSkillSlots().stream()
+            .filter(skillId -> skillId != null && !skillId.isBlank())
+            .toList();
     }
 
     /**
@@ -817,8 +895,8 @@ public final class SkillActionRingService {
         private final SkillActionRingDisplay actionRingDisplay;
         private final SkillService skillService;
         private final PlayerSkillCaster caster;
-        private final List<SkillActionRingDisplay.DisplayEntity> icons = new ArrayList<>(SLOT_COUNT);
-        private final List<SkillActionRingDisplay.DisplayEntity> labels = new ArrayList<>(SLOT_COUNT);
+        private final List<SkillActionRingDisplay.DisplayEntity> icons;
+        private final List<SkillActionRingDisplay.DisplayEntity> labels;
         private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
@@ -857,6 +935,8 @@ public final class SkillActionRingService {
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
             this.caster = caster;
+            this.icons = new ArrayList<>(slots.size());
+            this.labels = new ArrayList<>(slots.size());
             this.hotbarSlot = hotbarSlot;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
@@ -921,7 +1001,7 @@ public final class SkillActionRingService {
                 dot.spawn(player);
                 circleDots.add(dot);
             }
-            for (int index = 0; index < SLOT_COUNT; index++) {
+            for (int index = 0; index < slots.size(); index++) {
                 Location location = baseCenter.clone();
                 ItemStack itemStack = new ItemStack(slots.get(index).material());
                 SkillDefinition definition = slots.get(index).definition();
@@ -972,7 +1052,7 @@ public final class SkillActionRingService {
                 renderedCenter = center.clone();
             }
             updateCircle(center, layoutChanged);
-            for (int index = 0; index < SLOT_COUNT; index++) {
+            for (int index = 0; index < slots.size(); index++) {
                 SlotView slot = slots.get(index);
                 boolean selected = index == selectedIndex && slot.selectable();
                 boolean hiddenByConfirmedSelection = phase == RingPhase.WAITING_CAST && index != confirmedIndex;
@@ -1034,11 +1114,11 @@ public final class SkillActionRingService {
             }
         }
 
-        private String selectedSkillId() {
+        private @Nullable SlotView selectedSlot() {
             if (confirmedIndex < 0 || confirmedIndex >= slots.size()) {
                 return null;
             }
-            return slots.get(confirmedIndex).skillId();
+            return slots.get(confirmedIndex);
         }
 
         private @NotNull Location currentCenter(@NotNull Player player) {
@@ -1057,14 +1137,14 @@ public final class SkillActionRingService {
             }
             projected.normalize();
             double angle = Math.atan2(projected.dot(right), projected.dot(up));
-            double unit = (Math.PI * 2.0D) / SLOT_COUNT;
+            double unit = (Math.PI * 2.0D) / slots.size();
             int index = (int) Math.round(angle / unit);
-            int resolved = Math.floorMod(index, SLOT_COUNT);
+            int resolved = Math.floorMod(index, slots.size());
             return slots.get(resolved).selectable() ? resolved : -1;
         }
 
         private @NotNull Vector slotOffset(int index) {
-            double angle = ((Math.PI * 2.0D) / SLOT_COUNT) * index;
+            double angle = ((Math.PI * 2.0D) / slots.size()) * index;
             return up.clone().multiply(Math.cos(angle) * RING_RADIUS)
                 .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
         }

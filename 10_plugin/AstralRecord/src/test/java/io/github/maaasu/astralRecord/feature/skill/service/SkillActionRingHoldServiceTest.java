@@ -27,10 +27,34 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillActionRingHoldServiceTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: 設定済みアクションスキルが1件以下なら長押し選択を開始しない。
+     */
+    @Test
+    void beginRejectsPlayersWithoutMultipleConfiguredActions() {
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        SkillActionRingService actionRingService = mock(SkillActionRingService.class);
+        PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
+        when(playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())).thenReturn(true);
+        when(actionRingService.hasMultipleConfiguredActions(astPlayer)).thenReturn(false);
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.getServer()).thenReturn(server());
+        SkillActionRingHoldService service = new SkillActionRingHoldService(
+            plugin, actionRingService, playerSettingService
+        );
+
+        assertFalse(service.begin(astPlayer));
+        verify(actionRingService, never()).open(astPlayer, io.github.maaasu.astralRecord.feature.player.PlayerMsgId.P_5871);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-統合フロー.md

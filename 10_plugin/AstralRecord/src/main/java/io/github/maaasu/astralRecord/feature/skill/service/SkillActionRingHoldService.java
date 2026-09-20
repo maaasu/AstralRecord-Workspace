@@ -92,6 +92,7 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
         UUID playerId = player.getUniqueId();
         if (!player.isOnline()
             || !playerSettingService.isActionRingHoldSelectEnabled(playerId)
+            || !actionRingService.hasMultipleConfiguredActions(astPlayer)
             || sessions.containsKey(playerId)) {
             return false;
         }

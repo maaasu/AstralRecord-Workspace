@@ -11,9 +11,12 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackServic
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
@@ -22,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -36,12 +40,16 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -49,6 +57,134 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class SkillActionRingServiceTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: 設定済みアクションスキル数は空スロットを除外し、0件・1件・2件以上を区別する。
+     */
+    @Test
+    void configuredActionCountIgnoresEmptySlots() {
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UUID accountId = UUID.randomUUID();
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
+        SkillActionRingService service = new SkillActionRingService(
+            mock(AstralRecord.class), presetService, mock(SkillService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class)
+        );
+
+        when(presetService.getPresets(accountId)).thenReturn(List.of(preset(accountId, List.of())));
+        assertEquals(0, service.configuredActionCount(astPlayer));
+        assertFalse(service.hasMultipleConfiguredActions(astPlayer));
+
+        when(presetService.getPresets(accountId)).thenReturn(List.of(preset(accountId, List.of("skill_a"))));
+        assertEquals(1, service.configuredActionCount(astPlayer));
+        assertFalse(service.hasMultipleConfiguredActions(astPlayer));
+
+        when(presetService.getPresets(accountId)).thenReturn(List.of(
+            preset(accountId, java.util.Arrays.asList("skill_a", null, "skill_b"))
+        ));
+        assertEquals(2, service.configuredActionCount(astPlayer));
+        assertTrue(service.hasMultipleConfiguredActions(astPlayer));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: アクションスキルが1件だけの場合、リングを作らず右クリック1回で発動する。
+     */
+    @Test
+    void singleConfiguredActionCastsWithoutOpeningRing() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        ItemWeaponAttackService weaponAttackService = mock(ItemWeaponAttackService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        Player player = mock(Player.class);
+        Location eye = new Location(mock(World.class), 0.0D, 64.0D, 0.0D);
+        UUID accountId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        SkillDefinition definition = definition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of("test_skill", definition));
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), accountId, "test_skill", 1, List.of(), 0, null, null
+        );
+        ResolvedLearnedSkill resolved = new ResolvedLearnedSkill(learned, definition, Map.of(), Set.of());
+
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(account.getUuid()).thenReturn(accountId);
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(player.isOnline()).thenReturn(true);
+        when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
+        when(presetService.getPresets(accountId)).thenReturn(List.of(preset(accountId, List.of("test_skill"))));
+        when(weaponAttackService.hasUsableMainHandWeapon(astPlayer)).thenReturn(true);
+        when(ownershipService.findInstance(astPlayer, "test_skill")).thenReturn(learned);
+        when(skillService.resolveLearnedSkill(learned)).thenReturn(resolved);
+        when(skillService.registry()).thenReturn(registry);
+        when(permissionService.isPermitted(astPlayer, "test_skill")).thenReturn(true);
+        when(skillService.canCast(any(PlayerSkillCaster.class), same(resolved)))
+            .thenReturn(SkillCastResult.succeeded());
+        when(skillService.castLearnedSkill(
+            any(PlayerSkillCaster.class), eq("test_skill"), eq(SkillCastTrigger.PLAYER_COMMAND),
+            same(eye), isNull(), eq(List.of())
+        )).thenReturn(SkillCastResult.succeeded());
+
+        SkillActionRingService service = new SkillActionRingService(
+            plugin, presetService, skillService, ownershipService, permissionService
+        );
+        service.setItemWeaponAttackService(weaponAttackService);
+
+        service.toggle(astPlayer);
+
+        assertFalse(service.isOpen(player));
+        verify(skillService).castLearnedSkill(
+            any(PlayerSkillCaster.class), eq("test_skill"), eq(SkillCastTrigger.PLAYER_COMMAND),
+            same(eye), isNull(), eq(List.of())
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: アクションスキルが0件の場合、スキルマネージャーを開くクリック可能メッセージを送る。
+     */
+    @Test
+    void noConfiguredActionSendsClickableSkillManagerMessage() {
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        ItemWeaponAttackService weaponAttackService = mock(ItemWeaponAttackService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        Player player = mock(Player.class);
+        UUID accountId = UUID.randomUUID();
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(account.getUuid()).thenReturn(accountId);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.isOnline()).thenReturn(true);
+        when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
+        when(presetService.getPresets(accountId)).thenReturn(List.of(preset(accountId, List.of())));
+        SkillActionRingService service = new SkillActionRingService(
+            mock(AstralRecord.class), presetService, mock(SkillService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class)
+        );
+        service.setItemWeaponAttackService(weaponAttackService);
+
+        service.toggle(astPlayer);
+
+        ArgumentCaptor<Component> message = ArgumentCaptor.forClass(Component.class);
+        verify(player).sendMessage(message.capture());
+        assertTrue(hasRunCommand(message.getValue(), "/skill gui"));
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
@@ -85,11 +221,11 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         SkillActionRingDisplay display = mock(SkillActionRingDisplay.class);
         SkillActionRingDisplay.DisplayEntity timerLabel = mock(SkillActionRingDisplay.DisplayEntity.class);
         SkillActionRingDisplay.DisplayEntity instructionLabel = mock(SkillActionRingDisplay.DisplayEntity.class);
-        Object session = newRingSession(viewer, display);
+        Object session = newRingSession(viewer, display, SkillBindPreset.ACTION_RING_SLOT_COUNT);
         setField(session, "timerLabel", timerLabel);
         setField(session, "instructionLabel", instructionLabel);
         setField(session, "selectionInstruction", PlayerMsgId.P_5871);
-        populateDisplayEntities(session);
+        populateDisplayEntities(session, SkillBindPreset.ACTION_RING_SLOT_COUNT);
 
         Method tick = session.getClass().getDeclaredMethod("tick", Player.class);
         tick.setAccessible(true);
@@ -279,7 +415,11 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
             .startsWith(expectedColorCode + expectedLabel.split("\\n", 2)[0]));
     }
 
-    private Object newRingSession(Player viewer, SkillActionRingDisplay display) throws ReflectiveOperationException {
+    private Object newRingSession(
+        Player viewer,
+        SkillActionRingDisplay display,
+        int slotCount
+    ) throws ReflectiveOperationException {
         Class<?> availabilityType = Class.forName(SkillActionRingService.class.getName() + "$SlotAvailability");
         Method availabilityFor = SkillActionRingService.class.getDeclaredMethod("availabilityFor", SkillCastResult.class);
         availabilityFor.setAccessible(true);
@@ -289,8 +429,8 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
             String.class, SkillDefinition.class, String.class, Material.class, boolean.class, availabilityType
         );
         slotConstructor.setAccessible(true);
-        List<Object> slots = new java.util.ArrayList<>(SkillBindPreset.ACTION_RING_SLOT_COUNT);
-        for (int index = 0; index < SkillBindPreset.ACTION_RING_SLOT_COUNT; index++) {
+        List<Object> slots = new java.util.ArrayList<>(slotCount);
+        for (int index = 0; index < slotCount; index++) {
             slots.add(slotConstructor.newInstance(
                 "test_skill_" + index, definition(), "スキル", Material.STONE, true, availability
             ));
@@ -311,10 +451,28 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         );
     }
 
-    private void populateDisplayEntities(Object session) throws ReflectiveOperationException {
-        addDisplayEntities(session, "icons", SkillBindPreset.ACTION_RING_SLOT_COUNT);
-        addDisplayEntities(session, "labels", SkillBindPreset.ACTION_RING_SLOT_COUNT);
+    private void populateDisplayEntities(Object session, int slotCount) throws ReflectiveOperationException {
+        addDisplayEntities(session, "icons", slotCount);
+        addDisplayEntities(session, "labels", slotCount);
         addDisplayEntities(session, "circleDots", 24);
+    }
+
+    private SkillBindPreset preset(UUID accountId, List<String> activeSlots) {
+        return new SkillBindPreset(
+            null, accountId, 0, activeSlots, null, List.of(), true, true, 1
+        );
+    }
+
+    private boolean hasRunCommand(Component component, String command) {
+        ClickEvent clickEvent = component.clickEvent();
+        if (clickEvent != null
+            && clickEvent.action() == ClickEvent.Action.RUN_COMMAND) {
+            if (clickEvent.payload() instanceof ClickEvent.Payload.Text payload
+                && command.equals(payload.value())) {
+                return true;
+            }
+        }
+        return component.children().stream().anyMatch(child -> hasRunCommand(child, command));
     }
 
     @SuppressWarnings("unchecked")
