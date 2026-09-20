@@ -236,6 +236,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecu
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDivineChaserSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinGuardConvertSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
@@ -1613,6 +1614,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new PaladinDivineChaserSkillExecutor());
         skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
         skillService.registerExecutor(new PaladinGuardConvertSkillExecutor(paladinGuardRuntimeService));
+        skillService.registerExecutor(new SharpshooterInheritanceMasterySkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(
             particleDisplayService,
             damageService,
@@ -1742,6 +1744,7 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillResolver
         );
         passiveSkillService.setStatusService(statusService);
+        weaponAttackSkillExecutor.setPassiveSkillService(passiveSkillService);
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);
         damageService.setPassiveSkillService(passiveSkillService);

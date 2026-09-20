@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReaso
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -21,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
@@ -69,6 +71,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final ConditionService conditionService;
     private final NormalAttackDegradationService normalAttackDegradationService;
     private final PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
+    private PassiveSkillService passiveSkillService;
     private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
     private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
@@ -137,6 +140,15 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         this.conditionService = conditionService;
         this.normalAttackDegradationService = normalAttackDegradationService;
         this.paladinHolyFieldRuntimeService = paladinHolyFieldRuntimeService;
+    }
+
+    /**
+     * 通常攻撃倍率へ反映する有効パッシブの解決サービスを設定します。
+     *
+     * @param passiveSkillService パッシブ有効状態サービス
+     */
+    public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
+        this.passiveSkillService = passiveSkillService;
     }
 
     @Override
@@ -943,12 +955,20 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     }
 
     private double resolveNormalAttackDamageMultiplier(@NotNull SkillCastContext context) {
-        if (normalAttackDegradationService == null
-                || context.trigger() != SkillCastTrigger.AUTO_ATTACK
+        if (context.trigger() != SkillCastTrigger.AUTO_ATTACK
                 || !(context.caster() instanceof PlayerSkillCaster caster)) {
             return 1.0D;
         }
-        return normalAttackDegradationService.currentDamageMultiplier(caster.player());
+        double multiplier = normalAttackDegradationService == null
+                ? 1.0D
+                : normalAttackDegradationService.currentDamageMultiplier(caster.player());
+        if (passiveSkillService != null && passiveSkillService.isPassiveSkillActive(
+                caster.player(),
+                SharpshooterInheritanceMasterySkillExecutor.ID
+        )) {
+            multiplier *= SharpshooterInheritanceMasterySkillExecutor.NORMAL_ATTACK_DAMAGE_MULTIPLIER;
+        }
+        return multiplier;
     }
 
     private @Nullable CastOrigin resolveCastOrigin(@NotNull SkillCastContext context) {

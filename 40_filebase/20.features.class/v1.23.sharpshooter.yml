@@ -1,5 +1,5 @@
 # design:
-#   motif: "弓術 / 精密射撃"
+#   motif: "弓術 / 技の継承"
 #   progression: 2
 schemaVersion: 1
 id: sharpshooter
@@ -7,7 +7,7 @@ type: CLASS
 name: "&aシャープシューター"
 order: 2.3
 shortName: "&aSHP"
-description: "&7急所を狙う高火力の射手。"
+description: "&7技を継承し、通常攻撃を変化させる射手。"
 icon: spectral_arrow
 classGui: { slot: 30 }
 adminChangeOnly: true

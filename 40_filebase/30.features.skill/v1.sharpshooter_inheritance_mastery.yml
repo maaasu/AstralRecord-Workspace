@@ -1,0 +1,35 @@
+# design:
+#   motif: "継承 / 技の系譜"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_inheritance_mastery
+type: SKILL
+implementationId: sharpshooter_inheritance_mastery
+name: "&a継承の心得"
+description: "&7技の性質を通常攻撃へ継承する射撃パッシブ。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7通常攻撃のダメージ倍率が{skill.normalAttackDamageMultiplier:percent}%になる。"
+  - "&7継承バフの効果を通常攻撃へ反映する。"
+  - "&7通常攻撃1回ごとに、使用した各継承バフの残り時間を1回分消費する。"
+  - "&7同名の継承バフを再付与すると、残り時間を新しい付与時間へ戻す。"
+  - "&7追加リソース消費は継承バフ別の定義に従い、未定義なら消費しない。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+passive:
+  bindRequired: true
+params:
+  normalAttackDamageMultiplier: 0.5
+  inheritanceBuffs: []
+tags:
+  - passive
+  - ranged
