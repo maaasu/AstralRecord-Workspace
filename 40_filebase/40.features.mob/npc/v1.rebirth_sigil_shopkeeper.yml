@@ -1,0 +1,40 @@
+# design:
+#   motif: "転生 / シジル交換"
+#   progression: 1
+schemaVersion: 1
+id: rebirth_sigil_shopkeeper
+type: MOB
+category: NPC
+name: "&d転生シジル交換商"
+title: "&7EXPポイント・シジル交換所"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAiIDogMTc4OTkwMDM5MTU0NCwKICAicHJvZmlsZUlkIiA6ICI0YWU5MTM5MzZhOGU0MWU0YWNlMTYyYjI4YmM0MzMwMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJ6ZXJ2YXRpb24iLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkwZWYxYWFlOTRhN2FlNzc0MmIwMDEzYzFhYjAzZjY3MjllYmFlNWU4NTk2ODVjMzNhM2VlZjgxYjFlY2Y2YiIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9"
+  signature: "O+7ACg1qJbOPGjK/U0xLYNYTyIII5uSRk2xi3mTpglPTxgJOknWkOgIhkkhQRK0rDPEREAYR5JG/eGGsmTaKjZDj4vJDhruANsnU3te7pSQVWXNDfeWJccx0wrcLbkNRbdj7lZa8mKNTo2w5FOHBJ407reuBQKTYrtQh9hcxWoOrWjbTHhXgtovLOJvLlh1jrdb1mXsJuXCzwEjnXBsFAwwF9Qfku5n6uRQDILGTOhvKkkdU5X2tHPgqzpEMXOM4bLdTxvq542kVNF51Mu9Es2AjwNdoiLMc7DQtodWs2T+DklNylq6SHL2qOErGvdFDAwh2uyii9Igs4+R5JT+VLg8k7dOhM1k8vmsgbfkx2KKdF5IWTzUWSQehDUeTyY76lo6TkPWtmgEsuPFvMtcgdjFD8MvnsfCDt8WnfDuH6asj+pQ05h83H3HE5UrDnGuyFy8ivVCaoBslHq66uw6+WyFQuK241MdOpMR7Oo2cai5G4f12dkUHMB+mMPcWVo8lLmxi4mPTtT6wsw7s7zZiDYFqMKPnaORTP+AQ3cQW5wFwjeEedVaZYQoq8lPJQwNwdpg/1DM8ADEt3/sD6ZMA3VEzzPIIEJYKeO9SmmwjeQcjoXT6Wk899kWV4yflOcIZMT+bmd3gSIiitbJZfW0FnvoeiRCU2i3iu4FpigPB3OM="
+nameVisible: true
+damageImmune: true
+icon: AMETHYST_SHARD
+lore:
+  - "&7転生で得たEXPポイントをシジルへ交換する商人。"
+  - "&7右クリックでEXPポイント交換所を開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: rebirth_sigil_shop
