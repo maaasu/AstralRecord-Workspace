@@ -1758,6 +1758,7 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillService,
             passiveSkillService
         );
+        skillSigilOrbService.setSkillPermissionService(skillPermissionService);
         skillSigilOrbService.setUseSuccessListener(
             (player, orbItemId) -> guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
         );

@@ -49,7 +49,12 @@ public final class SkillForgetGui {
      * @param entries 表示する習得済みスキル
      * @param pageIndex 開くページ番号（0 始まり）
      */
-    public void open(@NotNull Player player, @NotNull List<SkillManagerEntry> entries, int pageIndex) {
+    public void open(
+        @NotNull Player player,
+        @NotNull List<SkillManagerEntry> entries,
+        @NotNull java.util.Set<String> permittedSkillIds,
+        int pageIndex
+    ) {
         int page = normalizePage(pageIndex, entries.size());
         int pages = totalPages(entries.size());
         Inventory inventory = Bukkit.createInventory(
@@ -63,7 +68,7 @@ public final class SkillForgetGui {
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, entries.size(), CONTENT_SLOT_COUNT);
         for (int index = start; index < end; index++) {
-            inventory.setItem(index - start, createSkillItem(entries.get(index)));
+            inventory.setItem(index - start, createSkillItem(entries.get(index), permittedSkillIds));
         }
         inventory.setItem(PREVIOUS_PAGE_SLOT, pageItem("前のページ", page, pages, page > 0));
         inventory.setItem(NEXT_PAGE_SLOT, pageItem("次のページ", page + 2, pages, page + 1 < pages));
@@ -142,9 +147,12 @@ public final class SkillForgetGui {
         return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
-    private @NotNull ItemStack createSkillItem(@NotNull SkillManagerEntry entry) {
+    private @NotNull ItemStack createSkillItem(
+        @NotNull SkillManagerEntry entry,
+        @NotNull java.util.Set<String> permittedSkillIds
+    ) {
         List<Component> lore = new ArrayList<>(SkillPresentationUtil.skillDescriptionAndFlavorLore(
-            entry.definition(), NamedTextColor.GRAY
+            entry.definition(), permittedSkillIds, NamedTextColor.GRAY
         ));
         if (!lore.isEmpty()) lore.add(Component.text(" "));
         lore.add(Component.text("習得レベル: " + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));

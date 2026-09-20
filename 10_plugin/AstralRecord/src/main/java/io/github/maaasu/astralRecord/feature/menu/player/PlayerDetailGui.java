@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -297,8 +298,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
 
     private int skillListSize(@NotNull AstPlayer target, @NotNull SkillListType type) {
         return type == SkillListType.PERMITTED
-            ? permittedSkillItems(target).size()
-            : learnedSkillItems(target).size();
+            ? permittedSkillItems(target, Set.of()).size()
+            : learnedSkillItems(target, Set.of()).size();
     }
 
     /**
@@ -343,9 +344,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull SkillListType type,
         int pageIndex
     ) {
+        AstPlayer viewerPlayer = AstPlayerCache.get(viewer);
+        Set<String> viewerPermittedSkillIds = viewerPlayer == null || skillPermissionService == null
+            ? Set.of()
+            : skillPermissionService.permittedSkillIds(viewerPlayer);
         List<ItemStack> items = type == SkillListType.PERMITTED
-            ? permittedSkillItems(target)
-            : learnedSkillItems(target);
+            ? permittedSkillItems(target, viewerPermittedSkillIds)
+            : learnedSkillItems(target, viewerPermittedSkillIds);
         int normalizedPage = pagedGuiView.normalizePage(pageIndex, items.size());
         Inventory inventory = Bukkit.createInventory(
             new SkillListHolder(target.getBukkit().getUniqueId(), type, normalizedPage),
@@ -569,30 +574,37 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             .toList();
     }
 
-    private @NotNull List<ItemStack> permittedSkillItems(@NotNull AstPlayer target) {
+    private @NotNull List<ItemStack> permittedSkillItems(
+        @NotNull AstPlayer target,
+        @NotNull Set<String> viewerPermittedSkillIds
+    ) {
         if (skillPermissionService == null || skillService == null) return List.of();
         return skillPermissionService.permittedSkillIds(target).stream()
             .map(skillService.registry()::getDefinition)
             .filter(definition -> definition != null)
             .sorted(Comparator.comparing(definition -> SkillPresentationUtil.plainName(definition, definition.getId())))
-            .map(definition -> skillItem(definition, null, "使用許可済み"))
+            .map(definition -> skillItem(definition, null, "使用許可済み", viewerPermittedSkillIds))
             .toList();
     }
 
-    private @NotNull List<ItemStack> learnedSkillItems(@NotNull AstPlayer target) {
+    private @NotNull List<ItemStack> learnedSkillItems(
+        @NotNull AstPlayer target,
+        @NotNull Set<String> viewerPermittedSkillIds
+    ) {
         if (learnedSkillService == null || skillService == null) return List.of();
         return learnedSkillService.getLearnedSkills(target.getAccount().getUuid()).stream()
             .map(skillService::resolveLearnedSkill)
             .filter(resolved -> resolved != null)
             .sorted(Comparator.comparing(resolved -> SkillPresentationUtil.plainName(resolved.definition(), resolved.learnedSkill().getSkillId())))
-            .map(resolved -> skillItem(resolved.definition(), resolved, "習得済み"))
+            .map(resolved -> skillItem(resolved.definition(), resolved, "習得済み", viewerPermittedSkillIds))
             .toList();
     }
 
     private @NotNull ItemStack skillItem(
         @NotNull SkillDefinition definition,
         @Nullable ResolvedLearnedSkill resolved,
-        @NotNull String state
+        @NotNull String state,
+        @NotNull Set<String> viewerPermittedSkillIds
     ) {
         Material material = MaterialNameResolver.match(definition.getIcon());
         List<Component> lore = new ArrayList<>();
@@ -600,9 +612,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             + (definition.getKind() == SkillKind.ACTIVE ? "アクティブ" : "パッシブ"), NamedTextColor.GRAY)));
         if (resolved != null) {
             lore.add(noItalic(Component.text("レベル: " + resolved.learnedSkill().getLevel(), NamedTextColor.YELLOW)));
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, NamedTextColor.WHITE));
+            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+                resolved, viewerPermittedSkillIds, NamedTextColor.WHITE
+            ));
         } else {
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndLore(definition, NamedTextColor.WHITE));
+            lore.addAll(SkillPresentationUtil.skillDescriptionAndLore(
+                definition, viewerPermittedSkillIds, NamedTextColor.WHITE
+            ));
         }
         lore.add(Component.empty());
         lore.add(noItalic(Component.text("スキルID: " + definition.getId(), NamedTextColor.DARK_GRAY)));

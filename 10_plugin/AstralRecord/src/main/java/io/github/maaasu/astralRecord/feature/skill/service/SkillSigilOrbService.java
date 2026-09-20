@@ -77,6 +77,7 @@ public final class SkillSigilOrbService {
     private final SkillService skillService;
     private final LearnedSkillService learnedSkillService;
     private final PassiveSkillService passiveSkillService;
+    private @Nullable SkillPermissionService skillPermissionService;
     private final InventoryOpener inventoryOpener;
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
     private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
@@ -129,6 +130,15 @@ public final class SkillSigilOrbService {
      */
     public void setUseSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         this.useSuccessListener = listener;
+    }
+
+    /**
+     * 条件付きスキル説明の表示に使う使用許可サービスを設定します。
+     *
+     * @param skillPermissionService 現在のクラスとスキルツリーに基づく使用許可サービス
+     */
+    public void setSkillPermissionService(@NotNull SkillPermissionService skillPermissionService) {
+        this.skillPermissionService = skillPermissionService;
     }
 
     /**
@@ -596,7 +606,7 @@ public final class SkillSigilOrbService {
         for (int index = from; index < to; index++) {
             int slot = index - from;
             SkillTarget target = candidates.get(index);
-            session.inventory.setItem(slot, createSkillItem(target, true));
+            session.inventory.setItem(slot, createSkillItem(target, true, permittedSkillIds(session)));
             displayed.put(slot, target.learnedSkill.getLearnedSkillId());
         }
         session.displayedTargets = Map.copyOf(displayed);
@@ -637,7 +647,7 @@ public final class SkillSigilOrbService {
 
     private void renderOperation(@NotNull Session session, @NotNull SkillTarget target) {
         fill(session.inventory);
-        session.inventory.setItem(TARGET_SLOT, createSkillItem(target, false));
+        session.inventory.setItem(TARGET_SLOT, createSkillItem(target, false, permittedSkillIds(session)));
         ItemStack selector = GuiItems.create(
             Material.CHEST,
             Component.text(session.screen == SkillSigilOrbGuiHolder.Screen.ATTACH
@@ -781,13 +791,21 @@ public final class SkillSigilOrbService {
         return target != null && isEligible(session.type, target) ? target : null;
     }
 
-    private @NotNull ItemStack createSkillItem(@NotNull SkillTarget target, boolean listDisplay) {
+    private @NotNull ItemStack createSkillItem(
+        @NotNull SkillTarget target,
+        boolean listDisplay,
+        @NotNull java.util.Set<String> permittedSkillIds
+    ) {
         Material icon = MaterialNameResolver.match(target.definition.getIcon());
         List<Component> lore = new ArrayList<>();
         if (target.resolved != null) {
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(target.resolved, NamedTextColor.GRAY));
+            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+                target.resolved, permittedSkillIds, NamedTextColor.GRAY
+            ));
         } else {
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(target.definition, NamedTextColor.GRAY));
+            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+                target.definition, permittedSkillIds, NamedTextColor.GRAY
+            ));
         }
         lore.add(Component.empty());
         lore.add(Component.text("レベル: " + target.learnedSkill.getLevel() + " / " + target.definition.getMaxLevel(),
@@ -804,6 +822,12 @@ public final class SkillSigilOrbService {
             lore,
             target.definition.getIconTexture()
         );
+    }
+
+    /** 操作プレイヤーの現在の使用許可を、条件付き説明の表示へ渡します。 */
+    private @NotNull java.util.Set<String> permittedSkillIds(@NotNull Session session) {
+        return skillPermissionService == null ? java.util.Set.of()
+            : skillPermissionService.permittedSkillIds(session.astPlayer);
     }
 
     private @NotNull ItemStack pageButton(boolean next, boolean enabled) {

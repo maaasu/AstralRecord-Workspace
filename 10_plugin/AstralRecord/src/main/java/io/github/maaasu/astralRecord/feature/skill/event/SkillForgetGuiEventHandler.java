@@ -335,7 +335,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private void openList(@NotNull Player player, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return;
-        gui.open(player, entries(astPlayer), page);
+        gui.open(player, entries(astPlayer), permissionService.permittedSkillIds(astPlayer), page);
     }
 
     private @NotNull List<SkillManagerEntry> entries(@NotNull AstPlayer player) {
