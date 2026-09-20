@@ -12,10 +12,11 @@ lore:
   - "&7空中でしゃがみを押すと、移動入力方向へ高速移動する。"
   - "&7方向入力がない場合は、視線の後方へ移動する。"
   - "&7水平速度{skill.horizontalStrength}、上向き速度{skill.verticalStrength}。"
+  - "&7発動後は、一度着地するまで再発動できない。"
   - "&7ジャスト回避が有効なら、発動時に同じ回避判定を開始する。"
 cooldownTicks: 0
 resourceType: ENERGY
-resourceCost: 15
+resourceCost: 0
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 1

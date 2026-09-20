@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,6 +41,7 @@ public final class AirShiftSkillRuntimeService {
     private final JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
+    private final Set<UUID> awaitingLanding = ConcurrentHashMap.newKeySet();
 
     /**
      * エアーシフトの runtime を構築します。
@@ -79,9 +81,15 @@ public final class AirShiftSkillRuntimeService {
     public void deactivate(@NotNull PassiveSkillContext context) {
         UUID playerId = context.player().getBukkit().getUniqueId();
         Map<String, Configuration> playerConfigurations = configurations.get(playerId);
-        if (playerConfigurations == null) return;
+        if (playerConfigurations == null) {
+            clearActivationLock(playerId);
+            return;
+        }
         playerConfigurations.remove(configurationKey(context));
-        if (playerConfigurations.isEmpty()) configurations.remove(playerId, playerConfigurations);
+        if (playerConfigurations.isEmpty()) {
+            configurations.remove(playerId, playerConfigurations);
+            clearActivationLock(playerId);
+        }
     }
 
     /**
@@ -96,7 +104,13 @@ public final class AirShiftSkillRuntimeService {
         if (astPlayer.isSkillCasting() || astPlayer.isWallClinging()) return false;
 
         Player player = astPlayer.getBukkit();
-        if (!player.isOnline() || player.isDead() || isGrounded(player)) return false;
+        if (!player.isOnline() || player.isDead()) return false;
+        UUID playerId = player.getUniqueId();
+        if (isGrounded(player)) {
+            clearActivationLock(playerId);
+            return false;
+        }
+        if (awaitingLanding.contains(playerId)) return true;
         if (player.isFlying() || player.isGliding() || player.isSwimming() || player.isInsideVehicle()) return false;
 
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
@@ -117,19 +131,43 @@ public final class AirShiftSkillRuntimeService {
         statusService.consumeEnergy(astPlayer, energyCost);
         player.setFallDistance(0.0F);
         player.setVelocity(direction);
+        awaitingLanding.add(playerId);
         justDodgeSkillRuntimeService.onDodge(astPlayer);
         playEffects(player, configuration);
         return true;
     }
 
+    /**
+     * 着地までの再発動ロックを解除します。
+     *
+     * @param playerId 解除対象プレイヤーのBukkit UUID
+     */
+    public void clearActivationLock(@NotNull UUID playerId) {
+        awaitingLanding.remove(playerId);
+    }
+
+    /**
+     * プレイヤーが着地している場合だけ再発動ロックを解除します。
+     *
+     * @param playerId 着地判定対象プレイヤーのBukkit UUID
+     * @param location 移動先の位置
+     */
+    public void clearActivationLockIfGrounded(@NotNull UUID playerId, @NotNull Location location) {
+        if (awaitingLanding.contains(playerId) && isGrounded(location)) {
+            clearActivationLock(playerId);
+        }
+    }
+
     /** プレイヤー退出時に保持中の設定を破棄します。 */
     public void clearPlayer(@NotNull UUID playerId) {
         configurations.remove(playerId);
+        clearActivationLock(playerId);
     }
 
     /** Plugin 停止時に全プレイヤーの設定を破棄します。 */
     public void clearAll() {
         configurations.clear();
+        awaitingLanding.clear();
     }
 
     private @NotNull String configurationKey(@NotNull PassiveSkillContext context) {
@@ -194,7 +232,11 @@ public final class AirShiftSkillRuntimeService {
     }
 
     private boolean isGrounded(@NotNull Player player) {
-        Location below = player.getLocation().clone().subtract(0.0D, 0.05D, 0.0D);
+        return isGrounded(player.getLocation());
+    }
+
+    private boolean isGrounded(@NotNull Location location) {
+        Location below = location.clone().subtract(0.0D, 0.05D, 0.0D);
         return below.getBlock().getType().isSolid();
     }
 

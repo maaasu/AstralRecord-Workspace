@@ -218,6 +218,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectil
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.event.AirShiftSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.ArcaneFlowSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.JustDodgeSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.MeditationSkillEventHandler;
@@ -2277,6 +2278,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new JustDodgeSkillEventHandler(justDodgeSkillRuntimeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new AirShiftSkillEventHandler(airShiftSkillRuntimeService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
