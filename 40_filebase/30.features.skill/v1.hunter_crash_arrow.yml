@@ -13,6 +13,12 @@ lore:
   - "&7シールドへのダメージ倍率は{skill.shieldBreakMultiplier}倍。"
   - "&7命中時{skill.superStarCriticalChance}%の確率で超星会心が発生する。"
   - "&7重力の影響を受けない水色の矢を放つ。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7次の通常攻撃の命中対象へ{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ盾破壊攻撃を発生させる。"
+      - "&7消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 120
 resourceType: ENERGY
 resourceCost: 14
@@ -72,6 +78,9 @@ levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
 #   superStarCritical: "Mobへの有効な命中時、superStarCriticalChanceを一撃限定の超星会心率として使う。プレイヤーのSUPER_CRITICAL_RATEとは合算せず、成立時は共通の主撃倍率と7個の追尾弾を適用する。"
 #   targets: "SkillProjectileServiceの既存Mob専用規則を使用し、NPC、PvP対象、別world、死亡済みMobは対象外とする。"
 params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ・クラッシュアロー"
+  inheritanceDurationTicks: 600
   range: 14.0
   damageRatio: 0.45
   shieldBreakMultiplier: 3.0

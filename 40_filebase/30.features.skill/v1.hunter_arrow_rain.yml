@@ -16,9 +16,9 @@ lore:
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7継承の心得が有効なら、継承バフ・アローレインを30秒付与する。"
-      - "&7通常攻撃のヒット地点で30秒分を消費し、同じ雨矢を発生させる。"
-      - "&7消費リソースと性能はアローレインを参照する。"
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ雨矢を発生させる。"
+      - "&7消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 16
@@ -82,6 +82,9 @@ tags:
 #   rain: "雨開始時のプレイヤー頭上を始点に、着弾中心の円内から面積一様に選んだ地表へ弧を描く。1tickに3本、初弾着弾Y以上のBlockは貫通し、それより低い位置では最初のMobまたはBlockで終了する。"
 #   targets: "管理対象MobとBossのみ。NPC、PvP対象、死亡Mob、別worldは対象外。"
 params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ・アローレイン"
+  inheritanceDurationTicks: 600
   range: 18.0
   radius: 3.0
   arrowCount: 45

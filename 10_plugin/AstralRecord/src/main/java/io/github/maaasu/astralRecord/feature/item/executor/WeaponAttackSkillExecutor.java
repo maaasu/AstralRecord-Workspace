@@ -57,8 +57,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceImpact;
 
 /**
  * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。 */
@@ -302,7 +302,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double normalAttackDamageMultiplier
     ) {
         SkillDefinition skill = context.skill();
-        Consumer<Location> inheritanceHit = inheritanceBuffService == null
+        java.util.function.Consumer<InheritanceImpact> inheritanceHit = inheritanceBuffService == null
                 ? ignored -> { } : inheritanceBuffService.prepareAttack(context);
         AttackType attackType = readAttackType(skill);
         if (attackType == AttackType.MELEE) {
@@ -328,7 +328,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Location startLocation,
             @NotNull Vector direction,
             double normalAttackDamageMultiplier,
-            @NotNull Consumer<Location> inheritanceHit
+            @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
@@ -388,7 +388,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull List<AstEntity> victims,
             @NotNull List<DamageComponent> damageComponents,
             double normalAttackDamageMultiplier,
-            @NotNull Consumer<Location> inheritanceHit
+            @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         for (AstEntity victim : victims) {
             if (!isAttackableTarget(attacker, victim)) {
@@ -403,7 +403,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     victim.isMob() ? normalAttackDamageMultiplier : 1.0D
             );
             applyConditions(skill, attacker, victim, AttackType.MELEE, result);
-            inheritanceHit.accept(victim.location());
+            inheritanceHit.accept(new InheritanceImpact(victim.location(), victim));
         }
     }
 
@@ -416,7 +416,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> damageComponents,
             double normalAttackDamageMultiplier,
-            @NotNull Consumer<Location> inheritanceHit
+            @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
@@ -494,7 +494,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 }
 
                 if (!currentLocation.getBlock().isPassable()) {
-                    inheritanceHit.accept(currentLocation);
+                    inheritanceHit.accept(new InheritanceImpact(currentLocation, null));
                     cancel();
                     return;
                 }
@@ -532,7 +532,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         );
                         applyConditions(skill, attacker, impactVictim, attackType, result);
                     }
-                    inheritanceHit.accept(currentLocation);
+                    inheritanceHit.accept(new InheritanceImpact(currentLocation, victim));
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }

@@ -1,0 +1,13 @@
+# design:
+#   motif: "衝撃矢 / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: adventurer_blast_arrow_inheritance
+type: BUFF
+name: "&a継承バフ・ブラストアロー"
+lore:
+  - "&7次の通常攻撃の着弾地点へ衝撃波を発生させる。"
+durationTicks: 600
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

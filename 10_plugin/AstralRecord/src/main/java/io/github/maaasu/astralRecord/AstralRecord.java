@@ -239,6 +239,8 @@ import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConver
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinGuardConvertSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -1777,6 +1779,16 @@ public final class AstralRecord extends JavaPlugin {
             HunterArrowRainExecutor.ID);
         if (arrowRainExecutor instanceof HunterArrowRainExecutor arrowRain) {
             arrowRain.setInheritanceBuffService(inheritanceBuffService);
+        }
+        var blastArrowExecutor = skillService.registry().getExecutor(
+            AdventurerBlastArrowExecutor.ID);
+        if (blastArrowExecutor instanceof AdventurerBlastArrowExecutor blastArrow) {
+            blastArrow.setInheritanceBuffService(inheritanceBuffService);
+        }
+        var crashArrowExecutor = skillService.registry().getExecutor(
+            HunterCrashArrowExecutor.ID);
+        if (crashArrowExecutor instanceof HunterCrashArrowExecutor crashArrow) {
+            crashArrow.setInheritanceBuffService(inheritanceBuffService);
         }
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);

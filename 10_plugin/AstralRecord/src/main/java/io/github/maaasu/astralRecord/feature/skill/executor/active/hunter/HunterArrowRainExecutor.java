@@ -117,7 +117,13 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_ARROW_SHOOT, 1.0F, 0.72F);
         if (inheritanceBuffService != null) {
-            inheritanceBuffService.grant(context, impact -> beginRain(context, impact, impact.getY(), params));
+            inheritanceBuffService.grant(context, (impact, damageMultiplier) -> beginRain(
+                    context,
+                    impact.location(),
+                    impact.location().getY(),
+                    params,
+                    damageMultiplier
+            ));
         }
         return context.success();
     }
@@ -136,13 +142,25 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
             double openingImpactY,
             @NotNull SkillParamReader params
     ) {
+        beginRain(context, center, openingImpactY, params, 1.0D);
+    }
+
+    /** 継承倍率を適用し、着弾地点を中心とする雨矢を開始します。 */
+    private void beginRain(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull Location center,
+            double openingImpactY,
+            @NotNull SkillParamReader params,
+            double damageMultiplier
+    ) {
         Player player = context.player();
         if (!player.isOnline() || center.getWorld() == null || player.getWorld() != center.getWorld()) {
             return;
         }
         double radius = params.getDouble("radius", 3.0D);
         int arrowCount = params.getInt("arrowCount", 45);
-        double rainDamageRatio = params.getDoubleList("damageRatios", List.of(0.84D, 0.36D)).get(1);
+        double rainDamageRatio = params.getDoubleList("damageRatios", List.of(0.84D, 0.36D)).get(1)
+                * damageMultiplier;
         double rainHitRadius = params.getDouble("rainHitRadius", 0.75D);
         List<SkillBallisticProjectileLaunch> volley = createRainVolley(
                 context, center, radius, arrowCount, rainHitRadius
