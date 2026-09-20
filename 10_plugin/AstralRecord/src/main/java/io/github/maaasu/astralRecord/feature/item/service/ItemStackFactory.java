@@ -752,7 +752,6 @@ public class ItemStackFactory {
         if (model.getSigil() != null) {
             appendSigilLore(lore, model.getSigil());
             lore.add(ColorCodeUtil.LIGHT_PURPLE + "スキルマネージャーで合成");
-            lore.add(ColorCodeUtil.RED + "装着後は取り外せません");
             lore.add("");
         }
 
