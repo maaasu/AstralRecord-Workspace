@@ -1102,7 +1102,7 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setLocalStatePersistence(inventoryService);
         currencyService = new CurrencyService(inventoryService, itemService);
         currencyExchangeGuiEventHandler = new CurrencyExchangeGuiEventHandler(currencyService);
-        rebirthService = new RebirthService(this, accountService, inventoryService);
+        rebirthService = new RebirthService(this, accountService, inventoryService, itemService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),

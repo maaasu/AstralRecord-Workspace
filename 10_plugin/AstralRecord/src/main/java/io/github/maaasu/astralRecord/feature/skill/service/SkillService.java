@@ -1027,15 +1027,16 @@ public class SkillService {
             @NotNull SkillDefinition definition,
             @NotNull StatusSnapshot statusSnapshot
     ) {
-        double multiplier = 1.0D;
         double reduction = Math.max(0.0D, statusSnapshot.rollValue(StatusType.CAST_TIME_REDUCTION));
-        multiplier *= Math.max(0.0D, 1.0D - reduction / 100.0D);
+        double additionalReduction = 0.0D;
         if (caster instanceof PlayerSkillCaster playerCaster) {
-            Double additionalReduction = playerCastTimeReductionResolver.apply(playerCaster.player(), definition);
-            if (additionalReduction != null && Double.isFinite(additionalReduction)) {
-                multiplier *= Math.max(0.0D, 1.0D - Math.max(0.0D, additionalReduction) / 100.0D);
+            Double resolvedAdditionalReduction = playerCastTimeReductionResolver.apply(playerCaster.player(), definition);
+            if (resolvedAdditionalReduction != null && Double.isFinite(resolvedAdditionalReduction)) {
+                additionalReduction = Math.max(0.0D, resolvedAdditionalReduction);
             }
         }
+        double multiplier = CombatTimingCalculator.resolveStackedTimeReductionMultiplier(
+            reduction, additionalReduction);
         if (conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 multiplier *= conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));

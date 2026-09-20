@@ -1,0 +1,260 @@
+# design:
+#   motif: "錬金術 / 転生経験交換"
+#   progression: 1
+schemaVersion: 1
+id: rebirth_sigil_shop
+type: SHOP
+name: "&bEXPポイント・シジル交換所"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  # Page 1 / Row 1-2: クールダウン短縮
+  - id: cooldown_sigil_i
+    itemId: { ref: item:70a00001 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 1
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 100 }
+  - id: cooldown_sigil_ii
+    itemId: { ref: item:70a00002 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 1
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 250 }
+  - id: cooldown_sigil_iii
+    itemId: { ref: item:70a00004 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 1
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 500 }
+  - id: cooldown_sigil_iv
+    itemId: { ref: item:70a00005 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 1
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 900 }
+  - id: cooldown_sigil_v
+    itemId: { ref: item:70a00006 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 1
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1500 }
+  - id: cooldown_sigil_vi
+    itemId: { ref: item:70a00007 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 2
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 2200 }
+  - id: cooldown_sigil_vii
+    itemId: { ref: item:70a00008 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 2
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 3200 }
+  - id: cooldown_sigil_viii
+    itemId: { ref: item:70a00009 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 2
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 4500 }
+  - id: cooldown_sigil_ix
+    itemId: { ref: item:70a00010 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 2
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 6000 }
+  - id: cooldown_sigil_x
+    itemId: { ref: item:70a00011 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 2
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 8000 }
+
+  # Page 1 / Row 3: 詠唱時間短縮
+  - id: cast_time_sigil_i
+    itemId: { ref: item:70a00012 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 3
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 150 }
+  - id: cast_time_sigil_ii
+    itemId: { ref: item:70a00013 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 3
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 700 }
+  - id: cast_time_sigil_iii
+    itemId: { ref: item:70a00014 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 3
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1800 }
+  - id: cast_time_sigil_iv
+    itemId: { ref: item:70a00015 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 3
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 4000 }
+  - id: cast_time_sigil_v
+    itemId: { ref: item:70a00016 }
+    category: sigil
+    amount: 1
+    page: 1
+    row: 3
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 8000 }
+
+  # Page 1 / Row 4: シジル操作オーブ
+  - id: bragi_orb
+    itemId: { ref: item:40a00006 }
+    category: orb
+    amount: 1
+    page: 1
+    row: 4
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 100 }
+  - id: mimir_orb
+    itemId: { ref: item:40a00010 }
+    category: orb
+    amount: 1
+    page: 1
+    row: 4
+    column: 6
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1500 }
+
+  # Page 2 / Row 1-2: スキルダメージ倍率上昇
+  - id: skill_damage_sigil_i
+    itemId: { ref: item:70a00017 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 1
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 2000 }
+  - id: skill_damage_sigil_ii
+    itemId: { ref: item:70a00018 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 1
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 5000 }
+  - id: skill_damage_sigil_iii
+    itemId: { ref: item:70a00019 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 1
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 9000 }
+  - id: skill_damage_sigil_iv
+    itemId: { ref: item:70a00020 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 1
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 14000 }
+  - id: skill_damage_sigil_v
+    itemId: { ref: item:70a00021 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 1
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 20000 }
+  - id: skill_damage_sigil_vi
+    itemId: { ref: item:70a00022 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 28000 }
+  - id: skill_damage_sigil_vii
+    itemId: { ref: item:70a00023 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 38000 }
+  - id: skill_damage_sigil_viii
+    itemId: { ref: item:70a00024 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 50000 }
+  - id: skill_damage_sigil_ix
+    itemId: { ref: item:70a00025 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 65000 }
+  - id: skill_damage_sigil_x
+    itemId: { ref: item:70a00026 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 80000 }

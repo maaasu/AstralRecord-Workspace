@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00005
+category: sigil
+name: "&5短縮のシジルⅣ"
+icon: COMPASS
+rarity: EPIC
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を20%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 20

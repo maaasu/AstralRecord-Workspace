@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 戦技増幅"
+#   progression: 1
+schemaVersion: 1
+id: 70a00023
+category: sigil
+name: "&d威力のシジルⅦ"
+icon: MACE
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 400
+lore:
+  - "&7合成したスキルだけのダメージ倍率を70%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: skill_damage_increase
+  modifiers:
+    - status: SKILL_DAMAGE_INCREASE
+      value: 70

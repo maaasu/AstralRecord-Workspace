@@ -14,7 +14,7 @@ damageImmune: true
 icon: ENCHANTED_BOOK
 lore:
   - "&7レベル1から歩み直す転生を司る魔女。"
-  - "&7右クリックで転生GUIを開ける。"
+  - "&7右クリックで転生GUI、左クリックでEXPポイント交換所を開ける。"
 tags:
   - npc
 
@@ -30,9 +30,10 @@ ai:
 
 interactions:
   leftClick:
-    - id: message
+    - id: gui
       params:
-        message: "&b転生の魔女リネア&7: 過去の力を保ったまま、レベル1から歩み直せるよ。"
+        type: SHOP
+        shopId: rebirth_sigil_shop
   rightClick:
     - id: gui
       params:

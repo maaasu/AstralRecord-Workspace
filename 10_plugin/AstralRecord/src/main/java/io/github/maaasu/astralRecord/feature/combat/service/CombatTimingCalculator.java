@@ -6,6 +6,7 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 public final class CombatTimingCalculator {
 
     private static final double BASE_ATTACK_SPEED = 100.0D;
+    public static final double MAX_TIME_REDUCTION_PERCENT = 50.0D;
 
     private CombatTimingCalculator() {
     }
@@ -21,8 +22,25 @@ public final class CombatTimingCalculator {
         if (baseTicks <= 0L) {
             return 0L;
         }
-        double multiplier = Math.max(0.0D, 1.0D - Math.max(0.0D, reduction) / 100.0D);
+        double multiplier = 1.0D - normalizeTimeReduction(reduction) / 100.0D;
         return Math.max(0L, (long) Math.ceil(baseTicks * multiplier));
+    }
+
+    /**
+     * 複数経路の詠唱時間短縮を乗算し、合計短縮率を50%以内へ制限した倍率を返します。
+     *
+     * @param primaryReduction ステータス由来の短縮率（%）
+     * @param additionalReduction パッシブなど追加経路の短縮率（%）
+     * @return 基礎詠唱時間へ乗算する0.5以上1.0以下の倍率
+     */
+    public static double resolveStackedTimeReductionMultiplier(
+        double primaryReduction,
+        double additionalReduction
+    ) {
+        double primaryMultiplier = 1.0D - normalizeTimeReduction(primaryReduction) / 100.0D;
+        double additionalMultiplier = 1.0D - normalizeTimeReduction(additionalReduction) / 100.0D;
+        double minimumMultiplier = 1.0D - MAX_TIME_REDUCTION_PERCENT / 100.0D;
+        return Math.max(minimumMultiplier, primaryMultiplier * additionalMultiplier);
     }
 
     /**
@@ -40,5 +58,12 @@ public final class CombatTimingCalculator {
                 ? attackSpeed
                 : BASE_ATTACK_SPEED;
         return Math.max(1L, (long) Math.ceil(baseTicks * BASE_ATTACK_SPEED / effectiveAttackSpeed));
+    }
+
+    private static double normalizeTimeReduction(double reduction) {
+        if (!Double.isFinite(reduction)) {
+            return 0.0D;
+        }
+        return Math.clamp(reduction, 0.0D, MAX_TIME_REDUCTION_PERCENT);
     }
 }

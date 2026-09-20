@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 戦技増幅"
+#   progression: 1
+schemaVersion: 1
+id: 70a00021
+category: sigil
+name: "&5威力のシジルⅤ"
+icon: DIAMOND_SWORD
+rarity: EPIC
+maxStack: 64
+saleValue: 300
+lore:
+  - "&7合成したスキルだけのダメージ倍率を50%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: skill_damage_increase
+  modifiers:
+    - status: SKILL_DAMAGE_INCREASE
+      value: 50

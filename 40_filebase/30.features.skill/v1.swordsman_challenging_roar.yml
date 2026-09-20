@@ -34,6 +34,14 @@ sigilSlotsByLevel:
 allowedSigilIds:
   - 70a00001
   - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
 learnRequiredItems: [{ itemId: 10a00019, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00019, amount: 2 }]
 # behavior:

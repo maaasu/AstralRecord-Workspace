@@ -5,11 +5,13 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthOperationResult;
 import io.github.maaasu.astralRecord.feature.rebirth.model.RebirthRejectionReason;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.plugin.Plugin;
@@ -20,11 +22,14 @@ import java.util.concurrent.CompletableFuture;
 /** 転生状態、転生費用、転生中のEXPポイント変換を一体管理します。 */
 public final class RebirthService {
     public static final String EXP_POINT_CURRENCY_ITEM_ID = "99a00017";
+    public static final String REBIRTH_COMPLETION_ORB_ITEM_ID = "40a00006";
     public static final long GOLD_COST_PER_LEVEL = 10_000L;
     public static final long EARLY_END_ASTRALD_COST = 100L;
+    private static final String REBIRTH_COMPLETION_REWARD_SOURCE = "rebirth_completion";
 
     private final AccountService accountService;
     private final InventoryService inventoryService;
+    private final ItemService itemService;
     private final Plugin plugin;
 
     /**
@@ -32,14 +37,16 @@ public final class RebirthService {
      *
      * @param accountService アカウント進行サービス
      * @param inventoryService 通貨を含むプレイヤー状態サービス
+     * @param itemService 完了報酬のアイテムマスタ解決サービス
      */
     public RebirthService(
         @NotNull Plugin plugin, @NotNull AccountService accountService,
-        @NotNull InventoryService inventoryService
+        @NotNull InventoryService inventoryService, @NotNull ItemService itemService
     ) {
         this.plugin = plugin;
         this.accountService = accountService;
         this.inventoryService = inventoryService;
+        this.itemService = itemService;
     }
 
     /**
@@ -65,6 +72,7 @@ public final class RebirthService {
 
     /**
      * 実際に獲得したプレイヤーEXPを反映し、転生中の100EXPごとに1EXPポイントを同時付与します。
+     * 転生前レベルへ自然到達した場合は、完了報酬としてブラギのオーブを1個付与します。
      * クラスEXPはこのメソッドの対象外です。
      *
      * @param player 対象プレイヤー
@@ -81,7 +89,7 @@ public final class RebirthService {
                 player.getAccount(), experience, player.getUser().getUuid());
         }
         UUID accountId = player.getAccount().getUuid();
-        return inventoryService.executeLocalPlayerMutation(accountId, () -> {
+        GrantExperienceMutationResult mutationResult = inventoryService.executeLocalPlayerMutation(accountId, () -> {
             InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
             AccountExperienceResult result = accountService.grantExperienceCached(
                 player.getAccount(), experience, player.getUser().getUuid());
@@ -93,17 +101,45 @@ public final class RebirthService {
                 )) {
                     throw new IllegalStateException("EXP point currency could not be granted");
                 }
-                if (result.grantedExpPoints() > 0) plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    if (player.getBukkit().isOnline()) player.getBukkit().playSound(
-                        player.getBukkit().getLocation(), Sound.BLOCK_BONE_BLOCK_HIT, SoundCategory.PLAYERS, 1.0F, 2.0F);
-                });
-                return result;
+                boolean completedRebirth = isActive(result.previousAccount()) && !isActive(result.updatedAccount());
+                ItemModel rewardModel = null;
+                boolean rewardStoredInStorage = false;
+                if (completedRebirth) {
+                    rewardModel = itemService.findLoadedById(REBIRTH_COMPLETION_ORB_ITEM_ID);
+                    if (rewardModel == null) {
+                        throw new IllegalStateException("Rebirth completion orb master is not loaded");
+                    }
+                    InventoryService.StorageFallbackGrantResult reward =
+                        inventoryService.addItemToStorageIfPresentOtherwiseNormalInventoryStateOnly(
+                            player, rewardModel, 1, REBIRTH_COMPLETION_REWARD_SOURCE);
+                    if (reward.hasShortfall()) {
+                        throw new IllegalStateException("Rebirth completion orb could not be granted");
+                    }
+                    rewardStoredInStorage = reward.storedInStorage();
+                }
+                return new GrantExperienceMutationResult(result, rewardModel, rewardStoredInStorage);
             } catch (RuntimeException failure) {
                 inventoryService.restoreState(inventoryBefore);
                 accountService.restoreCachedProgress(result.previousAccount(), player.getUser().getUuid());
                 throw failure;
             }
         });
+        AccountExperienceResult result = mutationResult.experienceResult();
+        if (result.grantedExpPoints() > 0 || mutationResult.rewardModel() != null) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!player.getBukkit().isOnline()) return;
+                if (result.grantedExpPoints() > 0) {
+                    player.getBukkit().playSound(
+                        player.getBukkit().getLocation(), Sound.BLOCK_BONE_BLOCK_HIT,
+                        SoundCategory.PLAYERS, 1.0F, 2.0F);
+                }
+                if (mutationResult.rewardModel() != null && !mutationResult.rewardStoredInStorage()) {
+                    inventoryService.applyInventoryToGui(
+                        player, inventoryService.resolveInventoryType(mutationResult.rewardModel()));
+                }
+            });
+        }
+        return result;
     }
 
     /**
@@ -189,5 +225,12 @@ public final class RebirthService {
                 () -> { }
             );
         });
+    }
+
+    private record GrantExperienceMutationResult(
+        @NotNull AccountExperienceResult experienceResult,
+        @Nullable ItemModel rewardModel,
+        boolean rewardStoredInStorage
+    ) {
     }
 }

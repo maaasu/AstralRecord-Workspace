@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00010
+category: sigil
+name: "&6短縮のシジルⅨ"
+icon: RABBIT_FOOT
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 225
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を45%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 45

@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 戦技増幅"
+#   progression: 1
+schemaVersion: 1
+id: 70a00018
+category: sigil
+name: "&b威力のシジルⅡ"
+icon: STONE_SWORD
+rarity: RARE
+maxStack: 64
+saleValue: 150
+lore:
+  - "&7合成したスキルだけのダメージ倍率を20%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: skill_damage_increase
+  modifiers:
+    - status: SKILL_DAMAGE_INCREASE
+      value: 20

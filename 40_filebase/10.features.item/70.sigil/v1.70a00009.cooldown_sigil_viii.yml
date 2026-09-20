@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00009
+category: sigil
+name: "&6短縮のシジルⅧ"
+icon: FEATHER
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を40%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 40

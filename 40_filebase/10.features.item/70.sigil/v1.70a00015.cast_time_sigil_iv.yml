@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 高速詠唱"
+#   progression: 1
+schemaVersion: 1
+id: 70a00015
+category: sigil
+name: "&5迅詠のシジルⅣ"
+icon: ENCHANTED_BOOK
+rarity: EPIC
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7合成したスキルだけの詠唱時間短縮を40%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cast_time_reduction
+  modifiers:
+    - status: CAST_TIME_REDUCTION
+      value: 40

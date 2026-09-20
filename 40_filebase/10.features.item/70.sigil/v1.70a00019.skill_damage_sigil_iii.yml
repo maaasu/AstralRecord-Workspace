@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 戦技増幅"
+#   progression: 1
+schemaVersion: 1
+id: 70a00019
+category: sigil
+name: "&9威力のシジルⅢ"
+icon: IRON_SWORD
+rarity: RARE
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7合成したスキルだけのダメージ倍率を30%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: skill_damage_increase
+  modifiers:
+    - status: SKILL_DAMAGE_INCREASE
+      value: 30

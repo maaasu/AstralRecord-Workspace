@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00007
+category: sigil
+name: "&d短縮のシジルⅥ"
+icon: ENDER_PEARL
+rarity: EPIC
+maxStack: 64
+saleValue: 150
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を30%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 30

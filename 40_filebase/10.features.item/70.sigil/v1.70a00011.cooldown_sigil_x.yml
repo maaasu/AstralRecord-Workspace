@@ -1,0 +1,20 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00011
+category: sigil
+name: "&c短縮のシジルⅩ"
+icon: END_CRYSTAL
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 250
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を50%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 50
