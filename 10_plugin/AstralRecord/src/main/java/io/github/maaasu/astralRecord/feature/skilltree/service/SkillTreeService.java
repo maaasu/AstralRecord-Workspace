@@ -105,7 +105,7 @@ public class SkillTreeService {
     private static final long FEEDBACK_INTERVAL_TICKS = 5L;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
     private static final long SAVE_DEBOUNCE_MILLIS = 5_000L;
-    private static final int DEFAULT_VIEW_DISTANCE = 36;
+    private static final int DEFAULT_VIEW_DISTANCE = 27;
     private static final double DETAILED_LABEL_DISTANCE = 14.0D;
     private static final double COMPACT_LABEL_DISTANCE = 36.0D;
 
@@ -1917,7 +1917,7 @@ public class SkillTreeService {
     /**
      * 固定されたスキルツリー表示距離を返します。
      *
-     * @return 表示距離36ブロック
+     * @return 表示距離27ブロック
      */
     public int viewDistance() {
         return DEFAULT_VIEW_DISTANCE;
