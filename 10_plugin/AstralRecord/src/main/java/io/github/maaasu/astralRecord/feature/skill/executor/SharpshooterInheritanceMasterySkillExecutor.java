@@ -95,6 +95,16 @@ public final class SharpshooterInheritanceMasterySkillExecutor implements SkillE
         Object rawType = definition.get("resourceType");
         Object rawCost = definition.get("resourceCost");
         String path = "inheritanceBuffs[" + index + "]";
+        String sourceSkillId = stringValue(definition.get("sourceSkillId"));
+        if (sourceSkillId != null) {
+            if (!sourceSkillId.startsWith("skill:") || sourceSkillId.length() <= "skill:".length()) {
+                throw new SkillParameterException(path + ".sourceSkillId", "skill: prefix 付きの参照を指定してください");
+            }
+            if (rawType != null || rawCost != null) {
+                throw new SkillParameterException(path, "sourceSkillId と resourceType/resourceCost は併用できません");
+            }
+            return;
+        }
         if (rawType == null && rawCost == null) {
             return;
         }

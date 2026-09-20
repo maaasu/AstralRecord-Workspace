@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -39,6 +40,15 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
     static final double RAIN_PATH_DISTANCE_MARGIN = 0.25D;
     static final double SHIELD_BREAK_DAMAGE_RATIO = 0.1D;
     private final RandomGenerator random;
+    private InheritanceBuffService inheritanceBuffService;
+
+    /**
+     * 継承バフを管理するサービスを設定します。
+     * @param service 継承の心得の実行時サービス
+     */
+    public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
+        this.inheritanceBuffService = service;
+    }
 
     /** 共有発動スキルサービスとスレッドローカル乱数で初期化します。 */
     public HunterArrowRainExecutor(@NotNull ActiveSkillServices services) {
@@ -106,6 +116,9 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
                 }
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_ARROW_SHOOT, 1.0F, 0.72F);
+        if (inheritanceBuffService != null) {
+            inheritanceBuffService.grant(context, impact -> beginRain(context, impact, impact.getY(), params));
+        }
         return context.success();
     }
 

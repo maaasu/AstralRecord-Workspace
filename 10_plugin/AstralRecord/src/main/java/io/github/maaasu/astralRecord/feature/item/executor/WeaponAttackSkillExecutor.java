@@ -57,6 +57,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 
 /**
  * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。 */
@@ -72,6 +74,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final NormalAttackDegradationService normalAttackDegradationService;
     private final PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private PassiveSkillService passiveSkillService;
+    private InheritanceBuffService inheritanceBuffService;
     private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
     private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
@@ -149,6 +152,14 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
      */
     public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
+    }
+
+    /**
+     * 通常攻撃の着弾へ継承効果を接続します。
+     * @param service 継承バフサービス
+     */
+    public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
+        this.inheritanceBuffService = service;
     }
 
     @Override
@@ -282,6 +293,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         activeProjectileDisplays.clear();
     }
 
+    /** 通常攻撃一回の継承callbackを共有し、各攻撃方式へ渡します。 */
     private void applyAttackDamage(
             @NotNull SkillCastContext context,
             @NotNull AstEntity attacker,
@@ -290,9 +302,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double normalAttackDamageMultiplier
     ) {
         SkillDefinition skill = context.skill();
+        Consumer<Location> inheritanceHit = inheritanceBuffService == null
+                ? ignored -> { } : inheritanceBuffService.prepareAttack(context);
         AttackType attackType = readAttackType(skill);
         if (attackType == AttackType.MELEE) {
-            applyMeleeDamage(skill, attacker, startLocation, direction, normalAttackDamageMultiplier);
+            applyMeleeDamage(skill, attacker, startLocation, direction, normalAttackDamageMultiplier, inheritanceHit);
             return;
         }
         launchProjectileAttack(
@@ -302,16 +316,19 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 direction,
                 attackType,
                 readDamageComponents(skill),
-                normalAttackDamageMultiplier
+                normalAttackDamageMultiplier,
+                inheritanceHit
         );
     }
 
+    /** 多段・複数対象でも継承を一回だけ発動する近接攻撃を処理します。 */
     private void applyMeleeDamage(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
             @NotNull Location startLocation,
             @NotNull Vector direction,
-            double normalAttackDamageMultiplier
+            double normalAttackDamageMultiplier,
+            @NotNull Consumer<Location> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
@@ -346,7 +363,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++) {
             long delayTicks = (long) hitIndex * hitIntervalTicks;
             if (delayTicks == 0L) {
-                applyMeleeHit(skill, attacker, selectedVictims, damageComponents, normalAttackDamageMultiplier);
+                applyMeleeHit(skill, attacker, selectedVictims, damageComponents, normalAttackDamageMultiplier, inheritanceHit);
                 continue;
             }
             Bukkit.getScheduler().runTaskLater(
@@ -356,19 +373,22 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         attacker,
                         selectedVictims,
                         damageComponents,
-                        normalAttackDamageMultiplier
+                        normalAttackDamageMultiplier,
+                        inheritanceHit
                 ),
                 delayTicks
             );
         }
     }
 
+    /** 近接命中後に継承callbackへ命中地点を通知します。 */
     private void applyMeleeHit(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
             @NotNull List<AstEntity> victims,
             @NotNull List<DamageComponent> damageComponents,
-            double normalAttackDamageMultiplier
+            double normalAttackDamageMultiplier,
+            @NotNull Consumer<Location> inheritanceHit
     ) {
         for (AstEntity victim : victims) {
             if (!isAttackableTarget(attacker, victim)) {
@@ -383,9 +403,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     victim.isMob() ? normalAttackDamageMultiplier : 1.0D
             );
             applyConditions(skill, attacker, victim, AttackType.MELEE, result);
+            inheritanceHit.accept(victim.location());
         }
     }
 
+    /** 飛翔体の敵または地形への最初の着弾を継承callbackへ通知します。 */
     private void launchProjectileAttack(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
@@ -393,7 +415,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Vector direction,
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> damageComponents,
-            double normalAttackDamageMultiplier
+            double normalAttackDamageMultiplier,
+            @NotNull Consumer<Location> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
@@ -471,6 +494,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 }
 
                 if (!currentLocation.getBlock().isPassable()) {
+                    inheritanceHit.accept(currentLocation);
                     cancel();
                     return;
                 }
@@ -508,6 +532,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         );
                         applyConditions(skill, attacker, impactVictim, attackType, result);
                     }
+                    inheritanceHit.accept(currentLocation);
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }

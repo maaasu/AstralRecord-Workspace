@@ -29,7 +29,10 @@ passive:
   bindRequired: true
 params:
   normalAttackDamageMultiplier: 0.5
-  inheritanceBuffs: []
+  inheritanceBuffs:
+    - buffId: buff:hunter_arrow_rain_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:hunter_arrow_rain
 tags:
   - passive
   - ranged

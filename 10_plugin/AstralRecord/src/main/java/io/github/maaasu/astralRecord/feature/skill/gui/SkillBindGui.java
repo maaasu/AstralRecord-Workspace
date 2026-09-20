@@ -382,6 +382,26 @@ public final class SkillBindGui {
         @NotNull MaterialKind materialKind,
         boolean materialSelected
     ) {
+        return createSynthesisInventory(selectedPresetIndex, returnPage, entry, material,
+            materialKind, materialSelected, Set.of());
+    }
+
+    /**
+     * 閲覧者の使用許可を反映したスキル合成画面を生成します。
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param returnPage 一覧へ戻るページ番号
+     * @param entry 合成対象個体
+     * @param material 素材
+     * @param materialKind 素材の適合結果
+     * @param materialSelected 素材を消費予約しているか
+     * @param permittedSkillIds 閲覧者の使用許可
+     * @return 合成画面
+     */
+    public @NotNull Inventory createSynthesisInventory(
+        int selectedPresetIndex, int returnPage, @NotNull SkillManagerEntry entry,
+        @Nullable ItemModel material, @NotNull MaterialKind materialKind, boolean materialSelected,
+        @NotNull Set<String> permittedSkillIds
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(
                 SkillBindScreen.SYNTHESIS,
@@ -393,7 +413,7 @@ public final class SkillBindGui {
             Component.text("スキル合成", NamedTextColor.LIGHT_PURPLE)
         );
         fill(inventory);
-        inventory.setItem(SYNTHESIS_SKILL_SLOT, createLearnedSkillItem(entry, false));
+        inventory.setItem(SYNTHESIS_SKILL_SLOT, createLearnedSkillItem(entry, false, permittedSkillIds));
         inventory.setItem(
             SYNTHESIS_MATERIAL_SLOT,
             material == null
@@ -403,7 +423,7 @@ public final class SkillBindGui {
         );
         inventory.setItem(
             SYNTHESIS_RESULT_SLOT,
-            createSynthesisResult(entry, material, materialKind)
+            createSynthesisResult(entry, material, materialKind, permittedSkillIds)
         );
         inventory.setItem(BACK_SLOT, createItem(
             Material.SPECTRAL_ARROW,
@@ -839,7 +859,8 @@ public final class SkillBindGui {
         }
         if (entry != null) {
             lore.add(separator());
-            appendLearnedSkillDetails(lore, entry);
+            appendLearnedSkillDetails(lore, entry, permittedSkillDefinitions.stream()
+                .map(SkillDefinition::getId).collect(java.util.stream.Collectors.toSet()));
         } else if (bindingId != null && !normalAttack) {
             lore.add(separator());
             lore.add(Component.text("未習得スキルです。発動できません。", NamedTextColor.RED));
@@ -1036,10 +1057,12 @@ public final class SkillBindGui {
         );
     }
 
+    /** 合成後の性能と閲覧者の使用許可を反映したプレビューを作成します。 */
     private ItemStack createSynthesisResult(
         @NotNull SkillManagerEntry entry,
         @Nullable ItemModel material,
-        @NotNull MaterialKind materialKind
+        @NotNull MaterialKind materialKind,
+        @NotNull Set<String> permittedSkillIds
     ) {
         if (material == null) {
             return createItem(
@@ -1066,7 +1089,7 @@ public final class SkillBindGui {
         int resultingLevel = currentLevel;
         ResolvedLearnedSkill preview = resolvedPreview(entry, resultingLevel, pendingSigil);
         List<Component> lore = new ArrayList<>();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(preview, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(preview, permittedSkillIds, NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
             lore.add(separator());
         }

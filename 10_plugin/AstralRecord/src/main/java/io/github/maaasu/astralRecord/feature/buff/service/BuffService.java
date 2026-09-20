@@ -91,12 +91,13 @@ public class BuffService {
             TEMPORARY_FLAT_BUFF_DISPLAY_NAME,
             statusType,
             value,
-            durationSeconds
+            durationSeconds,
+            false
         );
     }
 
     /**
-     * 指定IDで固定値の一時バフを付与します。
+     * 指定IDで固定値のスキル用一時バフを付与します。挑戦開始時には解除します。
      * <p>
      * 同じIDのバフだけを置き換えるため、独立して寿命を管理するフィールド効果などで使用します。
      *
@@ -117,6 +118,14 @@ public class BuffService {
         double value,
         long durationSeconds
     ) {
+        return applyTemporaryFlat(player, buffId, displayName, statusType, value, durationSeconds, true);
+    }
+
+    /** 管理者バフとスキル由来バフの挑戦時解除区分を保持して生成します。 */
+    private @NotNull ActiveBuff applyTemporaryFlat(
+        @NotNull AstPlayer player, @NotNull String buffId, @NotNull String displayName,
+        @NotNull StatusType statusType, double value, long durationSeconds, boolean resetOnChallenge
+    ) {
         if (buffId.isBlank() || displayName.isBlank()) {
             throw new IllegalArgumentException("buffId and displayName must not be blank");
         }
@@ -132,7 +141,7 @@ public class BuffService {
             displayName,
             Math.toIntExact(durationSeconds * 20L),
             false,
-            false,
+            resetOnChallenge,
             null,
             List.of(new BuffModifier(statusType, BuffModifierType.FLAT, value))
         );
@@ -157,14 +166,16 @@ public class BuffService {
     }
 
     /**
-     * 挑戦開始時にリセット対象として定義されたバフを解除します。
+     * 挑戦開始時にリセット対象と期限切れのバフを解除します。
+     * 期限切れだけを除去した場合も再計算対象としてtrueを返します。
      *
      * @param player 対象プレイヤー
      * @return 1件以上のバフを解除した場合 true
      */
     public boolean removeChallengeResettableBuffs(@NotNull AstPlayer player) {
-        purgeExpired(player);
-        return player.getActiveBuffs().removeIf(buff -> buff.getType().getResetOnChallenge());
+        int expired = purgeExpired(player);
+        boolean removed = player.getActiveBuffs().removeIf(buff -> buff.getType().getResetOnChallenge());
+        return expired > 0 || removed;
     }
 
     /**

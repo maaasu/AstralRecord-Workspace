@@ -56,6 +56,56 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
+     * 検証契約: 全リソースが足りても追加効果の条件確定に失敗すれば、リソースを消費しない。
+     */
+    @Test
+    void effectResourcesRemainWhenEffectCannotCommit() {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        SkillDefinition definition = skill("effect_fixture", "effect_impl", 7.0D, 100L, Map.of(),
+            SkillKind.ACTIVE, 0L, 1, SkillResourceType.ENERGY, 13.0D);
+        TestCaster caster = new TestCaster(1, 30.0D, 50.0D);
+        assertFalse(service.tryConsumeEffectResources(caster, definition, caster.statusSnapshot(), () -> false));
+        assertEquals(30.0D, caster.currentMana(), 0.0001D);
+        assertEquals(50.0D, caster.currentEnergy(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
+     * 検証契約: 追加効果の複合消費は全残量検証後にだけ同時適用され、クールダウンを変更しない。
+     */
+    @Test
+    void effectResourcesConsumeAllWithoutStartingCooldown() {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        SkillDefinition definition = skill("effect_fixture", "effect_impl", 7.0D, 100L, Map.of(),
+            SkillKind.ACTIVE, 0L, 1, SkillResourceType.ENERGY, 13.0D);
+        TestCaster caster = new TestCaster(1, 30.0D, 50.0D);
+        assertEquals(true, service.tryConsumeEffectResources(caster, definition, caster.statusSnapshot(), () -> true));
+        assertEquals(23.0D, caster.currentMana(), 0.0001D);
+        assertEquals(37.0D, caster.currentEnergy(), 0.0001D);
+        assertFalse(service.isOnCooldown(caster, definition.getId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
+     * 検証契約: 追加効果の複合消費は全残量検証後にだけ同時適用され、クールダウンを変更しない。
+     */
+    @Test
+    void effectResourcesPreserveAllWhenSecondaryResourceIsInsufficient() {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        SkillDefinition definition = skill("effect_fixture", "effect_impl", 7.0D, 100L, Map.of(),
+            SkillKind.ACTIVE, 0L, 1, SkillResourceType.ENERGY, 13.0D);
+        TestCaster caster = new TestCaster(1, 6.0D, 50.0D);
+        assertEquals(false, service.tryConsumeEffectResources(caster, definition, caster.statusSnapshot(), () -> true));
+        assertEquals(6.0D, caster.currentMana(), 0.0001D);
+        assertEquals(50.0D, caster.currentEnergy(), 0.0001D);
+        assertFalse(service.isOnCooldown(caster, definition.getId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
      * 検証契約: reload時に登録executorがありparams検証を通るdefinitionだけを、習得・強化素材を保持して一括公開する。
      */

@@ -60,6 +60,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -1572,6 +1573,30 @@ public class SkillService {
             return number.doubleValue();
         }
         throw new SkillParameterException("resourceCost", "number を指定してください");
+    }
+
+    /**
+     * 追加効果のリソースだけを検証・消費します。クールダウンと詠唱は変更しません。
+     * メインスレッド上で呼び、全リソースが足りる場合だけ同時に消費します。
+     * @param caster 発動者
+     * @param skill レベル反映済みの参照元スキル
+     * @param statusSnapshot 消費軽減を解決するステータス
+     * @param commitEffect リソース充足確認後の効果条件確定。falseならリソースを保持する
+     * @return 全リソースを消費できた場合 true
+     */
+    public boolean tryConsumeEffectResources(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition skill,
+            @NotNull StatusSnapshot statusSnapshot,
+            @NotNull BooleanSupplier commitEffect
+    ) {
+        Map<SkillResourceType, Double> costs = resolveResourceCosts(statusSnapshot, skill);
+        if (costs.entrySet().stream().anyMatch(entry -> currentResource(caster, entry.getKey()) < entry.getValue())) {
+            return false;
+        }
+        if (!commitEffect.getAsBoolean()) return false;
+        costs.forEach((type, amount) -> consumeResource(caster, type, amount));
+        return true;
     }
 
     /** 発動時に同時検証・同時消費する全リソースの実消費量を返します。 */

@@ -238,6 +238,8 @@ import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDivineChaserS
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinGuardConvertSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
@@ -1319,6 +1321,7 @@ public final class AstralRecord extends JavaPlugin {
             arrivalGuard
         );
         bossChallengeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
+        bossChallengeService.setStatusService(statusService);
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
             this,
@@ -1343,6 +1346,7 @@ public final class AstralRecord extends JavaPlugin {
             arrivalGuard
         );
         dungeonService.setInvulnerabilityVisualService(invulnerabilityVisualService);
+        dungeonService.setStatusService(statusService);
         dungeonService.setAfkService(afkService);
         dungeonService.setClearListener((player, dungeonId) ->
             guideService.recordCondition(player, GuideConditionType.DUNGEON_CLEARED, dungeonId)
@@ -1658,6 +1662,11 @@ public final class AstralRecord extends JavaPlugin {
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
         activeSkillTaskService = new SkillTaskService(this);
         temporarySkillEffectService = new TemporarySkillEffectService();
+        statusService.setChallengeBuffResetListener(player -> {
+            UUID playerId = player.getBukkit().getUniqueId();
+            temporarySkillEffectService.clear(playerId);
+            meditationSkillRuntimeService.interrupt(playerId);
+        });
         mobKnockbackService.setAdditionalKnockbackMultiplier(
             temporarySkillEffectService::knockbackMultiplier
         );
@@ -1746,6 +1755,14 @@ public final class AstralRecord extends JavaPlugin {
         );
         passiveSkillService.setStatusService(statusService);
         weaponAttackSkillExecutor.setPassiveSkillService(passiveSkillService);
+        var inheritanceBuffService = new InheritanceBuffService(
+            skillService, passiveSkillService, statusService);
+        weaponAttackSkillExecutor.setInheritanceBuffService(inheritanceBuffService);
+        var arrowRainExecutor = skillService.registry().getExecutor(
+            HunterArrowRainExecutor.ID);
+        if (arrowRainExecutor instanceof HunterArrowRainExecutor arrowRain) {
+            arrowRain.setInheritanceBuffService(inheritanceBuffService);
+        }
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);
         damageService.setPassiveSkillService(passiveSkillService);
@@ -2250,6 +2267,7 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             shopService
         );
+        skillForgetGuiEventHandler.setPermissionService(skillPermissionService);
         eventManager.registerHandler(
             skillForgetGuiEventHandler,
             getServer().getPluginManager()

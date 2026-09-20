@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
@@ -53,6 +54,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final ShopService shopService;
+    private SkillPermissionService permissionService;
     private final Map<UUID, UUID> forgetting = new ConcurrentHashMap<>();
 
     public SkillForgetGuiEventHandler(
@@ -73,6 +75,14 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
         this.itemService = itemService;
         this.shopService = shopService;
+    }
+
+    /**
+     * 閲覧者の条件付き説明を判定する使用許可サービスを設定します。
+     * @param service 使用許可サービス
+     */
+    public void setPermissionService(@NotNull SkillPermissionService service) {
+        this.permissionService = service;
     }
 
     /**
@@ -335,7 +345,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private void openList(@NotNull Player player, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return;
-        gui.open(player, entries(astPlayer), permissionService.permittedSkillIds(astPlayer), page);
+        gui.open(player, entries(astPlayer), permissionService == null ? java.util.Set.of() : permissionService.permittedSkillIds(astPlayer), page);
     }
 
     private @NotNull List<SkillManagerEntry> entries(@NotNull AstPlayer player) {

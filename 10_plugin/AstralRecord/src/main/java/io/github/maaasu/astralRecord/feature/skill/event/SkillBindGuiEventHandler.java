@@ -1221,7 +1221,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             entry,
             material,
             materialKind,
-            selection != null
+            selection != null,
+            permissionService.permittedSkillIds(astPlayer)
         );
     }
 
