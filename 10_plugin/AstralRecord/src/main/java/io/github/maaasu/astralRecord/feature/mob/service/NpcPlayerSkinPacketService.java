@@ -210,16 +210,6 @@ public final class NpcPlayerSkinPacketService {
     }
 
     /**
-     * 指定 Mob の疑似 Player が scoreboard team へ使用する profile 名を返します。
-     *
-     * @param instance 対象の player-skin NPC
-     * @return 疑似 Player の scoreboard entry 名
-     */
-    public @NotNull String profileName(@NotNull MobInstance instance) {
-        return buildProfileName(instance.instanceId());
-    }
-
-    /**
      * 表示開始済みの疑似 Player へ、現在位置と回転の差分だけを同期します。
      *
      * <p>viewer 集合の更新、実体 Entity の表示切替、名前タグ team の更新は行いません。</p>

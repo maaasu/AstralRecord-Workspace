@@ -216,7 +216,7 @@ public class MobEntityController {
         MobTemplate template = instance.template();
         armorStand.setPersistent(false);
         armorStand.setGravity(false);
-        configureInvulnerability(armorStand, template.damageImmune());
+        configureInvulnerability(instance, armorStand, template.damageImmune());
         armorStand.setCollidable(false);
         armorStand.setSilent(true);
         armorStand.customName(null);
@@ -310,7 +310,7 @@ public class MobEntityController {
         MobTemplate template = instance.template();
         interaction.setPersistent(false);
         interaction.setGravity(false);
-        configureInvulnerability(interaction, template.damageImmune());
+        configureInvulnerability(instance, interaction, template.damageImmune());
         interaction.setSilent(true);
         interaction.customName(null);
         interaction.setCustomNameVisible(false);
@@ -326,7 +326,7 @@ public class MobEntityController {
         Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
-        configureInvulnerability(display, template.damageImmune());
+        configureInvulnerability(instance, display, template.damageImmune());
         display.setSilent(true);
         display.customName(null);
         display.setCustomNameVisible(false);
@@ -347,7 +347,7 @@ public class MobEntityController {
         Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
-        configureInvulnerability(display, template.damageImmune());
+        configureInvulnerability(instance, display, template.damageImmune());
         display.setSilent(true);
         display.customName(null);
         display.setCustomNameVisible(false);
@@ -377,7 +377,7 @@ public class MobEntityController {
         mob.setAI(true);
         mob.setAware(true);
         disablePiglinZombification(mob);
-        configureInvulnerability(mob, instance.damageImmune());
+        configureInvulnerability(instance, mob, instance.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
         mob.setCanPickupItems(false);
@@ -398,9 +398,15 @@ public class MobEntityController {
         applyStationaryNpcAttributes(template, mob);
     }
 
-    private void configureInvulnerability(@NotNull Entity entity, boolean invulnerable) {
+    private void configureInvulnerability(
+            @NotNull MobInstance instance,
+            @NotNull Entity entity,
+            boolean invulnerable
+    ) {
         entity.setInvulnerable(invulnerable);
-        if (invulnerable && invulnerabilityVisualService != null) {
+        if (invulnerable
+                && instance.template().category() != MobCategory.NPC
+                && invulnerabilityVisualService != null) {
             invulnerabilityVisualService.observe(entity);
         }
     }

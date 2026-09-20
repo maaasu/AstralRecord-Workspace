@@ -24,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -86,8 +85,6 @@ public class MobService {
     private final Map<UUID, UUID> instanceByEntity = new LinkedHashMap<>();
     /** インスタンスごとに、頭上 packet display を表示するプレイヤー UUID 集合を保持。 */
     private final Map<UUID, Set<UUID>> viewers = new LinkedHashMap<>();
-    /** 無敵化前の player-skin NPC 発光状態を復元するための状態。 */
-    private final Map<UUID, Boolean> invulnerabilityGlowBefore = new HashMap<>();
 
     /**
      * サービスを初期化します。
@@ -196,27 +193,12 @@ public class MobService {
      */
     public void setDamageImmune(@NotNull MobInstance instance, boolean value) {
         instance.damageImmune(value);
-        if (instance.template().usesPlayerSkinPacketView()) {
-            UUID instanceId = instance.instanceId();
-            String profileName = playerSkinPacketService.profileName(instance);
-            if (value) {
-                invulnerabilityGlowBefore.putIfAbsent(instanceId, instance.glowing());
-                setGlowing(instance, true);
-            } else {
-                Boolean restoreGlowing = invulnerabilityGlowBefore.remove(instanceId);
-                if (restoreGlowing != null) {
-                    setGlowing(instance, restoreGlowing);
-                }
-            }
-            if (invulnerabilityVisualService != null) {
-                invulnerabilityVisualService.setYellowGlowEntry(profileName, value);
-            }
-        }
         Entity entity = entityController.getEntity(instance);
         if (entity == null) {
             return;
         }
-        if (invulnerabilityVisualService == null) {
+        if (invulnerabilityVisualService == null
+                || instance.template().category() == MobCategory.NPC) {
             entity.setInvulnerable(value);
         } else {
             invulnerabilityVisualService.setInvulnerable(entity, value);
@@ -622,7 +604,6 @@ public class MobService {
         if (conditionService != null) {
             conditionService.clearAll(AstEntity.mob(instance));
         }
-        clearInvulnerabilityGlowEntry(instance);
         playerSkinPacketService.remove(instance);
         viewers.remove(instanceId);
         untrackEntity(instance.bukkitEntityId());
@@ -681,7 +662,6 @@ public class MobService {
             if (conditionService != null) {
                 conditionService.clearAll(AstEntity.mob(instance));
             }
-            clearInvulnerabilityGlowEntry(instance);
             playerSkinPacketService.remove(instance);
             entityController.remove(instance);
             destroyListener.accept(instance.instanceId());
@@ -692,16 +672,6 @@ public class MobService {
         playerSkinPacketService.removeAll();
         Logger.log(LogId.I_5701, count);
         return count;
-    }
-
-    private void clearInvulnerabilityGlowEntry(@NotNull MobInstance instance) {
-        invulnerabilityGlowBefore.remove(instance.instanceId());
-        if (invulnerabilityVisualService != null && instance.template().usesPlayerSkinPacketView()) {
-            invulnerabilityVisualService.setYellowGlowEntry(
-                    playerSkinPacketService.profileName(instance),
-                    false
-            );
-        }
     }
 
     /**
