@@ -332,7 +332,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ファントムアーチャー専門枝
 
-ファントムアーチャーは共通24node、Shadow 48node、Specter 48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` であり、skill効果を持たない。
+ファントムアーチャー用として共通24node、Shadow 48node、Specter 48nodeを定義する。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` であり、skill効果を持たない。これらの定義は現行の `starter` には未配置である。
 
 ### 共通パッケージ
 
