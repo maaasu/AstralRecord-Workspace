@@ -18,6 +18,11 @@ public class BuffResponse
 
     public bool IsDebuff { get; init; }
 
+    /// <summary>
+    /// ダンジョンまたはボスの挑戦開始時に消滅するバフかを示す。
+    /// </summary>
+    public bool ResetOnChallenge { get; init; }
+
     public string? StackGroup { get; init; }
 
     public IReadOnlyList<BuffModifierResponse> Modifiers { get; init; } = [];

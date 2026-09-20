@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -131,6 +132,7 @@ public class BuffService {
             displayName,
             Math.toIntExact(durationSeconds * 20L),
             false,
+            false,
             null,
             List.of(new BuffModifier(statusType, BuffModifierType.FLAT, value))
         );
@@ -152,6 +154,59 @@ public class BuffService {
      */
     public boolean remove(@NotNull AstPlayer player, @NotNull String buffId) {
         return player.getActiveBuffs().removeIf(buff -> buff.getType().getId().equals(buffId));
+    }
+
+    /**
+     * 挑戦開始時にリセット対象として定義されたバフを解除します。
+     *
+     * @param player 対象プレイヤー
+     * @return 1件以上のバフを解除した場合 true
+     */
+    public boolean removeChallengeResettableBuffs(@NotNull AstPlayer player) {
+        purgeExpired(player);
+        return player.getActiveBuffs().removeIf(buff -> buff.getType().getResetOnChallenge());
+    }
+
+    /**
+     * 現在付与中の指定バフ個体から持続時間を消費します。
+     * <p>
+     * 消費後の失効時刻が現在以前となる場合は、指定個体を解除します。
+     *
+     * @param player 対象プレイヤー
+     * @param expected 消費対象として期待する現在のバフ個体
+     * @param ticks 消費する正の tick 数
+     * @return 指定個体を消費または解除できた場合 true。失効済みまたは別個体の場合 false
+     * @throws IllegalArgumentException tick 数が正でない場合
+     */
+    public boolean consumeDuration(
+        @NotNull AstPlayer player,
+        @NotNull ActiveBuff expected,
+        long ticks
+    ) {
+        if (ticks <= 0L) {
+            throw new IllegalArgumentException("ticks must be positive");
+        }
+
+        purgeExpired(player);
+        List<ActiveBuff> activeBuffs = player.getActiveBuffs();
+        for (int index = 0; index < activeBuffs.size(); index++) {
+            ActiveBuff current = activeBuffs.get(index);
+            if (current != expected) {
+                continue;
+            }
+
+            LocalDateTime expiresAt = current.getExpiresAt().minus(
+                Math.multiplyExact(ticks, 50L),
+                ChronoUnit.MILLIS
+            );
+            if (!expiresAt.isAfter(LocalDateTime.now())) {
+                activeBuffs.remove(index);
+            } else {
+                activeBuffs.set(index, new ActiveBuff(current.getType(), current.getStartedAt(), expiresAt));
+            }
+            return true;
+        }
+        return false;
     }
 
     private boolean removeOverlapping(@NotNull AstPlayer player, @NotNull BuffType type) {

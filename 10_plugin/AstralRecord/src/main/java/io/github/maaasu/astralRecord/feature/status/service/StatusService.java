@@ -88,6 +88,7 @@ public class StatusService {
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
     private Consumer<HealthRecoveryNotification> hpRecoveryListener = notification -> { };
+    private Consumer<AstPlayer> challengeBuffResetListener = player -> { };
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
@@ -351,6 +352,53 @@ public class StatusService {
     public @NotNull StatusSnapshot removeBuff(@NotNull AstPlayer player, @NotNull String buffId) {
         buffService.remove(player, buffId);
         return refreshStatus(player);
+    }
+
+    /**
+     * 挑戦開始時にリセット対象として定義されたバフを解除し、必要な場合だけステータスを再計算します。
+     *
+     * @param player 対象プレイヤー
+     * @return 1件以上のバフを解除した場合 true
+     */
+    public boolean removeChallengeResettableBuffs(@NotNull AstPlayer player) {
+        challengeBuffResetListener.accept(player);
+        boolean removed = buffService.removeChallengeResettableBuffs(player);
+        if (removed) {
+            refreshStatus(player);
+        }
+        return removed;
+    }
+
+    /**
+     * 挑戦開始時にバフ以外の短命なスキル効果を解除する処理を設定します。
+     * <p>
+     * バフ解除対象がない場合も、挑戦開始ごとに必ず呼び出されます。
+     *
+     * @param listener 対象プレイヤーのスキル runtime 効果を解除する処理
+     */
+    public void setChallengeBuffResetListener(@NotNull Consumer<AstPlayer> listener) {
+        this.challengeBuffResetListener = listener;
+    }
+
+    /**
+     * 現在付与中の指定バフ個体から持続時間を消費し、成功時にステータスを再計算します。
+     *
+     * @param player 対象プレイヤー
+     * @param expected 消費対象として期待する現在のバフ個体
+     * @param ticks 消費する正の tick 数
+     * @return 指定個体を消費または解除できた場合 true
+     * @throws IllegalArgumentException tick 数が正でない場合
+     */
+    public boolean consumeBuffDuration(
+        @NotNull AstPlayer player,
+        @NotNull ActiveBuff expected,
+        long ticks
+    ) {
+        if (!buffService.consumeDuration(player, expected, ticks)) {
+            return false;
+        }
+        refreshStatus(player);
+        return true;
     }
 
     /**

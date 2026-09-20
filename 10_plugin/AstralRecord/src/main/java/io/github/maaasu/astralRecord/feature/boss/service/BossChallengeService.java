@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -114,6 +115,7 @@ public final class BossChallengeService {
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
+    private @Nullable StatusService statusService;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
@@ -257,6 +259,15 @@ public final class BossChallengeService {
      */
     public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
         this.invulnerabilityVisualService = service;
+    }
+
+    /**
+     * 挑戦開始時のリセット対象バフを解除するステータスサービスを設定します。
+     *
+     * @param statusService バフを解除しステータスを再計算するサービス
+     */
+    public void setStatusService(@NotNull StatusService statusService) {
+        this.statusService = statusService;
     }
 
     /**
@@ -1379,6 +1390,7 @@ public final class BossChallengeService {
             cancelControllersByChallengeId.put(challenge.challengeId(), controller);
             challengeIdByCancelInteraction.put(controller.interaction().getUniqueId(), challenge.challengeId());
             challenge.markStarted();
+            resetChallengeBuffs(participantsInField(challenge));
             challenge.bossBar(createBossBar(boss));
             updateBossBar(challenge);
             Logger.log(LogId.I_6501, challenge.challengeId(), challenge.bossTemplate().id(), field.worldName());
@@ -1423,6 +1435,23 @@ public final class BossChallengeService {
         return onlinePlayers(challenge.participantIds()).stream()
                 .filter(player -> player.getWorld().getUID().equals(worldId))
                 .toList();
+    }
+
+    /**
+     * 実際に開始した挑戦の参加者からリセット対象バフを解除します。
+     *
+     * @param participants 同一フィールドにいる実参加者
+     */
+    private void resetChallengeBuffs(@NotNull Collection<Player> participants) {
+        if (statusService == null) {
+            return;
+        }
+        for (Player participant : participants) {
+            AstPlayer astPlayer = AstPlayerCache.get(participant);
+            if (astPlayer != null) {
+                statusService.removeChallengeResettableBuffs(astPlayer);
+            }
+        }
     }
 
     private void showCountdown(@NotNull List<Player> players, @NotNull String name, int seconds) {

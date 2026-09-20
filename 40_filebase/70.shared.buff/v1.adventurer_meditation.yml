@@ -9,6 +9,7 @@ lore:
   - "&7一定時間、移動速度が大きく上昇する。"
 durationTicks: 140 # 7秒
 isDebuff: false
+resetOnChallenge: true
 modifiers:
   - status: MOVEMENT_SPEED
     type: SCALAR

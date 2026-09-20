@@ -19,6 +19,7 @@ Buff（一定時間付与される効果）のスキーマ定義。
 | `lore`               | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                           |
 | `durationTicks`      | Long         | ○  | -         | 効果時間（tick）。Minecraftの慣習として 20 tick = 1 秒。`-1` の場合は無期限（tickで減らない） |
 | `isDebuff`           | Boolean      | ×  | false     | trueでデバフ扱い（表示や演出用途。計算式には影響しない）                                   |
+| `resetOnChallenge`   | Boolean      | ×  | false     | trueの場合、ダンジョンまたはボスの挑戦開始時に効果時間を0として消滅させる。プレイヤーへは表示しない |
 | `stackGroup`         | String       | ×  | Null      | 同じ値のバフは同時に保持せず、後から付与したバフを残す。未指定時は `id` 単位で重複判定する |
 | `modifiers[]`        | List         | ○  | -         | 付与するステータス補正のリスト（後述）                                              |
 | `modifiers[].status` | String       | ○  | -         | 対象ステータス（`StatusType`。例: `ATTACK`）                                |
@@ -50,6 +51,7 @@ lore:
   - "&7一定時間、移動速度が上昇する。"
 durationTicks: 600 # 30秒
 isDebuff: false
+resetOnChallenge: false
 modifiers:
   - status: MOVEMENT_SPEED
     type: SCALAR

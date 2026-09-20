@@ -61,6 +61,7 @@ class BuffServiceStackGroupTest extends MockBukkitTestBase {
             id,
             1_200,
             false,
+            false,
             stackGroup,
             List.of(new BuffModifier(status, BuffModifierType.FLAT, value))
         );

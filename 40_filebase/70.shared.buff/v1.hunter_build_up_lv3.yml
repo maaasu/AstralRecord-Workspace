@@ -9,6 +9,7 @@ lore:
   - "&7間接攻撃力が13%上昇する。"
 durationTicks: 200 # 10秒
 isDebuff: false
+resetOnChallenge: true
 stackGroup: hunter_build_up
 modifiers:
   - status: RANGED_ATTACK

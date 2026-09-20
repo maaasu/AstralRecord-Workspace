@@ -51,6 +51,7 @@ import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
@@ -172,6 +173,7 @@ public final class DungeonService {
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
+    private @Nullable StatusService statusService;
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
 
@@ -487,6 +489,15 @@ public final class DungeonService {
      */
     public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
         this.invulnerabilityVisualService = service;
+    }
+
+    /**
+     * 挑戦開始時のリセット対象バフを解除するステータスサービスを設定します。
+     *
+     * @param statusService バフを解除しステータスを再計算するサービス
+     */
+    public void setStatusService(@NotNull StatusService statusService) {
+        this.statusService = statusService;
     }
 
     /**
@@ -1363,8 +1374,9 @@ public final class DungeonService {
                 }
                 taskRef[0].cancel();
                 session.startCountdownTask = null;
-                showDungeonStart(inWorld, session.loaded.definition().displayName());
                 session.combatStarted = true;
+                resetChallengeBuffs(inWorld);
+                showDungeonStart(inWorld, session.loaded.definition().displayName());
                 session.startedAtMs = System.currentTimeMillis();
                 startChallengeTimeLimit(session);
                 completeSafeStartRoom(session);
@@ -1386,6 +1398,23 @@ public final class DungeonService {
                     COUNTDOWN_TITLE_TIMES
             ));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.8F, 1.2F);
+        }
+    }
+
+    /**
+     * 実際に開始した挑戦の参加者からリセット対象バフを解除します。
+     *
+     * @param participants 同一ダンジョン World にいる実参加者
+     */
+    private void resetChallengeBuffs(@NotNull Collection<Player> participants) {
+        if (statusService == null) {
+            return;
+        }
+        for (Player participant : participants) {
+            AstPlayer astPlayer = AstPlayerCache.get(participant);
+            if (astPlayer != null) {
+                statusService.removeChallengeResettableBuffs(astPlayer);
+            }
         }
     }
 

@@ -52,6 +52,7 @@ class BuffRepository {
             displayName = obj.get("name").asString,
             durationTicks = obj.get("durationTicks").asInt,
             isDebuff = obj.get("isDebuff").asBoolean,
+            resetOnChallenge = obj.get("resetOnChallenge")?.asBoolean ?: false,
             stackGroup = obj.get("stackGroup")?.takeUnless { it.isJsonNull }?.asString,
             modifiers = parseModifiers(modifiersArray),
         )
