@@ -416,7 +416,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `status-sharpshooter-sniper-accuracy-notable` | `2159` | ACCURACY `FLAT +5.5`、RANGED_DEFENSE_PENETRATION_RATE `FLAT +6` | `&6必中の極星` | `TARGET` | `status`, `offense`, `accuracy` |
 | `status-sharpshooter-sniper-critical` | `2162`〜`2166` | CRITICAL_RATE `FLAT +0.5`、CRITICAL_DAMAGE `FLAT +1` | `&b会心の星環` | `AMETHYST_SHARD` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-critical-notable` | `2167` | CRITICAL_RATE `FLAT +1.5`、CRITICAL_DAMAGE `FLAT +10` | `&6致命射の極星` | `RECOVERY_COMPASS` | `status`, `offense`, `astral` |
-| `status-sharpshooter-sniper-super-critical` | `2170`〜`2174` | SUPER_CRITICAL_RATE `FLAT +0.5` | `&d超星狙撃の星環` | `ECHO_SHARD` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-super-critical` | `2170`〜`2174` | SUPER_CRITICAL_RATE `FLAT +0.5`、SUPER_CRITICAL_DAMAGE `FLAT +1` | `&d超星狙撃の星環` | `ECHO_SHARD` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-super-critical-notable` | `2175` | SUPER_CRITICAL_RATE `FLAT +1.5`、SUPER_CRITICAL_DAMAGE `FLAT +10` | `&6超星穿の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-lightning` | `2178`〜`2182` | LIGHTNING_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&e雷矢の星環` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
 | `status-sharpshooter-sniper-lightning-notable` | `2183` | LIGHTNING_DAMAGE_INCREASE `FLAT +8`、LIGHTNING_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6天雷の極星` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |

@@ -17,6 +17,12 @@
       "status": "SUPER_CRITICAL_RATE",
       "modifierType": "FLAT",
       "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
