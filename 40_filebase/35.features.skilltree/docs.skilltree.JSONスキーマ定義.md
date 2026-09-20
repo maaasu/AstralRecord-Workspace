@@ -136,7 +136,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 }
 ```
 
-`x`、`y`、`z` は -2147483648 以上、2147483647 以下の整数（Java `int` 範囲）で、Plugin の `config.yml` にある `skilltree.center.x` / `y` / `z` からの相対ブロック座標です。Plugin は `skilltree.worldName` と `skilltree.structureId` で表示先と構造を選択します。ワールド名と中心座標は構造 JSON に重複保存しません。
+`x`、`y`、`z` は -2147483648 以上、2147483647 以下の数値で、0.1ブロック単位で指定します。Plugin の `config.yml` にある `skilltree.center.x` / `y` / `z` からの相対ブロック座標として扱います。Plugin は `skilltree.worldName` と `skilltree.structureId` で表示先と構造を選択します。ワールド名と中心座標は構造 JSON に重複保存しません。
 
 ### edges
 
