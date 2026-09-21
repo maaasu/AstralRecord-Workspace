@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,10 +21,11 @@ import java.util.UUID;
  */
 public final class PartyRecruitmentMessageAnvilGui {
     public static final int INPUT_SLOT = 0;
-    public static final int RESULT_SLOT = 2;
+    public static final int CONFIRM_SLOT = INPUT_SLOT;
 
     /**
      * 募集内容入力用の金床GUIを開きます。
+     * 入力紙自体を確定ボタンとし、経験値処理を伴う金床の結果スロットは使用しません。
      *
      * @param player 入力するパーティーリーダー
      * @param currentMessage 現在の募集内容
@@ -39,14 +39,9 @@ public final class PartyRecruitmentMessageAnvilGui {
         inventory.setItem(INPUT_SLOT, GuiItems.create(
             Material.PAPER,
             Component.text(currentMessage, NamedTextColor.WHITE),
-            List.of(Component.text("名前を変更して右端の紙をクリック", NamedTextColor.GRAY))
+            List.of(Component.text("募集内容を入力してこの紙をクリック", NamedTextColor.GRAY))
         ));
-        GuiOpenSupport.open(player, inventory, () -> {
-            if (player.getOpenInventory() instanceof AnvilView anvilView) {
-                anvilView.setRepairCost(0);
-                anvilView.setMaximumRepairCost(1);
-            }
-        });
+        GuiOpenSupport.open(player, inventory);
     }
 
     /**

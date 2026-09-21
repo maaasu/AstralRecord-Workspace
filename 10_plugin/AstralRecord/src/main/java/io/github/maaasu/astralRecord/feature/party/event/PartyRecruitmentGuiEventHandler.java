@@ -15,13 +15,9 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,11 +25,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -75,7 +69,7 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
 
     /**
      * 募集 GUI の操作を処理します。
-     * 募集内容入力用の金床では、結果スロットのクリックだけ取消済みイベントでも受け付けます。
+     * 募集内容入力用の金床では、入力紙のクリックだけ取消済みイベントでも受け付けます。
      *
      * @param event Bukkit のインベントリクリックイベント
      */
@@ -90,7 +84,7 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
                 return;
             }
             if (event.isCancelled()
-                && (!messageInput || event.getRawSlot() != PartyRecruitmentMessageAnvilGui.RESULT_SLOT)) {
+                && (!messageInput || event.getRawSlot() != PartyRecruitmentMessageAnvilGui.CONFIRM_SLOT)) {
                 return;
             }
             event.setCancelled(true);
@@ -130,25 +124,21 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         }, LogId.E_6100, event.getWhoClicked().getName(), "party_recruitment_gui_drag");
     }
 
+    /**
+     * 募集内容入力用の金床から結果アイテムを除き、通常の金床コスト表示と経験値処理を発生させないようにします。
+     *
+     * @param event Bukkit の金床結果準備イベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPrepareAnvil(@NotNull PrepareAnvilEvent event) {
         runSafely(() -> {
             if (!messageAnvilGui.isInventory(event.getInventory())) {
                 return;
             }
-            if (!(event.getView() instanceof AnvilView anvilView)) {
-                return;
+            if (event.getView() instanceof AnvilView anvilView) {
+                anvilView.setRepairCost(0);
             }
-            String renameText = anvilView.getRenameText();
-            String displayText = renameText == null || renameText.isBlank() ? "募集内容を入力" : renameText;
-            ItemStack result = GuiItems.create(
-                Material.PAPER,
-                Component.text(displayText, NamedTextColor.WHITE),
-                List.of(Component.text("クリックして募集内容を確定", NamedTextColor.GREEN))
-            );
-            anvilView.setRepairCost(0);
-            anvilView.setMaximumRepairCost(1);
-            event.setResult(result);
+            event.setResult(null);
         }, LogId.E_6100, "anvil", "party_recruitment_gui_prepare");
     }
 
@@ -186,8 +176,14 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         settingsGui.open(player);
     }
 
+    /**
+     * 入力紙のクリックで金床の名前入力値を募集内容として確定します。
+     *
+     * @param player 募集内容を設定するプレイヤー
+     * @param event 金床GUIのクリックイベント
+     */
     private void handleMessageInput(@NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (event.getRawSlot() != PartyRecruitmentMessageAnvilGui.RESULT_SLOT) {
+        if (event.getRawSlot() != PartyRecruitmentMessageAnvilGui.CONFIRM_SLOT) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
