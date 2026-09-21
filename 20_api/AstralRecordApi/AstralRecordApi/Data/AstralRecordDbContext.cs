@@ -116,6 +116,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(x => x.PlayerStateVersion).HasColumnName("player_state_version");
             entity.Property(x => x.EvaluationFingerprint).HasColumnName("evaluation_fingerprint").HasMaxLength(64);
             entity.Property(x => x.EditEligible).HasColumnName("edit_eligible");
+            entity.Property(x => x.OfflineConfirmed).HasColumnName("offline_confirmed");
             entity.Property(x => x.ViewJson).HasColumnName("view_json");
             entity.Property(x => x.LastSeenUtc).HasColumnName("last_seen_utc");
             entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);

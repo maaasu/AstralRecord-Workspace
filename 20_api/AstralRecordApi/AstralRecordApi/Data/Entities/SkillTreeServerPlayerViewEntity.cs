@@ -10,6 +10,7 @@ public sealed class SkillTreeServerPlayerViewEntity
     public int PlayerStateVersion { get; set; }
     public string EvaluationFingerprint { get; set; } = string.Empty;
     public bool EditEligible { get; set; }
+    public bool OfflineConfirmed { get; set; }
     public string ViewJson { get; set; } = string.Empty;
     public DateTime LastSeenUtc { get; set; }
 }

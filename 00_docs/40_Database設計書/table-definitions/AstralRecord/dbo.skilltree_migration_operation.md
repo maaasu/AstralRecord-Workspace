@@ -1,0 +1,3 @@
+# dbo.skilltree_migration_operation
+
+非空legacy採用と正式廃止nodeの明示除去だけを冪等に記録する台帳です。新node付与、CP元付替え、Gold更新は扱いません。Pluginが互換性とグラフを検証し、APIは固定baseline・version・世代・remove集合だけを原子的に検証します。

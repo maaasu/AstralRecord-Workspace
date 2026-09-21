@@ -39,6 +39,7 @@ CREATE TABLE [dbo].[skilltree_server_player_view] (
     [player_state_version] INT NOT NULL,
     [evaluation_fingerprint] NVARCHAR(64) NOT NULL,
     [edit_eligible] BIT NOT NULL,
+    [offline_confirmed] BIT NOT NULL CONSTRAINT [DF_skilltree_server_player_view_offline_confirmed] DEFAULT (0),
     [view_json] NVARCHAR(MAX) NOT NULL,
     [last_seen_utc] DATETIME2(3) NOT NULL,
     CONSTRAINT [PK_skilltree_server_player_view] PRIMARY KEY CLUSTERED ([server_id], [account_id]),

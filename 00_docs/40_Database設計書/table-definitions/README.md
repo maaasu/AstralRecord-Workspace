@@ -65,6 +65,7 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.skilltree_server_runtime` | `AstralRecord/dbo.skilltree_server_runtime.md` |
 | `dbo.skilltree_server_player_view` | `AstralRecord/dbo.skilltree_server_player_view.md` |
 | `dbo.skilltree_operation` | `AstralRecord/dbo.skilltree_operation.md` |
+| `dbo.skilltree_migration_operation` | `AstralRecord/dbo.skilltree_migration_operation.md` |
 | `dbo.login_bonus_claim` | `AstralRecord/dbo.login_bonus_claim.md` |
 | `dbo.skill_bind_preset` | `AstralRecord/dbo.skill_bind_preset.md` |
 | `dbo.inventory` | `AstralRecord/dbo.inventory.md` |

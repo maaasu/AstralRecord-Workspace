@@ -674,6 +674,7 @@ CREATE TABLE [dbo].[skilltree_server_player_view] (
     [player_state_version]     INT NOT NULL,
     [evaluation_fingerprint]   NVARCHAR(64) NOT NULL,
     [edit_eligible]            BIT NOT NULL,
+    [offline_confirmed]         BIT NOT NULL,
     [view_json]                NVARCHAR(MAX) NOT NULL,
     [last_seen_utc]            DATETIME2(3) NOT NULL,
     CONSTRAINT [PK_skilltree_server_player_view] PRIMARY KEY CLUSTERED ([server_id], [account_id]),
@@ -722,6 +723,12 @@ GO
 CREATE NONCLUSTERED INDEX [IX_skilltree_operation_account_status] ON [dbo].[skilltree_operation] ([account_id], [status]);
 GO
 CREATE NONCLUSTERED INDEX [IX_skilltree_operation_server_status] ON [dbo].[skilltree_operation] ([target_server_id], [status]);
+GO
+
+CREATE TABLE [dbo].[skilltree_migration_operation] (
+ [operation_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY, [account_id] UNIQUEIDENTIFIER NOT NULL, [request_hash] NVARCHAR(64) NOT NULL, [expected_state_version] INT NOT NULL, [from_generation_id] NVARCHAR(64) NULL, [to_generation_id] NVARCHAR(64) NOT NULL, [baseline_node_ids_json] NVARCHAR(MAX) NOT NULL, [removed_node_ids_json] NVARCHAR(MAX) NOT NULL, [status] NVARCHAR(32) NOT NULL, [completed_at_utc] DATETIME2(3) NOT NULL,
+ CONSTRAINT [FK_skilltree_migration_operation_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid])
+);
 GO
 
 -- ============================================================

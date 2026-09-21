@@ -71,6 +71,8 @@ public sealed class SkillTreePlayerViewRegistrationRequest
     public required string EvaluationFingerprint { get; init; }
     /// <summary>拠点またはスキルツリーワールドでのみ true。位置判定は Plugin が正本です。</summary>
     public bool EditEligible { get; init; }
+    /// <summary>Pluginが明示logoutを確認したcached viewだけoffline案に利用できます。</summary>
+    public bool OfflineConfirmed { get; init; }
     /// <summary>tree, points, relockGoldCost, connection を含む Plugin 評価済み JSON。</summary>
     public JsonElement View { get; init; }
 }
