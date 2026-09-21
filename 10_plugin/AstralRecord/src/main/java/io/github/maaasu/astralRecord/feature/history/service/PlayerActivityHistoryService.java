@@ -30,17 +30,21 @@ public final class PlayerActivityHistoryService {
     private static final int MAX_BATCH_SIZE = 1_000;
     private static final int MAX_QUEUED_EVENTS = 10_000;
     private static final int MAX_MOB_DAMAGE_WINDOWS = 10_000;
+    private static final int MAX_BATCHES_PER_FLUSH = 4;
     private static final long FLUSH_PERIOD_TICKS = 20L * 60L;
+    private static final long RETRY_BACKOFF_MILLIS = 60_000L;
     private static final double MAX_MOVEMENT_SEGMENT_METERS = 32.0D;
 
     private final Plugin plugin;
     private final PlayerActivityHistoryRepository repository;
     private final ConcurrentLinkedDeque<ActivityEvent> queued = new ConcurrentLinkedDeque<>();
     private final AtomicInteger queuedCount = new AtomicInteger();
-    private final AtomicBoolean flushing = new AtomicBoolean();
+    private final AtomicBoolean running = new AtomicBoolean();
+    private final AtomicBoolean flushScheduled = new AtomicBoolean();
     private final Object damageLock = new Object();
     private final Map<MobDamageWindowKey, MobDamageAccumulator> mobDamageWindows = new HashMap<>();
     private ActivityBatch retryBatch;
+    private volatile long retryNotBeforeMillis;
     private BukkitTask flushTask;
 
     public PlayerActivityHistoryService(@NotNull Plugin plugin) {
@@ -55,13 +59,15 @@ public final class PlayerActivityHistoryService {
     /** 定期バッチ送信を開始します。 */
     public void start() {
         if (flushTask != null) return;
+        running.set(true);
         flushTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
-            plugin, this::flushDueEvents, FLUSH_PERIOD_TICKS, FLUSH_PERIOD_TICKS
+            plugin, this::scheduleFlush, FLUSH_PERIOD_TICKS, FLUSH_PERIOD_TICKS
         );
     }
 
     /** 停止時に新規送信を止めます。送信待ち履歴はプレイデータと異なり永続化しません。 */
     public void stop() {
+        running.set(false);
         if (flushTask != null) {
             flushTask.cancel();
             flushTask = null;
@@ -124,6 +130,7 @@ public final class PlayerActivityHistoryService {
     }
 
     private void flushDueEvents() {
+        if (!running.get()) return;
         flushDamageWindows(Instant.now(), false);
         flushQueuedEvents();
     }
@@ -148,6 +155,7 @@ public final class PlayerActivityHistoryService {
     }
 
     private void enqueue(@NotNull ActivityEvent event) {
+        if (!running.get()) return;
         while (true) {
             int current = queuedCount.get();
             if (current >= MAX_QUEUED_EVENTS || !queuedCount.compareAndSet(current, current + 1)) {
@@ -158,13 +166,34 @@ public final class PlayerActivityHistoryService {
             break;
         }
         if (queuedCount.get() >= FLUSH_THRESHOLD) {
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::flushQueuedEvents);
+            scheduleFlush();
+        }
+    }
+
+    /** 実行中または予約済みの送信がない場合だけ、非同期の1件を予約します。 */
+    private void scheduleFlush() {
+        if (!running.get() || System.currentTimeMillis() < retryNotBeforeMillis) return;
+        if (!flushScheduled.compareAndSet(false, true)) return;
+        try {
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    flushDueEvents();
+                } finally {
+                    flushScheduled.set(false);
+                    if (running.get() && queuedCount.get() >= FLUSH_THRESHOLD
+                            && System.currentTimeMillis() >= retryNotBeforeMillis) {
+                        scheduleFlush();
+                    }
+                }
+            });
+        } catch (RuntimeException ignored) {
+            flushScheduled.set(false);
         }
     }
 
     private void flushQueuedEvents() {
-        if (!flushing.compareAndSet(false, true)) return;
-        try {
+        for (int processed = 0; processed < MAX_BATCHES_PER_FLUSH; processed++) {
+            if (!running.get() || System.currentTimeMillis() < retryNotBeforeMillis) return;
             ActivityBatch batch = retryBatch;
             if (batch == null) {
                 List<ActivityEvent> events = new ArrayList<>(MAX_BATCH_SIZE);
@@ -180,22 +209,23 @@ public final class PlayerActivityHistoryService {
             try {
                 repository.submit(batch);
                 retryBatch = null;
+                retryNotBeforeMillis = 0L;
             } catch (PlayerActivityHistoryRepository.HistorySubmissionException failure) {
                 // 入力・認証などの4xxは同じ内容では成功しないため、当該バッチだけを捨てて次を処理する。
                 if (failure.retryable()) {
                     retryBatch = batch;
+                    retryNotBeforeMillis = System.currentTimeMillis() + RETRY_BACKOFF_MILLIS;
                     return;
                 }
                 retryBatch = null;
+                retryNotBeforeMillis = 0L;
             } catch (RuntimeException failure) {
                 // DB保存後に応答だけ失われても API 側の batchId 冪等性で同じ結果を再取得できる。
                 retryBatch = batch;
+                retryNotBeforeMillis = System.currentTimeMillis() + RETRY_BACKOFF_MILLIS;
                 return;
             }
-        } finally {
-            flushing.set(false);
         }
-        if (queuedCount.get() >= FLUSH_THRESHOLD) flushQueuedEvents();
     }
 
     /** API の活動履歴バッチと同じ JSON 契約です。 */
