@@ -500,7 +500,14 @@ public class SkillTreeService {
      *
      * @param snapshot 公開するスナップショット
      */
-    public synchronized void replaceMasterDataSnapshot(@NotNull SkillTreeMasterDataSnapshot snapshot) {
+    public void replaceMasterDataSnapshot(@NotNull SkillTreeMasterDataSnapshot snapshot) {
+        replaceMasterDataSnapshotLocked(snapshot);
+        // status再計算はinventoryを参照するため、サービスのmonitorを解放してから通知する。
+        refreshLoadedOnlinePlayerDerivedStates();
+    }
+
+    /** マスターだけを一括交換し、他機能のプレイヤー状態へは触れません。 */
+    private synchronized void replaceMasterDataSnapshotLocked(@NotNull SkillTreeMasterDataSnapshot snapshot) {
         if (!pendingRuntimeOperationReceipts.isEmpty()) {
             throw new IllegalStateException("Skill tree operation acknowledgement is pending");
         }
@@ -544,7 +551,6 @@ public class SkillTreeService {
         runtimePublicationRevision++;
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
-        refreshLoadedOnlinePlayerDerivedStates();
         if (visualizer != null) {
             visualizer.markStructureDirty();
         }
@@ -578,13 +584,18 @@ public class SkillTreeService {
     public synchronized void endMasterDataPublication() { masterPublicationInProgress = false; }
 
     /** 定義の公開成功後、不一致の旧状態を保持して再参加まで操作を止める。メインスレッド専用。 */
-    public synchronized void finishMasterDataPublication() {
-        for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
-            SkillTreePlayerState state = playerStates.get(astPlayer.getAccount().getUuid());
-            if (state != null && state.definitionGenerationId() != null && !definitionGenerationId.equals(state.definitionGenerationId())) {
-                astPlayer.getBukkit().kick(PlayerMsgResource.formatComponent(PlayerMsgId.P_9050.getId()));
+    public void finishMasterDataPublication() {
+        List<AstPlayer> incompatible = new ArrayList<>();
+        synchronized (this) {
+            for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
+                SkillTreePlayerState state = playerStates.get(astPlayer.getAccount().getUuid());
+                if (state != null && state.definitionGenerationId() != null && !definitionGenerationId.equals(state.definitionGenerationId())) {
+                    incompatible.add(astPlayer);
+                }
             }
         }
+        // kickから同期的に退出保存が呼ばれるため、サービスのmonitor外で実行する。
+        incompatible.forEach(astPlayer -> astPlayer.getBukkit().kick(PlayerMsgResource.formatComponent(PlayerMsgId.P_9050.getId())));
     }
 
     /**
@@ -839,16 +850,33 @@ public class SkillTreeService {
                 && (current.worldType() == WorldType.BASE || SKILL_TREE_WORLD_ID.equals(current.id()));
     }
 
+    /** 保存と同じ順序（inventory state → SkillTree）で、同一accountの状態を扱います。 */
+    private <T> T withPlayerStateLocks(UUID accountId, java.util.function.Supplier<T> action) {
+        java.util.function.Supplier<T> locked = () -> {
+            synchronized (this) {
+                return action.get();
+            }
+        };
+        InventoryService persistence = inventoryService;
+        return persistence == null ? locked.get() : persistence.withPlayerStateLock(accountId, locked);
+    }
+
     /**
      * Web 表示用に、現在接続中のプレイヤーを Plugin のルールで評価したビューを生成します。
      *
      * <p>この値は raw master の代替ではなく、現在の世代・保存版数・クラス進行・Gold・
      * 現在地を束ねた短命な表示用スナップショットです。Bukkit メインスレッドから呼び出します。</p>
+     * <p>保存との逆転を避け、インベントリ、スキルツリーの順でmonitorを取得します。</p>
      *
      * @param astPlayer 評価対象プレイヤー
      * @return API へ公開する評価済みビュー
      */
-    public synchronized @NotNull JsonObject createRuntimePlayerView(@NotNull AstPlayer astPlayer) {
+    public @NotNull JsonObject createRuntimePlayerView(@NotNull AstPlayer astPlayer) {
+        return withPlayerStateLocks(astPlayer.getAccount().getUuid(), () -> createRuntimePlayerViewLocked(astPlayer));
+    }
+
+    /** インベントリ取得後に呼ぶ、サービス状態の同期処理。 */
+    private synchronized @NotNull JsonObject createRuntimePlayerViewLocked(@NotNull AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
         JsonObject location = new JsonObject();
         WorldMasterData worldData = worldService.findByBukkitWorld(player.getWorld());
@@ -1649,23 +1677,23 @@ public class SkillTreeService {
      */
     public void finishRuntimeLogout(@NotNull AstPlayer astPlayer) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        SkillTreeRuntimeRepository.AccountSession session;
-        JsonObject view;
-        synchronized (this) {
-            session = runtimeAccountSessions.get(accountId);
-            if (session == null) return;
+        RuntimeLogoutSnapshot snapshot = withPlayerStateLocks(accountId, () -> {
+            SkillTreeRuntimeRepository.AccountSession session = runtimeAccountSessions.get(accountId);
+            if (session == null) return null;
             JsonObject previous = runtimeLastViews.get(accountId);
             JsonObject location = previous == null ? new JsonObject() : previous.getAsJsonObject("location");
-            view = masterPublicationInProgress ? new JsonObject() : createRuntimePlayerDataView(astPlayer, location, false, false);
-        }
+            JsonObject view = masterPublicationInProgress ? new JsonObject() : createRuntimePlayerDataView(astPlayer, location, false, false);
+            return new RuntimeLogoutSnapshot(session, view, runtimeViewSequences.getOrDefault(accountId, 0L) + 1);
+        });
+        if (snapshot == null) return;
         try {
             runtimeRepository.closeAccount(ConfigProperties.getInstance().getApiServerId(), runtimeServerSessionId,
-                    accountId, session, view, runtimeViewSequences.getOrDefault(accountId, 0L) + 1);
+                    accountId, snapshot.session(), snapshot.view(), snapshot.sequence());
         } catch (RuntimeException ignored) {
             // ACK済みのデータは保持済み。終了確認不能時はlease失効まで新たな所有権を与えない。
         } finally {
             synchronized (this) {
-                runtimeAccountSessions.remove(accountId, session);
+                runtimeAccountSessions.remove(accountId, snapshot.session());
                 runtimeAccountDefinitionGenerations.remove(accountId);
                 runtimeLastViews.remove(accountId);
                 runtimeViewSequences.remove(accountId);
@@ -1673,6 +1701,8 @@ public class SkillTreeService {
             }
         }
     }
+
+    private record RuntimeLogoutSnapshot(SkillTreeRuntimeRepository.AccountSession session, JsonObject view, long sequence) { }
 
     /**
      * 初期ロード状態を公開します。未保存状態またはload時の保持状態は旧API値で上書きしません。
@@ -2347,7 +2377,7 @@ public class SkillTreeService {
             return CompletableFuture.completedFuture(SkillTreeMutationResult.rejected());
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        return persistence.executeCriticalPlayerMutation(accountId, () -> {
+        return persistence.executeCriticalPlayerMutation(accountId, () -> withPlayerStateLocks(accountId, () -> {
             InventoryService.InventoryStateSnapshot inventoryBefore = persistence.snapshotState(accountId);
             SkillTreeMutationCheckpoint checkpoint = null;
             try {
@@ -2389,7 +2419,7 @@ public class SkillTreeService {
                 else if (inventoryBefore != null) persistence.restoreState(inventoryBefore);
                 throw failure;
             }
-        });
+        }));
     }
 
     public @NotNull CompletableFuture<SkillTreeMutationResult> relockNodeAsync(
@@ -2410,7 +2440,7 @@ public class SkillTreeService {
             return CompletableFuture.failedFuture(new IllegalStateException("Invalid skill tree batch."));
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        return persistence.executeCriticalPlayerMutation(accountId, () -> {
+        return persistence.executeCriticalPlayerMutation(accountId, () -> withPlayerStateLocks(accountId, () -> {
             InventoryService.InventoryStateSnapshot inventoryBefore = persistence.snapshotState(accountId);
             SkillTreeMutationCheckpoint checkpoint = null;
             try {
@@ -2484,11 +2514,22 @@ public class SkillTreeService {
                 else if (inventoryBefore != null) persistence.restoreState(inventoryBefore);
                 throw failure;
             }
-        });
+        }));
     }
 
     /** batch ACK後に派生効果を一回だけ再計算し、全UNLOCKのlistenerを通知します。 */
-    private synchronized void acknowledgeRuntimeBatch(
+    private void acknowledgeRuntimeBatch(
+            @NotNull AstPlayer astPlayer,
+            @NotNull BatchMutationResult batch
+    ) {
+        withPlayerStateLocks(astPlayer.getAccount().getUuid(), () -> {
+            acknowledgeRuntimeBatchLocked(astPlayer, batch);
+            return null;
+        });
+    }
+
+    /** インベントリ取得後に呼ぶ、サービス状態の同期処理。 */
+    private synchronized void acknowledgeRuntimeBatchLocked(
             @NotNull AstPlayer astPlayer,
             @NotNull BatchMutationResult batch
     ) {
@@ -2517,7 +2558,7 @@ public class SkillTreeService {
             return CompletableFuture.completedFuture(SkillTreeMutationResult.rejected());
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        return persistence.executeCriticalPlayerMutation(accountId, () -> {
+        return persistence.executeCriticalPlayerMutation(accountId, () -> withPlayerStateLocks(accountId, () -> {
             InventoryService.InventoryStateSnapshot inventoryBefore = persistence.snapshotState(accountId);
             SkillTreeMutationCheckpoint checkpoint = null;
             try {
@@ -2554,11 +2595,31 @@ public class SkillTreeService {
                 else if (inventoryBefore != null) persistence.restoreState(inventoryBefore);
                 throw failure;
             }
+        }));
+    }
+
+    /**
+     * SQL ACK 後、inventory、SkillTreeの順で同期して派生効果と表示を反映します。
+     * Bukkit メインスレッドから呼び出してください。
+     * @param astPlayer 対象プレイヤー
+     * @param node 変更したノード
+     * @param mutation 保存が確定した変更結果
+     * @param notifyUnlockListener 解放通知を行う場合true
+     */
+    public void acknowledgeCommittedNodeMutation(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull SkillTreeMutationResult mutation,
+            boolean notifyUnlockListener
+    ) {
+        withPlayerStateLocks(astPlayer.getAccount().getUuid(), () -> {
+            acknowledgeCommittedNodeMutationLocked(astPlayer, node, mutation, notifyUnlockListener);
+            return null;
         });
     }
 
-    /** SQL ACK 後、Bukkit メインスレッドで派生効果と表示を反映します。 */
-    public synchronized void acknowledgeCommittedNodeMutation(
+    /** インベントリ取得後に呼ぶ、サービス状態の同期処理。 */
+    private synchronized void acknowledgeCommittedNodeMutationLocked(
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreeNodeDefinition node,
             @NotNull SkillTreeMutationResult mutation,
@@ -2670,7 +2731,19 @@ public class SkillTreeService {
         );
     }
 
-    private synchronized void restoreMutationCheckpoint(
+    private void restoreMutationCheckpoint(
+            @NotNull SkillTreeMutationCheckpoint checkpoint,
+            @Nullable InventoryService.InventoryStateSnapshot inventoryBefore,
+            @NotNull InventoryService persistence
+    ) {
+        withPlayerStateLocks(checkpoint.state().accountId(), () -> {
+            restoreMutationCheckpointLocked(checkpoint, inventoryBefore, persistence);
+            return null;
+        });
+    }
+
+    /** インベントリ取得後に呼ぶ、サービス状態の同期処理。 */
+    private synchronized void restoreMutationCheckpointLocked(
             @NotNull SkillTreeMutationCheckpoint checkpoint,
             @Nullable InventoryService.InventoryStateSnapshot inventoryBefore,
             @NotNull InventoryService persistence

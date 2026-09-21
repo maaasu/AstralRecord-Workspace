@@ -296,6 +296,23 @@ public class InventoryService {
         return stateRegistry.get(accountId);
     }
 
+    /**
+     * 読み込み済みインベントリのロックを、保存参加機能のロックより先に取得します。
+     * <p>action 内で別 account の状態や通信を待機してはいけません。
+     * 未ロード時はロックを取得せず実行するため、action 側で未ロードを扱ってください。</p>
+     * @param accountId 対象アカウント
+     * @param action インベントリと保存参加機能の状態を同期して扱う処理
+     * @param <T> 結果型
+     * @return action の結果
+     */
+    public <T> T withPlayerStateLock(@NotNull UUID accountId, @NotNull java.util.function.Supplier<T> action) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return action.get();
+        synchronized (state) {
+            return action.get();
+        }
+    }
+
     private @NotNull PlayerInventoryState requireState(@NotNull UUID accountId) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) {
