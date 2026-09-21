@@ -130,7 +130,7 @@ public final class DungeonService {
     }
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
-    private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.FIVE_SECONDS_TICKS;
+    private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
     private static final long BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS = 1L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;

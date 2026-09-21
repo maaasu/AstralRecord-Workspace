@@ -90,7 +90,7 @@ public final class BossChallengeService {
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
-    private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = InvulnerabilityVisualService.FIVE_SECONDS_TICKS;
+    private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
     private static final int ENTRY_RING_POINTS = 10;
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
