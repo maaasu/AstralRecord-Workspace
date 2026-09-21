@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -16,7 +17,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -70,8 +70,31 @@ public final class ItemAdminGuiView {
         @NotNull ItemAdminViewOptions options,
         int pageIndex
     ) {
-        Inventory inventory = Bukkit.createInventory(new Holder(), SIZE, TITLE);
+        Inventory inventory = Bukkit.createInventory(new Holder(null, List.of()), SIZE, TITLE);
         render(inventory, items, options, pageIndex);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * 管理者用アイテム一覧のフィルター候補 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param filterType 選択するフィルター種別
+     * @param values ロード済みアイテムから取得した候補値
+     * @param selectedValue 現在選択中の値
+     */
+    public void openFilterSelection(
+        @NotNull Player player,
+        @NotNull FilterType filterType,
+        @NotNull List<String> values,
+        @Nullable String selectedValue
+    ) {
+        Inventory inventory = Bukkit.createInventory(
+            new Holder(filterType, List.copyOf(values)),
+            SIZE,
+            Component.text(filterType.title(), filterType.color())
+        );
+        renderFilterOptions(inventory, filterType, values, selectedValue);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -103,6 +126,39 @@ public final class ItemAdminGuiView {
      */
     public boolean isInventory(@Nullable Inventory inventory) {
         return inventory != null && inventory.getHolder() instanceof Holder;
+    }
+
+    /**
+     * 指定 GUI がフィルター候補画面なら種別を返します。
+     *
+     * @param inventory 判定対象インベントリ
+     * @return フィルター種別。一覧画面または対象外なら {@code null}
+     */
+    public @Nullable FilterType getFilterType(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof Holder holder
+            ? holder.filterType()
+            : null;
+    }
+
+    /**
+     * フィルター候補画面で表示した slot から選択値を解決します。
+     *
+     * @param inventory フィルター候補 GUI
+     * @param rawSlot クリックされた raw slot
+     * @return 表示時の候補に対応する選択結果。候補外なら {@code null}
+     */
+    public @Nullable FilterSelection getFilterSelectionAtSlot(
+        @Nullable Inventory inventory,
+        int rawSlot
+    ) {
+        if (!(inventory != null && inventory.getHolder() instanceof Holder holder)
+            || holder.filterType() == null
+            || rawSlot < 0
+            || rawSlot > holder.values().size()) {
+            return null;
+        }
+        String value = rawSlot == 0 ? null : holder.values().get(rawSlot - 1);
+        return new FilterSelection(holder.filterType(), value);
     }
 
     /**
@@ -245,7 +301,49 @@ public final class ItemAdminGuiView {
     private @NotNull List<Component> filterLore(@NotNull String value) {
         return List.of(
             Component.text("現在: " + value, NamedTextColor.WHITE),
-            Component.text("クリックで切り替え", NamedTextColor.DARK_GRAY)
+            Component.text("クリックで候補一覧を表示", NamedTextColor.DARK_GRAY)
+        );
+    }
+
+    private void renderFilterOptions(
+        @NotNull Inventory inventory,
+        @NotNull FilterType filterType,
+        @NotNull List<String> values,
+        @Nullable String selectedValue
+    ) {
+        ItemStack spacer = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            inventory.setItem(slot, spacer);
+        }
+        inventory.setItem(0, createFilterOption(
+            Material.BARRIER,
+            "すべて",
+            selectedValue == null || selectedValue.isBlank(),
+            NamedTextColor.WHITE
+        ));
+        for (int index = 0; index < values.size() && index + 1 < inventory.getSize(); index++) {
+            String value = values.get(index);
+            inventory.setItem(index + 1, createFilterOption(
+                filterType.material(value),
+                filterType.label(value),
+                selectedValue != null && selectedValue.equalsIgnoreCase(value),
+                filterType.color()
+            ));
+        }
+    }
+
+    private @NotNull ItemStack createFilterOption(
+        @NotNull Material material,
+        @NotNull String label,
+        boolean selected,
+        @NotNull NamedTextColor color
+    ) {
+        return createItem(
+            material,
+            Component.text(label, color),
+            selected
+                ? List.of(Component.text("現在選択中", NamedTextColor.GREEN))
+                : List.of(Component.text("クリックで適用", NamedTextColor.GRAY))
         );
     }
 
@@ -261,7 +359,69 @@ public final class ItemAdminGuiView {
         return GuiItems.create(material, name, lore);
     }
 
-    private record Holder() implements InventoryHolder {
+    /** 管理者用アイテム GUI のフィルター種別です。 */
+    public enum FilterType {
+        CATEGORY("カテゴリを選択", NamedTextColor.AQUA),
+        RARITY("レア度を選択", NamedTextColor.LIGHT_PURPLE);
+
+        private final String title;
+        private final NamedTextColor color;
+
+        FilterType(@NotNull String title, @NotNull NamedTextColor color) {
+            this.title = title;
+            this.color = color;
+        }
+
+        /** @return 候補一覧 GUI のタイトル */
+        public @NotNull String title() {
+            return title;
+        }
+
+        /** @return 候補アイコンの表示色 */
+        public @NotNull NamedTextColor color() {
+            return color;
+        }
+
+        private @NotNull String label(@NotNull String value) {
+            return this == CATEGORY
+                ? ItemCategory.displayNameJa(value)
+                : ItemRarity.displayNameJa(value);
+        }
+
+        private @NotNull Material material(@NotNull String value) {
+            if (this == RARITY) {
+                return Material.NETHER_STAR;
+            }
+            return switch (ItemCategory.fromApiValue(value)) {
+                case BUNDLE -> Material.BUNDLE;
+                case CURRENCY -> Material.GOLD_INGOT;
+                case EQUIPMENT -> Material.DIAMOND_CHESTPLATE;
+                case MATERIAL -> Material.IRON_INGOT;
+                case ORB -> Material.END_CRYSTAL;
+                case CONSUMABLE -> Material.APPLE;
+                case RUNE -> Material.ENCHANTED_BOOK;
+                case SIGIL -> Material.FIREWORK_STAR;
+                case UNKNOWN -> Material.BARRIER;
+            };
+        }
+    }
+
+    /**
+     * 表示時の slot-to-value 対応を保持するフィルター選択結果です。
+     *
+     * @param filterType フィルター種別
+     * @param value 選択値。「すべて」は {@code null}
+     */
+    public record FilterSelection(
+        @NotNull FilterType filterType,
+        @Nullable String value
+    ) {
+    }
+
+    private record Holder(
+        @Nullable FilterType filterType,
+        @NotNull List<String> values
+    ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

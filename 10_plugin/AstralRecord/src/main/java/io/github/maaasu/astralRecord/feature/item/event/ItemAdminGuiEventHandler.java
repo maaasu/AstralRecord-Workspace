@@ -13,13 +13,14 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
@@ -81,7 +82,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         open(player, 0);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();
@@ -110,15 +111,13 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
         if (!view.isInventory(event.getInventory())) {
             return;
         }
-        if (event.getPlayer() instanceof Player player) {
-            UUID playerId = player.getUniqueId();
-            pageByPlayer.remove(playerId);
-            optionsByPlayer.remove(playerId);
-        }
+        UUID playerId = event.getPlayer().getUniqueId();
+        pageByPlayer.remove(playerId);
+        optionsByPlayer.remove(playerId);
     }
 
     private void handleClick(
@@ -128,11 +127,18 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
     ) {
         int rawSlot = event.getRawSlot();
         if (rawSlot >= topInventory.getSize()) {
-            GuiSound.DENY.play(player);
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
             return;
         }
 
         ItemAdminViewOptions options = options(player);
+        ItemAdminGuiView.FilterType filterType = view.getFilterType(topInventory);
+        if (filterType != null) {
+            handleFilterOptionClick(player, topInventory, rawSlot, options);
+            return;
+        }
         List<ItemModel> filteredItems = filteredItems(options);
         int pageIndex = currentPage(player, filteredItems.size());
 
@@ -155,15 +161,23 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == ItemAdminGuiView.CATEGORY_FILTER_SLOT) {
-            optionsByPlayer.put(player.getUniqueId(), options.withCategoryFilter(nextFilterValue(options.categoryFilter(), availableCategories())));
             GuiSound.SELECT.play(player);
-            rerender(player, topInventory, 0);
+            view.openFilterSelection(
+                player,
+                ItemAdminGuiView.FilterType.CATEGORY,
+                availableCategories(),
+                options.categoryFilter()
+            );
             return;
         }
         if (rawSlot == ItemAdminGuiView.RARITY_FILTER_SLOT) {
-            optionsByPlayer.put(player.getUniqueId(), options.withRarityFilter(nextFilterValue(options.rarityFilter(), availableRarities())));
             GuiSound.SELECT.play(player);
-            rerender(player, topInventory, 0);
+            view.openFilterSelection(
+                player,
+                ItemAdminGuiView.FilterType.RARITY,
+                availableRarities(),
+                options.rarityFilter()
+            );
             return;
         }
         if (rawSlot == ItemAdminGuiView.GUIDE_SLOT) {
@@ -284,21 +298,23 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         return ordered;
     }
 
-    private @Nullable String nextFilterValue(@Nullable String current, @NotNull List<String> values) {
-        if (values.isEmpty()) {
-            return null;
+    private void handleFilterOptionClick(
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        int rawSlot,
+        @NotNull ItemAdminViewOptions options
+    ) {
+        ItemAdminGuiView.FilterSelection selection = view.getFilterSelectionAtSlot(topInventory, rawSlot);
+        if (selection == null) {
+            GuiSound.DENY.play(player);
+            return;
         }
-        if (current == null || current.isBlank()) {
-            return values.get(0);
-        }
-        for (int index = 0; index < values.size(); index++) {
-            if (!values.get(index).equalsIgnoreCase(current)) {
-                continue;
-            }
-            int nextIndex = index + 1;
-            return nextIndex >= values.size() ? null : values.get(nextIndex);
-        }
-        return values.get(0);
+        ItemAdminViewOptions updated = selection.filterType() == ItemAdminGuiView.FilterType.CATEGORY
+            ? options.withCategoryFilter(selection.value())
+            : options.withRarityFilter(selection.value());
+        optionsByPlayer.put(player.getUniqueId(), updated);
+        GuiSound.SELECT.play(player);
+        open(player, 0);
     }
 
     private int resolveGrantAmount(@NotNull ClickType clickType, int stackAmount) {

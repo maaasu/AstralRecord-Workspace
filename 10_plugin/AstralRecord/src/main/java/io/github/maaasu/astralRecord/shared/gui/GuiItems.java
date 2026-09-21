@@ -153,7 +153,7 @@ public final class GuiItems {
      * @param name 表示名
      * @param lore 説明行
      * @param enabled 前ページへ移動可能なら {@code true}
-     * @return 有効時は Oak Wood Arrow Left、無効時は空スロット
+     * @return 有効時は Oak Wood Arrow Left、無効時は Oak Wood Blank
      */
     public static @NotNull ItemStack previousPageButton(
         @NotNull Component name,
@@ -162,7 +162,7 @@ public final class GuiItems {
     ) {
         return enabled
             ? texturedHead(name, lore, OAK_WOOD_ARROW_LEFT_TEXTURE)
-            : new ItemStack(Material.AIR);
+            : texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
     }
 
     /**
@@ -182,7 +182,7 @@ public final class GuiItems {
      * @param name 表示名
      * @param lore 説明行
      * @param enabled 次ページへ移動可能なら {@code true}
-     * @return 有効時は Oak Wood Arrow Right、無効時は空スロット
+     * @return 有効時は Oak Wood Arrow Right、無効時は Oak Wood Blank
      */
     public static @NotNull ItemStack nextPageButton(
         @NotNull Component name,
@@ -191,7 +191,7 @@ public final class GuiItems {
     ) {
         return enabled
             ? texturedHead(name, lore, OAK_WOOD_ARROW_RIGHT_TEXTURE)
-            : new ItemStack(Material.AIR);
+            : texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
     }
 
     /**
