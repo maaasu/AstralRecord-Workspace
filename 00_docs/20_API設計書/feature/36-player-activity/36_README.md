@@ -20,8 +20,8 @@ DTO定義は `20_api/AstralRecordApi/AstralRecordApi/Models/PlayerActivityModels
   "trades": [{
     "eventId": "3a095fa7-2a5e-4d38-a7d6-f08a7f67c2aa",
     "completedAt": "2026-09-21T12:00:00Z",
-    "source": { "userUuid": "...", "accountId": "...", "mcid": "Alice", "accountName": "AliceMain" },
-    "destination": { "userUuid": "...", "accountId": "...", "mcid": "Bob", "accountName": "BobMain" },
+    "source": { "userUuid": "11111111-1111-1111-1111-111111111111", "accountId": "22222222-2222-2222-2222-222222222222", "mcid": "Alice", "accountName": "AliceMain" },
+    "destination": { "userUuid": "33333333-3333-3333-3333-333333333333", "accountId": "44444444-4444-4444-4444-444444444444", "mcid": "Bob", "accountName": "BobMain" },
     "items": [{ "itemId": "iron_ingot", "itemName": "鉄インゴット", "quantity": 3 }],
     "gold": 100
   }]
@@ -32,4 +32,4 @@ Mobランキングとプレイヤー別被害集計は `windowEndedAt`、死亡�
 
 入力検証の `400`（将来のサイズ制限時は `413`、意味検証追加時は `422`）はPluginが当該バッチを破棄してよい恒久エラーとする。`429`、`5xx`、ネットワーク例外は一時エラーとして同じ `batchId` と `eventId` を再送する。Pluginの送信予約・実行中taskは常に1つだけとし、一時失敗後は少なくとも60秒待ってから再送する。
 
-導入時は既存HistoryDBへ `table-definitions/HistoryDB/migrations/20260921_player_activity.sql` を適用してから、API、Web、Pluginの順で配置する。導入前に発生したトレード、ダンジョン、Mob行動は復元できない。
+導入時は既存HistoryDBへ[移行SQL](../../../40_Database設計書/table-definitions/HistoryDB/migrations/20260921_player_activity.sql)を適用してから、API、Web、Pluginの順で配置する。導入前に発生したトレード、ダンジョン、Mob行動は復元できない。

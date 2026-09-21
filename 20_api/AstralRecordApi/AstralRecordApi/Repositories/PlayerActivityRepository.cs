@@ -35,25 +35,36 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
     {
         var (from, to, page, size) = Page(query);
         var observationRows = history.PlayerIpObservations.AsNoTracking().Where(x => x.ObservedAt >= from && x.ObservedAt < to);
-        var commonIpPairs = from player in observationRows
-                            join related in observationRows on player.GlobalIp equals related.GlobalIp
+        var term = query.Query?.Trim() ?? string.Empty;
+        // ログイン回数による結合行数の増幅を防ぎ、IP・ユーザーごとに畳んでから関連を作る。
+        var observations = observationRows.GroupBy(x => new { x.GlobalIp, x.UserUuid }).Select(group => new
+        {
+            group.Key.GlobalIp,
+            group.Key.UserUuid,
+            First = group.Min(x => x.ObservedAt),
+            Last = group.Max(x => x.ObservedAt),
+            Matches = group.Max(x => term == "" || x.Mcid.Contains(term) || x.AccountName.Contains(term) ? 1 : 0),
+        });
+        var commonIpPairs = from player in observations
+                            join related in observations on player.GlobalIp equals related.GlobalIp
                             where player.UserUuid.CompareTo(related.UserUuid) < 0
+                                && (player.Matches > 0 || related.Matches > 0)
                             select new { Player = player, Related = related };
-        if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); commonIpPairs = commonIpPairs.Where(x => x.Player.Mcid.Contains(term) || x.Player.AccountName.Contains(term) || x.Related.Mcid.Contains(term) || x.Related.AccountName.Contains(term)); }
         var pairs = commonIpPairs.GroupBy(x => new { PlayerUserUuid = x.Player.UserUuid, RelatedUserUuid = x.Related.UserUuid }).Select(group => new
         {
             group.Key.PlayerUserUuid,
             group.Key.RelatedUserUuid,
-            First = group.Min(x => x.Player.ObservedAt < x.Related.ObservedAt ? x.Player.ObservedAt : x.Related.ObservedAt),
-            Last = group.Max(x => x.Player.ObservedAt > x.Related.ObservedAt ? x.Player.ObservedAt : x.Related.ObservedAt),
+            First = group.Min(x => x.Player.First < x.Related.First ? x.Player.First : x.Related.First),
+            Last = group.Max(x => x.Player.Last > x.Related.Last ? x.Player.Last : x.Related.Last),
         });
         if (query.UserUuid is { } user) pairs = pairs.Where(x => x.PlayerUserUuid == user || x.RelatedUserUuid == user);
         if (query.OtherUserUuid is { } other && query.UserUuid is { } selected) pairs = pairs.Where(x => (x.PlayerUserUuid == selected && x.RelatedUserUuid == other) || (x.PlayerUserUuid == other && x.RelatedUserUuid == selected));
         var result = pairs.Select(x => new { x.PlayerUserUuid, x.RelatedUserUuid, x.First, x.Last, TradeCount = history.PlayerTradeActivities.Count(t => t.CompletedAt >= from && t.CompletedAt < to && ((t.SourceUserUuid == x.PlayerUserUuid && t.DestinationUserUuid == x.RelatedUserUuid) || (t.SourceUserUuid == x.RelatedUserUuid && t.DestinationUserUuid == x.PlayerUserUuid))) });
         var total = await result.CountAsync(); var rows = await result.OrderByDescending(x => x.TradeCount).ThenByDescending(x => x.Last).ThenBy(x => x.PlayerUserUuid).ThenBy(x => x.RelatedUserUuid).Skip((page - 1) * size).Take(size).ToListAsync();
         var userIds = rows.SelectMany(x => new[] { x.PlayerUserUuid, x.RelatedUserUuid }).Distinct().ToArray();
-        var snapshotRows = await history.PlayerIpObservations.AsNoTracking().Where(x => userIds.Contains(x.UserUuid) && x.ObservedAt >= from && x.ObservedAt < to).OrderByDescending(x => x.ObservedAt).ThenByDescending(x => x.EventId).ToListAsync();
-        var snapshots = snapshotRows.GroupBy(x => x.UserUuid).ToDictionary(group => group.Key, group => Player(group.First()));
+        var snapshotRows = await observationRows.Where(x => userIds.Contains(x.UserUuid)).GroupBy(x => x.UserUuid)
+            .Select(group => group.OrderByDescending(x => x.ObservedAt).ThenByDescending(x => x.EventId).First()).ToListAsync();
+        var snapshots = snapshotRows.ToDictionary(x => x.UserUuid, Player);
         return new PagedPlayerActivityResponse<SameIpActivityResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows.Select(x => new SameIpActivityResponse(x.First, x.Last, x.TradeCount, [snapshots[x.PlayerUserUuid], snapshots[x.RelatedUserUuid]])).ToArray() };
     }
 
