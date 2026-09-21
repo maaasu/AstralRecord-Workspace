@@ -36,6 +36,10 @@ public final class GuiItems {
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQ2OWUwNmU1ZGFkZmQ4NGU1ZjNkMWMyMTA2M2YyNTUzYjJmYTk0NWVlMWQ0ZDcxNTJmZGM1NDI1YmMxMmE5In19fQ==";
     private static final String OAK_WOOD_BLANK_TEXTURE =
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRiNTMyYjVjY2VkNDZiNGI1MzVlY2UxNmVjZWQ3YmJjNWNhYzU1NTk0ZDYxZThiOGY4ZWFjNDI5OWM5ZmMifX19";
+    private static final Component DISABLED_PAGE_NAME =
+        Component.text("これ以上操作できません", NamedTextColor.DARK_GRAY, TextDecoration.BOLD);
+    private static final List<Component> DISABLED_PAGE_LORE =
+        List.of(Component.text("移動できるページがありません", NamedTextColor.DARK_GRAY));
 
     private GuiItems() {
     }
@@ -159,7 +163,7 @@ public final class GuiItems {
      * @param name 表示名
      * @param lore 説明行
      * @param enabled 前ページへ移動可能なら {@code true}
-     * @return 有効時は Oak Wood Arrow Left、無効時は Oak Wood Blank
+     * @return 有効時は指定表示の Oak Wood Arrow Left、無効時は操作不可表示の Oak Wood Blank
      */
     public static @NotNull ItemStack previousPageButton(
         @NotNull Component name,
@@ -168,7 +172,7 @@ public final class GuiItems {
     ) {
         return enabled
             ? texturedHead(name, lore, OAK_WOOD_ARROW_LEFT_TEXTURE)
-            : texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
+            : texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE);
     }
 
     /**
@@ -188,7 +192,7 @@ public final class GuiItems {
      * @param name 表示名
      * @param lore 説明行
      * @param enabled 次ページへ移動可能なら {@code true}
-     * @return 有効時は Oak Wood Arrow Right、無効時は Oak Wood Blank
+     * @return 有効時は指定表示の Oak Wood Arrow Right、無効時は操作不可表示の Oak Wood Blank
      */
     public static @NotNull ItemStack nextPageButton(
         @NotNull Component name,
@@ -197,7 +201,7 @@ public final class GuiItems {
     ) {
         return enabled
             ? texturedHead(name, lore, OAK_WOOD_ARROW_RIGHT_TEXTURE)
-            : texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
+            : texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE);
     }
 
     /**
