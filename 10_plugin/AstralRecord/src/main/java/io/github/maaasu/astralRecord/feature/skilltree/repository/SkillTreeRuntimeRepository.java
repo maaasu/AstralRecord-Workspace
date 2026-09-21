@@ -42,8 +42,13 @@ public final class SkillTreeRuntimeRepository {
             @NotNull String nodeId,
             @Nullable String sourceClassId,
             @NotNull String status,
-            @Nullable String expectedEvaluationFingerprint
+            @Nullable String expectedEvaluationFingerprint,
+            @NotNull List<Change> changes
     ) {
+    }
+
+    /** BATCH 要求に含まれる順序付きノード変更です。 */
+    public record Change(@NotNull String action, @NotNull String nodeId, @Nullable String sourceClassId) {
     }
 
     /** sessionでfenceされた操作処理権限です。 */
@@ -99,6 +104,15 @@ public final class SkillTreeRuntimeRepository {
             if (!element.isJsonObject()) continue;
             JsonObject value = element.getAsJsonObject();
             try {
+                List<Change> changes = new ArrayList<>();
+                if (value.has("changes") && value.get("changes").isJsonArray()) {
+                    for (var changeElement : value.getAsJsonArray("changes")) {
+                        JsonObject change = changeElement.getAsJsonObject();
+                        changes.add(new Change(change.get("action").getAsString(), change.get("nodeId").getAsString(),
+                                change.has("sourceClassId") && !change.get("sourceClassId").isJsonNull()
+                                        ? change.get("sourceClassId").getAsString() : null));
+                    }
+                }
                 result.add(new Operation(
                         UUID.fromString(value.get("operationId").getAsString()),
                         UUID.fromString(value.get("accountId").getAsString()),
@@ -111,7 +125,8 @@ public final class SkillTreeRuntimeRepository {
                         value.has("status") && !value.get("status").isJsonNull()
                                 ? value.get("status").getAsString() : "PENDING",
                         value.has("expectedEvaluationFingerprint") && !value.get("expectedEvaluationFingerprint").isJsonNull()
-                                ? value.get("expectedEvaluationFingerprint").getAsString() : null
+                                ? value.get("expectedEvaluationFingerprint").getAsString() : null,
+                        List.copyOf(changes)
                 ));
             } catch (RuntimeException invalid) {
                 throw new IllegalStateException("Invalid skill tree runtime operation", invalid);
