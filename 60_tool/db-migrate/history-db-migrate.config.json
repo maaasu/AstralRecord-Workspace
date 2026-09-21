@@ -1,0 +1,147 @@
+{
+  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\server\\AstralRecordApi\\appsettings.json",
+  "connectionStringName": "History",
+  "expectedDatabase": "HistoryDB",
+  "connectionStrings": {
+    "history": ""
+  },
+  "migrationsRootPath": "..\\..\\00_docs\\40_Database設計書\\table-definitions\\HistoryDB\\migrations",
+  "preExistingMigrationFileNames": [],
+  "migrations": [
+    {
+      "id": "20260921_player_activity",
+      "fileName": "20260921_player_activity.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "player_activity_batch",
+        "primaryKey": "PK_player_activity_batch",
+        "columns": [
+          { "name": "batch_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "received_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "player_ip_observation",
+          "primaryKey": "PK_player_ip_observation",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "observed_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "global_ip", "sqlType": "nvarchar", "maxLengthBytes": 90, "isNullable": false },
+            { "name": "user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false }
+          ],
+          "indexes": [ "IX_player_ip_observation_ip_observed" ],
+          "indexDefinitions": [ { "name": "IX_player_ip_observation_ip_observed", "columns": [ "global_ip", "observed_at" ] } ]
+        },
+        {
+          "schema": "dbo",
+          "table": "player_trade_activity",
+          "primaryKey": "PK_player_trade_activity",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "completed_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "source_user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "source_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "source_mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "source_account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false },
+            { "name": "destination_user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "destination_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "destination_mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "destination_account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false },
+            { "name": "gold", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_player_trade_activity_gold" ],
+          "indexes": [ "IX_player_trade_activity_completed_accounts" ],
+          "indexDefinitions": [ { "name": "IX_player_trade_activity_completed_accounts", "columns": [ "completed_at", "source_account_id", "destination_account_id" ] } ]
+        },
+        {
+          "schema": "dbo",
+          "table": "player_trade_activity_item",
+          "primaryKey": "PK_player_trade_activity_item",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "line_number", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false },
+            { "name": "item_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+            { "name": "item_name", "sqlType": "nvarchar", "maxLengthBytes": 400, "isNullable": false },
+            { "name": "quantity", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_player_trade_activity_item_quantity" ]
+        },
+        {
+          "schema": "dbo",
+          "table": "dungeon_clear_activity",
+          "primaryKey": "PK_dungeon_clear_activity",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "dungeon_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+            { "name": "dungeon_name", "sqlType": "nvarchar", "maxLengthBytes": 400, "isNullable": false },
+            { "name": "started_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "cleared_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_dungeon_clear_activity_time" ],
+          "indexes": [ "IX_dungeon_clear_activity_cleared_dungeon" ],
+          "indexDefinitions": [ { "name": "IX_dungeon_clear_activity_cleared_dungeon", "columns": [ "cleared_at", "dungeon_id" ] } ]
+        },
+        {
+          "schema": "dbo",
+          "table": "dungeon_clear_participant",
+          "primaryKey": "PK_dungeon_clear_participant",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false },
+            { "name": "distance_meters", "sqlType": "decimal", "precision": 18, "scale": 3, "isNullable": true },
+            { "name": "movement_sample_count", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_dungeon_clear_participant_distance", "CK_dungeon_clear_participant_samples" ],
+          "indexes": [ "IX_dungeon_clear_participant_account_event" ],
+          "indexDefinitions": [ { "name": "IX_dungeon_clear_participant_account_event", "columns": [ "account_id", "event_id" ] } ]
+        },
+        {
+          "schema": "dbo",
+          "table": "mob_damage_summary",
+          "primaryKey": "PK_mob_damage_summary",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "mob_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+            { "name": "mob_name", "sqlType": "nvarchar", "maxLengthBytes": 400, "isNullable": false },
+            { "name": "window_started_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "window_ended_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "victim_user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "victim_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "victim_mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "victim_account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false },
+            { "name": "damage", "sqlType": "decimal", "precision": 18, "scale": 3, "isNullable": false },
+            { "name": "hit_count", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_mob_damage_summary_time", "CK_mob_damage_summary_damage", "CK_mob_damage_summary_hits" ],
+          "indexes": [ "IX_mob_damage_summary_mob_window" ],
+          "indexDefinitions": [ { "name": "IX_mob_damage_summary_mob_window", "columns": [ "mob_id", "window_ended_at" ] } ]
+        },
+        {
+          "schema": "dbo",
+          "table": "mob_player_death",
+          "primaryKey": "PK_mob_player_death",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "occurred_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+            { "name": "mob_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+            { "name": "mob_name", "sqlType": "nvarchar", "maxLengthBytes": 400, "isNullable": false },
+            { "name": "victim_user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "victim_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "victim_mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "victim_account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false }
+          ],
+          "indexes": [ "IX_mob_player_death_mob_occurred" ],
+          "indexDefinitions": [ { "name": "IX_mob_player_death_mob_occurred", "columns": [ "mob_id", "occurred_at" ] } ]
+        }
+      ]
+    }
+  ]
+}

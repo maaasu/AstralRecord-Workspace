@@ -1,19 +1,20 @@
 # Database Migration Tool
 
-既存の `AstralRecord` DBへ、`db-migrate.config.json` の manifest に明示された本番 migration だけを順番に適用し、適用後のテーブル・列・型・NULL性・主キー・check制約・索引キー順を検査する。
+既存のゲームDBまたはHistoryDBへ、対応する manifest に明示された本番 migration だけを順番に適用し、適用後のテーブル・列・型・NULL性・主キー・check制約・索引キー順を検査する。
 
 ## 実行
 
 ```powershell
 E:\AstralRecord-Workspace\60_tool\13-db-migrate.bat
+E:\AstralRecord-Workspace\60_tool\15-history-db-migrate.bat
 ```
 
-接続文字列は、設定の `connectionStrings.sqlServer` が空の場合、`sourceApiAppsettingsPath` の `ConnectionStrings:SqlServer` から解決する。接続文字列や秘密情報は画面へ表示しない。
+ゲームDB用manifestは、設定の `connectionStrings.sqlServer` が空の場合、`sourceApiAppsettingsPath` の `ConnectionStrings:SqlServer` から解決する。HistoryDB用manifestは `connectionStringName: History` と `expectedDatabase: HistoryDB` を明示し、`connectionStrings.history` または `ConnectionStrings:History` から解決する。接続文字列や秘密情報は画面へ表示しない。
 
 同じDBに対する並行実行は `sp_getapplock` で直列化し、最大120秒待機する。`dbo.schema_migration` にmigration IDとSQL本文のSHA-256を記録するため、適用済みSQLは再実行せず、適用済みIDの内容変更は失敗させる。migration SQL は `GO` バッチに分割して実行するが、各SQLのトランザクション境界はmigration自身の定義に従う。
 
 manifestの `preExistingMigrationFileNames` には、過去に適用済みでこのrunnerから再実行しないSQLを明示する。migrationディレクトリに未登録のSQLがあれば終了コード1で停止するため、新規SQLのmanifest登録漏れを検出できる。このツールはDBを削除せず、適用またはスキーマ検査が失敗した場合は終了コード1を返す。`--validate-only` はDBへ接続せず、manifestとSQLファイルだけを検査する。
 
-新しい本番SQLを追加するときは、同じ変更で `migrations` に実行順と `expectation` を登録する。未適用のSQLを `preExistingMigrationFileNames` に入れて検査だけを通してはいけない。現在の適用対象には、スキル操作台帳、出品作成結果台帳、転生進行カラム、および転生EXP端数範囲の拡張を含む。
+新しい本番SQLを追加するときは、同じ変更で対象DBのmanifestに実行順と `expectation` を登録する。未適用のSQLを `preExistingMigrationFileNames` に入れて検査だけを通してはいけない。HistoryDBの `20260921_player_activity.sql` は、プレイヤー行動履歴8表を適用し、`dbo.schema_migration` へSQL hash付きで記録する。
 
-登録漏れ・実行対象の取り違えは `tests/db-migrate.static.ps1`、初回適用・履歴付き再実行・スキーマ不一致の拒否は `tests/db-migrate.integration.ps1` で確認する。統合テストはローカルSQL Serverに一意名の使い捨てDBと必要最小限の親テーブルを作り、本番DBには接続しない。
+登録漏れ・実行対象の取り違えは `tests/db-migrate.static.ps1`、ゲームDBの初回適用・履歴付き再実行・スキーマ不一致の拒否は `tests/db-migrate.integration.ps1`、HistoryDBの初回適用・履歴付き再実行・接続先DBの拒否は `tests/history-db-migrate.integration.ps1` で確認する。統合テストはローカルSQL Serverに一意名の使い捨てDBを作り、本番DBには接続しない。

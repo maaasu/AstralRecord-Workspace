@@ -362,6 +362,23 @@ function Invoke-ManagementDatabaseMigrations {
     }
 }
 
+function Invoke-HistoryDatabaseMigrations {
+    param($MigrationConfig)
+
+    if ($null -eq $MigrationConfig -or -not $MigrationConfig.enabled) {
+        throw "HistoryDB migration must be enabled when API deployment is enabled."
+    }
+
+    Assert-PathExists -Label "HistoryDB migration project" -Path $MigrationConfig.projectPath
+    Assert-PathExists -Label "HistoryDB migration config" -Path $MigrationConfig.configPath
+
+    Write-Step "Applying and validating HistoryDB migrations"
+    & dotnet run --project $MigrationConfig.projectPath -- --config $MigrationConfig.configPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "HistoryDB migration failed. API and WEB deployment were not started."
+    }
+}
+
 function Build-Plugin {
     param(
         $Component,
@@ -621,6 +638,7 @@ try {
 
     if ($config.api.enabled) {
         Invoke-DatabaseMigrations -MigrationConfig $config.databaseMigrations
+        Invoke-HistoryDatabaseMigrations -MigrationConfig $config.historyDatabaseMigrations
         Invoke-ManagementDatabaseMigrations -MigrationConfig $config.managementDatabaseMigrations
     }
 

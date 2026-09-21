@@ -31,6 +31,11 @@
     "projectPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\DbMigrateTool.csproj",
     "configPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\db-migrate.config.json"
   },
+  "historyDatabaseMigrations": {
+    "enabled": true,
+    "projectPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\DbMigrateTool.csproj",
+    "configPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\history-db-migrate.config.json"
+  },
   "managementDatabaseMigrations": {
     "enabled": true,
     "projectPath": "E:\\AstralRecord-Workspace\\60_tool\\management-db-migrate\\ManagementDbMigrateTool.csproj",

@@ -31,6 +31,12 @@ try
 
     var connectionString = ResolveConnectionString(config, configPath);
     var targetDatabase = new SqlConnectionStringBuilder(connectionString).InitialCatalog.Trim();
+    if (!string.IsNullOrWhiteSpace(config.ExpectedDatabase)
+        && !string.Equals(targetDatabase, config.ExpectedDatabase, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            $"Migration connection must target {config.ExpectedDatabase}, but targets {targetDatabase}.");
+    }
     if (targetDatabase.Equals("ManagementDB", StringComparison.OrdinalIgnoreCase)
         || targetDatabase.Equals("WebSiteDB", StringComparison.OrdinalIgnoreCase))
         throw new InvalidOperationException("Game migrations must not target persistent management databases.");
@@ -105,13 +111,16 @@ static MigrationConfig LoadConfig(string configPath)
 
 static string ResolveConnectionString(MigrationConfig config, string configPath)
 {
-    var configured = config.ConnectionStrings.SqlServer;
+    var connectionStringName = string.IsNullOrWhiteSpace(config.ConnectionStringName)
+        ? "SqlServer"
+        : config.ConnectionStringName.Trim();
+    var configured = config.ConnectionStrings.Get(connectionStringName);
     if (!string.IsNullOrWhiteSpace(configured))
         return configured;
 
     if (string.IsNullOrWhiteSpace(config.SourceApiAppsettingsPath))
         throw new InvalidOperationException(
-            "ConnectionStrings:SqlServer or sourceApiAppsettingsPath must be configured.");
+            $"ConnectionStrings:{connectionStringName} or sourceApiAppsettingsPath must be configured.");
 
     var sourcePath = ResolvePath(config.SourceApiAppsettingsPath, configPath, "sourceApiAppsettingsPath");
     if (!File.Exists(sourcePath))
@@ -120,10 +129,10 @@ static string ResolveConnectionString(MigrationConfig config, string configPath)
     var sourceConfiguration = new ConfigurationBuilder()
         .AddJsonFile(sourcePath, optional: false, reloadOnChange: false)
         .Build();
-    var connectionString = sourceConfiguration.GetConnectionString("SqlServer");
+    var connectionString = sourceConfiguration.GetConnectionString(connectionStringName);
     if (string.IsNullOrWhiteSpace(connectionString))
         throw new InvalidOperationException(
-            "ConnectionStrings:SqlServer could not be resolved from the source API appsettings.");
+            $"ConnectionStrings:{connectionStringName} could not be resolved from the source API appsettings.");
 
     return connectionString;
 }
@@ -143,6 +152,12 @@ static string ResolvePath(string? configuredPath, string configPath, string labe
 
 static void ValidateMigrationManifest(MigrationConfig config, string migrationsRootPath)
 {
+    if (!string.IsNullOrWhiteSpace(config.ExpectedDatabase)
+        && !Regex.IsMatch(config.ExpectedDatabase, @"\A[A-Za-z0-9_]+\z"))
+    {
+        throw new InvalidOperationException("expectedDatabase must contain only letters, numbers, and underscores.");
+    }
+
     var configuredNames = config.Migrations
         .Select(migration => migration.FileName)
         .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
@@ -456,6 +471,8 @@ internal sealed record AppliedMigration(string FileName, string ScriptSha256);
 internal sealed class MigrationConfig
 {
     public string? SourceApiAppsettingsPath { get; init; }
+    public string? ConnectionStringName { get; init; }
+    public string? ExpectedDatabase { get; init; }
     public MigrationConnectionStrings ConnectionStrings { get; init; } = new();
     public string? MigrationsRootPath { get; init; }
     public List<MigrationDefinition> Migrations { get; init; } = new();
@@ -465,6 +482,15 @@ internal sealed class MigrationConfig
 internal sealed class MigrationConnectionStrings
 {
     public string? SqlServer { get; init; }
+    public string? History { get; init; }
+
+    public string? Get(string connectionStringName) => connectionStringName switch
+    {
+        "SqlServer" => SqlServer,
+        "History" => History,
+        _ => throw new InvalidOperationException(
+            $"Unsupported connectionStringName: {connectionStringName}. Use SqlServer or History."),
+    };
 }
 
 internal sealed class MigrationDefinition

@@ -33,8 +33,9 @@
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
+| `HistoryDB` | `HistoryDB/migrations/20260921_player_activity.sql` | プレイヤー行動履歴8表を追加。HistoryDB用manifestでAPI配置前に適用 |
 
-AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前にそのmanifestの適用と対象スキーマ検査を実行する。ManagementDBは下記の別途適用が必要であり、このツールの成功だけでは配置条件を満たさない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
+AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json`、HistoryDBの本番 migration は `60_tool/db-migrate/history-db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に両manifestとManagementDB専用manifestの適用・対象スキーマ検査を実行する。どれかが失敗した場合、API/Webの配置を開始しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
 開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記migrationだけを管理する。
 
