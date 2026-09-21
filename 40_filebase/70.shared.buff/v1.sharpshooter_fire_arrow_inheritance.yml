@@ -1,0 +1,13 @@
+# design:
+#   motif: "火矢 / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_fire_arrow_inheritance
+type: BUFF
+name: "&6継承バフ火属性Ⅰ"
+lore:
+  - "&7次の通常攻撃へ火属性を継承する。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

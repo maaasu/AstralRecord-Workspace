@@ -391,11 +391,13 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## シャープシューター専門枝
 
-シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、継承の心得のskill解放node 1個を定義する。全status nodeとskill node `2240` は `pointCost: 1`、`unlockCondition.classId: sharpshooter` とし、skill nodeは `sharpshooter_inheritance_mastery` の使用許可を与える。`2240` は共通射撃node `2120` から独立leafとして接続し、相対座標 `(-14.5, 0, -16.0)` に配置する。
+シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、skill解放node 3個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` と `2242` は属性矢の使用許可を与える未配置nodeとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
 | `skill-sharpshooter-inheritance-mastery` | `2240` | `skill` / `sharpshooter_inheritance_mastery` | `&a継承の心得` | `SPECTRAL_ARROW` | `offense`, `wind` |
+| `skill-sharpshooter-fire-arrow` | `2241` | `skill` / `sharpshooter_fire_arrow` | `&6ファイアアロー` | `FIRE_CORAL` | `offense`, `fire`, `burning` |
+| `skill-sharpshooter-ice-arrow` | `2242` | `skill` / `sharpshooter_ice_arrow` | `&bアイスアロー` | `LIGHT_BLUE_DYE` | `offense`, `ice`, `frozen` |
 
 ### 共通射撃パッケージ
 

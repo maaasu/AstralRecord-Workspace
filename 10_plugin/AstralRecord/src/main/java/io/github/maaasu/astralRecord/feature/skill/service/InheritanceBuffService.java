@@ -2,7 +2,11 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -15,9 +19,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -49,7 +55,7 @@ public final class InheritanceBuffService {
      * @param effect 通常攻撃の着弾位置で実行する元スキル効果（再付与は行わない）
      */
     public void grant(@NotNull PlayerActiveSkillContext context, @NotNull InheritanceEffect effect) {
-        grant(context, ignored -> true, effect);
+        grant(context, ignored -> true, null, effect);
     }
 
     /**
@@ -61,6 +67,41 @@ public final class InheritanceBuffService {
     public void grant(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Predicate<InheritanceImpact> condition,
+            @NotNull InheritanceEffect effect
+    ) {
+        grant(context, condition, null, effect);
+    }
+
+    /**
+     * 次の通常攻撃へ属性ダメージ増加と状態異常を継承するバフを付与します。
+     * 属性ダメージ増加は通常攻撃の基礎ダメージへ属性ごとに加算し、複数属性を分配しません。
+     *
+     * @param context 成功した元スキルの実行コンテキスト
+     * @param element 継承する属性
+     * @param condition 命中時に判定する状態異常
+     */
+    public void grantElementalAttack(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull DamageElement element,
+            @NotNull ActiveSkillCondition condition
+    ) {
+        grant(context, ignored -> true, element, (impact, ignored) -> {
+            if (impact.target() == null || impact.damageResult() == null
+                    || impact.damageResult().evaded()
+                    || impact.damageResult().finalDamage() <= 0.0D
+                    && impact.damageResult().shieldDamage() <= 0.0D) {
+                return;
+            }
+            context.services().combat().applyCondition(
+                    context.attacker(), impact.target(), AttackType.RANGED, condition
+            );
+        });
+    }
+
+    private void grant(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull Predicate<InheritanceImpact> condition,
+            @Nullable DamageElement element,
             @NotNull InheritanceEffect effect
     ) {
         AstPlayer player = context.caster().player();
@@ -92,7 +133,7 @@ public final class InheritanceBuffService {
                     order,
                     consumeSourceSkillResources,
                     condition,
-                    effect
+                    condition, element, effect
             );
             active.computeIfAbsent(id, ignored -> new HashMap<>()).put(buffId, inherited);
             // lifecycleの中断でもcleanupが走り、死亡・退出・world移動後へ効果を持ち越さない。
@@ -113,19 +154,18 @@ public final class InheritanceBuffService {
      * @param attack 通常攻撃context
      * @return 着弾位置を受け取る、一攻撃一回のcallback
      */
-    public @NotNull Consumer<InheritanceImpact> prepareAttack(@NotNull SkillCastContext attack) {
+    public @NotNull PreparedAttack prepareAttack(@NotNull SkillCastContext attack) {
         if (attack.trigger() != SkillCastTrigger.AUTO_ATTACK
-                || !(attack.caster() instanceof PlayerSkillCaster caster) || !isActive(caster.player())) return ignored -> { };
+                || !(attack.caster() instanceof PlayerSkillCaster caster) || !isActive(caster.player())) {
+            return PreparedAttack.empty();
+        }
         Map<String, Inheritance> current = active.get(caster.casterId());
-        if (current == null) return ignored -> { };
+        if (current == null) return PreparedAttack.empty();
         List<Inheritance> captured = current.values().stream()
                 .filter(value -> statusService.getActiveBuffs(caster.player()).contains(value.buff()))
                 .sorted(Comparator.comparingInt(Inheritance::order))
                 .toList();
-        boolean[] used = {false};
-        return impact -> {
-            if (used[0]) return;
-            used[0] = true;
+        return new PreparedAttack(caster.player(), captured, impact -> {
             AstPlayer player = caster.player();
             if (!player.getBukkit().isOnline() || player.getBukkit().isDead()
                     || player.getStatusSnapshot().getCurrentHp() <= 0.0D
@@ -138,7 +178,9 @@ public final class InheritanceBuffService {
                                 caster,
                                 inherited.context().source().skill(),
                                 inherited.context().source().statusSnapshot(),
-                                () -> statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks())
+                                () -> statusService.consumeBuffDuration(
+                                        player, inherited.buff(), inherited.ticks()
+                                )
                         )
                         : statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks());
                 if (consumed) {
@@ -147,12 +189,14 @@ public final class InheritanceBuffService {
                             .findFirst().orElse(null);
                     if (remaining != null) inherited.buff = remaining;
                     inherited.effect().apply(
-                            new InheritanceImpact(impact.location().clone(), impact.target()),
+                            new InheritanceImpact(
+                                    impact.location().clone(), impact.target(), impact.damageResult()
+                            ),
                             inherited.damageMultiplier()
                     );
                 }
             }
-        };
+        }, statusService, this::isActive);
     }
 
     /** 使用許可・習得・バインドを含むパッシブ有効条件を評価します。 */
@@ -175,6 +219,7 @@ public final class InheritanceBuffService {
         private final int order;
         private final boolean consumeSourceSkillResources;
         private final Predicate<InheritanceImpact> condition;
+        private final DamageElement element;
         private final InheritanceEffect effect;
 
         private Inheritance(
@@ -185,6 +230,7 @@ public final class InheritanceBuffService {
                 int order,
                 boolean consumeSourceSkillResources,
                 Predicate<InheritanceImpact> condition,
+                DamageElement element,
                 InheritanceEffect effect
         ) {
             this.context = context;
@@ -194,6 +240,7 @@ public final class InheritanceBuffService {
             this.order = order;
             this.consumeSourceSkillResources = consumeSourceSkillResources;
             this.condition = condition;
+            this.element = element;
             this.effect = effect;
         }
 
@@ -204,11 +251,77 @@ public final class InheritanceBuffService {
         private int order() { return order; }
         private boolean consumeSourceSkillResources() { return consumeSourceSkillResources; }
         private Predicate<InheritanceImpact> condition() { return condition; }
+        private DamageElement element() { return element; }
         private InheritanceEffect effect() { return effect; }
     }
 
-    /** 通常攻撃の最初の着弾位置と、その直接命中対象を保持します。 */
-    public record InheritanceImpact(@NotNull Location location, @Nullable AstEntity target) {
+    /** 通常攻撃の最初の着弾位置と、その直接命中対象・ダメージ結果を保持します。 */
+    public record InheritanceImpact(
+            @NotNull Location location,
+            @Nullable AstEntity target,
+            @Nullable DamageResult damageResult
+    ) {
+        /** 地形着弾などダメージ結果を持たない通知を作成します。 */
+        public InheritanceImpact(@NotNull Location location, @Nullable AstEntity target) {
+            this(location, target, null);
+        }
+    }
+
+    /** 通常攻撃開始時に確定した継承効果と、属性増加の加算倍率を提供します。 */
+    public static final class PreparedAttack implements Consumer<InheritanceImpact> {
+        private final AstPlayer player;
+        private final List<Inheritance> inheritances;
+        private final Consumer<InheritanceImpact> impactConsumer;
+        private final StatusService statusService;
+        private final Predicate<AstPlayer> masteryActive;
+        private boolean used;
+
+        private PreparedAttack(
+                AstPlayer player,
+                List<Inheritance> inheritances,
+                Consumer<InheritanceImpact> impactConsumer,
+                StatusService statusService,
+                Predicate<AstPlayer> masteryActive
+        ) {
+            this.player = player;
+            this.inheritances = inheritances;
+            this.impactConsumer = impactConsumer;
+            this.statusService = statusService;
+            this.masteryActive = masteryActive;
+        }
+
+        private static @NotNull PreparedAttack empty() {
+            return new PreparedAttack(null, List.of(), ignored -> { }, null, ignored -> false);
+        }
+
+        /**
+         * この通常攻撃へ継承される有効な属性を返します。
+         *
+         * @return 通常攻撃の属性加算と演出に使う属性集合
+         */
+        public @NotNull Set<DamageElement> activeElements() {
+            if (player == null || statusService == null || !masteryActive.test(player)) {
+                return Set.of();
+            }
+            EnumSet<DamageElement> elements = EnumSet.noneOf(DamageElement.class);
+            for (Inheritance inheritance : inheritances) {
+                if (inheritance.element() != null
+                        && statusService.getActiveBuffs(player).contains(inheritance.buff())) {
+                    elements.add(inheritance.element());
+                }
+            }
+            return Set.copyOf(elements);
+        }
+
+        /** 最初の着弾だけで、各継承バフの消費と効果発動を処理します。 */
+        @Override
+        public void accept(@NotNull InheritanceImpact impact) {
+            if (used) {
+                return;
+            }
+            used = true;
+            impactConsumer.accept(impact);
+        }
     }
 
     /** 継承倍率を受け取り、元スキルの追撃効果を適用します。 */

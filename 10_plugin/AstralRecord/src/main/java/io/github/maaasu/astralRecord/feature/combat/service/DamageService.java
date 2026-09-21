@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -511,6 +512,39 @@ public final class DamageService {
             double attackerDamageMultiplier
     ) {
         return attack(attacker, victim, attackType, components, source, attackerDamageMultiplier, 1.0D);
+    }
+
+    /**
+     * 通常攻撃へ継承された属性ダメージ増加分を、基礎ダメージへ属性ごとに加算して適用します。
+     * 元の属性成分は維持し、加算分だけに各属性の耐性・貫通を適用します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 元の属性別攻撃倍率
+     * @param source 発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @param additiveElements 基礎ダメージへ増加分を加算する属性
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attackWithAdditiveElements(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            @NotNull Set<DamageElement> additiveElements
+    ) {
+        ensureStatusLoaded(attacker);
+        ensureStatusLoaded(victim);
+        double additiveMultiplier = damageCalculator.additiveElementMultiplier(
+                attacker, victim, attackType, source, additiveElements
+        );
+        return attack(
+                attacker, victim, attackType, components, source,
+                attackerDamageMultiplier * additiveMultiplier
+        );
     }
 
     /**

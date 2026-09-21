@@ -1,0 +1,95 @@
+# design:
+#   motif: "火矢 / 継承射撃"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_fire_arrow
+type: SKILL
+implementationId: sharpshooter_fire_arrow
+name: "&6ファイアアロー"
+description: "&7炎をまとった高速の直線矢。"
+icon: FIRE_CORAL
+lore:
+  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
+  - "&7命中時{skill.conditionChance}%の確率で{skill.conditionDurationTicks:seconds}秒間炎上。"
+  - "&7重力を受けず高速で直進し、広めの当たり判定を持つ。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7次の通常攻撃へ火属性ダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で炎上させる。"
+      - "&7継承効果の発動時に追加リソースは消費しない。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - level: 2
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 3
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 4
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 5
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 6
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 7
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 8
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 9
+    paramDeltas: { damageRatio: 0.10 }
+  - level: 10
+    paramDeltas: { damageRatio: 0.10 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+# behavior:
+#   projectile: "視線方向へ射程16mを毎tick1.6mで直進する非貫通の仮想矢。重力は受けず、最初のMobまたは地形で消滅する。"
+#   hitbox: "projectileHitRadius 0.6mのswept capsuleで判定し、最初のMob 1体へ命中する。"
+#   damage: "RANGED/FIRE。基礎倍率は105%+10%×skill levelで、Lv.1は115%、Lv.10は205%。"
+#   inheritance: "継承の心得が有効なら149秒の火属性Iバフを付与する。次の通常攻撃はFIRE_DAMAGE_INCREASEを基礎ダメージへ加算し、25%で炎上を付与する。"
+params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ火属性Ⅰ"
+  inheritanceDurationTicks: 2980
+  range: 16.0
+  damageRatio: 1.15
+  projectileSpeed: 1.60
+  projectileHitRadius: 0.60
+  conditionChance: 24.5
+  inheritedConditionChance: 25.0
+  conditionDurationTicks: 100
+tags:
+  - active
+  - ranged
+  - bow
+  - fire
+  - burning

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
 
@@ -45,6 +47,50 @@ public final class DamageCalculator {
                 () -> ThreadLocalRandom.current().nextDouble(0.0D, 100.0D),
                 () -> ThreadLocalRandom.current().nextDouble(0.0D, 100.0D)
         );
+    }
+
+    /**
+     * 通常攻撃の基礎ダメージへ、指定属性のダメージ増加分だけを個別加算する倍率を返します。
+     * 各属性の耐性・貫通は加算分へ適用し、基礎ダメージ自体は属性間で分配しません。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param source ダメージ発生元
+     * @param elements 加算対象の属性
+     * @return 1.0を基準とする加算済み倍率
+     */
+    public double additiveElementMultiplier(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull DamageSource source,
+            @NotNull Set<DamageElement> elements
+    ) {
+        if (elements.isEmpty()) {
+            return 1.0D;
+        }
+        DamageContext context = new DamageContext(
+                attacker,
+                victim,
+                0.0D,
+                attackType,
+                List.of(DamageComponent.defaultComponent()),
+                DamageScaling.ATTACKER_STATUS,
+                source
+        );
+        double multiplier = 1.0D;
+        for (DamageElement element : elements) {
+            if (element == DamageElement.NONE) {
+                continue;
+            }
+            double increaseRatio = Math.max(
+                    0.0D,
+                    attacker.statValue(elementDamageIncrease(element)) / 100.0D
+            );
+            multiplier += increaseRatio * elementResistanceMultiplier(context, element);
+        }
+        return Math.max(0.0D, multiplier);
     }
 
     DamageCalculator(@NotNull DoubleSupplier criticalRollSupplier) {
@@ -441,17 +487,28 @@ public final class DamageCalculator {
         }
         double increase = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementDamageIncrease(element));
+        double resistance = context.victim().statValue(elementResistance(element));
         double penetration = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementPenetration(element));
-        double resistance = context.victim().statValue(elementResistance(element));
         double resistanceCap = elementResistanceCap(context, element);
         double effectiveResistance = Math.min(resistance, resistanceCap) - penetration;
         double increaseMultiplier = Math.max(0.0D, 1.0D + increase / 100.0D);
-        double resistanceMultiplier = Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
         return new ElementCalculation(
-                increaseMultiplier * resistanceMultiplier,
+                increaseMultiplier * elementResistanceMultiplier(context, element),
                 new DamageBreakdown.ElementResistance(element, resistance, effectiveResistance)
         );
+    }
+
+    /** 指定属性の耐性・貫通を反映した倍率を返します。 */
+    private double elementResistanceMultiplier(
+            @NotNull DamageContext context,
+            @NotNull DamageElement element
+    ) {
+        double penetration = context.attacker() == null ? 0.0D
+                : context.attacker().statValue(elementPenetration(element));
+        double resistance = context.victim().statValue(elementResistance(element));
+        double effectiveResistance = Math.min(resistance, elementResistanceCap(context, element)) - penetration;
+        return Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
     }
 
     private @Nullable StatusType elementDamageIncrease(@NotNull DamageElement element) {

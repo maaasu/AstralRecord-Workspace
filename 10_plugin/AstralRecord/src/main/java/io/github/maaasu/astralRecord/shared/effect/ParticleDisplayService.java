@@ -342,6 +342,48 @@ public class ParticleDisplayService {
         );
     }
 
+    /**
+     * 同じ地点の複数パーティクルを、近傍viewerの走査を1回にまとめて表示します。
+     *
+     * @param location 表示地点
+     * @param definitions 表示する共通パーティクル定義
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Location location,
+        @NotNull Collection<SharedParticleDefinition> definitions
+    ) {
+        if (definitions.isEmpty()) {
+            return;
+        }
+        World world = location.getWorld();
+        if (world == null) {
+            return;
+        }
+        for (Player viewer : world.getPlayers()) {
+            if (viewer.getLocation().distanceSquared(location) > DEFAULT_VIEWER_DISTANCE_SQUARED) {
+                continue;
+            }
+            double densityScale = resolvePlayerDensityScale(viewer);
+            for (SharedParticleDefinition definition : definitions) {
+                if (shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
+                    continue;
+                }
+                int count = resolveCount(definition.count(), densityScale);
+                spawnForViewerResolvedCount(
+                    viewer,
+                    location,
+                    definition.particle(),
+                    count,
+                    definition.offsetX(),
+                    definition.offsetY(),
+                    definition.offsetZ(),
+                    definition.extra(),
+                    definition.data()
+                );
+            }
+        }
+    }
+
     public void spawnForNearbyViewers(
         @NotNull Location location,
         @NotNull Particle particle,

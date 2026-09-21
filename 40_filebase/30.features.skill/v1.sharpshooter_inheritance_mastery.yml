@@ -45,6 +45,14 @@ params:
     - buffId: buff:hunter_crash_arrow_inheritance
       durationConsumptionTicks: 600
       sourceSkillId: skill:hunter_crash_arrow
+    - buffId: buff:sharpshooter_fire_arrow_inheritance
+      durationConsumptionTicks: 2980
+      sourceSkillId: skill:sharpshooter_fire_arrow
+      consumeSourceSkillResources: false
+    - buffId: buff:sharpshooter_ice_arrow_inheritance
+      durationConsumptionTicks: 2980
+      sourceSkillId: skill:sharpshooter_ice_arrow
+      consumeSourceSkillResources: false
 tags:
   - passive
   - ranged

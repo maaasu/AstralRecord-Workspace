@@ -63,7 +63,7 @@
 | `buffId` | String | 必須 | `buff:` 接頭辞付きの継承バフ参照 |
 | `durationConsumptionTicks` | Long | 必須 | 通常攻撃1回で消費する継承バフの残り時間。1以上の整数 |
 | `sourceSkillId` | String | `resourceType` / `resourceCost` 未指定時 | `skill:` 接頭辞付きの付与元スキル参照。付与元のレベル・シジル反映済み効果と、MPを含む複合リソース消費を参照する。`consumeSourceSkillResources: false` の場合は効果の参照だけを行い、元スキルのリソースは再消費しない |
-| `consumeSourceSkillResources` | Boolean | `true` | `sourceSkillId` 指定時、次の通常攻撃で元スキルのリソースを再消費するか。会心率補正のようにstatus modifierだけを反映する継承バフは `false` を指定する |
+| `consumeSourceSkillResources` | Boolean | 任意 | `sourceSkillId` 指定時、次の通常攻撃で元スキルの全消費リソースを再消費するか。既定は `true`。会心率補正や属性付与のように元スキルを再発動しない継承では `false` を指定する |
 | `resourceType` / `resourceCost` | String / Double | `sourceSkillId` 未指定時 | 継承効果ごとの固定追加リソース消費。両方を指定し、`sourceSkillId` と併記しない |
 
 `sourceSkillId` も固定リソース定義もない継承バフは、追加リソースを消費しません。

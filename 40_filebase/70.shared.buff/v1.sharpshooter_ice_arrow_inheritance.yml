@@ -1,0 +1,13 @@
+# design:
+#   motif: "氷矢 / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_ice_arrow_inheritance
+type: BUFF
+name: "&b継承バフ氷属性Ⅰ"
+lore:
+  - "&7次の通常攻撃へ氷属性を継承する。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

@@ -59,6 +59,7 @@ import java.util.Set;
 import java.util.UUID;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceImpact;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.PreparedAttack;
 
 /**
  * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。 */
@@ -302,11 +303,18 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double normalAttackDamageMultiplier
     ) {
         SkillDefinition skill = context.skill();
-        java.util.function.Consumer<InheritanceImpact> inheritanceHit = inheritanceBuffService == null
-                ? ignored -> { } : inheritanceBuffService.prepareAttack(context);
+        PreparedAttack inheritanceAttack = inheritanceBuffService == null
+                ? null : inheritanceBuffService.prepareAttack(context);
+        Set<DamageElement> inheritedElements = inheritanceAttack == null
+                ? Set.of() : inheritanceAttack.activeElements();
+        java.util.function.Consumer<InheritanceImpact> inheritanceHit = inheritanceAttack == null
+                ? ignored -> { } : inheritanceAttack;
         AttackType attackType = readAttackType(skill);
         if (attackType == AttackType.MELEE) {
-            applyMeleeDamage(skill, attacker, startLocation, direction, normalAttackDamageMultiplier, inheritanceHit);
+            applyMeleeDamage(
+                    skill, attacker, startLocation, direction, normalAttackDamageMultiplier,
+                    inheritedElements, inheritanceHit
+            );
             return;
         }
         launchProjectileAttack(
@@ -317,6 +325,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 attackType,
                 readDamageComponents(skill),
                 normalAttackDamageMultiplier,
+                inheritedElements,
                 inheritanceHit
         );
     }
@@ -328,6 +337,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Location startLocation,
             @NotNull Vector direction,
             double normalAttackDamageMultiplier,
+            @NotNull Set<DamageElement> inheritedElements,
             @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
@@ -363,7 +373,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++) {
             long delayTicks = (long) hitIndex * hitIntervalTicks;
             if (delayTicks == 0L) {
-                applyMeleeHit(skill, attacker, selectedVictims, damageComponents, normalAttackDamageMultiplier, inheritanceHit);
+                applyMeleeHit(
+                        skill, attacker, selectedVictims, damageComponents, normalAttackDamageMultiplier,
+                        inheritedElements, inheritanceHit
+                );
                 continue;
             }
             Bukkit.getScheduler().runTaskLater(
@@ -374,6 +387,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         selectedVictims,
                         damageComponents,
                         normalAttackDamageMultiplier,
+                        inheritedElements,
                         inheritanceHit
                 ),
                 delayTicks
@@ -388,22 +402,24 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull List<AstEntity> victims,
             @NotNull List<DamageComponent> damageComponents,
             double normalAttackDamageMultiplier,
+            @NotNull Set<DamageElement> inheritedElements,
             @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         for (AstEntity victim : victims) {
             if (!isAttackableTarget(attacker, victim)) {
                 continue;
             }
-            DamageResult result = damageService.attack(
+            DamageResult result = applyNormalAttackDamage(
                     attacker,
                     victim,
                     AttackType.MELEE,
                     damageComponents,
-                    DamageSource.NORMAL_ATTACK,
-                    victim.isMob() ? normalAttackDamageMultiplier : 1.0D
+                    victim.isMob() ? normalAttackDamageMultiplier : 1.0D,
+                    inheritedElements
             );
             applyConditions(skill, attacker, victim, AttackType.MELEE, result);
-            inheritanceHit.accept(new InheritanceImpact(victim.location(), victim));
+            spawnInheritedElementEffects(victim.location().add(0.0D, 1.0D, 0.0D), inheritedElements, true);
+            inheritanceHit.accept(new InheritanceImpact(victim.location(), victim, result));
         }
     }
 
@@ -416,6 +432,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> damageComponents,
             double normalAttackDamageMultiplier,
+            @NotNull Set<DamageElement> inheritedElements,
             @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
@@ -494,6 +511,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 }
 
                 if (!currentLocation.getBlock().isPassable()) {
+                    spawnInheritedElementEffects(currentLocation, inheritedElements, true);
                     inheritanceHit.accept(new InheritanceImpact(currentLocation, null));
                     cancel();
                     return;
@@ -501,6 +519,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
                 spawnProjectileTrail(currentLocation, particle, trailParticleCount,
                         trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType, secondaryTrailParticle);
+                if ((tick & 1) == 1) {
+                    spawnInheritedElementEffects(currentLocation, inheritedElements, false);
+                }
                 updateProjectileDisplay(
                     projectileDisplay,
                     currentLocation,
@@ -515,6 +536,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
                 AstEntity victim = findClosestTarget(currentLocation, hitRadius, attacker);
                 if (victim != null) {
+                    DamageResult directResult = null;
                     for (AstEntity impactVictim : findProjectileImpactTargets(
                             currentLocation,
                             impactRadius,
@@ -522,17 +544,21 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                             attacker,
                             victim
                     )) {
-                        DamageResult result = damageService.attack(
+                        DamageResult result = applyNormalAttackDamage(
                                 attacker,
                                 impactVictim,
                                 attackType,
                                 damageComponents,
-                                DamageSource.NORMAL_ATTACK,
-                                impactVictim.isMob() ? normalAttackDamageMultiplier : 1.0D
+                                impactVictim.isMob() ? normalAttackDamageMultiplier : 1.0D,
+                                inheritedElements
                         );
                         applyConditions(skill, attacker, impactVictim, attackType, result);
+                        if (impactVictim.id().equals(victim.id())) {
+                            directResult = result;
+                        }
                     }
-                    inheritanceHit.accept(new InheritanceImpact(currentLocation, victim));
+                    spawnInheritedElementEffects(currentLocation, inheritedElements, true);
+                    inheritanceHit.accept(new InheritanceImpact(currentLocation, victim, directResult));
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }
@@ -919,6 +945,56 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 location,
                 SharedParticleDefinitions.MAGIC_IMPACT_DUST
         );
+    }
+
+    /** 継承属性がある場合だけ、属性増加分を個別加算する通常攻撃経路を使います。 */
+    private @NotNull DamageResult applyNormalAttackDamage(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> damageComponents,
+            double normalAttackDamageMultiplier,
+            @NotNull Set<DamageElement> inheritedElements
+    ) {
+        if (inheritedElements.isEmpty()) {
+            return damageService.attack(
+                    attacker,
+                    victim,
+                    attackType,
+                    damageComponents,
+                    DamageSource.NORMAL_ATTACK,
+                    normalAttackDamageMultiplier
+            );
+        }
+        return damageService.attackWithAdditiveElements(
+                attacker,
+                victim,
+                attackType,
+                damageComponents,
+                DamageSource.NORMAL_ATTACK,
+                normalAttackDamageMultiplier,
+                inheritedElements
+        );
+    }
+
+    /** 継承した火・氷属性を通常攻撃の軌跡と命中地点へ表示します。 */
+    private void spawnInheritedElementEffects(
+            @NotNull Location location,
+            @NotNull Set<DamageElement> elements,
+            boolean impact
+    ) {
+        List<SharedParticleDefinition> definitions = new ArrayList<>(2);
+        if (elements.contains(DamageElement.FIRE)) {
+            definitions.add(impact
+                    ? SharedParticleDefinitions.SHARPSHOOTER_FIRE_ARROW_IMPACT
+                    : SharedParticleDefinitions.SHARPSHOOTER_FIRE_ARROW_TRAIL);
+        }
+        if (elements.contains(DamageElement.ICE)) {
+            definitions.add(impact
+                    ? SharedParticleDefinitions.SHARPSHOOTER_ICE_ARROW_IMPACT
+                    : SharedParticleDefinitions.SHARPSHOOTER_ICE_ARROW_TRAIL);
+        }
+        particleDisplayService.spawnForNearbyViewers(location, definitions);
     }
 
     private @Nullable AstEntity findClosestTarget(

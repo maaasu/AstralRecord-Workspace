@@ -458,7 +458,15 @@ public final class SkillCombatService {
         return conditionService.applyTemporaryMovementSpeedReduction(target, reduction, durationTicks);
     }
 
-    private void applyCondition(
+    /**
+     * 既に成立した攻撃へ、共通の状態異常付与補正を通して状態異常を適用します。
+     *
+     * @param attacker 付与元
+     * @param target 付与対象
+     * @param attackType 攻撃種別
+     * @param condition 付与する状態異常
+     */
+    public void applyCondition(
             @NotNull AstEntity attacker,
             @NotNull AstEntity target,
             @NotNull AttackType attackType,

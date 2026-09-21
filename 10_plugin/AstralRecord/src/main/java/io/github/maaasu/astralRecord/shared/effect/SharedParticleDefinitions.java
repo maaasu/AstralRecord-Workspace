@@ -635,6 +635,47 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(150, 235, 255), 1.35F)
         );
+    public static final SharedParticleDefinition SHARPSHOOTER_FIRE_ARROW_TRAIL =
+        new SharedParticleDefinition(
+            "sharpshooter_fire_arrow_trail",
+            Particle.FLAME,
+            5,
+            0.10D,
+            0.10D,
+            0.10D,
+            0.015D
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_FIRE_ARROW_IMPACT =
+        new SharedParticleDefinition(
+            "sharpshooter_fire_arrow_impact",
+            Particle.FLAME,
+            16,
+            0.24D,
+            0.24D,
+            0.24D,
+            0.025D
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_ICE_ARROW_TRAIL =
+        new SharedParticleDefinition(
+            "sharpshooter_ice_arrow_trail",
+            Particle.DUST,
+            5,
+            0.10D,
+            0.10D,
+            0.10D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(105, 220, 255), 1.2F)
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_ICE_ARROW_IMPACT =
+        new SharedParticleDefinition(
+            "sharpshooter_ice_arrow_impact",
+            Particle.SNOWFLAKE,
+            14,
+            0.24D,
+            0.24D,
+            0.24D,
+            0.02D
+        );
     public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
         new SharedParticleDefinition(
             "skill_hunter_trap_dust",
