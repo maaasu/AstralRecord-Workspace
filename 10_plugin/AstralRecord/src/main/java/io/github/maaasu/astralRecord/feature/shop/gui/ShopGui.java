@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -188,11 +189,10 @@ public final class ShopGui {
                 quantityAdjustName("数量 ", "+10", NamedTextColor.GREEN),
                 List.of(quantityLore(preview.quantity()))
             ));
-        inventory.setItem(CONFIRM_BACK_SLOT, actionItem(
-            Material.SPECTRAL_ARROW,
-            isExchange(shop) ? "両替一覧へ戻る" : "商品一覧へ戻る",
-            List.of(isExchange(shop) ? "両替する額面の一覧を開きます" : "ショップの商品一覧を開きます")
-        ));
+        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.backButton(new GuiNavigationDestination(
+            Material.EMERALD,
+            isExchange(shop) ? "両替一覧" : "商品一覧"
+        )));
         inventory.setItem(BUY_SLOT, buyItem(shop, entry, preview));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
@@ -609,6 +609,11 @@ public final class ShopGui {
 
     public record ListHolder(@NotNull String shopId, int pageIndex) implements HotbarShortcutGuiHolder {
         @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.EMERALD, "ショップ");
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, LIST_SIZE);
         }
@@ -620,6 +625,11 @@ public final class ShopGui {
         int quantity,
         int returnPageIndex
     ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.EMERALD, "購入確認");
+        }
+
         @Override
         public int getBackSlot() {
             return CONFIRM_BACK_SLOT;

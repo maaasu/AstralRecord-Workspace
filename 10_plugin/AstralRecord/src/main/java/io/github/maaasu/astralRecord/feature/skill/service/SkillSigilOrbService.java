@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -611,7 +612,9 @@ public final class SkillSigilOrbService {
         }
         session.displayedTargets = Map.copyOf(displayed);
         session.inventory.setItem(PREVIOUS_PAGE_SLOT, pageButton(false, session.page > 0));
-        session.inventory.setItem(INFO_SLOT, GuiItems.backButton());
+        session.inventory.setItem(INFO_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.AMETHYST_SHARD, "オーブ一覧")
+        ));
         session.inventory.setItem(NEXT_PAGE_SLOT, pageButton(true, session.page + 1 < pages));
     }
 
@@ -659,7 +662,9 @@ public final class SkillSigilOrbService {
             ? null : itemService.findLoadedById(session.selectedSigilItemId);
         if (selected != null) selector = itemStackFactory.create(selected, 1);
         session.inventory.setItem(SELECTION_SLOT, selector);
-        session.inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        session.inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.BOOK, "シジル対象スキル")
+        ));
         boolean ready = isOperationReady(session, target);
         session.inventory.setItem(RESULT_SLOT, GuiItems.create(
             ready ? Material.LIME_DYE : Material.BARRIER,
@@ -716,7 +721,9 @@ public final class SkillSigilOrbService {
             session.inventory.setItem(index - from, item);
         }
         session.inventory.setItem(DETACH_PREVIOUS_SLOT, pageButton(false, session.sigilPage > 0));
-        session.inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        session.inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.ENCHANTING_TABLE, "シジル脱着")
+        ));
         session.inventory.setItem(DETACH_NEXT_SLOT,
             pageButton(true, (session.sigilPage + 1) * DETACH_SELECTION_SIZE < sigils.size()));
     }

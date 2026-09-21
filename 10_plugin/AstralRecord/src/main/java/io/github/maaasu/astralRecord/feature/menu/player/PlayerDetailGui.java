@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -952,6 +953,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
 
     private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {
         @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.PLAYER_HEAD, "プレイヤー情報");
+        }
+
+        @Override
         public @NotNull String getNavigationId() {
             return "player-detail:" + targetId;
         }
@@ -972,6 +978,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusType.Category category,
         int pageIndex
     ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.REDSTONE, "ステータス詳細");
+        }
+
         @Override
         public @NotNull String getNavigationId() {
             return "player-status-detail:" + targetId + ":" + category.name();
@@ -1017,6 +1028,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private record SkillInfoSelectionHolder(@NotNull UUID targetId)
         implements SkillInfoHolder, HotbarShortcutGuiHolder {
         @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキル情報");
+        }
+
+        @Override
         public @NotNull String getNavigationId() {
             return "player-skill-info-selection:" + targetId;
         }
@@ -1037,6 +1053,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull SkillListType type,
         int pageIndex
     ) implements SkillInfoHolder, HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.KNOWLEDGE_BOOK, type.title());
+        }
+
         @Override
         public @NotNull String getNavigationId() {
             return "player-skill-info-list:" + targetId + ":" + type.name();

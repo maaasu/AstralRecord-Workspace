@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -124,6 +125,10 @@ public final class DungeonRewardGui {
             implements HotbarShortcutGuiHolder {
         public Holder {
             visibleClaimIds = List.copyOf(visibleClaimIds);
+        }
+
+        @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.CHEST, "ダンジョン報酬");
         }
 
         /** @return 表示時点で slot に紐付いた claim ID。対象外なら {@code null} */

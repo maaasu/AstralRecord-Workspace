@@ -10,6 +10,7 @@ public enum MenuShortcutAction {
     NONE("NONE", MenuIconDefinition.UNSET, false),
     MAIN_MENU("MAIN_MENU", MenuIconDefinition.MAIN_MENU, false),
     STATUS("STATUS", MenuIconDefinition.ACCOUNT_INFO, false),
+    SKILL_BIND("SKILL_BIND", MenuIconDefinition.SKILL_BIND, false),
     RETURN_TO_BASE("RETURN_TO_BASE", MenuIconDefinition.RETURN_TO_BASE, false),
     INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY, true),
     EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT, false);
@@ -55,7 +56,7 @@ public enum MenuShortcutAction {
     public static @NotNull MenuShortcutAction defaultForSlot(int slotIndex) {
         return switch (slotIndex) {
             case 0 -> STATUS;
-            case 1 -> RETURN_TO_BASE;
+            case 1 -> SKILL_BIND;
             case 2 -> INVENTORY_CURRENCY;
             case 3 -> EQUIPMENT_GUI;
             default -> NONE;

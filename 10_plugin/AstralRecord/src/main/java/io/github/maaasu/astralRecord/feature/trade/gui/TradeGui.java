@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -104,7 +105,9 @@ public final class TradeGui {
                     Component.text("アイテムと設定した金額を送信します。", NamedTextColor.GRAY),
                     Component.text("相手の承認は不要です。", NamedTextColor.YELLOW))));
         inventory.setItem(TradeGuiLayout.BACK_SLOT,
-            session.getReturnAction() == null ? GuiItems.closeButton() : GuiItems.backButton());
+            session.getReturnAction() == null
+                ? GuiItems.closeButton()
+                : GuiItems.backButton(new GuiNavigationDestination(Material.PLAYER_HEAD, "プレイヤー情報")));
         inventory.setItem(TradeGuiLayout.CLOSE_SLOT, GuiItems.closeButton());
     }
 
@@ -137,6 +140,11 @@ public final class TradeGui {
         @NotNull UUID sessionId,
         @NotNull UUID viewerUuid
     ) implements InventoryHolder, HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.CHEST, "トレード");
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, TradeGuiLayout.SIZE);

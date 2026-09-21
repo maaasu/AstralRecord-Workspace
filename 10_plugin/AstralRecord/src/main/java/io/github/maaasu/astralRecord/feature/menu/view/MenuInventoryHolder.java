@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,6 +77,32 @@ public record MenuInventoryHolder(
         String equipmentTarget = equipmentTargetId == null ? "" : ":target=" + equipmentTargetId;
         String readOnly = equipmentReadOnly ? ":readonly" : "";
         return "menu:" + screen.name() + detailId + equipmentTarget + readOnly;
+    }
+
+    @Override
+    public @NotNull GuiNavigationDestination getNavigationDestination() {
+        return switch (screen) {
+            case MAIN -> destination(MenuIconDefinition.MAIN_MENU, "メニュー");
+            case BUFF -> new GuiNavigationDestination(Material.POTION, "バフ");
+            case CLASS -> new GuiNavigationDestination(Material.EXPERIENCE_BOTTLE, "クラス");
+            case EQUIPMENT_GUI -> destination(MenuIconDefinition.EQUIPMENT, "装備");
+            case CURRENCY -> destination(MenuIconDefinition.CURRENCY, "カレンシー");
+            case GUIDE -> destination(MenuIconDefinition.GUIDE, "ガイド");
+            case TRASH, TRASH_CONFIRM -> destination(MenuIconDefinition.TRASH, "ゴミ箱");
+            case SELL, SELL_CONFIRM -> new GuiNavigationDestination(Material.EMERALD, "売却");
+            case STORAGE -> new GuiNavigationDestination(Material.CHEST, "ストレージ");
+        };
+    }
+
+    private static @NotNull GuiNavigationDestination destination(
+        @NotNull MenuIconDefinition definition,
+        @NotNull String screenName
+    ) {
+        return new GuiNavigationDestination(
+            definition.getMaterial(),
+            screenName,
+            definition.getIconTexture()
+        );
     }
 
     @Override

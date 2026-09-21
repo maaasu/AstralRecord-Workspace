@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
@@ -56,14 +57,14 @@ public final class SkillBindGui {
     public static final int SIZE = 54;
     /** 通常攻撃を slot 0 に常設するため、一覧の 1 ページ容量は 26 件です。 */
     public static final int CONTENT_SLOT_COUNT = 26;
-    public static final int PASSIVE_BIND_SLOT_START = 27;
+    public static final int PASSIVE_BIND_SLOT_START = 45;
     public static final int NORMAL_ATTACK_SLOT = 0;
     public static final int LEFT_CLICK_BIND_SLOT = 37;
     public static final int ACTION_RING_BIND_SLOT_START = 39;
-    public static final int PREVIOUS_PAGE_SLOT = 45;
-    public static final int PRESET_SLOT_START = 46;
-    public static final int BACK_SLOT = 49;
-    public static final int NEXT_PAGE_SLOT = 53;
+    public static final int PREVIOUS_PAGE_SLOT = 27;
+    public static final int PRESET_SLOT_START = 28;
+    public static final int BACK_SLOT = 31;
+    public static final int NEXT_PAGE_SLOT = 35;
     public static final int PRESET_COUNT = 6;
 
     public static final int DETAIL_SIZE = 27;
@@ -231,7 +232,11 @@ public final class SkillBindGui {
             SkillBindPreset preset = session.presets().get(presetIndex - 1);
             inventory.setItem(presetSlot(presetIndex), createPresetItem(preset, presetIndex == session.selectedPresetIndex()));
         }
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(new GuiNavigationDestination(
+            Material.PLAYER_HEAD,
+            "メニュー",
+            GuiItems.MAIN_MENU_HEAD_TEXTURE
+        )));
         inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages, page + 1 < pages));
         return inventory;
     }
@@ -326,7 +331,9 @@ public final class SkillBindGui {
                 )
             );
         }
-        inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー")
+        ));
         return inventory;
     }
 
@@ -425,11 +432,8 @@ public final class SkillBindGui {
             SYNTHESIS_RESULT_SLOT,
             createSynthesisResult(entry, material, materialKind, permittedSkillIds)
         );
-        inventory.setItem(BACK_SLOT, createItem(
-            Material.SPECTRAL_ARROW,
-            "スキルマネージャーへ戻る",
-            NamedTextColor.WHITE,
-            List.of(Component.text("選択中の素材は消費せずに戻します。", NamedTextColor.GRAY))
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー")
         ));
         return inventory;
     }
@@ -531,8 +535,8 @@ public final class SkillBindGui {
 
     public static int presetIndexAtSlot(int slot) {
         return switch (slot) {
-            case 46, 47, 48 -> slot - PRESET_SLOT_START + 1;
-            case 50, 51, 52 -> slot - PRESET_SLOT_START;
+            case 28, 29, 30 -> slot - PRESET_SLOT_START + 1;
+            case 32, 33, 34 -> slot - PRESET_SLOT_START;
             default -> -1;
         };
     }

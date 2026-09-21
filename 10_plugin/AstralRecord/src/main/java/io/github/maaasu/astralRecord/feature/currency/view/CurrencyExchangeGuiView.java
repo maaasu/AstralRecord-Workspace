@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -138,6 +139,11 @@ public final class CurrencyExchangeGuiView {
      * 両替GUIを識別するholderです。
      */
     public static final class Holder implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.EMERALD, "ゴールド両替");
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

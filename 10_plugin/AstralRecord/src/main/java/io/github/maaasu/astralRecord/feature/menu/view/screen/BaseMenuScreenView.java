@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -27,7 +28,11 @@ public abstract class BaseMenuScreenView {
     }
 
     protected @NotNull ItemStack backItem() {
-        return GuiItems.backButton();
+        return GuiItems.backButton(new GuiNavigationDestination(
+            Material.PLAYER_HEAD,
+            "メニュー",
+            GuiItems.MAIN_MENU_HEAD_TEXTURE
+        ));
     }
 
     protected @NotNull ItemStack createItem(

@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -40,10 +42,8 @@ public final class SellConfirmScreenView extends BaseMenuScreenView {
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         inventory.setItem(4, createSummaryItem(items));
-        inventory.setItem(RETURN_TO_SELL_SLOT, createItem(
-            Material.SPECTRAL_ARROW,
-            Component.text("\u623b\u308b", NamedTextColor.WHITE),
-            List.of(Component.text("\u58f2\u5374GUI\u3078\u623b\u308a\u307e\u3059\u3002", NamedTextColor.GRAY))
+        inventory.setItem(RETURN_TO_SELL_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.EMERALD, "売却")
         ));
         inventory.setItem(SELL_SLOT, createItem(
             Material.EMERALD,

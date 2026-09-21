@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -106,6 +107,10 @@ public final class DungeonEmergencyTeleportGui {
     ) implements HotbarShortcutGuiHolder {
         public Holder {
             roomIdsBySlot = Map.copyOf(roomIdsBySlot);
+        }
+
+        @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.ENDER_PEARL, "緊急区画転送");
         }
 
         /** @return 指定 slot の部屋 ID。選択肢以外なら {@code null} */

@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -173,6 +174,11 @@ public final class PartyBoardGui {
     ) implements HotbarShortcutGuiHolder {
         private Holder {
             visiblePartyIds = List.copyOf(visiblePartyIds);
+        }
+
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.WRITABLE_BOOK, "パーティー募集掲示板");
         }
 
         @Override

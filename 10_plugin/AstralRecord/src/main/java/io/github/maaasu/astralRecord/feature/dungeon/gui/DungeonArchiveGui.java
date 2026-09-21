@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -158,7 +159,9 @@ public final class DungeonArchiveGui {
         inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7041.getId()),
                 List.of(), GuiPagination.hasPreviousPage(page)));
-        inventory.setItem(BACK_SLOT, details ? GuiItems.backButton() : GuiItems.closeButton());
+        inventory.setItem(BACK_SLOT, details
+            ? GuiItems.backButton(new GuiNavigationDestination(Material.FILLED_MAP, "ダンジョン記録"))
+            : GuiItems.closeButton());
         inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()),
                 List.of(), GuiPagination.hasNextPage(page, entryCount, CONTENT_SIZE)));
@@ -194,6 +197,9 @@ public final class DungeonArchiveGui {
             @NotNull List<String> visibleDungeonIds
     ) implements HotbarShortcutGuiHolder {
         public ListHolder { visibleDungeonIds = List.copyOf(visibleDungeonIds); }
+        @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.FILLED_MAP, "ダンジョン記録");
+        }
         public @Nullable String dungeonIdAt(int slot) {
             return slot >= 0 && slot < visibleDungeonIds.size() ? visibleDungeonIds.get(slot) : null;
         }
@@ -209,6 +215,9 @@ public final class DungeonArchiveGui {
             int listPageIndex,
             int pageIndex
     ) implements HotbarShortcutGuiHolder {
+        @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.FILLED_MAP, "ダンジョン記録詳細");
+        }
         @Override public int getBackSlot() { return BACK_SLOT; }
         @Override public boolean isDirectBackNavigation() { return false; }
         @Override public @NotNull Inventory getInventory() { return Bukkit.createInventory(this, SIZE); }

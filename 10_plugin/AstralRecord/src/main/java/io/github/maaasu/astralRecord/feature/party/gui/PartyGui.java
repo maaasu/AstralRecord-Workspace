@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -277,6 +278,11 @@ public final class PartyGui extends BaseMenuScreenView {
         private Holder {
             inviteLeaderIds = List.copyOf(inviteLeaderIds);
             partyMembers = List.copyOf(partyMembers);
+        }
+
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.IRON_CHAIN, "パーティー");
         }
 
         @Override

@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.model;
 
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,10 +60,15 @@ public record SkillBindInventoryHolder(
     }
 
     @Override
+    public @NotNull GuiNavigationDestination getNavigationDestination() {
+        return new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー");
+    }
+
+    @Override
     public int getBackSlot() {
         // 詳細・合成画面の戻る操作は各 feature handler が遷移先を持つため、
         // 共有ナビゲーションへは公開しません。
-        return screen == SkillBindScreen.MAIN ? 49 : -1;
+        return screen == SkillBindScreen.MAIN ? 31 : -1;
     }
 
     @Override

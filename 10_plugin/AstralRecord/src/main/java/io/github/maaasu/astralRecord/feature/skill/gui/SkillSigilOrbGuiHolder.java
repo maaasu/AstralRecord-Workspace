@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,6 +23,16 @@ public record SkillSigilOrbGuiHolder(
 ) implements HotbarShortcutGuiHolder {
     public static final int LIST_SIZE = 54;
     public static final int OPERATION_SIZE = 27;
+
+    @Override
+    public @NotNull GuiNavigationDestination getNavigationDestination() {
+        return switch (screen) {
+            case LIST -> new GuiNavigationDestination(Material.BOOK, "シジル対象スキル");
+            case ATTACH -> new GuiNavigationDestination(Material.ENCHANTING_TABLE, "シジル装着");
+            case DETACH -> new GuiNavigationDestination(Material.ENCHANTING_TABLE, "シジル脱着");
+            case DETACH_SELECT -> new GuiNavigationDestination(Material.AMETHYST_SHARD, "脱着シジル選択");
+        };
+    }
 
     /**
      * 画面種別に対応するインベントリサイズを返します。

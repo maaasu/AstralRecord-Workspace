@@ -173,7 +173,7 @@ final class CraftShortcutView {
         if (action == MenuShortcutAction.RETURN_TO_BASE) {
             lore.addAll(MenuIconFactory.returnToBaseDetails(context));
         }
-        lore.add(action == MenuShortcutAction.MAIN_MENU
+        lore.add(action == MenuShortcutAction.MAIN_MENU || action == MenuShortcutAction.SKILL_BIND
             ? MenuIconFactory.openHint()
             : MenuIconFactory.executeHint());
         ItemStack itemStack = MenuIconFactory.create(action.getIconDefinition(), lore);

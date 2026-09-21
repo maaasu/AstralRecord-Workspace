@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -76,6 +77,9 @@ public final class DungeonCancelGui {
     }
 
     private record Holder(@NotNull UUID sessionId) implements HotbarShortcutGuiHolder {
+        @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.BARRIER, "ダンジョン中止確認");
+        }
         @Override public @NotNull Inventory getInventory() { return Bukkit.createInventory(this, SIZE); }
     }
 }

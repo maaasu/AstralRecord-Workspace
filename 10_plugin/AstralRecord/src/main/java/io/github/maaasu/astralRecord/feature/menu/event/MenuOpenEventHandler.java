@@ -895,6 +895,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             );
             return;
         }
+        if (action == MenuShortcutAction.SKILL_BIND) {
+            var skillBindHandler = plugin.getSkillBindGuiEventHandler();
+            if (skillBindHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> skillBindHandler.open(player));
+            return;
+        }
         if (action == MenuShortcutAction.RETURN_TO_BASE) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null || !returnToBaseService.beginReturn(astPlayer)) {

@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -150,7 +151,9 @@ public final class QuestGui {
 
     private void renderList(@NotNull Inventory inventory, @NotNull AstPlayer astPlayer) {
         fillFrame(inventory);
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.MAP, "クエスト")
+        ));
         List<QuestDefinition> active = questService.activeQuests(astPlayer);
         for (int index = 0; index < Math.min(MAX_LOGICAL_SLOT + 1, active.size()); index++) {
             inventory.setItem(listSlot(index), questItem(astPlayer, active.get(index), true));
@@ -473,12 +476,22 @@ public final class QuestGui {
 
     public record BoardHolder(@NotNull String boardId, @Nullable String npcId, int pageIndex) implements HotbarShortcutGuiHolder {
         @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.WRITABLE_BOOK, "クエスト掲示板");
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
         }
     }
 
     public record ListHolder() implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.MAP, "クエスト");
+        }
+
         /**
          * クエスト一覧の共通ナビゲーションボタンのスロットを返します。
          *

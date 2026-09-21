@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.boss.gui;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -71,6 +72,11 @@ public final class BossChallengeCancelGui {
     }
 
     private record Holder(@NotNull UUID challengeId) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.BARRIER, "ボス挑戦中止確認");
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -766,11 +767,7 @@ public class AdventureRecordGui {
     }
 
     private @NotNull ItemStack backItem() {
-        return createItem(
-            Material.SPECTRAL_ARROW,
-            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
-        );
+        return GuiItems.backButton(new GuiNavigationDestination(Material.SPYGLASS, "冒険記録"));
     }
 
     private @NotNull ItemStack createItem(
@@ -810,6 +807,11 @@ public class AdventureRecordGui {
         @Nullable AdventureRecordService.Entry mobEntry,
         @Nullable StatusType.Category statusCategory
     ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.SPYGLASS, "冒険記録");
+        }
+
         @Override
         public @NotNull String getNavigationId() {
             if (screen == Screen.MOB_DETAIL) {

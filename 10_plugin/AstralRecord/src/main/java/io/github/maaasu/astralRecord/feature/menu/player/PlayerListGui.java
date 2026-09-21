@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -212,6 +213,13 @@ public final class PlayerListGui {
     ) implements HotbarShortcutGuiHolder {
         private Holder {
             playerIds = List.copyOf(playerIds);
+        }
+
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return purpose == PlayerListPurpose.PARTY_INVITE
+                ? new GuiNavigationDestination(Material.IRON_CHAIN, "パーティー招待先選択")
+                : new GuiNavigationDestination(Material.NAME_TAG, "プレイヤー一覧");
         }
 
         @Override

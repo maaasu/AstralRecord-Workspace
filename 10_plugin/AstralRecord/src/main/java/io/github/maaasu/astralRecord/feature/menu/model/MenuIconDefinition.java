@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public enum MenuIconDefinition {
     UNSET(Material.GRAY_DYE, "未設定", NamedTextColor.GRAY, "ショートカット未設定"),
-    MAIN_MENU(Material.NETHER_STAR, "メニュー", NamedTextColor.GREEN, "クリックしてメニューを開く"),
+    MAIN_MENU(Material.PLAYER_HEAD, "メニュー", NamedTextColor.GREEN, "クリックしてメニューを開く", GuiItems.MAIN_MENU_HEAD_TEXTURE),
     ACCOUNT_INFO(Material.PLAYER_HEAD, "プレイヤー情報", NamedTextColor.GOLD, "プロフィールとステータスを確認"),
     QUEST(Material.MAP, "クエスト", NamedTextColor.GREEN, "受領中のクエストを確認・破棄"),
     PLAYER_SETTING(Material.COMPARATOR, "プレイヤー設定", NamedTextColor.AQUA, "表示設定を変更"),

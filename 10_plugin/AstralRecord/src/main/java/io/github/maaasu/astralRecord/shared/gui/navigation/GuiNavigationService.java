@@ -45,7 +45,7 @@ public final class GuiNavigationService {
                 && navigationId(current).equals(holder.getNavigationId());
             state.recordOpen(inventory, replaceCurrent);
         }
-        updateNavigationButton(inventory, holder, state.getPreviousGui() != null);
+        updateNavigationButton(inventory, holder, state.getPreviousGui());
     }
 
     /**
@@ -186,14 +186,22 @@ public final class GuiNavigationService {
     private void updateNavigationButton(
         @NotNull Inventory inventory,
         @NotNull GuiNavigationHolder holder,
-        boolean hasPrevious
+        Inventory previous
     ) {
         int backSlot = holder.getBackSlot();
         if (backSlot < 0 || backSlot >= inventory.getSize()) {
             return;
         }
-        if (holder.isAlwaysCloseNavigation() || !hasPrevious) {
+        if (holder.isAlwaysCloseNavigation() || previous == null) {
             inventory.setItem(backSlot, GuiItems.closeButton());
+            return;
+        }
+        GuiNavigationHolder previousHolder = navigationHolder(previous);
+        GuiNavigationDestination destination = previousHolder == null
+            ? null
+            : previousHolder.getNavigationDestination();
+        if (destination != null) {
+            inventory.setItem(backSlot, GuiItems.backButton(destination));
         }
     }
 

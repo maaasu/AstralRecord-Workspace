@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -117,10 +118,17 @@ public final class PartyRecruitmentSettingsGui {
                 ))
             ));
         }
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.IRON_CHAIN, "パーティー")
+        ));
     }
 
     private record Holder(@NotNull UUID viewerId) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.IRON_CHAIN, "パーティー募集設定");
+        }
+
         @Override
         public int getBackSlot() {
             return BACK_SLOT;

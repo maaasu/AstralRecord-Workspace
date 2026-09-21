@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -113,6 +114,11 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
     }
 
     private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.PLAYER_HEAD, "パーティーメンバー操作");
+        }
+
         @Override
         public int getBackSlot() {
             return BACK_TO_PARTY_SLOT;

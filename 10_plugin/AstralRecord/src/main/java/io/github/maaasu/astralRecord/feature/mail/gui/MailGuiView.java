@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -184,6 +185,11 @@ public final class MailGuiView {
         @NotNull MailFilter filter,
         @NotNull List<MailEntry> mails
     ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.CHEST, "メール");
+        }
+
         @Override
         public int getBackSlot() {
             return BACK_SLOT;

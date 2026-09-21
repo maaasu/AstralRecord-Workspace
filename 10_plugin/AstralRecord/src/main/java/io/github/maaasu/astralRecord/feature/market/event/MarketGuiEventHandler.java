@@ -34,6 +34,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -518,7 +519,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     GOLD_AMOUNT_SOURCE_KEY,
                     draft.contextId(),
                     draft.unitPrice(),
-                    maxUnitPrice
+                    maxUnitPrice,
+                    new GuiNavigationDestination(org.bukkit.Material.CHEST, "出品設定")
                 );
                 GuiSound.SELECT.play(player);
             }

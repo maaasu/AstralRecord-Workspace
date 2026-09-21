@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -167,11 +168,8 @@ public final class MarketGui {
                 "売値以下の価格では出品できません。"
             )
         ));
-        inventory.setItem(SELL_SELECT_BACK_SLOT, item(
-            Material.SPECTRAL_ARROW,
-            "自分の出品一覧へ戻る",
-            NamedTextColor.WHITE,
-            List.of("自分の出品一覧へ戻ります。")
+        inventory.setItem(SELL_SELECT_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.CHEST, "自分の出品一覧")
         ));
         inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
         open(viewer, inventory);
@@ -212,7 +210,9 @@ public final class MarketGui {
             NamedTextColor.GREEN,
             List.of("Shiftクリックで 16 個増やします。")
         ));
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.CHEST, "出品アイテム選択")
+        ));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.EMERALD_BLOCK,
             "出品を確定",
@@ -261,7 +261,9 @@ public final class MarketGui {
             NamedTextColor.GREEN,
             List.of("Shiftクリックで 16 個増やします。")
         ));
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.EMERALD, "マーケット")
+        ));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.EMERALD_BLOCK,
             "購入を確定",
@@ -279,7 +281,9 @@ public final class MarketGui {
         Inventory inventory = create(viewer, sessionId, MarketScreen.CANCEL_CONFIRM, DIALOG_SIZE, "マーケット: 取り下げ確認");
         fill(inventory);
         inventory.setItem(ITEM_SLOT, listingItem(listing, true));
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.CHEST, "自分の出品一覧")
+        ));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.ORANGE_CONCRETE,
             "出品を取り下げる",
@@ -567,6 +571,18 @@ public final class MarketGui {
         @NotNull UUID viewerUuid,
         @NotNull MarketScreen screen
     ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return switch (screen) {
+                case LOADING, BROWSE -> new GuiNavigationDestination(Material.EMERALD, "マーケット");
+                case MY_LISTINGS -> new GuiNavigationDestination(Material.CHEST, "自分の出品一覧");
+                case SELL_SELECT -> new GuiNavigationDestination(Material.CHEST, "出品アイテム選択");
+                case SELL_CONFIG -> new GuiNavigationDestination(Material.GOLD_INGOT, "出品設定");
+                case PURCHASE_CONFIRM -> new GuiNavigationDestination(Material.EMERALD_BLOCK, "購入確認");
+                case CANCEL_CONFIRM -> new GuiNavigationDestination(Material.ORANGE_CONCRETE, "取り下げ確認");
+            };
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, 9);

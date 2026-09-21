@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.item.gui;
 
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,6 +21,19 @@ public record OrbGuiHolder(
     @NotNull UUID sessionToken,
     @NotNull Screen screen
 ) implements HotbarShortcutGuiHolder {
+
+    @Override
+    public @NotNull GuiNavigationDestination getNavigationDestination() {
+        return switch (screen) {
+            case LIST -> new GuiNavigationDestination(Material.AMETHYST_SHARD, "オーブ対象一覧");
+            case INVENTORY_ORB_LIST -> new GuiNavigationDestination(Material.ENDER_CHEST, "オーブ一覧");
+            case TRANSCENDENCE_CONFIRM -> new GuiNavigationDestination(Material.ANVIL, "オーブ使用確認");
+            case TRANSCENDENCE_MATERIAL_LIST -> new GuiNavigationDestination(Material.CHEST, "消費アイテム一覧");
+            case RUNE_ATTACH -> new GuiNavigationDestination(Material.AMETHYST_SHARD, "ルーン装着");
+            case RUNE_DETACH -> new GuiNavigationDestination(Material.AMETHYST_SHARD, "ルーン脱着");
+            case RUNE_DETACH_SELECT -> new GuiNavigationDestination(Material.BOOK, "脱着ルーン選択");
+        };
+    }
 
     /** オーブ一覧・消費アイテム一覧 GUI のサイズです。 */
     public static final int SIZE = 54;

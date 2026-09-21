@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -22,6 +23,9 @@ public final class GuiItems {
     /** カレンシーアイコンに使用する固定 textures 値。 */
     public static final String CURRENCY_HEAD_TEXTURE =
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmY5NmZmYjk5NzhlNTM2NGQxODkzMjA0ZWY0NzkxNjJjZjU2ZTE5NWRhN2NhYzE0MTBlYmEwNjkzMDUzOTViOCJ9fX0=";
+    /** メインメニューアイコンに使用する固定 textures 値。 */
+    public static final String MAIN_MENU_HEAD_TEXTURE =
+        "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDAwM2E1NjUxYzRkMWY4YTA4YTEwNzAxYjAwNTBmYWEyMmNlYzI2ZmM2Njc3YmUwODgzODA2M2IyYTk3Y2RjZCJ9fX0=";
     private static final String OAK_WOOD_ARROW_UP_TEXTURE =
         "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzA0MGZlODM2YTZjMmZiZDJjN2E5YzhlYzZiZTUxNzRmZGRmMWFjMjBmNTVlMzY2MTU2ZmE1ZjcxMmUxMCJ9fX0=";
     private static final String OAK_WOOD_ARROW_DOWN_TEXTURE =
@@ -126,13 +130,15 @@ public final class GuiItems {
     /**
      * 前画面へ戻る GUI で共通利用する戻るボタンを生成します。
      *
+     * @param destination 戻り先のアイコンと画面名
      * @return 戻るボタン ItemStack
      */
-    public static @NotNull ItemStack backButton() {
+    public static @NotNull ItemStack backButton(@NotNull GuiNavigationDestination destination) {
         return create(
-            Material.SPECTRAL_ARROW,
-            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
+            destination.icon(),
+            Component.text(destination.screenName() + "画面へ戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
+            List.of(Component.text("クリックして戻ります", NamedTextColor.GRAY)),
+            destination.iconTexture()
         );
     }
 

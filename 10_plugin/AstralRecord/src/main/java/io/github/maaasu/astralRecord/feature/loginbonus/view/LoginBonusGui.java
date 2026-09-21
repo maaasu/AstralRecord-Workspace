@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -319,6 +320,11 @@ public final class LoginBonusGui {
     }
 
     public record Holder(@NotNull YearMonth displayMonth) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.CLOCK, "ログインボーナス");
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

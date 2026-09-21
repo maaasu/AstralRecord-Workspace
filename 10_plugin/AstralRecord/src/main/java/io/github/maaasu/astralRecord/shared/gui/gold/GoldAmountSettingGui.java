@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui.gold;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -51,7 +52,37 @@ public final class GoldAmountSettingGui {
         long amount,
         long maxAmount
     ) {
-        open(viewer, sourceKey, contextId, amount, maxAmount, () -> { }, () -> { });
+        open(
+            viewer,
+            sourceKey,
+            contextId,
+            amount,
+            maxAmount,
+            new GuiNavigationDestination(Material.CHEST, "前の"),
+            () -> { },
+            () -> { }
+        );
+    }
+
+    /**
+     * 戻り先表示を指定して金額設定 GUI を開きます。
+     *
+     * @param viewer 表示対象
+     * @param sourceKey 呼出元キー
+     * @param contextId 呼出元コンテキスト
+     * @param amount 初期金額
+     * @param maxAmount 設定上限
+     * @param returnDestination 戻るボタンに表示する呼出元 GUI
+     */
+    public void open(
+        @NotNull Player viewer,
+        @NotNull String sourceKey,
+        @NotNull UUID contextId,
+        long amount,
+        long maxAmount,
+        @NotNull GuiNavigationDestination returnDestination
+    ) {
+        open(viewer, sourceKey, contextId, amount, maxAmount, returnDestination, () -> { }, () -> { });
     }
 
     /**
@@ -66,14 +97,55 @@ public final class GoldAmountSettingGui {
      */
     public void open(@NotNull Player viewer, @NotNull String sourceKey, @NotNull UUID contextId,
                      long amount, long maxAmount, @NotNull Runnable onOpened, @NotNull Runnable onCancelled) {
+        open(
+            viewer,
+            sourceKey,
+            contextId,
+            amount,
+            maxAmount,
+            new GuiNavigationDestination(Material.CHEST, "前の"),
+            onOpened,
+            onCancelled
+        );
+    }
+
+    /**
+     * 戻り先表示と遷移 callback を指定して金額設定 GUI を開きます。
+     *
+     * @param viewer 表示対象
+     * @param sourceKey 呼出元キー
+     * @param contextId 呼出元コンテキスト
+     * @param amount 初期金額
+     * @param maxAmount 設定上限
+     * @param returnDestination 戻るボタンに表示する呼出元 GUI
+     * @param onOpened 表示完了時の処理
+     * @param onCancelled 遷移取消時の処理
+     */
+    public void open(
+        @NotNull Player viewer,
+        @NotNull String sourceKey,
+        @NotNull UUID contextId,
+        long amount,
+        long maxAmount,
+        @NotNull GuiNavigationDestination returnDestination,
+        @NotNull Runnable onOpened,
+        @NotNull Runnable onCancelled
+    ) {
         long normalizedMax = Math.max(0L, maxAmount);
         long normalizedAmount = clamp(amount, normalizedMax);
         Inventory inventory = Bukkit.createInventory(
-            new GoldAmountHolder(sourceKey, contextId, viewer.getUniqueId(), normalizedAmount, normalizedMax),
+            new GoldAmountHolder(
+                sourceKey,
+                contextId,
+                viewer.getUniqueId(),
+                normalizedAmount,
+                normalizedMax,
+                returnDestination
+            ),
             SIZE,
             Component.text("ゴールド金額", NamedTextColor.GOLD)
         );
-        render(inventory, normalizedAmount, normalizedMax, 1L);
+        render(inventory, normalizedAmount, normalizedMax, 1L, returnDestination);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
     }
 
@@ -159,7 +231,8 @@ public final class GoldAmountSettingGui {
             inventory,
             clamp(holder.amount(), holder.maxAmount()),
             Math.max(0L, holder.maxAmount()),
-            holder.step()
+            holder.step(),
+            holder.returnDestination()
         );
     }
 
@@ -171,7 +244,13 @@ public final class GoldAmountSettingGui {
      * @param maxAmount 設定可能な最大金額
      * @param step 現在の10進調整単位
      */
-    private void render(@NotNull Inventory inventory, long amount, long maxAmount, long step) {
+    private void render(
+        @NotNull Inventory inventory,
+        long amount,
+        long maxAmount,
+        long step,
+        @NotNull GuiNavigationDestination returnDestination
+    ) {
         ItemStack filler = item(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, filler.clone());
@@ -238,11 +317,7 @@ public final class GoldAmountSettingGui {
             Component.text("最大", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text(formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW))
         ));
-        inventory.setItem(BACK_SLOT, item(
-            Material.ARROW,
-            Component.text("戻る", NamedTextColor.YELLOW, TextDecoration.BOLD),
-            List.of()
-        ));
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(returnDestination));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.LIME_CONCRETE,
             Component.text("確定", NamedTextColor.GREEN, TextDecoration.BOLD),
@@ -309,6 +384,7 @@ public final class GoldAmountSettingGui {
         private final UUID viewerUuid;
         private long amount;
         private final long maxAmount;
+        private final GuiNavigationDestination returnDestination;
         private long step = 1L;
 
         /**
@@ -327,11 +403,40 @@ public final class GoldAmountSettingGui {
             long amount,
             long maxAmount
         ) {
+            this(
+                sourceKey,
+                contextId,
+                viewerUuid,
+                amount,
+                maxAmount,
+                new GuiNavigationDestination(Material.CHEST, "前の")
+            );
+        }
+
+        /**
+         * 戻り先表示を含む Gold 金額設定 GUI の状態を作成します。
+         *
+         * @param sourceKey 呼び出し元識別キー
+         * @param contextId 呼び出し元コンテキスト ID
+         * @param viewerUuid 表示プレイヤー UUID
+         * @param amount 初期金額
+         * @param maxAmount 設定可能な最大金額
+         * @param returnDestination 戻るボタンに表示する呼出元 GUI
+         */
+        public GoldAmountHolder(
+            @NotNull String sourceKey,
+            @NotNull UUID contextId,
+            @NotNull UUID viewerUuid,
+            long amount,
+            long maxAmount,
+            @NotNull GuiNavigationDestination returnDestination
+        ) {
             this.sourceKey = sourceKey;
             this.contextId = contextId;
             this.viewerUuid = viewerUuid;
             this.amount = amount;
             this.maxAmount = maxAmount;
+            this.returnDestination = returnDestination;
         }
 
         public @NotNull String sourceKey() {
@@ -352,6 +457,15 @@ public final class GoldAmountSettingGui {
 
         public long maxAmount() {
             return maxAmount;
+        }
+
+        /**
+         * 戻るボタンに表示する呼出元 GUI を返します。
+         *
+         * @return 戻り先表示情報
+         */
+        public @NotNull GuiNavigationDestination returnDestination() {
+            return returnDestination;
         }
 
         public void setAmount(long amount) {

@@ -30,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -250,6 +251,7 @@ public final class TradeService {
             session.getSessionId(),
             currentAmount,
             Math.max(ownedGold, currentAmount),
+            new GuiNavigationDestination(org.bukkit.Material.CHEST, "トレード"),
             opened,
             cancelled
         ));

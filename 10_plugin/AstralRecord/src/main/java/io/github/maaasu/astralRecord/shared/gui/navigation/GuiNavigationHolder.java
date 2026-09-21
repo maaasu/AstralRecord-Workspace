@@ -2,11 +2,21 @@ package io.github.maaasu.astralRecord.shared.gui.navigation;
 
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * プレイヤー単位の GUI 履歴で管理する inventory holder です。
  */
 public interface GuiNavigationHolder extends InventoryHolder {
+
+    /**
+     * この GUI へ戻るボタンに表示する画面情報を返します。
+     *
+     * @return 戻り先表示情報。個別の履歴表示を持たない場合は {@code null}
+     */
+    default @Nullable GuiNavigationDestination getNavigationDestination() {
+        return null;
+    }
 
     /**
      * 同じ画面を再描画したか判定するための識別子を返します。

@@ -276,6 +276,7 @@ public final class TrashService {
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
             List<ItemStack> disposedItems = normalizeTrashItems(currentTrashItems);
+            GuiSound.SELECT.play(player);
             GuiSound.TRASH_DISPOSE.play(player);
             discard(player);
             notifyTrashDisposed(player, disposedItems);
@@ -284,6 +285,7 @@ public final class TrashService {
             return;
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
+            GuiSound.SELECT.play(player);
             closeTrashAndReturnItems(player, currentTrashItems);
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,

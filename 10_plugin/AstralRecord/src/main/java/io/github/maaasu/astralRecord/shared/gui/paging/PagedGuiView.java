@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.gui.paging;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -73,7 +74,11 @@ public final class PagedGuiView {
             List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY)),
             hasPreviousPage(pageIndex)
         ));
-        inventory.setItem(BACK_SLOT, GuiItems.backButton());
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(new GuiNavigationDestination(
+            Material.PLAYER_HEAD,
+            "メニュー",
+            GuiItems.MAIN_MENU_HEAD_TEXTURE
+        )));
         inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
             Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
             List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY)),

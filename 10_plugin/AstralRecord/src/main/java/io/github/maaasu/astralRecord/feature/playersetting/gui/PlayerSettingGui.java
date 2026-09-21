@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKe
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -212,6 +213,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     private record Holder(@NotNull UUID userId) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull GuiNavigationDestination getNavigationDestination() {
+            return new GuiNavigationDestination(Material.COMPARATOR, "プレイヤー設定");
+        }
+
         @Override
         public int getBackSlot() {
             return BACK_TO_MENU_SLOT;

@@ -29,6 +29,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -1116,7 +1117,9 @@ public final class OrbService {
             if (rune != null) selector = itemStackFactory.create(rune, 1);
         }
         session.inventory.setItem(RUNE_SELECTION_SLOT, selector);
-        session.inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.backButton());
+        session.inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.CHEST, "オーブ対象一覧")
+        ));
         boolean ready = isRuneOperationReady(session, target);
         ItemStack result = ready ? itemStackFactory.create(target.model, previewRuneEquipment(session, target), 1)
             : GuiItems.create(Material.BARRIER, Component.text("ルーンを選択してください", NamedTextColor.RED), List.of());
@@ -1258,7 +1261,9 @@ public final class OrbService {
             if (rune != null) session.inventory.setItem(index - from, itemStackFactory.create(rune, 1));
         }
         session.inventory.setItem(18, pageButton(false, session.runePage > 0));
-        session.inventory.setItem(RUNE_DETACH_SELECT_BACK_SLOT, GuiItems.backButton());
+        session.inventory.setItem(RUNE_DETACH_SELECT_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.AMETHYST_SHARD, "ルーン脱着")
+        ));
         session.inventory.setItem(26, pageButton(true, from + 18 < target.instance.getRunes().size()));
         transitionInventory(session, session.inventory, OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
     }
@@ -1764,10 +1769,8 @@ public final class OrbService {
             )
         ));
         inventory.setItem(CONFIRM_TARGET_SLOT, targetItem);
-        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.create(
-            Material.ARROW,
-            Component.text("一覧へ戻る", NamedTextColor.YELLOW),
-            List.of()
+        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.CHEST, "オーブ対象一覧")
         ));
         if (plan == null) {
             inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
@@ -1823,10 +1826,8 @@ public final class OrbService {
         fillInventory(inventory);
         OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
             orbModel.getOrb().getEffect(), target.model, target.instance);
-        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.create(
-            Material.ARROW,
-            Component.text("確認画面へ戻る", NamedTextColor.YELLOW),
-            List.of()
+        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.ANVIL, "オーブ使用確認")
         ));
         if (plan == null) {
             inventory.setItem(MATERIAL_LIST_GOLD_SLOT, GuiItems.create(
@@ -1862,13 +1863,8 @@ public final class OrbService {
             session,
             Math.max(0, plan.definition().getRequiredCurrency())
         ));
-        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.create(
-            Material.ARROW,
-            Component.text("確認画面へ戻る", NamedTextColor.YELLOW),
-            List.of(Component.text(
-                "状態変化: " + transitionName(plan.definition()),
-                NamedTextColor.LIGHT_PURPLE
-            ))
+        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.ANVIL, "オーブ使用確認")
         ));
     }
 
