@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.model;
 
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
+import io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlayGuiHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
@@ -16,8 +17,22 @@ public record SkillBindInventoryHolder(
     int pageIndex,
     @NotNull String action,
     int pendingPresetIndex,
-    @NotNull String learnedSkillId
-) implements HotbarShortcutGuiHolder {
+    @NotNull String learnedSkillId,
+    java.util.function.Consumer<org.bukkit.entity.Player> inventoryRenderer
+) implements HotbarShortcutGuiHolder, PlayerInventoryOverlayGuiHolder {
+    /** 既存の画面生成用コンストラクタ。下段専用表示は持ちません。 */
+    public SkillBindInventoryHolder(SkillBindScreen screen, int selectedPresetIndex, int pageIndex,
+        String action, int pendingPresetIndex, String learnedSkillId) {
+        this(screen, selectedPresetIndex, pageIndex, action, pendingPresetIndex, learnedSkillId, null);
+    }
+
+    @Override
+    public boolean hasPlayerInventoryOverlay() { return inventoryRenderer != null; }
+
+    @Override
+    public void renderPlayerInventory(org.bukkit.entity.Player player) {
+        if (inventoryRenderer != null) inventoryRenderer.accept(player);
+    }
     public SkillBindInventoryHolder(@NotNull SkillBindScreen screen, int selectedPresetIndex, int pageIndex) {
         this(screen, selectedPresetIndex, pageIndex, "", -1, "");
     }

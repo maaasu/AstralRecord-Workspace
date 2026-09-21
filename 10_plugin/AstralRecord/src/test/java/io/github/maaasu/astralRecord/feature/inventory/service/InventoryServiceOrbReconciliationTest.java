@@ -47,6 +47,32 @@ import static org.mockito.Mockito.when;
 class InventoryServiceOrbReconciliationTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 3. スキルマネージャーによる習得・レベルアップ
+     * 検証契約: 遠隔権限なしのストレージ予約を拒否し、権限ありでも予約数量は二重利用させない。
+     */
+    @Test
+    void storageMaterialReservationsRequireAccessAndProtectReservedQuantity() {
+        Harness harness = harness(InventoryType.STORAGE);
+        UUID operation = UUID.randomUUID();
+        Map<UUID, Long> payment = Map.of(harness.orbEntryId, 2L);
+        assertFalse(harness.service.reserveLocalMutationPayment(harness.accountId, operation, payment));
+        InventoryModel currency = DesignTestFixtures.inventory(harness.accountId, InventoryType.CURRENCY, 27);
+        harness.state.putInventory(currency);
+        harness.state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(categoryEntry(
+            UUID.randomUUID(), harness.accountId, currency.getInventoryId(), null, ItemCategory.CURRENCY,
+            ItemService.STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID, 1L)));
+        assertEquals(2L, harness.service.getOwnedSkillMaterialAmount(harness.accountId, "orb.weapon_tyr"));
+        assertTrue(harness.service.reserveLocalMutationPayment(harness.accountId, operation, payment));
+        assertFalse(harness.service.reserveLocalMutationPayment(harness.accountId, UUID.randomUUID(), payment));
+        assertEquals(0L, harness.service.getOwnedSkillMaterialAmount(harness.accountId, "orb.weapon_tyr"));
+        assertEquals(0L, harness.service.getSpendableNormalItemAmountIncludingStorage(harness.accountId, "orb.weapon_tyr"));
+        harness.service.releaseOrbOperationPayment(harness.accountId, operation);
+        assertEquals(2L, harness.service.getOwnedSkillMaterialAmount(harness.accountId, "orb.weapon_tyr"));
+        assertEquals(2L, harness.state.snapshotEntries(harness.bag.getInventoryId()).getFirst().getQuantity());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: 応答snapshotが欠落、明示null、非object、不完全objectの場合は例外を出さずGET fallbackを選ぶ。

@@ -105,6 +105,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
+        gui.setRequiredItemOwnedAmountProvider((accountId, itemId) ->
+            inventoryService.getOwnedSkillMaterialAmount(accountId, itemId));
     }
 
     /**
@@ -168,10 +170,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (event.getClickedInventory() instanceof PlayerInventory) {
-                if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
-                    return;
-                }
-                GuiSound.DENY.play(player);
+                handlePlayerInventorySettingsClick(player, session, holder.pageIndex(), event);
                 return;
             }
             handleMainClick(player, session, holder, event);
@@ -285,6 +284,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         sessions.remove(playerId);
         savingSessions.remove(playerId);
         removeSynthesisSelectionAndRestore(player);
+        restorePlayerInventory(player);
     }
 
     private void handleMainClick(
@@ -333,62 +333,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             return;
         }
-        int presetIndex = SkillBindGui.presetIndexAtSlot(slot);
-        if (presetIndex > 0) {
-            handlePresetClick(player, session, presetIndex, page);
-            return;
-        }
-        if (slot >= SkillBindGui.PASSIVE_BIND_SLOT_START
-            && slot < SkillBindGui.PASSIVE_BIND_SLOT_START + SkillBindPreset.PASSIVE_SLOT_COUNT) {
-            if (!event.isLeftClick()) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            handleBindSlotClick(
-                player, session, SkillBindType.PASSIVE,
-                slot - SkillBindGui.PASSIVE_BIND_SLOT_START, page,
-                passiveSkillService.activePassiveSlotCount(astPlayer)
-            );
-            return;
-        }
-        if (slot == SkillBindGui.LEFT_CLICK_BIND_SLOT) {
-            if (!event.isLeftClick()) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            handleBindSlotClick(player, session, SkillBindType.LEFT_CLICK, 0, page, 1);
-            return;
-        }
-        if (slot >= SkillBindGui.ACTION_RING_BIND_SLOT_START
-            && slot < SkillBindGui.ACTION_RING_BIND_SLOT_START + SkillBindPreset.ACTION_RING_SLOT_COUNT) {
-            if (!event.isLeftClick()) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            handleBindSlotClick(
-                player, session, SkillBindType.ACTIVE,
-                slot - SkillBindGui.ACTION_RING_BIND_SLOT_START, page, SkillBindPreset.ACTION_RING_SLOT_COUNT
-            );
-            return;
-        }
-        if (slot == SkillBindGui.NORMAL_ATTACK_SLOT
-            && SkillBindGui.shouldShowNormalAttack(page, session.selectedBindType())) {
-            if (!event.isLeftClick()) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            SkillBindType selectedType = session.selectedBindType();
-            if (selectedType != SkillBindType.ACTIVE && selectedType != SkillBindType.LEFT_CLICK) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            session.setSlot(selectedType, session.selectedBindSlotIndex(), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
-            session.clearSelectedBindSlot();
-            GuiSound.SELECT.play(player);
-            saveCurrentPreset(player, session, page);
-            return;
-        }
-
         String unlearnedSkillId = gui.unlearnedSkillId(event.getCurrentItem());
         if (unlearnedSkillId != null) {
             if (!event.isLeftClick() || session.selectedBindType() != null) {
@@ -565,7 +509,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             saveCurrentPreset(player, session, page);
             return;
         }
-        if (type == SkillBindType.PASSIVE && index >= enabledSlotCount) {
+        if ((type == SkillBindType.PASSIVE || type == SkillBindType.ACTIVE) && index >= enabledSlotCount) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -723,8 +667,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     private boolean isSelectedSlotCurrentlyEnabled(AstPlayer player, SkillBindSession session) {
-        return session.selectedBindType() != SkillBindType.PASSIVE
-            || session.selectedBindSlotIndex() < passiveSkillService.activePassiveSlotCount(player);
+        SkillBindType selected = session.selectedBindType();
+        if (selected == null || selected == SkillBindType.LEFT_CLICK) {
+            return selected != null;
+        }
+        return selected == SkillBindType.PASSIVE
+            ? session.selectedBindSlotIndex() < passiveSkillService.activePassiveSlotCount(player)
+            : session.selectedBindSlotIndex() < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT;
     }
 
     /** 既存の超過バインド維持と解除だけを許可し、新規設定・置換を元へ戻します。 */
@@ -908,6 +857,94 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (inventory != null) {
             GuiOpenSupport.open(player, inventory);
         }
+    }
+
+    /** 下段 PlayerInventory のスキル設定オーバーレイを現在のセッション状態で再描画します。 */
+    private void renderPlayerInventorySettings(@NotNull Player player, @NotNull SkillBindSession session) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        Map<String, SkillManagerEntry> entries = new LinkedHashMap<>();
+        for (SkillManagerEntry entry : allEntries(astPlayer)) {
+            entries.put(entry.bindingId(), entry);
+        }
+        gui.renderPlayerInventorySettings(player.getInventory(), session, entries,
+            permittedSkillDefinitions(astPlayer), passiveSkillService.activePassiveSlotCount(astPlayer));
+        player.updateInventory();
+    }
+
+
+    private void handlePlayerInventorySettingsClick(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        int page,
+        @NotNull InventoryClickEvent event
+    ) {
+        if (!event.isLeftClick()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int slot = event.getSlot();
+        if (slot >= 0 && slot < SkillBindPreset.PRESET_COUNT) {
+            handlePresetClick(player, session, slot + 1, page);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_LEFT_CLICK_SLOT) {
+            handleBindSlotClick(player, session, SkillBindType.LEFT_CLICK, 0, page, 1);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_NORMAL_ATTACK_SLOT) {
+            SkillBindType selected = session.selectedBindType();
+            if (selected != SkillBindType.ACTIVE && selected != SkillBindType.LEFT_CLICK) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            session.setSlot(selected, session.selectedBindSlotIndex(), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
+            session.clearSelectedBindSlot();
+            GuiSound.SELECT.play(player);
+            saveCurrentPreset(player, session, page);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_PASSIVE_PREVIOUS_SLOT) {
+            session.movePassiveSlotOffset(-1, SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT);
+            renderPlayerInventorySettings(player, session);
+            GuiSound.PAGE.play(player);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_PASSIVE_NEXT_SLOT) {
+            session.movePassiveSlotOffset(1, SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT);
+            renderPlayerInventorySettings(player, session);
+            GuiSound.PAGE.play(player);
+            return;
+        }
+        if (slot >= SkillBindGui.PLAYER_INVENTORY_PASSIVE_SLOT_START
+            && slot < SkillBindGui.PLAYER_INVENTORY_PASSIVE_SLOT_START + SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT) {
+            handleBindSlotClick(player, session, SkillBindType.PASSIVE,
+                session.passiveSlotOffset() + slot - SkillBindGui.PLAYER_INVENTORY_PASSIVE_SLOT_START,
+                page, passiveSkillService.activePassiveSlotCount(AstPlayerCache.get(player)));
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_ACTIVE_PREVIOUS_SLOT) {
+            session.moveActiveSlotOffset(-1, SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT);
+            renderPlayerInventorySettings(player, session);
+            GuiSound.PAGE.play(player);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_INVENTORY_ACTIVE_NEXT_SLOT) {
+            session.moveActiveSlotOffset(1, SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT);
+            renderPlayerInventorySettings(player, session);
+            GuiSound.PAGE.play(player);
+            return;
+        }
+        if (slot >= SkillBindGui.PLAYER_INVENTORY_ACTIVE_SLOT_START
+            && slot < SkillBindGui.PLAYER_INVENTORY_ACTIVE_SLOT_START + SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT) {
+            handleBindSlotClick(player, session, SkillBindType.ACTIVE,
+                session.activeSlotOffset() + slot - SkillBindGui.PLAYER_INVENTORY_ACTIVE_SLOT_START,
+                page, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
+            return;
+        }
+        GuiSound.DENY.play(player);
     }
 
     private void openDetail(
@@ -1112,7 +1149,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return current;
     }
 
-    /** 習得・レベルアップに必要な数量を、BAG/HOTBARのentryごとの支払額へ割り当てます。 */
+    /** 習得・レベルアップに必要な数量を、token所持時はSTORAGEも含めたentryごとの支払額へ割り当てます。 */
     private @Nullable Map<UUID, Long> requiredItemPayments(
         @NotNull AstPlayer player,
         @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> requiredItems
@@ -1137,9 +1174,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             for (Map.Entry<String, Long> requirement : requiredByItem.entrySet()) {
                 ItemModel item = itemById.get(requirement.getKey());
                 long remaining = requirement.getValue();
-                for (InventoryEntryModel candidate : inventoryService.getOwnedStackEntries(
-                    player, item.getCategory(), item.getId())) {
-                    InventoryEntryModel owned = inventoryService.findOwnedEntry(
+                List<InventoryEntryModel> candidates = inventoryService.hasStorageRemoteAccessToken(player.getAccount().getUuid())
+                    ? inventoryService.getOwnedGameStackEntries(player, item.getCategory(), item.getId())
+                    : inventoryService.getOwnedStackEntries(player, item.getCategory(), item.getId());
+                for (InventoryEntryModel candidate : candidates) {
+                    InventoryEntryModel owned = inventoryService.findOwnedGameEntryForSkillPayment(
                         player.getAccount().getUuid(), candidate.getInventoryEntryId());
                     if (owned == null) {
                         continue;
@@ -1277,6 +1316,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (plugin.getGuiNavigationService().openPrevious(player, () -> {
             sessions.remove(player.getUniqueId());
             removeSynthesisSelectionAndRestore(player);
+            restorePlayerInventory(player);
         })) {
             GuiSound.SELECT.play(player);
             return;

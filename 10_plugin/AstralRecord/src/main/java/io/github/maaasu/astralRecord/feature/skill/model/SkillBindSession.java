@@ -17,6 +17,10 @@ public final class SkillBindSession {
     private List<String> passiveDraft;
     private SkillBindType selectedBindType;
     private int selectedBindSlotIndex = -1;
+    /** 下段 PlayerInventory に表示するパッシブ枠の先頭番号です。 */
+    private int passiveSlotOffset;
+    /** 下段 PlayerInventory に表示する発動枠の先頭番号です。 */
+    private int activeSlotOffset;
     /** 習得処理中として一覧上で時計表示するスキル ID です。 */
     private @Nullable String processingSkillId;
 
@@ -133,6 +137,26 @@ public final class SkillBindSession {
         this.selectedBindSlotIndex = -1;
     }
 
+    /** 現在表示するパッシブ枠の先頭番号を返します。 */
+    public int passiveSlotOffset() {
+        return passiveSlotOffset;
+    }
+
+    /** 現在表示する発動枠の先頭番号を返します。 */
+    public int activeSlotOffset() {
+        return activeSlotOffset;
+    }
+
+    /** 下段表示のパッシブ枠を指定量だけ横スクロールします。 */
+    public void movePassiveSlotOffset(int delta, int visibleSlotCount) {
+        passiveSlotOffset = normalizeSlotOffset(passiveSlotOffset + delta, SkillBindPreset.PASSIVE_SLOT_COUNT, visibleSlotCount);
+    }
+
+    /** 下段表示の発動枠を指定量だけ横スクロールします。 */
+    public void moveActiveSlotOffset(int delta, int visibleSlotCount) {
+        activeSlotOffset = normalizeSlotOffset(activeSlotOffset + delta, SkillBindPreset.ACTIVE_SLOT_COUNT, visibleSlotCount);
+    }
+
     /**
      * 選択中スロット、または種別に応じた優先順位で空きスロットへスキルを割り当てます。
      * 発動スキルは action ring の空き枠を優先し、すべて埋まっている場合だけ空の左クリック枠を使用します。
@@ -188,7 +212,7 @@ public final class SkillBindSession {
             targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
             targetIndex = targetType == SkillBindType.PASSIVE
                 ? findNextFreeSlot(passiveDraft, availablePassiveSlotCount)
-                : findNextFreeSlot(activeDraft);
+                : findNextFreeSlot(activeDraft, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
             if (targetIndex < 0 && targetType == SkillBindType.ACTIVE && isLeftClickUnassigned()) {
                 targetType = SkillBindType.LEFT_CLICK;
                 targetIndex = 0;
@@ -198,6 +222,10 @@ public final class SkillBindSession {
         }
         if (targetType == SkillBindType.PASSIVE
             && targetIndex >= Math.max(0, Math.min(availablePassiveSlotCount, passiveDraft.size()))) {
+            return false;
+        }
+        if (targetType == SkillBindType.ACTIVE
+            && targetIndex >= Math.max(0, Math.min(SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT, activeDraft.size()))) {
             return false;
         }
         if (targetType == SkillBindType.PASSIVE
@@ -256,6 +284,8 @@ public final class SkillBindSession {
         this.activeDraft = new ArrayList<>(preset.getActiveSkillSlots());
         this.leftClickDraft = preset.getLeftClickSkillId();
         this.passiveDraft = new ArrayList<>(preset.getPassiveSkillSlots());
+        passiveSlotOffset = 0;
+        activeSlotOffset = 0;
         clearSelectedBindSlot();
     }
 
@@ -337,6 +367,11 @@ public final class SkillBindSession {
         }
         return type == SkillBindType.PASSIVE
             ? SkillBindPreset.PASSIVE_SLOT_COUNT
-            : SkillBindPreset.ACTION_RING_SLOT_COUNT;
+            : SkillBindPreset.ACTIVE_SLOT_COUNT;
+    }
+
+    private static int normalizeSlotOffset(int value, int totalSlotCount, int visibleSlotCount) {
+        int maximum = Math.max(0, totalSlotCount - Math.max(1, visibleSlotCount));
+        return Math.max(0, Math.min(maximum, value));
     }
 }

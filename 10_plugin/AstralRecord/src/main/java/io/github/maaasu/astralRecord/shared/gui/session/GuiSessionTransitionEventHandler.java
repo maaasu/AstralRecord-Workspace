@@ -159,6 +159,8 @@ public final class GuiSessionTransitionEventHandler extends AbstractEventHandler
                 completeContinuationFailure(player, continuation);
                 return;
             }
+            io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(
+                player, event.getSourceInventory());
             event.getTargetOpened().run();
         } catch (RuntimeException exception) {
             completeContinuationFailure(player, continuation);

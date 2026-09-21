@@ -46,7 +46,7 @@ class SkillBindPresetServiceTest {
 
         List<SkillBindPreset> fallback = service.getPresets(accountId);
 
-        assertEquals(6, fallback.size());
+        assertEquals(SkillBindPreset.PRESET_COUNT, fallback.size());
         assertFalse(service.hasLoadedPresets(accountId));
         verify(repository, never()).findByAccountId(accountId);
 
@@ -93,7 +93,7 @@ class SkillBindPresetServiceTest {
 
         JsonArray presets = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
             .getAsJsonArray("presets");
-        assertEquals(6, presets.size());
+        assertEquals(SkillBindPreset.PRESET_COUNT, presets.size());
         for (com.google.gson.JsonElement element : presets) {
             JsonObject preset = element.getAsJsonObject();
             assertTrue(preset.get("expectedVersion").isJsonNull());
@@ -191,7 +191,7 @@ class SkillBindPresetServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
      * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
-     * 検証契約: action ring は6件へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
+     * 検証契約: 発動スロットは保存上限へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
      */
     @Test
     void bindPresetNormalizesActionRingAndUsesWeaponNormalAttackByDefault() {
@@ -203,8 +203,9 @@ class SkillBindPresetServiceTest {
             List.of(), true, true, 1
         );
 
-        assertEquals(6, preset.getActiveSkillSlots().size());
-        assertEquals("six", preset.getActiveSkillSlots().getLast());
+        assertEquals(SkillBindPreset.ACTIVE_SLOT_COUNT, preset.getActiveSkillSlots().size());
+        assertEquals("seven", preset.getActiveSkillSlots().get(6));
+        assertNull(preset.getActiveSkillSlots().getLast());
         assertEquals(SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, preset.getLeftClickSkillId());
     }
 
@@ -319,7 +320,7 @@ class SkillBindPresetServiceTest {
         JsonObject ack = new JsonObject();
         ack.addProperty("clientRevision", snapshot.payload().getAsJsonObject().get("clientRevision").getAsLong());
         JsonArray entries = new JsonArray();
-        for (int index = 1; index <= 6; index++) {
+        for (int index = 1; index <= SkillBindPreset.PRESET_COUNT; index++) {
             JsonObject entry = new JsonObject();
             entry.addProperty("presetIndex", index);
             entry.addProperty("version", version);
@@ -331,7 +332,7 @@ class SkillBindPresetServiceTest {
 
     private List<SkillBindPreset> presets(UUID accountId) {
         List<SkillBindPreset> presets = new ArrayList<>();
-        for (int index = 1; index <= 6; index++) {
+        for (int index = 1; index <= SkillBindPreset.PRESET_COUNT; index++) {
             presets.add(new SkillBindPreset(
                 UUID.randomUUID(),
                 accountId,
@@ -348,7 +349,7 @@ class SkillBindPresetServiceTest {
 
     private List<SkillBindPreset> selectedPresets(UUID accountId, int selectedIndex) {
         List<SkillBindPreset> presets = new ArrayList<>();
-        for (int index = 1; index <= 6; index++) {
+        for (int index = 1; index <= SkillBindPreset.PRESET_COUNT; index++) {
             presets.add(new SkillBindPreset(
                 UUID.randomUUID(), accountId, index,
                 List.of(), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, List.of(),

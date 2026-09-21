@@ -75,6 +75,10 @@ public final class CastDiskGui {
     }
 
     private @NotNull ItemStack actionItem(@NotNull Player player, int index, String skillId, boolean selected) {
+        if (index >= SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
+            return item(Material.GRAY_DYE, "アクション枠 " + (index + 1) + "（未開放）",
+                List.of(Component.text("現在は使用できません", NamedTextColor.GRAY)));
+        }
         Material material = Material.BARRIER;
         String name = "未設定";
         String iconTexture = null;

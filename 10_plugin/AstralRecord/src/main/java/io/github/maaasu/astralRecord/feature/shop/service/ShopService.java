@@ -383,6 +383,16 @@ public final class ShopService {
             .toLowerCase(java.util.Locale.ROOT);
     }
 
+    /**
+     * 素材の消費条件と同じ対象から、必要数に制限しない現在の利用可能数を返します。
+     * @param accountId 閲覧者のアカウント
+     * @param cost 表示する必要素材
+     * @return トークン所持時はストレージも含む利用可能数
+     */
+    public long getOwnedCostAmount(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
+        return getOwnedCostAmount(accountId, cost, inventoryService.hasStorageRemoteAccessToken(accountId));
+    }
+
     private long getOwnedCostAmount(
         @NotNull UUID accountId,
         @NotNull ShopCostItem cost,

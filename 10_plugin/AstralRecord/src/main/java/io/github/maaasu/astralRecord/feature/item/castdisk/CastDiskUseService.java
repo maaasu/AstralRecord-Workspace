@@ -154,6 +154,10 @@ public final class CastDiskUseService {
         CastDiskSettings updated;
         if (rawSlot >= CastDiskGui.ACTION_SLOT_START
             && rawSlot < CastDiskGui.ACTION_SLOT_START + CastDiskSettings.ACTION_SLOT_COUNT) {
+            if (rawSlot - CastDiskGui.ACTION_SLOT_START >= io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             updated = new CastDiskSettings(rawSlot - CastDiskGui.ACTION_SLOT_START, current.weaponHotbarSlot());
         } else if (rawSlot >= CastDiskGui.WEAPON_SLOT_START
             && rawSlot < CastDiskGui.WEAPON_SLOT_START + CastDiskSettings.WEAPON_HOTBAR_SLOT_COUNT) {

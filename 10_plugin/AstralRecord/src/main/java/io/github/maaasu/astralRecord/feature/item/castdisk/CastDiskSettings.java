@@ -3,13 +3,14 @@ package io.github.maaasu.astralRecord.feature.item.castdisk;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** スキルキャストディスク個体へ保存する設定値を扱います。 */
 public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
     /** スキルキャストディスクが参照できるアクションスロット数です。 */
-    public static final int ACTION_SLOT_COUNT = 6;
+    public static final int ACTION_SLOT_COUNT = SkillBindPreset.ACTIVE_SLOT_COUNT;
     /** スキルキャストディスクが参照できる武器ホットバー枠数です。 */
     public static final int WEAPON_HOTBAR_SLOT_COUNT = 9;
 
@@ -17,8 +18,9 @@ public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
     private static final String ACTION_SLOT_KEY = "actionSlot";
     private static final String WEAPON_SLOT_KEY = "weaponHotbarSlot";
 
+    /** @return 初期開放済みのアクティブ枠と有効な武器枠が設定済みならtrue */
     public boolean isComplete() {
-        return actionSlotIndex >= 0 && actionSlotIndex < ACTION_SLOT_COUNT
+        return actionSlotIndex >= 0 && actionSlotIndex < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
             && weaponHotbarSlot >= 0 && weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT;
     }
 
@@ -50,7 +52,7 @@ public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
             root = new JsonObject();
         }
         JsonObject disk = new JsonObject();
-        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < ACTION_SLOT_COUNT) {
+        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
             disk.addProperty(ACTION_SLOT_KEY, settings.actionSlotIndex);
         }
         if (settings.weaponHotbarSlot >= 0 && settings.weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT) {

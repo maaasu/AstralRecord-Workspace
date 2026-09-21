@@ -80,6 +80,7 @@ public final class GuiOpenSupport {
         if (!isPluginGui(source)) {
             player.openInventory(inventory);
             if (player.getOpenInventory().getTopInventory() == inventory) {
+                io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(player, source);
                 onOpened.run();
             } else {
                 onCancelled.run();
@@ -142,6 +143,7 @@ public final class GuiOpenSupport {
         if (player.getOpenInventory().getTopInventory() != target) {
             return false;
         }
+        io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(player, source);
         return true;
     }
 

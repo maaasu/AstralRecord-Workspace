@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /** 習得個体単位でパッシブスキルの有効化状態を管理します。 */
 public final class PassiveSkillService {
     public static final int BASE_PASSIVE_SLOT_COUNT = 5;
-    public static final int MAX_PASSIVE_SLOT_COUNT = 9;
+    public static final int MAX_PASSIVE_SLOT_COUNT = SkillBindPreset.PASSIVE_SLOT_COUNT;
     private static final long TICK_INTERVAL = 1L;
     private static final long CLEANUP_INTERVAL_TICKS = 20L;
     private static final int MAX_DIRTY_RECONCILES_PER_TICK = 2;

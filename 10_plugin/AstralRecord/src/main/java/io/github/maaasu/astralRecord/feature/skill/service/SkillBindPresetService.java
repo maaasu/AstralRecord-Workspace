@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * スキルバインドプリセットの取得と保存を扱います。
  */
 public final class SkillBindPresetService {
-    private static final int PRESET_COUNT = 6;
+    private static final int PRESET_COUNT = SkillBindPreset.PRESET_COUNT;
 
     private final Plugin plugin;
     private final SkillBindPresetRepository repository;
@@ -55,7 +55,7 @@ public final class SkillBindPresetService {
      * アカウントのプリセット一覧を取得します。
      *
      * @param accountId アカウント ID
-     * @return 1 から 6 までのプリセット一覧
+     * @return 1 から {@link SkillBindPreset#PRESET_COUNT} までのプリセット一覧
      */
     public @NotNull List<SkillBindPreset> getPresets(@NotNull UUID accountId) {
         List<SkillBindPreset> cached = presetsByAccount.get(accountId);

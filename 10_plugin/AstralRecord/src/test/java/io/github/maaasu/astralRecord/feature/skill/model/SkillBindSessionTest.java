@@ -17,7 +17,7 @@ class SkillBindSessionTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
      * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
-     * 検証契約: action ring 6枠が設定済みで左クリックバインドが空の場合、未選択の発動スキルは左クリックバインドへ設定される。
+     * 検証契約: 発動スロット全枠が設定済みで左クリックバインドが空の場合、未選択の発動スキルは左クリックバインドへ設定される。
      */
     @Test
     void assignsActiveSkillToUnassignedLeftClickAfterActionRingIsFull() {
@@ -25,7 +25,8 @@ class SkillBindSessionTest {
             null,
             UUID.randomUUID(),
             1,
-            List.of("active-1", "active-2", "active-3", "active-4", "active-5", "active-6"),
+            List.of("active-1", "active-2", "active-3", "active-4", "active-5", "active-6",
+                "active-7", "active-8", "active-9"),
             null,
             List.of(),
             true,
@@ -33,9 +34,12 @@ class SkillBindSessionTest {
             1
         )));
 
-        assertTrue(session.assignSelectedOrNextSlot("active-7", SkillKind.ACTIVE));
+        assertTrue(session.assignSelectedOrNextSlot("active-13", SkillKind.ACTIVE));
 
-        assertEquals("active-7", session.leftClickDraft());
+        assertEquals("active-13", session.leftClickDraft());
+        assertNull(session.activeDraft().get(9));
+        assertFalse(session.assignSelectedOrNextSlot("locked-overflow", SkillKind.ACTIVE));
+        assertNull(session.activeDraft().get(11));
     }
 
     /**

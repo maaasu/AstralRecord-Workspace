@@ -11,8 +11,16 @@ import java.util.UUID;
  * スキルバインドプリセットの API モデルです。
  */
 public final class SkillBindPreset {
-    public static final int ACTION_RING_SLOT_COUNT = 6;
-    public static final int PASSIVE_SLOT_COUNT = 9;
+    /** 永続化する発動スキル枠数です。アクションリング外のディスク用枠を含みます。 */
+    public static final int ACTIVE_SLOT_COUNT = 12;
+    /** アクションリングへ表示・発動できる先頭発動枠数です。 */
+    public static final int ACTION_RING_SLOT_COUNT = 8;
+    /** 初期状態で設定可能な発動スキル枠数です。 */
+    public static final int DEFAULT_ACTIVE_SLOT_COUNT = 9;
+    /** 永続化するパッシブスキル枠数です。 */
+    public static final int PASSIVE_SLOT_COUNT = 12;
+    /** 永続化するプリセット数です。 */
+    public static final int PRESET_COUNT = 9;
     public static final String WEAPON_NORMAL_ATTACK_BINDING_ID = "__weapon_normal_attack__";
 
     private final UUID presetId;
@@ -148,7 +156,7 @@ public final class SkillBindPreset {
     }
 
     public static @NotNull List<String> normalizeActionRingSlots(@NotNull List<String> slots) {
-        return normalizeSlots(slots, ACTION_RING_SLOT_COUNT);
+        return normalizeSlots(slots, ACTIVE_SLOT_COUNT);
     }
 
     public static @NotNull List<String> normalizePassiveSlots(@NotNull List<String> slots) {

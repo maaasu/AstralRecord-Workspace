@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.shop.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
@@ -110,7 +111,7 @@ public final class ShopGui {
                 }
                 inventory.setItem(
                     guiSlot,
-                    createShopItem(model, shop, entry)
+                    createShopItem(model, shop, entry, player)
                 );
             });
         renderPagination(inventory, shop, normalizedPage);
@@ -193,7 +194,7 @@ public final class ShopGui {
             Material.EMERALD,
             isExchange(shop) ? "両替一覧" : "商品一覧"
         )));
-        inventory.setItem(BUY_SLOT, buyItem(shop, entry, preview));
+        inventory.setItem(BUY_SLOT, buyItem(shop, entry, preview, player));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -261,7 +262,8 @@ public final class ShopGui {
     private @NotNull ItemStack createShopItem(
         @NotNull ItemModel model,
         @NotNull ShopDefinition shop,
-        @NotNull ShopEntry entry
+        @NotNull ShopEntry entry,
+        @NotNull Player player
     ) {
         int displayAmount = Math.max(1, entry.amount());
         ItemStack itemStack = itemStackFactory.createShopDisplay(model, displayAmount);
@@ -284,7 +286,7 @@ public final class ShopGui {
                 .decoration(TextDecoration.ITALIC, false));
         }
         lore.add(sectionHeader(costSectionTitle(exchange, requiredItems)));
-        appendMaterialList(lore, requiredItems, "なし", NamedTextColor.AQUA);
+        appendOwnedMaterialList(lore, requiredItems, player);
         lore.add(Component.empty());
         lore.add(Component.text(
                 exchange ? "クリックで両替確認へ" : "クリックで購入確認へ",
@@ -300,7 +302,8 @@ public final class ShopGui {
     private @NotNull ItemStack buyItem(
         @NotNull ShopDefinition shop,
         @NotNull ShopEntry entry,
-        @NotNull ShopPurchasePreview preview
+        @NotNull ShopPurchasePreview preview,
+        @NotNull Player player
     ) {
         boolean exchange = isExchange(shop);
         Material material = preview.canPurchase() ? Material.GREEN_TERRACOTTA : Material.RED_TERRACOTTA;
@@ -325,7 +328,7 @@ public final class ShopGui {
                 .decoration(TextDecoration.ITALIC, false));
         }
         lore.add(sectionHeader(costSectionTitle(exchange, preview.requiredItems())));
-        appendMaterialList(lore, preview.requiredItems(), "なし", NamedTextColor.AQUA);
+        appendOwnedMaterialList(lore, preview.requiredItems(), player);
         if (!preview.canPurchase() && !preview.missingItems().isEmpty()) {
             lore.add(sectionHeader(missingCostSectionTitle(exchange, preview)));
             appendMaterialList(lore, preview.missingItems(), "不足なし", NamedTextColor.RED);
@@ -503,6 +506,25 @@ public final class ShopGui {
             lore.add(Component.text("• ", accentColor)
                 .append(Component.text(shopService.resolveItemDisplayName(material), NamedTextColor.WHITE))
                 .append(Component.text(" " + quantityText(material.amount()), accentColor))
+                .decoration(TextDecoration.ITALIC, false));
+        }
+    }
+
+    /** 一覧・購入確認の必要素材に、閲覧者の実際の所持数を灰色括弧で併記します。 */
+    private void appendOwnedMaterialList(@NotNull List<Component> lore,
+        @NotNull List<ShopCostItem> requiredItems, @NotNull Player player) {
+        if (requiredItems.isEmpty()) {
+            lore.add(Component.text("• なし", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+            return;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        for (ShopCostItem required : requiredItems) {
+            long owned = astPlayer == null ? 0L
+                : shopService.getOwnedCostAmount(astPlayer.getAccount().getUuid(), required);
+            lore.add(Component.text("• ", NamedTextColor.AQUA)
+                .append(Component.text(shopService.resolveItemDisplayName(required), NamedTextColor.WHITE))
+                .append(Component.text(" ×" + quantityText(required.amount()), NamedTextColor.AQUA))
+                .append(Component.text(" （所持: " + owned + "）", NamedTextColor.GRAY))
                 .decoration(TextDecoration.ITALIC, false));
         }
     }

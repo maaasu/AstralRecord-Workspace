@@ -388,29 +388,20 @@ public class InventoryService {
             if (currentReservations.containsKey(operationId)) {
                 return true;
             }
-            Map<String, Long> itemAmounts = new LinkedHashMap<>();
-            try {
-                for (Map.Entry<UUID, Long> entry : normalizedEntries.entrySet()) {
-                    InventoryEntryModel owned = findOwnedEntry(accountId, entry.getKey());
-                    if (owned == null || !isNormalItemEntry(owned) || owned.getQuantity() < entry.getValue()) {
-                        return false;
-                    }
-                    itemAmounts.merge(
-                        owned.getItemId().trim().toLowerCase(Locale.ROOT),
-                        entry.getValue(),
-                        Math::addExact
-                    );
-                }
-            } catch (ArithmeticException overflow) {
+            if (!hasAvailableEntryPayment(accountId, normalizedEntries, currentReservations.values())) {
                 return false;
             }
-            if (!hasAvailablePayment(currentReservations.values(), itemAmounts, 0L, accountId)) {
-                return false;
+            Map<String, Long> normalItemAmounts = new LinkedHashMap<>();
+            for (Map.Entry<UUID, Long> required : normalizedEntries.entrySet()) {
+                InventoryEntryModel owned = findOwnedGameEntryForSkillPayment(accountId, required.getKey());
+                if (owned != null && !isStorageEntry(accountId, owned)) {
+                    normalItemAmounts.merge(owned.getItemId().trim().toLowerCase(Locale.ROOT),
+                        required.getValue(), this::addAmountsSaturated);
+                }
             }
             currentReservations.put(
                 operationId,
-                new OrbPaymentReservation(
-                    operationId, state, Map.copyOf(itemAmounts), Map.copyOf(normalizedEntries), true, 0L)
+                new OrbPaymentReservation(operationId, state, Map.copyOf(normalItemAmounts), Map.copyOf(normalizedEntries), true, 0L)
             );
             return true;
         }
@@ -604,11 +595,15 @@ public class InventoryService {
                 InventoryStateSnapshot before = snapshotState(accountId);
                 boolean committed = false;
                 try {
-                    if (!hasAvailablePayment(reservations.values(), payment.normalItemAmounts(),
+                    if (payment.baselineAllocated()) {
+                        if (!hasAvailableEntryPayment(accountId, payment.normalEntryAmounts(), reservations.values())) {
+                            return false;
+                        }
+                    } else if (!hasAvailablePayment(reservations.values(), payment.normalItemAmounts(),
                         payment.goldAmount(), accountId)) return false;
                     if (payment.baselineAllocated()) {
                         for (Map.Entry<UUID, Long> required : payment.normalEntryAmounts().entrySet()) {
-                            InventoryEntryModel entry = findOwnedEntry(accountId, required.getKey());
+                            InventoryEntryModel entry = findOwnedGameEntryForSkillPayment(accountId, required.getKey());
                             if (entry == null || entry.getQuantity() - reservedEntryAmount(accountId,
                                 required.getKey()) < required.getValue()) return false;
                             if (entry.getQuantity() <= required.getValue()) {
@@ -794,6 +789,41 @@ public class InventoryService {
                 }
             }
             return getGoldAmount(accountId) >= Math.addExact(alreadyReservedGold, requestedGold);
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+    }
+
+    /**
+     * entry を確定済みのローカル mutation 用に、予約済み数量を除いた個別数量を検証します。
+     * 通常のorb支払いには使わず、STORAGEを含むスキル素材の確定entryだけを許可します。
+     */
+    private boolean hasAvailableEntryPayment(
+        @NotNull UUID accountId,
+        @NotNull Map<UUID, Long> requestedEntries,
+        @NotNull Collection<OrbPaymentReservation> existingReservations
+    ) {
+        try {
+            Map<UUID, Long> alreadyReserved = new LinkedHashMap<>();
+            for (OrbPaymentReservation reservation : existingReservations) {
+                reservation.normalEntryAmounts().forEach((entryId, amount) ->
+                    alreadyReserved.merge(entryId, amount, Math::addExact));
+            }
+            for (Map.Entry<UUID, Long> requested : requestedEntries.entrySet()) {
+                InventoryEntryModel owned = findOwnedGameEntryForSkillPayment(accountId, requested.getKey());
+                if (owned != null && !isStorageEntry(accountId, owned)
+                    && existingReservations.stream().anyMatch(reservation -> !reservation.baselineAllocated()
+                        && reservation.normalItemAmounts().containsKey(owned.getItemId().trim().toLowerCase(Locale.ROOT)))) {
+                    return false;
+                }
+                if (owned == null || !isNormalItemEntry(owned)
+                    || isStorageEntry(accountId, owned) && !hasStorageRemoteAccessToken(accountId)
+                    || owned.getQuantity() < Math.addExact(
+                        alreadyReserved.getOrDefault(requested.getKey(), 0L), requested.getValue())) {
+                    return false;
+                }
+            }
+            return true;
         } catch (ArithmeticException overflow) {
             return false;
         }
@@ -2379,6 +2409,9 @@ public class InventoryService {
         @NotNull InventoryType inventoryType,
         boolean captureCurrentSnapshots
     ) {
+        if (io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.renderIfActive(astPlayer.getBukkit())) {
+            return;
+        }
         if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return;
         }
@@ -2432,6 +2465,9 @@ public class InventoryService {
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory
     ) {
+        if (io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.renderIfActive(astPlayer.getBukkit())) {
+            return;
+        }
         List<InventoryEntryModel> entries = displayEntriesForGui(
             state,
             inventory,
@@ -3031,7 +3067,7 @@ public class InventoryService {
 
     /**
      * ショップ決済に使用できる通常アイテムを、BAG・HOTBAR・STORAGEから合算します。
-     * オーブ操作で予約済みのBAG・HOTBAR数量は合算せず、STORAGEは予約対象外として扱います。
+     * BAG・HOTBARの予約済み数量と、STORAGEの素材支払い予約済み数量は合算しません。
      *
      * @param accountId 対象アカウントID
      * @param itemId 対象アイテムID
@@ -3051,7 +3087,16 @@ public class InventoryService {
         }
         synchronized (state) {
             long ownedAmount = getSpendableNormalItemAmount(accountId, normalizedItemId);
-            long storageAmount = getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+            InventoryModel storage = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+            long storageAmount = 0L;
+            if (storage != null && storage.isEnabled() && !storage.isDeleted()) {
+                for (InventoryEntryModel entry : state.snapshotEntries(storage.getInventoryId())) {
+                    if (!entry.isDeleted() && normalizedItemId.equalsIgnoreCase(entry.getItemId())) {
+                        storageAmount = addAmountsSaturated(storageAmount, Math.max(0L,
+                            entry.getQuantity() - reservedEntryAmount(accountId, entry.getInventoryEntryId())));
+                    }
+                }
+            }
             return addAmountsSaturated(ownedAmount, storageAmount);
         }
     }
@@ -3249,6 +3294,66 @@ public class InventoryService {
             }
             return null;
         }
+    }
+
+    /**
+     * BAG/HOTBAR に加えて、リモートアクセス権があるスキル素材支払いで使う STORAGE も検索します。
+     * 一般のGUI操作の所有entry探索を広げないため、明示的なlocal mutationだけがこのAPIを使用します。
+     */
+    public @Nullable InventoryEntryModel findOwnedGameEntryForSkillPayment(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.STORAGE)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
+                    continue;
+                }
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    if (!entry.isDeleted() && entry.getInventoryEntryId().equals(inventoryEntryId)) {
+                        return entry;
+                    }
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 習得・強化の支払い候補と同じ対象の、予約を除く素材所持数を返します。
+     * @param accountId 対象アカウント
+     * @param itemId 素材ID
+     * @return トークン所持時だけSTORAGEを含めた数量
+     */
+    public long getOwnedSkillMaterialAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return 0L;
+        synchronized (state) {
+            long amount = 0L;
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.STORAGE)) {
+                if (type == InventoryType.STORAGE && !hasStorageRemoteAccessToken(accountId)) continue;
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) continue;
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    if (!entry.isDeleted() && isNormalItemEntry(entry) && itemId.equalsIgnoreCase(entry.getItemId())) {
+                        amount = addAmountsSaturated(amount, Math.max(0L,
+                            entry.getQuantity() - reservedEntryAmount(accountId, entry.getInventoryEntryId())));
+                    }
+                }
+            }
+            return amount;
+        }
+    }
+
+    private boolean isStorageEntry(@NotNull UUID accountId, @NotNull InventoryEntryModel entry) {
+        PlayerInventoryState state = getState(accountId);
+        InventoryModel inventory = state == null ? null : state.findInventoryById(entry.getInventoryId());
+        return inventory != null && inventory.getInventoryType() == InventoryType.STORAGE;
     }
 
     /**
@@ -5674,6 +5779,9 @@ public class InventoryService {
     }
 
     private void renderHotbarInventory(@NotNull AstPlayer astPlayer) {
+        if (io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.renderIfActive(astPlayer.getBukkit())) {
+            return;
+        }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return;

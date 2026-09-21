@@ -54,7 +54,7 @@ class SkillBindPresetRepository {
             presetId,
             accountId,
             obj.get("presetIndex").asInt,
-            parseSlots(obj.getAsJsonArray("activeSkillSlots"), SkillBindPreset.ACTION_RING_SLOT_COUNT),
+            parseSlots(obj.getAsJsonArray("activeSkillSlots"), SkillBindPreset.ACTIVE_SLOT_COUNT),
             obj.get("leftClickSkillId")?.takeUnless { it.isJsonNull }?.asString,
             parseSlots(obj.getAsJsonArray("passiveSkillSlots"), SkillBindPreset.PASSIVE_SLOT_COUNT),
             obj.get("isUnlocked")?.asBoolean ?: false,

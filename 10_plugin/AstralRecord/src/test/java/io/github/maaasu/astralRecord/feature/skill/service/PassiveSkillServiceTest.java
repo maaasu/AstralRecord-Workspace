@@ -30,7 +30,7 @@ class PassiveSkillServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## パッシブスロット
-     * 検証契約: 基本5枠へPASSIVE_SKILL_SLOTSを1値1枠で加え、負数を無視し最大9枠に制限する。
+     * 検証契約: 基本5枠へPASSIVE_SKILL_SLOTSを1値1枠で加え、負数を無視し保存上限に制限する。
      */
     @Test
     void activePassiveSlotCountUsesBaseFiveAndCapsStatusBonusAtNine() {
@@ -49,7 +49,7 @@ class PassiveSkillServiceTest {
 
         assertEquals(5, service.activePassiveSlotCount(player));
         assertEquals(7, service.activePassiveSlotCount(player));
-        assertEquals(9, service.activePassiveSlotCount(player));
+        assertEquals(SkillBindPreset.PASSIVE_SLOT_COUNT, service.activePassiveSlotCount(player));
     }
 
     /**

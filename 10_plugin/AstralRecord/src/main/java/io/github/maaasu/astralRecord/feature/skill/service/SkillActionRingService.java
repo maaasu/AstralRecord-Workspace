@@ -515,6 +515,7 @@ public final class SkillActionRingService {
             return List.of();
         }
         return preset.getActiveSkillSlots().stream()
+            .limit(SLOT_COUNT)
             .filter(skillId -> skillId != null && !skillId.isBlank())
             .toList();
     }
@@ -609,7 +610,7 @@ public final class SkillActionRingService {
         int weaponHotbarSlot,
         @Nullable Consumer<SkillCastResult> completionListener
     ) {
-        if (actionSlotIndex < 0 || actionSlotIndex >= SLOT_COUNT
+        if (actionSlotIndex < 0 || actionSlotIndex >= SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
             || weaponHotbarSlot < 0 || weaponHotbarSlot > 8) {
             return false;
         }

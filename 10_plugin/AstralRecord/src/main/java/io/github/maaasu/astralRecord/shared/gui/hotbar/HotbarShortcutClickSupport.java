@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGua
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.PlayerInventory;
@@ -35,6 +36,9 @@ public final class HotbarShortcutClickSupport {
         @NotNull InventoryService inventoryService
     ) {
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        if (PlayerInventoryOverlaySupport.isActive(event.getView().getTopInventory())) {
             return false;
         }
         int slot = event.getSlot();
@@ -78,6 +82,7 @@ public final class HotbarShortcutClickSupport {
         @NotNull Player player,
         @NotNull InventoryService inventoryService
     ) {
+        if (PlayerInventoryOverlaySupport.isActive(event.getView().getTopInventory())) return false;
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
             return false;
         }

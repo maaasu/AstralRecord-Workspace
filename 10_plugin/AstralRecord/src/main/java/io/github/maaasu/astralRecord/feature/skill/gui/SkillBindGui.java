@@ -39,6 +39,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -51,21 +52,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.ToLongBiFunction;
 
 /** 習得済みスキルの表示・バインドを扱うスキルマネージャー GUI です。 */
 public final class SkillBindGui {
     public static final int SIZE = 54;
-    /** 通常攻撃を slot 0 に常設するため、一覧の 1 ページ容量は 26 件です。 */
+    /** スキル一覧の1ページ容量です。設定枠は下段へ表示します。 */
     public static final int CONTENT_SLOT_COUNT = 26;
-    public static final int PASSIVE_BIND_SLOT_START = 45;
-    public static final int NORMAL_ATTACK_SLOT = 0;
-    public static final int LEFT_CLICK_BIND_SLOT = 37;
-    public static final int ACTION_RING_BIND_SLOT_START = 39;
     public static final int PREVIOUS_PAGE_SLOT = 27;
-    public static final int PRESET_SLOT_START = 28;
     public static final int BACK_SLOT = 31;
     public static final int NEXT_PAGE_SLOT = 35;
-    public static final int PRESET_COUNT = 6;
+    /** 下段 PlayerInventory に同時表示する横スクロール枠数です。 */
+    public static final int PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT = 7;
+    public static final int PLAYER_INVENTORY_LEFT_CLICK_SLOT = 9;
+    public static final int PLAYER_INVENTORY_NORMAL_ATTACK_SLOT = 17;
+    public static final int PLAYER_INVENTORY_PASSIVE_PREVIOUS_SLOT = 18;
+    public static final int PLAYER_INVENTORY_PASSIVE_SLOT_START = 19;
+    public static final int PLAYER_INVENTORY_PASSIVE_NEXT_SLOT = 26;
+    public static final int PLAYER_INVENTORY_ACTIVE_PREVIOUS_SLOT = 27;
+    public static final int PLAYER_INVENTORY_ACTIVE_SLOT_START = 28;
+    public static final int PLAYER_INVENTORY_ACTIVE_NEXT_SLOT = 35;
 
     public static final int DETAIL_SIZE = 27;
     public static final int DETAIL_BIND_SLOT = 11;
@@ -85,6 +91,7 @@ public final class SkillBindGui {
     private final ItemService itemService;
     private final SkillService skillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
+    private ToLongBiFunction<UUID, String> requiredItemOwnedAmountProvider = (accountId, itemId) -> 0L;
 
     /**
      * Plugin の namespace を利用してスキルマネージャー GUI を構築します。
@@ -103,6 +110,14 @@ public final class SkillBindGui {
         dummyKey = new NamespacedKey(plugin, "skill_manager_dummy");
         this.itemService = itemService;
         this.skillService = skillService;
+    }
+
+    /**
+     * 必要素材の所持数をアカウントごとに解決する関数を初期化時に設定します。
+     * @param provider アカウントIDと素材IDから所持数を返す関数
+     */
+    public void setRequiredItemOwnedAmountProvider(@NotNull ToLongBiFunction<UUID, String> provider) {
+        requiredItemOwnedAmountProvider = provider;
     }
 
     /**
@@ -176,7 +191,9 @@ public final class SkillBindGui {
         int page = normalizePage(pageIndex, displayCount);
         int pages = totalPages(displayCount);
         Inventory inventory = Bukkit.createInventory(
-            new SkillBindInventoryHolder(SkillBindScreen.MAIN, session.selectedPresetIndex(), page),
+            new SkillBindInventoryHolder(SkillBindScreen.MAIN, session.selectedPresetIndex(), page, "", -1, "",
+                player -> renderPlayerInventorySettings(player.getInventory(), session, entryByBindingId,
+                    permittedSkillDefinitions, activePassiveSlots)),
             SIZE,
             Component.text("スキルマネージャー " + (page + 1) + "/" + pages, NamedTextColor.AQUA)
         );
@@ -184,54 +201,15 @@ public final class SkillBindGui {
 
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, displayCount, CONTENT_SLOT_COUNT);
-        int contentSlotOffset = contentSlotOffset(page, session.selectedBindType());
         for (int index = start; index < end; index++) {
-            inventory.setItem(index - start + contentSlotOffset, index < entries.size()
+            inventory.setItem(index - start, index < entries.size()
                 ? createLearnedSkillItem(entries.get(index), true, permittedSkillIds)
                 : createUnlearnedSkillItem(
-                    unlearnedDefinitions.get(index - entries.size()), session.processingSkillId(), permittedSkillIds));
-        }
-
-        for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
-            inventory.setItem(
-                PASSIVE_BIND_SLOT_START + index,
-                createBindSlot(
-                    SkillBindType.PASSIVE,
-                    index,
-                    session.passiveDraft().get(index),
-                    entryByBindingId,
-                    permittedSkillDefinitions,
-                    session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
-                    index < activePassiveSlots
-                )
-            );
-        }
-        if (shouldShowNormalAttack(page, session.selectedBindType())) {
-            inventory.setItem(NORMAL_ATTACK_SLOT, createNormalAttackItem());
-        }
-        inventory.setItem(
-            LEFT_CLICK_BIND_SLOT,
-            createBindSlot(
-                SkillBindType.LEFT_CLICK, 0, session.leftClickDraft(), entryByBindingId, permittedSkillDefinitions,
-                session.isSelectedBindSlot(SkillBindType.LEFT_CLICK, 0), true
-            )
-        );
-        for (int index = 0; index < SkillBindPreset.ACTION_RING_SLOT_COUNT; index++) {
-            inventory.setItem(
-                ACTION_RING_BIND_SLOT_START + index,
-                createBindSlot(
-                    SkillBindType.ACTIVE, index, session.activeDraft().get(index), entryByBindingId,
-                    permittedSkillDefinitions,
-                    session.isSelectedBindSlot(SkillBindType.ACTIVE, index), true
-                )
-            );
+                    unlearnedDefinitions.get(index - entries.size()), session.processingSkillId(), permittedSkillIds,
+                    session.selectedPreset().getAccountId()));
         }
 
         inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
-        for (int presetIndex = 1; presetIndex <= PRESET_COUNT; presetIndex++) {
-            SkillBindPreset preset = session.presets().get(presetIndex - 1);
-            inventory.setItem(presetSlot(presetIndex), createPresetItem(preset, presetIndex == session.selectedPresetIndex()));
-        }
         inventory.setItem(BACK_SLOT, GuiItems.backButton(new GuiNavigationDestination(
             Material.PLAYER_HEAD,
             "メニュー",
@@ -525,48 +503,6 @@ public final class SkillBindGui {
         return GuiPagination.totalPages(count, CONTENT_SLOT_COUNT);
     }
 
-    public static int presetSlot(int presetIndex) {
-        return switch (presetIndex) {
-            case 1, 2, 3 -> PRESET_SLOT_START + presetIndex - 1;
-            case 4, 5, 6 -> PRESET_SLOT_START + presetIndex;
-            default -> -1;
-        };
-    }
-
-    public static int presetIndexAtSlot(int slot) {
-        return switch (slot) {
-            case 28, 29, 30 -> slot - PRESET_SLOT_START + 1;
-            case 32, 33, 34 -> slot - PRESET_SLOT_START;
-            default -> -1;
-        };
-    }
-
-    /** パッシブ枠の設定中は、設定不能な通常攻撃を一覧から除外します。 */
-    public static boolean shouldShowNormalAttack(@Nullable SkillBindType selectedBindType) {
-        return selectedBindType != SkillBindType.PASSIVE;
-    }
-
-    /**
-     * 通常攻撃を現在の一覧ページへ表示するか判定します。
-     *
-     * @param pageIndex 0 始まりの一覧ページ番号
-     * @param selectedBindType 選択中のバインド種別
-     * @return 1ページ目で、通常攻撃を設定可能な場合は {@code true}
-     */
-    public static boolean shouldShowNormalAttack(int pageIndex, @Nullable SkillBindType selectedBindType) {
-        return pageIndex == 0 && shouldShowNormalAttack(selectedBindType);
-    }
-
-    /**
-     * スキル一覧の描画開始位置を返します。
-     *
-     * @param pageIndex 0 始まりの一覧ページ番号
-     * @param selectedBindType 選択中のバインド種別
-     * @return 通常攻撃を表示する場合は 1、それ以外は 0
-     */
-    public static int contentSlotOffset(int pageIndex, @Nullable SkillBindType selectedBindType) {
-        return shouldShowNormalAttack(pageIndex, selectedBindType) ? 1 : 0;
-    }
 
     /**
      * スキル名に続くレベル表示を生成します。
@@ -620,7 +556,8 @@ public final class SkillBindGui {
     private ItemStack createUnlearnedSkillItem(
         @NotNull SkillDefinition skill,
         @Nullable String processingSkillId,
-        @NotNull Set<String> permittedSkillIds
+        @NotNull Set<String> permittedSkillIds,
+        @NotNull UUID accountId
     ) {
         if (processingSkillId != null && processingSkillId.equalsIgnoreCase(skill.getId())) {
             return GuiItems.processingItem();
@@ -631,7 +568,7 @@ public final class SkillBindGui {
         ));
         lore.add(separator());
         lore.add(Component.text("未習得", NamedTextColor.RED));
-        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材");
+        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材", accountId);
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
         ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore,
@@ -645,7 +582,8 @@ public final class SkillBindGui {
     private void appendRequiredItemLore(
         @NotNull List<Component> lore,
         @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> costs,
-        @NotNull String label
+        @NotNull String label,
+        @NotNull UUID accountId
     ) {
         if (costs.isEmpty()) {
             lore.add(Component.text(label + ":", NamedTextColor.AQUA));
@@ -658,7 +596,9 @@ public final class SkillBindGui {
             Component name = item == null ? Component.text("未登録の素材", NamedTextColor.RED)
                 : SkillPresentationUtil.itemNameComponent(item, item.getId(), NamedTextColor.WHITE);
             lore.add(Component.text("• ", NamedTextColor.AQUA).append(name)
-                .append(Component.text(" ×" + cost.getAmount(), NamedTextColor.AQUA)));
+                .append(Component.text(" ×" + cost.getAmount(), NamedTextColor.AQUA))
+                .append(Component.text(" （所持: " + Math.max(0L,
+                    requiredItemOwnedAmountProvider.applyAsLong(accountId, cost.getItemId())) + "）", NamedTextColor.GRAY)));
         }
     }
 
@@ -703,7 +643,7 @@ public final class SkillBindGui {
                 "次のレベル: Lv." + currentLevel + " → Lv." + (currentLevel + 1),
                 NamedTextColor.AQUA
             ));
-            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要な素材");
+            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要な素材", entry.learnedSkill().getAccountId());
         }
         lore.add(separator());
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
@@ -853,6 +793,10 @@ public final class SkillBindGui {
         };
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text(enabled ? "有効枠" : "現在は無効な枠", enabled ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (type == SkillBindType.ACTIVE) {
+            lore.add(Component.text(index < SkillBindPreset.ACTION_RING_SLOT_COUNT
+                ? "アクションリング: 表示対象" : "アクションリング: 非表示（キャストディスク等で使用）", NamedTextColor.GRAY));
+        }
         if (!enabled && bindingId != null) {
             lore.add(Component.text("設定は保持されますが機能しません。解除のみ可能です。", NamedTextColor.RED));
         } else if (bindingId == null) {
@@ -993,9 +937,10 @@ public final class SkillBindGui {
         return skillIconMaterial(entry);
     }
 
-    private ItemStack createNormalAttackItem() {
+    /** 下段右端へ表示する武器通常攻撃の設定アイテムを生成します。 */
+    public ItemStack createNormalAttackItem() {
         return withBindingId(createItem(
-            Material.IRON_SWORD,
+            Material.STICK,
             "武器通常攻撃",
             NamedTextColor.WHITE,
             List.of(
@@ -1031,6 +976,65 @@ public final class SkillBindGui {
         );
         item.setAmount(preset.getPresetIndex());
         return selected ? glow(item) : item;
+    }
+
+    /**
+     * スキルマネージャー用に、開いている PlayerInventory の管理領域を設定枠へ置き換えます。
+     * 正本の BAG/HOTBAR は変更せず、閉じる際は InventoryService の通常描画で復元します。
+     */
+    public void renderPlayerInventorySettings(
+        @NotNull PlayerInventory inventory,
+        @NotNull SkillBindSession session,
+        @NotNull Map<String, SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
+        int activePassiveSlots
+    ) {
+        ItemStack background = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", NamedTextColor.DARK_GRAY, List.of());
+        for (int slot = 0; slot <= PLAYER_INVENTORY_ACTIVE_NEXT_SLOT; slot++) {
+            inventory.setItem(slot, background.clone());
+        }
+        for (int presetIndex = 1; presetIndex <= SkillBindPreset.PRESET_COUNT; presetIndex++) {
+            SkillBindPreset preset = session.presets().get(presetIndex - 1);
+            inventory.setItem(presetIndex - 1, createPresetItem(preset, presetIndex == session.selectedPresetIndex()));
+        }
+        inventory.setItem(PLAYER_INVENTORY_LEFT_CLICK_SLOT, createBindSlot(
+            SkillBindType.LEFT_CLICK, 0, session.leftClickDraft(), entries, permittedSkillDefinitions,
+            session.isSelectedBindSlot(SkillBindType.LEFT_CLICK, 0), true
+        ));
+        inventory.setItem(PLAYER_INVENTORY_NORMAL_ATTACK_SLOT, createNormalAttackItem());
+        renderScrolledBindSlots(inventory, PLAYER_INVENTORY_PASSIVE_PREVIOUS_SLOT,
+            PLAYER_INVENTORY_PASSIVE_SLOT_START, PLAYER_INVENTORY_PASSIVE_NEXT_SLOT, SkillBindType.PASSIVE,
+            session.passiveSlotOffset(), SkillBindPreset.PASSIVE_SLOT_COUNT, activePassiveSlots,
+            session.passiveDraft(), session, entries, permittedSkillDefinitions, "パッシブ");
+        renderScrolledBindSlots(inventory, PLAYER_INVENTORY_ACTIVE_PREVIOUS_SLOT,
+            PLAYER_INVENTORY_ACTIVE_SLOT_START, PLAYER_INVENTORY_ACTIVE_NEXT_SLOT, SkillBindType.ACTIVE,
+            session.activeSlotOffset(), SkillBindPreset.ACTIVE_SLOT_COUNT, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT,
+            session.activeDraft(), session, entries, permittedSkillDefinitions, "アクション");
+    }
+
+    private void renderScrolledBindSlots(
+        @NotNull PlayerInventory inventory, int previousSlot, int firstBindSlot, int nextSlot,
+        @NotNull SkillBindType type, int offset, int totalSlotCount, int enabledSlotCount,
+        @NotNull List<String> bindings, @NotNull SkillBindSession session,
+        @NotNull Map<String, SkillManagerEntry> entries, @NotNull List<SkillDefinition> permittedDefinitions,
+        @NotNull String label
+    ) {
+        boolean previousEnabled = offset > 0;
+        boolean nextEnabled = offset + PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT < totalSlotCount;
+        inventory.setItem(previousSlot, scrollButton(label + "を左へ", previousEnabled));
+        inventory.setItem(nextSlot, scrollButton(label + "を右へ", nextEnabled));
+        for (int displayIndex = 0; displayIndex < PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT; displayIndex++) {
+            int index = offset + displayIndex;
+            inventory.setItem(firstBindSlot + displayIndex, createBindSlot(type, index, bindings.get(index), entries,
+                permittedDefinitions, session.isSelectedBindSlot(type, index), index < enabledSlotCount));
+        }
+    }
+
+    private ItemStack scrollButton(@NotNull String name, boolean enabled) {
+        return createItem(enabled ? Material.ARROW : Material.GRAY_DYE, name,
+            enabled ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY,
+            List.of(Component.text(enabled ? "クリックで1枠移動" : "これ以上操作できません",
+                enabled ? NamedTextColor.YELLOW : NamedTextColor.RED)));
     }
 
     private ItemStack createMaterialItem(ItemModel material) {
