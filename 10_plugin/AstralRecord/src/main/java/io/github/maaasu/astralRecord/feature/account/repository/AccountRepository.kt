@@ -111,6 +111,7 @@ class AccountRepository {
      * POST /api/account
      */
     fun insert(model: AccountModel): AccountModel {
+        require(model.slotIndex in 0..99) { "Account slot must be between 0 and 99" }
         val path = "/api/account"
         val body = buildAccountJson(model)
         try {

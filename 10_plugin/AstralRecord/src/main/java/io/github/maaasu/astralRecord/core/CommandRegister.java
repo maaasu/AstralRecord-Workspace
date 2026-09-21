@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.core;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
+import io.github.maaasu.astralRecord.feature.account.command.AccountCloneCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountDeleteCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompleter;
@@ -186,6 +187,14 @@ public class CommandRegister {
      */
     public AccountSwitchCommand getAccountSwitchCommand() {
         return accountCommand.getSwitchCommand();
+    }
+
+    /**
+     * 複製中の操作凍結を管理するイベントハンドラを取得します。
+     * @return 登録済みアカウント複製コマンド
+     */
+    public AccountCloneCommand getAccountCloneCommand() {
+        return accountCommand.getCloneCommand();
     }
 
     public final void registerCommand() {

@@ -16,12 +16,14 @@ public class AccountCommand extends AstCommand {
     private final AccountSwitchCommand switchCommand = new AccountSwitchCommand();
     private final AccountRenameCommand renameCommand = new AccountRenameCommand();
     private final AccountCreateCommand createCommand = new AccountCreateCommand();
+    private final AccountCloneCommand cloneCommand = new AccountCloneCommand();
+    private final AccountUuidCommand uuidCommand = new AccountUuidCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch> ...", false,
+        super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch|uuid|clone|confirm> ...", false,
             AstCommand.PERMISSION_NONE);
     }
 
@@ -44,6 +46,14 @@ public class AccountCommand extends AstCommand {
     }
 
     /**
+     * 複製中の操作凍結を扱うイベントハンドラを取得します。
+     * @return アカウント複製コマンド
+     */
+    public AccountCloneCommand getCloneCommand() {
+        return cloneCommand;
+    }
+
+    /**
      * /account の第一引数に応じて対象サブコマンドへ委譲します。
      *
      * @param sender コマンド送信者
@@ -57,6 +67,18 @@ public class AccountCommand extends AstCommand {
         }
 
         String action = args[0].toLowerCase(Locale.ROOT);
+        if (action.equals("uuid")) {
+            uuidCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
+        if (action.equals("clone")) {
+            cloneCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
+        if (action.equals("confirm")) {
+            cloneCommand.confirm(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         if (action.equals("mode")) {
             modeCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;

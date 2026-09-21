@@ -58,7 +58,7 @@ public class AccountService {
      */
     private final Map<UUID, Object> progressLocks = new ConcurrentHashMap<>();
     private final Map<UUID, List<Integer>> accountSlotIndexes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<String>> accountNames = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, String>> accountNames = new ConcurrentHashMap<>();
     private final BukkitTask flushTask;
     private final AtomicLong revisionSequence = new AtomicLong();
     private volatile Consumer<UUID> localPlayerSaveRequester = ignored -> { };
@@ -121,7 +121,8 @@ public class AccountService {
      * @return 作成済みアカウント名
      */
     public List<String> getCachedAccountNames(@NotNull UUID userId) {
-        return accountNames.getOrDefault(userId, List.of());
+        return accountNames.getOrDefault(userId, Map.of()).values().stream()
+            .sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 
     /**
@@ -206,12 +207,15 @@ public class AccountService {
      *
      * @param userId プレイヤー UUID
      * @param accountName アカウント名（キャラクター名）
-     * @param slotIndex スロット番号（0 始まり）
+     * @param slotIndex スロット番号（0〜99）
      * @param createdBy 作成者 UUID
      * @return 作成したアカウントモデル
-     * @throws IllegalArgumentException スロット番号が既に使用中の場合
+     * @throws IllegalArgumentException スロット番号が範囲外、または既に使用中の場合
      */
     public AccountModel createAccount(UUID userId, String accountName, int slotIndex, UUID createdBy) {
+        if (slotIndex < 0 || slotIndex > 99) {
+            throw new IllegalArgumentException("Account slot must be between 0 and 99");
+        }
         List<AccountModel> existing = accountRepository.findByUserId(userId);
         boolean slotUsed = existing.stream().anyMatch(a -> a.getSlotIndex() == slotIndex);
         if (slotUsed) {
@@ -279,7 +283,13 @@ public class AccountService {
         @NotNull String accountName,
         @NotNull UUID updatedBy
     ) {
-        return accountRepository.updateName(accountUuid, accountName, updatedBy);
+        AccountModel updated = accountRepository.updateName(accountUuid, accountName, updatedBy);
+        accountNames.compute(updated.getUserId(), (ignored, previous) -> {
+            Map<UUID, String> names = new java.util.HashMap<>(previous == null ? Map.of() : previous);
+            names.put(updated.getUuid(), updated.getAccountName());
+            return Map.copyOf(names);
+        });
+        return updated;
     }
 
     /**
@@ -363,7 +373,11 @@ public class AccountService {
                 }
                 return updatedSlots.stream().distinct().sorted().toList();
             });
-            accountNames.remove(result.getUserId());
+            accountNames.computeIfPresent(result.getUserId(), (ignored, previous) -> {
+                Map<UUID, String> names = new java.util.HashMap<>(previous);
+                names.remove(accountUuid);
+                return Map.copyOf(names);
+            });
             Logger.log(LogId.I_5104, accountUuid, result.getDeletedSlotIndex(), deletedBy);
         }
         return result;
@@ -946,11 +960,10 @@ public class AccountService {
         );
     }
 
+    /** APIで取得した未削除アカウントの名称をUUID単位で補完用キャッシュへ反映します。 */
     private void cacheAccountNames(@NotNull UUID userId, @NotNull List<AccountModel> accounts) {
         accountNames.put(userId, accounts.stream()
-            .map(AccountModel::getAccountName)
-            .sorted(String.CASE_INSENSITIVE_ORDER)
-            .toList());
+            .collect(java.util.stream.Collectors.toUnmodifiableMap(AccountModel::getUuid, AccountModel::getAccountName)));
     }
 
     /**

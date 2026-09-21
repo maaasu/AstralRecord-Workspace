@@ -17,6 +17,7 @@ public class AccountTabCompleter extends AstTabCompleter {
     private final AccountModeTabCompleter modeTabCompleter = new AccountModeTabCompleter();
     private final AccountDeleteTabCompleter deleteTabCompleter = new AccountDeleteTabCompleter();
     private final AccountSwitchTabCompleter switchTabCompleter = new AccountSwitchTabCompleter();
+    private final AccountManagementTabCompleter managementTabCompleter = new AccountManagementTabCompleter();
 
     /**
      * /account の入力位置に応じて補完候補を返します。
@@ -29,12 +30,15 @@ public class AccountTabCompleter extends AstTabCompleter {
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1) {
             if (hasAdminPermission(sender)) {
-                return List.of("create", "rename", "mode", "delete", "switch");
+                return List.of("create", "rename", "mode", "delete", "switch", "uuid", "clone", "confirm");
             }
-            return List.of();
+            return List.of("uuid");
         }
         if (!hasAdminPermission(sender)) {
             return List.of();
+        }
+        if (args.length > 1 && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("clone"))) {
+            return managementTabCompleter.onTabComplete(sender, null, "account", args);
         }
         if (args.length > 1 && args[0].equalsIgnoreCase("mode")) {
             return modeTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));

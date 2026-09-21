@@ -28,11 +28,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class AccountCreateCommand extends AstCommand {
     private final Set<UUID> pendingUserIds = ConcurrentHashMap.newKeySet();
 
+    /** 管理者向けの最小空きスロット作成コマンドを初期化します。 */
     public AccountCreateCommand() {
         super("accountcreate", "アカウントを作成します。", "/account create [player]", false,
             UserPermission.ADMIN.getValue());
     }
 
+    /**
+     * 登録済みユーザーへアカウントを追加します。現在の選択先は切り替えません。
+     * @param sender コマンド実行者
+     * @param args 対象MCID一つ、または自身を指定する空引数
+     */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length > 1) {
@@ -71,7 +77,7 @@ public final class AccountCreateCommand extends AstCommand {
                 throw new IllegalStateException("Account creation is already pending for user " + user.getUuid());
             }
             try {
-                return new CreatedAccount(user.getUuid(), targetName,
+                return new CreatedAccount(targetName,
                     accountService.createAccountAutoAssigned(user.getUuid(), user.getMcid(), createdBy));
             } finally {
                 pendingUserIds.remove(user.getUuid());
@@ -92,5 +98,5 @@ public final class AccountCreateCommand extends AstCommand {
         }));
     }
 
-    private record CreatedAccount(@NotNull UUID userId, @NotNull String targetName, @NotNull AccountModel account) { }
+    private record CreatedAccount(@NotNull String targetName, @NotNull AccountModel account) { }
 }

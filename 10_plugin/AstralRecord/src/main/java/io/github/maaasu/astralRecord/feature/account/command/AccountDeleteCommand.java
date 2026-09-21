@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountDeleteResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountSelector;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -51,6 +52,11 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             UserPermission.ADMIN.getValue());
     }
 
+    /**
+     * UUID、または対象MCIDと名前・スロットで特定したアカウントを削除します。
+     * @param sender 管理コマンド実行者
+     * @param args UUID一つ、または対象MCIDと識別子
+     */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (sender instanceof Player player) {
@@ -200,16 +206,9 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             return null;
         }
         return accountService.getAccounts(user.getUuid()).stream()
-            .filter(account -> matchesSelector(account, request.selector()))
+            .filter(account -> AccountSelector.matches(account, request.selector()))
             .findFirst()
             .orElse(null);
-    }
-
-    private boolean matchesSelector(@NotNull AccountModel account, @NotNull String selector) {
-        if (selector.matches("\\d{1,2}")) {
-            return account.getSlotIndex() == Integer.parseInt(selector);
-        }
-        return account.getAccountName().equalsIgnoreCase(selector);
     }
 
     private @Nullable TargetRequest resolveRequest(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -221,8 +220,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
                 return null;
             }
         }
-        if (args[1].isBlank() || (args[1].chars().allMatch(Character::isDigit)
-            && (!args[1].matches("\\d{1,2}") || Integer.parseInt(args[1]) > 99))) {
+        if (args[1].isBlank()) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5337.getId()));
             return null;
         }

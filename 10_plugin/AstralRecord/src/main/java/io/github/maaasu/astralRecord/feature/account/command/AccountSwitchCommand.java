@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.EventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountSelector;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -58,6 +59,11 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         );
     }
 
+    /**
+     * 作成済みの名前またはスロットへ、旧セッションを保存して切り替えます。
+     * @param sender 管理コマンド実行者
+     * @param args 識別子一つ、または対象MCIDと識別子
+     */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (!hasAdminPermission(sender)) {
@@ -129,7 +135,6 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         AsyncTaskUtil.supplyAsync(plugin, () -> resolveExistingAccount(
             request,
             selector,
-            updatedBy,
             accountService,
             userService
         )).whenComplete((resolved, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
@@ -159,14 +164,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                     playerJoinEventHandler.prepareAccountSwitch(onlineTarget);
                 if (preparation == null) {
                     frozenPlayers.remove(onlineTarget.getUniqueId());
-                    failWithCleanup(
-                        sender,
-                        pendingKey,
-                        resolved,
-                        updatedBy,
-                        accountService,
-                        null
-                    );
+                    failResolved(sender, pendingKey, resolved, null);
                     return;
                 }
                 switchAfterSessionSave(
@@ -195,16 +193,15 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         }));
     }
 
+    /** ユーザーの作成済みアカウントだけを解決し、未作成先はnullを返します。 */
     private @Nullable ResolvedAccount resolveExistingAccount(
         @NotNull TargetRequest request,
         @NotNull String selector,
-        @NotNull UUID updatedBy,
         @NotNull AccountService accountService,
         @Nullable UserService userService
     ) {
         UUID userId = request.knownUserId();
         UUID currentAccountId = request.knownCurrentAccountId();
-        String accountName = request.targetName();
         if (userId == null) {
             if (userService == null) {
                 return null;
@@ -215,7 +212,6 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             }
             userId = user.getUuid();
             currentAccountId = user.getAccountId();
-            accountName = user.getMcid();
         }
 
         UUID resolvedUserId = userId;
@@ -226,7 +222,8 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                 && account.getUuid().equals(resolvedCurrentAccountId))
             .findFirst()
             .orElseGet(() -> accounts.stream().filter(AccountModel::isActive).findFirst().orElse(null));
-        AccountModel target = resolveSelector(accounts, selector);
+        AccountModel target = accounts.stream().filter(account -> AccountSelector.matches(account, selector))
+            .findFirst().orElse(null);
         if (target == null) {
             return null;
         }
@@ -235,20 +232,8 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             request.targetName(),
             request.onlinePlayer(),
             current == null ? resolvedCurrentAccountId : current.getUuid(),
-            target,
-            false
+            target
         );
-    }
-
-    private @Nullable AccountModel resolveSelector(@NotNull List<AccountModel> accounts, @NotNull String selector) {
-        if (selector.matches("\\d{1,2}")) {
-            int slotIndex = Integer.parseInt(selector);
-            return accounts.stream().filter(account -> account.getSlotIndex() == slotIndex).findFirst().orElse(null);
-        }
-        return accounts.stream()
-            .filter(account -> account.getAccountName().equalsIgnoreCase(selector))
-            .findFirst()
-            .orElse(null);
     }
 
     private void switchAfterSessionSave(
@@ -292,14 +277,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                         failure
                     );
                 } else {
-                    failWithCleanup(
-                        sender,
-                        pendingKey,
-                        resolved,
-                        updatedBy,
-                        accountService,
-                        failure
-                    );
+                    failResolved(sender, pendingKey, resolved, failure);
                 }
                 return;
             }
@@ -357,12 +335,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             if (target != null && target.isOnline() && playerJoinEventHandler != null) {
                 playerJoinEventHandler.reloadAccount(target, previous, recovered -> {
                     if (recovered) {
-                        cleanupCreatedAccount(
-                            resolved,
-                            updatedBy,
-                            accountService,
-                            () -> finishRecovery(sender, pendingKey, target)
-                        );
+                        finishRecovery(sender, pendingKey, target);
                     } else {
                         failAndKick(sender, pendingKey, resolved, null);
                     }
@@ -373,57 +346,18 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                 failAndKick(sender, pendingKey, resolved, null);
                 return;
             }
-            cleanupCreatedAccount(
-                resolved,
-                updatedBy,
-                accountService,
-                () -> finishRecovery(sender, pendingKey, null)
-            );
+            finishRecovery(sender, pendingKey, null);
         }));
     }
 
-    private void failWithCleanup(
+    /** 解決済み対象の切替失敗を通知し、遷移ガードを解放します。 */
+    private void failResolved(
         @NotNull CommandSender sender,
         @NotNull String pendingKey,
         @NotNull ResolvedAccount resolved,
-        @NotNull UUID updatedBy,
-        @NotNull AccountService accountService,
         @Nullable Throwable failure
     ) {
-        cleanupCreatedAccount(
-            resolved,
-            updatedBy,
-            accountService,
-            () -> fail(sender, pendingKey, resolved.onlinePlayer(), resolved.targetName(), failure)
-        );
-    }
-
-    private void cleanupCreatedAccount(
-        @NotNull ResolvedAccount resolved,
-        @NotNull UUID deletedBy,
-        @NotNull AccountService accountService,
-        @NotNull Runnable completionListener
-    ) {
-        if (!resolved.created()) {
-            completionListener.run();
-            return;
-        }
-
-        AstralRecord plugin = AstralRecord.getInstance();
-        AsyncTaskUtil.supplyAsync(plugin, () -> accountService.deleteAccount(
-            resolved.account().getUuid(),
-            deletedBy
-        )).whenComplete((deleted, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
-            if (failure != null || deleted == null) {
-                Throwable cleanupFailure = failure != null
-                    ? failure
-                    : new IllegalStateException("Created account cleanup returned no result");
-                Logger.error(LogId.E_5160, cleanupFailure, resolved.account().getUuid());
-                completionListener.run();
-                return;
-            }
-            completionListener.run();
-        }));
+        fail(sender, pendingKey, resolved.onlinePlayer(), resolved.targetName(), failure);
     }
 
     private void completeSuccess(
@@ -516,15 +450,6 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         return astPlayer != null && astPlayer.hasAdminPermission();
-    }
-
-    private @Nullable Integer parseSlotIndex(@NotNull String value) {
-        try {
-            int slotIndex = Integer.parseInt(value);
-            return slotIndex < 0 ? null : slotIndex;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
     }
 
     private boolean hasCursorItem(@NotNull Player player) {
@@ -657,8 +582,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         @NotNull String targetName,
         @Nullable Player onlinePlayer,
         @Nullable UUID currentAccountId,
-        @NotNull AccountModel account,
-        boolean created
+        @NotNull AccountModel account
     ) {
     }
 }

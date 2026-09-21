@@ -1955,6 +1955,10 @@ public final class AstralRecord extends JavaPlugin {
      */
     private void registerPluginFeatures() {
         eventManager.registerHandler(
+            commandRegister.getAccountCloneCommand(),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             commandRegister.getAccountDeleteCommand(),
             getServer().getPluginManager()
         );
