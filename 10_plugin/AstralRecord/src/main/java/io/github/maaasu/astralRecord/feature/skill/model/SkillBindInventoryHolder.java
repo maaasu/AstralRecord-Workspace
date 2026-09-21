@@ -83,7 +83,8 @@ public record SkillBindInventoryHolder(
     public int getBackSlot() {
         // 詳細・合成画面の戻る操作は各 feature handler が遷移先を持つため、
         // 共有ナビゲーションへは公開しません。
-        return screen == SkillBindScreen.MAIN ? 31 : -1;
+        return screen == SkillBindScreen.MAIN
+            ? io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui.BACK_SLOT : -1;
     }
 
     @Override

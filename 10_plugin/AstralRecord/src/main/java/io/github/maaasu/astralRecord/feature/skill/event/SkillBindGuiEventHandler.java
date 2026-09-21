@@ -559,7 +559,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             openSynthesis(player, session, entry.bindingId(), holder.pageIndex());
             return;
         }
-        if (event.getRawSlot() == SkillBindGui.BACK_SLOT) {
+        if (event.getRawSlot() == SkillBindGui.SYNTHESIS_BACK_SLOT) {
             removeSynthesisSelectionAndRestore(player);
             synthesisPreviews.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);

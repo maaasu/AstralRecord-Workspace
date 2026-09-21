@@ -57,11 +57,11 @@ import java.util.function.ToLongBiFunction;
 /** 習得済みスキルの表示・バインドを扱うスキルマネージャー GUI です。 */
 public final class SkillBindGui {
     public static final int SIZE = 54;
-    /** スキル一覧の1ページ容量です。設定枠は下段へ表示します。 */
-    public static final int CONTENT_SLOT_COUNT = 26;
-    public static final int PREVIOUS_PAGE_SLOT = 27;
-    public static final int BACK_SLOT = 31;
-    public static final int NEXT_PAGE_SLOT = 35;
+    /** スキル一覧は上5行に45件を表示し、最下段をナビゲーションに使用します。 */
+    public static final int CONTENT_SLOT_COUNT = 45;
+    public static final int PREVIOUS_PAGE_SLOT = 45;
+    public static final int BACK_SLOT = 49;
+    public static final int NEXT_PAGE_SLOT = 53;
     /** 下段 PlayerInventory に同時表示する横スクロール枠数です。 */
     public static final int PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT = 7;
     public static final int PLAYER_INVENTORY_LEFT_CLICK_SLOT = 9;
@@ -82,6 +82,7 @@ public final class SkillBindGui {
     public static final int SYNTHESIS_SKILL_SLOT = 20;
     public static final int SYNTHESIS_MATERIAL_SLOT = 22;
     public static final int SYNTHESIS_RESULT_SLOT = 24;
+    public static final int SYNTHESIS_BACK_SLOT = 31;
 
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
     private static final int PERMITTED_SKILL_LORE_LIMIT = 6;
@@ -410,7 +411,7 @@ public final class SkillBindGui {
             SYNTHESIS_RESULT_SLOT,
             createSynthesisResult(entry, material, materialKind, permittedSkillIds)
         );
-        inventory.setItem(BACK_SLOT, GuiItems.backButton(
+        inventory.setItem(SYNTHESIS_BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー")
         ));
         return inventory;
@@ -929,7 +930,7 @@ public final class SkillBindGui {
             return Material.LIGHT_GRAY_STAINED_GLASS_PANE;
         }
         if (normalAttack) {
-            return Material.IRON_SWORD;
+            return Material.STICK;
         }
         if (entry == null) {
             return Material.BARRIER;
@@ -1021,8 +1022,8 @@ public final class SkillBindGui {
     ) {
         boolean previousEnabled = offset > 0;
         boolean nextEnabled = offset + PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT < totalSlotCount;
-        inventory.setItem(previousSlot, scrollButton(label + "を左へ", previousEnabled));
-        inventory.setItem(nextSlot, scrollButton(label + "を右へ", nextEnabled));
+        inventory.setItem(previousSlot, scrollButton(label + "を左へ", false, previousEnabled));
+        inventory.setItem(nextSlot, scrollButton(label + "を右へ", true, nextEnabled));
         for (int displayIndex = 0; displayIndex < PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT; displayIndex++) {
             int index = offset + displayIndex;
             inventory.setItem(firstBindSlot + displayIndex, createBindSlot(type, index, bindings.get(index), entries,
@@ -1030,11 +1031,18 @@ public final class SkillBindGui {
         }
     }
 
-    private ItemStack scrollButton(@NotNull String name, boolean enabled) {
-        return createItem(enabled ? Material.ARROW : Material.GRAY_DYE, name,
-            enabled ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY,
-            List.of(Component.text(enabled ? "クリックで1枠移動" : "これ以上操作できません",
-                enabled ? NamedTextColor.YELLOW : NamedTextColor.RED)));
+    /**
+     * 共通ページングと同じ左右ヘッドで、設定枠の横スクロールを表示します。
+     * @param name 操作名
+     * @param right 右向きならtrue
+     * @param enabled 移動できる場合true
+     * @return 移動不能時は共通の操作不可ヘッド
+     */
+    private ItemStack scrollButton(@NotNull String name, boolean right, boolean enabled) {
+        Component label = Component.text(name, NamedTextColor.AQUA);
+        List<Component> lore = List.of(Component.text("クリックで1枠移動", NamedTextColor.YELLOW));
+        return right ? GuiItems.nextPageButton(label, lore, enabled)
+            : GuiItems.previousPageButton(label, lore, enabled);
     }
 
     private ItemStack createMaterialItem(ItemModel material) {
