@@ -7,6 +7,8 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class SkillTreeMigrationTests
 {
+    private const string AdditiveCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"gain","pointType":"PASSIVE_POINT","pointCost":2,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"bonus","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"gain"},{"nodeId":"bonus"}],"edges":["root->gain","gain->bonus"],"classes":{}}""";
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -62,5 +64,257 @@ public sealed class SkillTreeMigrationTests
         }));
         Assert.Equal(1, (await f.Db.AccountSkillTreeStates.AsNoTracking().SingleAsync()).Version);
         Assert.Empty(await f.Db.SkillTreeMigrationOperations.ToListAsync());
+    }
+
+    [Fact]
+    public async Task CandidatesAndBatchMigrateMultipleAccountsWithReplaySafety()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        var second = await AddOfflineAccountAsync(f, "second");
+        var targetGeneration = await RegisterAdditiveGenerationAsync(f);
+
+        var runtime = await f.Repository.GetServerRuntimeAsync(f.Server);
+        Assert.NotNull(runtime);
+        Assert.Equal(targetGeneration, runtime.DefinitionGenerationId);
+        var candidates = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 1, 100);
+        Assert.NotNull(candidates);
+        Assert.Equal(2, candidates.TotalCount);
+        Assert.True(new[] { f.Account, second }.ToHashSet().SetEquals(candidates.Items.Select(x => x.AccountId)));
+        var firstPage = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 1, 1);
+        var secondPage = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 2, 1);
+        Assert.NotNull(firstPage);
+        Assert.NotNull(secondPage);
+        Assert.Equal(2, firstPage.TotalCount);
+        Assert.NotEqual(Assert.Single(firstPage.Items).AccountId, Assert.Single(secondPage.Items).AccountId);
+
+        var items = candidates.Items.Select(candidate => new SkillTreeMigrationBatchItemRequest
+        {
+            AccountId = candidate.AccountId,
+            Migration = new()
+            {
+                OperationId = Guid.NewGuid(),
+                ExpectedStateVersion = candidate.ExpectedStateVersion,
+                FromGenerationId = candidate.FromGenerationId,
+                ToGenerationId = targetGeneration,
+                LegacyBaselineNodeIds = candidate.LegacyBaselineNodeIds,
+                RemoveNodeIds = [],
+            },
+        }).ToArray();
+        var preview = await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Preview,
+            Items = items,
+        });
+        Assert.NotNull(preview);
+        Assert.Equal(2, preview.AcceptedCount);
+        Assert.Equal(0, preview.RejectedCount);
+        Assert.All(preview.Items, item => Assert.Equal("PREVIEW", item.Status));
+        Assert.All(await f.Db.AccountSkillTreeStates.AsNoTracking().ToListAsync(), state =>
+        {
+            Assert.Equal(f.Generation, state.DefinitionGenerationId);
+            Assert.Equal(1, state.Version);
+        });
+        Assert.Empty(await f.Db.SkillTreeMigrationOperations.AsNoTracking().ToListAsync());
+
+        var commit = await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Commit,
+            Items = items,
+        });
+        Assert.NotNull(commit);
+        Assert.Equal(2, commit.AcceptedCount);
+        Assert.All(commit.Items, item => Assert.Equal("APPLIED", item.Status));
+        var replay = await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Commit,
+            Items = items,
+        });
+        Assert.NotNull(replay);
+        Assert.Equal(2, replay.AcceptedCount);
+        f.Db.ChangeTracker.Clear();
+        Assert.All(await f.Db.AccountSkillTreeStates.AsNoTracking().ToListAsync(), state =>
+        {
+            Assert.Equal(targetGeneration, state.DefinitionGenerationId);
+            Assert.Equal(2, state.Version);
+        });
+        Assert.Equal(2, await f.Db.SkillTreeMigrationOperations.AsNoTracking().CountAsync());
+    }
+
+    [Fact]
+    public async Task BatchRejectsOnlineAccountButContinuesWithOfflineAccount()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var second = await AddOfflineAccountAsync(f, "offline");
+        var targetGeneration = await RegisterAdditiveGenerationAsync(f);
+        var candidates = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 1, 100);
+        Assert.NotNull(candidates);
+        var batch = await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Preview,
+            Items = candidates.Items.Select(candidate => new SkillTreeMigrationBatchItemRequest
+            {
+                AccountId = candidate.AccountId,
+                Migration = new()
+                {
+                    OperationId = Guid.NewGuid(),
+                    ExpectedStateVersion = candidate.ExpectedStateVersion,
+                    FromGenerationId = candidate.FromGenerationId,
+                    ToGenerationId = targetGeneration,
+                    LegacyBaselineNodeIds = candidate.LegacyBaselineNodeIds,
+                    RemoveNodeIds = [],
+                },
+            }).ToArray(),
+        });
+
+        Assert.NotNull(batch);
+        Assert.Equal(1, batch.AcceptedCount);
+        Assert.Equal(1, batch.RejectedCount);
+        Assert.Equal("REJECTED", batch.Items.Single(x => x.AccountId == f.Account).Status);
+        Assert.Equal("PREVIEW", batch.Items.Single(x => x.AccountId == second).Status);
+    }
+
+    [Fact]
+    public async Task BatchRejectsDuplicateAccountsBeforeApplyingAnyMigration()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        var request = new SkillTreeMigrationRequest
+        {
+            OperationId = Guid.NewGuid(),
+            ExpectedStateVersion = 1,
+            FromGenerationId = f.Generation,
+            ToGenerationId = f.Generation,
+            LegacyBaselineNodeIds = ["root"],
+            RemoveNodeIds = [],
+        };
+        Assert.Null(await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Commit,
+            Items =
+            [
+                new() { AccountId = f.Account, Migration = request },
+                new() { AccountId = f.Account, Migration = new() { OperationId = Guid.NewGuid(), ExpectedStateVersion = 1, FromGenerationId = f.Generation, ToGenerationId = f.Generation, LegacyBaselineNodeIds = ["root"], RemoveNodeIds = [] } },
+            ],
+        }));
+        Assert.Empty(await f.Db.SkillTreeMigrationOperations.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CandidatesIncludeNonEmptyLegacyButExcludeEmptyLegacy()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var nonEmptyLegacy = await AddAccountAsync(f, "legacy", null, true);
+        var emptyLegacy = await AddAccountAsync(f, "empty", null, false);
+        var targetGeneration = await RegisterAdditiveGenerationAsync(f);
+
+        var candidates = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 1, 100);
+        Assert.NotNull(candidates);
+        Assert.Contains(candidates.Items, item => item.AccountId == nonEmptyLegacy && item.FromGenerationId is null);
+        Assert.DoesNotContain(candidates.Items, item => item.AccountId == emptyLegacy);
+    }
+
+    [Fact]
+    public async Task BatchRejectsInvalidLaterItemBeforeCommittingEarlierItem()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        var second = await AddOfflineAccountAsync(f, "second");
+        var targetGeneration = await RegisterAdditiveGenerationAsync(f);
+        var candidates = await f.Repository.GetMigrationCandidatesAsync(f.Server, f.Boot, targetGeneration, 1, 100);
+        Assert.NotNull(candidates);
+        var items = candidates.Items.Select(candidate => new SkillTreeMigrationBatchItemRequest
+        {
+            AccountId = candidate.AccountId,
+            Migration = new()
+            {
+                OperationId = Guid.NewGuid(),
+                ExpectedStateVersion = candidate.ExpectedStateVersion,
+                FromGenerationId = candidate.FromGenerationId,
+                ToGenerationId = candidate.AccountId == second ? "invalid" : targetGeneration,
+                LegacyBaselineNodeIds = candidate.LegacyBaselineNodeIds,
+                RemoveNodeIds = [],
+            },
+        }).ToArray();
+
+        Assert.Null(await f.Repository.MigrateBatchAsync(f.Server, f.Boot, new()
+        {
+            Mode = SkillTreeMigrationBatchModes.Commit,
+            Items = items,
+        }));
+        Assert.All(await f.Db.AccountSkillTreeStates.AsNoTracking().ToListAsync(), state =>
+        {
+            Assert.Equal(f.Generation, state.DefinitionGenerationId);
+            Assert.Equal(1, state.Version);
+        });
+        Assert.Empty(await f.Db.SkillTreeMigrationOperations.AsNoTracking().ToListAsync());
+    }
+
+    private static async Task<Guid> AddOfflineAccountAsync(SkillTreeOperationRepositoryTests.Fixture f, string name)
+        => await AddAccountAsync(f, name, f.Generation, true);
+
+    private static async Task<Guid> AddAccountAsync(
+        SkillTreeOperationRepositoryTests.Fixture f,
+        string name,
+        string? generation,
+        bool addRoot)
+    {
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        f.Db.Accounts.Add(new()
+        {
+            Uuid = accountId,
+            UserId = userId,
+            AccountName = name,
+            SlotIndex = 1,
+            IsActive = true,
+            Level = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        f.Db.AccountSkillTreeStates.Add(new()
+        {
+            AccountSkillTreeStateId = stateId,
+            AccountId = accountId,
+            Version = 1,
+            DefinitionGenerationId = generation,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        if (addRoot) f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(),
+            AccountSkillTreeStateId = stateId,
+            NodeId = "root",
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        await f.Db.SaveChangesAsync();
+        return accountId;
+    }
+
+    private static async Task<string> RegisterAdditiveGenerationAsync(SkillTreeOperationRepositoryTests.Fixture f)
+    {
+        var generation = SkillTreeOperationRepositoryTests.Hash(AdditiveCanonical);
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, new()
+        {
+            ServerSessionId = f.Boot,
+            ServerStartedAtUtc = f.Started,
+            PublicationRevision = 2,
+            PluginVersion = "test",
+            CompatibilityVersion = "skilltree-operation-v1",
+            Ready = true,
+            DefinitionGenerationId = generation,
+            CanonicalSnapshotJson = AdditiveCanonical,
+        }));
+        return generation;
     }
 }

@@ -10,7 +10,9 @@ $expectedBaseUrl = "https://release-api.example.test:444"
 $discordToken = "DISCORD_TOKEN_SENTINEL_7f95f4"
 $sharedApiKey = "API_KEY_SENTINEL_2c18ab"
 $differentApiKey = "DIFFERENT_API_KEY_SENTINEL_9e6430"
-$sensitiveSentinels = @($discordToken, $sharedApiKey, $differentApiKey)
+$runtimeKey = "RUNTIME_KEY_SENTINEL_8f217b"
+$migrationKey = "MIGRATION_KEY_SENTINEL_79a304"
+$sensitiveSentinels = @($discordToken, $sharedApiKey, $differentApiKey, $runtimeKey, $migrationKey)
 
 function Write-Utf8Json {
     param(
@@ -31,6 +33,7 @@ function New-TestEnvironment {
     Set-Content -LiteralPath (Join-Path $apiDeployPath "token.txt") -Value $discordToken -Encoding UTF8
     Write-Utf8Json -Path (Join-Path $apiDeployPath "appsettings.json") -Value @{
         ApiKey = @{ Key = $sharedApiKey }
+        SkillTreeRuntime = @{ Key = $runtimeKey; MigrationKey = $migrationKey }
     }
     Write-Utf8Json -Path (Join-Path $webDeployPath "appsettings.json") -Value @{
         AstralRecordApi = @{
@@ -151,6 +154,18 @@ try {
     $settings.ReleaseNotes.SyncOnStartup = $false
     Write-Utf8Json -Path (Join-Path $syncDisabled.WebDeployPath "appsettings.json") -Value $settings
     Assert-FailsWith -Name "disabled startup sync" -ConfigPath $syncDisabled.ConfigPath -ExpectedMessage "must be true"
+
+    $missingMigrationKey = New-TestEnvironment -Name "missing-migration-key"
+    $settings = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $missingMigrationKey.ApiDeployPath "appsettings.json") | ConvertFrom-Json
+    $settings.SkillTreeRuntime.PSObject.Properties.Remove("MigrationKey")
+    Write-Utf8Json -Path (Join-Path $missingMigrationKey.ApiDeployPath "appsettings.json") -Value $settings
+    Assert-FailsWith -Name "missing migration key" -ConfigPath $missingMigrationKey.ConfigPath -ExpectedMessage "SkillTreeRuntime:MigrationKey is missing"
+
+    $reusedMigrationKey = New-TestEnvironment -Name "reused-migration-key"
+    $settings = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $reusedMigrationKey.ApiDeployPath "appsettings.json") | ConvertFrom-Json
+    $settings.SkillTreeRuntime.MigrationKey = $runtimeKey
+    Write-Utf8Json -Path (Join-Path $reusedMigrationKey.ApiDeployPath "appsettings.json") -Value $settings
+    Assert-FailsWith -Name "reused migration key" -ConfigPath $reusedMigrationKey.ConfigPath -ExpectedMessage "must differ from the runtime key and shared API key"
 
     $emptyToken = New-TestEnvironment -Name "empty-token"
     Set-Content -LiteralPath (Join-Path $emptyToken.ApiDeployPath "token.txt") -Value "" -Encoding UTF8

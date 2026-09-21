@@ -19,6 +19,7 @@
 - `FileDatabase:RootPath`: 静的データファイルのルートパス
 - `Network:AuthoritySyncKey`: Proxyの旧YAML初回bootstrap用専用キー（移行前だけ旧authorities PUTも許可）
 - `Network:ModerationKey`: RPG `/ban` の更新専用キー。RPG `api.networkModerationKey`と一致させ、共通APIキーと分離する
+- `SkillTreeRuntime:MigrationKey`: スキルツリー世代の定義確認・候補取得・明示移行専用キー。Plugin runtimeキー、共通APIキーと分離する
 
 ## API 実装ルール
 

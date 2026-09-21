@@ -113,6 +113,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 デプロイ前には、`token.txt` の存在・非空、Webの本番API接続先、APIキーの一致、`ReleaseNotes:SyncOnStartup` が有効であることを検証します。トークンとAPIキーの値は表示せず、バックアップにも `token.txt` を複製しません。配置せず検証だけを行う場合は、次を実行します。
 
+APIを含むデプロイでは、配置先`appsettings.json`の`SkillTreeRuntime:MigrationKey`が非空で、`SkillTreeRuntime:Key`および`ApiKey:Key`と異なることも配置前に検証します。世代移行管理APIは`X-SkillTree-Migration-Key`だけを受け付けます。migration keyの値はログへ出力しません。
+
 ```powershell
 .\10-release-management-deploy.bat -PreflightOnly
 ```

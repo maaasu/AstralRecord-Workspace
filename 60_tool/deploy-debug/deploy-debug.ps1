@@ -218,6 +218,27 @@ function ConvertTo-AbsoluteHttpsUri {
     return $uri
 }
 
+function Assert-SkillTreeMigrationKeyReady {
+    param([object]$ApiComponent)
+
+    Write-Step "Validating skill tree migration credential"
+    $apiSettingsPath = Join-Path $ApiComponent.deployPath "appsettings.json"
+    $apiSettings = Read-JsonFile -Label "API production appsettings.json" -Path $apiSettingsPath
+    $apiKeySection = Get-RequiredPropertyValue -Object $apiSettings -PropertyName "ApiKey" -Label "API ApiKey section"
+    $apiKey = [string](Get-RequiredPropertyValue -Object $apiKeySection -PropertyName "Key" -Label "API ApiKey:Key")
+    $runtimeSection = Get-RequiredPropertyValue -Object $apiSettings -PropertyName "SkillTreeRuntime" -Label "API SkillTreeRuntime section"
+    $runtimeKey = [string](Get-RequiredPropertyValue -Object $runtimeSection -PropertyName "Key" -Label "API SkillTreeRuntime:Key")
+    $migrationKey = [string](Get-RequiredPropertyValue -Object $runtimeSection -PropertyName "MigrationKey" -Label "API SkillTreeRuntime:MigrationKey")
+    if ([string]::IsNullOrWhiteSpace($migrationKey)) {
+        throw "API SkillTreeRuntime:MigrationKey must not be empty."
+    }
+    if ($migrationKey -ceq $runtimeKey -or $migrationKey -ceq $apiKey) {
+        throw "API SkillTreeRuntime:MigrationKey must differ from the runtime key and shared API key."
+    }
+
+    Write-Step "Skill tree migration credential is ready"
+}
+
 function Assert-ReleaseManagementReady {
     param(
         [object]$ApiComponent,
@@ -557,7 +578,11 @@ if ($PluginOnly) {
 if ($ReleaseManagementOnly) {
     $config.plugin.enabled = $false
     $config.fileDatabase.enabled = $false
+    Assert-SkillTreeMigrationKeyReady -ApiComponent $config.api
     Assert-ReleaseManagementReady -ApiComponent $config.api -WebComponent $config.web
+}
+elseif ($config.api.enabled) {
+    Assert-SkillTreeMigrationKeyReady -ApiComponent $config.api
 }
 
 if ($PreflightOnly) {

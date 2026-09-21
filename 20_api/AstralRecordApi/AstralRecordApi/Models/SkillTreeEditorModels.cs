@@ -141,6 +141,63 @@ public sealed class SkillTreeMigrationRequest
 public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } public IReadOnlyList<SkillTreeMigrationRefund> Refunds { get; init; } = []; }
 public sealed class SkillTreeMigrationRefund { public required string NodeId { get; init; } public required string PointType { get; init; } public int Points { get; init; } public string? ClassId { get; init; } }
 
+public static class SkillTreeMigrationBatchModes
+{
+    public const string Preview = "PREVIEW";
+    public const string Commit = "COMMIT";
+}
+
+/// <summary>運用者が明示移行対象をページ単位で確認するための候補です。</summary>
+public sealed class SkillTreeMigrationCandidate
+{
+    public Guid AccountId { get; init; }
+    public Guid UserId { get; init; }
+    public required string AccountName { get; init; }
+    public string? FromGenerationId { get; init; }
+    public int ExpectedStateVersion { get; init; }
+    public required IReadOnlyList<string> LegacyBaselineNodeIds { get; init; }
+}
+
+/// <summary>現在稼働中の移行先runtimeと、明示移行候補の1ページです。</summary>
+public sealed class SkillTreeMigrationCandidatePageResponse
+{
+    public required SkillTreeServerRuntimeResponse Runtime { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalCount { get; init; }
+    public required IReadOnlyList<SkillTreeMigrationCandidate> Items { get; init; }
+}
+
+/// <summary>既存の単一アカウント移行契約を一括実行する1件分の入力です。</summary>
+public sealed class SkillTreeMigrationBatchItemRequest
+{
+    public Guid AccountId { get; init; }
+    public required SkillTreeMigrationRequest Migration { get; init; }
+}
+
+/// <summary>同じpreviewまたはcommitモードで逐次実行する移行要求です。</summary>
+public sealed class SkillTreeMigrationBatchRequest
+{
+    public required string Mode { get; init; }
+    public required IReadOnlyList<SkillTreeMigrationBatchItemRequest> Items { get; init; }
+}
+
+public sealed class SkillTreeMigrationBatchItemResponse
+{
+    public Guid AccountId { get; init; }
+    public Guid OperationId { get; init; }
+    public required string Status { get; init; }
+    public SkillTreeMigrationResponse? Migration { get; init; }
+}
+
+public sealed class SkillTreeMigrationBatchResponse
+{
+    public required string Mode { get; init; }
+    public int AcceptedCount { get; init; }
+    public int RejectedCount { get; init; }
+    public required IReadOnlyList<SkillTreeMigrationBatchItemResponse> Items { get; init; }
+}
+
 /// <summary>Plugin の既存player-state snapshotと同一transactionで確定する操作結果です。</summary>
 public sealed class PlayerStateSkillTreeOperationSection
 {

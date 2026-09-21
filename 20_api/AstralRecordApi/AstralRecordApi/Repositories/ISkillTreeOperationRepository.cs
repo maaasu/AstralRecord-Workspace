@@ -20,4 +20,7 @@ public interface ISkillTreeOperationRepository
     Task<bool> CloseAccountSessionAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request);
     Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now);
     Task<SkillTreeMigrationResponse?> MigrateAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request);
+    Task<SkillTreeServerRuntimeResponse?> GetServerRuntimeAsync(string serverId);
+    Task<SkillTreeMigrationCandidatePageResponse?> GetMigrationCandidatesAsync(string serverId, Guid sessionId, string toGenerationId, int page, int pageSize);
+    Task<SkillTreeMigrationBatchResponse?> MigrateBatchAsync(string serverId, Guid sessionId, SkillTreeMigrationBatchRequest request);
 }
