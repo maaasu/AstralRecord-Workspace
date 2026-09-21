@@ -91,3 +91,9 @@ export function searchNodes(nodes, query, mode = 'all') {
         return terms.every(term => text.includes(term));
     });
 }
+
+export function settleDraft(changes, draftOperationId, result) {
+    if (result.status === 'APPLIED' && result.operationId === draftOperationId)
+        return { changes: [], needsReview: false };
+    return { changes, needsReview: changes.length > 0 };
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDraft, searchNodes, draftContext } from '../AstralRecordWeb/wwwroot/js/skilltree-draft.mjs';
+import { createDraft, searchNodes, draftContext, settleDraft } from '../AstralRecordWeb/wwwroot/js/skilltree-draft.mjs';
 
 const node = (nodeId, values = {}) => ({ nodeId, name: nodeId, pointType: 'PP', pointCost: 3, isConditionMet: true, displayEffects: [], ...values });
 const state = () => ({ generationId: 'generation', stateRevision: 1, canEdit: true, relockGoldCost: 100,
@@ -54,4 +54,11 @@ test('draft context changes for balances/conditions but not observation timestam
     const before = state(), unchanged = structuredClone(before); unchanged.connection.observedAtUtc = 'later';
     assert.equal(draftContext(before), draftContext(unchanged)); unchanged.points.gold--;
     assert.notEqual(draftContext(before), draftContext(unchanged));
+});
+
+test('another tab completing an operation retains this tabs unsent draft for review', () => {
+    const changes = [{ action: 'UNLOCK', nodeId: 'a' }];
+    assert.deepEqual(settleDraft(changes, 'mine', { operationId: 'mine', status: 'APPLIED' }), { changes: [], needsReview: false });
+    assert.deepEqual(settleDraft(changes, null, { operationId: 'another-tab', status: 'APPLIED' }), { changes, needsReview: true });
+    assert.deepEqual(settleDraft(changes, 'mine', { operationId: 'mine', status: 'CANCELED' }), { changes, needsReview: true });
 });

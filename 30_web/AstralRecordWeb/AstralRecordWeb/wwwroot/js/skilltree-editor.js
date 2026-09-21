@@ -1,5 +1,5 @@
 import { initializeViewer } from './skilltree-viewer.js';
-import { createDraft, draftContext } from './skilltree-draft.mjs';
+import { createDraft, draftContext, settleDraft } from './skilltree-draft.mjs';
 
 const editor = document.querySelector('[data-skilltree-editor]');
 if (editor?.querySelector('[data-editor-state]')) startEditor(editor);
@@ -10,7 +10,7 @@ function startEditor(editor) {
     if (!viewer) return;
     let selectedId = viewer.getViewState?.().selectedId, sourceClassId = '';
     let submitting = false, refreshing = false, lastRead = Date.now(), needsReview = false;
-    let changes = [], draft = createDraft(state), baseline = draftContext(state), confirmation = null;
+    let changes = [], draft = createDraft(state), baseline = draftContext(state), confirmation = null, draftOperationId = null;
     let operation = state.pendingOperation ?? null, unknownSubmission = null;
     const storageKey = `skilltree-operation:${editor.dataset.accountId}`;
     const terminal = new Set(['APPLIED', 'RECONFIRMATION_REQUIRED', 'FAILED', 'CANCELED', 'EXPIRED']);
@@ -109,7 +109,7 @@ function startEditor(editor) {
             badge.append(label, value, preview); cp.append(badge);
         }
         if (!cp.childElementCount) cp.textContent = '残高を確認できません';
-        text('[data-editor-status]', unknownSubmission ? '適用結果を確認中' : needsReview ? operation?.status === 'CANCELED' ? '取消済み・変更案を再確認' : '再確認が必要' : operation ? labels[operation.status] ?? '再確認が必要' : '編集中');
+        text('[data-editor-status]', unknownSubmission ? '適用結果を確認中' : needsReview ? operation?.status === 'CANCELED' ? '取消済み・変更案を再確認' : '再確認が必要' : operation ? (labels[operation.status] ?? '再確認が必要') + (operation.changes?.length ? `（${operation.changes.length}件）` : '') : '編集中');
         text('[data-editor-draft-count]', changes.length ? `変更案 ${changes.length} 件` : '変更なし');
         text('[data-editor-reason]', reason() || draft.error || (operation && terminal.has(operation.status) ? operation.reason : '') || (needsReview ? operation?.status === 'CANCELED' ? '要求を取り消しました。未適用の変更案を再確認すると、編集を続けられます。' : '最新の残高・条件・状態で変更案を再確認してください。' : ''));
         q('[data-editor-cancel]').hidden = !operation || terminal.has(operation.status);
@@ -139,8 +139,8 @@ function startEditor(editor) {
         operation = result; unknownSubmission = null;
         if (terminal.has(result.status)) {
             forget();
-            if (result.status === 'APPLIED') { changes = []; needsReview = false; }
-            else if (changes.length) needsReview = true;
+            const settled = settleDraft(changes, draftOperationId, result);
+            changes = settled.changes; needsReview = settled.needsReview;
             await refresh();
         }
         render();
@@ -184,14 +184,14 @@ function startEditor(editor) {
             const candidate = createDraft(state, next);
             if (candidate.error) { text('[data-editor-operation-reason]', candidate.error); return; }
             if (!changes.length) baseline = draftContext(state);
-            changes = next; operation = null; invalidateConfirmation(); rebuildDraft(); render();
+            changes = next; operation = null; draftOperationId = null; invalidateConfirmation(); rebuildDraft(); render();
         }
         if (button.matches('[data-editor-undo], [data-editor-clear]') && !busy()) {
             changes = button.matches('[data-editor-clear]') ? [] : changes.slice(0, -1);
             if (!changes.length) { needsReview = false; baseline = draftContext(state); }
             invalidateConfirmation(); rebuildDraft(); render();
         }
-        if (button.matches('[data-editor-review]') && !busy() && !draft.error) { needsReview = false; baseline = draftContext(state); operation = null; render(); }
+        if (button.matches('[data-editor-review]') && !busy() && !draft.error) { needsReview = false; baseline = draftContext(state); operation = null; draftOperationId = null; render(); }
         if (button.matches('[data-editor-batch-review]')) showConfirmation();
         if (button.matches('[data-editor-confirm-back]')) invalidateConfirmation();
         if (button.matches('[data-editor-cancel]') && operation && !submitting) {
@@ -210,7 +210,7 @@ function startEditor(editor) {
             const payload = { operationId: crypto.randomUUID(), targetServerId: state.connection?.serverId,
                 expectedDefinitionGenerationId: state.generationId, expectedPlayerStateVersion: state.stateRevision,
                 action: 'BATCH', nodeId: 'batch', changes: captured.changes };
-            unknownSubmission = payload; remember(payload);
+            unknownSubmission = payload; draftOperationId = payload.operationId; remember(payload);
             try { await acceptOperation(await request('Operation', 'POST', payload)); }
             catch (error) {
                 if (['400', '401', '403', '404', '409'].includes(error.message)) { operation = { operationId: payload.operationId, status: 'RECONFIRMATION_REQUIRED' }; unknownSubmission = null; forget(); needsReview = true; }
@@ -220,8 +220,8 @@ function startEditor(editor) {
         }
     });
     try { unknownSubmission = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch { unknownSubmission = null; }
-    if (unknownSubmission?.changes) changes = unknownSubmission.changes;
-    else if (operation && !terminal.has(operation.status) && operation.changes) changes = operation.changes;
+    if (unknownSubmission?.changes) { changes = unknownSubmission.changes; draftOperationId = unknownSubmission.operationId; }
+    else if (operation && !terminal.has(operation.status) && operation.changes) { changes = operation.changes; draftOperationId = operation.operationId; }
     selectedId ??= state.tree?.rootNodeId ?? state.tree?.nodes[0]?.nodeId;
     rebuildDraft(); render();
     if (unknownSubmission || operation) pollOperation();
