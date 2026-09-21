@@ -28,6 +28,7 @@ public sealed class WebPlayerAccountProfileResponse
     public required long TotalMobDefeats { get; init; }
     public required DateTime UpdatedAt { get; init; }
     public required WebSkillTreeProfileResponse SkillTree { get; init; }
+    public SkillTreeEditorConnectionResponse? Connection { get; init; }
 }
 
 public sealed class WebPlayerClassProgressResponse

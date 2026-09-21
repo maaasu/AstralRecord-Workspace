@@ -18,6 +18,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     private static readonly TimeSpan OperationTtl = TimeSpan.FromDays(7);
     private static readonly string[] ActiveStatuses = [SkillTreeOperationStatuses.PendingOnline, SkillTreeOperationStatuses.PendingOffline, SkillTreeOperationStatuses.Claimed];
     private const string SupportedCompatibility = "skilltree-operation-v1";
+    private const string BatchCompatibility = "skilltree-operation-v2";
     private const int MaxViewJsonLength = 512 * 1024;
 
     // 本番DbContextのEnableRetryOnFailureとユーザーtransactionを同じ再実行境界に置く。
@@ -64,7 +65,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         runtime.PluginVersion = request.PluginVersion.Trim();
         runtime.CompatibilityVersion = request.CompatibilityVersion ?? "";
         runtime.DefinitionGenerationId = request.DefinitionGenerationId;
-        runtime.Ready = request.Ready && request.CompatibilityVersion == SupportedCompatibility;
+        runtime.Ready = request.Ready && (request.CompatibilityVersion == SupportedCompatibility || request.CompatibilityVersion == BatchCompatibility);
         runtime.LastSeenUtc = DateTime.UtcNow;
         await dbContext.SaveChangesAsync();
         await tx.CommitAsync();
@@ -75,7 +76,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     {
         var now = DateTime.UtcNow;
         var count = await dbContext.SkillTreeServerRuntimes.Where(x => x.ServerId == serverId && x.ServerSessionId == request.ServerSessionId
-                && x.DefinitionGenerationId == request.DefinitionGenerationId && x.CompatibilityVersion == SupportedCompatibility)
+                && x.DefinitionGenerationId == request.DefinitionGenerationId && (x.CompatibilityVersion == SupportedCompatibility || x.CompatibilityVersion == BatchCompatibility))
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSeenUtc, now).SetProperty(x => x.Ready, request.Ready));
         if (count == 0) return null;
         var runtime = await dbContext.SkillTreeServerRuntimes.AsNoTracking().SingleAsync(x => x.ServerId == serverId);
@@ -138,13 +139,15 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
             || await dbContext.SkillTreeOperations.AnyAsync(x => x.AccountId == accountId && ActiveStatuses.Contains(x.Status))) return null;
         var view = await dbContext.SkillTreeServerPlayerViews.FindAsync(request.TargetServerId, accountId);
         if (view is null) return null;
+        var runtime = await CurrentRuntimeAsync(request.TargetServerId);
+        if (request.Action == "BATCH" && runtime?.CompatibilityVersion != BatchCompatibility) return null;
         var now = DateTime.UtcNow;
         var item = new SkillTreeOperationEntity
         {
             OperationId = request.OperationId, AccountId = accountId, ActorUserId = request.ActorUserId, RequestHash = hash,
             TargetServerId = request.TargetServerId, ExpectedDefinitionGenerationId = request.ExpectedDefinitionGenerationId,
             ExpectedPlayerStateVersion = request.ExpectedPlayerStateVersion, ExpectedEvaluationFingerprint = view.EvaluationFingerprint,
-            Action = request.Action, NodeId = request.NodeId.Trim(), SourceClassId = BlankToNull(request.SourceClassId),
+            Action = request.Action, NodeId = request.NodeId.Trim(), SourceClassId = BlankToNull(request.SourceClassId), ChangesJson = request.Changes is null ? null : JsonSerializer.Serialize(request.Changes),
             Status = editor.Connection.Status == "online" ? SkillTreeOperationStatuses.PendingOnline : SkillTreeOperationStatuses.PendingOffline,
             CreatedAtUtc = now, ExpiresAtUtc = now + OperationTtl,
         };
@@ -340,7 +343,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     private async Task<SkillTreeServerRuntimeEntity?> CurrentRuntimeAsync(string serverId)
     {
         var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(x => x.ServerId == serverId);
-        return runtime is { Ready: true } && runtime.CompatibilityVersion == SupportedCompatibility && IsLive(runtime) ? runtime : null;
+        return runtime is { Ready: true } && (runtime.CompatibilityVersion == SupportedCompatibility || runtime.CompatibilityVersion == BatchCompatibility) && IsLive(runtime) ? runtime : null;
     }
     private async Task<SkillTreeServerRuntimeEntity?> VerifyRuntimeAsync(string serverId, Guid sessionId)
     {
@@ -365,7 +368,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     }
     private static bool ValidOperation(SkillTreeOperationCreateRequest x) => x.OperationId != Guid.Empty && x.ActorUserId != Guid.Empty
         && ValidServer(x.TargetServerId) && ValidHash(x.ExpectedDefinitionGenerationId) && x.ExpectedPlayerStateVersion >= 0
-        && x.Action is "UNLOCK" or "RELOCK" && !string.IsNullOrWhiteSpace(x.NodeId) && x.NodeId.Trim().Length <= 200 && x.SourceClassId?.Length is not > 100;
+        && (x.Action is "UNLOCK" or "RELOCK" && x.Changes is null && !string.IsNullOrWhiteSpace(x.NodeId) && x.NodeId.Trim().Length <= 200 || x.Action == "BATCH" && x.NodeId == "batch" && x.Changes is { Count: >= 1 and <= 512 } && x.Changes.All(c => c.Action is "UNLOCK" or "RELOCK" && !string.IsNullOrWhiteSpace(c.NodeId) && c.NodeId.Trim().Length <= 200 && c.SourceClassId?.Length is not > 100) && x.Changes.Select(c => c.NodeId.Trim()).Distinct(StringComparer.Ordinal).Count() == x.Changes.Count) && x.SourceClassId?.Length is not > 100;
     private static bool IsValidView(SkillTreePlayerViewRegistrationRequest x) => x.ServerSessionId != Guid.Empty && ValidHash(x.DefinitionGenerationId)
         && ValidHash(x.EvaluationFingerprint) && x.PlayerStateVersion >= 0 && IsViewPayload(x.View);
     private static bool IsViewPayload(JsonElement x) => x.ValueKind == JsonValueKind.Object && x.GetRawText().Length <= MaxViewJsonLength
@@ -374,7 +377,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     private static bool FixedEquals(string? left, string right) => left is not null && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(left), Encoding.UTF8.GetBytes(right));
     private static string? BlankToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static SkillTreeServerRuntimeResponse Runtime(SkillTreeServerRuntimeEntity x) => new() { ServerId = x.ServerId, ServerSessionId = x.ServerSessionId, DefinitionGenerationId = x.DefinitionGenerationId, Ready = x.Ready, LastSeenUtc = x.LastSeenUtc };
-    private static SkillTreeOperationResponse Map(SkillTreeOperationEntity x) => new() { OperationId = x.OperationId, AccountId = x.AccountId, TargetServerId = x.TargetServerId, ExpectedDefinitionGenerationId = x.ExpectedDefinitionGenerationId, ExpectedPlayerStateVersion = x.ExpectedPlayerStateVersion, ExpectedEvaluationFingerprint = x.ExpectedEvaluationFingerprint, Action = x.Action, NodeId = x.NodeId, SourceClassId = x.SourceClassId, Status = x.Status, Reason = x.Reason, CreatedAtUtc = x.CreatedAtUtc, ExpiresAtUtc = x.ExpiresAtUtc, CompletedAtUtc = x.CompletedAtUtc };
+    private static SkillTreeOperationResponse Map(SkillTreeOperationEntity x) => new() { OperationId = x.OperationId, AccountId = x.AccountId, TargetServerId = x.TargetServerId, ExpectedDefinitionGenerationId = x.ExpectedDefinitionGenerationId, ExpectedPlayerStateVersion = x.ExpectedPlayerStateVersion, ExpectedEvaluationFingerprint = x.ExpectedEvaluationFingerprint, Action = x.Action, NodeId = x.NodeId, SourceClassId = x.SourceClassId, Changes = x.ChangesJson is null ? null : JsonSerializer.Deserialize<SkillTreeOperationChange[]>(x.ChangesJson), Status = x.Status, Reason = x.Reason, CreatedAtUtc = x.CreatedAtUtc, ExpiresAtUtc = x.ExpiresAtUtc, CompletedAtUtc = x.CompletedAtUtc };
     private static JsonElement? GetProperty(string? json, string name) { if (json is null) return null; try { using var doc = JsonDocument.Parse(json); return doc.RootElement.TryGetProperty(name, out var value) ? value.Clone() : null; } catch (JsonException) { return null; } }
     private static decimal? GetDecimalProperty(string? json, string name) { var value = GetProperty(json, name); return value is { ValueKind: JsonValueKind.Number } && value.Value.TryGetDecimal(out var result) ? result : null; }
     private static string? GetStringProperty(string? json, string name) { var value = GetProperty(json, name); return value is { ValueKind: JsonValueKind.String } ? value.Value.GetString() : null; }

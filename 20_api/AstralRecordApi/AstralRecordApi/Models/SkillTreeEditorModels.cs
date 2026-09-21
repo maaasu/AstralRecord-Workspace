@@ -59,7 +59,9 @@ public sealed class SkillTreeOperationCreateRequest
     public required string Action { get; init; }
     public required string NodeId { get; init; }
     public string? SourceClassId { get; init; }
+    public IReadOnlyList<SkillTreeOperationChange>? Changes { get; init; }
 }
+public sealed class SkillTreeOperationChange { public required string Action { get; init; } public required string NodeId { get; init; } public string? SourceClassId { get; init; } }
 
 /// <summary>
 /// 実際にロード済みの Plugin が評価した表示情報。Web はこの値から条件・費用を再計算しません。
@@ -92,6 +94,7 @@ public sealed class SkillTreeOperationResponse
     public required string Action { get; init; }
     public required string NodeId { get; init; }
     public string? SourceClassId { get; init; }
+    public IReadOnlyList<SkillTreeOperationChange>? Changes { get; init; }
     public required string Status { get; init; }
     public string? Reason { get; init; }
     public DateTime ExpiresAtUtc { get; init; }
@@ -177,6 +180,7 @@ public sealed class SkillTreeEditorResponse
     public string? GenerationId { get; init; }
     public int StateRevision { get; init; }
     public bool CanEdit { get; init; }
+    public bool SupportsBatch { get; init; }
     /// <summary>現在接続先Pluginで確認済みの残高・条件を返している場合だけtrueです。</summary>
     public bool HasFreshState { get; init; }
     /// <summary>LIVE、SAVED、UNKNOWN。SAVEDはoffline編集案の基準であり確定残高ではありません。</summary>

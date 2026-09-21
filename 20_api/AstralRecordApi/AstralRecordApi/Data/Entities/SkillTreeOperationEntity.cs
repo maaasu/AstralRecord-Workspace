@@ -13,6 +13,7 @@ public sealed class SkillTreeOperationEntity
     public string Action { get; set; } = string.Empty;
     public string NodeId { get; set; } = string.Empty;
     public string? SourceClassId { get; set; }
+    public string? ChangesJson { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Reason { get; set; }
     public Guid? ClaimedServerSessionId { get; set; }

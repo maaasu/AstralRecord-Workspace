@@ -711,6 +711,7 @@ CREATE TABLE [dbo].[skilltree_operation] (
     [action] NVARCHAR(16) NOT NULL,
     [node_id] NVARCHAR(200) NOT NULL,
     [source_class_id] NVARCHAR(100) NULL,
+    [changes_json] NVARCHAR(MAX) NULL,
     [status] NVARCHAR(32) NOT NULL,
     [reason] NVARCHAR(500) NULL,
     [claimed_server_session_id] UNIQUEIDENTIFIER NULL,
@@ -724,7 +725,8 @@ CREATE TABLE [dbo].[skilltree_operation] (
     CONSTRAINT [FK_skilltree_operation_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid]),
     CONSTRAINT [FK_skilltree_operation_generation] FOREIGN KEY ([expected_definition_generation_id]) REFERENCES [dbo].[skilltree_definition_generation] ([definition_generation_id]),
     CONSTRAINT [CK_skilltree_operation_version] CHECK ([expected_player_state_version] >= 0),
-    CONSTRAINT [CK_skilltree_operation_action] CHECK ([action] IN ('UNLOCK', 'RELOCK'))
+    CONSTRAINT [CK_skilltree_operation_action] CHECK (([action] IN ('UNLOCK', 'RELOCK') AND [changes_json] IS NULL) OR ([action] = 'BATCH' AND [node_id] = 'batch' AND [changes_json] IS NOT NULL)),
+    CONSTRAINT [CK_skilltree_operation_changes_json] CHECK ([changes_json] IS NULL OR ISJSON([changes_json]) = 1)
 );
 GO
 

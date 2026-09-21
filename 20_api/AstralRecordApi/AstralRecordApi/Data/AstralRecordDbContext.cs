@@ -100,6 +100,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
         modelBuilder.Entity<SkillTreeOperationEntity>(entity =>
         {
             entity.Property(x => x.ClaimedAccountSessionId).HasColumnName("claimed_account_session_id");
+            entity.Property(x => x.ChangesJson).HasColumnName("changes_json");
             entity.ToTable("skilltree_operation", "dbo");
             entity.HasKey(x => x.OperationId);
             entity.Property(x => x.OperationId).HasColumnName("operation_id");
