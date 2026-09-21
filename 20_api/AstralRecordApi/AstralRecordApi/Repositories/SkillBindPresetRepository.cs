@@ -11,9 +11,9 @@ public class SkillBindPresetRepository(
     AstralRecordDbContext dbContext,
     MasterDataDbContext? masterDataDbContext = null) : ISkillBindPresetRepository
 {
-    public const int PresetCount = 6;
-    public const int ActionRingSlotCount = 6;
-    public const int PassiveSlotCount = 9;
+    public const int PresetCount = 9;
+    public const int ActiveSlotCount = 12;
+    public const int PassiveSlotCount = 12;
     private const int DefaultUnlockedPresetCount = 3;
     internal const string WeaponNormalAttackBindingId = "__weapon_normal_attack__";
 
@@ -66,7 +66,7 @@ public class SkillBindPresetRepository(
             return null;
 
         var now = DateTime.UtcNow;
-        var activeSlots = NormalizeSlots(request.ActiveSkillSlots, ActionRingSlotCount);
+        var activeSlots = NormalizeSlots(request.ActiveSkillSlots, ActiveSlotCount);
         var passiveSlots = NormalizeSlots(request.PassiveSkillSlots, PassiveSlotCount);
         var leftClickSkillId = NormalizeSkillId(request.LeftClickSkillId);
         var entity = await dbContext.SkillBindPresets
@@ -150,7 +150,7 @@ public class SkillBindPresetRepository(
                     SkillBindPresetId = Guid.NewGuid(),
                     AccountId = accountId,
                     PresetIndex = presetIndex,
-                    ActiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(ActionRingSlotCount)),
+                    ActiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(ActiveSlotCount)),
                     LeftClickSkillId = WeaponNormalAttackBindingId,
                     PassiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(PassiveSlotCount)),
                     IsUnlocked = presetIndex <= DefaultUnlockedPresetCount,
@@ -201,7 +201,7 @@ public class SkillBindPresetRepository(
     {
         AccountId = accountId,
         PresetIndex = presetIndex,
-        ActiveSkillSlots = EmptySlots(ActionRingSlotCount),
+        ActiveSkillSlots = EmptySlots(ActiveSlotCount),
         LeftClickSkillId = WeaponNormalAttackBindingId,
         PassiveSkillSlots = EmptySlots(PassiveSlotCount),
         IsUnlocked = presetIndex <= DefaultUnlockedPresetCount,
@@ -217,7 +217,7 @@ public class SkillBindPresetRepository(
         AccountId = entity.AccountId,
         PresetIndex = entity.PresetIndex,
         ActiveSkillSlots = NormalizeLegacySlots(
-            DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount), legacyBindingIds, ownedBindingIds,
+            DeserializeSlots(entity.ActiveSkillSlotsJson, ActiveSlotCount), legacyBindingIds, ownedBindingIds,
             allowWeaponNormalAttack: true),
         LeftClickSkillId = entity.LeftClickSkillId is null
             ? WeaponNormalAttackBindingId
@@ -304,8 +304,8 @@ public class SkillBindPresetRepository(
             return false;
 
         var existingActiveSlots = existing is null
-            ? EmptySlots(ActionRingSlotCount)
-            : DeserializeSlots(existing.ActiveSkillSlotsJson, ActionRingSlotCount);
+            ? EmptySlots(ActiveSlotCount)
+            : DeserializeSlots(existing.ActiveSkillSlotsJson, ActiveSlotCount);
         var existingPassiveSlots = existing is null
             ? EmptySlots(PassiveSlotCount)
             : DeserializeSlots(existing.PassiveSkillSlotsJson, PassiveSlotCount);

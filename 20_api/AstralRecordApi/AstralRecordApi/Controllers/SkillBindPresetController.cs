@@ -9,7 +9,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/skill-bind-presets")]
 public class SkillBindPresetController(ISkillBindPresetRepository repository) : ControllerBase
 {
-    /// <summary>アカウントのスキルバインドプリセット一覧を取得します。</summary>
+    /// <summary>アカウントのプリセット1〜9を取得し、アクティブ・パッシブを各12枠へ補完します。</summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByAccountId([FromQuery(Name = "account_id")] Guid accountId)
@@ -18,7 +18,7 @@ public class SkillBindPresetController(ISkillBindPresetRepository repository) : 
         return Ok(presets);
     }
 
-    /// <summary>指定プリセットへスキルバインドを保存します。</summary>
+    /// <summary>プリセット1〜9へアクティブ・パッシブ各12枠と左クリックのバインドを保存します。</summary>
     [HttpPut("{accountId:guid}/{presetIndex:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

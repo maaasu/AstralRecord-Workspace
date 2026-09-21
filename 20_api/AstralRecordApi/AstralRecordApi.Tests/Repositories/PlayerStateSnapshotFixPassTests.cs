@@ -37,7 +37,8 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
                         .Select(index => new PlayerStateSkillBindPresetSnapshot
                         {
                             PresetIndex = index, ExpectedVersion = expected, TargetVersion = 1,
-                            ActiveSkillSlots = [skillId.ToString()],
+                            ActiveSkillSlots = Enumerable.Repeat<string?>(null, 11)
+                                .Append(skillId.ToString()).ToArray(),
                         }).ToArray(),
                 }),
                 SkillTree = Section(new PlayerStateSkillTreeSection
@@ -49,8 +50,15 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
             Assert.True(result.Succeeded, result.Detail);
             Assert.Equal((expected ?? 0) + 1,
                 (await fixture.DbContext.AccountLearnedSkills.AsNoTracking().SingleAsync()).Version);
-            Assert.All(await fixture.DbContext.SkillBindPresets.AsNoTracking().ToListAsync(),
-                preset => Assert.Equal((expected ?? 0) + 1, preset.Version));
+            var savedPresets = await fixture.DbContext.SkillBindPresets.AsNoTracking().ToListAsync();
+            Assert.Equal(9, savedPresets.Count);
+            Assert.All(savedPresets, preset =>
+            {
+                Assert.Equal((expected ?? 0) + 1, preset.Version);
+                var activeSlots = JsonSerializer.Deserialize<string?[]>(preset.ActiveSkillSlotsJson)!;
+                Assert.Equal(12, activeSlots.Length);
+                Assert.Equal(skillId.ToString(), activeSlots[11]);
+            });
             Assert.Equal((expected ?? 0) + 1,
                 (await fixture.DbContext.AccountSkillTreeStates.AsNoTracking().SingleAsync()).Version);
         }

@@ -7,6 +7,20 @@
   "preExistingMigrationFileNames": [],
   "migrations": [
     {
+      "id": "20260921_skill_bind_capacity",
+      "fileName": "20260921_skill_bind_capacity.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "skill_bind_preset",
+        "primaryKey": "PK_skill_bind_preset",
+        "columns": [
+          { "name": "preset_index", "sqlType": "int", "isNullable": false }
+        ],
+        "checkConstraints": [ "CK_skill_bind_preset_index" ],
+        "indexes": []
+      }
+    },
+    {
       "id": "20260905_account_learned_skill_operation",
       "fileName": "20260905_account_learned_skill_operation.sql",
       "expectation": {

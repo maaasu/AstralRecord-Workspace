@@ -53,11 +53,11 @@ public class SkillBindPresetRepositoryTests
 
         var presets = await repository.GetByAccountIdAsync(accountId);
 
-        Assert.Equal(6, presets.Count);
+        Assert.Equal(9, presets.Count);
         Assert.All(presets, preset =>
         {
-            Assert.Equal(6, preset.ActiveSkillSlots.Count);
-            Assert.Equal(9, preset.PassiveSkillSlots.Count);
+            Assert.Equal(12, preset.ActiveSkillSlots.Count);
+            Assert.Equal(12, preset.PassiveSkillSlots.Count);
         });
         Assert.All(presets.Where(preset => preset.PresetIndex <= 3), preset => Assert.True(preset.IsUnlocked));
         Assert.All(presets.Where(preset => preset.PresetIndex > 3), preset => Assert.False(preset.IsUnlocked));
@@ -359,7 +359,7 @@ public class SkillBindPresetRepositoryTests
     }
 
     [Fact]
-    public async Task UpsertAsync_PreservesAllNineOwnedPassiveBindingsAndRejectsUnownedIds()
+    public async Task UpsertAsync_PreservesAllTwelveOwnedPassiveBindingsAndRejectsUnownedIds()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -373,7 +373,7 @@ public class SkillBindPresetRepositoryTests
         var now = DateTime.UtcNow;
         await dbContext.Database.ExecuteSqlInterpolatedAsync(
             $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
-        var learned = Enumerable.Range(0, 9).Select(_ => new AccountLearnedSkillEntity
+        var learned = Enumerable.Range(0, 12).Select(_ => new AccountLearnedSkillEntity
         {
             LearnedSkillId = Guid.NewGuid(),
             AccountId = accountId,
@@ -389,8 +389,9 @@ public class SkillBindPresetRepositoryTests
         await dbContext.SaveChangesAsync();
         var repository = new SkillBindPresetRepository(dbContext);
 
-        var saved = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        var saved = await repository.UpsertAsync(accountId, 9, new SkillBindPresetUpsertRequest
         {
+            ActiveSkillSlots = learned.Select(skill => (string?)skill.LearnedSkillId.ToString()).ToArray(),
             PassiveSkillSlots = learned.Select(skill => (string?)skill.LearnedSkillId.ToString()).ToArray(),
             UpdatedBy = userId,
         });
@@ -401,11 +402,15 @@ public class SkillBindPresetRepositoryTests
         });
 
         Assert.NotNull(saved);
-        Assert.Equal(9, saved.PassiveSkillSlots.Count);
+        Assert.Equal(12, saved.PassiveSkillSlots.Count);
+        Assert.Equal(12, saved.ActiveSkillSlots.Count);
+        Assert.Equal(learned.Select(skill => skill.LearnedSkillId.ToString()), saved.ActiveSkillSlots);
+        Assert.False(saved.IsUnlocked);
         Assert.Equal(learned.Select(skill => skill.LearnedSkillId.ToString()), saved.PassiveSkillSlots);
         Assert.Null(rejected);
-        var reloaded = (await repository.GetByAccountIdAsync(accountId)).Single(preset => preset.PresetIndex == 1);
+        var reloaded = (await repository.GetByAccountIdAsync(accountId)).Single(preset => preset.PresetIndex == 9);
         Assert.Equal(saved.PassiveSkillSlots, reloaded.PassiveSkillSlots);
+        Assert.Equal(saved.ActiveSkillSlots, reloaded.ActiveSkillSlots);
     }
 
     [Fact]

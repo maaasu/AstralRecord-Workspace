@@ -1428,7 +1428,7 @@ public sealed class PlayerStateSnapshotRepository(
         if (section.SelectedPresetIndex is < 1 or > SkillBindPresetRepository.PresetCount
             || section.Presets.Count != SkillBindPresetRepository.PresetCount
             || section.Presets.Any(preset => preset.PresetIndex is < 1 or > SkillBindPresetRepository.PresetCount
-                || preset.ActiveSkillSlots.Count > SkillBindPresetRepository.ActionRingSlotCount
+                || preset.ActiveSkillSlots.Count > SkillBindPresetRepository.ActiveSlotCount
                 || preset.PassiveSkillSlots.Count > SkillBindPresetRepository.PassiveSlotCount)
             || section.Presets.GroupBy(preset => preset.PresetIndex).Any(group => group.Count() > 1))
             return null;
@@ -1457,9 +1457,9 @@ public sealed class PlayerStateSnapshotRepository(
         foreach (var snapshot in section.Presets)
         {
             byIndex.TryGetValue(snapshot.PresetIndex, out var current);
-            var activeSlots = NormalizeSlots(snapshot.ActiveSkillSlots, SkillBindPresetRepository.ActionRingSlotCount);
+            var activeSlots = NormalizeSlots(snapshot.ActiveSkillSlots, SkillBindPresetRepository.ActiveSlotCount);
             var persistedActiveSlots = DeserializeBindingSlots(
-                current?.ActiveSkillSlotsJson, SkillBindPresetRepository.ActionRingSlotCount);
+                current?.ActiveSkillSlotsJson, SkillBindPresetRepository.ActiveSlotCount);
             var passiveSlots = NormalizeSlots(snapshot.PassiveSkillSlots, SkillBindPresetRepository.PassiveSlotCount);
             var persistedPassiveSlots = DeserializeBindingSlots(
                 current?.PassiveSkillSlotsJson, SkillBindPresetRepository.PassiveSlotCount);
@@ -1501,7 +1501,7 @@ public sealed class PlayerStateSnapshotRepository(
                 };
                 await dbContext.SkillBindPresets.AddAsync(entity);
             }
-            entity.ActiveSkillSlotsJson = JsonSerializer.Serialize(NormalizeSlots(snapshot.ActiveSkillSlots, SkillBindPresetRepository.ActionRingSlotCount));
+            entity.ActiveSkillSlotsJson = JsonSerializer.Serialize(NormalizeSlots(snapshot.ActiveSkillSlots, SkillBindPresetRepository.ActiveSlotCount));
             entity.LeftClickSkillId = string.IsNullOrWhiteSpace(snapshot.LeftClickSkillId) ? string.Empty : snapshot.LeftClickSkillId;
             entity.PassiveSkillSlotsJson = JsonSerializer.Serialize(NormalizeSlots(snapshot.PassiveSkillSlots, SkillBindPresetRepository.PassiveSlotCount));
             entity.IsUnlocked = entity.IsUnlocked || snapshot.PresetIndex <= 3;
@@ -2113,7 +2113,7 @@ public sealed class PlayerStateSnapshotRepository(
                 || section.Presets.Any(p => p is null || p.PresetIndex is < 1 or > SkillBindPresetRepository.PresetCount
                     || p.ExpectedVersion is < 1 || p.TargetVersion is < 1
                     || p.ActiveSkillSlots is null || p.PassiveSkillSlots is null
-                    || p.ActiveSkillSlots.Count > SkillBindPresetRepository.ActionRingSlotCount
+                    || p.ActiveSkillSlots.Count > SkillBindPresetRepository.ActiveSlotCount
                     || p.PassiveSkillSlots.Count > SkillBindPresetRepository.PassiveSlotCount)
                 || HasDuplicates(section.Presets.Select(p => p.PresetIndex)))
                 return false;

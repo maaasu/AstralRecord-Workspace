@@ -537,7 +537,7 @@ CREATE TABLE [dbo].[skill_bind_preset] (
         REFERENCES [dbo].[account] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [CK_skill_bind_preset_index] CHECK ([preset_index] BETWEEN 1 AND 6),
+    CONSTRAINT [CK_skill_bind_preset_index] CHECK ([preset_index] BETWEEN 1 AND 9),
     CONSTRAINT [CK_skill_bind_preset_active_slots_json] CHECK (ISJSON([active_skill_slots_json]) = 1),
     CONSTRAINT [CK_skill_bind_preset_passive_slots_json] CHECK (ISJSON([passive_skill_slots_json]) = 1),
     CONSTRAINT [CK_skill_bind_preset_version] CHECK ([version] >= 1)
