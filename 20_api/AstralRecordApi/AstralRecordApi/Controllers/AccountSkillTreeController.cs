@@ -39,6 +39,10 @@ public class AccountSkillTreeController(IAccountSkillTreeStateRepository account
         {
             return NotFound();
         }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new { message = "世代付きスキルツリー状態はPlugin確定処理からのみ変更できます。" });
+        }
     }
 
     /// <summary>

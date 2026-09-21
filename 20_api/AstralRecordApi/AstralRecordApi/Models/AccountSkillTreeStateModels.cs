@@ -7,6 +7,7 @@ public class AccountSkillTreeStateResponse
     public required IReadOnlyList<AccountSkillTreeUnlockedNodeModel> UnlockedNodes { get; init; }
     public bool IsSaved { get; init; }
     public int Version { get; init; }
+    public string? DefinitionGenerationId { get; init; }
     public DateTime? CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public Guid? CreatedBy { get; init; }
@@ -32,6 +33,9 @@ public class AccountSkillTreeInvalidStateRepairRequest
 
     /// <summary>Plugin が構造不整合を判定した状態の版数。</summary>
     public int ExpectedVersion { get; init; }
+
+    /// <summary>構造不整合を判定した実ロード世代。同一世代以外の補修を拒否する。</summary>
+    public string ExpectedDefinitionGenerationId { get; init; } = string.Empty;
 
     /// <summary>監査用の更新者 UUID。</summary>
     public Guid UpdatedBy { get; init; }

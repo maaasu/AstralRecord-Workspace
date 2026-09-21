@@ -504,6 +504,14 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 .SetProperty(entity => entity.IsDeleted, true)
                 .SetProperty(entity => entity.UpdatedAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        // 編集案・lease・Plugin評価viewはアカウント固有の短期状態であり、削除済み
+        // アカウントに対して後から確定させない。マーケット等の履歴は保持する。
+        await dbContext.SkillTreeServerPlayerViews
+            .Where(entity => entity.AccountId == accountId)
+            .ExecuteDeleteAsync();
+        await dbContext.SkillTreeOperations
+            .Where(entity => entity.AccountId == accountId)
+            .ExecuteDeleteAsync();
         await dbContext.AccountSkillTreeUnlockedNodes
             .Where(entity => dbContext.AccountSkillTreeStates
                 .Where(state => state.AccountId == accountId)

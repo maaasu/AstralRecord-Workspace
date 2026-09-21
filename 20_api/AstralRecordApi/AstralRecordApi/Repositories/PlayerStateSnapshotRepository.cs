@@ -17,10 +17,32 @@ namespace AstralRecordApi.Repositories;
 /// </summary>
 public sealed class PlayerStateSnapshotRepository(
     AstralRecordDbContext dbContext,
+    ISkillTreeOperationRepository skillTreeOperationRepository,
     MasterDataDbContext? masterDataDbContext = null) : IPlayerStateSnapshotRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private const int MaxRebirthExperienceRemainder = 99;
+
+    // 既存のrepository単体テストはWeb操作receiptを含まないsnapshotを構築する。
+    // そのテスト契約を維持し、実行時DIはより長いprimary constructorを選択する。
+    public PlayerStateSnapshotRepository(AstralRecordDbContext dbContext, MasterDataDbContext? masterDataDbContext = null)
+        : this(dbContext, NoopSkillTreeOperationRepository.Instance, masterDataDbContext) { }
+
+    private sealed class NoopSkillTreeOperationRepository : ISkillTreeOperationRepository
+    {
+        public static readonly NoopSkillTreeOperationRepository Instance = new();
+        public Task<SkillTreeServerRuntimeResponse?> RegisterServerAsync(string serverId, SkillTreeServerRegistrationRequest request) => Task.FromResult<SkillTreeServerRuntimeResponse?>(null);
+        public Task<SkillTreeServerRuntimeResponse?> HeartbeatServerAsync(string serverId, SkillTreeServerHeartbeatRequest request) => Task.FromResult<SkillTreeServerRuntimeResponse?>(null);
+        public Task<SkillTreeEditorResponse?> GetEditorAsync(Guid accountId, Guid actorUserId, string? targetServerId = null) => Task.FromResult<SkillTreeEditorResponse?>(null);
+        public Task<SkillTreeEditorResponse?> RegisterPlayerViewAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request) => Task.FromResult<SkillTreeEditorResponse?>(null);
+        public Task<SkillTreeOperationResponse?> CreateAsync(Guid accountId, SkillTreeOperationCreateRequest request) => Task.FromResult<SkillTreeOperationResponse?>(null);
+        public Task<SkillTreeOperationResponse?> FindAsync(Guid accountId, Guid operationId, Guid actorUserId) => Task.FromResult<SkillTreeOperationResponse?>(null);
+        public Task<SkillTreeOperationResponse?> CancelAsync(Guid accountId, Guid operationId, Guid actorUserId) => Task.FromResult<SkillTreeOperationResponse?>(null);
+        public Task<IReadOnlyList<SkillTreeOperationResponse>?> GetClaimableAsync(string serverId, Guid serverSessionId, Guid accountId) => Task.FromResult<IReadOnlyList<SkillTreeOperationResponse>?>(null);
+        public Task<SkillTreeOperationClaimResponse?> ClaimAsync(string serverId, Guid operationId, SkillTreeOperationClaimRequest request) => Task.FromResult<SkillTreeOperationClaimResponse?>(null);
+        public Task<bool> ValidateRuntimeStateSaveAsync(string serverId, Guid serverSessionId, string definitionGenerationId) => Task.FromResult(false);
+        public Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now) => Task.FromResult(false);
+    }
 
     public async Task<PlayerStateSnapshotSaveResult> SaveAsync(PlayerStateSnapshotSaveRequest request)
     {
@@ -575,6 +597,7 @@ public sealed class PlayerStateSnapshotRepository(
             LearnedSkills = baseAck.LearnedSkills,
             SkillBindPresets = baseAck.SkillBindPresets,
             SkillTree = baseAck.SkillTree,
+            SkillTreeOperation = baseAck.SkillTreeOperation,
             AccountProgress = baseAck.AccountProgress,
             Waystones = baseAck.Waystones,
             QuestState = baseAck.QuestState,
@@ -596,6 +619,7 @@ public sealed class PlayerStateSnapshotRepository(
         JsonElement? learnedSkillsAck = null;
         JsonElement? bindPresetsAck = null;
         JsonElement? skillTreeAck = null;
+        JsonElement? skillTreeOperationAck = null;
         JsonElement? accountProgressAck = null;
         JsonElement? waystonesAck = null;
         JsonElement? questStateAck = null;
@@ -635,10 +659,30 @@ public sealed class PlayerStateSnapshotRepository(
             var section = TryDeserializeSection<PlayerStateSkillTreeSection>(request.SkillTree.Value);
             if (section is null || section.AccountId != request.AccountId)
                 return Failure(PlayerStateSnapshotSaveFailure.Invalid, "skillTree section is invalid.");
-            var applied = await ApplySkillTreeAsync(section, request, now);
+            var runtimeSaveVerified = section.Operation is null
+                && !string.IsNullOrWhiteSpace(section.DefinitionGenerationId)
+                && !string.IsNullOrWhiteSpace(section.ServerId)
+                && section.ServerSessionId.HasValue
+                && await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(section.ServerId, section.ServerSessionId.Value, section.DefinitionGenerationId);
+            if (section.Operation is null && !string.IsNullOrWhiteSpace(section.DefinitionGenerationId) && !runtimeSaveVerified)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree runtime generation or session conflicts with current state.");
+            var applied = await ApplySkillTreeAsync(section, request, now, runtimeSaveVerified);
             if (applied is null)
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree section conflicts with current state.");
+            if (section.Operation is not null
+                && !await skillTreeOperationRepository.CompleteFromSnapshotAsync(request.AccountId, section.Operation, now))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree operation lease or generation conflicts with current state.");
             skillTreeAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.SkillTreeOperation.HasValue)
+        {
+            var operation = TryDeserializeSection<PlayerStateSkillTreeOperationSection>(request.SkillTreeOperation.Value);
+            if (operation is null || request.SkillTree.HasValue)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "skillTreeOperation section is invalid or duplicated.");
+            if (!await skillTreeOperationRepository.CompleteFromSnapshotAsync(request.AccountId, operation, now))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree operation lease or generation conflicts with current state.");
+            skillTreeOperationAck = JsonSerializer.SerializeToElement(new { operationId = operation.OperationId, status = operation.FinalStatus }, JsonOptions);
         }
 
         if (request.AccountProgress.HasValue)
@@ -747,6 +791,7 @@ public sealed class PlayerStateSnapshotRepository(
             LearnedSkills = learnedSkillsAck,
             SkillBindPresets = bindPresetsAck,
             SkillTree = skillTreeAck,
+            SkillTreeOperation = skillTreeOperationAck,
             AccountProgress = accountProgressAck,
             Waystones = waystonesAck,
             QuestState = questStateAck,
@@ -1476,13 +1521,15 @@ public sealed class PlayerStateSnapshotRepository(
     private async Task<object?> ApplySkillTreeAsync(
         PlayerStateSkillTreeSection section,
         PlayerStateSnapshotSaveRequest request,
-        DateTime now)
+        DateTime now,
+        bool runtimeSaveVerified)
     {
         if (section.UnlockedNodes.Any(node => string.IsNullOrWhiteSpace(node.NodeId))
             || section.UnlockedNodes.GroupBy(node => node.NodeId.Trim(), StringComparer.Ordinal).Any(group => group.Count() > 1))
             return null;
         var state = await dbContext.AccountSkillTreeStates
             .FirstOrDefaultAsync(entity => entity.AccountId == request.AccountId && !entity.IsDeleted);
+        var isNew = state is null;
         if (state is null)
         {
             if (section.ExpectedVersion is not null and not 0) return null;
@@ -1504,13 +1551,39 @@ public sealed class PlayerStateSnapshotRepository(
             dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(existingNodes);
             await dbContext.SaveChangesAsync();
         }
+        if (section.Operation is not null)
+        {
+            if (state.DefinitionGenerationId is not null
+                && !string.Equals(state.DefinitionGenerationId, section.Operation.DefinitionGenerationId, StringComparison.Ordinal))
+                return null;
+            if (state.DefinitionGenerationId is null && !section.Operation.MigrateLegacyState)
+                return null;
+            state.DefinitionGenerationId = section.Operation.DefinitionGenerationId;
+        }
+        else if (state.DefinitionGenerationId is not null)
+        {
+            // 世代付き状態は新Pluginの実ロードsessionが提示した同世代保存だけ許可する。
+            if (!runtimeSaveVerified || !string.Equals(state.DefinitionGenerationId, section.DefinitionGenerationId, StringComparison.Ordinal)) return null;
+        }
+        else if (!string.IsNullOrWhiteSpace(section.DefinitionGenerationId))
+        {
+            // 新規状態は即時bindできる。既存legacyはPluginが構造を再検証した明示移行だけ許可する。
+            if (!runtimeSaveVerified || (!isNew && !section.MigrateLegacyState)) return null;
+            state.DefinitionGenerationId = section.DefinitionGenerationId;
+        }
         await dbContext.AccountSkillTreeUnlockedNodes.AddRangeAsync(section.UnlockedNodes.Select(node => new AccountSkillTreeUnlockedNodeEntity
         {
             AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
             NodeId = node.NodeId.Trim(), ConsumedClassId = string.IsNullOrWhiteSpace(node.ConsumedClassId) ? null : node.ConsumedClassId.Trim(),
             CreatedAt = now, UpdatedAt = now, CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy,
         }));
-        return new { clientRevision = section.ClientRevision, version = state.Version, updatedAt = state.UpdatedAt };
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            version = state.Version,
+            updatedAt = state.UpdatedAt,
+            operation = section.Operation is null ? null : new { operationId = section.Operation.OperationId, status = section.Operation.FinalStatus },
+        };
     }
 
     private async Task<object?> ApplyAccountProgressAsync(

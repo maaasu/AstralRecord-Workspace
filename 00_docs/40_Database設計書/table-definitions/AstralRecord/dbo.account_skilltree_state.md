@@ -10,6 +10,7 @@
 | `account_skilltree_state_id` | UNIQUEIDENTIFIER | 不可 | - | スキルツリー進行状態 ID |
 | `account_id` | UNIQUEIDENTIFIER | 不可 | - | `dbo.account.uuid` |
 | `version` | INT | 不可 | `1` | 更新バージョン |
+| `definition_generation_id` | NVARCHAR(64) | 可 | - | Pluginが検証して確定した定義世代。`NULL` は導入前legacy状態 |
 | `created_at` | DATETIME2(3) | 不可 | - | 作成日時 |
 | `updated_at` | DATETIME2(3) | 不可 | - | 更新日時 |
 | `created_by` | UNIQUEIDENTIFIER | 不可 | - | 作成者 |
@@ -28,3 +29,4 @@
 - 解放済みノード一覧は子テーブル `dbo.account_skilltree_unlocked_node` に保持する。
 - CP / PP の残高は保存しない。獲得量はプレイヤーレベル・クラスレベルから導出し、CP の消費先だけを子テーブルに保持する。
 - filebase JSON や plugin ローカルファイルにプレイヤー進行は保持しない。正本は API / DB 側。
+- legacy状態はPluginが同一世代で構造を再検証した明示移行時だけ世代を設定する。世代不一致だけで全解除・補償してはならない。

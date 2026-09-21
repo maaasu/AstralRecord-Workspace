@@ -302,6 +302,7 @@ public class AccountSkillTreeStateRepositoryTests
                 account_skilltree_state_id TEXT NOT NULL PRIMARY KEY,
                 account_id TEXT NOT NULL,
                 version INTEGER NOT NULL,
+                definition_generation_id TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 created_by TEXT NOT NULL,

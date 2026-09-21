@@ -45,12 +45,81 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
     public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
     public DbSet<PlayerStateSnapshotEntity> PlayerStateSnapshots => Set<PlayerStateSnapshotEntity>();
+    public DbSet<SkillTreeDefinitionGenerationEntity> SkillTreeDefinitionGenerations => Set<SkillTreeDefinitionGenerationEntity>();
+    public DbSet<SkillTreeServerRuntimeEntity> SkillTreeServerRuntimes => Set<SkillTreeServerRuntimeEntity>();
+    public DbSet<SkillTreeOperationEntity> SkillTreeOperations => Set<SkillTreeOperationEntity>();
+    public DbSet<SkillTreeServerPlayerViewEntity> SkillTreeServerPlayerViews => Set<SkillTreeServerPlayerViewEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
     public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SkillTreeDefinitionGenerationEntity>(entity =>
+        {
+            entity.ToTable("skilltree_definition_generation", "dbo");
+            entity.HasKey(x => x.DefinitionGenerationId);
+            entity.Property(x => x.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
+            entity.Property(x => x.CanonicalSnapshotJson).HasColumnName("canonical_snapshot_json");
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+        });
+        modelBuilder.Entity<SkillTreeServerRuntimeEntity>(entity =>
+        {
+            entity.ToTable("skilltree_server_runtime", "dbo");
+            entity.HasKey(x => x.ServerId);
+            entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
+            entity.Property(x => x.ServerSessionId).HasColumnName("server_session_id");
+            entity.Property(x => x.ServerStartedAtUtc).HasColumnName("server_started_at_utc");
+            entity.Property(x => x.PluginVersion).HasColumnName("plugin_version").HasMaxLength(100);
+            entity.Property(x => x.CompatibilityVersion).HasColumnName("compatibility_version").HasMaxLength(100);
+            entity.Property(x => x.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
+            entity.Property(x => x.Ready).HasColumnName("ready");
+            entity.Property(x => x.LastSeenUtc).HasColumnName("last_seen_utc");
+            entity.HasOne<SkillTreeDefinitionGenerationEntity>().WithMany().HasForeignKey(x => x.DefinitionGenerationId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<SkillTreeOperationEntity>(entity =>
+        {
+            entity.ToTable("skilltree_operation", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ActorUserId).HasColumnName("actor_user_id");
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(x => x.TargetServerId).HasColumnName("target_server_id").HasMaxLength(64);
+            entity.Property(x => x.ExpectedDefinitionGenerationId).HasColumnName("expected_definition_generation_id").HasMaxLength(64);
+            entity.Property(x => x.ExpectedPlayerStateVersion).HasColumnName("expected_player_state_version");
+            entity.Property(x => x.ExpectedEvaluationFingerprint).HasColumnName("expected_evaluation_fingerprint").HasMaxLength(64);
+            entity.Property(x => x.Action).HasColumnName("action").HasMaxLength(16);
+            entity.Property(x => x.NodeId).HasColumnName("node_id").HasMaxLength(200);
+            entity.Property(x => x.SourceClassId).HasColumnName("source_class_id").HasMaxLength(100);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(500);
+            entity.Property(x => x.ClaimedServerSessionId).HasColumnName("claimed_server_session_id");
+            entity.Property(x => x.LeaseTokenHash).HasColumnName("lease_token_hash").HasMaxLength(64);
+            entity.Property(x => x.LeaseExpiresAtUtc).HasColumnName("lease_expires_at_utc");
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(x => x.ExpiresAtUtc).HasColumnName("expires_at_utc");
+            entity.Property(x => x.CompletedAtUtc).HasColumnName("completed_at_utc");
+            entity.HasIndex(x => new { x.AccountId, x.Status }).HasDatabaseName("IX_skilltree_operation_account_status");
+            entity.HasIndex(x => new { x.TargetServerId, x.Status }).HasDatabaseName("IX_skilltree_operation_server_status");
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<SkillTreeServerPlayerViewEntity>(entity =>
+        {
+            entity.ToTable("skilltree_server_player_view", "dbo");
+            entity.HasKey(x => new { x.ServerId, x.AccountId });
+            entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ServerSessionId).HasColumnName("server_session_id");
+            entity.Property(x => x.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
+            entity.Property(x => x.PlayerStateVersion).HasColumnName("player_state_version");
+            entity.Property(x => x.EvaluationFingerprint).HasColumnName("evaluation_fingerprint").HasMaxLength(64);
+            entity.Property(x => x.EditEligible).HasColumnName("edit_eligible");
+            entity.Property(x => x.ViewJson).HasColumnName("view_json");
+            entity.Property(x => x.LastSeenUtc).HasColumnName("last_seen_utc");
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<SkillTreeDefinitionGenerationEntity>().WithMany().HasForeignKey(x => x.DefinitionGenerationId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<UserEntity>(entity =>
         {
             entity.ToTable("user", "dbo");
@@ -343,6 +412,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(state => state.AccountSkillTreeStateId).HasColumnName("account_skilltree_state_id");
             entity.Property(state => state.AccountId).HasColumnName("account_id");
             entity.Property(state => state.Version).HasColumnName("version");
+            entity.Property(state => state.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
             entity.Property(state => state.CreatedAt).HasColumnName("created_at");
             entity.Property(state => state.UpdatedAt).HasColumnName("updated_at");
             entity.Property(state => state.CreatedBy).HasColumnName("created_by");

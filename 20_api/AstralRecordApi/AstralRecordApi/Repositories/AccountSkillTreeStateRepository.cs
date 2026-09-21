@@ -44,6 +44,10 @@ public class AccountSkillTreeStateRepository(
 
         var now = DateTime.UtcNow;
         var normalizedNodes = NormalizeUnlockedNodes(request.UnlockedNodes);
+        var current = await dbContext.AccountSkillTreeStates.AsNoTracking()
+            .SingleOrDefaultAsync(state => state.AccountId == accountId && !state.IsDeleted);
+        if (current?.DefinitionGenerationId is not null)
+            throw new InvalidOperationException("Generation-bound skill tree state must be changed through the Plugin operation flow.");
         await ReplaceUnlockedNodesAsync(accountId, normalizedNodes, request.UpdatedBy, now);
 
         await dbContext.SaveChangesAsync();
@@ -92,6 +96,13 @@ public class AccountSkillTreeStateRepository(
             if (currentVersion != request.ExpectedVersion)
                 throw new DbUpdateConcurrencyException(
                     $"Account skill tree state version conflict: expected={request.ExpectedVersion}, current={currentVersion}");
+            var currentGeneration = await dbContext.AccountSkillTreeStates
+                .AsNoTracking().Where(state => state.AccountId == accountId && !state.IsDeleted)
+                .Select(state => state.DefinitionGenerationId).SingleOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(request.ExpectedDefinitionGenerationId)
+                ? currentGeneration is not null
+                : !string.Equals(currentGeneration, request.ExpectedDefinitionGenerationId, StringComparison.Ordinal))
+                throw new DbUpdateConcurrencyException("Skill tree definition generation differs; state is held without repair.");
 
             if (hasUnlockedNodes || !deliveryExistsInTransaction)
             {
@@ -147,6 +158,7 @@ public class AccountSkillTreeStateRepository(
             .ToList(),
         IsSaved = true,
         Version = entity.Version,
+        DefinitionGenerationId = entity.DefinitionGenerationId,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt,
         CreatedBy = entity.CreatedBy,
@@ -286,6 +298,10 @@ public class AccountSkillTreeStateRepository(
             throw new ArgumentException("repairKey must be a lowercase SHA-256 hash");
         if (request.ExpectedVersion < 0)
             throw new ArgumentException("expectedVersion must not be negative");
+        if (!string.IsNullOrEmpty(request.ExpectedDefinitionGenerationId)
+            && (request.ExpectedDefinitionGenerationId.Length != 64
+                || !request.ExpectedDefinitionGenerationId.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f')))
+            throw new ArgumentException("expectedDefinitionGenerationId must be a lowercase SHA-256 hash");
     }
 
     private async Task AddUnlockedNodesAsync(

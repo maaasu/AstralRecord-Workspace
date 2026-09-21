@@ -28,6 +28,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260910_market_listing_create_receipt.sql` | 出品作成の冪等結果台帳を追加。対応 API 配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260913_account_rebirth_progress.sql` | 転生進行カラムと初期制約を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260915_expand_rebirth_experience_remainder.sql` | 100EXP単位の変換に合わせて転生EXP端数の許容範囲を0～99へ拡張。対応 API 配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_safe_editor.sql` | 実ロード世代・server session・Plugin評価view・編集操作台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
@@ -60,6 +61,10 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.account_guide_step_progress` | `AstralRecord/dbo.account_guide_step_progress.md` |
 | `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
 | `dbo.account_skilltree_unlocked_node` | `AstralRecord/dbo.account_skilltree_unlocked_node.md` |
+| `dbo.skilltree_definition_generation` | `AstralRecord/dbo.skilltree_definition_generation.md` |
+| `dbo.skilltree_server_runtime` | `AstralRecord/dbo.skilltree_server_runtime.md` |
+| `dbo.skilltree_server_player_view` | `AstralRecord/dbo.skilltree_server_player_view.md` |
+| `dbo.skilltree_operation` | `AstralRecord/dbo.skilltree_operation.md` |
 | `dbo.login_bonus_claim` | `AstralRecord/dbo.login_bonus_claim.md` |
 | `dbo.skill_bind_preset` | `AstralRecord/dbo.skill_bind_preset.md` |
 | `dbo.inventory` | `AstralRecord/dbo.inventory.md` |

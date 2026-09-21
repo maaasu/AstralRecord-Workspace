@@ -16,6 +16,8 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? LearnedSkills { get; init; }
     public JsonElement? SkillBindPresets { get; init; }
     public JsonElement? SkillTree { get; init; }
+    /// <summary>状態変更を伴わない却下・再確認も含む、lease済みWebスキルツリー操作の結果です。</summary>
+    public JsonElement? SkillTreeOperation { get; init; }
     public JsonElement? AccountProgress { get; init; }
     public JsonElement? Waystones { get; init; }
     public JsonElement? QuestState { get; init; }
@@ -201,6 +203,14 @@ public sealed class PlayerStateSkillTreeSection
     public int? ExpectedVersion { get; init; }
     public int? TargetVersion { get; init; }
     public IReadOnlyList<AccountSkillTreeUnlockedNodeModel> UnlockedNodes { get; init; } = [];
+    /// <summary>新Pluginの通常ゲーム内保存でも実ロード世代とsessionを提示します。</summary>
+    public string? DefinitionGenerationId { get; init; }
+    public string? ServerId { get; init; }
+    public Guid? ServerSessionId { get; init; }
+    /// <summary>generation未記録の既存状態をPluginが構造確認してbindする明示移行です。</summary>
+    public bool MigrateLegacyState { get; init; }
+    /// <summary>Web編集要求を Plugin が再検証して確定した場合だけ指定します。</summary>
+    public PlayerStateSkillTreeOperationSection? Operation { get; init; }
 }
 
 public sealed class PlayerStateAccountProgressSection
@@ -335,6 +345,7 @@ public sealed class PlayerStateSnapshotAck
     public JsonElement? LearnedSkills { get; init; }
     public JsonElement? SkillBindPresets { get; init; }
     public JsonElement? SkillTree { get; init; }
+    public JsonElement? SkillTreeOperation { get; init; }
     public JsonElement? AccountProgress { get; init; }
     public JsonElement? Waystones { get; init; }
     public JsonElement? QuestState { get; init; }

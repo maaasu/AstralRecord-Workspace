@@ -105,6 +105,7 @@ builder.Services.AddScoped<IGeyserHeadRepository, GeyserHeadRepository>();
 builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository>();
 builder.Services.AddScoped<IAccountSkillTreeStateRepository, AccountSkillTreeStateRepository>();
+builder.Services.AddScoped<ISkillTreeOperationRepository, SkillTreeOperationRepository>();
 builder.Services.AddScoped<IAccountQuestStateRepository, AccountQuestStateRepository>();
 builder.Services.AddScoped<IAccountWaystoneRepository, AccountWaystoneRepository>();
 builder.Services.AddScoped<IAccountGuideProgressRepository, AccountGuideProgressRepository>();
