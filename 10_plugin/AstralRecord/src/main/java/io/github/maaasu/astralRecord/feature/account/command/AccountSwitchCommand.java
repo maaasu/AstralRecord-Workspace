@@ -52,7 +52,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         super(
             "accountswitch",
             "対象プレイヤーのアカウントを切り替えます。",
-            "/account switch <player> <slot>",
+            "/account switch [<player>] <slot|name>",
             false,
             UserPermission.ADMIN.getValue()
         );
@@ -64,18 +64,19 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
             return;
         }
-        if (args.length != 2) {
+        if (args.length != 1 && args.length != 2) {
             sendUsage(sender);
             return;
         }
 
-        Integer slotIndex = parseSlotIndex(args[1]);
-        if (slotIndex == null) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5337.getId()));
+        Player senderPlayer = sender instanceof Player player ? player : null;
+        if (args.length == 1 && senderPlayer == null) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
             return;
         }
 
-        String targetName = args[0];
+        String targetName = args.length == 2 ? args[0] : senderPlayer.getName();
+        String selector = args.length == 2 ? args[1] : args[0];
         AstralRecord plugin = AstralRecord.getInstance();
         AccountService accountService = plugin.getAccountService();
         PlayerService playerService = plugin.getPlayerService();
@@ -125,9 +126,9 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             targetAstPlayer == null ? null : targetAstPlayer.getAccount().getUuid(),
             target
         );
-        AsyncTaskUtil.supplyAsync(plugin, () -> resolveOrCreateAccount(
+        AsyncTaskUtil.supplyAsync(plugin, () -> resolveExistingAccount(
             request,
-            slotIndex,
+            selector,
             updatedBy,
             accountService,
             userService
@@ -194,9 +195,9 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         }));
     }
 
-    private @Nullable ResolvedAccount resolveOrCreateAccount(
+    private @Nullable ResolvedAccount resolveExistingAccount(
         @NotNull TargetRequest request,
-        int slotIndex,
+        @NotNull String selector,
         @NotNull UUID updatedBy,
         @NotNull AccountService accountService,
         @Nullable UserService userService
@@ -225,14 +226,9 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                 && account.getUuid().equals(resolvedCurrentAccountId))
             .findFirst()
             .orElseGet(() -> accounts.stream().filter(AccountModel::isActive).findFirst().orElse(null));
-        AccountModel target = accounts.stream()
-            .filter(account -> account.getSlotIndex() == slotIndex)
-            .findFirst()
-            .orElse(null);
-        boolean created = false;
+        AccountModel target = resolveSelector(accounts, selector);
         if (target == null) {
-            target = accountService.createAccount(resolvedUserId, accountName, slotIndex, updatedBy);
-            created = true;
+            return null;
         }
         return new ResolvedAccount(
             resolvedUserId,
@@ -240,8 +236,19 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             request.onlinePlayer(),
             current == null ? resolvedCurrentAccountId : current.getUuid(),
             target,
-            created
+            false
         );
+    }
+
+    private @Nullable AccountModel resolveSelector(@NotNull List<AccountModel> accounts, @NotNull String selector) {
+        if (selector.matches("\\d{1,2}")) {
+            int slotIndex = Integer.parseInt(selector);
+            return accounts.stream().filter(account -> account.getSlotIndex() == slotIndex).findFirst().orElse(null);
+        }
+        return accounts.stream()
+            .filter(account -> account.getAccountName().equalsIgnoreCase(selector))
+            .findFirst()
+            .orElse(null);
     }
 
     private void switchAfterSessionSave(
@@ -430,7 +437,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             frozenPlayers.remove(target.getUniqueId());
             releaseAccountSwitch(target);
         }
-        String messageId = resolved.created() ? PlayerMsgId.P_5346.getId() : PlayerMsgId.P_5345.getId();
+        String messageId = PlayerMsgId.P_5345.getId();
         sendSuccess(sender, PlayerMsgResource.format(
             messageId,
             resolved.targetName(),
@@ -442,7 +449,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             if (targetAstPlayer != null) {
                 PlayerMessageService.getInstance().send(
                     targetAstPlayer,
-                    resolved.created() ? PlayerMsgId.P_5343 : PlayerMsgId.P_5342,
+                    PlayerMsgId.P_5342,
                     resolved.account().getSlotIndex(),
                     AccountDisplayNameFormatter.toLegacy(resolved.account())
                 );

@@ -58,6 +58,7 @@ public class AccountService {
      */
     private final Map<UUID, Object> progressLocks = new ConcurrentHashMap<>();
     private final Map<UUID, List<Integer>> accountSlotIndexes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<String>> accountNames = new ConcurrentHashMap<>();
     private final BukkitTask flushTask;
     private final AtomicLong revisionSequence = new AtomicLong();
     private volatile Consumer<UUID> localPlayerSaveRequester = ignored -> { };
@@ -95,6 +96,7 @@ public class AccountService {
             }))
             .toList();
         cacheAccountSlotIndexes(userId, accounts);
+        cacheAccountNames(userId, accounts);
         return accounts;
     }
 
@@ -109,6 +111,17 @@ public class AccountService {
      */
     public List<Integer> getCachedSlotIndexes(@NotNull UUID userId) {
         return accountSlotIndexes.getOrDefault(userId, List.of());
+    }
+
+    /**
+     * アカウント一覧取得済み時点のアカウント名を返します。
+     * 補完から同期 API 通信を発生させないため、メモリ上のキャッシュだけを参照します。
+     *
+     * @param userId プレイヤー UUID
+     * @return 作成済みアカウント名
+     */
+    public List<String> getCachedAccountNames(@NotNull UUID userId) {
+        return accountNames.getOrDefault(userId, List.of());
     }
 
     /**
@@ -224,7 +237,32 @@ public class AccountService {
         List<AccountModel> cachedAccounts = new ArrayList<>(existing);
         cachedAccounts.add(created);
         cacheAccountSlotIndexes(userId, cachedAccounts);
+        cacheAccountNames(userId, cachedAccounts);
         Logger.log(LogId.I_5100, created.getAccountName(), slotIndex, userId);
+        return created;
+    }
+
+    /**
+     * API が原子的に採番した最小空きスロットへ新規アカウントを作成します。
+     *
+     * @param userId 対象プレイヤー UUID
+     * @param accountName 作成するアカウント名
+     * @param createdBy 作成者 UUID
+     * @return API が確定した新規アカウント
+     */
+    public @NotNull AccountModel createAccountAutoAssigned(
+        @NotNull UUID userId,
+        @NotNull String accountName,
+        @NotNull UUID createdBy
+    ) {
+        AccountModel created = accountRepository.insertAutoAssigned(userId, accountName, createdBy);
+        List<AccountModel> cachedAccounts = new ArrayList<>(accountRepository.findByUserId(userId));
+        if (cachedAccounts.stream().noneMatch(account -> account.getUuid().equals(created.getUuid()))) {
+            cachedAccounts.add(created);
+        }
+        cacheAccountSlotIndexes(userId, cachedAccounts);
+        cacheAccountNames(userId, cachedAccounts);
+        Logger.log(LogId.I_5100, created.getAccountName(), created.getSlotIndex(), userId);
         return created;
     }
 
@@ -325,6 +363,7 @@ public class AccountService {
                 }
                 return updatedSlots.stream().distinct().sorted().toList();
             });
+            accountNames.remove(result.getUserId());
             Logger.log(LogId.I_5104, accountUuid, result.getDeletedSlotIndex(), deletedBy);
         }
         return result;
@@ -905,6 +944,13 @@ public class AccountService {
                 .sorted()
                 .toList()
         );
+    }
+
+    private void cacheAccountNames(@NotNull UUID userId, @NotNull List<AccountModel> accounts) {
+        accountNames.put(userId, accounts.stream()
+            .map(AccountModel::getAccountName)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toList());
     }
 
     /**

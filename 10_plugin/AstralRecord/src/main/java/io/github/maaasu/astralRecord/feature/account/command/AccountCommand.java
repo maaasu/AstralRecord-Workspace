@@ -15,12 +15,13 @@ public class AccountCommand extends AstCommand {
     private final AccountDeleteCommand deleteCommand = new AccountDeleteCommand();
     private final AccountSwitchCommand switchCommand = new AccountSwitchCommand();
     private final AccountRenameCommand renameCommand = new AccountRenameCommand();
+    private final AccountCreateCommand createCommand = new AccountCreateCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <rename|mode|delete|switch> ...", false,
+        super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch> ...", false,
             AstCommand.PERMISSION_NONE);
     }
 
@@ -70,6 +71,10 @@ public class AccountCommand extends AstCommand {
         }
         if (action.equals("rename")) {
             renameCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
+        if (action.equals("create")) {
+            createCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
 

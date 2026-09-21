@@ -137,6 +137,41 @@ class AccountRepository {
         }
     }
 
+    /**
+     * API 側で最小空きスロットを原子的に採番して新規アカウントを登録します。
+     * POST /api/account
+     */
+    fun insertAutoAssigned(userId: UUID, accountName: String, createdBy: UUID): AccountModel {
+        val path = "/api/account"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("userId", userId.toString())
+            addProperty("accountName", accountName)
+            add("slotIndex", JsonNull.INSTANCE)
+            addProperty("mode", AccountMode.PLAYER.value.toInt())
+            addProperty("createdBy", createdBy.toString())
+        }
+        try {
+            val request = ApiRequestUtil.buildRequestBuilder(path)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build()
+            val response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString())
+            if (response.statusCode() !in 200..299) {
+                Logger.log(LogId.E_5152, response.statusCode())
+                throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+            }
+            val created = parseAccountModel(response.body())
+            Logger.log(LogId.D_5152, created.uuid)
+            return created
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.error(LogId.E_5152, e, e.message ?: e.javaClass.simpleName)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.error(LogId.E_5152, e, e.message ?: e.javaClass.simpleName)
+            throw e
+        }
+    }
+
     // -------------------------------------------------------
     // UPDATE
     // -------------------------------------------------------

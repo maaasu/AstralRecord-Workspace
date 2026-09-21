@@ -29,7 +29,7 @@ public class AccountTabCompleter extends AstTabCompleter {
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1) {
             if (hasAdminPermission(sender)) {
-                return List.of("rename", "mode", "delete", "switch");
+                return List.of("create", "rename", "mode", "delete", "switch");
             }
             return List.of();
         }
@@ -44,6 +44,9 @@ public class AccountTabCompleter extends AstTabCompleter {
         }
         if (args.length > 1 && args[0].equalsIgnoreCase("switch")) {
             return switchTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
+            return getOnlinePlayerNames();
         }
         return List.of();
     }

@@ -47,7 +47,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
     private final Set<UUID> frozenPlayers = ConcurrentHashMap.newKeySet();
 
     public AccountDeleteCommand() {
-        super("accountdelete", "アカウントを削除します。", "/account delete (<player> <slot>|<accountUuid>)", false,
+        super("accountdelete", "アカウントを削除します。", "/account delete (<player> <slot|name>|<accountUuid>)", false,
             UserPermission.ADMIN.getValue());
     }
 
@@ -200,9 +200,16 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             return null;
         }
         return accountService.getAccounts(user.getUuid()).stream()
-            .filter(account -> account.getSlotIndex() == request.slotIndex())
+            .filter(account -> matchesSelector(account, request.selector()))
             .findFirst()
             .orElse(null);
+    }
+
+    private boolean matchesSelector(@NotNull AccountModel account, @NotNull String selector) {
+        if (selector.matches("\\d{1,2}")) {
+            return account.getSlotIndex() == Integer.parseInt(selector);
+        }
+        return account.getAccountName().equalsIgnoreCase(selector);
     }
 
     private @Nullable TargetRequest resolveRequest(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -214,16 +221,12 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
                 return null;
             }
         }
-        try {
-            int slot = Integer.parseInt(args[1]);
-            if (slot < 0) {
-                throw new NumberFormatException();
-            }
-            return TargetRequest.forSlot(args[0], slot);
-        } catch (NumberFormatException ignored) {
+        if (args[1].isBlank() || (args[1].chars().allMatch(Character::isDigit)
+            && (!args[1].matches("\\d{1,2}") || Integer.parseInt(args[1]) > 99))) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5337.getId()));
             return null;
         }
+        return TargetRequest.forSelector(args[0], args[1]);
     }
 
     private @Nullable Player findOnlineUser(@NotNull UUID userId) {
@@ -330,13 +333,13 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
         frozenPlayers.remove(event.getPlayer().getUniqueId());
     }
 
-    private record TargetRequest(@Nullable UUID accountId, @Nullable String playerName, int slotIndex, @NotNull String label) {
+    private record TargetRequest(@Nullable UUID accountId, @Nullable String playerName, @Nullable String selector, @NotNull String label) {
         private static TargetRequest forAccount(@NotNull UUID accountId) {
-            return new TargetRequest(accountId, null, -1, accountId.toString());
+            return new TargetRequest(accountId, null, null, accountId.toString());
         }
 
-        private static TargetRequest forSlot(@NotNull String playerName, int slotIndex) {
-            return new TargetRequest(null, playerName, slotIndex, playerName + " slot " + slotIndex);
+        private static TargetRequest forSelector(@NotNull String playerName, @NotNull String selector) {
+            return new TargetRequest(null, playerName, selector, playerName + " " + selector);
         }
     }
 

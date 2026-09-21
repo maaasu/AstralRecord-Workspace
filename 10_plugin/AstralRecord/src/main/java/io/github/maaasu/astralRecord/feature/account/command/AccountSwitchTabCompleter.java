@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-/** /account switch の対象プレイヤー名と作成済みスロットの補完を提供します。 */
+/** /account switch の対象プレイヤー名とキャッシュ済みアカウント名の補完を提供します。 */
 public final class AccountSwitchTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -20,6 +20,16 @@ public final class AccountSwitchTabCompleter extends AstTabCompleter {
             return List.of();
         }
         if (args.length == 1) {
+            if (sender instanceof Player player) {
+                AstPlayer astPlayer = AstPlayerCache.get(player);
+                AccountService accountService = AstralRecord.getInstance().getAccountService();
+                if (astPlayer != null && accountService != null) {
+                    return java.util.stream.Stream.concat(
+                        getOnlinePlayerNames().stream(),
+                        accountService.getCachedAccountNames(astPlayer.getUser().getUuid()).stream()
+                    ).distinct().toList();
+                }
+            }
             return getOnlinePlayerNames();
         }
         if (args.length != 2) {
@@ -35,9 +45,7 @@ public final class AccountSwitchTabCompleter extends AstTabCompleter {
         if (astPlayer == null || accountService == null) {
             return List.of();
         }
-        return accountService.getCachedSlotIndexes(astPlayer.getUser().getUuid()).stream()
-            .map(String::valueOf)
-            .toList();
+        return accountService.getCachedAccountNames(astPlayer.getUser().getUuid());
     }
 
     private boolean hasAdminPermission(@NotNull CommandSender sender) {

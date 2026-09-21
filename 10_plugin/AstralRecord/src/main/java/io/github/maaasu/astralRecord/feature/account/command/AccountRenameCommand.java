@@ -25,7 +25,7 @@ import java.util.concurrent.CompletionException;
 
 /** /account rename の実行を扱います。 */
 public final class AccountRenameCommand extends AstCommand {
-    private static final String ACCOUNT_NAME_PATTERN = "[A-Za-z]{1,50}";
+    private static final String ACCOUNT_NAME_PATTERN = "[A-Za-z0-9]{3,50}";
     private final Set<UUID> pendingAccountIds = ConcurrentHashMap.newKeySet();
 
     public AccountRenameCommand() {
@@ -48,7 +48,7 @@ public final class AccountRenameCommand extends AstCommand {
             return;
         }
         String accountName = args[0];
-        if (!accountName.matches(ACCOUNT_NAME_PATTERN)) {
+        if (!isValidAccountName(accountName)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5347.getId()));
             return;
         }
@@ -100,6 +100,16 @@ public final class AccountRenameCommand extends AstCommand {
             current = current.getCause();
         }
         return current;
+    }
+
+    /**
+     * 管理コマンドで受理するアカウント名かを判定します。
+     *
+     * @param accountName 検証対象の名前
+     * @return ASCII英数字3〜50文字の場合は {@code true}
+     */
+    static boolean isValidAccountName(@NotNull String accountName) {
+        return accountName.matches(ACCOUNT_NAME_PATTERN);
     }
 
     private boolean hasAdminPermission(@NotNull CommandSender sender) {
