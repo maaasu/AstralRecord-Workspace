@@ -261,7 +261,7 @@
 .ar-tree-search-options button { border: 1px solid #c3b59433; color: #c7bda9; background: #242430; border-radius: 4px; padding: .3rem .6rem; }
 .ar-tree-search-options button:disabled { opacity: .35; }
 .ar-tree-search-results { max-height: min(40vh, 300px); overflow: auto; }
-.ar-tree-node.is-search-match .ar-tree-node-aura { stroke: #a4d8c2; stroke-width: 3; fill: #7cbb9e14; }
+.ar-tree-node.is-search-match .ar-tree-node-aura { vector-effect: non-scaling-stroke; stroke: #a4d8c2; stroke-width: 3; fill: #7cbb9e14; }
 .ar-tree-node.is-search-dim { opacity: .32; }
 .ar-tree-node.is-draft-unlock .ar-tree-node-frame { stroke: #9ac7aa; stroke-dasharray: 4 3; }
 .ar-tree-node.is-draft-relock .ar-tree-node-frame { stroke: #c3949e; stroke-dasharray: 4 3; }
