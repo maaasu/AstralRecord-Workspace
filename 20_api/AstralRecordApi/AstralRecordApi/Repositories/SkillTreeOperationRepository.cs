@@ -214,6 +214,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         var item = await dbContext.SkillTreeOperations.SingleOrDefaultAsync(x => x.OperationId == operationId && x.AccountId == request.AccountId && x.TargetServerId == serverId);
         if (item is null || item.ExpiresAtUtc <= DateTime.UtcNow
             || item.Status is not (SkillTreeOperationStatuses.PendingOnline or SkillTreeOperationStatuses.PendingOffline)) return null;
+        if (item.Action == "BATCH" && runtime.CompatibilityVersion != BatchCompatibility) return null;
         if (item.ExpectedDefinitionGenerationId != runtime.DefinitionGenerationId || item.ExpectedPlayerStateVersion != view.PlayerStateVersion
             || item.ExpectedEvaluationFingerprint != view.EvaluationFingerprint || !view.EditEligible)
         {
@@ -301,6 +302,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         {
             AccountId = account.Uuid, AccountName = account.AccountName, GenerationId = usable ? view?.DefinitionGenerationId : null,
             StateRevision = state?.Version ?? 0, CanEdit = usable && (offline || view!.EditEligible),
+            SupportsBatch = runtime?.CompatibilityVersion == BatchCompatibility,
             HasFreshState = online && usable, BalanceKind = usable ? online ? "LIVE" : "SAVED" : "UNKNOWN",
             Reason = !usable ? "サーバーの更新待ち、または状態の再確認が必要です。" : online && !view!.EditEligible ? "拠点またはスキルツリーワールドで編集してください。" : null,
             Connection = new()
