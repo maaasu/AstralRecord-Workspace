@@ -77,13 +77,22 @@ public final class InheritanceBuffService {
                     || !context.source().skill().getId().equals(stripReference(entry.get("sourceSkillId"), "skill:"))) continue;
             String buffId = stripReference(entry.get("buffId"), "buff:");
             long ticks = ((Number) entry.get("durationConsumptionTicks")).longValue();
+            boolean consumeSourceSkillResources = !(entry.get("consumeSourceSkillResources") instanceof Boolean value)
+                    || value;
             statusService.applyBuff(player, buffId);
             ActiveBuff buff = statusService.getActiveBuffs(player).stream()
                     .filter(value -> value.getType().getId().equals(buffId)).findFirst().orElse(null);
             if (buff == null) continue;
             UUID id = context.caster().casterId();
             Inheritance inherited = new Inheritance(
-                    context, buff, ticks, damageMultiplier, order, condition, effect
+                    context,
+                    buff,
+                    ticks,
+                    damageMultiplier,
+                    order,
+                    consumeSourceSkillResources,
+                    condition,
+                    effect
             );
             active.computeIfAbsent(id, ignored -> new HashMap<>()).put(buffId, inherited);
             // lifecycleの中断でもcleanupが走り、死亡・退出・world移動後へ効果を持ち越さない。
@@ -124,9 +133,15 @@ public final class InheritanceBuffService {
             for (Inheritance inherited : captured) {
                 if (!statusService.getActiveBuffs(player).contains(inherited.buff())
                         || !inherited.condition().test(impact)) continue;
-                if (skillService.tryConsumeEffectResources(caster, inherited.context().source().skill(),
-                        inherited.context().source().statusSnapshot(),
-                        () -> statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks()))) {
+                boolean consumed = inherited.consumeSourceSkillResources()
+                        ? skillService.tryConsumeEffectResources(
+                                caster,
+                                inherited.context().source().skill(),
+                                inherited.context().source().statusSnapshot(),
+                                () -> statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks())
+                        )
+                        : statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks());
+                if (consumed) {
                     ActiveBuff remaining = statusService.getActiveBuffs(player).stream()
                             .filter(buff -> buff.getType().getId().equals(inherited.buff().getType().getId()))
                             .findFirst().orElse(null);
@@ -158,6 +173,7 @@ public final class InheritanceBuffService {
         private final long ticks;
         private final double damageMultiplier;
         private final int order;
+        private final boolean consumeSourceSkillResources;
         private final Predicate<InheritanceImpact> condition;
         private final InheritanceEffect effect;
 
@@ -167,6 +183,7 @@ public final class InheritanceBuffService {
                 long ticks,
                 double damageMultiplier,
                 int order,
+                boolean consumeSourceSkillResources,
                 Predicate<InheritanceImpact> condition,
                 InheritanceEffect effect
         ) {
@@ -175,6 +192,7 @@ public final class InheritanceBuffService {
             this.ticks = ticks;
             this.damageMultiplier = damageMultiplier;
             this.order = order;
+            this.consumeSourceSkillResources = consumeSourceSkillResources;
             this.condition = condition;
             this.effect = effect;
         }
@@ -184,6 +202,7 @@ public final class InheritanceBuffService {
         private long ticks() { return ticks; }
         private double damageMultiplier() { return damageMultiplier; }
         private int order() { return order; }
+        private boolean consumeSourceSkillResources() { return consumeSourceSkillResources; }
         private Predicate<InheritanceImpact> condition() { return condition; }
         private InheritanceEffect effect() { return effect; }
     }

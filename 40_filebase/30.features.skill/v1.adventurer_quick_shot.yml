@@ -10,6 +10,11 @@ description: "&7素早く矢を放つ基礎射撃。"
 icon: BOW
 lore:
   - "&7射程{skill.range}mの矢で間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。貫通しない。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7次の通常攻撃の会心率が{skill.inheritanceCriticalRate}%アップする。"
 cooldownTicks: 40
 resourceType: ENERGY
 resourceCost: 6
@@ -53,6 +58,10 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00019, amount: 1 }]
 levelUpRequiredItems: [{ itemId: 10a00019, amount: 1 }]
 params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ・会心"
+  inheritanceDurationTicks: 600
+  inheritanceCriticalRate: 10.0
   range: 12.0
   damageRatio: 2.25
 tags:

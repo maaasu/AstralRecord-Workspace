@@ -38,6 +38,10 @@ params:
     - buffId: buff:adventurer_blast_arrow_inheritance
       durationConsumptionTicks: 600
       sourceSkillId: skill:adventurer_blast_arrow
+    - buffId: buff:adventurer_quick_shot_inheritance_critical
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:adventurer_quick_shot
+      consumeSourceSkillResources: false
     - buffId: buff:hunter_crash_arrow_inheritance
       durationConsumptionTicks: 600
       sourceSkillId: skill:hunter_crash_arrow

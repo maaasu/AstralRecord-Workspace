@@ -1,0 +1,16 @@
+# design:
+#   motif: "速射 / 会心"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_quick_shot_inheritance_critical
+type: BUFF
+name: "&a継承バフ・会心"
+lore:
+  - "&7次の通常攻撃の会心率を10%上昇させる。"
+durationTicks: 600
+resetOnChallenge: true
+isDebuff: false
+modifiers:
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 10.0

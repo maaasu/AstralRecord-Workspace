@@ -101,6 +101,13 @@ public final class SharpshooterInheritanceMasterySkillExecutor implements SkillE
                     definition.get("durationConsumptionTicks"),
                     "inheritanceBuffs[" + index + "].durationConsumptionTicks"
             );
+            Object rawConsumeSourceSkillResources = definition.get("consumeSourceSkillResources");
+            if (rawConsumeSourceSkillResources != null && !(rawConsumeSourceSkillResources instanceof Boolean)) {
+                throw new SkillParameterException(
+                        "inheritanceBuffs[" + index + "].consumeSourceSkillResources",
+                        "boolean を指定してください"
+                );
+            }
             validateResourceCost(definition, index);
         }
     }

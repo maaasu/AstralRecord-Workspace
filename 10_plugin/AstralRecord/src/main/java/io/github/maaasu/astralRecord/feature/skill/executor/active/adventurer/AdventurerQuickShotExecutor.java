@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillSer
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Sound;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,16 @@ public final class AdventurerQuickShotExecutor extends PlayerActiveSkillExecutor
     static final double RANGE = 12.0D;
     static final double SPEED = 2.2D;
     static final double HIT_RADIUS = 0.45D;
+    private InheritanceBuffService inheritanceBuffService;
+
+    /**
+     * クイックショット成功時に継承バフを付与するサービスを設定します。
+     *
+     * @param service 継承バフサービス
+     */
+    public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
+        this.inheritanceBuffService = service;
+    }
 
     /** 共有発動スキルサービスで初期化します。 */
     public AdventurerQuickShotExecutor(@NotNull ActiveSkillServices services) {
@@ -37,6 +48,9 @@ public final class AdventurerQuickShotExecutor extends PlayerActiveSkillExecutor
                 ignored -> { }
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_ARROW_SHOOT, 0.8F, 1.25F);
+        if (inheritanceBuffService != null) {
+            inheritanceBuffService.grant(context, (impact, damageMultiplier) -> { });
+        }
         return context.success();
     }
 

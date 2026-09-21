@@ -240,6 +240,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.PaladinGuardConvertS
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerQuickShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -1784,6 +1785,11 @@ public final class AstralRecord extends JavaPlugin {
             AdventurerBlastArrowExecutor.ID);
         if (blastArrowExecutor instanceof AdventurerBlastArrowExecutor blastArrow) {
             blastArrow.setInheritanceBuffService(inheritanceBuffService);
+        }
+        var quickShotExecutor = skillService.registry().getExecutor(
+            AdventurerQuickShotExecutor.ID);
+        if (quickShotExecutor instanceof AdventurerQuickShotExecutor quickShot) {
+            quickShot.setInheritanceBuffService(inheritanceBuffService);
         }
         var crashArrowExecutor = skillService.registry().getExecutor(
             HunterCrashArrowExecutor.ID);
