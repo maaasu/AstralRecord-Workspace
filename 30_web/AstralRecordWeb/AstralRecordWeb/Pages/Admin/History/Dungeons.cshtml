@@ -1,0 +1,64 @@
+@page
+@model AstralRecordWeb.Pages.Admin.History.DungeonsModel
+@using System.Globalization
+@using AstralRecordWeb.Pages.Admin.History
+@{ ViewData["Title"] = "ダンジョン攻略履歴"; }
+@section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>ダンジョン攻略履歴</h1><p class="ar-portal-sub">攻略回数・所要時間と、一緒に参加したプレイヤーの移動距離を確認します。</p></div></header>
+    <partial name="_HistoryNav" />
+    <form method="get" class="ar-panel ar-history-filters" aria-label="ダンジョン攻略の検索">
+        <partial name="_HistoryFilters" model="Model" />
+        <div><label asp-for="DungeonId">ダンジョンID</label><input asp-for="DungeonId" maxlength="128" placeholder="すべてのダンジョン" /></div>
+        <div><label asp-for="View">表示</label><select asp-for="View"><option value="runs">攻略回ごとの記録</option><option value="players">プレイヤー別の攻略回数</option></select></div>
+        <input type="hidden" asp-for="UserUuid" /><input type="hidden" asp-for="AccountId" />
+        <button class="btn ar-btn-primary">検索する</button>
+    </form>
+    <p class="ar-history-note">時刻はUTC。移動距離はテレポートを除く概算です。棒は同じ攻略回の最大距離との比較で、操作量や不正を断定するものではありません。「観測なし」は0mと区別します。</p>
+    @if (Model.AccountId is not null || Model.UserUuid is not null) { <p><a asp-page="Dungeons" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="@Model.View" asp-route-dungeonId="@Model.DungeonId">プレイヤーの絞り込みを解除</a></p> }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Results is { } results)
+    {
+        <p>期間内 @results.TotalCount.ToString("N0") 回の攻略</p>
+        @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        @foreach (var run in results.Items)
+        {
+            var maxDistance = Math.Max(1m, run.Participants.Select(p => p.DistanceMeters ?? 0m).DefaultIfEmpty().Max());
+            <article class="ar-history-card">
+                <h2>@run.DungeonName <span class="ar-profile-badge">所要時間 @HistoryPageModel.Duration(run.DurationSeconds)</span></h2>
+                <p class="ar-history-note">開始 @HistoryPageModel.Timestamp(run.StartedAt) → 攻略 @HistoryPageModel.Timestamp(run.ClearedAt) UTC<br />@run.DungeonId ／ 記録 @run.EventId</p>
+                <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>参加プレイヤー</th><th>アカウント</th><th>移動距離</th><th>観測回数</th></tr></thead><tbody>
+                @foreach (var participant in run.Participants)
+                {
+                    <tr><td>@participant.Player.Mcid</td><td><a asp-page="Dungeons" asp-route-accountId="@participant.Player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="players">@participant.Player.AccountName</a><small>@participant.Player.AccountId</small></td><td>
+                        @if (participant.DistanceMeters is { } distance && participant.MovementSampleCount > 0)
+                        { <div class="ar-history-distance"><meter min="0" max="@maxDistance.ToString(CultureInfo.InvariantCulture)" value="@distance.ToString(CultureInfo.InvariantCulture)" aria-label="@($"{participant.Player.Mcid} の移動距離 {distance:N1} m")"></meter><strong>@distance.ToString("N1") m</strong></div> }
+                        else { <span>観測なし</span> }
+                    </td><td>@participant.MovementSampleCount.ToString("N0")</td></tr>
+                }
+                </tbody></table></div>
+            </article>
+        }
+    }
+    @if (Model.Players is { } players)
+    {
+        <p>@players.TotalCount.ToString("N0") アカウント</p>
+        @if (players.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー / アカウント</th><th>攻略回数</th><th>記録済み移動距離の合計</th><th>最後の攻略（UTC）</th></tr></thead><tbody>
+        @foreach (var player in players.Items)
+        {
+            <tr><td><a asp-page="Dungeons" asp-route-accountId="@player.Player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-dungeonId="@Model.DungeonId">@player.Player.Mcid / @player.Player.AccountName</a><small>@player.Player.AccountId</small></td><td>@player.ClearCount.ToString("N0") 回</td><td>@(player.TotalDistanceMeters is { } meters ? $"{meters:N1} m" : "観測なし")</td><td>@HistoryPageModel.Timestamp(player.LastClearedAt)</td></tr>
+        }
+        </tbody></table></div>
+    }
+    @if (Model.Results is not null || Model.Players is not null)
+    {
+        var count = Model.Results?.TotalCount ?? Model.Players!.TotalCount;
+        var size = Model.Results?.PageSize ?? Model.Players!.PageSize;
+        <nav class="ar-pagination" aria-label="ダンジョン履歴のページ">
+            @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+            <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(count / (double)size))</span>
+            @if ((long)Model.PageNumber * size < count) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+        </nav>
+    }
+</div></section>
