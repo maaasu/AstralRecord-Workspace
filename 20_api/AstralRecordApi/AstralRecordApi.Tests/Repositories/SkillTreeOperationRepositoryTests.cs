@@ -55,6 +55,52 @@ public sealed class SkillTreeOperationRepositoryTests
         Assert.Equal(SkillTreeOperationStatuses.ReconfirmationRequired, (await fixture.Db.SkillTreeOperations.SingleAsync()).Status);
     }
 
+    [Fact]
+    public async Task OwnershipAndPayloadMismatch_AreRejected()
+    {
+        await using var fixture = await Fixture.CreateAsync(offlineConfirmed: true);
+        var id = Guid.NewGuid();
+        Assert.Null(await fixture.Repository.GetEditorAsync(fixture.AccountId, Guid.NewGuid()));
+        Assert.Null(await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(id, Guid.NewGuid())));
+        var created = await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(id));
+        Assert.NotNull(created);
+        Assert.Null(await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(id, fixture.UserId, "different")));
+        Assert.Null(await fixture.Repository.FindAsync(fixture.AccountId, id, Guid.NewGuid()));
+        Assert.Null(await fixture.Repository.CancelAsync(fixture.AccountId, id, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task CompleteFromSnapshot_RejectsCanceledAndExpiredOrOldSessionLeases()
+    {
+        await using var fixture = await Fixture.CreateAsync(offlineConfirmed: true);
+        var operation = await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(Guid.NewGuid()));
+        var claim = await fixture.Repository.ClaimAsync(fixture.ServerId, operation!.OperationId, new SkillTreeOperationClaimRequest { AccountId = fixture.AccountId, ServerSessionId = fixture.SessionId });
+        Assert.NotNull(claim);
+        await fixture.Repository.CancelAsync(fixture.AccountId, operation.OperationId, fixture.UserId);
+        Assert.False(await fixture.Repository.CompleteFromSnapshotAsync(fixture.AccountId, fixture.Receipt(operation.OperationId, claim!.LeaseToken), DateTime.UtcNow));
+
+        var second = await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(Guid.NewGuid()));
+        var secondClaim = await fixture.Repository.ClaimAsync(fixture.ServerId, second!.OperationId, new SkillTreeOperationClaimRequest { AccountId = fixture.AccountId, ServerSessionId = fixture.SessionId });
+        fixture.Db.SkillTreeServerRuntimes.Single().ServerSessionId = Guid.NewGuid();
+        await fixture.Db.SaveChangesAsync();
+        Assert.False(await fixture.Repository.CompleteFromSnapshotAsync(fixture.AccountId, fixture.Receipt(second.OperationId, secondClaim!.LeaseToken), DateTime.UtcNow));
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsStaleRuntimeAndGenerationMismatch()
+    {
+        await using var fixture = await Fixture.CreateAsync(offlineConfirmed: true);
+        fixture.Db.SkillTreeServerRuntimes.Single().LastSeenUtc = DateTime.UtcNow.AddMinutes(-2);
+        await fixture.Db.SaveChangesAsync();
+        var stale = await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(Guid.NewGuid()));
+        Assert.Equal(SkillTreeOperationStatuses.Canceled, stale!.Status);
+
+        fixture.Db.SkillTreeServerRuntimes.Single().LastSeenUtc = DateTime.UtcNow;
+        await fixture.Db.SaveChangesAsync();
+        var mismatch = await fixture.Repository.CreateAsync(fixture.AccountId, fixture.Request(Guid.NewGuid(), generation: Hash("other")));
+        Assert.Equal(SkillTreeOperationStatuses.Canceled, mismatch!.Status);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         public required SqliteConnection Connection { get; init; }
@@ -81,7 +127,8 @@ public sealed class SkillTreeOperationRepositoryTests
             db.SkillTreeServerPlayerViews.Add(view); await db.SaveChangesAsync();
             return new Fixture { Connection = connection, Db = db, AccountId = accountId, UserId = userId, SessionId = session, ServerId = server, View = view, Repository = new SkillTreeOperationRepository(db, new NetworkRuntimeService(TimeProvider.System)) };
         }
-        public SkillTreeOperationCreateRequest Request(Guid operationId) => new() { OperationId = operationId, ActorUserId = UserId, TargetServerId = ServerId, ExpectedDefinitionGenerationId = Generation, ExpectedPlayerStateVersion = 1, Action = "UNLOCK", NodeId = "n" };
+        public SkillTreeOperationCreateRequest Request(Guid operationId, Guid? actor = null, string nodeId = "n", string? generation = null) => new() { OperationId = operationId, ActorUserId = actor ?? UserId, TargetServerId = ServerId, ExpectedDefinitionGenerationId = generation ?? Generation, ExpectedPlayerStateVersion = 1, Action = "UNLOCK", NodeId = nodeId };
+        public PlayerStateSkillTreeOperationSection Receipt(Guid operationId, string token) => new() { OperationId = operationId, ServerId = ServerId, ServerSessionId = SessionId, LeaseToken = token, FinalStatus = SkillTreeOperationStatuses.Applied, DefinitionGenerationId = Generation, FinalPlayerStateVersion = 1, FinalEvaluationFingerprint = View.EvaluationFingerprint };
         public async ValueTask DisposeAsync() { await Db.DisposeAsync(); await Connection.DisposeAsync(); }
     }
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
