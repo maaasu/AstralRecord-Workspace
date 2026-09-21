@@ -64,6 +64,20 @@ try {
         throw "HistoryDB migration accepted a connection to an unexpected database."
     }
 
+    $config.expectedDatabase = $databaseName
+    $config | ConvertTo-Json -Depth 20 | Set-Content -Encoding UTF8 -LiteralPath $tempConfigPath
+    Invoke-DbNonQuery -Database $databaseName -CommandText "DROP INDEX IX_player_ip_observation_ip_observed ON dbo.player_ip_observation;"
+    $ErrorActionPreference = "Continue"
+    $schemaValidationOutput = @(& dotnet run --no-build --project $toolProject -- --config $tempConfigPath 2>&1)
+    $schemaValidationExit = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($schemaValidationExit -eq 0) {
+        throw "HistoryDB migration accepted a missing required index after its migration history was recorded."
+    }
+    if (($schemaValidationOutput -join [Environment]::NewLine) -notmatch 'Expected index was not found: IX_player_ip_observation_ip_observed') {
+        throw "HistoryDB migration failure did not report the missing required index: $($schemaValidationOutput -join [Environment]::NewLine)"
+    }
+
     Write-Output "HistoryDB migration integration checks passed."
 }
 finally {

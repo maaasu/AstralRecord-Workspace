@@ -42,7 +42,7 @@ try {
     Invoke-DbNonQuery -ConnectionString $serverConnectionString -CommandText "CREATE DATABASE [$databaseName];"
     $databaseCreated = $true
     # The production migrations extend an existing game database. Seed only the
-    # parent keys required by the new receipt's foreign keys in this isolated DB.
+    # parent tables required by their foreign keys or ALTER TABLE operations.
     Invoke-DbNonQuery -ConnectionString $databaseConnectionString -CommandText @"
 CREATE TABLE dbo.account (
     uuid UNIQUEIDENTIFIER NOT NULL,
@@ -50,6 +50,14 @@ CREATE TABLE dbo.account (
     CONSTRAINT PK_account PRIMARY KEY CLUSTERED (uuid)
 );
 CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+CREATE TABLE dbo.skill_bind_preset (
+    preset_index INT NOT NULL,
+    CONSTRAINT PK_skill_bind_preset PRIMARY KEY CLUSTERED (preset_index)
+);
+CREATE TABLE dbo.account_skilltree_state (
+    account_id UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT PK_account_skilltree_state PRIMARY KEY CLUSTERED (account_id)
+);
 "@
 
     $config = Get-Content -Raw -Encoding UTF8 -LiteralPath $sourceConfigPath | ConvertFrom-Json
@@ -110,7 +118,7 @@ CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KE
         throw "Rebirth experience remainder range migration was not idempotent."
     }
 
-    $config.migrations[0].expectation.columns[0].sqlType = "int"
+    $config.migrations[0].expectation.columns[0].sqlType = "uniqueidentifier"
     $config | ConvertTo-Json -Depth 20 | Set-Content -Encoding UTF8 -LiteralPath $tempConfigPath
     $ErrorActionPreference = "Continue"
     & dotnet run --no-build --project $toolProject -- --config $tempConfigPath 2>&1 | Out-Null
