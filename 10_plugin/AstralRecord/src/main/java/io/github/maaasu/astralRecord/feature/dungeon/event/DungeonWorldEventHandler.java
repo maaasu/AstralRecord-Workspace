@@ -15,6 +15,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.jetbrains.annotations.NotNull;
 
 /** ダンジョン内のブロック保護、部屋進入、ログアウトを処理します。 */
@@ -62,8 +63,14 @@ public final class DungeonWorldEventHandler extends AbstractEventHandler {
     /** プレイヤーの部屋移動または向き変更を地図表示へ反映します。 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMove(@NotNull PlayerMoveEvent event) {
+        if (event instanceof PlayerTeleportEvent) {
+            return;
+        }
         Location from = event.getFrom();
         Location to = event.getTo();
+        if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
+            dungeonService.recordMovement(event.getPlayer(), from, to);
+        }
         if (from.getBlockX() == to.getBlockX()
                 && from.getBlockY() == to.getBlockY()
                 && from.getBlockZ() == to.getBlockZ()) {

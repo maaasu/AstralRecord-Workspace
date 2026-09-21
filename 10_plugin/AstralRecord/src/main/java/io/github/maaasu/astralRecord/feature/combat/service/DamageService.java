@@ -102,6 +102,7 @@ public final class DamageService {
     private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
+    private MobPlayerDamageListener mobPlayerDamageListener = (mob, victim, damage, lethal) -> { };
 
     /**
      * サービスを構築します。
@@ -319,6 +320,11 @@ public final class DamageService {
      */
     public void setPlayerDamageListener(@NotNull Consumer<AstPlayer> listener) {
         this.playerDamageListener = listener;
+    }
+
+    /** Mob からプレイヤーへ実際に反映された HP ダメージの通知先を設定します。 */
+    public void setMobPlayerDamageListener(@NotNull MobPlayerDamageListener listener) {
+        this.mobPlayerDamageListener = listener;
     }
 
     /**
@@ -1496,11 +1502,21 @@ public final class DamageService {
 
         if (victim.isPlayer()) {
             if (victim.player() != null) {
+                boolean mobAttacker = attacker != null && attacker.isMob() && attacker.mob() != null;
+                MobInstance attackingMob = mobAttacker ? attacker.mob() : null;
+                double appliedHealthDamage = Math.min(
+                    Math.max(0.0D, victim.currentHealth()), result.finalDamage()
+                );
                 double effectiveLifeStealDamage = Math.min(
                         victim.currentHealth(),
                         Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage())
                 );
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
+                if (attackingMob != null && appliedHealthDamage > 0.0D) {
+                    mobPlayerDamageListener.onApplied(
+                        attackingMob, victim.player(), appliedHealthDamage, updated.getCurrentHp() <= 0.0D
+                    );
+                }
                 applyLifeSteal(attacker, effectiveLifeStealDamage);
                 playPlayerHurtEffect(
                         victim.player().getBukkit(),
@@ -1582,6 +1598,12 @@ public final class DamageService {
             }
             mobDeathListener.accept(mob.instanceId());
         }
+    }
+
+    /** Mob によるプレイヤーへの実 HP 被害を、死亡判定とともに受け取ります。 */
+    @FunctionalInterface
+    public interface MobPlayerDamageListener {
+        void onApplied(@NotNull MobInstance mob, @NotNull AstPlayer victim, double damage, boolean lethal);
     }
 
     /**

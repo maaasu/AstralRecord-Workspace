@@ -1,0 +1,41 @@
+@page
+@model AstralRecordWeb.Pages.Admin.History.SameIpModel
+@using AstralRecordWeb.Pages.Admin.History
+@{ ViewData["Title"] = "同IPアカウント"; }
+@section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>同IPアカウント</h1><p class="ar-portal-sub">接続履歴の関連と、プレイヤー間のトレードを確認します。</p></div></header>
+    <partial name="_HistoryNav" />
+    <form method="get" class="ar-panel ar-history-filters" aria-label="同IPアカウントの検索"><partial name="_HistoryFilters" model="Model" /><button class="btn ar-btn-primary">検索する</button></form>
+    <p class="ar-history-note">同IPは同一人物の証明ではありません。表示期間内の記録を対象とし、双方の全キャラクター間のトレード回数が多い順に表示します。アカウント名は期間内に観測した代表キャラクターの名前で、現在の使用キャラクターとは限りません。</p>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Results is { } results)
+    {
+        <p>@results.TotalCount 件の関連</p>
+        @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        @foreach (var relation in results.Items)
+        {
+            <article class="ar-history-card">
+                <h2>同じIPで接続したアカウント <span class="ar-profile-badge">トレード @relation.TradeCount.ToString("N0") 回</span></h2>
+                <p class="ar-history-note">最初の観測 @HistoryPageModel.Timestamp(relation.FirstObservedAt) ／ 最後の観測 @HistoryPageModel.Timestamp(relation.LastObservedAt) UTC</p>
+                <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー</th><th>代表アカウント</th><th>代表アカウントの履歴</th></tr></thead><tbody>
+                @foreach (var player in relation.Players)
+                {
+                    <tr><td>@player.Mcid<small>@player.UserUuid</small></td><td>@player.AccountName<small>@player.AccountId</small></td><td><a asp-page="Trades" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">トレード</a> ・ <a asp-page="Dungeons" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">攻略履歴</a></td></tr>
+                }
+                </tbody></table></div>
+                @foreach (var pair in relation.Players.Select(p => p.UserUuid).Distinct().SelectMany((id, index) => relation.Players.Select(p => p.UserUuid).Distinct().Skip(index + 1).Select(other => (id, other))))
+                {
+                    var first = relation.Players.First(p => p.UserUuid == pair.id);
+                    var second = relation.Players.First(p => p.UserUuid == pair.other);
+                    <a class="btn ar-btn-outline" asp-page="Trades" asp-route-userUuid="@pair.id" asp-route-otherUserUuid="@pair.other" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@first.Mcid ↔ @second.Mcid のトレード</a>
+                }
+            </article>
+        }
+        <nav class="ar-pagination" aria-label="同IP一覧のページ">
+            @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+            <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(results.TotalCount / (double)results.PageSize))</span>
+            @if ((long)Model.PageNumber * results.PageSize < results.TotalCount) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+        </nav>
+    }
+</div></section>

@@ -1,0 +1,70 @@
+@page
+@model AstralRecordWeb.Pages.Admin.History.MobsModel
+@using AstralRecordWeb.Pages.Admin.History
+@{ ViewData["Title"] = "モブ撃破ランキング"; }
+@section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>モブ撃破ランキング</h1><p class="ar-portal-sub">モブがプレイヤーを倒した回数と、プレイヤーへ与えたダメージを確認します。</p></div></header>
+    <partial name="_HistoryNav" />
+    <form method="get" class="ar-panel ar-history-filters" aria-label="モブの戦闘履歴の検索">
+        <div><label asp-for="Query">@(Model.View == "ranking" ? "モブ名・ID" : "被害プレイヤー名・アカウント名")</label><input asp-for="Query" maxlength="100" /></div>
+        <div><label asp-for="From">開始日（UTC）</label><input asp-for="From" type="date" /></div>
+        <div><label asp-for="To">終了日（UTC・当日を含む）</label><input asp-for="To" type="date" /></div>
+        <div><label asp-for="MobId">モブID（完全一致）</label><input asp-for="MobId" maxlength="128" /></div>
+        <input type="hidden" asp-for="View" />
+        <button class="btn ar-btn-primary">検索する</button>
+    </form>
+    <p class="ar-history-note">撃破数は死亡回数です。同じプレイヤーへの複数回の撃破を含みます。与ダメージは生存時も含めた集計値で、まとめ送信により反映が遅れる場合があります。</p>
+    @if (!string.IsNullOrEmpty(Model.MobId))
+    {
+        <p>選択モブ: <strong>@Model.MobId</strong></p>
+        <nav class="ar-history-nav" aria-label="選択モブの履歴">
+            <a asp-page="Mobs" asp-route-mobId="@Model.MobId" asp-route-view="players" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">被害プレイヤー別</a>
+            <a asp-page="Mobs" asp-route-mobId="@Model.MobId" asp-route-view="deaths" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">プレイヤー撃破の時系列</a>
+            <a asp-page="Mobs" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">全モブのランキング</a>
+        </nav>
+    }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Results is { } results)
+    {
+        <p>@results.TotalCount.ToString("N0") 種類のモブ（検索対象内の撃破数順）</p>
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>順位</th><th>モブ</th><th>プレイヤー撃破数</th><th>与ダメージ</th><th>命中数</th><th>最後の記録（UTC）</th></tr></thead><tbody>
+        @for (var index = 0; index < results.Items.Count; index++)
+        {
+            var mob = results.Items[index];
+            <tr><td>@(((long)Model.PageNumber - 1) * results.PageSize + index + 1)</td><td><a asp-page="Mobs" asp-route-mobId="@mob.MobId" asp-route-view="players" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@mob.MobName</a><small>@mob.MobId</small></td><td class="ar-history-value">@mob.PlayerKillCount.ToString("N0") 回</td><td class="ar-history-value">@mob.DamageToPlayers.ToString("N1")</td><td>@mob.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(mob.LastOccurredAt)</td></tr>
+        }
+        </tbody></table></div>
+    }
+    @if (Model.Players is { } players)
+    {
+        <h2>被害プレイヤー別</h2><p>@players.TotalCount.ToString("N0") アカウント</p>
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー / アカウント</th><th>倒された回数</th><th>受けたダメージ</th><th>被命中数</th><th>最後の記録（UTC）</th></tr></thead><tbody>
+        @foreach (var player in players.Items)
+        {
+            <tr><td>@player.Player.Mcid / @player.Player.AccountName<small>@player.Player.AccountId</small></td><td>@player.DeathCount.ToString("N0") 回</td><td class="ar-history-value">@player.DamageTaken.ToString("N1")</td><td>@player.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(player.LastOccurredAt)</td></tr>
+        }
+        </tbody></table></div>
+    }
+    @if (Model.Deaths is { } deaths)
+    {
+        <h2>プレイヤー撃破の時系列</h2><p>@deaths.TotalCount.ToString("N0") 回</p>
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>日時（UTC）</th><th>モブ</th><th>倒されたプレイヤー / アカウント</th></tr></thead><tbody>
+        @foreach (var death in deaths.Items)
+        {
+            <tr><td>@HistoryPageModel.Timestamp(death.OccurredAt)<small>@death.EventId</small></td><td>@death.MobName</td><td>@death.Victim.Mcid / @death.Victim.AccountName<small>@death.Victim.AccountId</small></td></tr>
+        }
+        </tbody></table></div>
+    }
+    @if (Model.Results is not null || Model.Players is not null || Model.Deaths is not null)
+    {
+        var count = Model.Results?.TotalCount ?? Model.Players?.TotalCount ?? Model.Deaths!.TotalCount;
+        var size = Model.Results?.PageSize ?? Model.Players?.PageSize ?? Model.Deaths!.PageSize;
+        if (count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        <nav class="ar-pagination" aria-label="モブ履歴のページ">
+            @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+            <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(count / (double)size))</span>
+            @if ((long)Model.PageNumber * size < count) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+        </nav>
+    }
+</div></section>

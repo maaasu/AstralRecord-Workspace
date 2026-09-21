@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.trade.model;
 
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +32,8 @@ public final class TradeSession {
     private TradeSessionStatus status;
     private final Instant openedAt;
     private Instant updatedAt;
+    private @Nullable ActivityPlayerSnapshot playerAHistorySnapshot;
+    private @Nullable ActivityPlayerSnapshot playerBHistorySnapshot;
 
     public TradeSession(
         @NotNull UUID sessionId,
@@ -230,6 +233,18 @@ public final class TradeSession {
         this.status = status;
         touch();
     }
+
+    /** 確定済みトレードを管理用履歴へ送るための、開始時プレイヤー情報を保持します。 */
+    public void setHistoryPlayers(
+        @NotNull ActivityPlayerSnapshot playerAHistorySnapshot,
+        @NotNull ActivityPlayerSnapshot playerBHistorySnapshot
+    ) {
+        this.playerAHistorySnapshot = playerAHistorySnapshot;
+        this.playerBHistorySnapshot = playerBHistorySnapshot;
+    }
+
+    public @Nullable ActivityPlayerSnapshot getPlayerAHistorySnapshot() { return playerAHistorySnapshot; }
+    public @Nullable ActivityPlayerSnapshot getPlayerBHistorySnapshot() { return playerBHistorySnapshot; }
 
     private void touch() {
         updatedAt = Instant.now();

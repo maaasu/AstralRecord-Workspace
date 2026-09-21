@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRewardEntry;
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
+import io.github.maaasu.astralRecord.feature.history.service.PlayerActivityHistoryService;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
@@ -177,6 +179,7 @@ public final class DungeonService {
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
     private @NotNull BiConsumer<AstPlayer, String> cartographTeleportListener = (player, dungeonId) -> { };
+    private @Nullable PlayerActivityHistoryService historyService;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
@@ -519,6 +522,15 @@ public final class DungeonService {
         this.cartographTeleportListener = listener;
     }
 
+    /**
+     * 管理画面用のダンジョン踏破履歴送信先を設定します。未設定でも攻略処理には影響しません。
+     *
+     * @param historyService ダンジョン踏破履歴の送信先。履歴送信を無効にする場合は {@code null}
+     */
+    public void setHistoryService(@Nullable PlayerActivityHistoryService historyService) {
+        this.historyService = historyService;
+    }
+
     /** 現在ロード済みの Mob/World を参照して初回ロードします。 */
     public int loadAll() {
         Map<String, MobTemplate> mobs = new LinkedHashMap<>();
@@ -775,11 +787,14 @@ public final class DungeonService {
                 ? requestedSeed.getAsLong()
                 : ThreadLocalRandom.current().nextLong();
         Map<UUID, Location> returnLocations = new LinkedHashMap<>();
+        Map<UUID, ActivityPlayerSnapshot> participantHistory = new LinkedHashMap<>();
         LinkedHashSet<UUID> participantIdSet = new LinkedHashSet<>(participantIds);
         for (UUID participantId : participantIds) {
             Player participant = Bukkit.getPlayer(participantId);
             if (participant != null && participant.isOnline()) {
                 returnLocations.put(participantId, participant.getLocation().clone());
+                AstPlayer astPlayer = AstPlayerCache.get(participant);
+                if (astPlayer != null) participantHistory.put(participantId, ActivityPlayerSnapshot.from(astPlayer));
             }
             sessionIdByParticipant.put(participantId, sessionId);
             sessionIdByBusyParticipant.put(participantId, sessionId);
@@ -792,7 +807,8 @@ public final class DungeonService {
                 partyKey,
                 leader.getUniqueId(),
                 participantIdSet,
-                returnLocations
+                returnLocations,
+                participantHistory
         );
         session.reservedCreationSlot = hasDonorPermission(party, leader.getUniqueId());
         sessionsById.put(sessionId, session);
@@ -1385,6 +1401,7 @@ public final class DungeonService {
                 taskRef[0].cancel();
                 session.startCountdownTask = null;
                 session.combatStarted = true;
+                markMovementObservationStarted(session);
                 resetChallengeBuffs(inWorld);
                 showDungeonStart(inWorld, session.loaded.definition().displayName());
                 session.startedAtMs = System.currentTimeMillis();
@@ -1533,6 +1550,31 @@ public final class DungeonService {
                 activateRoom(session, room.id());
                 return;
             }
+        }
+    }
+
+    /**
+     * ダンジョン攻略中の通常移動を概算距離として集計します。
+     * テレポートイベントは呼び出し元で除外し、異常に長い1区間も記録しません。
+     */
+    public void recordMovement(@NotNull Player player, @NotNull Location from, @NotNull Location destination) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || !session.combatStarted || session.instanceWorld == null
+                || from.getWorld() == null || destination.getWorld() == null
+                || !from.getWorld().getUID().equals(session.instanceWorld.world().getUID())
+                || !destination.getWorld().getUID().equals(session.instanceWorld.world().getUID())) return;
+        double segment = from.distance(destination);
+        if (!Double.isFinite(segment) || segment > PlayerActivityHistoryService.maxMovementSegmentMeters()) return;
+        DungeonMovement movement = session.movementByParticipant.get(player.getUniqueId());
+        if (movement == null) return;
+        movement.distanceMeters += Math.max(0.0D, segment);
+        movement.sampleCount++;
+    }
+
+    private void markMovementObservationStarted(@NotNull Session session) {
+        for (DungeonMovement movement : session.movementByParticipant.values()) {
+            movement.sampleCount = Math.max(1, movement.sampleCount);
         }
     }
 
@@ -1919,6 +1961,7 @@ public final class DungeonService {
                 recordDungeonClear(astPlayer, session.loaded.definition());
                 clearListener.accept(astPlayer, session.loaded.definition().id());
             }
+            recordDungeonClearHistory(session);
         Location chestLocation = findRewardChestLocation(session, bossRoom);
         Block chest = chestLocation.getBlock();
         session.rewardChestLocation = chest.getLocation();
@@ -1947,6 +1990,33 @@ public final class DungeonService {
         } catch (RuntimeException ex) {
             Logger.log(LogId.E_7000, ex, session.id.toString(), session.loaded.definition().id());
             completeSession(session, EndReason.SPAWN_FAILED, false);
+        }
+    }
+
+    private void recordDungeonClearHistory(@NotNull Session session) {
+        try {
+            PlayerActivityHistoryService history = historyService;
+            if (history == null || session.startedAtMs <= 0L || session.participantHistory.isEmpty()) return;
+            List<PlayerActivityHistoryService.DungeonParticipant> participants = new ArrayList<>();
+            for (UUID participantId : session.originalParticipants) {
+                ActivityPlayerSnapshot player = session.participantHistory.get(participantId);
+                if (player == null) continue;
+                DungeonMovement movement = session.movementByParticipant.get(participantId);
+                Double distance = movement == null || movement.sampleCount == 0 ? null : movement.distanceMeters;
+                participants.add(new PlayerActivityHistoryService.DungeonParticipant(
+                    player, distance, movement == null ? 0 : movement.sampleCount
+                ));
+            }
+            history.recordDungeonClear(new PlayerActivityHistoryService.DungeonClearEvent(
+                session.id,
+                session.loaded.definition().id(),
+                session.loaded.definition().displayName(),
+                Instant.ofEpochMilli(session.startedAtMs),
+                Instant.now(),
+                participants
+            ));
+        } catch (RuntimeException ignored) {
+            // 管理用履歴の生成失敗は、踏破済みセッションの報酬・帰還処理へ影響させない。
         }
     }
 
@@ -4807,6 +4877,8 @@ public final class DungeonService {
         private final Set<UUID> gateReturnEligible = new LinkedHashSet<>();
         private final Set<UUID> waitingAbsentParticipants = new LinkedHashSet<>();
         private final Map<UUID, Location> returnLocations;
+        private final Map<UUID, ActivityPlayerSnapshot> participantHistory;
+        private final Map<UUID, DungeonMovement> movementByParticipant = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> entryTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> cartographTransfers = new HashMap<>();
@@ -4851,7 +4923,8 @@ public final class DungeonService {
                 @NotNull String partyKey,
                 @NotNull UUID initiatorId,
                 @NotNull LinkedHashSet<UUID> participants,
-                @NotNull Map<UUID, Location> returnLocations
+                @NotNull Map<UUID, Location> returnLocations,
+                @NotNull Map<UUID, ActivityPlayerSnapshot> participantHistory
         ) {
             this.id = id;
             this.seed = seed;
@@ -4861,7 +4934,16 @@ public final class DungeonService {
             this.originalParticipants = new LinkedHashSet<>(participants);
             this.participants = participants;
             this.returnLocations = returnLocations;
+            this.participantHistory = Map.copyOf(participantHistory);
+            for (UUID participantId : this.originalParticipants) {
+                this.movementByParticipant.put(participantId, new DungeonMovement());
+            }
         }
+    }
+
+    private static final class DungeonMovement {
+        private double distanceMeters;
+        private int sampleCount;
     }
 
     private record PreparedPlan(@NotNull DungeonLayout layout, @NotNull DungeonBlockPlan blocks) {

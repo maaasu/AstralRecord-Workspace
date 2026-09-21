@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.trade.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
+import io.github.maaasu.astralRecord.feature.history.service.PlayerActivityHistoryService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
@@ -71,6 +73,7 @@ public final class TradeService {
     private final Map<UUID, TradeCommitRecovery> tradeCommitRecoveries = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedClosePlayers = new HashSet<>();
     private final Map<UUID, UUID> pendingGuiTransitions = new HashMap<>();
+    private @Nullable PlayerActivityHistoryService historyService;
 
     /**
      * 送信サービスを構築します。公開操作は Bukkit main thread から呼び出します。
@@ -178,6 +181,7 @@ public final class TradeService {
             senderAst.getAccount().getUuid(), AccountDisplayNameFormatter.toPlain(senderAst.getAccount()),
             target.getUniqueId(), targetAst.getAccount().getUuid(),
             AccountDisplayNameFormatter.toPlain(targetAst.getAccount()), Instant.now());
+        session.setHistoryPlayers(ActivityPlayerSnapshot.from(senderAst), ActivityPlayerSnapshot.from(targetAst));
         session.setReturnAction(returnAction);
         sessions.put(session.getSessionId(), session);
         activeSessionByPlayer.put(sender.getUniqueId(), session.getSessionId());
@@ -335,6 +339,11 @@ public final class TradeService {
                 cancelTrade(session);
             }
         }
+    }
+
+    /** 管理用の活動履歴送信先を設定します。未設定でも取引の動作には影響しません。 */
+    public void setHistoryService(@Nullable PlayerActivityHistoryService historyService) {
+        this.historyService = historyService;
     }
 
     public boolean consumeSuppressedClose(@NotNull UUID playerUuid) {
@@ -654,6 +663,7 @@ public final class TradeService {
             return;
         }
         tradeCommitRecoveries.remove(session.getSessionId());
+        recordCompletedTrade(session);
         session.setStatus(TradeSessionStatus.COMPLETED);
         clearHiddenOfferReservations(session);
         refreshManagedInventoryUi(session, session.getPlayerAUuid());
@@ -663,6 +673,31 @@ public final class TradeService {
         notifyDelivery(session);
         playCompletionSound(session.getPlayerAUuid());
         playCompletionSound(session.getPlayerBUuid());
+    }
+
+    private void recordCompletedTrade(@NotNull TradeSession session) {
+        try {
+            PlayerActivityHistoryService history = historyService;
+            ActivityPlayerSnapshot source = session.getPlayerAHistorySnapshot();
+            ActivityPlayerSnapshot destination = session.getPlayerBHistorySnapshot();
+            if (history == null || source == null || destination == null) return;
+            List<PlayerActivityHistoryService.TradeItem> items = new ArrayList<>();
+            for (ItemStack item : session.getItems(session.getPlayerAUuid())) {
+                var reference = itemReferenceResolver.resolveLoaded(item);
+                String itemId = reference == null ? item.getType().key().asString() : reference.itemId();
+                items.add(new PlayerActivityHistoryService.TradeItem(itemId, item.getType().name(), item.getAmount()));
+            }
+            history.recordTrade(
+                session.getSessionId(),
+                Instant.now(),
+                source,
+                destination,
+                items,
+                session.getGoldAmount(session.getPlayerAUuid())
+            );
+        } catch (RuntimeException ignored) {
+            // 管理用履歴の生成失敗は、確定済み取引の完了処理へ影響させない。
+        }
     }
 
     /**

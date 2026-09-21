@@ -152,6 +152,8 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobVanillaEffectProtectionService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
+import io.github.maaasu.astralRecord.feature.history.service.PlayerActivityHistoryService;
 import io.github.maaasu.astralRecord.feature.spawner.event.MobSpawnerBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
@@ -362,6 +364,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -377,6 +380,7 @@ public final class AstralRecord extends JavaPlugin {
     private AccountService accountService;
     private AccountModeApplicationService accountModeApplicationService;
     private UserService userService;
+    private PlayerActivityHistoryService playerActivityHistoryService;
     private PlayerCapacityService playerCapacityService;
     private PlayerService playerService;
     private final PlayerSessionTransitionGuard playerSessionTransitionGuard = new PlayerSessionTransitionGuard();
@@ -640,6 +644,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // 4. イベントとコマンドを登録
         registerPluginFeatures();
+        playerActivityHistoryService.start();
 
         ConfigProperties config = ConfigProperties.getInstance();
         if (config.isMasterDataAutoReloadEnabled()) {
@@ -653,6 +658,9 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (playerActivityHistoryService != null) {
+            playerActivityHistoryService.stop();
+        }
         if (masterDataAutoReloadService != null) {
             masterDataAutoReloadService.stop();
             masterDataAutoReloadService = null;
@@ -1086,6 +1094,7 @@ public final class AstralRecord extends JavaPlugin {
         // user
         var userRepository = new UserRepository();
         userService = new UserService(userRepository, accountService);
+        playerActivityHistoryService = new PlayerActivityHistoryService(this);
         partyService = new PartyService(this, userService);
         partyGui = new PartyGui(partyService);
         partyRecruitmentSettingsGui = new PartyRecruitmentSettingsGui(partyService);
@@ -1374,6 +1383,7 @@ public final class AstralRecord extends JavaPlugin {
         dungeonService.setCartographTeleportListener((player, dungeonId) ->
             guideService.recordCondition(player, GuideConditionType.CARTOGRAPH_ROOM_TELEPORTED, dungeonId)
         );
+        dungeonService.setHistoryService(playerActivityHistoryService);
         partyService.setChallengePartyMutationGuard(playerId ->
             bossChallengeService.isPartyMutationBlocked(playerId)
                 || dungeonService.isPartyMutationBlocked(playerId)
@@ -1381,6 +1391,16 @@ public final class AstralRecord extends JavaPlugin {
         partyService.addMembershipChangeListener(bossChallengeService::handlePartyMembershipChanged);
         partyService.addMembershipChangeListener(dungeonService::handlePartyMembershipChanged);
         damageService.setDungeonService(dungeonService);
+        damageService.setMobPlayerDamageListener((mob, victim, damage, lethal) -> {
+            try {
+                playerActivityHistoryService.recordMobDamage(
+                    mob.template().id(), mob.template().displayName(), ActivityPlayerSnapshot.from(victim),
+                    damage, lethal, Instant.now()
+                );
+            } catch (RuntimeException ignored) {
+                // 管理用履歴の失敗は combat の正本更新へ影響させない。
+            }
+        });
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);
         returnToBaseService = new ReturnToBaseService(
             this,
@@ -1583,6 +1603,7 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             inventorySaveCoordinator
         );
+        tradeService.setHistoryService(playerActivityHistoryService);
         marketService = new MarketService(new MarketRepository());
         marketGuiEventHandler = new MarketGuiEventHandler(
             this,
@@ -2060,6 +2081,16 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getPluginManager().registerEvents(playerStateIncidents, this);
         playerJoinEventHandler.setPlayerLoadedListener(player -> {
             playerStateIncidents.onLoaded(player);
+            var address = player.getBukkit().getAddress();
+            if (address != null && address.getAddress() != null) {
+                try {
+                    playerActivityHistoryService.recordIpObservation(
+                        ActivityPlayerSnapshot.from(player), address.getAddress().getHostAddress(), Instant.now()
+                    );
+                } catch (RuntimeException ignored) {
+                    // 管理用履歴の失敗は参加処理を中断しない。
+                }
+            }
             passiveSkillService.reconcileNow(player);
             if (networkBridgeService != null) {
                 networkBridgeService.onPlayerLoaded(player);
