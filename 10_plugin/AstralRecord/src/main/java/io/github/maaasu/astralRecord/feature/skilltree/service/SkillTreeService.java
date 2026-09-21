@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skilltree.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -20,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeEffect;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
@@ -32,6 +34,8 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeRuntimeRepository;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -160,6 +164,10 @@ public class SkillTreeService {
         }
     }
 
+    /** APIへ登録する正規化済み定義スナップショットとそのSHA-256世代IDです。 */
+    private record DefinitionGeneration(@NotNull String id, @NotNull String canonicalSnapshotJson) {
+    }
+
     /**
      * 非同期のプレイヤー状態ロードで参照する、不変の構造検証スナップショットです。
      *
@@ -272,6 +280,7 @@ public class SkillTreeService {
     private final Plugin plugin;
     private final WorldService worldService;
     private InventoryService inventoryService;
+    private @Nullable SkillTreeOperationReceiptService runtimeOperationReceiptService;
     private PlayerHudService playerHudService;
     private @Nullable PlayerSettingService playerSettingService;
     private StatusService statusService;
@@ -281,6 +290,9 @@ public class SkillTreeService {
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
+    private final SkillTreeRuntimeRepository runtimeRepository = new SkillTreeRuntimeRepository();
+    private final UUID runtimeServerSessionId = UUID.randomUUID();
+    private final java.time.Instant runtimeServerStartedAtUtc = java.time.Instant.now();
     private final NamespacedKey nodeInteractionKey;
     private final Map<String, SkillTreeNodeDefinition> nodesById = new LinkedHashMap<>();
     private final Map<String, SkillTreePosition> positionsByNodeId = new LinkedHashMap<>();
@@ -307,6 +319,12 @@ public class SkillTreeService {
     private final Map<UUID, Integer> persistedPlayerStateVersions = new HashMap<>();
     private final Set<UUID> retainedInitialPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> releasedPlayerStates = new LinkedHashSet<>();
+    /** Runtime API の同一 account 操作を重複して claim しないための処理中集合です。 */
+    private final Set<UUID> runtimeOperationAccounts = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** 移動・world change・quit ごとに更新し、claim 後に古くなったWeb操作を確定させません。 */
+    private final Map<UUID, Long> runtimePlayerContextRevisions = new java.util.concurrent.ConcurrentHashMap<>();
+    /** 次の skillTree snapshot にだけ同梱する、claim済みWeb操作の原子確定receiptです。 */
+    private final Map<UUID, PendingRuntimeOperationReceipt> pendingRuntimeOperationReceipts = new HashMap<>();
     private final Map<UUID, Long> acknowledgedPlayerStateRevisions = new HashMap<>();
     private final Map<UUID, UUID> playerStateEpochs = new HashMap<>();
     private final Map<UUID, SkillTreePlayerState> initialPlayerStatePublications = new HashMap<>();
@@ -316,12 +334,20 @@ public class SkillTreeService {
 
     private BukkitTask saveTask;
     private BukkitTask feedbackTask;
+    private BukkitTask runtimeHeartbeatTask;
+    private BukkitTask runtimePlayerViewTask;
     private SkillTreeVisualizer visualizer;
     private @Nullable ParticleDisplayService particleDisplayService;
     private boolean playerStateSaveInProgress;
     private BiConsumer<AstPlayer, String> nodeUnlockListener = (player, nodeId) -> { };
     private volatile PlayerStateValidationSnapshot playerStateValidationSnapshot = PlayerStateValidationSnapshot.unavailable();
     private String rootNodeId = "";
+    /** 現在公開済みの実ロード定義世代。公開に失敗した場合は前回値を維持します。 */
+    private volatile String definitionGenerationId = "";
+    private volatile String definitionCanonicalSnapshotJson = "";
+    private volatile String registeredRuntimeGenerationId = "";
+    /** APPLIED receipt のACK中は次世代を公開せず、旧世代のまま原子確定を完了させます。 */
+    private @Nullable SkillTreeMasterDataSnapshot deferredMasterDataSnapshot;
 
     public SkillTreeService(
             @NotNull Plugin plugin,
@@ -342,6 +368,7 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+        this.runtimeOperationReceiptService = new SkillTreeOperationReceiptService(inventoryService);
     }
 
     /**
@@ -450,7 +477,13 @@ public class SkillTreeService {
      *
      * @param snapshot 公開するスナップショット
      */
-    public void replaceMasterDataSnapshot(@NotNull SkillTreeMasterDataSnapshot snapshot) {
+    public synchronized void replaceMasterDataSnapshot(@NotNull SkillTreeMasterDataSnapshot snapshot) {
+        if (!pendingRuntimeOperationReceipts.isEmpty()) {
+            deferredMasterDataSnapshot = snapshot;
+            return;
+        }
+        DefinitionGeneration nextDefinitionGeneration = createDefinitionGeneration(snapshot);
+        String nextDefinitionGenerationId = nextDefinitionGeneration.id();
         nodesById.clear();
         lockedNodeDisplayItems.clear();
         unlockedNodeDisplayItems.clear();
@@ -484,6 +517,8 @@ public class SkillTreeService {
                     .add(edge.sourceNodeId());
         }
         rootNodeId = snapshot.rootNodeId();
+        definitionGenerationId = nextDefinitionGenerationId;
+        definitionCanonicalSnapshotJson = nextDefinitionGeneration.canonicalSnapshotJson();
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
         refreshLoadedOnlinePlayerDerivedStates();
@@ -491,6 +526,96 @@ public class SkillTreeService {
             visualizer.markStructureDirty();
         }
         Logger.log(LogId.I_9000, nodesById.size(), positionsByNodeId.size(), edgesByKey.size());
+    }
+
+    /** 現在公開済みの実ロード定義世代を返します。 */
+    public @NotNull String definitionGenerationId() {
+        return definitionGenerationId;
+    }
+
+    /** APIへ登録する、現在公開済み世代を生成した正規化JSONを返します。 */
+    public @NotNull String definitionCanonicalSnapshotJson() {
+        return definitionCanonicalSnapshotJson;
+    }
+
+    /**
+     * スキルツリーの判定へ影響する構造・ノード・効果・解除規則を正規化して世代IDを生成します。
+     * ファイル名、配置時刻、Seeder実行IDには依存しません。
+     */
+    private @NotNull DefinitionGeneration createDefinitionGeneration(@NotNull SkillTreeMasterDataSnapshot snapshot) {
+        JsonObject root = new JsonObject();
+        root.addProperty("rulesRevision", "skilltree-operation-v1");
+        root.addProperty("relockGoldCost", RELOCK_GOLD_COST);
+        root.addProperty("rootNodeId", snapshot.rootNodeId());
+        JsonArray nodes = new JsonArray();
+        snapshot.nodes().stream().sorted(java.util.Comparator.comparing(SkillTreeNodeDefinition::nodeId)).forEach(node -> {
+            JsonObject value = new JsonObject();
+            value.addProperty("nodeId", node.nodeId());
+            value.addProperty("name", ColorCodeUtil.toPlainText(node.name(), node.nodeId()));
+            value.addProperty("pointType", node.pointType().name());
+            value.addProperty("pointCost", node.pointCost());
+            JsonObject condition = new JsonObject();
+            if (node.unlockCondition().classId() == null) condition.add("classId", com.google.gson.JsonNull.INSTANCE);
+            else {
+                condition.addProperty("classId", node.unlockCondition().classId());
+                String classDisplayName = playerClassService == null ? node.unlockCondition().classId()
+                        : playerClassService.getDisplayName(node.unlockCondition().classId());
+                condition.addProperty("classDisplayName", ColorCodeUtil.toPlainText(
+                        classDisplayName, node.unlockCondition().classId()));
+            }
+            condition.addProperty("playerLevel", node.unlockCondition().playerLevel());
+            value.add("unlockCondition", condition);
+            JsonArray effects = new JsonArray();
+            for (SkillTreeNodeEffect effect : node.effects()) {
+                JsonObject effectValue = new JsonObject();
+                if (effect instanceof SkillTreeSkillEffect skill) {
+                    effectValue.addProperty("type", "skill");
+                    effectValue.addProperty("skillId", skill.skillId());
+                    var definition = skillService == null ? null : skillService.registry().getDefinition(skill.skillId());
+                    effectValue.addProperty("displayName", definition == null ? "未読込スキル"
+                            : SkillPresentationUtil.plainName(definition, "未定義スキル"));
+                    if (definition != null) {
+                        effectValue.addProperty("description", firstSkillDescription(definition));
+                    }
+                } else if (effect instanceof SkillTreeStatusEffect status) {
+                    effectValue.addProperty("type", "status");
+                    effectValue.addProperty("status", status.statusType().name());
+                    effectValue.addProperty("modifierType", status.modifierType().name());
+                    effectValue.addProperty("value", status.value());
+                    effectValue.addProperty("displayName", status.statusType().getDisplayName());
+                    effectValue.addProperty("suffix", status.statusType().getSuffix());
+                    effectValue.addProperty("decimalPlaces", status.statusType().getDecimalPlaces());
+                }
+                effects.add(effectValue);
+            }
+            value.add("effects", effects);
+            nodes.add(value);
+        });
+        root.add("nodes", nodes);
+        JsonArray positions = new JsonArray();
+        snapshot.positions().stream().sorted(java.util.Comparator.comparing(SkillTreePosition::nodeId)).forEach(position -> {
+            JsonObject value = new JsonObject();
+            value.addProperty("nodeId", position.nodeId());
+            value.addProperty("world", position.worldName());
+            value.addProperty("x", position.x());
+            value.addProperty("y", position.y());
+            value.addProperty("z", position.z());
+            positions.add(value);
+        });
+        root.add("positions", positions);
+        JsonArray edges = new JsonArray();
+        snapshot.edges().stream().map(SkillTreeEdge::key).sorted().forEach(edges::add);
+        root.add("edges", edges);
+        try {
+            String canonicalSnapshotJson = root.toString();
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonicalSnapshotJson.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(digest.length * 2);
+            for (byte value : digest) result.append(String.format(java.util.Locale.ROOT, "%02x", value));
+            return new DefinitionGeneration(result.toString(), canonicalSnapshotJson);
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
     }
 
     /**
@@ -523,6 +648,16 @@ public class SkillTreeService {
         if (feedbackTask == null) {
             feedbackTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerFeedbacks, 1L, FEEDBACK_INTERVAL_TICKS);
         }
+        if (runtimeHeartbeatTask == null && runtimeRepository.isConfigured()) {
+            runtimeHeartbeatTask = Bukkit.getScheduler().runTaskTimerAsynchronously(
+                    plugin, this::publishRuntimeHeartbeat, 1L, 20L * 10L
+            );
+        }
+        if (runtimePlayerViewTask == null && runtimeRepository.isConfigured()) {
+            runtimePlayerViewTask = Bukkit.getScheduler().runTaskTimer(
+                    plugin, this::publishOnlineRuntimePlayerViews, 1L, 20L * 5L
+            );
+        }
         refreshAllPlayerVisibility();
         markAllViewerContextsDirty();
     }
@@ -540,12 +675,389 @@ public class SkillTreeService {
             feedbackTask.cancel();
             feedbackTask = null;
         }
+        if (runtimeHeartbeatTask != null) {
+            runtimeHeartbeatTask.cancel();
+            runtimeHeartbeatTask = null;
+        }
+        if (runtimePlayerViewTask != null) {
+            runtimePlayerViewTask.cancel();
+            runtimePlayerViewTask = null;
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
             clearPlayerPresentation(player);
         }
         restoreAllPlayerVisibility();
         clearAllLoadingBossBars();
         saveDirty();
+    }
+
+    /**
+     * APIへ公開済みの実ロード世代を登録またはheartbeatします。
+     * 通信失敗は現在のローカル世代を変更せず、次周期で再試行します。
+     */
+    private void publishRuntimeHeartbeat() {
+        String generation = definitionGenerationId;
+        String canonicalSnapshotJson = definitionCanonicalSnapshotJson;
+        if (generation.isBlank() || canonicalSnapshotJson.isBlank() || !runtimeRepository.isConfigured()) {
+            return;
+        }
+        String serverId = ConfigProperties.getInstance().getApiServerId();
+        try {
+            if (generation.equals(registeredRuntimeGenerationId)) {
+                runtimeRepository.heartbeat(serverId, runtimeServerSessionId, generation);
+            } else {
+                runtimeRepository.register(
+                        serverId,
+                        runtimeServerSessionId,
+                        runtimeServerStartedAtUtc,
+                        plugin.getPluginMeta().getVersion(),
+                        "skilltree-operation-v1",
+                        generation,
+                        canonicalSnapshotJson
+                );
+                registeredRuntimeGenerationId = generation;
+            }
+        } catch (RuntimeException ignored) {
+            // runtime APIの到達不能時はreadyを主張せず、次周期の再登録までWeb即時適用を停止させる。
+        }
+    }
+
+    /**
+     * 現在sessionのWeb操作取得に使うサーバーIDを返します。
+     * Runtimeキー未設定の場合はnullで、Web操作を安全に受け付けません。
+     */
+    public @Nullable String runtimeServerId() {
+        return runtimeRepository.isConfigured() && !definitionGenerationId.isBlank()
+                ? ConfigProperties.getInstance().getApiServerId()
+                : null;
+    }
+
+    /**
+     * Web からのスキルツリー編集を現在地で確定できるか判定します。
+     *
+     * <p>オフライン時の変更は案として保持し、オンライン中は拠点またはスキルツリー
+     * ワールドでのみ Plugin が確定します。Bukkit メインスレッドから呼び出します。</p>
+     *
+     * @param player 判定対象プレイヤー
+     * @return 編集を確定できるワールドなら {@code true}
+     */
+    public boolean isRuntimeEditingAllowed(@NotNull Player player) {
+        WorldMasterData current = worldService.findByBukkitWorld(player.getWorld());
+        return current != null && (current.worldType() == WorldType.BASE || SKILL_TREE_WORLD_ID.equals(current.id()));
+    }
+
+    /**
+     * Web 表示用に、現在接続中のプレイヤーを Plugin のルールで評価したビューを生成します。
+     *
+     * <p>この値は raw master の代替ではなく、現在の世代・保存版数・クラス進行・Gold・
+     * 現在地を束ねた短命な表示用スナップショットです。Bukkit メインスレッドから呼び出します。</p>
+     *
+     * @param astPlayer 評価対象プレイヤー
+     * @return API へ公開する評価済みビュー
+     */
+    public synchronized @NotNull JsonObject createRuntimePlayerView(@NotNull AstPlayer astPlayer) {
+        SkillTreePlayerState state = state(astPlayer);
+        Player player = astPlayer.getBukkit();
+        JsonObject view = new JsonObject();
+        view.addProperty("accountId", state.accountId().toString());
+        view.addProperty("definitionGenerationId", definitionGenerationId);
+        view.addProperty("playerStateVersion", state.persistedVersion());
+        view.addProperty("playerStateRevision", playerStateRevisions.getOrDefault(state.accountId(), 0L));
+        view.addProperty("evaluationFingerprint", createRuntimeEvaluationFingerprint(astPlayer, state));
+        view.addProperty("online", player.isOnline());
+        view.addProperty("channelName", ConfigProperties.getInstance().getNetworkChannelName());
+        view.addProperty("editEligible", player.isOnline() && isRuntimeEditingAllowed(player));
+        view.addProperty("relockGoldCost", RELOCK_GOLD_COST);
+
+        JsonObject location = new JsonObject();
+        WorldMasterData worldData = worldService.findByBukkitWorld(player.getWorld());
+        if (worldData == null) {
+            location.add("worldId", com.google.gson.JsonNull.INSTANCE);
+        } else {
+            location.addProperty("worldId", worldData.id());
+            location.addProperty("worldDisplayName", ColorCodeUtil.toPlainText(worldData.displayName(), worldData.id()));
+        }
+        location.addProperty("worldName", player.getWorld().getName());
+        location.addProperty("x", player.getLocation().getX());
+        location.addProperty("y", player.getLocation().getY());
+        location.addProperty("z", player.getLocation().getZ());
+        view.add("location", location);
+
+        JsonObject points = new JsonObject();
+        points.addProperty("pp", availablePassivePoints(astPlayer));
+        points.addProperty("gold", availableRelockGold(astPlayer));
+        JsonArray classPoints = new JsonArray();
+        for (CpSourceOption option : cpSourceOptions(astPlayer)) {
+            JsonObject value = new JsonObject();
+            value.addProperty("classId", option.classId());
+            value.addProperty("className", ColorCodeUtil.toPlainText(option.displayName(), option.classId()));
+            value.addProperty("availableCp", option.availablePoints());
+            classPoints.add(value);
+        }
+        points.add("classes", classPoints);
+        view.add("points", points);
+
+        JsonObject tree = JsonParser.parseString(definitionCanonicalSnapshotJson).getAsJsonObject();
+        JsonArray treeNodes = tree.getAsJsonArray("nodes");
+        for (JsonElement element : treeNodes) {
+            JsonObject nodeView = element.getAsJsonObject();
+            SkillTreeNodeDefinition node = nodesById.get(nodeView.get("nodeId").getAsString());
+            if (node == null) {
+                continue;
+            }
+            boolean unlocked = state.isUnlocked(node.nodeId());
+            boolean canUnlock = canUnlockNode(astPlayer, node);
+            boolean canRelock = unlocked && canRelockNode(astPlayer, node) && canAffordRelock(astPlayer);
+            nodeView.addProperty("unlocked", unlocked);
+            nodeView.addProperty("canUnlock", canUnlock);
+            nodeView.addProperty("canRelock", canRelock);
+            nodeView.addProperty("requiresCpSourceSelection", requiresCpSourceSelection(node));
+            nodeView.addProperty("costText", runtimeCostText(node));
+            nodeView.add("displayEffects", nodeView.getAsJsonArray("effects").deepCopy());
+            SkillTreeUnlockedNode unlockedNode = state.unlockedNode(node.nodeId());
+            if (unlockedNode == null || unlockedNode.consumedClassId() == null) {
+                nodeView.add("consumedClassName", com.google.gson.JsonNull.INSTANCE);
+            } else {
+                String classId = unlockedNode.consumedClassId();
+                String className = playerClassService == null ? classId : playerClassService.getDisplayName(classId);
+                nodeView.addProperty("consumedClassName", ColorCodeUtil.toPlainText(className, classId));
+            }
+            JsonArray cpSources = new JsonArray();
+            if (node.pointType() == SkillTreePointType.CLASS_POINT) {
+                for (CpSourceOption option : cpSourceOptions(astPlayer)) {
+                    JsonObject source = new JsonObject();
+                    source.addProperty("classId", option.classId());
+                    source.addProperty("className", ColorCodeUtil.toPlainText(option.displayName(), option.classId()));
+                    source.addProperty("availableCp", option.availablePoints());
+                    cpSources.add(source);
+                }
+            }
+            nodeView.add("cpSources", cpSources);
+            if (canUnlock || canRelock) {
+                nodeView.add("blockedReason", com.google.gson.JsonNull.INSTANCE);
+            } else {
+                nodeView.addProperty("blockedReason", runtimeBlockedReason(astPlayer, node, unlocked));
+            }
+        }
+        view.add("tree", tree);
+        return view;
+    }
+
+    /** API 到達可能時に、評価済みの接続情報を非同期で公開します。 */
+    public void publishRuntimePlayerViewAsync(@NotNull AstPlayer astPlayer) {
+        String serverId = runtimeServerId();
+        if (serverId == null || !astPlayer.getBukkit().isOnline()) {
+            return;
+        }
+        JsonObject view = createRuntimePlayerView(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                runtimeRepository.publishPlayerView(serverId, runtimeServerSessionId, accountId, view);
+            } catch (RuntimeException ignored) {
+                // 次回 heartbeat / 再公開で回復する。接続中プレイヤーへ失敗を通知しない。
+            }
+        });
+    }
+
+    /** Bukkit メインスレッドでオンライン状態を再評価し、Web表示用に非同期公開します。 */
+    private void publishOnlineRuntimePlayerViews() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && isStateReady(astPlayer)) {
+                publishRuntimePlayerViewAsync(astPlayer);
+                pollRuntimeOperationsAsync(astPlayer);
+            }
+        }
+    }
+
+    /**
+     * 現在の backend session に配送された Web 操作を一件だけ取得して処理します。
+     *
+     * <p>claim と API 完了通知は非同期、現在地・世代・state版数・実際のポイント判定は
+     * Bukkit メインスレッドと既存の critical mutation lane で行います。</p>
+     */
+    private void pollRuntimeOperationsAsync(@NotNull AstPlayer astPlayer) {
+        String serverId = runtimeServerId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (serverId == null || !runtimeOperationAccounts.add(accountId)) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                List<SkillTreeRuntimeRepository.Operation> operations = runtimeRepository.findPending(
+                        serverId, runtimeServerSessionId, accountId
+                );
+                if (operations.isEmpty()) {
+                    runtimeOperationAccounts.remove(accountId);
+                    return;
+                }
+                SkillTreeRuntimeRepository.Operation operation = operations.getFirst();
+                SkillTreeRuntimeRepository.ClaimedOperation claimed = runtimeRepository.claim(
+                        serverId, runtimeServerSessionId, operation
+                );
+                if (claimed == null) {
+                    runtimeOperationAccounts.remove(accountId);
+                    return;
+                }
+                Bukkit.getScheduler().runTask(plugin, () -> dispatchClaimedRuntimeOperation(serverId, astPlayer, claimed));
+            } catch (RuntimeException ignored) {
+                runtimeOperationAccounts.remove(accountId);
+            }
+        });
+    }
+
+    /** メインスレッドで claim 済みの Web 操作を再検証し、既存の保存 lane へ渡します。 */
+    private void dispatchClaimedRuntimeOperation(
+            @NotNull String serverId,
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeRuntimeRepository.ClaimedOperation claimed
+    ) {
+        SkillTreeRuntimeRepository.Operation operation = claimed.operation();
+        UUID accountId = operation.accountId();
+        Player player = astPlayer.getBukkit();
+        if (!accountId.equals(astPlayer.getAccount().getUuid())
+                || !player.isOnline()
+                || !isRuntimeEditingAllowed(player)
+                || !definitionGenerationId.equals(operation.expectedDefinitionGenerationId())
+                || !isStateReady(astPlayer)
+                || dirtyPlayerStates.contains(accountId)
+                || state(astPlayer).persistedVersion() != operation.expectedPlayerStateVersion()
+                || operation.expectedEvaluationFingerprint() != null
+                && !operation.expectedEvaluationFingerprint().equals(
+                        createRuntimeEvaluationFingerprint(astPlayer, state(astPlayer)))) {
+            rejectRuntimeOperation(claimed, astPlayer, "RECONFIRMATION_REQUIRED");
+            return;
+        }
+
+        SkillTreeNodeDefinition node = nodesById.get(operation.nodeId());
+        if (node == null) {
+            rejectRuntimeOperation(claimed, astPlayer, "FAILED");
+            return;
+        }
+        RuntimeMutationGuard runtimeGuard = new RuntimeMutationGuard(
+                accountId,
+                definitionGenerationId,
+                operation.expectedPlayerStateVersion(),
+                runtimePlayerContextRevisions.getOrDefault(player.getUniqueId(), 0L),
+                operation.operationId(),
+                claimed.leaseToken(),
+                serverId
+        );
+        CompletableFuture<SkillTreeMutationResult> mutation;
+        if ("UNLOCK".equalsIgnoreCase(operation.action())) {
+            if (requiresCpSourceSelection(node)
+                    && (operation.sourceClassId() == null || operation.sourceClassId().isBlank())) {
+                rejectRuntimeOperation(claimed, astPlayer, "RECONFIRMATION_REQUIRED");
+                return;
+            }
+            mutation = unlockNodeAsync(astPlayer, node, operation.sourceClassId(), runtimeGuard);
+        } else if ("RELOCK".equalsIgnoreCase(operation.action())) {
+            mutation = relockNodeAsync(astPlayer, node, runtimeGuard);
+        } else {
+            rejectRuntimeOperation(claimed, astPlayer, "FAILED");
+            return;
+        }
+        mutation.whenComplete((result, failure) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (failure == null && result != null && result.changed()) {
+                acknowledgeCommittedNodeMutation(astPlayer, node, result, "UNLOCK".equalsIgnoreCase(operation.action()));
+                runtimeOperationAccounts.remove(accountId);
+                return;
+            }
+            rejectRuntimeOperation(claimed, astPlayer, "RECONFIRMATION_REQUIRED");
+        }));
+    }
+
+    /** 状態変更なしの拒否結果をroot skillTreeOperation sectionへ保存し、leaseを未確定で残しません。 */
+    private void rejectRuntimeOperation(
+            @NotNull SkillTreeRuntimeRepository.ClaimedOperation claimed,
+            @NotNull AstPlayer astPlayer,
+            @NotNull String finalStatus
+    ) {
+        UUID accountId = claimed.operation().accountId();
+        SkillTreeOperationReceiptService receiptService = runtimeOperationReceiptService;
+        if (receiptService == null) {
+            runtimeOperationAccounts.remove(accountId);
+            return;
+        }
+        SkillTreePlayerState state = state(astPlayer);
+        JsonObject receipt = new JsonObject();
+        receipt.addProperty("operationId", claimed.operation().operationId().toString());
+        receipt.addProperty("serverId", ConfigProperties.getInstance().getApiServerId());
+        receipt.addProperty("serverSessionId", runtimeServerSessionId.toString());
+        receipt.addProperty("leaseToken", claimed.leaseToken());
+        receipt.addProperty("finalStatus", finalStatus);
+        receipt.addProperty("failureReason", finalStatus);
+        receipt.addProperty("definitionGenerationId", definitionGenerationId);
+        receipt.addProperty("finalPlayerStateVersion", state.persistedVersion());
+        receipt.addProperty("finalEvaluationFingerprint", createRuntimeEvaluationFingerprint(astPlayer, state));
+        receipt.addProperty("migrateLegacyState", false);
+        receipt.add("evaluatedView", createRuntimePlayerView(astPlayer));
+        receiptService.recordResult(accountId, receipt).whenComplete((ignored, failure) ->
+                runtimeOperationAccounts.remove(accountId));
+    }
+
+    private @NotNull String runtimeCostText(@NotNull SkillTreeNodeDefinition node) {
+        if (node.pointCost() <= 0) {
+            return "無料";
+        }
+        return node.pointType() == SkillTreePointType.PASSIVE_POINT
+                ? "PP " + node.pointCost()
+                : "CP " + node.pointCost();
+    }
+
+    /** 提案時点と確定直前のGold・CP・条件を比較する、表示に依存しない評価指紋を生成します。 */
+    private @NotNull String createRuntimeEvaluationFingerprint(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state
+    ) {
+        StringBuilder canonical = new StringBuilder()
+                .append(definitionGenerationId).append('\n')
+                .append(state.persistedVersion()).append('\n')
+                .append(astPlayer.getAccount().getLevel()).append('\n')
+                .append(astPlayer.getAccount().getHighestLevel()).append('\n')
+                .append(availablePassivePoints(astPlayer)).append('\n')
+                .append(availableRelockGold(astPlayer)).append('\n');
+        cpSourceOptions(astPlayer).forEach(option -> canonical
+                .append(option.classId()).append(':')
+                .append(option.classLevel()).append(':')
+                .append(option.availablePoints()).append('\n'));
+        nodesById.values().stream().sorted(java.util.Comparator.comparing(SkillTreeNodeDefinition::nodeId))
+                .forEach(node -> canonical.append(node.nodeId()).append(':')
+                        .append(state.isUnlocked(node.nodeId())).append(':')
+                        .append(isNodeUnlockConditionMet(astPlayer, node)).append('\n'));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(digest.length * 2);
+            for (byte value : digest) result.append(String.format(java.util.Locale.ROOT, "%02x", value));
+            return result.toString();
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
+    }
+
+    private @NotNull String runtimeBlockedReason(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean unlocked
+    ) {
+        if (unlocked) {
+            return canAffordRelock(astPlayer) ? "RELOCK_DISCONNECTS_TREE" : "INSUFFICIENT_GOLD";
+        }
+        if (!isNodeUnlockConditionMet(astPlayer, node)) {
+            return "UNLOCK_CONDITION_NOT_MET";
+        }
+        boolean hasPoints = node.pointType() == SkillTreePointType.CLASS_POINT
+                && requiresCpSourceSelection(node)
+                ? cpSourceOptions(astPlayer).stream()
+                        .anyMatch(option -> hasRequiredPoints(astPlayer, node, option.classId()))
+                : hasRequiredPoints(astPlayer, node, node.pointType() == SkillTreePointType.CLASS_POINT
+                        ? node.unlockCondition().classId() : null);
+        if (!hasPoints) {
+            return "INSUFFICIENT_POINTS";
+        }
+        return "NOT_CONNECTED";
     }
 
     @NotNull
@@ -877,6 +1389,14 @@ public class SkillTreeService {
         SkillTreePlayerState retained = retainInitialPlayerState(accountId);
         if (retained != null) return retained;
         SkillTreePlayerState loadedState = playerStateRepository.load(accountId);
+        if (!loadedState.unlockedNodeIds().isEmpty()
+                && (loadedState.definitionGenerationId() == null || loadedState.definitionGenerationId().isBlank())) {
+            throw new IllegalStateException("Skill tree legacy state has no definition generation.");
+        }
+        if (loadedState.definitionGenerationId() != null
+                && !loadedState.definitionGenerationId().equals(definitionGenerationId)) {
+            throw new IllegalStateException("Skill tree definition generation does not match this server.");
+        }
         PlayerStateValidationSnapshot validationSnapshot = playerStateValidationSnapshot;
         if (validationSnapshot.isStructurallyValid(loadedState)) {
             return loadedState;
@@ -924,7 +1444,7 @@ public class SkillTreeService {
         releasedPlayerStates.remove(accountId);
         SkillTreePlayerState current = playerStates.get(accountId);
         return current == null ? null : new SkillTreePlayerState(
-            accountId, current.unlockedNodes(), current.persistedVersion());
+            accountId, current.unlockedNodes(), current.persistedVersion(), current.definitionGenerationId());
     }
 
     /**
@@ -1368,9 +1888,15 @@ public class SkillTreeService {
     }
 
     public void markViewerContextDirty(@NotNull Player player) {
+        markRuntimePlayerContextChanged(player);
         if (visualizer != null) {
             visualizer.markViewerDirty(player.getUniqueId());
         }
+    }
+
+    /** Web操作の現在地確認に使うプレイヤー文脈世代を更新します。 */
+    public void markRuntimePlayerContextChanged(@NotNull Player player) {
+        runtimePlayerContextRevisions.merge(player.getUniqueId(), 1L, Long::sum);
     }
 
     /**
@@ -1381,6 +1907,7 @@ public class SkillTreeService {
      * @param current 移動イベントで確定した移動先
      */
     public void markViewerMoved(@NotNull Player player, @NotNull Location current) {
+        markRuntimePlayerContextChanged(player);
         if (visualizer != null) {
             visualizer.markViewerMoved(player, current);
         }
@@ -1517,6 +2044,16 @@ public class SkillTreeService {
             @NotNull SkillTreeNodeDefinition node,
             @Nullable String consumedClassId
     ) {
+        return unlockNodeAsync(astPlayer, node, consumedClassId, null);
+    }
+
+    /** Web claim の世代・現在地文脈を保存lane内でも再検証して解放します。 */
+    private @NotNull CompletableFuture<SkillTreeMutationResult> unlockNodeAsync(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable String consumedClassId,
+            @Nullable RuntimeMutationGuard runtimeGuard
+    ) {
         InventoryService persistence = inventoryService;
         if (persistence == null) {
             return CompletableFuture.completedFuture(SkillTreeMutationResult.rejected());
@@ -1527,6 +2064,9 @@ public class SkillTreeService {
             SkillTreeMutationCheckpoint checkpoint = null;
             try {
                 synchronized (this) {
+                    if (runtimeGuard != null && !matchesRuntimeMutationGuard(astPlayer, runtimeGuard)) {
+                        throw new IllegalStateException("Skill tree runtime operation is stale.");
+                    }
                     if (!canUnlockNode(astPlayer, node, consumedClassId)) {
                         throw new IllegalStateException("Skill tree node is no longer unlockable.");
                     }
@@ -1539,7 +2079,10 @@ public class SkillTreeService {
                     if (!state.unlock(node.nodeId(), normalizedSource)) {
                         throw new IllegalStateException("Skill tree node is already unlocked.");
                     }
-                    markDirty(state);
+                    SkillTreePlayerState boundState = bindCurrentDefinitionGeneration(state);
+                    playerStates.put(accountId, boundState);
+                    registerPendingRuntimeOperation(astPlayer, runtimeGuard, boundState);
+                    markDirty(boundState);
                     SkillTreeMutationCheckpoint committedCheckpoint = checkpoint;
                     return new InventorySaveCoordinator.CriticalMutation<>(
                         new SkillTreeMutationResult(true, previousSkillIds),
@@ -1560,6 +2103,15 @@ public class SkillTreeService {
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreeNodeDefinition node
     ) {
+        return relockNodeAsync(astPlayer, node, null);
+    }
+
+    /** Web claim の世代・現在地文脈を保存lane内でも再検証して再ロックします。 */
+    private @NotNull CompletableFuture<SkillTreeMutationResult> relockNodeAsync(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable RuntimeMutationGuard runtimeGuard
+    ) {
         InventoryService persistence = inventoryService;
         if (persistence == null) {
             return CompletableFuture.completedFuture(SkillTreeMutationResult.rejected());
@@ -1570,6 +2122,9 @@ public class SkillTreeService {
             SkillTreeMutationCheckpoint checkpoint = null;
             try {
                 synchronized (this) {
+                    if (runtimeGuard != null && !matchesRuntimeMutationGuard(astPlayer, runtimeGuard)) {
+                        throw new IllegalStateException("Skill tree runtime operation is stale.");
+                    }
                     if (!canRelockNode(astPlayer, node)) {
                         throw new IllegalStateException("Skill tree node cannot be relocked.");
                     }
@@ -1580,7 +2135,10 @@ public class SkillTreeService {
                             || !state.relock(node.nodeId())) {
                         throw new IllegalStateException("Skill tree node cannot be relocked.");
                     }
-                    markDirty(state);
+                    SkillTreePlayerState boundState = bindCurrentDefinitionGeneration(state);
+                    playerStates.put(accountId, boundState);
+                    registerPendingRuntimeOperation(astPlayer, runtimeGuard, boundState);
+                    markDirty(boundState);
                     SkillTreeMutationCheckpoint committedCheckpoint = checkpoint;
                     return new InventorySaveCoordinator.CriticalMutation<>(
                         new SkillTreeMutationResult(true, previousSkillIds),
@@ -1617,19 +2175,65 @@ public class SkillTreeService {
         }
     }
 
+    /** 現在公開中の定義世代を、確定予定の状態へだけ関連付けます。 */
+    private @NotNull SkillTreePlayerState bindCurrentDefinitionGeneration(@NotNull SkillTreePlayerState state) {
+        if (definitionGenerationId.isBlank()) {
+            throw new IllegalStateException("Skill tree definition generation is not ready.");
+        }
+        return new SkillTreePlayerState(
+                state.accountId(), state.unlockedNodes(), state.persistedVersion(), definitionGenerationId
+        );
+    }
+
+    /** 保存laneでBukkit APIへ触れずに照合できる、Web操作受付時点の安全境界です。 */
+    private boolean matchesRuntimeMutationGuard(
+            @NotNull AstPlayer astPlayer,
+            @NotNull RuntimeMutationGuard guard
+    ) {
+        SkillTreePlayerState current = playerStates.get(guard.accountId());
+        return current != null
+                && guard.accountId().equals(astPlayer.getAccount().getUuid())
+                && guard.definitionGenerationId().equals(definitionGenerationId)
+                && current.persistedVersion() == guard.expectedPlayerStateVersion()
+                && !dirtyPlayerStates.contains(guard.accountId())
+                && runtimePlayerContextRevisions.getOrDefault(astPlayer.getBukkit().getUniqueId(), 0L)
+                == guard.playerContextRevision();
+    }
+
+    /** APPLIED を状態更新と同じ player-state snapshot transaction に同梱するためのreceiptを登録します。 */
+    private void registerPendingRuntimeOperation(
+            @NotNull AstPlayer astPlayer,
+            @NotNull RuntimeMutationGuard guard,
+            @NotNull SkillTreePlayerState finalState
+    ) {
+        if (guard.operationId() == null) {
+            return;
+        }
+        pendingRuntimeOperationReceipts.put(guard.accountId(), new PendingRuntimeOperationReceipt(
+                guard.operationId(),
+                guard.serverId(),
+                runtimeServerSessionId,
+                guard.leaseToken(),
+                definitionGenerationId,
+                Math.addExact(finalState.persistedVersion(), 1),
+                createRuntimeEvaluationFingerprint(astPlayer, finalState)
+        ));
+    }
+
     private @NotNull SkillTreeMutationCheckpoint captureMutationCheckpoint(
             @NotNull UUID accountId,
             @NotNull SkillTreePlayerState state
     ) {
         return new SkillTreeMutationCheckpoint(
-            new SkillTreePlayerState(accountId, state.unlockedNodes(), state.persistedVersion()),
+            new SkillTreePlayerState(accountId, state.unlockedNodes(), state.persistedVersion(), state.definitionGenerationId()),
             derivedPlayerStates.get(accountId),
             dirtyPlayerStates.contains(accountId),
             dirtyPlayerStateDueAtMillis.get(accountId),
             playerStateRevisions.get(accountId),
             persistedPlayerStateVersions.get(accountId),
             acknowledgedPlayerStateRevisions.get(accountId),
-            playerStateEpochs.get(accountId)
+            playerStateEpochs.get(accountId),
+            pendingRuntimeOperationReceipts.get(accountId)
         );
     }
 
@@ -1647,6 +2251,7 @@ public class SkillTreeService {
         restoreMapValue(persistedPlayerStateVersions, accountId, checkpoint.persistedVersion());
         restoreMapValue(acknowledgedPlayerStateRevisions, accountId, checkpoint.acknowledgedRevision());
         restoreMapValue(playerStateEpochs, accountId, checkpoint.epoch());
+        restoreMapValue(pendingRuntimeOperationReceipts, accountId, checkpoint.pendingRuntimeOperationReceipt());
         if (inventoryBefore != null) {
             persistence.restoreState(inventoryBefore);
         }
@@ -1896,6 +2501,7 @@ public class SkillTreeService {
      * @param player 表示状態を解除するプレイヤー
      */
     public void clearPlayerPresentation(@NotNull Player player) {
+        markRuntimePlayerContextChanged(player);
         visualReadyAtMillis.remove(player.getUniqueId());
         stopLoadingPresentation(player);
     }
@@ -2062,6 +2668,15 @@ public class SkillTreeService {
         long targetVersion = (expectedVersion == null ? 0 : expectedVersion)
             + capturedRevision - acknowledgedPlayerStateRevisions.getOrDefault(accountId, 0L);
         payload.addProperty("targetVersion", targetVersion);
+        if (state.definitionGenerationId() == null) {
+            payload.add("definitionGenerationId", com.google.gson.JsonNull.INSTANCE);
+        } else {
+            payload.addProperty("definitionGenerationId", state.definitionGenerationId());
+        }
+        PendingRuntimeOperationReceipt pendingOperation = pendingRuntimeOperationReceipts.get(accountId);
+        if (pendingOperation != null) {
+            payload.add("operation", pendingOperation.toJson());
+        }
         JsonArray nodes = new JsonArray();
         for (SkillTreeUnlockedNode node : state.unlockedNodes()) {
             JsonObject value = new JsonObject();
@@ -2075,12 +2690,13 @@ public class SkillTreeService {
         }
         payload.add("unlockedNodes", nodes);
         UUID capturedEpoch = playerStateEpochs.get(accountId);
+        UUID pendingOperationId = pendingOperation == null ? null : pendingOperation.operationId();
         return new PlayerStateSection("skillTree", payload,
-            acknowledged -> acknowledgeSnapshot(accountId, capturedEpoch, capturedRevision, acknowledged));
+            acknowledged -> acknowledgeSnapshot(accountId, capturedEpoch, capturedRevision, pendingOperationId, acknowledged));
     }
 
     private synchronized void acknowledgeSnapshot(@NotNull UUID accountId, UUID capturedEpoch,
-        long capturedRevision, @NotNull JsonElement acknowledged) {
+        long capturedRevision, @Nullable UUID pendingOperationId, @NotNull JsonElement acknowledged) {
         if (!Objects.equals(capturedEpoch, playerStateEpochs.get(accountId))
             || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)) return;
         if (!acknowledged.isJsonObject()) {
@@ -2098,12 +2714,29 @@ public class SkillTreeService {
             throw new IllegalStateException("Invalid skillTree acknowledgement", malformedAck);
         }
         persistedPlayerStateVersions.put(accountId, version);
+        if (pendingOperationId != null) {
+            PendingRuntimeOperationReceipt pending = pendingRuntimeOperationReceipts.get(accountId);
+            if (pending != null && pendingOperationId.equals(pending.operationId())) {
+                pendingRuntimeOperationReceipts.remove(accountId);
+                publishDeferredMasterDataSnapshot();
+            }
+        }
         acknowledgedPlayerStateRevisions.put(accountId, capturedRevision);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
             dirtyPlayerStates.remove(accountId);
             dirtyPlayerStateDueAtMillis.remove(accountId);
             evictReleasedPlayerState(accountId);
         }
+    }
+
+    /** APIが旧世代のAPPLIED receiptを確定した後、保留中のreload世代をメインスレッドで公開します。 */
+    private void publishDeferredMasterDataSnapshot() {
+        SkillTreeMasterDataSnapshot deferred = deferredMasterDataSnapshot;
+        if (deferred == null || !pendingRuntimeOperationReceipts.isEmpty()) {
+            return;
+        }
+        deferredMasterDataSnapshot = null;
+        Bukkit.getScheduler().runTask(plugin, () -> replaceMasterDataSnapshot(deferred));
     }
 
     @NotNull
@@ -2807,8 +3440,46 @@ public class SkillTreeService {
             @Nullable Long revision,
             @Nullable Integer persistedVersion,
             @Nullable Long acknowledgedRevision,
-            @Nullable UUID epoch
+            @Nullable UUID epoch,
+            @Nullable PendingRuntimeOperationReceipt pendingRuntimeOperationReceipt
     ) {
+    }
+
+    /** Runtime operation をclaimした時点の定義・保存版数・現在地文脈です。 */
+    private record RuntimeMutationGuard(
+            @NotNull UUID accountId,
+            @NotNull String definitionGenerationId,
+            int expectedPlayerStateVersion,
+            long playerContextRevision,
+            @NotNull UUID operationId,
+            @NotNull String leaseToken,
+            @NotNull String serverId
+    ) {
+    }
+
+    /** state変更と同じAPI transactionで確定する Web操作 receipt の保存用値です。 */
+    private record PendingRuntimeOperationReceipt(
+            @NotNull UUID operationId,
+            @NotNull String serverId,
+            @NotNull UUID serverSessionId,
+            @NotNull String leaseToken,
+            @NotNull String definitionGenerationId,
+            int finalPlayerStateVersion,
+            @NotNull String finalEvaluationFingerprint
+    ) {
+        private @NotNull JsonObject toJson() {
+            JsonObject value = new JsonObject();
+            value.addProperty("operationId", operationId.toString());
+            value.addProperty("serverId", serverId);
+            value.addProperty("serverSessionId", serverSessionId.toString());
+            value.addProperty("leaseToken", leaseToken);
+            value.addProperty("finalStatus", "APPLIED");
+            value.addProperty("definitionGenerationId", definitionGenerationId);
+            value.addProperty("finalPlayerStateVersion", finalPlayerStateVersion);
+            value.addProperty("finalEvaluationFingerprint", finalEvaluationFingerprint);
+            value.addProperty("migrateLegacyState", false);
+            return value;
+        }
     }
 
     /**

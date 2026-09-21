@@ -82,6 +82,9 @@ api:
   serverId: "main"
   # network有効時の/ban専用キー。API Network:ModerationKeyと一致させ、共通APIキーとは別の値にする
   networkModerationKey: ""
+  # 実ロード世代の登録・Webスキルツリー操作の確定に使うPlugin専用キー。
+  # API の SkillTreeRuntime:Key と一致させ、Web用APIキーとは共有しない。
+  skillTreeRuntimeKey: ""
   # APIキー認証情報
   auth:
     apiKey: "your_api_key"

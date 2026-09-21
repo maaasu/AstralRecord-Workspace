@@ -640,6 +640,8 @@ public class SkillTreeEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
+        // Web 操作をclaimした後に場所が変わった場合は、保存lane内の最終検証で拒否する。
+        service.markRuntimePlayerContextChanged(event.getPlayer());
         if (!shouldRefreshSkillTreeVisuals(event.getPlayer()) || event.getTo() == null) {
             return;
         }

@@ -16,6 +16,8 @@ public final class SkillTreePlayerState {
     private final UUID accountId;
     private final Map<String, SkillTreeUnlockedNode> unlockedNodes;
     private final int persistedVersion;
+    /** 状態を最後に確定したスキルツリー定義世代。旧データは null のまま保留します。 */
+    private final @Nullable String definitionGenerationId;
 
     public SkillTreePlayerState(@NotNull UUID accountId, @NotNull Set<String> unlockedNodeIds) {
         this(accountId, unlockedNodeIds.stream()
@@ -32,9 +34,29 @@ public final class SkillTreePlayerState {
             @NotNull List<SkillTreeUnlockedNode> unlockedNodes,
             int persistedVersion
     ) {
+        this(accountId, unlockedNodes, persistedVersion, null);
+    }
+
+    /**
+     * APIから取得したスキルツリー状態を生成します。
+     *
+     * @param accountId 所有アカウント
+     * @param unlockedNodes 解放済みノードとCP消費元
+     * @param persistedVersion APIの楽観ロック版数
+     * @param definitionGenerationId 確定時の実ロード世代。旧データでは null
+     */
+    public SkillTreePlayerState(
+            @NotNull UUID accountId,
+            @NotNull List<SkillTreeUnlockedNode> unlockedNodes,
+            int persistedVersion,
+            @Nullable String definitionGenerationId
+    ) {
         this.accountId = accountId;
         this.unlockedNodes = new LinkedHashMap<>();
         this.persistedVersion = Math.max(0, persistedVersion);
+        this.definitionGenerationId = definitionGenerationId == null || definitionGenerationId.isBlank()
+                ? null
+                : definitionGenerationId.trim().toLowerCase(java.util.Locale.ROOT);
         for (SkillTreeUnlockedNode unlockedNode : unlockedNodes) {
             if (!unlockedNode.nodeId().isBlank()) {
                 this.unlockedNodes.putIfAbsent(unlockedNode.nodeId(), unlockedNode);
@@ -49,6 +71,11 @@ public final class SkillTreePlayerState {
 
     public int persistedVersion() {
         return persistedVersion;
+    }
+
+    /** @return 状態を確定した実ロード世代。旧データなら null */
+    public @Nullable String definitionGenerationId() {
+        return definitionGenerationId;
     }
 
     public boolean isUnlocked(@NotNull String nodeId) {

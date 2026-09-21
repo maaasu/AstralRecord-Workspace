@@ -63,6 +63,7 @@ public final class ConfigKeys {
     public static final String API_SSL_VERIFY_ENABLED = "api.ssl.verifyEnabled";
     public static final String API_SERVER_ID = "api.serverId";
     public static final String API_NETWORK_MODERATION_KEY = "api.networkModerationKey";
+    public static final String API_SKILL_TREE_RUNTIME_KEY = "api.skillTreeRuntimeKey";
 
     // マスターデータ自動再読込
     public static final String MASTER_DATA_AUTO_RELOAD_ENABLED = "masterData.autoReload.enabled";

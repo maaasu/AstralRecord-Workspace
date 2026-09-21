@@ -107,6 +107,9 @@ public class SkillTreePlayerStateRepository {
         int version = obj.has("version") && !obj.get("version").isJsonNull()
                 ? Math.max(0, obj.get("version").getAsInt())
                 : 0;
-        return new SkillTreePlayerState(accountId, unlockedNodes, version);
+        String definitionGenerationId = obj.has("definitionGenerationId") && !obj.get("definitionGenerationId").isJsonNull()
+                ? obj.get("definitionGenerationId").getAsString()
+                : null;
+        return new SkillTreePlayerState(accountId, unlockedNodes, version, definitionGenerationId);
     }
 }

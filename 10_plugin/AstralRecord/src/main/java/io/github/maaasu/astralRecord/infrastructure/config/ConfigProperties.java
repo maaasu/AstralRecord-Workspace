@@ -73,6 +73,7 @@ public class ConfigProperties {
     private boolean apiSslVerifyEnabled;
     private String apiServerId;
     private String apiNetworkModerationKey;
+    private String apiSkillTreeRuntimeKey;
 
     // マスターデータ自動再読込
     private boolean masterDataAutoReloadEnabled;
@@ -228,6 +229,7 @@ public class ConfigProperties {
         this.apiSslVerifyEnabled = configManager.getConfig().getBoolean(ConfigKeys.API_SSL_VERIFY_ENABLED, true);
         this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
         this.apiNetworkModerationKey = configManager.getConfig().getString(ConfigKeys.API_NETWORK_MODERATION_KEY, "");
+        this.apiSkillTreeRuntimeKey = configManager.getConfig().getString(ConfigKeys.API_SKILL_TREE_RUNTIME_KEY, "");
         this.masterDataAutoReloadEnabled = configManager.getConfig().getBoolean(
                 ConfigKeys.MASTER_DATA_AUTO_RELOAD_ENABLED,
                 true
@@ -553,6 +555,15 @@ public class ConfigProperties {
      */
     public String getApiServerId() {
         return apiServerId;
+    }
+
+    /**
+     * スキルツリー実ロード世代とWeb操作を処理するサーバー専用APIキーを返します。
+     *
+     * @return Runtime API用キー。未設定時は空文字列
+     */
+    public String getApiSkillTreeRuntimeKey() {
+        return apiSkillTreeRuntimeKey;
     }
 
     /**
