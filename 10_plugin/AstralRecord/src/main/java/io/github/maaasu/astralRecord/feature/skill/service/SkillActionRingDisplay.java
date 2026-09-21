@@ -34,7 +34,6 @@ import java.util.UUID;
  * アクションリングを閲覧者専用の packet-only Display entity として描画します。
  */
 final class SkillActionRingDisplay {
-    private static final float ITEM_SCALE = 0.65F;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;
@@ -60,16 +59,40 @@ final class SkillActionRingDisplay {
         this.protocolManager = ProtocolLibrary.getProtocolManager();
     }
 
-    DisplayEntity item(@NotNull Location location, @NotNull ItemStack itemStack, boolean glowing) {
-        return new DisplayEntity(DisplayKind.ITEM, location, itemStack, null, ITEM_SCALE, glowing);
+    /**
+     * 指定した大きさでアイコン用の表示 entity を生成します。
+     *
+     * @param location 初期位置
+     * @param itemStack 表示するアイテム
+     * @param glowing 発光表示する場合は {@code true}
+     * @param scale アイテム表示の拡大率
+     * @return 未生成の表示 entity
+     */
+    DisplayEntity item(@NotNull Location location, @NotNull ItemStack itemStack, boolean glowing, float scale) {
+        return new DisplayEntity(DisplayKind.ITEM, location, itemStack, null, scale, glowing);
     }
 
     DisplayEntity text(@NotNull Location location, @NotNull Component text, float scale) {
         return new DisplayEntity(DisplayKind.TEXT, location, null, text, scale, false);
     }
 
-    void updateItem(@NotNull Player player, @NotNull DisplayEntity entity, @NotNull ItemStack itemStack, boolean glowing) {
-        entity.updateItem(player, itemStack, glowing);
+    /**
+     * アイコンの内容、発光状態および大きさを更新します。
+     *
+     * @param player 表示を受け取るプレイヤー
+     * @param entity 更新対象の表示 entity
+     * @param itemStack 表示するアイテム
+     * @param glowing 発光表示する場合は {@code true}
+     * @param scale アイテム表示の拡大率
+     */
+    void updateItem(
+        @NotNull Player player,
+        @NotNull DisplayEntity entity,
+        @NotNull ItemStack itemStack,
+        boolean glowing,
+        float scale
+    ) {
+        entity.updateItem(player, itemStack, glowing, scale);
     }
 
     void updateText(@NotNull Player player, @NotNull DisplayEntity entity, @NotNull Component text, float scale) {
@@ -175,15 +198,25 @@ final class SkillActionRingDisplay {
             }
         }
 
-        void updateItem(@NotNull Player player, @NotNull ItemStack nextItemStack, boolean nextGlowing) {
+        /**
+         * アイコンの内容、発光状態および表示倍率を差分送信します。
+         *
+         * @param player 表示を受け取るプレイヤー
+         * @param nextItemStack 次に表示するアイテム
+         * @param nextGlowing 次の発光状態
+         * @param nextScale 次の表示倍率
+         */
+        void updateItem(@NotNull Player player, @NotNull ItemStack nextItemStack, boolean nextGlowing, float nextScale) {
             ItemStack cloned = nextItemStack.clone();
             boolean itemChanged = itemStack == null || !itemStack.equals(cloned);
             boolean glowingChanged = glowing != nextGlowing;
-            if (!itemChanged && !glowingChanged) {
+            boolean scaleChanged = Float.compare(scale, nextScale) != 0;
+            if (!itemChanged && !glowingChanged && !scaleChanged) {
                 return;
             }
             itemStack = cloned;
             glowing = nextGlowing;
+            scale = nextScale;
             if (entity == null) {
                 return;
             }
@@ -193,6 +226,9 @@ final class SkillActionRingDisplay {
             }
             if (glowingChanged) {
                 values.add(glowingValue(glowing));
+            }
+            if (scaleChanged) {
+                values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
             }
             entity.updateMetadata(player, values);
         }

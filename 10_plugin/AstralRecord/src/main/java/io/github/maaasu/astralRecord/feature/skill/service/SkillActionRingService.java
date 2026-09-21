@@ -24,11 +24,13 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,6 +50,16 @@ public final class SkillActionRingService {
     private static final int SLOT_COUNT = SkillBindPreset.ACTION_RING_SLOT_COUNT;
     private static final double RING_DISTANCE = 3.0D;
     private static final double RING_RADIUS = 1.12D;
+    private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(30.0D);
+    private static final double COLLISION_SAFETY_MARGIN = 0.06D;
+    private static final int COLLISION_REFRESH_INTERVAL_TICKS = 4;
+    private static final double ITEM_COLLISION_HALF_SIZE = 0.34D;
+    private static final double TEXT_COLLISION_HALF_WIDTH = 1.40D;
+    private static final double TEXT_COLLISION_HALF_HEIGHT = 0.24D;
+    private static final int COLLISION_PERIMETER_SAMPLES = 12;
+    private static final float CIRCLE_TEXT_SCALE = 0.42F;
+    private static final float LABEL_TEXT_SCALE = 0.60F;
+    private static final double ORIENTATION_EPSILON_SQUARED = 1.0E-6D;
     private static final int CIRCLE_DISPLAY_POINTS = 24;
     private static final int TIMER_BAR_LENGTH = 24;
     private static final int COOLDOWN_BAR_LENGTH = 10;
@@ -886,11 +898,9 @@ public final class SkillActionRingService {
     }
 
     private static final class RingSession {
-        private final Location baseEye;
-        private final Location baseCenter;
-        private final Vector normal;
-        private final Vector right;
-        private final Vector up;
+        private Vector normal;
+        private Vector right;
+        private Vector up;
         private final List<SlotView> slots;
         private final Player viewer;
         private final SkillActionRingDisplay actionRingDisplay;
@@ -905,6 +915,16 @@ public final class SkillActionRingService {
         private SkillActionRingDisplay.DisplayEntity timerLabel;
         private SkillActionRingDisplay.DisplayEntity instructionLabel;
         private Location renderedCenter;
+        private Vector renderedNormal;
+        private Vector renderedRight;
+        private Vector renderedUp;
+        private double renderedScale = Double.NaN;
+        private double layoutScale = 1.0D;
+        private Location collisionEye;
+        private Vector collisionNormal;
+        private Vector collisionRight;
+        private Vector collisionUp;
+        private int ticksSinceCollisionCheck;
         private int selectedIndex;
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
@@ -912,8 +932,6 @@ public final class SkillActionRingService {
         private PlayerMsgId selectionInstruction = PlayerMsgId.P_5854;
 
         private RingSession(
-            @NotNull Location baseEye,
-            @NotNull Location baseCenter,
             @NotNull Vector normal,
             @NotNull Vector right,
             @NotNull Vector up,
@@ -926,11 +944,9 @@ public final class SkillActionRingService {
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
         ) {
-            this.baseEye = baseEye;
-            this.baseCenter = baseCenter;
-            this.normal = normal;
-            this.right = right;
-            this.up = up;
+            this.normal = normal.clone();
+            this.right = right.clone();
+            this.up = up.clone();
             this.slots = slots;
             this.viewer = viewer;
             this.actionRingDisplay = actionRingDisplay;
@@ -961,7 +977,6 @@ public final class SkillActionRingService {
                 right.normalize();
             }
             Vector up = right.clone().crossProduct(normal).normalize();
-            Location center = eye.clone().add(normal.clone().multiply(RING_DISTANCE));
             AttributeInstance blockBreakSpeed = player.getAttribute(Attribute.BLOCK_BREAK_SPEED);
             Double originalBlockBreakSpeed = null;
             if (blockBreakSpeed != null) {
@@ -969,8 +984,6 @@ public final class SkillActionRingService {
                 blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
             }
             RingSession session = new RingSession(
-                eye.clone(),
-                center,
                 normal,
                 right,
                 up,
@@ -984,6 +997,7 @@ public final class SkillActionRingService {
                 originalBlockBreakSpeed
             );
             session.selectionInstruction = selectionInstruction;
+            session.updateLayout(player);
             session.spawnEntities(player);
             return session;
         }
@@ -992,18 +1006,23 @@ public final class SkillActionRingService {
             return hotbarSlot;
         }
 
+        /**
+         * 現在の衝突回避レイアウトで表示 entity を生成します。
+         *
+         * @param player 表示を受け取るプレイヤー
+         */
         private void spawnEntities(@NotNull Player player) {
             for (int index = 0; index < CIRCLE_DISPLAY_POINTS; index++) {
                 SkillActionRingDisplay.DisplayEntity dot = actionRingDisplay.text(
-                    baseCenter,
+                    circleLocation(currentCenter(), index),
                     legacyComponent(ColorCodeUtil.AQUA + "*"),
-                    0.42F
+                    scaledTextScale(CIRCLE_TEXT_SCALE)
                 );
                 dot.spawn(player);
                 circleDots.add(dot);
             }
             for (int index = 0; index < slots.size(); index++) {
-                Location location = baseCenter.clone();
+                Location location = iconLocation(currentCenter(), index);
                 ItemStack itemStack = new ItemStack(slots.get(index).material());
                 SkillDefinition definition = slots.get(index).definition();
                 io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(
@@ -1011,22 +1030,42 @@ public final class SkillActionRingService {
                 SkillActionRingDisplay.DisplayEntity icon = actionRingDisplay.item(
                     location,
                     itemStack,
-                    false
+                    false,
+                    scaledItemScale()
                 );
-                SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(location, Component.empty(), 0.60F);
+                SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(
+                    labelLocation(location, slots.get(index)),
+                    labelComponent(index, slots.get(index), index == selectedIndex && slots.get(index).selectable(), false),
+                    scaledTextScale(LABEL_TEXT_SCALE)
+                );
                 icon.spawn(player);
                 label.spawn(player);
                 icons.add(icon);
                 labels.add(label);
             }
-            timerLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
+            Location center = currentCenter();
+            timerLabel = actionRingDisplay.text(
+                timerLocation(center),
+                legacyComponent(timerText()),
+                scaledTextScale(LABEL_TEXT_SCALE)
+            );
             timerLabel.spawn(player);
-            instructionLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
+            instructionLabel = actionRingDisplay.text(
+                instructionLocation(center),
+                PlayerMsgResource.getComponent(selectionInstruction.getId()),
+                scaledTextScale(LABEL_TEXT_SCALE)
+            );
             instructionLabel.spawn(player);
         }
 
+        /**
+         * 視線、衝突および選択状態に合わせてリングを更新します。
+         *
+         * @param player 表示を受け取るプレイヤー
+         * @return リング表示を継続する場合は {@code true}
+         */
         private boolean tick(@NotNull Player player) {
-            Location center = currentCenter(player);
+            Location center = updateLayout(player);
             if (center.getWorld() == null) {
                 return false;
             }
@@ -1048,19 +1087,25 @@ public final class SkillActionRingService {
 
             boolean layoutChanged = renderedCenter == null
                 || !renderedCenter.equals(center)
+                || !renderedNormal.equals(normal)
+                || !renderedRight.equals(right)
+                || !renderedUp.equals(up)
+                || Double.compare(renderedScale, layoutScale) != 0
                 || isSelectionAnimationActive();
             if (layoutChanged) {
                 renderedCenter = center.clone();
+                renderedNormal = normal.clone();
+                renderedRight = right.clone();
+                renderedUp = up.clone();
+                renderedScale = layoutScale;
             }
             updateCircle(center, layoutChanged);
             for (int index = 0; index < slots.size(); index++) {
                 SlotView slot = slots.get(index);
                 boolean selected = index == selectedIndex && slot.selectable();
                 boolean hiddenByConfirmedSelection = phase == RingPhase.WAITING_CAST && index != confirmedIndex;
-                Vector slotOffset = animatedSlotOffset(index);
-                Location iconLocation = center.clone().add(slotOffset);
-                double labelOffset = 0.42D + (slot.hasSecondaryLine() ? 0.12D : 0.0D);
-                Location labelLocation = iconLocation.clone().subtract(up.clone().multiply(labelOffset));
+                Location iconLocation = iconLocation(center, index);
+                Location labelLocation = labelLocation(iconLocation, slot);
                 SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
                 SkillActionRingDisplay.DisplayEntity label = labels.get(index);
                 if (layoutChanged) {
@@ -1070,7 +1115,8 @@ public final class SkillActionRingService {
                     player,
                     icon,
                     hiddenByConfirmedSelection ? HIDDEN_ITEM : new ItemStack(slot.material()),
-                    selected && !hiddenByConfirmedSelection
+                    selected && !hiddenByConfirmedSelection,
+                    scaledItemScale()
                 );
                 if (layoutChanged) {
                     label.teleport(player, labelLocation);
@@ -1079,7 +1125,7 @@ public final class SkillActionRingService {
                     player,
                     label,
                     labelComponent(index, slot, selected, hiddenByConfirmedSelection),
-                    0.60F
+                    scaledTextScale(LABEL_TEXT_SCALE)
                 );
             }
             updateTimer(center, layoutChanged);
@@ -1106,12 +1152,15 @@ public final class SkillActionRingService {
             }
         }
 
+        /**
+         * 現在の選択を確定し、残り時間ラベルを非表示にします。
+         */
         private void confirmSelection() {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
             if (timerLabel != null) {
-                actionRingDisplay.updateText(viewer, timerLabel, Component.empty(), 0.60F);
+                actionRingDisplay.updateText(viewer, timerLabel, Component.empty(), scaledTextScale(LABEL_TEXT_SCALE));
             }
         }
 
@@ -1122,12 +1171,226 @@ public final class SkillActionRingService {
             return slots.get(confirmedIndex);
         }
 
-        private @NotNull Location currentCenter(@NotNull Player player) {
-            Location currentEye = player.getEyeLocation();
-            Vector movement = currentEye.toVector().subtract(baseEye.toVector());
-            Location center = baseCenter.clone().add(movement);
-            center.setWorld(currentEye.getWorld());
-            return center;
+        /**
+         * 視点追従と衝突回避を反映した現在のリング中心を更新します。
+         * 視点・姿勢の変更時は即時、静止中は4 tickごとに衝突を再確認します。
+         *
+         * @param player リングを表示しているプレイヤー
+         * @return 反映後のリング中心
+         */
+        private @NotNull Location updateLayout(@NotNull Player player) {
+            Location eye = player.getEyeLocation();
+            updateOrientation(eye.getDirection());
+            if (++ticksSinceCollisionCheck >= COLLISION_REFRESH_INTERVAL_TICKS
+                || collisionEye == null
+                || !collisionEye.equals(eye)
+                || !collisionNormal.equals(normal)
+                || !collisionRight.equals(right)
+                || !collisionUp.equals(up)) {
+                layoutScale = resolveLayoutScale(eye);
+                collisionEye = eye.clone();
+                collisionNormal = normal.clone();
+                collisionRight = right.clone();
+                collisionUp = up.clone();
+                ticksSinceCollisionCheck = 0;
+            }
+            return currentCenter(eye);
+        }
+
+        /**
+         * 現在のレイアウト倍率でリング中心を返します。
+         *
+         * @return リング中心
+         */
+        private @NotNull Location currentCenter() {
+            return currentCenter(viewer.getEyeLocation());
+        }
+
+        /**
+         * 指定した視点位置と現在のレイアウト倍率からリング中心を返します。
+         *
+         * @param eye 視点位置
+         * @return リング中心
+         */
+        private @NotNull Location currentCenter(@NotNull Location eye) {
+            return eye.clone().add(normal.clone().multiply(RING_DISTANCE * layoutScale));
+        }
+
+        /**
+         * 選択に必要な視線移動を残しつつ、超過した視線回転だけリングの向きへ反映します。
+         *
+         * @param direction 現在の視線方向
+         */
+        private void updateOrientation(@NotNull Vector direction) {
+            if (direction.lengthSquared() < ORIENTATION_EPSILON_SQUARED) {
+                return;
+            }
+            Vector view = direction.clone().normalize();
+            double dot = Math.clamp(normal.dot(view), -1.0D, 1.0D);
+            double angle = Math.acos(dot);
+            if (angle <= VIEW_FOLLOW_DEAD_ZONE_RADIANS) {
+                return;
+            }
+
+            Vector axis = normal.clone().crossProduct(view);
+            if (axis.lengthSquared() < ORIENTATION_EPSILON_SQUARED) {
+                axis = fallbackRotationAxis();
+            } else {
+                axis.normalize();
+            }
+            double rotation = angle - VIEW_FOLLOW_DEAD_ZONE_RADIANS;
+            normal = rotateAroundAxis(normal, axis, rotation).normalize();
+            right = rotateAroundAxis(right, axis, rotation);
+            right.subtract(normal.clone().multiply(right.dot(normal)));
+            if (right.lengthSquared() < ORIENTATION_EPSILON_SQUARED) {
+                right = fallbackRotationAxis();
+            } else {
+                right.normalize();
+            }
+            up = right.clone().crossProduct(normal).normalize();
+        }
+
+        /**
+         * 反対向きなど、視線との外積から回転軸を作れない場合の直交軸を返します。
+         *
+         * @return 現在のリング法線に直交する単位ベクトル
+         */
+        private @NotNull Vector fallbackRotationAxis() {
+            Vector axis = right.clone().subtract(normal.clone().multiply(right.dot(normal)));
+            if (axis.lengthSquared() < ORIENTATION_EPSILON_SQUARED) {
+                axis = normal.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
+            }
+            if (axis.lengthSquared() < ORIENTATION_EPSILON_SQUARED) {
+                axis = normal.clone().crossProduct(new Vector(1.0D, 0.0D, 0.0D));
+            }
+            return axis.normalize();
+        }
+
+        /**
+         * Rodrigues の回転公式でベクトルを指定軸の周囲に回転します。
+         *
+         * @param vector 回転するベクトル
+         * @param axis 正規化済みの回転軸
+         * @param radians 回転角（ラジアン）
+         * @return 回転後のベクトル
+         */
+        private @NotNull Vector rotateAroundAxis(@NotNull Vector vector, @NotNull Vector axis, double radians) {
+            double cos = Math.cos(radians);
+            double sin = Math.sin(radians);
+            return vector.clone().multiply(cos)
+                .add(axis.clone().crossProduct(vector).multiply(sin))
+                .add(axis.clone().multiply(axis.dot(vector) * (1.0D - cos)));
+        }
+
+        /**
+         * リング全体が衝突ブロックの手前に収まる最大倍率を返します。
+         *
+         * <p>中心、円周、アイコンおよび文字表示の代表的な外周を視点から ray trace し、
+         * 非通過ブロックの collision shape に当たる場合だけ縮小します。</p>
+         *
+         * @param eye 視点位置
+         * @return 0.0 から 1.0 のレイアウト倍率
+         */
+        private double resolveLayoutScale(@NotNull Location eye) {
+            if (eye.getWorld() == null) {
+                return 0.0D;
+            }
+            double scale = collisionFreeScale(eye, normal.clone().multiply(RING_DISTANCE), 1.0D);
+            for (int index = 0; index < COLLISION_PERIMETER_SAMPLES; index++) {
+                double angle = ((Math.PI * 2.0D) / COLLISION_PERIMETER_SAMPLES) * index;
+                Vector offset = normal.clone().multiply(RING_DISTANCE)
+                    .add(up.clone().multiply(Math.cos(angle) * RING_RADIUS))
+                    .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
+                scale = collisionFreeScale(eye, offset, scale);
+            }
+            for (int index = 0; index < slots.size(); index++) {
+                Vector iconOffset = normal.clone().multiply(RING_DISTANCE).add(slotOffset(index));
+                scale = collisionFreeBoxScale(eye, iconOffset, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, scale);
+                double labelOffset = 0.42D + (slots.get(index).hasSecondaryLine() ? 0.12D : 0.0D);
+                Vector labelPosition = iconOffset.clone().subtract(up.clone().multiply(labelOffset));
+                scale = collisionFreeBoxScale(
+                    eye,
+                    labelPosition,
+                    TEXT_COLLISION_HALF_WIDTH,
+                    TEXT_COLLISION_HALF_HEIGHT,
+                    0.02D,
+                    scale
+                );
+            }
+            Vector timerPosition = normal.clone().multiply(RING_DISTANCE).subtract(up.clone().multiply(0.30D));
+            scale = collisionFreeBoxScale(eye, timerPosition, TEXT_COLLISION_HALF_WIDTH, TEXT_COLLISION_HALF_HEIGHT, 0.02D, scale);
+            Vector instructionPosition = normal.clone().multiply(RING_DISTANCE).add(up.clone().multiply(0.42D));
+            return collisionFreeBoxScale(
+                eye,
+                instructionPosition,
+                TEXT_COLLISION_HALF_WIDTH,
+                TEXT_COLLISION_HALF_HEIGHT,
+                0.02D,
+                scale
+            );
+        }
+
+        /**
+         * 指定位置を中心とするリング座標系の箱が衝突しない最大倍率を返します。
+         *
+         * @param eye 視点位置
+         * @param center 箱の中心となる未縮小の視点相対位置
+         * @param horizontalHalfWidth right 軸方向の半幅
+         * @param verticalHalfHeight up 軸方向の半幅
+         * @param depthHalfWidth normal 軸方向の半幅
+         * @param currentScale 現在までに判明している最大倍率
+         * @return 箱を考慮した最大倍率
+         */
+        private double collisionFreeBoxScale(
+            @NotNull Location eye,
+            @NotNull Vector center,
+            double horizontalHalfWidth,
+            double verticalHalfHeight,
+            double depthHalfWidth,
+            double currentScale
+        ) {
+            double scale = collisionFreeScale(eye, center, currentScale);
+            for (int horizontalSign : new int[]{-1, 1}) {
+                for (int verticalSign : new int[]{-1, 1}) {
+                    for (int depthSign : new int[]{-1, 1}) {
+                        Vector corner = center.clone()
+                            .add(right.clone().multiply(horizontalHalfWidth * horizontalSign))
+                            .add(up.clone().multiply(verticalHalfHeight * verticalSign))
+                            .add(normal.clone().multiply(depthHalfWidth * depthSign));
+                        scale = collisionFreeScale(eye, corner, scale);
+                    }
+                }
+            }
+            return scale;
+        }
+
+        /**
+         * 指定した未縮小の視点相対位置が衝突ブロックの手前に収まる最大倍率を返します。
+         *
+         * @param eye 視点位置
+         * @param offset 未縮小の視点相対位置
+         * @param currentScale 現在までに判明している最大倍率
+         * @return この位置を反映した最大倍率
+         */
+        private double collisionFreeScale(@NotNull Location eye, @NotNull Vector offset, double currentScale) {
+            double length = offset.length();
+            if (currentScale <= 0.0D || length < ORIENTATION_EPSILON_SQUARED) {
+                return Math.max(0.0D, currentScale);
+            }
+            RayTraceResult hit = eye.getWorld().rayTraceBlocks(
+                eye,
+                offset.clone().multiply(1.0D / length),
+                length,
+                FluidCollisionMode.NEVER,
+                true
+            );
+            if (hit == null || hit.getHitBlock() == null
+                || hit.getHitBlock().isPassable()
+                || hit.getHitBlock().getCollisionShape().getBoundingBoxes().isEmpty()) {
+                return currentScale;
+            }
+            double hitDistance = hit.getHitPosition().distance(eye.toVector());
+            return Math.min(currentScale, Math.max(0.0D, (hitDistance - COLLISION_SAFETY_MARGIN) / length));
         }
 
         private int resolveSelectedIndex(@NotNull Player player) {
@@ -1150,8 +1413,93 @@ public final class SkillActionRingService {
                 .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
         }
 
+        /**
+         * 指定スロットのアイコン表示位置を返します。
+         *
+         * @param center 現在のリング中心
+         * @param index スロット番号
+         * @return アイコン表示位置
+         */
+        private @NotNull Location iconLocation(@NotNull Location center, int index) {
+            return center.clone().add(animatedSlotOffset(index));
+        }
+
+        /**
+         * アイコン位置から対応するラベル表示位置を返します。
+         *
+         * @param iconLocation アイコン表示位置
+         * @param slot ラベルを表示するスロット
+         * @return ラベル表示位置
+         */
+        private @NotNull Location labelLocation(@NotNull Location iconLocation, @NotNull SlotView slot) {
+            double labelOffset = 0.42D + (slot.hasSecondaryLine() ? 0.12D : 0.0D);
+            return iconLocation.clone().subtract(up.clone().multiply(labelOffset * layoutScale));
+        }
+
+        /**
+         * 指定した円周点の表示位置を返します。
+         *
+         * @param center 現在のリング中心
+         * @param index 円周点番号
+         * @return 円周点の表示位置
+         */
+        private @NotNull Location circleLocation(@NotNull Location center, int index) {
+            double angle = ((Math.PI * 2.0D) / CIRCLE_DISPLAY_POINTS) * index;
+            Vector offset = up.clone().multiply(Math.cos(angle) * RING_RADIUS * layoutScale)
+                .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS * layoutScale));
+            return center.clone().add(offset);
+        }
+
+        /**
+         * 残り時間ラベルの表示位置を返します。
+         *
+         * @param center 現在のリング中心
+         * @return 残り時間ラベルの表示位置
+         */
+        private @NotNull Location timerLocation(@NotNull Location center) {
+            return center.clone().subtract(up.clone().multiply(0.30D * layoutScale));
+        }
+
+        /**
+         * 現在のフェーズに対応する案内ラベルの表示位置を返します。
+         *
+         * @param center 現在のリング中心
+         * @return 案内ラベルの表示位置
+         */
+        private @NotNull Location instructionLocation(@NotNull Location center) {
+            if (phase == RingPhase.SELECTING) {
+                return center.clone().add(up.clone().multiply(0.30D * layoutScale));
+            }
+            return center.clone().add(animatedSlotOffset(confirmedIndex)).add(up.clone().multiply(0.42D * layoutScale));
+        }
+
+        /**
+         * 現在のレイアウト倍率をアイコンの基本倍率へ反映します。
+         *
+         * @return アイコンの表示倍率
+         */
+        private float scaledItemScale() {
+            return (float) (0.65D * layoutScale);
+        }
+
+        /**
+         * 現在のレイアウト倍率を文字の基本倍率へ反映します。
+         *
+         * @param baseScale 衝突回避前の文字倍率
+         * @return 文字の表示倍率
+         */
+        private float scaledTextScale(float baseScale) {
+            return (float) (baseScale * layoutScale);
+        }
+
+        /**
+         * 衝突回避倍率と確定アニメーションを反映したスロットの中心オフセットを返します。
+         *
+         * @param index スロット番号
+         * @return リング中心からのオフセット
+         */
         private @NotNull Vector animatedSlotOffset(int index) {
-            Vector offset = slotOffset(index);
+            Vector offset = slotOffset(index).multiply(layoutScale);
             if (phase != RingPhase.WAITING_CAST || index != confirmedIndex) {
                 return offset;
             }
@@ -1177,48 +1525,61 @@ public final class SkillActionRingService {
             return selected ? label.decorate(TextDecoration.BOLD) : label;
         }
 
+        /**
+         * レイアウト変更時に円周点の位置と文字倍率を更新します。
+         *
+         * @param center 現在のリング中心
+         * @param layoutChanged レイアウトが変化した場合は {@code true}
+         */
         private void updateCircle(@NotNull Location center, boolean layoutChanged) {
             if (!layoutChanged) {
                 return;
             }
             for (int index = 0; index < circleDots.size(); index++) {
                 SkillActionRingDisplay.DisplayEntity dot = circleDots.get(index);
-                double angle = ((Math.PI * 2.0D) / CIRCLE_DISPLAY_POINTS) * index;
-                Vector offset = up.clone().multiply(Math.cos(angle) * RING_RADIUS)
-                    .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
-                dot.teleport(viewer, center.clone().add(offset));
+                dot.teleport(viewer, circleLocation(center, index));
+                actionRingDisplay.updateText(viewer, dot, legacyComponent(ColorCodeUtil.AQUA + "*"), scaledTextScale(CIRCLE_TEXT_SCALE));
             }
         }
 
+        /**
+         * 残り時間ラベルの位置と文字倍率を更新します。
+         *
+         * @param center 現在のリング中心
+         * @param layoutChanged レイアウトが変化した場合は {@code true}
+         */
         private void updateTimer(@NotNull Location center, boolean layoutChanged) {
             if (timerLabel == null || phase == RingPhase.WAITING_CAST) {
                 return;
             }
-            Location timerLocation = center.clone().subtract(up.clone().multiply(0.30D));
+            Location timerLocation = timerLocation(center);
             if (layoutChanged) {
                 timerLabel.teleport(viewer, timerLocation);
             }
-            actionRingDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), 0.60F);
+            actionRingDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), scaledTextScale(LABEL_TEXT_SCALE));
         }
 
+        /**
+         * 操作案内ラベルの位置と文字倍率を更新します。
+         *
+         * @param center 現在のリング中心
+         * @param layoutChanged レイアウトが変化した場合は {@code true}
+         */
         private void updateInstruction(@NotNull Location center, boolean layoutChanged) {
             if (instructionLabel == null) {
                 return;
             }
             Component instruction;
-            Location instructionLocation;
             if (phase == RingPhase.SELECTING) {
                 instruction = PlayerMsgResource.getComponent(selectionInstruction.getId());
-                instructionLocation = center.clone().add(up.clone().multiply(0.30D));
             } else {
                 instruction = PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId());
-                Vector selectedOffset = animatedSlotOffset(confirmedIndex);
-                instructionLocation = center.clone().add(selectedOffset).add(up.clone().multiply(0.42D));
             }
+            Location instructionLocation = instructionLocation(center);
             if (layoutChanged) {
                 instructionLabel.teleport(viewer, instructionLocation);
             }
-            actionRingDisplay.updateText(viewer, instructionLabel, instruction, 0.60F);
+            actionRingDisplay.updateText(viewer, instructionLabel, instruction, scaledTextScale(LABEL_TEXT_SCALE));
         }
 
         private @NotNull String timerText() {
