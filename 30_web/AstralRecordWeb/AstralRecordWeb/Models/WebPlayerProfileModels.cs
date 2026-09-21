@@ -28,6 +28,18 @@ public sealed class WebPlayerAccountProfileResponse
     public long TotalMobDefeats { get; init; }
     public required DateTime UpdatedAt { get; init; }
     public required WebSkillTreeProfileResponse SkillTree { get; init; }
+    public WebPlayerConnectionProfileResponse? Connection { get; init; }
+}
+
+public sealed class WebPlayerConnectionProfileResponse
+{
+    public string Status { get; init; } = "unknown";
+    public string? ChannelName { get; init; }
+    public string? WorldName { get; init; }
+    public double? X { get; init; }
+    public double? Y { get; init; }
+    public double? Z { get; init; }
+    public DateTime? ObservedAtUtc { get; init; }
 }
 
 public sealed class WebPlayerClassProgressResponse

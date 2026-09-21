@@ -599,6 +599,27 @@
           "indexes": []
         }
       ]
+    },
+    {
+      "id": "20260921_skilltree_batch_editor",
+      "fileName": "20260921_skilltree_batch_editor.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "skilltree_operation",
+        "primaryKey": "PK_skilltree_operation",
+        "columns": [
+          {
+            "name": "changes_json",
+            "sqlType": "nvarchar",
+            "maxLengthBytes": -1,
+            "isNullable": true
+          }
+        ],
+        "checkConstraints": [
+          "CK_skilltree_operation_action",
+          "CK_skilltree_operation_changes_json"
+        ]
+      }
     }
   ]
 }

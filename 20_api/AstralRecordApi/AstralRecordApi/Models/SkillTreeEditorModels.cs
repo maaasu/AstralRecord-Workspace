@@ -64,7 +64,7 @@ public sealed class SkillTreeOperationCreateRequest
 public sealed class SkillTreeOperationChange { public required string Action { get; init; } public required string NodeId { get; init; } public string? SourceClassId { get; init; } }
 
 /// <summary>
-/// 実際にロード済みの Plugin が評価した表示情報。Web はこの値から条件・費用を再計算しません。
+/// 実際にロード済みの Plugin が評価した表示情報。Web はこの値から変更案を見積もり、確定時には Plugin が既存条件・費用を再検証します。
 /// </summary>
 public sealed class SkillTreePlayerViewRegistrationRequest
 {

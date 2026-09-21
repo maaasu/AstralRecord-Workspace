@@ -3,8 +3,8 @@
 @{ var editable = ViewData["SkillTreeEditor"] as bool? == true; }
     <section class="ar-tree-sanctum" aria-labelledby="skilltree-title">
         <header class="ar-tree-heading">
-            <div><p class="ar-tree-eyebrow">成長の星図</p><h2 id="skilltree-title">スキルツリー</h2><p>星を辿り、あなたの力のつながりを見渡す。</p></div>
-            <div class="ar-tree-progress"><strong>@Model.Nodes.Count(n => n.IsUnlocked)<span> / @Model.Nodes.Count</span></strong><span>表示中の解放ノード</span></div>
+            <div><p class="ar-tree-eyebrow">成長の星図</p><h2 id="skilltree-title">スキルツリー <small data-editor-heading-account></small></h2><p>星を辿り、あなたの力のつながりを見渡す。</p></div>
+            <span class="ar-tree-heading-balance-kind" data-editor-heading-kind></span><div class="ar-tree-progress"><strong>@Model.Nodes.Count(n => n.IsUnlocked)<span> / @Model.Nodes.Count</span></strong><span>表示中の解放ノード</span></div>
         </header>
         @if (Model.Nodes.Count == 0)
         {
@@ -15,17 +15,27 @@
                 @if (editable)
                 {
                     <div class="ar-tree-account-state">
-                        <div class="ar-tree-presence"><strong data-editor-account></strong><strong data-editor-connection>接続状態を確認中</strong><span data-editor-location></span><small data-editor-observed></small></div>
-                        <div class="ar-tree-balances" aria-label="ポイント残高"><strong data-editor-balance-kind>確認中</strong><span data-editor-pp>PP —</span><span data-editor-gold>Gold —</span><div data-editor-cp class="ar-tree-cp-list"></div></div>
-                        <div class="ar-tree-request-status"><span data-editor-status role="status" aria-live="polite">編集中</span><button type="button" data-editor-refresh>最新の状態を再取得</button><button type="button" data-editor-cancel hidden>適用待ちを取り消す</button></div>
+                        <div class="ar-tree-ledger-caption"><strong data-editor-account></strong><span data-editor-balance-kind>残高を確認中</span></div>
+                        <div class="ar-tree-ledger" aria-label="確定残高と変更後のポイント">
+                            <section class="ar-tree-point-card"><h3>パッシブポイント <span>PP</span></h3><strong data-editor-pp>—</strong><p data-editor-pp-after>変更なし</p></section>
+                            <section class="ar-tree-class-points"><h3>クラス別ポイント <span>CP</span></h3><div data-editor-cp class="ar-tree-cp-list"></div></section>
+                            <section class="ar-tree-point-card ar-tree-gold-card"><h3>所持Gold</h3><strong data-editor-gold>—</strong><p data-editor-gold-after>解除費用なし</p></section>
+                        </div>
+                        <div class="ar-tree-request-status"><span data-editor-status role="status" aria-live="polite">編集中</span><span data-editor-draft-count>変更なし</span><div class="ar-tree-draft-actions"><button type="button" data-editor-undo disabled>ひとつ戻す</button><button type="button" data-editor-clear disabled>案を取り消す</button><button type="button" data-editor-review hidden>最新の状態で再確認</button><button type="button" data-editor-batch-review disabled>変更内容を確認</button><button type="button" data-editor-refresh>再取得</button><button type="button" data-editor-cancel hidden>適用待ちを取り消す</button></div></div>
                         <p data-editor-reason></p>
+                        <section class="ar-tree-batch-review" data-editor-confirm hidden role="dialog" aria-modal="false" aria-label="変更案をまとめて確認">
+                            <h3>変更案の確認</h3><p data-editor-confirm-summary></p><ol data-editor-confirm-list></ol>
+                            <p>すべての変更をまとめて送信します。参加先で再検証し、全件が成立した場合に確定します。</p>
+                            <button type="button" data-editor-confirm-send>まとめて送信</button><button type="button" data-editor-confirm-back>編集に戻る</button>
+                        </section>
                     </div>
                 }
                 <div class="ar-tree-toolbar">
                     <form class="ar-tree-search" data-tree-search role="search" aria-label="スキルツリー内のノード検索">
-                        <label class="visually-hidden" for="tree-search">ノード名で検索</label>
-                        <span aria-hidden="true">⌕</span><input id="tree-search" type="search" autocomplete="off" placeholder="ノード名で探す…" data-tree-query />
+                        <label class="visually-hidden" for="tree-search">名前・ステータス・スキルを検索</label>
+                        <span aria-hidden="true">⌕</span><input id="tree-search" type="search" autocomplete="off" placeholder="名前・ステータス・スキル…" data-tree-query />
                         <button type="submit">探す</button>
+                        <select data-tree-search-mode aria-label="検索対象"><option value="all">すべて</option><option value="name">名前</option><option value="effect">効果・スキル</option></select>
                         <div class="ar-tree-search-results" data-tree-results hidden></div>
                     </form>
                     <div class="ar-tree-controls" role="group" aria-label="スキルツリーの表示操作">
@@ -33,12 +43,13 @@
                         <output data-tree-zoom-label aria-label="表示倍率">100%</output>
                         <button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button>
                         <span class="ar-tree-control-divider" aria-hidden="true"></span>
-                        <button type="button" data-tree-home>選択ノードへ</button>
+                        <button type="button" data-tree-home aria-label="選択ノードへ移動">選択へ</button>
                         <button type="button" data-tree-fit>全体図</button>
-                        <button type="button" data-tree-reset>表示をリセット</button>
-                        <button type="button" data-tree-expand aria-pressed="false">画面いっぱいに開く</button>
+                        <button type="button" data-tree-reset aria-label="開始位置に戻る">起点へ</button>
+                        <button type="button" data-tree-expand aria-pressed="false">最大表示</button>
                     </div>
                 </div>
+                <div class="ar-tree-search-options"><select data-tree-effect-filter aria-label="指定した効果のノードを強調"><option value="">効果を選んで強調</option></select><span data-tree-match-count role="status"></span><button type="button" data-tree-match-prev aria-label="前の検索結果へ">前へ</button><button type="button" data-tree-match-next aria-label="次の検索結果へ">次へ</button><button type="button" data-tree-search-clear>強調を解除</button></div>
                 <div class="ar-tree-layout">
                     <div class="ar-tree-map-shell">
                         <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ。ドラッグと矢印キーで移動、プラス・マイナスキーで拡大縮小">
@@ -64,14 +75,10 @@
                         {
                             <div class="ar-tree-operation" data-editor-operation>
                                 <p data-editor-consumed></p>
-                                <label data-editor-source-label hidden>消費するクラスのCP<select data-editor-source></select></label>
+                                <label data-editor-source-label hidden>消費するクラスのCP<select data-editor-source aria-label="消費するクラスのCP"></select></label>
                                 <p data-editor-preview>ノードを選ぶと変更内容を確認できます。</p>
                                 <p data-editor-operation-reason></p>
-                                <button type="button" data-editor-submit disabled>変更内容を確認</button>
-                                <div data-editor-confirm hidden>
-                                    <p>表示された費用と返還内容で送信します。適用はサーバーの確認後です。</p>
-                                    <button type="button" data-editor-confirm-send>この内容で送信</button><button type="button" data-editor-confirm-back>戻る</button>
-                                </div>
+                                <button type="button" data-editor-submit disabled>変更案へ追加</button>
                             </div>
                         }
                         else

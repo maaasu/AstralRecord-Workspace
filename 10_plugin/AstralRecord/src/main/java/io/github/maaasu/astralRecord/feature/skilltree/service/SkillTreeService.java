@@ -959,10 +959,12 @@ public class SkillTreeService {
             }
             nodeView.add("displayEffects", displayEffects);
             SkillTreeUnlockedNode unlockedNode = state.unlockedNode(node.nodeId());
-            if (unlockedNode == null || unlockedNode.consumedClassId() == null) {
+            String actualSource = unlockedNode != null && node.pointType() == SkillTreePointType.CLASS_POINT
+                    ? resolvedConsumedClassId(unlockedNode, node) : null;
+            if (actualSource == null) {
                 nodeView.add("consumedClassName", com.google.gson.JsonNull.INSTANCE);
             } else {
-                String classId = unlockedNode.consumedClassId();
+                String classId = actualSource;
                 nodeView.addProperty("consumedClassId", classId);
                 nodeView.addProperty("consumedClassName", runtimeClassName(classId));
             }
@@ -1099,7 +1101,7 @@ public class SkillTreeService {
             }
             RuntimeMutationGuard batchGuard = new RuntimeMutationGuard(accountId, definitionGenerationId,
                     operation.expectedPlayerStateVersion(), runtimePlayerContextRevisions.getOrDefault(player.getUniqueId(), 0L),
-                    operation.operationId(), claimed.leaseToken(), serverId);
+                    operation.operationId(), claimed.leaseToken(), serverId, operation.expectedEvaluationFingerprint());
             applyRuntimeBatchAsync(astPlayer, operation.changes(), batchGuard).whenComplete((batch, failure) ->
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if (failure == null && batch != null) {
@@ -1124,7 +1126,8 @@ public class SkillTreeService {
                 runtimePlayerContextRevisions.getOrDefault(player.getUniqueId(), 0L),
                 operation.operationId(),
                 claimed.leaseToken(),
-                serverId
+                serverId,
+                operation.expectedEvaluationFingerprint()
         );
         CompletableFuture<SkillTreeMutationResult> mutation;
         if ("UNLOCK".equalsIgnoreCase(operation.action())) {
@@ -2419,6 +2422,7 @@ public class SkillTreeService {
                     Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
                     checkpoint = captureMutationCheckpoint(accountId, state);
                     List<SkillTreeNodeDefinition> unlockedNodes = new ArrayList<>();
+                    List<SkillTreeNodeDefinition> changedNodes = new ArrayList<>();
                     Set<String> requestedNodeIds = new LinkedHashSet<>();
                     for (SkillTreeRuntimeRepository.Change change : changes) {
                         if (!requestedNodeIds.add(change.nodeId())) {
@@ -2431,6 +2435,7 @@ public class SkillTreeService {
                                 != runtimeGuard.playerContextRevision()) {
                             throw new IllegalStateException("Skill tree batch node is stale.");
                         }
+                        changedNodes.add(node);
                         String action = change.action().trim().toUpperCase(java.util.Locale.ROOT);
                         if ("UNLOCK".equals(action)) {
                             if (requiresCpSourceSelection(node)
@@ -2470,7 +2475,7 @@ public class SkillTreeService {
                     markDirty(boundState);
                     SkillTreeMutationCheckpoint committedCheckpoint = checkpoint;
                     return new InventorySaveCoordinator.CriticalMutation<>(
-                            new BatchMutationResult(previousSkillIds, List.copyOf(unlockedNodes)),
+                            new BatchMutationResult(previousSkillIds, List.copyOf(unlockedNodes), List.copyOf(changedNodes)),
                             () -> restoreMutationCheckpoint(committedCheckpoint, inventoryBefore, persistence));
                 }
             } catch (RuntimeException | Error failure) {
@@ -2490,11 +2495,14 @@ public class SkillTreeService {
         if (state == null) return;
         DerivedPlayerState next = rebuildDerivedState(astPlayer, state);
         derivedPlayerStates.put(state.accountId(), next);
-        Set<String> current = next.unlockedSkillIds();
-        for (SkillTreeNodeDefinition node : batch.unlockedNodes()) {
-            markNodeStateChanged(astPlayer, node, batch.previousSkillIds(), current);
-            nodeUnlockListener.accept(astPlayer, node.nodeId());
-        }
+        Set<String> added = new LinkedHashSet<>(next.unlockedSkillIds());
+        added.removeAll(batch.previousSkillIds());
+        Set<String> removed = new LinkedHashSet<>(batch.previousSkillIds());
+        removed.removeAll(next.unlockedSkillIds());
+        refreshDerivedState(astPlayer, added, removed, !added.isEmpty() || !removed.isEmpty()
+                || batch.changedNodes().stream().anyMatch(node -> !node.statusEffects().isEmpty()));
+        if (visualizer != null) visualizer.markViewerDirty(astPlayer.getBukkit().getUniqueId());
+        for (SkillTreeNodeDefinition node : batch.unlockedNodes()) nodeUnlockListener.accept(astPlayer, node.nodeId());
     }
 
     /** Web claim の世代・現在地文脈を保存lane内でも再検証して再ロックします。 */
@@ -2590,7 +2598,9 @@ public class SkillTreeService {
             @Nullable String consumedClassId
     ) {
         if ("UNLOCK".equals(action)) {
-            return state.unlock(node.nodeId(), consumedClassId);
+            String source = node.pointType() == SkillTreePointType.CLASS_POINT
+                    ? consumedClassId != null ? consumedClassId : node.unlockCondition().classId() : null;
+            return state.unlock(node.nodeId(), source == null ? null : normalizeClassId(source));
         }
         return "RELOCK".equals(action)
                 && persistence.consumeGold(accountId, RELOCK_GOLD_COST)
@@ -2616,7 +2626,9 @@ public class SkillTreeService {
                 && current.persistedVersion() == guard.expectedPlayerStateVersion()
                 && !dirtyPlayerStates.contains(guard.accountId())
                 && runtimePlayerContextRevisions.getOrDefault(astPlayer.getBukkit().getUniqueId(), 0L)
-                == guard.playerContextRevision();
+                == guard.playerContextRevision()
+                && guard.expectedEvaluationFingerprint() != null
+                && guard.expectedEvaluationFingerprint().equals(createRuntimeEvaluationFingerprint(astPlayer, current));
     }
 
     /** APPLIED を状態更新と同じ player-state snapshot transaction に同梱するためのreceiptを登録します。 */
@@ -3865,11 +3877,13 @@ public class SkillTreeService {
     /** 一回のWeb batchで確定した解放通知と、確定前の派生スキル集合です。 */
     private record BatchMutationResult(
             @NotNull Set<String> previousSkillIds,
-            @NotNull List<SkillTreeNodeDefinition> unlockedNodes
+            @NotNull List<SkillTreeNodeDefinition> unlockedNodes,
+            @NotNull List<SkillTreeNodeDefinition> changedNodes
     ) {
         private BatchMutationResult {
             previousSkillIds = Set.copyOf(previousSkillIds);
             unlockedNodes = List.copyOf(unlockedNodes);
+            changedNodes = List.copyOf(changedNodes);
         }
     }
 
@@ -3896,7 +3910,8 @@ public class SkillTreeService {
             long playerContextRevision,
             @NotNull UUID operationId,
             @NotNull String leaseToken,
-            @NotNull String serverId
+            @NotNull String serverId,
+            @Nullable String expectedEvaluationFingerprint
     ) {
     }
 

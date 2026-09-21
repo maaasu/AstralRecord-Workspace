@@ -23,7 +23,7 @@ skill effectはスキル個体を習得させず、現在クラス条件を満�
 ## 世代・Web編集の安全境界
 
 - Pluginはロード成功後だけ、正規化済み完全snapshotのSHA-256を`definitionGenerationId`としてserver session、起動fence、互換性情報とともに登録する。reload失敗時に新世代を登録しない。
-- Pluginはプレイヤー別に評価済み`tree`/`points`/`relockGoldCost` viewを登録する。Webはraw filebaseやcanonical snapshotを解釈して条件、費用、効果を再実装しない。
+- Pluginはプレイヤー別に評価済み`tree`/`points`/`relockGoldCost` viewを登録する。WebはPlugin評価viewから変更案の接続とポイントを事前検証する。表示効果と固定費用はPluginの公開値を使い、最終判定はPluginが既存ルールで再検証する。
 - Webは対象serverが実際に登録したgeneration、skilltree state version、Plugin評価fingerprintで操作を要求する。online時は同じ接続serverかつPluginが拠点・スキルツリーワールドと判定した場合だけ要求を作成する。offline時は同一target serverへ編集案を保存し、次回参加時にPluginが世代・state・fingerprint・位置を再検証する。
 - 旧generationへのtarget固定案を別serverへ読み替えない。参加先が異なる場合は旧案を`RECONFIRMATION_REQUIRED`または`CANCELED`として結果照会可能にする。
 - `account_skilltree_state.definition_generation_id`が`NULL`のlegacy状態は明示移行までWeb確定・自動補修対象外である。世代不一致は保留し、構造不整合だけが既存補修対象である。ノード廃止は別途明示移行で返還を検証してから適用する。
@@ -51,3 +51,9 @@ Web操作のclaim leaseは30秒、編集案は7日で期限切れとなる。有
 オフラインは応答切れから推測しない。Pluginの全退出保存ACK後にcloseされた最終viewだけを保存済み残高として扱う。closeできない場合、またはその後に正本状態/残高が変わった場合は確認不能となり編集案を作成できない。初回導入直後や非空legacy accountは、移行・対応Pluginでの正常な参加と退出を終えるまで編集不可。
 
 導入・明示移行は [[20_5.00-安全編集の導入と検証]] を参照する。
+
+## 一括編集v2
+
+`skilltree-operation-v1`は従来単件のみ、`skilltree-operation-v2`は単件とBATCHを受理する。新Webは`supportsBatch`を確認して一括操作を送る。BATCHは親operation一件の`changes_json`に順序付き1〜512変更を保持し、同じnodeの重複を拒否する。旧Pluginへ先頭の単件として配信しない。receipt、世代・版数、lease、取消、再送、offline案は全体で一件として扱う。
+
+Webプロフィールの`currentAccount.connection`は本人閲覧時だけ含め、公開プロフィールと管理者の他人閲覧ではnullにする。

@@ -1,6 +1,11 @@
 (() => {
     'use strict';
 
+    document.querySelectorAll('[data-player-avatar]').forEach(image => {
+        image.addEventListener('error', () => { image.hidden = true; }, { once: true });
+        if (image.complete && image.naturalWidth === 0) image.hidden = true;
+    });
+
     const copyText = async (value) => {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(value);

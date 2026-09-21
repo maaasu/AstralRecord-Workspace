@@ -265,3 +265,11 @@ main, .ar-footer { position: relative; }
 @media (prefers-reduced-motion: reduce) {
     .ar-legal-hero .ar-home-kicker, .ar-legal-hero .ar-page-hero-title, .ar-legal-hero .ar-page-hero-sub, .ar-legal-stars { animation: none; }
 }
+.ar-player-emblem { position: relative; overflow: hidden; }
+.ar-player-emblem img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ar-player-emblem img[hidden] { display: none; }
+.ar-profile-presence { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem 1rem; padding: 1rem 1.25rem; border: 1px solid #91acbf38; border-radius: 8px; background: #101925; margin: 1rem 0; color: #d1dce8; }
+.ar-profile-presence strong { padding: .3rem .65rem; border-radius: 99px; background: #66718428; }
+.ar-profile-presence strong.is-online { color: #b9f1d1; background: #345c4c66; }
+.ar-profile-presence small { color: #a6b0c1; margin-left: auto; }
+.ar-profile-coordinates { font-variant-numeric: tabular-nums; color: #a6b0c1; }

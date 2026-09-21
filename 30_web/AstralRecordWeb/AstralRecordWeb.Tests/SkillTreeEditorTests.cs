@@ -81,6 +81,50 @@ public sealed class SkillTreeEditorTests
         Assert.Contains(api.Calls, c => c.StartsWith($"DELETE /api/skilltree/editor/{AccountId}/operations/{id}"));
     }
 
+    [Fact]
+    public async Task BatchSubmitKeepsOrderAndStripsNestedClientCosts()
+    {
+        var api = new EditorHandler();
+        await using var factory = new EditorFactory(api);
+        using var client = Client(factory);
+        client.DefaultRequestHeaders.Add("X-Editor-Test-Identity", "yes");
+        var html = await client.GetStringAsync(Path);
+        client.DefaultRequestHeaders.Add("RequestVerificationToken", Token(html));
+        var operationId = Guid.NewGuid();
+        using var response = await client.PostAsJsonAsync(Path + "?handler=Operation", new {
+            operationId, actorUserId = Guid.NewGuid(), targetServerId = "test", expectedDefinitionGenerationId = "fixture-generation",
+            expectedPlayerStateVersion = 4, action = "BATCH", nodeId = "batch", changes = new[] {
+                new { action = "UNLOCK", nodeId = "vitality", gold = -100, canUnlock = true },
+                new { action = "UNLOCK", nodeId = "focus", gold = -200, canUnlock = true },
+            },
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = api.Submitted!.Value;
+        Assert.Equal(Actor, sent.GetProperty("actorUserId").GetGuid());
+        var changes = sent.GetProperty("changes");
+        Assert.Equal(2, changes.GetArrayLength());
+        Assert.Equal("vitality", changes[0].GetProperty("nodeId").GetString());
+        Assert.Equal("focus", changes[1].GetProperty("nodeId").GetString());
+        Assert.False(changes[0].TryGetProperty("gold", out _));
+        Assert.DoesNotContain("data-editor-location", html);
+        Assert.Contains("最大表示", WebUtility.HtmlDecode(html));
+    }
+
+    [Fact]
+    public async Task MyPageDisplaysConnectionAndUuidSkinWhileEditorKeepsLocationOutOfItsControls()
+    {
+        var api = new EditorHandler();
+        await using var factory = new EditorFactory(api);
+        using var client = Client(factory);
+        client.DefaultRequestHeaders.Add("X-Editor-Test-Identity", "yes");
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
+        Assert.Contains("冒険チャンネル 1", html);
+        Assert.Contains("はじまりの街", html);
+        Assert.Contains($"https://crafatar.com/avatars/{Actor:N}", html);
+        Assert.Contains("referrerpolicy=\"no-referrer\"", html);
+        Assert.Contains("data-player-avatar", html);
+    }
+
     internal static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
     internal static readonly Guid AccountId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     internal static string Path => $"/skilltree/{AccountId}";
@@ -95,6 +139,7 @@ public sealed class SkillTreeEditorTests
             services.AddAuthentication(options => { options.DefaultAuthenticateScheme = "EditorTests"; options.DefaultChallengeScheme = "EditorTests"; })
                 .AddScheme<AuthenticationSchemeOptions, EditorAuthentication>("EditorTests", _ => { });
             services.AddHttpClient<SkillTreeEditorApiClient>().ConfigurePrimaryHttpMessageHandler(() => api);
+            services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => api);
             services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => api);
             services.AddSingleton<IMinecraftStatusProbe, FixedOnlineStatusProbe>();
         });
@@ -113,11 +158,20 @@ public sealed class SkillTreeEditorTests
         public List<string> Calls { get; } = [];
         public JsonElement? Submitted { get; private set; }
         public bool Conflict { get; set; }
+        internal object? StateOverride { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var uri = request.RequestUri!;
             if (uri.AbsolutePath.Contains("web-auth")) return Json(new { webAdmin = false, canAccessAdmin = false });
             Calls.Add($"{request.Method} {uri.PathAndQuery}");
+            if (uri.AbsolutePath == "/api/web-profiles/me") return Json(new {
+                userUuid = Actor, mcid = "テストの冒険者", permission = 0, isPublic = false, accounts = Array.Empty<object>(),
+                currentAccount = new { accountId = AccountId, accountName = "旅する剣士", slotIndex = 0, playerLevel = 13,
+                    classId = "swordsman", className = "剣士", classLevel = 9, classProgresses = Array.Empty<object>(), gold = 15420,
+                    updatedAt = DateTime.UtcNow, skillTree = JsonSerializer.SerializeToElement(Fixture()).GetProperty("tree"),
+                    connection = new { status = "online", channelName = "冒険チャンネル 1", worldName = "はじまりの街", x = 120, y = 64, z = -30, observedAtUtc = DateTime.UtcNow },
+                },
+            });
             if (!uri.AbsolutePath.StartsWith($"/api/skilltree/editor/{AccountId}")) return new(HttpStatusCode.NotFound);
             if (request.Method == HttpMethod.Post)
             {
@@ -126,11 +180,11 @@ public sealed class SkillTreeEditorTests
                 return Json(new { operationId = Submitted.Value.GetProperty("operationId").GetGuid(), status = "PENDING_ONLINE" });
             }
             if (uri.AbsolutePath.Contains("/operations/")) return Json(new { operationId = Guid.Parse(uri.Segments[^1]), status = request.Method == HttpMethod.Delete ? "CANCELED" : "PENDING_ONLINE" });
-            return Json(Fixture());
+            return Json(StateOverride ?? Fixture());
         }
         internal static object Fixture() => new
         {
-            accountId = AccountId, accountName = "旅する剣士", generationId = "fixture-generation", stateRevision = 4, canEdit = true, relockGoldCost = 100, balanceKind = "LIVE", hasFreshState = true,
+            accountId = AccountId, accountName = "旅する剣士", generationId = "fixture-generation", stateRevision = 4, canEdit = true, supportsBatch = true, relockGoldCost = 100, balanceKind = "LIVE", hasFreshState = true,
             connection = new { status = "online", serverId = "test", channelName = "冒険チャンネル 1", worldName = "はじまりの街", x = 120, y = 64, z = -30, canEdit = true, observedAtUtc = DateTime.UtcNow },
             points = new { pp = 12, gold = 15420, classes = new[] { new { classId = "swordsman", className = "剣士", availableCp = 8 }, new { classId = "mage", className = "魔法使い", availableCp = 4 } } },
             tree = new { structureId = "main", name = "成長の星図", rootNodeId = "root", nodes = new object[]

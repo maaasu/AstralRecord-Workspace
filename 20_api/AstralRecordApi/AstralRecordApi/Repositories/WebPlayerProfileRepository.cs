@@ -18,7 +18,7 @@ public sealed class WebPlayerProfileRepository(
     private readonly string structureId = profileOptions.Value.SkillTreeStructureId.Trim();
 
     public async Task<WebPlayerProfileResponse?> GetMyProfileAsync(Guid viewerUserUuid) =>
-        await BuildProfileAsync(viewerUserUuid);
+        await BuildProfileAsync(viewerUserUuid, includeConnection: true);
 
     public async Task<WebPlayerProfileResponse?> GetProfileAsync(
         Guid targetUserUuid, Guid viewerUserUuid, bool includePrivate, Guid? accountId = null)
@@ -27,7 +27,7 @@ public sealed class WebPlayerProfileRepository(
         if (targetUserUuid != viewerUserUuid && !(includePrivate && isAdmin)
             && !await managementDb.Players.AsNoTracking().AnyAsync(player => player.PlayerUuid == targetUserUuid && player.IsProfilePublic))
             return null;
-        var profile = await BuildProfileAsync(targetUserUuid, accountId);
+        var profile = await BuildProfileAsync(targetUserUuid, accountId, targetUserUuid == viewerUserUuid);
         if (profile is null)
             return null;
         if (targetUserUuid == viewerUserUuid || (includePrivate && isAdmin)) return profile;
@@ -92,7 +92,7 @@ public sealed class WebPlayerProfileRepository(
         player.IsProfilePublic = isPublic;
         player.UpdatedAt = DateTime.UtcNow;
         await managementDb.SaveChangesAsync();
-        return await BuildProfileAsync(viewerUserUuid);
+        return await BuildProfileAsync(viewerUserUuid, includeConnection: true);
     }
 
     private async Task<bool> IsWebAdminAsync(Guid viewerUserUuid) =>
@@ -101,7 +101,7 @@ public sealed class WebPlayerProfileRepository(
             .Select(player => (bool?)player.WebAdmin)
             .FirstOrDefaultAsync() == true;
 
-    private async Task<WebPlayerProfileResponse?> BuildProfileAsync(Guid userUuid, Guid? requestedAccountId = null)
+    private async Task<WebPlayerProfileResponse?> BuildProfileAsync(Guid userUuid, Guid? requestedAccountId = null, bool includeConnection = false)
     {
         var managementPlayer = await managementDb.Players.AsNoTracking()
             .FirstOrDefaultAsync(player => player.PlayerUuid == userUuid);
@@ -126,7 +126,7 @@ public sealed class WebPlayerProfileRepository(
             Mcid = user?.Mcid ?? managementPlayer!.Mcid,
             Permission = user?.Permission,
             IsPublic = managementPlayer?.IsProfilePublic ?? false,
-            CurrentAccount = account is null ? null : await BuildAccountAsync(account),
+            CurrentAccount = account is null ? null : await BuildAccountAsync(account, includeConnection),
             Accounts = accounts.Select(candidate => new WebPlayerAccountSummaryResponse
             {
                 AccountId = candidate.Uuid, AccountName = candidate.AccountName, SlotIndex = candidate.SlotIndex,
@@ -136,7 +136,7 @@ public sealed class WebPlayerProfileRepository(
         };
     }
 
-    private async Task<WebPlayerAccountProfileResponse> BuildAccountAsync(AccountEntity account)
+    private async Task<WebPlayerAccountProfileResponse> BuildAccountAsync(AccountEntity account, bool includeConnection)
     {
         var classMap = await GetClassMapAsync();
         var progress = await gameDb.AccountClassProgresses.AsNoTracking()
@@ -156,6 +156,7 @@ public sealed class WebPlayerProfileRepository(
         var totalMobDefeats = await gameDb.AccountMobRecords.AsNoTracking()
             .Where(record => record.AccountId == account.Uuid && !record.IsDeleted)
             .SumAsync(record => (long?)record.DefeatCount) ?? 0L;
+        var editor = runtime is null ? null : await runtime.GetEditorAsync(account.Uuid, account.UserId);
         return new WebPlayerAccountProfileResponse
         {
             AccountId = account.Uuid,
@@ -174,7 +175,8 @@ public sealed class WebPlayerProfileRepository(
             Gold = gold,
             TotalMobDefeats = totalMobDefeats,
             UpdatedAt = DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc),
-            SkillTree = await BuildVerifiedSkillTreeAsync(account),
+            SkillTree = BuildVerifiedSkillTree(editor),
+            Connection = includeConnection ? editor?.Connection : null,
         };
     }
 
@@ -189,10 +191,8 @@ public sealed class WebPlayerProfileRepository(
         StructureId = structureId, Name = string.Empty, RootNodeId = string.Empty, Nodes = [], Edges = [],
     };
 
-    private async Task<WebSkillTreeProfileResponse> BuildVerifiedSkillTreeAsync(AccountEntity account)
+    private WebSkillTreeProfileResponse BuildVerifiedSkillTree(SkillTreeEditorResponse? editor)
     {
-        if (runtime is null) return EmptySkillTree();
-        var editor = await runtime.GetEditorAsync(account.Uuid, account.UserId);
         if (editor?.Tree is not { ValueKind: JsonValueKind.Object } tree) return EmptySkillTree();
         try { return tree.Deserialize<WebSkillTreeProfileResponse>(new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? EmptySkillTree(); }
         catch (JsonException) { return EmptySkillTree(); }

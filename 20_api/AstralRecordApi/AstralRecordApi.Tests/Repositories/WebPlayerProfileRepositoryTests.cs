@@ -12,6 +12,21 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class WebPlayerProfileRepositoryTests
 {
     [Fact]
+    public async Task ConnectionInformationIsIncludedOnlyForItsOwner()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var owner = Guid.NewGuid(); var viewer = Guid.NewGuid();
+        await fixture.AddProfileAsync(owner, "Owner", Guid.NewGuid(), level: 10, isPublic: true);
+        await fixture.AddProfileAsync(viewer, "Viewer", Guid.NewGuid(), level: 10, isPublic: false, webAdmin: true);
+        var runtime = new SkillTreeOperationRepository(fixture.Game, new AstralRecordApi.Services.NetworkRuntimeService(TimeProvider.System));
+        var repository = new WebPlayerProfileRepository(fixture.Game, fixture.Management, fixture.Master,
+            Microsoft.Extensions.Options.Options.Create(new WebPlayerProfileOptions { SkillTreeStructureId = "starter" }), runtime);
+        Assert.NotNull((await repository.GetMyProfileAsync(owner))!.CurrentAccount!.Connection);
+        Assert.Null((await repository.GetProfileAsync(owner, viewer, false))!.CurrentAccount!.Connection);
+        Assert.Null((await repository.GetProfileAsync(owner, viewer, true))!.CurrentAccount!.Connection);
+    }
+
+    [Fact]
     public async Task GetProfileAsync_HidesDefaultPrivateProfileAndReturnsOnlySelectedAccountState()
     {
         await using var fixture = await Fixture.CreateAsync();

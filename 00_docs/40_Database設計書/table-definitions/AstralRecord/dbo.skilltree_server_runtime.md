@@ -12,4 +12,4 @@
 
 reload失敗時は新世代・readyを更新しない。heartbeat TTLを越えた行は現在世代の保証に使わない。
 
-`publication_revision`は同一boot内の単調な公開番号。新世代より古い登録の遅延到着を拒否する。対応互換性は`skilltree-operation-v1`。runtimeとaccount leaseの有効期限は45秒。
+`publication_revision`は同一boot内の単調な公開番号。新世代より古い登録の遅延到着を拒否する。対応互換性は従来単件の`skilltree-operation-v1`と一括対応の`skilltree-operation-v2`。BATCHの受付・claimはv2だけを許可する。runtimeとaccount leaseの有効期限は45秒。

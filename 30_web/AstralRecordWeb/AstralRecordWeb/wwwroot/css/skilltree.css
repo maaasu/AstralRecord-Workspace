@@ -175,9 +175,9 @@
 .ar-tree-label-effect { fill: #e5eaf5; font: 14px 'Noto Sans JP', sans-serif; }
 .ar-tree-label-cost { fill: #b9f0e4; font: 600 14px 'Noto Sans JP', sans-serif; }
 .ar-tree-label-state { fill: #d6cada; font: 13px 'Noto Sans JP', sans-serif; }
-.ar-tree-edge { stroke: #aba4bd; stroke-width: 2.5; stroke-dasharray: 7 5; opacity: .95; }
-.ar-tree-edge.is-unlocked { stroke: #efd099; stroke-width: 3.5; stroke-dasharray: none; opacity: 1; }
-.ar-tree-edge.is-connected { stroke: #fff3cb; stroke-width: 5; stroke-dasharray: none; }
+.ar-tree-edge { stroke: #a39bad; stroke-width: 1.1; stroke-dasharray: 3 7; opacity: .32; }
+.ar-tree-edge.is-unlocked { stroke: #c7b38e; stroke-width: 1.5; stroke-dasharray: none; opacity: .5; }
+.ar-tree-edge.is-connected { stroke: #ddc79f; stroke-width: 1.8; stroke-dasharray: none; opacity: .64; filter: none; }
 .ar-tree-node-label rect { fill: #101221ed; stroke: #9983b526; }
 .ar-tree-node.is-unlocked .ar-tree-node-frame { stroke-width: 2.5; }
 .ar-tree-node.is-available .ar-tree-node-frame { stroke: #9fe5d1; stroke-width: 3; stroke-dasharray: 8 3; }
@@ -232,4 +232,107 @@
     .ar-tree-cp-list { max-height: 60px; }
     .ar-tree-presence small { display: none; }
     .ar-tree-minimap { display: none; }
+}
+
+/* The ledger separates saved points from an unsent plan; location belongs to My Page. */
+.ar-tree-ledger-caption { display: flex; justify-content: space-between; gap: 1rem; color: #b8afc4; font-size: .76rem; }
+.ar-tree-ledger { display: grid; grid-template-columns: minmax(145px, .7fr) minmax(200px, 2fr) minmax(160px, .8fr); gap: .8rem; }
+.ar-tree-ledger h3 { font: 500 .78rem 'Noto Sans JP', sans-serif; color: #b9b1c6; margin: 0 0 .4rem; }
+.ar-tree-ledger h3 span { color: #dec99e; margin-left: .4rem; }
+.ar-tree-point-card { padding: .6rem .85rem; border-left: 2px solid #cbb48c66; background: #d1c19d06; }
+.ar-tree-point-card > strong { font-size: 1.8rem; line-height: 1.1; font-variant-numeric: tabular-nums; color: #efe4cc; }
+.ar-tree-point-card p { font-size: .75rem; margin-top: .4rem; color: #add7c8; }
+.ar-tree-class-points { min-width: 0; padding: .6rem; }
+.ar-tree-cp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: .4rem; max-height: 90px; overflow: auto; scrollbar-width: thin; }
+.ar-tree-cp-list > span { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .1rem .5rem; padding: .35rem .6rem; border: 1px solid #c2b28d20; background: #141d2a; white-space: normal; }
+.ar-tree-cp-list strong { font-size: 1.15rem; color: #dce8df; font-variant-numeric: tabular-nums; }
+.ar-tree-cp-list small { grid-column: 1 / -1; color: #acccbb; }
+.ar-tree-draft-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-left: auto; }
+.ar-tree-request-status [role="status"] { margin-right: 0; }
+.ar-tree-account-state { padding: .75rem .9rem; gap: .65rem; font-size: .8rem; }
+.ar-tree-account-state button { min-height: 36px; background: #242834; border-color: #bcac8c55; }
+.ar-tree-account-state button:disabled { opacity: .4; cursor: default; }
+.ar-tree-account-state [data-editor-batch-review] { background: #4a4030; color: #ffebbf; }
+.ar-tree-account-state p:empty { display: none; }
+.ar-tree-search { flex-wrap: wrap; }
+.ar-tree-search input { flex: 1 1 180px; min-width: 100px; }
+.ar-tree-search select, .ar-tree-search-options select { max-width: 230px; padding: .45rem; border: 1px solid #c3b59433; border-radius: 4px; background: #191e2b; color: #d4cbdc; font-size: .75rem; }
+.ar-tree-search-options { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .25rem 0 .6rem; font-size: .75rem; }
+.ar-tree-search-options button { border: 1px solid #c3b59433; color: #c7bda9; background: #242430; border-radius: 4px; padding: .3rem .6rem; }
+.ar-tree-search-options button:disabled { opacity: .35; }
+.ar-tree-search-results { max-height: min(40vh, 300px); overflow: auto; }
+.ar-tree-node.is-search-match .ar-tree-node-aura { stroke: #a4d8c2; stroke-width: 3; fill: #7cbb9e14; }
+.ar-tree-node.is-search-dim { opacity: .32; }
+.ar-tree-node.is-draft-unlock .ar-tree-node-frame { stroke: #9ac7aa; stroke-dasharray: 4 3; }
+.ar-tree-node.is-draft-relock .ar-tree-node-frame { stroke: #c3949e; stroke-dasharray: 4 3; }
+.ar-tree-node[aria-pressed="true"] .ar-tree-node-aura { stroke-width: 2; filter: none; }
+.ar-tree-node[aria-pressed="true"] .ar-tree-node-runes { animation: none; }
+.ar-tree-legend .edge { border-top-width: 1px; opacity: .5; }
+.ar-tree-legend .edge.is-unlocked, .ar-tree-legend .edge.is-selected { border-top-width: 2px; opacity: .65; }
+.ar-tree-batch-review { position: absolute; inset: auto 1rem; top: 5rem; z-index: 8; max-width: 600px; max-height: calc(100dvh - 8rem); margin: auto; padding: 1.3rem; overflow: auto; border: 1px solid #c7b289; border-radius: 8px; background: #171c2a; box-shadow: 0 20px 80px #0009; }
+.ar-tree-batch-review[hidden] { display: none; }
+.ar-tree-batch-review h3 { color: #ecd7ae; }
+.ar-tree-batch-review ol { max-height: 35vh; overflow: auto; padding-left: 1.5rem; }
+.ar-tree-batch-review li { margin: .45rem 0; }
+.is-expanded .ar-tree-heading { padding: .5rem .5rem .65rem; }
+.is-expanded .ar-tree-heading h2 { font-size: 1.35rem; margin: 0; }
+.is-expanded .ar-tree-account-state { margin-bottom: .5rem; }
+.is-expanded .ar-tree-toolbar { flex-shrink: 0; }
+.is-expanded .ar-tree-account-state, .is-expanded .ar-tree-search-options { flex-shrink: 0; }
+.is-panning .ar-tree-node-icon, .is-panning .ar-tree-node-aura { filter: none; }
+@media (max-width: 760px) {
+    .ar-tree-ledger { grid-template-columns: 1fr 1fr; gap: .35rem; }
+    .ar-tree-class-points { grid-column: 1 / -1; grid-row: 2; padding: .25rem .5rem; }
+    .ar-tree-cp-list { display: flex; max-height: 68px; overflow-x: auto; overflow-y: hidden; }
+    .ar-tree-cp-list > span { flex: 0 0 116px; font-size: .72rem; }
+    .ar-tree-point-card { padding: .35rem .5rem; }
+    .ar-tree-point-card > strong { font-size: 1.4rem; }
+    .ar-tree-account-state { padding: .5rem; gap: .4rem; }
+    .ar-tree-account-state h3 { font-size: .68rem; }
+    .ar-tree-draft-actions { gap: .3rem; }
+    .ar-tree-draft-actions button { font-size: .68rem; padding: .3rem .45rem; }
+    .ar-tree-search-options { padding-bottom: .35rem; }
+    .is-expanded .ar-tree-heading { display: none; }
+    .is-expanded .ar-tree-toolbar { padding: .2rem 0; }
+    .is-expanded .ar-tree-controls button { min-height: 34px; padding: .4rem; }
+    .ar-tree-search-options select { max-width: 155px; }
+}
+
+.ar-tree-heading h2 small { font: 400 .85rem 'Noto Sans JP', sans-serif; color: #b6aec0; margin-left: .7rem; }
+.ar-tree-heading-balance-kind { display: none; font-size: .75rem; color: #beb6c8; }
+.ar-tree-cp-list small:empty { display: none; }
+.is-expanded .ar-tree-heading-balance-kind { display: block; margin-left: auto; }
+.is-expanded .ar-tree-ledger-caption { display: none; }
+.is-expanded .ar-tree-relic { display: none; }
+.is-expanded .ar-tree-account-state { padding: .5rem .7rem; gap: .4rem; }
+.is-expanded .ar-tree-point-card { padding: .35rem .65rem; }
+.is-expanded .ar-tree-point-card h3 { margin-bottom: .25rem; }
+.is-expanded .ar-tree-point-card > strong { font-size: 1.6rem; }
+.is-expanded .ar-tree-point-card p { margin-top: .25rem; }
+.is-expanded .ar-tree-class-points { padding: .35rem .5rem; }
+.is-expanded .ar-tree-cp-list { max-height: 68px; }
+.is-expanded .ar-tree-cp-list > span { padding: .2rem .5rem; }
+.is-expanded .ar-tree-search { width: min(100%, 510px); flex: 1 1 430px; max-width: 510px; flex-wrap: nowrap; }
+.is-expanded .ar-tree-search input { flex-basis: 180px; }
+.is-expanded .ar-tree-search select { max-width: 115px; }
+.is-expanded .ar-tree-minimap { width: 105px; padding: .35rem; right: .6rem; bottom: .6rem; opacity: .65; }
+@media (max-width: 760px) {
+    .is-expanded .ar-tree-heading { display: flex; padding: .2rem .4rem .35rem; }
+    .is-expanded .ar-tree-heading h2 { font-size: 1rem; }
+    .is-expanded .ar-tree-heading h2 small { display: none; }
+    .is-expanded .ar-tree-heading-balance-kind { font-size: .65rem; }
+    .is-expanded .ar-tree-search { flex-basis: 100%; }
+    .is-expanded .ar-tree-search input { flex-basis: 140px; }
+    .is-expanded .ar-tree-search select { max-width: 90px; }
+}
+
+@media (max-width: 760px) {
+    .is-expanded .ar-tree-point-card > strong { font-size: 1.4rem; }
+    .is-expanded .ar-tree-point-card { padding: .2rem .4rem; }
+    .is-expanded .ar-tree-class-points { padding: .1rem .4rem; }
+    .is-expanded .ar-tree-class-points h3 { margin-bottom: .25rem; }
+    .is-expanded .ar-tree-cp-list > span { flex-basis: 106px; }
+    .is-expanded .ar-tree-controls { flex-basis: 100%; gap: .2rem; }
+    .is-expanded .ar-tree-controls output { min-width: 36px; }
+    .is-expanded .ar-tree-control-divider { margin: 0 .1rem; }
 }

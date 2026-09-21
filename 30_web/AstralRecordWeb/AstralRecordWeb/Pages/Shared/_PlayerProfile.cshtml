@@ -6,7 +6,13 @@
 }
 <section class="ar-profile-banner" aria-label="プレイヤー情報">
     <div class="ar-profile-identity">
-        <div class="ar-player-emblem" aria-hidden="true">@(string.IsNullOrEmpty(Model.Mcid) ? "◇" : Model.Mcid[..1].ToUpperInvariant())</div>
+        <div class="ar-player-emblem" aria-hidden="true">
+            <span>@(string.IsNullOrEmpty(Model.Mcid) ? "◇" : Model.Mcid[..1].ToUpperInvariant())</span>
+            @if (ownProfile && Model.UserUuid != Guid.Empty)
+            {
+                <img data-player-avatar src="https://crafatar.com/avatars/@(Model.UserUuid.ToString("N"))?size=96&amp;overlay" width="84" height="84" alt="" decoding="async" referrerpolicy="no-referrer" />
+            }
+        </div>
         <div><span class="ar-profile-badge @(ownProfile ? "" : "ar-profile-badge--other")">@(ownProfile ? "あなたのプロフィール" : "プレイヤーのプロフィール")</span><h2>@Model.Mcid</h2><p class="ar-portal-sub">@(account?.AccountName ?? "現在選択中のアカウントはありません")</p></div>
     </div>
     <dl class="ar-profile-facts">
@@ -20,6 +26,26 @@
 </section>
 @if (account is not null)
 {
+    @if (ownProfile)
+    {
+        var connection = account.Connection;
+        var online = connection?.Status == "online";
+        <section class="ar-profile-presence" aria-label="ゲームの接続情報">
+            <strong class="@(online ? "is-online" : "")">@(online ? "ログイン中" : connection?.Status == "offline" ? "オフライン" : "接続状態を確認できません")</strong>
+            @if (online)
+            {
+                <span>@connection!.ChannelName</span><span>@connection.WorldName</span>
+                @if (connection.X.HasValue && connection.Y.HasValue && connection.Z.HasValue)
+                {
+                    <span class="ar-profile-coordinates">X @Math.Floor(connection.X.Value) · Y @Math.Floor(connection.Y.Value) · Z @Math.Floor(connection.Z.Value)</span>
+                }
+            }
+            @if (connection?.ObservedAtUtc is { } observed)
+            {
+                <small>確認：@DateTime.SpecifyKind(observed, DateTimeKind.Utc).AddHours(9).ToString("MM/dd HH:mm:ss")（日本時間）</small>
+            }
+        </section>
+    }
     <div class="ar-stats">
         <article class="ar-stat"><p>プレイヤーレベル</p><strong>@account.PlayerLevel.ToString("N0")</strong><small>Lv.</small></article>
         <article class="ar-stat"><p>所持金</p><strong>@account.Gold.ToString("N0")</strong><small>Gold</small></article>

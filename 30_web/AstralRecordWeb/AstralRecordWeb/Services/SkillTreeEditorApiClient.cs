@@ -14,7 +14,7 @@ public sealed class SkillTreeEditorApiClient(HttpClient httpClient, ILogger<Skil
         SendAsync(HttpMethod.Post, $"/api/skilltree/editor/{accountId:D}/operations", new
         {
             input.OperationId, ActorUserId = actor, input.TargetServerId, input.ExpectedDefinitionGenerationId,
-            input.ExpectedPlayerStateVersion, input.Action, input.NodeId, input.SourceClassId,
+            input.ExpectedPlayerStateVersion, input.Action, input.NodeId, input.SourceClassId, input.Changes,
         }, ct);
 
     public Task<ProfileApiResult<JsonElement>> GetOperationAsync(Guid actor, Guid accountId, Guid operationId, CancellationToken ct) =>
