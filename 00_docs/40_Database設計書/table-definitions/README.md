@@ -101,6 +101,11 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | テーブル | 定義 |
 |:--|:--|
 | `dbo.user_history` | `HistoryDB/dbo.user_history.md` |
+| `dbo.player_activity_batch` | `HistoryDB/dbo.player_activity.md` |
+| `dbo.player_ip_observation` | `HistoryDB/dbo.player_activity.md` |
+| `dbo.player_trade_activity` / `dbo.player_trade_activity_item` | `HistoryDB/dbo.player_activity.md` |
+| `dbo.dungeon_clear_activity` / `dbo.dungeon_clear_participant` | `HistoryDB/dbo.player_activity.md` |
+| `dbo.mob_damage_summary` / `dbo.mob_player_death` | `HistoryDB/dbo.player_activity.md` |
 
 ## ManagementDB
 

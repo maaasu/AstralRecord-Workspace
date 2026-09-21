@@ -120,6 +120,7 @@ builder.Services.AddScoped<IEquipmentOrbOperationRepository, EquipmentOrbOperati
 builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutRepository>();
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
 builder.Services.AddScoped<ITradeRepository, TradeRepository>();
+builder.Services.AddScoped<IPlayerActivityRepository, PlayerActivityRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
 builder.Services.AddScoped<INetworkManagementRepository, NetworkManagementRepository>();
 builder.Services.AddScoped<IWebPlayerProfileRepository, WebPlayerProfileRepository>();
