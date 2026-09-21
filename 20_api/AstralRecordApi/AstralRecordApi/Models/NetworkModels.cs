@@ -26,12 +26,7 @@ public sealed record NetworkPlayerHeartbeatRequest(
     string DisplayName,
     int? Level,
     string? ClassName,
-    bool Afk,
-    Guid? AccountId = null,
-    string? WorldName = null,
-    double? X = null,
-    double? Y = null,
-    double? Z = null);
+    bool Afk);
 
 public sealed record NetworkPlayerPresenceResponse(
     Guid Uuid,
@@ -42,12 +37,7 @@ public sealed record NetworkPlayerPresenceResponse(
     int? Level,
     string? ClassName,
     bool Afk,
-    DateTime LastSeenUtc,
-    Guid? AccountId = null,
-    string? WorldName = null,
-    double? X = null,
-    double? Y = null,
-    double? Z = null);
+    DateTime LastSeenUtc);
 
 public sealed record NetworkServerHeartbeatRequest(
     string ServerId,

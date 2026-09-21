@@ -134,3 +134,7 @@
 - filebase や設定由来の Material 名は前後空白を除去し、`Locale.ROOT` で大文字へ正規化して `MaterialNameResolver` で解決する。
 - 現行 Paper 名は `Material.matchMaterial` で解決し、Minecraft 更新前の互換名 `CHAIN` は `IRON_CHAIN` として扱う。
 - 空値または未知の Material 名は推測で別 Material へ置換せず `null` を返し、呼び出し側の設計済み fallback に委ねる。
+
+## スキルツリー世代を含むmaster公開
+
+health監視からのauto reloadは継続する。スキルツリーのruntime登録はmaster公開完了後だけ行い、公開中は保留する。tree/class/参照skillの公開失敗は旧snapshotへ復元し、混在世代をWebへ配信しない。各serverの反映完了は個別runtimeで確認する。Seeder成功だけで全serverが更新済みとは判断しない。運用手順は`00_docs/20_API設計書/feature/20-skilltree/20_5.00-安全編集の導入と検証.md`を参照する。

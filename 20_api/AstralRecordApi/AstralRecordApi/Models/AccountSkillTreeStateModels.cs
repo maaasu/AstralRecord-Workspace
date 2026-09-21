@@ -36,6 +36,10 @@ public class AccountSkillTreeInvalidStateRepairRequest
 
     /// <summary>構造不整合を判定した実ロード世代。同一世代以外の補修を拒否する。</summary>
     public string ExpectedDefinitionGenerationId { get; init; } = string.Empty;
+    public string? ServerId { get; init; }
+    public Guid? ServerSessionId { get; init; }
+    public Guid? AccountSessionId { get; init; }
+    public string? AccountLeaseToken { get; init; }
 
     /// <summary>監査用の更新者 UUID。</summary>
     public Guid UpdatedBy { get; init; }

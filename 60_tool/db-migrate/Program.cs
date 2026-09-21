@@ -282,9 +282,16 @@ static async Task ValidateSchemaAsync(SqlConnection connection, MigrationDefinit
 {
     var expectation = migration.Expectation
         ?? throw new InvalidOperationException($"Schema expectation is missing: {migration.FileName}");
+    await ValidateTableSchemaAsync(connection, expectation, migration.FileName);
+    foreach (var additional in migration.AdditionalExpectations)
+        await ValidateTableSchemaAsync(connection, additional, migration.FileName);
+}
+
+static async Task ValidateTableSchemaAsync(SqlConnection connection, SchemaExpectation expectation, string? fileName)
+{
     var schema = string.IsNullOrWhiteSpace(expectation.Schema) ? "dbo" : expectation.Schema;
     if (string.IsNullOrWhiteSpace(expectation.Table))
-        throw new InvalidOperationException($"Expected table is missing: {migration.FileName}");
+        throw new InvalidOperationException($"Expected table is missing: {fileName}");
 
     var fullName = $"{schema}.{expectation.Table}";
     var objectId = await ExecuteScalarIntAsync(
@@ -466,6 +473,7 @@ internal sealed class MigrationDefinition
     public string? FileName { get; init; }
     public int? CommandTimeoutSeconds { get; init; }
     public SchemaExpectation? Expectation { get; init; }
+    public List<SchemaExpectation> AdditionalExpectations { get; init; } = new();
 }
 
 internal sealed class SchemaExpectation

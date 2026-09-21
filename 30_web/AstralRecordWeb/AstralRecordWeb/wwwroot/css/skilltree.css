@@ -169,3 +169,67 @@
 @media (prefers-reduced-motion: reduce) {
     .ar-tree-sanctum *, .ar-tree-sanctum *::before, .ar-tree-sanctum *::after { animation: none !important; transition: none !important; }
 }
+
+/* Extend the original circular nodes with readable labels, preserving their visual language. */
+.ar-tree-label-name { fill: #fff0ce; font: 600 14px 'Noto Sans JP', sans-serif; }
+.ar-tree-label-effect { fill: #e5eaf5; font: 14px 'Noto Sans JP', sans-serif; }
+.ar-tree-label-cost { fill: #b9f0e4; font: 600 14px 'Noto Sans JP', sans-serif; }
+.ar-tree-label-state { fill: #d6cada; font: 13px 'Noto Sans JP', sans-serif; }
+.ar-tree-edge { stroke: #aba4bd; stroke-width: 2.5; stroke-dasharray: 7 5; opacity: .95; }
+.ar-tree-edge.is-unlocked { stroke: #efd099; stroke-width: 3.5; stroke-dasharray: none; opacity: 1; }
+.ar-tree-edge.is-connected { stroke: #fff3cb; stroke-width: 5; stroke-dasharray: none; }
+.ar-tree-node-label rect { fill: #101221ed; stroke: #9983b526; }
+.ar-tree-node.is-unlocked .ar-tree-node-frame { stroke-width: 2.5; }
+.ar-tree-node.is-available .ar-tree-node-frame { stroke: #9fe5d1; stroke-width: 3; stroke-dasharray: 8 3; }
+.ar-tree-node.is-neighbor .ar-tree-node-aura { stroke: #e5cf99; stroke-width: 3; }
+.ar-tree-node[aria-pressed="true"] .ar-tree-node-aura { stroke: #fff0bc; stroke-width: 4; }
+.ar-tree-detail-header button { background: transparent; border: 1px solid #a496ad; color: #efe6f4; border-radius: 4px; padding: .25rem .5rem; }
+.ar-tree-detail-header { position: sticky; top: -.2rem; z-index: 2; background: #221d2b; }
+.is-detail-hidden .ar-tree-detail { display: none; }
+.is-detail-hidden .ar-tree-layout { grid-template-columns: minmax(0, 1fr); }
+.ar-tree-expanded { overflow: hidden; }
+.ar-tree-sanctum.is-expanded { position: fixed; inset: 0; z-index: 1100; margin: 0; padding: .5rem .8rem; border: none; border-radius: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.is-expanded .ar-tree-heading { padding: .2rem .3rem; }
+.is-expanded .ar-tree-heading h2 { font-size: 1.1rem; }
+.is-expanded .ar-tree-heading p, .is-expanded .ar-tree-progress { display: none; }
+.is-expanded [data-skilltree-viewer] { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.is-expanded .ar-tree-toolbar { margin: 0; padding: .4rem 0; gap: .4rem; }
+.is-expanded .ar-tree-layout { flex: 1; min-height: 0; }
+.is-expanded .ar-tree-map-shell, .is-expanded .ar-tree-viewport { height: 100%; min-height: 0; }
+.is-expanded .ar-tree-detail { max-height: 100%; }
+.is-expanded .ar-tree-map-footer { padding: .3rem; }
+.is-expanded .ar-tree-accessible, .is-expanded .ar-tree-map-caption { display: none; }
+.ar-tree-legend { flex-wrap: wrap; gap: .6rem 1rem; }
+.ar-tree-legend .edge { width: 24px; height: 0; transform: none; border: 0; border-top: 3px dashed #aba4bd; }
+.ar-tree-legend .edge.is-unlocked { border-top: 3px solid #efd099; }
+.ar-tree-legend .edge.is-selected { border-top: 4px solid #fff3cb; }
+.ar-skilltree-editor { padding-top: 1rem; }
+.ar-tree-account-state { display: grid; gap: .45rem; padding: .5rem; background: #090f1f; border: 1px solid #8999b54a; border-radius: 5px; color: #e5eaf5; font-size: .8rem; }
+.ar-tree-presence, .ar-tree-balances, .ar-tree-request-status { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.ar-tree-presence small { color: #bcc6d6; }
+.ar-tree-balances > span, .ar-tree-cp-list > span { padding: .3rem .55rem; border: 1px solid #8ae3db44; border-radius: 4px; background: #142b32; white-space: nowrap; }
+.ar-tree-cp-list { display: flex; flex-wrap: wrap; gap: .35rem; max-height: 90px; overflow-y: auto; }
+.ar-tree-account-state p { margin: 0; color: #f0ce98; }
+.ar-tree-request-status [role="status"] { font-weight: 700; margin-right: auto; }
+.ar-tree-account-state button, .ar-tree-operation button { border: 1px solid #c4b28c; border-radius: 4px; background: #25323e; padding: .4rem .6rem; color: #fff1d5; }
+.ar-tree-operation { padding-top: 1rem; border-top: 1px solid #d9b97c55; margin-top: 1rem; font-size: .82rem; line-height: 1.7; }
+.ar-tree-operation button { min-height: 44px; }
+.ar-tree-operation button:disabled { opacity: .5; cursor: not-allowed; }
+.ar-tree-operation select { display: block; width: 100%; max-width: 100%; margin: .5rem 0; background: #131e2e; color: #eef7f5; padding: .6rem .25rem; }
+[data-editor-preview] { color: #b6efdf; font-weight: 600; }
+[data-editor-operation-reason] { color: #f3c697; }
+[data-editor-confirm] { padding: .8rem; border: 1px solid #d9b97c; margin-top: 1rem; }
+@media (max-width: 760px) {
+    .ar-tree-layout { position: relative; }
+    .ar-tree-detail { position: absolute; right: 0; top: 0; bottom: 0; width: min(285px, 80%); max-height: 100%; z-index: 4; border: 1px solid #d9b97c; padding: .8rem; }
+    .ar-tree-relic { display: none; }
+    .ar-tree-controls button { min-height: 40px; }
+    .is-expanded .ar-tree-toolbar { flex-direction: row; flex-wrap: wrap; }
+    .is-expanded .ar-tree-search { flex: 1 1 170px; }
+    .is-expanded .ar-tree-controls { flex: 1 1 300px; }
+    .ar-tree-sanctum.is-expanded { padding: .3rem; }
+    .ar-tree-account-state { font-size: .7rem; gap: .3rem; }
+    .ar-tree-cp-list { max-height: 60px; }
+    .ar-tree-presence small { display: none; }
+    .ar-tree-minimap { display: none; }
+}

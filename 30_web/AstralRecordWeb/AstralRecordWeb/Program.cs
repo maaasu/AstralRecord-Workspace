@@ -91,6 +91,13 @@ builder.Services.AddAuthorization(options =>
     });
 });
 builder.Services.AddScoped<IAuthorizationHandler, WebAdminAuthorizationHandler>();
+builder.Services.AddHttpClient<SkillTreeEditorApiClient>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+});
 builder.Services.AddHttpClient<PlayerProfileApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

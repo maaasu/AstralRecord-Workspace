@@ -65,6 +65,8 @@ public sealed class WebSkillTreeNodeProfileResponse
     public bool IsConditionMet { get; init; } = true;
     public string RequirementText { get; init; } = string.Empty;
     public string? ConsumedClassId { get; init; }
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, JsonElement>? EvaluationDetails { get; init; }
 }
 
 public sealed class WebSkillTreeEdgeResponse

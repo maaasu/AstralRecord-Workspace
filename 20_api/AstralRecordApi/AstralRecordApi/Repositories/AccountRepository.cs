@@ -509,6 +509,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         await dbContext.SkillTreeServerPlayerViews
             .Where(entity => entity.AccountId == accountId)
             .ExecuteDeleteAsync();
+        await dbContext.SkillTreeAccountSessions.Where(entity => entity.AccountId == accountId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(entity => entity.Closed, true));
         await dbContext.SkillTreeOperations
             .Where(entity => entity.AccountId == accountId)
             .ExecuteDeleteAsync();

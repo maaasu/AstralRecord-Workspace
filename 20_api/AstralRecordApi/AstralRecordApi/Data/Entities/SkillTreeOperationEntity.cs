@@ -16,6 +16,7 @@ public sealed class SkillTreeOperationEntity
     public string Status { get; set; } = string.Empty;
     public string? Reason { get; set; }
     public Guid? ClaimedServerSessionId { get; set; }
+    public Guid? ClaimedAccountSessionId { get; set; }
     public string? LeaseTokenHash { get; set; }
     public DateTime? LeaseExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }

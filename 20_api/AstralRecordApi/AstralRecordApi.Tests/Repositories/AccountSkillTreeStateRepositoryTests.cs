@@ -274,6 +274,7 @@ public class AccountSkillTreeStateRepositoryTests
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
     {
         await dbContext.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE skilltree_account_session (account_id TEXT NOT NULL);
             CREATE TABLE account (
                 uuid TEXT NOT NULL PRIMARY KEY,
                 user_id TEXT NOT NULL,

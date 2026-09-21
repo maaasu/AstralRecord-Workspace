@@ -21,6 +21,7 @@ public sealed class SkillTreeServerRegistrationRequest
     public Guid ServerSessionId { get; init; }
     /// <summary>同一serverIdで単調増加するPlugin起動時刻。旧bootの遅延registerを拒否するfenceです。</summary>
     public DateTime ServerStartedAtUtc { get; init; }
+    public long PublicationRevision { get; init; } = 1;
     public required string PluginVersion { get; init; }
     public required string CompatibilityVersion { get; init; }
     public required string DefinitionGenerationId { get; init; }
@@ -65,6 +66,9 @@ public sealed class SkillTreeOperationCreateRequest
 /// </summary>
 public sealed class SkillTreePlayerViewRegistrationRequest
 {
+    public Guid AccountSessionId { get; init; }
+    public string AccountLeaseToken { get; init; } = "";
+    public long ViewSequence { get; init; }
     public Guid ServerSessionId { get; init; }
     public required string DefinitionGenerationId { get; init; }
     public int PlayerStateVersion { get; init; }
@@ -97,8 +101,19 @@ public sealed class SkillTreeOperationResponse
 
 public sealed class SkillTreeOperationClaimRequest
 {
+    public Guid AccountSessionId { get; init; }
+    public string AccountLeaseToken { get; init; } = "";
     public Guid ServerSessionId { get; init; }
     public Guid AccountId { get; init; }
+}
+
+/// <summary>アカウントのロード前に取得する、終了後に再利用できない処理権限です。</summary>
+public sealed class SkillTreeAccountSessionRequest
+{
+    public Guid ServerSessionId { get; init; }
+    public Guid AccountSessionId { get; init; }
+    public required string AccountLeaseToken { get; init; }
+    public required string DefinitionGenerationId { get; init; }
 }
 
 public sealed class SkillTreeOperationClaimResponse
@@ -117,10 +132,11 @@ public sealed class SkillTreeMigrationRequest
     public required string ToGenerationId { get; init; }
     public required IReadOnlyList<string> LegacyBaselineNodeIds { get; init; }
     public required IReadOnlyList<string> RemoveNodeIds { get; init; }
-    /// <summary>Pluginが旧新snapshotの保持node互換性・graph連結性を検証した証明。APIはゲーム条件を再実装しない。</summary>
-    public required string CompatibilityProofHash { get; init; }
+    public bool ConfirmLegacyBaseline { get; init; }
+    public bool PreviewOnly { get; init; }
 }
-public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } }
+public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } public IReadOnlyList<SkillTreeMigrationRefund> Refunds { get; init; } = []; }
+public sealed class SkillTreeMigrationRefund { public required string NodeId { get; init; } public required string PointType { get; init; } public int Points { get; init; } public string? ClassId { get; init; } }
 
 /// <summary>Plugin の既存player-state snapshotと同一transactionで確定する操作結果です。</summary>
 public sealed class PlayerStateSkillTreeOperationSection

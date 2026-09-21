@@ -656,6 +656,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        service.markRuntimePlayerContextChanged(event.getPlayer());
         clearPlayerRuntime(event.getPlayer());
     }
 

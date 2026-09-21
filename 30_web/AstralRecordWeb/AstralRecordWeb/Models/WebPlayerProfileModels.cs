@@ -65,6 +65,21 @@ public sealed class WebSkillTreeNodeProfileResponse
     public bool IsConditionMet { get; init; } = true;
     public string RequirementText { get; init; } = string.Empty;
     public string? ConsumedClassId { get; init; }
+    public string? ConsumedClassName { get; init; }
+    public string? CostText { get; init; }
+    public string? StateText { get; init; }
+    public string? BlockedReason { get; init; }
+    public bool CanUnlock { get; init; }
+    public bool CanRelock { get; init; }
+    public bool RequiresCpSourceSelection { get; init; }
+    public IReadOnlyList<WebSkillTreeCpSource> CpSources { get; init; } = [];
+}
+
+public sealed class WebSkillTreeCpSource
+{
+    public string ClassId { get; init; } = "";
+    public string ClassName { get; init; } = "";
+    public int AvailableCp { get; init; }
 }
 
 public sealed class WebSkillTreeEdgeResponse

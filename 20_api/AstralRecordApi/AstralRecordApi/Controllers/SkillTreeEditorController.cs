@@ -36,6 +36,31 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> Register(string serverId, [FromBody] SkillTreeServerRegistrationRequest request)
         => !HasRuntimeCredential() ? Unauthorized() : await repository.RegisterServerAsync(serverId, request) is { } result ? Ok(result) : BadRequest();
 
+    /// <summary>運用者が移行前に、保存済みの不変な定義スナップショットを確認する。</summary>
+    [HttpGet("runtime/definitions/{generationId}")]
+    public async Task<IActionResult> GetDefinition(string generationId)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.GetDefinitionAsync(generationId) is { } json
+            ? Ok(System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json)) : NotFound();
+
+    /// <summary>オフライン状態の移行案を準備するため、運用者が元のノード集合と更新番号を確認する。</summary>
+    [HttpGet("runtime/accounts/{accountId:guid}/migration-state")]
+    public async Task<IActionResult> GetMigrationState(Guid accountId, [FromServices] IAccountSkillTreeStateRepository states)
+    {
+        if (!HasRuntimeCredential()) return Unauthorized();
+        try { return Ok(await states.GetByAccountIdAsync(accountId)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    /// <summary>ロード前にアカウントの処理権限を取得する。終了・期限切れsessionは再利用できない。</summary>
+    [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/sessions")]
+    public async Task<IActionResult> AcquireSession(string serverId, Guid accountId, SkillTreeAccountSessionRequest request)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.AcquireAccountSessionAsync(serverId, accountId, request) ? Ok(new { acquired = true }) : Conflict();
+
+    /// <summary>退出保存の完了後に処理権限を終了し、最終評価が一致する場合のみオフライン案の基準を残す。</summary>
+    [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/session-close")]
+    public async Task<IActionResult> CloseSession(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.CloseAccountSessionAsync(serverId, accountId, request) ? Ok(new { closed = true }) : Conflict();
+
     [HttpPost("runtime/servers/{serverId}/heartbeat")]
     public async Task<IActionResult> Heartbeat(string serverId, [FromBody] SkillTreeServerHeartbeatRequest request)
         => !HasRuntimeCredential() ? Unauthorized() : await repository.HeartbeatServerAsync(serverId, request) is { } result ? Ok(result) : Conflict();

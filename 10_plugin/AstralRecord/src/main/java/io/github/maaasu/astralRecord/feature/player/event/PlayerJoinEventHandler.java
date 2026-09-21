@@ -1120,6 +1120,15 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             try {
                 return skillTreeService.loadInitialPlayerState(accountId, userId);
             } catch (RuntimeException e) {
+                if (e instanceof io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException) {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (isJoinLoading(attempt)) {
+                            attempt.player().kick(PlayerMsgResource.formatComponent(PlayerMsgId.P_9050.getId()));
+                            finishJoinLoading(attempt, false);
+                        }
+                    });
+                    return null;
+                }
                 if (attemptNumber == 1) {
                     Logger.log(LogId.W_9002, accountId, e.getMessage());
                 }

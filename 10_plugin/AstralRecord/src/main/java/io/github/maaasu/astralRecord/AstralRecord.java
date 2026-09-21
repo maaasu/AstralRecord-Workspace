@@ -2012,6 +2012,7 @@ public final class AstralRecord extends JavaPlugin {
                 }
             });
         inventoryPersistence.setFailureListener(playerStateIncidents::onFailure);
+        playerService.setLogoutStateSavedListener(skillTreeService::finishRuntimeLogout);
         playerJoinEventHandler.setAccountLoadingListener(playerStateIncidents::onAccountLoading);
         inventorySaveCoordinator.setMutationObserver(playerStateIncidents::recordOperation);
         playerJoinEventHandler.setPlayerStateRecoveryAccountDiscarder(accountId -> {
@@ -2961,12 +2962,28 @@ public final class AstralRecord extends JavaPlugin {
         }
 
         try {
-            for (Runnable publication : plan.publications()) {
-                publication.run();
+            skillTreeService.beginMasterDataPublication();
+            try {
+                var previousTree = skillTreeService.snapshotPublishedMasterData();
+                var previousClasses = playerClassService.snapshotLoadedClasses();
+                var previousSkills = skillService.registry().definitions().stream().collect(
+                        java.util.stream.Collectors.toMap(definition -> definition.getId(), definition -> definition));
+                try {
+                    for (Runnable publication : plan.publications()) publication.run();
+                    inventoryService.reconcileUnavailableItemMasterEntries();
+                    FileDatabaseManager.getInstance().replaceReloadSnapshot(plan.fileDatabaseSnapshot());
+                    YamlDbConfigUtil.INSTANCE.replaceSnapshot(plan.yamlDbConfig());
+                } catch (RuntimeException failure) {
+                    playerClassService.replaceSnapshot(previousClasses);
+                    skillService.replaceDefinitions(previousSkills);
+                    skillTreeService.replaceMasterDataSnapshot(previousTree);
+                    AstPlayerCache.getAll().forEach(statusService::refreshStatus);
+                    throw failure;
+                }
+                skillTreeService.finishMasterDataPublication();
+            } finally {
+                skillTreeService.endMasterDataPublication();
             }
-            inventoryService.reconcileUnavailableItemMasterEntries();
-            FileDatabaseManager.getInstance().replaceReloadSnapshot(plan.fileDatabaseSnapshot());
-            YamlDbConfigUtil.INSTANCE.replaceSnapshot(plan.yamlDbConfig());
             for (MasterDataActivation activation : plan.activations()) {
                 try {
                     activation.action().run();

@@ -7,7 +7,7 @@ namespace AstralRecordApi.Controllers;
 
 [ApiController]
 [Route("api/account-skilltree")]
-public class AccountSkillTreeController(IAccountSkillTreeStateRepository accountSkillTreeStateRepository) : ControllerBase
+public class AccountSkillTreeController(IAccountSkillTreeStateRepository accountSkillTreeStateRepository, ISkillTreeOperationRepository? runtime = null) : ControllerBase
 {
     [HttpGet("{accountId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -17,6 +17,18 @@ public class AccountSkillTreeController(IAccountSkillTreeStateRepository account
         try
         {
             var state = await accountSkillTreeStateRepository.GetByAccountIdAsync(accountId);
+            if (state.DefinitionGenerationId is not null || runtime is not null && await runtime.RequiresRuntimeAuthorityAsync(accountId))
+            {
+                var headers = HttpContext?.Request.Headers;
+                var generation = headers?["X-SkillTree-Generation"].ToString();
+                var serverId = headers?["X-SkillTree-Server"].ToString();
+                var token = headers?["X-SkillTree-Account-Token"].ToString();
+                if (runtime is null || generation is null || state.DefinitionGenerationId is not null && generation != state.DefinitionGenerationId || serverId is null || token is null
+                    || !Guid.TryParse(headers?["X-SkillTree-Boot"].ToString(), out var boot)
+                    || !Guid.TryParse(headers?["X-SkillTree-Account-Session"].ToString(), out var session)
+                    || !await runtime.ValidateRuntimeStateSaveAsync(accountId, serverId, boot, generation, session, token))
+                    return Conflict(new { reason = "DEFINITION_MISMATCH" });
+            }
             return Ok(state);
         }
         catch (KeyNotFoundException)

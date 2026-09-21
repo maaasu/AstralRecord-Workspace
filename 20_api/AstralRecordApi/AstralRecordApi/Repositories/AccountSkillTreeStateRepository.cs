@@ -15,6 +15,13 @@ public class AccountSkillTreeStateRepository(
     private const string CompensationMailIdPrefix = "skilltree-structure-reset-";
     private const string MasterTypeMail = "mail";
 
+    private async Task LockAccountAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+            await dbContext.Accounts.FromSqlInterpolated($"SELECT * FROM [dbo].[account] WITH (UPDLOCK,HOLDLOCK) WHERE [uuid] = {accountId}")
+                .SingleOrDefaultAsync();
+    }
+
     public async Task<AccountSkillTreeStateResponse> GetByAccountIdAsync(Guid accountId)
     {
         var accountExists = await dbContext.Accounts
@@ -34,8 +41,14 @@ public class AccountSkillTreeStateRepository(
             : Map(entity);
     }
 
-    public async Task<AccountSkillTreeStateResponse> UpsertAsync(Guid accountId, AccountSkillTreeStateUpsertRequest request)
+    public Task<AccountSkillTreeStateResponse> UpsertAsync(Guid accountId, AccountSkillTreeStateUpsertRequest request) =>
+        dbContext.Database.CreateExecutionStrategy().ExecuteAsync(() => UpsertLegacyAsync(accountId, request));
+
+    private async Task<AccountSkillTreeStateResponse> UpsertLegacyAsync(Guid accountId, AccountSkillTreeStateUpsertRequest request)
     {
+        dbContext.ChangeTracker.Clear();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        await LockAccountAsync(accountId);
         var accountExists = await dbContext.Accounts
             .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
 
@@ -46,11 +59,12 @@ public class AccountSkillTreeStateRepository(
         var normalizedNodes = NormalizeUnlockedNodes(request.UnlockedNodes);
         var current = await dbContext.AccountSkillTreeStates.AsNoTracking()
             .SingleOrDefaultAsync(state => state.AccountId == accountId && !state.IsDeleted);
-        if (current?.DefinitionGenerationId is not null)
+        if (current?.DefinitionGenerationId is not null || await dbContext.SkillTreeAccountSessions.AnyAsync(x => x.AccountId == accountId))
             throw new InvalidOperationException("Generation-bound skill tree state must be changed through the Plugin operation flow.");
         await ReplaceUnlockedNodesAsync(accountId, normalizedNodes, request.UpdatedBy, now);
 
         await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
         return await GetByAccountIdAsync(accountId);
     }
 
@@ -85,6 +99,7 @@ public class AccountSkillTreeStateRepository(
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
+            await LockAccountAsync(accountId);
             var deliveryExistsInTransaction = await DeliveryExistsForRepairAsync(accountId, deliveryMailId);
             var hasUnlockedNodes = await HasUnlockedNodesAsync(accountId);
             if (deliveryExistsInTransaction && !hasUnlockedNodes)
@@ -99,6 +114,20 @@ public class AccountSkillTreeStateRepository(
             var currentGeneration = await dbContext.AccountSkillTreeStates
                 .AsNoTracking().Where(state => state.AccountId == accountId && !state.IsDeleted)
                 .Select(state => state.DefinitionGenerationId).SingleOrDefaultAsync();
+            if (currentGeneration is null && await dbContext.SkillTreeAccountSessions.AnyAsync(x => x.AccountId == accountId))
+                throw new DbUpdateConcurrencyException("Legacy enrolled state requires explicit migration, not automatic repair.");
+            if (currentGeneration is not null)
+            {
+                var owner = await dbContext.SkillTreeAccountSessions.SingleOrDefaultAsync(session => session.AccountId == accountId
+                    && session.AccountSessionId == request.AccountSessionId && session.ServerId == request.ServerId
+                    && session.ServerSessionId == request.ServerSessionId && !session.Closed && session.ExpiresAtUtc > DateTime.UtcNow);
+                var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(server => server.ServerId == request.ServerId
+                    && server.ServerSessionId == request.ServerSessionId && server.Ready);
+                var tokenHash = string.IsNullOrEmpty(request.AccountLeaseToken) ? "" : Convert.ToHexString(
+                    System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(request.AccountLeaseToken))).ToLowerInvariant();
+                if (owner is null || runtime is null || owner.DefinitionGenerationId != currentGeneration || owner.LeaseTokenHash != tokenHash)
+                    throw new DbUpdateConcurrencyException("Skill tree repair session is no longer authoritative.");
+            }
             if (string.IsNullOrWhiteSpace(request.ExpectedDefinitionGenerationId)
                 ? currentGeneration is not null
                 : !string.Equals(currentGeneration, request.ExpectedDefinitionGenerationId, StringComparison.Ordinal))

@@ -5,3 +5,5 @@
 `view_json` は `tree`、`points`、`relockGoldCost` を含み、Webは解放条件・費用を再計算しない。`evaluation_fingerprint` はGold、PP/CP、クラス・レベル、解放条件など判定入力からPluginが生成し、位置・heartbeat時刻など無関係な値を含めない。
 
 TTL切れ、sessionまたはgeneration不一致、state version不一致なら残高を返さず、操作にも使わない。
+
+`account_session_id`で参加を識別する。`offline_confirmed`は退出保存ACK後の明示closeでのみtrueとなる。応答切れ/期限切れだけではtrueにしない。オフラインviewは最終保存残高として保持し、後続のaccount/inventory更新があれば編集に使用しない。

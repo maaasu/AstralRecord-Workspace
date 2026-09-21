@@ -49,6 +49,37 @@ class InventoryPlayerSnapshotTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
+     * 検証契約: 保存権限の登録だけではdirtyにならず、送信payloadには捕捉時の権限が固定される。
+     */
+    @Test
+    void runtimeAuthorityDoesNotDirtyStateAndIsCapturedWithPayload() {
+        InventoryRepository inventories = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadouts = mock(EquipmentLoadoutRepository.class);
+        ItemService items = mock(ItemService.class);
+        PlayerStateRepository api = mock(PlayerStateRepository.class);
+        when(inventories.findByAccountId(account)).thenReturn(List.of(inventory()));
+        when(inventories.findEntries(inventoryId)).thenReturn(List.of(entry(10, originalTime)));
+        InventoryPersistence persistence = new InventoryPersistence(inventories, loadouts, items, api);
+        PlayerInventoryState state = persistence.load(account);
+        JsonObject proof = new JsonObject();
+        proof.addProperty("accountSessionId", "original-session");
+        persistence.setSnapshotAuthorityProvider(ignored -> proof);
+        assertFalse(persistence.hasPendingChanges(state));
+        when(api.saveSnapshot(anyString())).thenAnswer(call -> {
+            String frozen = call.getArgument(0, String.class);
+            proof.addProperty("accountSessionId", "next-session");
+            JsonObject request = JsonParser.parseString(frozen).getAsJsonObject();
+            assertEquals("original-session", request.getAsJsonObject("runtimeAuthority").get("accountSessionId").getAsString());
+            return ack(request, originalTime.plusSeconds(1));
+        });
+        state.markDirty();
+        assertTrue(persistence.saveNow(state));
+        assertFalse(persistence.hasPendingChanges(state));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
      * 検証契約: API待機中のローカル消費をACKで巻き戻さず、次便は更新済み版と最新数量を送る。
      */
     @Test
@@ -495,6 +526,54 @@ class InventoryPlayerSnapshotTest {
         when(inventories.findEntries(inventoryId)).thenReturn(List.of(entry(10, originalTime)));
         return new InventoryPersistence(
             inventories, mock(EquipmentLoadoutRepository.class), mock(ItemService.class), api);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: 課金を伴う確定と無変更の拒否の両方で、操作IDまたは最終状態が異なるACKを成功扱いしない。
+     */
+    @Test
+    void requiresMatchingOperationIdentityAndTerminalStatus() {
+        for (boolean applied : List.of(false, true)) {
+            String expectedStatus = applied ? "APPLIED" : "RECONFIRMATION_REQUIRED";
+            JsonObject receipt = new JsonObject();
+            receipt.addProperty("operationId", UUID.randomUUID().toString());
+            receipt.addProperty("finalStatus", expectedStatus);
+            JsonObject section = receipt;
+            String sectionName = "skillTreeOperation";
+            if (applied) {
+                sectionName = "skillTree";
+                section = new JsonObject();
+                section.addProperty("clientRevision", 8);
+                section.addProperty("expectedVersion", 4);
+                section.addProperty("targetVersion", 5);
+                section.add("operation", receipt);
+            }
+            PlayerStateSnapshot snapshot = new PlayerStateSnapshot(new PlayerInventoryState(account), List.of(),
+                List.of(new PlayerStateSection(sectionName, section, ignored -> { })), Map.of(), Map.of());
+            JsonObject request = JsonParser.parseString(snapshot.payload).getAsJsonObject();
+            JsonObject response = ack(request, originalTime);
+            JsonObject receiptAck = new JsonObject();
+            receiptAck.add("operationId", receipt.get("operationId"));
+            receiptAck.addProperty("status", expectedStatus);
+            JsonObject sectionAck = receiptAck;
+            if (applied) {
+                sectionAck = new JsonObject();
+                sectionAck.addProperty("clientRevision", 8);
+                sectionAck.addProperty("version", 5);
+                sectionAck.add("operation", receiptAck);
+            }
+            response.add(sectionName, sectionAck);
+            assertDoesNotThrow(() -> snapshot.validateAck(response));
+            receiptAck.addProperty("operationId", UUID.randomUUID().toString());
+            assertThrows(PlayerStateAcknowledgementException.class, () -> snapshot.validateAck(response));
+            receiptAck.add("operationId", receipt.get("operationId"));
+            receiptAck.addProperty("status", applied ? "FAILED" : "APPLIED");
+            assertThrows(PlayerStateAcknowledgementException.class, () -> snapshot.validateAck(response));
+            response.remove(sectionName);
+            assertThrows(PlayerStateAcknowledgementException.class, () -> snapshot.validateAck(response));
+        }
     }
 
     private JsonObject ack(JsonObject request, LocalDateTime time) {

@@ -103,6 +103,488 @@
         ],
         "indexes": []
       }
+    },
+    {
+      "id": "20260921_skilltree_safe_editor",
+      "fileName": "20260921_skilltree_safe_editor.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account_skilltree_state",
+        "primaryKey": "PK_account_skilltree_state",
+        "columns": [
+          {
+            "name": "definition_generation_id",
+            "sqlType": "nvarchar",
+            "maxLengthBytes": 128,
+            "isNullable": true
+          }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "skilltree_definition_generation",
+          "primaryKey": "PK_skilltree_definition_generation",
+          "columns": [
+            {
+              "name": "definition_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "canonical_snapshot_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [
+            "CK_skilltree_definition_generation_id",
+            "CK_skilltree_definition_generation_snapshot_json"
+          ],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "skilltree_server_runtime",
+          "primaryKey": "PK_skilltree_server_runtime",
+          "columns": [
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "server_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "server_started_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "publication_revision",
+              "sqlType": "bigint",
+              "isNullable": false
+            },
+            {
+              "name": "plugin_version",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "compatibility_version",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "definition_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "ready",
+              "sqlType": "bit",
+              "isNullable": false,
+              "maxLengthBytes": 1
+            },
+            {
+              "name": "last_seen_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "skilltree_account_session",
+          "primaryKey": "PK_skilltree_account_session",
+          "columns": [
+            {
+              "name": "account_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "server_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "definition_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "lease_token_hash",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "expires_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "closed",
+              "sqlType": "bit",
+              "isNullable": false,
+              "maxLengthBytes": 1
+            },
+            {
+              "name": "view_sequence",
+              "sqlType": "bigint",
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "skilltree_server_player_view",
+          "primaryKey": "PK_skilltree_server_player_view",
+          "columns": [
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "server_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "definition_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "player_state_version",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            },
+            {
+              "name": "evaluation_fingerprint",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "edit_eligible",
+              "sqlType": "bit",
+              "isNullable": false,
+              "maxLengthBytes": 1
+            },
+            {
+              "name": "offline_confirmed",
+              "sqlType": "bit",
+              "isNullable": false,
+              "maxLengthBytes": 1
+            },
+            {
+              "name": "view_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "last_seen_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [
+            "CK_skilltree_server_player_view_version",
+            "CK_skilltree_server_player_view_json"
+          ],
+          "indexes": [
+            "IX_skilltree_server_player_view_seen"
+          ]
+        },
+        {
+          "schema": "dbo",
+          "table": "skilltree_operation",
+          "primaryKey": "PK_skilltree_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "actor_user_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "target_server_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "expected_definition_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "expected_player_state_version",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            },
+            {
+              "name": "expected_evaluation_fingerprint",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "action",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "node_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 400
+            },
+            {
+              "name": "source_class_id",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "status",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 64
+            },
+            {
+              "name": "reason",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 1000
+            },
+            {
+              "name": "claimed_server_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "claimed_account_session_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "lease_token_hash",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "lease_expires_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": true,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "expires_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "completed_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": true,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [
+            "CK_skilltree_operation_version",
+            "CK_skilltree_operation_action"
+          ],
+          "indexes": [
+            "IX_skilltree_operation_account_status",
+            "IX_skilltree_operation_server_status"
+          ]
+        },
+        {
+          "schema": "dbo",
+          "table": "skilltree_migration_operation",
+          "primaryKey": "PK_skilltree_migration_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "expected_state_version",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            },
+            {
+              "name": "from_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "to_generation_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "baseline_node_ids_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "removed_node_ids_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "status",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 64
+            },
+            {
+              "name": "result_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "completed_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [
+            "CK_skilltree_migration_operation_result"
+          ],
+          "indexes": []
+        }
+      ]
     }
   ]
 }

@@ -50,12 +50,30 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<SkillTreeOperationEntity> SkillTreeOperations => Set<SkillTreeOperationEntity>();
     public DbSet<SkillTreeServerPlayerViewEntity> SkillTreeServerPlayerViews => Set<SkillTreeServerPlayerViewEntity>();
     public DbSet<SkillTreeMigrationOperationEntity> SkillTreeMigrationOperations => Set<SkillTreeMigrationOperationEntity>();
+    public DbSet<SkillTreeAccountSessionEntity> SkillTreeAccountSessions => Set<SkillTreeAccountSessionEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
     public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SkillTreeAccountSessionEntity>(entity =>
+        {
+            entity.ToTable("skilltree_account_session", "dbo");
+            entity.HasKey(x => x.AccountSessionId).HasName("PK_skilltree_account_session");
+            entity.Property(x => x.AccountSessionId).HasColumnName("account_session_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
+            entity.Property(x => x.ServerSessionId).HasColumnName("server_session_id");
+            entity.Property(x => x.LeaseTokenHash).HasColumnName("lease_token_hash").HasMaxLength(64);
+            entity.Property(x => x.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").HasPrecision(3);
+            entity.Property(x => x.ExpiresAtUtc).HasColumnName("expires_at_utc").HasPrecision(3);
+            entity.Property(x => x.Closed).HasColumnName("closed");
+            entity.Property(x => x.ViewSequence).HasColumnName("view_sequence");
+            entity.HasIndex(x => x.AccountId).IsUnique().HasFilter("[closed] = 0").HasDatabaseName("UX_skilltree_account_session_active");
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<SkillTreeDefinitionGenerationEntity>(entity =>
         {
             entity.ToTable("skilltree_definition_generation", "dbo");
@@ -66,6 +84,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
         });
         modelBuilder.Entity<SkillTreeServerRuntimeEntity>(entity =>
         {
+            entity.Property(x => x.PublicationRevision).HasColumnName("publication_revision");
             entity.ToTable("skilltree_server_runtime", "dbo");
             entity.HasKey(x => x.ServerId);
             entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
@@ -80,6 +99,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
         });
         modelBuilder.Entity<SkillTreeOperationEntity>(entity =>
         {
+            entity.Property(x => x.ClaimedAccountSessionId).HasColumnName("claimed_account_session_id");
             entity.ToTable("skilltree_operation", "dbo");
             entity.HasKey(x => x.OperationId);
             entity.Property(x => x.OperationId).HasColumnName("operation_id");
@@ -107,6 +127,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
         });
         modelBuilder.Entity<SkillTreeServerPlayerViewEntity>(entity =>
         {
+            entity.Property(x => x.AccountSessionId).HasColumnName("account_session_id");
             entity.ToTable("skilltree_server_player_view", "dbo");
             entity.HasKey(x => new { x.ServerId, x.AccountId });
             entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
@@ -124,6 +145,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
         });
         modelBuilder.Entity<SkillTreeMigrationOperationEntity>(entity =>
         {
+            entity.Property(x => x.ResultJson).HasColumnName("result_json");
             entity.ToTable("skilltree_migration_operation", "dbo"); entity.HasKey(x => x.OperationId);
             entity.Property(x => x.OperationId).HasColumnName("operation_id"); entity.Property(x => x.AccountId).HasColumnName("account_id");
             entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64); entity.Property(x => x.ExpectedStateVersion).HasColumnName("expected_state_version");

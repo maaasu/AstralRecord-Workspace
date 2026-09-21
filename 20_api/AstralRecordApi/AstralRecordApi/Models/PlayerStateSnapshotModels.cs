@@ -18,6 +18,8 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? SkillTree { get; init; }
     /// <summary>状態変更を伴わない却下・再確認も含む、lease済みWebスキルツリー操作の結果です。</summary>
     public JsonElement? SkillTreeOperation { get; init; }
+    /// <summary>全sectionに共通する参加先の保存権限。状態を変更するsectionではありません。</summary>
+    public JsonElement? RuntimeAuthority { get; init; }
     public JsonElement? AccountProgress { get; init; }
     public JsonElement? Waystones { get; init; }
     public JsonElement? QuestState { get; init; }
@@ -207,6 +209,8 @@ public sealed class PlayerStateSkillTreeSection
     public string? DefinitionGenerationId { get; init; }
     public string? ServerId { get; init; }
     public Guid? ServerSessionId { get; init; }
+    public Guid? AccountSessionId { get; init; }
+    public string? AccountLeaseToken { get; init; }
     /// <summary>generation未記録の既存状態をPluginが構造確認してbindする明示移行です。</summary>
     public bool MigrateLegacyState { get; init; }
     /// <summary>Web編集要求を Plugin が再検証して確定した場合だけ指定します。</summary>

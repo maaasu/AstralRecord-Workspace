@@ -1,0 +1,29 @@
+@page "/skilltree/{accountId:guid}"
+@model AstralRecordWeb.Pages.SkillTree.IndexModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "スキルツリー編集";
+    ViewData["SkillTreeEditor"] = true;
+}
+<div class="ar-portal ar-skilltree-editor" data-skilltree-editor data-account-id="@Model.AccountId">
+    <a asp-page="/MyPage" class="ar-btn-outline">マイページへ</a>
+    @Html.AntiForgeryToken()
+    @if (Model.ErrorMessage is not null)
+    {
+        <p class="ar-empty" role="alert">@Model.ErrorMessage</p>
+    }
+    @if (Model.EditorState.HasValue)
+    {
+        <script type="application/json" data-editor-state>@Html.Raw(JsonSerializer.Serialize(Model.EditorState.Value))</script>
+    }
+    @if (Model.Tree is not null)
+    {
+        <partial name="_SkillTreeViewer" model="Model.Tree" />
+    }
+    else
+    {
+        <p class="ar-empty">参加先のスキルツリーを確認できません。サーバーの更新完了後に再取得してください。</p>
+        <a href="" class="ar-btn-outline">最新の状態を再取得</a>
+    }
+</div>
+@section Scripts { <script type="module" src="~/js/skilltree-editor.js" asp-append-version="true"></script> }

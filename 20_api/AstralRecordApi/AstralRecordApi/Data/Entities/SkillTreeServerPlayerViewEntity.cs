@@ -6,6 +6,7 @@ public sealed class SkillTreeServerPlayerViewEntity
     public string ServerId { get; set; } = string.Empty;
     public Guid AccountId { get; set; }
     public Guid ServerSessionId { get; set; }
+    public Guid? AccountSessionId { get; set; }
     public string DefinitionGenerationId { get; set; } = string.Empty;
     public int PlayerStateVersion { get; set; }
     public string EvaluationFingerprint { get; set; } = string.Empty;

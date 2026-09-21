@@ -1,3 +1,5 @@
 # dbo.skilltree_migration_operation
 
 非空legacy採用と正式廃止nodeの明示除去だけを冪等に記録する台帳です。新node付与、CP元付替え、Gold更新は扱いません。Pluginが互換性とグラフを検証し、APIは固定baseline・version・世代・remove集合だけを原子的に検証します。
+
+`result_json`は返還一覧と確定後versionを含む確定結果。同じoperation ID/payloadの再送に元の結果を返す。previewは台帳に記録しない。node除去とstate世代/version更新を同じtransactionで保存する。

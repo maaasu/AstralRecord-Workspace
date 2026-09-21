@@ -63,6 +63,12 @@ public final class InventoryPersistence {
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
     private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
     private final PlayerStateRepository playerStateRepository;
+    private volatile java.util.function.Function<UUID, com.google.gson.JsonElement> snapshotAuthorityProvider = ignored -> null;
+
+    /** 保存対象がある場合だけ捕捉する権限情報。登録だけでdirty状態にはしません。 */
+    public void setSnapshotAuthorityProvider(@NotNull java.util.function.Function<UUID, com.google.gson.JsonElement> provider) {
+        snapshotAuthorityProvider = java.util.Objects.requireNonNull(provider);
+    }
     private volatile java.util.function.Consumer<PlayerStateFailure> failureListener = ignored -> { };
     private final Set<PlayerInventoryState> discardedStates = java.util.Collections.synchronizedSet(
         java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>()));
@@ -457,7 +463,8 @@ public final class InventoryPersistence {
             persistedEntryVersions.getOrDefault(accountId, Map.of()),
             persistedInventoryIds.getOrDefault(accountId, Set.of()),
             persistedLoadoutIds.getOrDefault(accountId, Set.of()),
-            itemService.snapshotPendingEquipmentCreationIds(accountId), includePendingInventories);
+            itemService.snapshotPendingEquipmentCreationIds(accountId), includePendingInventories,
+            snapshotAuthorityProvider.apply(accountId));
     }
 
     /**

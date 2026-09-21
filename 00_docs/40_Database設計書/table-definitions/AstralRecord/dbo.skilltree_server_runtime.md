@@ -11,3 +11,5 @@
 | `ready` / `last_seen_utc` | 準備完了とheartbeat最終時刻 |
 
 reload失敗時は新世代・readyを更新しない。heartbeat TTLを越えた行は現在世代の保証に使わない。
+
+`publication_revision`は同一boot内の単調な公開番号。新世代より古い登録の遅延到着を拒否する。対応互換性は`skilltree-operation-v1`。runtimeとaccount leaseの有効期限は45秒。

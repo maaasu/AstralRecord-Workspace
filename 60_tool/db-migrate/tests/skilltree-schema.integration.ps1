@@ -1,9 +1,10 @@
 param(
-    [string]$RepoRoot = 'E:\AstralRecord-Worktrees\skill-tree-safe-web',
+    [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..\..'),
     [string]$SqlInstance = 'localhost\SQLEXPRESS'
 )
 
 $ErrorActionPreference = 'Stop'
+if ($SqlInstance -ne 'localhost\SQLEXPRESS') { throw 'This integration test only permits localhost\SQLEXPRESS.' }
 
 $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
 $toolProject = Join-Path $RepoRoot '60_tool\db-migrate\DbMigrateTool.csproj'
@@ -92,6 +93,8 @@ VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-1111111
         throw "The target runner manifest is not ready for the skill-tree multi-table migration test."
     }
     $config.sourceApiAppsettingsPath = $null
+    $config.preExistingMigrationFileNames = @($config.migrations | Where-Object { $_.id -ne $migrationId } | ForEach-Object { $_.fileName })
+    $config.migrations = @($migration[0])
     $config.connectionStrings.sqlServer = $databaseConnectionString
     $config.migrationsRootPath = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $sourceConfigPath) $config.migrationsRootPath))
     $config | ConvertTo-Json -Depth 30 | Set-Content -Encoding UTF8 -LiteralPath $tempConfigPath
@@ -104,11 +107,13 @@ VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-1111111
     Invoke-MigrationRunner
     Assert-ScalarEqual -Name 'migration history count' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'$migrationId';")) -Expected 1
     Assert-ScalarEqual -Name 'sentinel legacy state preservation' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM dbo.account_skilltree_state WHERE account_skilltree_state_id = '22222222-2222-2222-2222-222222222222' AND account_id = '11111111-1111-1111-1111-111111111111' AND version = 7 AND definition_generation_id IS NULL;")) -Expected 1
-    Assert-ScalarEqual -Name 'skill-tree runtime table count' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID(N'dbo') AND name IN (N'skilltree_definition_generation', N'skilltree_server_runtime', N'skilltree_server_player_view', N'skilltree_operation', N'skilltree_migration_operation');")) -Expected 5
+    Assert-ScalarEqual -Name 'skill-tree runtime table count' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID(N'dbo') AND name IN (N'skilltree_definition_generation', N'skilltree_server_runtime', N'skilltree_server_player_view', N'skilltree_operation', N'skilltree_migration_operation', N'skilltree_account_session');")) -Expected 6
     Assert-ScalarEqual -Name 'skill-tree primary key count' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM sys.key_constraints WHERE [type] = N'PK' AND name IN (N'PK_skilltree_definition_generation', N'PK_skilltree_server_runtime', N'PK_skilltree_server_player_view', N'PK_skilltree_operation');")) -Expected 4
     Assert-ScalarEqual -Name 'skill-tree required constraints' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM sys.check_constraints WHERE name IN (N'CK_skilltree_definition_generation_id', N'CK_skilltree_definition_generation_snapshot_json', N'CK_skilltree_server_player_view_version', N'CK_skilltree_server_player_view_json', N'CK_skilltree_operation_version', N'CK_skilltree_operation_action');")) -Expected 6
 
     Invoke-MigrationRunner
+    & $sqlcmd -S $SqlInstance -d $databaseName -E -C -b -i (Join-Path $config.migrationsRootPath '20260921_skilltree_safe_editor.sql') 2>&1 | Write-Output
+    if ($LASTEXITCODE -ne 0) { throw 'The migration SQL is not safe to reapply.' }
     Assert-ScalarEqual -Name 'idempotent migration history count' -Actual ([int](Invoke-DbScalar -Database $databaseName -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'$migrationId';")) -Expected 1
 
     $config = Get-Content -Raw -Encoding UTF8 -LiteralPath $tempConfigPath | ConvertFrom-Json

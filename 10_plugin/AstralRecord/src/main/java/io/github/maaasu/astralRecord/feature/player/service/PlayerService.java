@@ -47,6 +47,12 @@ public class PlayerService {
     private final StatusService statusService;
     private final PlayerSaveCoordinator playerSaveCoordinator;
     private final PlayerRegionService playerRegionService;
+    private java.util.function.Consumer<AstPlayer> logoutStateSavedListener = ignored -> { };
+
+    /** 全退出保存のACK後、inventory解放前に呼ぶ非同期境界処理を登録する。Bukkit APIは使用しない。 */
+    public void setLogoutStateSavedListener(@NotNull java.util.function.Consumer<AstPlayer> listener) {
+        logoutStateSavedListener = java.util.Objects.requireNonNull(listener);
+    }
 
     /**
      * プレイヤーサービスを構築します。
@@ -342,8 +348,13 @@ public class PlayerService {
             save = inventorySaveCoordinator.saveOnLogoutWithResult(
                 accountId,
                 state,
-                () -> playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT)
-                    && !accountService.hasPendingClassProgress(accountId)
+                () -> {
+                    boolean saved = playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT)
+                            && !accountService.hasPendingClassProgress(accountId)
+                            && (state == null || !inventoryPersistence.hasPendingChanges(state));
+                    if (saved) logoutStateSavedListener.accept(astPlayer);
+                    return saved;
+                }
             );
             inventoryService.clearClickGuard(accountId);
             inventoryService.clearEquippedSetEffectDisplayCounts(accountId);

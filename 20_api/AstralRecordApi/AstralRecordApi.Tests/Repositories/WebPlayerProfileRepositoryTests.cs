@@ -66,14 +66,8 @@ public sealed class WebPlayerProfileRepositoryTests
         Assert.NotNull(mine);
         Assert.Equal(1234, mine.CurrentAccount!.Gold);
         Assert.Equal(account, mine.CurrentAccount.AccountId);
-        Assert.Equal(2, mine.CurrentAccount.SkillTree.Nodes.Count); // PP keeps unmet requirements visible; unrelated CP stays hidden.
-        Assert.True(mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1000").IsConditionMet);
-        Assert.False(mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1001").IsConditionMet);
-        Assert.Contains("50", mine.CurrentAccount.SkillTree.Nodes.Single(node => node.NodeId == "1001").RequirementText);
-        Assert.True(mine.CurrentAccount.SkillTree.Nodes[0].IsUnlocked);
-        Assert.False(mine.CurrentAccount.SkillTree.Nodes[1].IsUnlocked);
+        Assert.Empty(mine.CurrentAccount.SkillTree.Nodes); // Local files never substitute for a verified loaded generation.
         Assert.Equal(12, mine.CurrentAccount.ClassLevel);
-        Assert.Contains(mine.CurrentAccount.SkillTree.Nodes[0].DisplayEffects, text => text.Contains("+10%"));
         Assert.NotNull(mismatchedProfile);
         Assert.Null(mismatchedProfile.CurrentAccount);
     }
@@ -241,7 +235,6 @@ public sealed class WebPlayerProfileRepositoryTests
             Management = management;
             Master = master;
             Repository = new WebPlayerProfileRepository(game, management, master,
-                Microsoft.Extensions.Options.Options.Create(new FileDatabaseOptions { RootPath = filebaseRoot }),
                 Microsoft.Extensions.Options.Options.Create(new WebPlayerProfileOptions { SkillTreeStructureId = "starter" }));
         }
 

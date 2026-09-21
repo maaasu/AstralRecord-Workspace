@@ -36,12 +36,7 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
             request.Level,
             request.ClassName?.Trim(),
             request.Afk,
-            now,
-            request.AccountId,
-            string.IsNullOrWhiteSpace(request.WorldName) ? null : request.WorldName.Trim(),
-            request.X,
-            request.Y,
-            request.Z);
+            now);
         players[request.Uuid] = presence;
         return presence;
     }

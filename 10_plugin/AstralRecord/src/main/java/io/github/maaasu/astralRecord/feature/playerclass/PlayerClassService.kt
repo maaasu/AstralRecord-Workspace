@@ -89,6 +89,9 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun getLoadedClass(classId: String): ClassModel? = classService.getLoadedClass(classId)
 
+    /** 実際に公開中のクラス定義をコピーする。再読込やAPI通信は行わない。 */
+    fun snapshotLoadedClasses(): Map<String, ClassModel> = classService.getLoadedClasses().associateBy { it.id }
+
     fun getDisplayName(classId: String): String {
         val model = classService.getLoadedClass(classId) ?: return classId
         return ColorCodeUtil.toLegacyText(model.name, classId)

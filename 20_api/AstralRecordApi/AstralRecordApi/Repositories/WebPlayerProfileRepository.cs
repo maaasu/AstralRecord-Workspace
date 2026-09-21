@@ -13,10 +13,8 @@ public sealed class WebPlayerProfileRepository(
     AstralRecordDbContext gameDb,
     ManagementDbContext managementDb,
     MasterDataDbContext masterDataDb,
-    IOptions<FileDatabaseOptions> fileDatabaseOptions,
-    IOptions<WebPlayerProfileOptions> profileOptions) : IWebPlayerProfileRepository
+    IOptions<WebPlayerProfileOptions> profileOptions, ISkillTreeOperationRepository? runtime = null) : IWebPlayerProfileRepository
 {
-    private readonly string filebaseRoot = fileDatabaseOptions.Value.RootPath;
     private readonly string structureId = profileOptions.Value.SkillTreeStructureId.Trim();
 
     public async Task<WebPlayerProfileResponse?> GetMyProfileAsync(Guid viewerUserUuid) =>
@@ -158,8 +156,6 @@ public sealed class WebPlayerProfileRepository(
         var totalMobDefeats = await gameDb.AccountMobRecords.AsNoTracking()
             .Where(record => record.AccountId == account.Uuid && !record.IsDeleted)
             .SumAsync(record => (long?)record.DefeatCount) ?? 0L;
-        var unlockedNodes = await GetUnlockedNodesAsync(account.Uuid);
-        var classAncestors = GetClassAncestors(account.ClassId, classMap);
         return new WebPlayerAccountProfileResponse
         {
             AccountId = account.Uuid,
@@ -178,99 +174,8 @@ public sealed class WebPlayerProfileRepository(
             Gold = gold,
             TotalMobDefeats = totalMobDefeats,
             UpdatedAt = DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc),
-            SkillTree = await TryBuildSkillTreeAsync(account.Level, classAncestors, unlockedNodes, classMap),
+            SkillTree = await BuildVerifiedSkillTreeAsync(account),
         };
-    }
-
-    private async Task<Dictionary<string, string?>> GetUnlockedNodesAsync(Guid accountId)
-    {
-        var stateId = await gameDb.AccountSkillTreeStates.AsNoTracking()
-            .Where(state => state.AccountId == accountId && !state.IsDeleted)
-            .Select(state => (Guid?)state.AccountSkillTreeStateId)
-            .FirstOrDefaultAsync();
-        if (!stateId.HasValue)
-            return new Dictionary<string, string?>(StringComparer.Ordinal);
-        return await gameDb.AccountSkillTreeUnlockedNodes.AsNoTracking()
-            .Where(node => node.AccountSkillTreeStateId == stateId.Value)
-            .ToDictionaryAsync(node => node.NodeId, node => node.ConsumedClassId, StringComparer.Ordinal);
-    }
-
-    private async Task<WebSkillTreeProfileResponse> BuildSkillTreeAsync(
-        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes, IReadOnlyDictionary<string, ClassResponse> classMap)
-    {
-        var structurePath = Path.Combine(filebaseRoot, "35.features.skilltree", "structures", structureId + ".json");
-        using var structureDocument = JsonDocument.Parse(await File.ReadAllTextAsync(structurePath));
-        var root = structureDocument.RootElement;
-        var positions = root.GetProperty("nodes").EnumerateArray()
-            .ToDictionary(node => node.GetProperty("nodeId").GetString()!, node => node, StringComparer.Ordinal);
-        var visibleIds = new HashSet<string>(StringComparer.Ordinal);
-        var profiles = new List<WebSkillTreeNodeProfileResponse>();
-        var skillNames = await GetSkillNamesAsync();
-        foreach (var (nodeId, position) in positions.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            var nodePath = Path.Combine(filebaseRoot, "35.features.skilltree", "nodes", nodeId + ".json");
-            using var nodeDocument = JsonDocument.Parse(await File.ReadAllTextAsync(nodePath));
-            var node = nodeDocument.RootElement;
-            var condition = node.TryGetProperty("unlockCondition", out var rawCondition) ? rawCondition : (JsonElement?)null;
-            var meetsCondition = MeetsCondition(condition, playerLevel, classAncestors);
-            var pointType = node.GetProperty("pointType").GetString()!;
-            // Game visibility keeps PP requirements visible; CP belongs only to eligible classes/levels.
-            if (pointType != "PP" && !meetsCondition) continue;
-            visibleIds.Add(nodeId);
-            var effects = node.GetProperty("effects").EnumerateArray().Select(effect => effect.Clone()).ToList();
-            profiles.Add(new WebSkillTreeNodeProfileResponse
-            {
-                NodeId = nodeId,
-                Name = StripLegacyColors(node.GetProperty("name").GetString()!),
-                Icon = node.GetProperty("icon").GetString()!,
-                Lore = ReadStrings(node, "lore"),
-                Tags = ReadStrings(node, "tags"),
-                PointType = pointType,
-                IsConditionMet = meetsCondition,
-                RequirementText = DescribeRequirement(condition, classMap),
-                PointCost = node.GetProperty("pointCost").GetInt32(),
-                UnlockCondition = condition?.Clone(),
-                Effects = effects,
-                DisplayEffects = effects.Select(effect => DescribeEffect(effect, skillNames)).ToList(),
-                X = position.GetProperty("x").GetDouble(),
-                Y = position.GetProperty("y").GetDouble(),
-                Z = position.GetProperty("z").GetDouble(),
-                IsUnlocked = unlockedNodes.TryGetValue(nodeId, out var consumedClassId),
-                ConsumedClassId = consumedClassId,
-            });
-        }
-        return new WebSkillTreeProfileResponse
-        {
-            StructureId = root.GetProperty("structureId").GetString()!,
-            Name = StripLegacyColors(root.GetProperty("name").GetString()!),
-            RootNodeId = root.GetProperty("rootNodeId").GetString()!,
-            Nodes = profiles,
-            Edges = root.GetProperty("edges").EnumerateArray()
-                .Where(edge => visibleIds.Contains(edge.GetProperty("sourceNodeId").GetString()!)
-                    && visibleIds.Contains(edge.GetProperty("targetNodeId").GetString()!))
-                .Select(edge => new WebSkillTreeEdgeResponse
-                {
-                    SourceNodeId = edge.GetProperty("sourceNodeId").GetString()!,
-                    TargetNodeId = edge.GetProperty("targetNodeId").GetString()!,
-                }).ToList(),
-        };
-    }
-
-    private async Task<WebSkillTreeProfileResponse> TryBuildSkillTreeAsync(
-        int playerLevel, HashSet<string> classAncestors, IReadOnlyDictionary<string, string?> unlockedNodes, IReadOnlyDictionary<string, ClassResponse> classMap)
-    {
-        try
-        {
-            return await BuildSkillTreeAsync(playerLevel, classAncestors, unlockedNodes, classMap);
-        }
-        catch (IOException)
-        {
-            return EmptySkillTree();
-        }
-        catch (JsonException)
-        {
-            return EmptySkillTree();
-        }
     }
 
     private async Task<Dictionary<string, ClassResponse>> GetClassMapAsync() =>
@@ -279,74 +184,19 @@ public sealed class WebPlayerProfileRepository(
         .Select(MasterDataPayloadJson.Deserialize<ClassResponse>).Where(item => item is not null)
         .Cast<ClassResponse>().ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
 
-    private async Task<Dictionary<string, string>> GetSkillNamesAsync() =>
-        (await masterDataDb.Entries.AsNoTracking().Where(entry => !entry.IsDeleted && entry.MasterType == "skill")
-            .Select(entry => entry.PayloadJson).ToListAsync())
-        .Select(MasterDataPayloadJson.Deserialize<SkillResponse>).Where(item => item is not null)
-        .Cast<SkillResponse>().ToDictionary(item => item.Id, item => item.Name, StringComparer.OrdinalIgnoreCase);
-
-    private static HashSet<string> GetClassAncestors(string classId, IReadOnlyDictionary<string, ClassResponse> classMap)
-    {
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { classId };
-        var pending = new Queue<string>();
-        pending.Enqueue(classId);
-        while (pending.TryDequeue(out var current))
-        {
-            if (!classMap.TryGetValue(current, out var currentClass)) continue;
-            foreach (var ancestor in currentClass.UnlockClassLevel.Select(item => item.ClassId))
-                if (result.Add(ancestor)) pending.Enqueue(ancestor);
-        }
-        return result;
-    }
-
-    private static bool MeetsCondition(JsonElement? condition, int playerLevel, ISet<string> classAncestors)
-    {
-        if (!condition.HasValue) return true;
-        var value = condition.Value;
-        return (!value.TryGetProperty("classId", out var classId) || classAncestors.Contains(classId.GetString() ?? string.Empty))
-            && (!value.TryGetProperty("playerLevel", out var level) || playerLevel >= level.GetInt32());
-    }
-
-    private static string DescribeRequirement(JsonElement? condition, IReadOnlyDictionary<string, ClassResponse> classMap)
-    {
-        if (!condition.HasValue) return string.Empty;
-        var requirements = new List<string>();
-        if (condition.Value.TryGetProperty("playerLevel", out var level)) requirements.Add($"必要プレイヤーレベル: {level.GetInt32()}");
-        if (condition.Value.TryGetProperty("classId", out var c))
-        {
-            var id = c.GetString() ?? string.Empty;
-            requirements.Add($"必要クラス: {(classMap.TryGetValue(id, out var master) ? StripLegacyColors(master.Name) : id)}");
-        }
-        return string.Join(" / ", requirements);
-    }
-
-    private static IReadOnlyList<string> ReadStrings(JsonElement parent, string property) =>
-        parent.TryGetProperty(property, out var value) ? value.EnumerateArray().Select(item => StripLegacyColors(item.GetString() ?? string.Empty)).ToList() : [];
-
-    private static string DescribeEffect(JsonElement effect, IReadOnlyDictionary<string, string> skillNames)
-    {
-        var type = effect.GetProperty("type").GetString();
-        if (type == "skill")
-        {
-            var id = effect.GetProperty("skillId").GetString() ?? string.Empty;
-            return skillNames.TryGetValue(id, out var name) ? StripLegacyColors(name) : id;
-        }
-        var statusId = effect.GetProperty("status").GetString() ?? string.Empty;
-        var status = StatusTypes.TryGet(statusId, out var definition) ? definition!.DisplayName : statusId;
-        var modifier = effect.GetProperty("modifierType").GetString() ?? string.Empty;
-        var amount = effect.GetProperty("value").GetDouble();
-        return modifier switch
-        {
-            "FLAT" => $"{status} {amount:+0.##;-0.##;0}",
-            "SCALAR" => $"{status} {amount * 100:+0.##;-0.##;0}%",
-            _ => $"{status} {modifier} {amount}",
-        };
-    }
-
     private WebSkillTreeProfileResponse EmptySkillTree() => new()
     {
         StructureId = structureId, Name = string.Empty, RootNodeId = string.Empty, Nodes = [], Edges = [],
     };
+
+    private async Task<WebSkillTreeProfileResponse> BuildVerifiedSkillTreeAsync(AccountEntity account)
+    {
+        if (runtime is null) return EmptySkillTree();
+        var editor = await runtime.GetEditorAsync(account.Uuid, account.UserId);
+        if (editor?.Tree is not { ValueKind: JsonValueKind.Object } tree) return EmptySkillTree();
+        try { return tree.Deserialize<WebSkillTreeProfileResponse>(new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? EmptySkillTree(); }
+        catch (JsonException) { return EmptySkillTree(); }
+    }
 
     private static WebPlayerProfileResponse WithoutPermission(WebPlayerProfileResponse profile) => new()
     {

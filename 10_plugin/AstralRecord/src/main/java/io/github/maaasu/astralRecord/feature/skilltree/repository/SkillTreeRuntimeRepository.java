@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -21,6 +22,15 @@ import java.util.UUID;
  */
 public final class SkillTreeRuntimeRepository {
     private static final String ROOT = "/api/skilltree/runtime/servers/";
+
+    /** ログイン毎の処理権限。秘密値はAPIの照合にだけ使用し、画面やログへ出さない。 */
+    public record AccountSession(UUID id, String token) {
+        /** 新しいログイン用の再利用しないsessionを生成する。 */
+        public static AccountSession create() {
+            byte[] bytes = new byte[32]; new java.security.SecureRandom().nextBytes(bytes);
+            return new AccountSession(UUID.randomUUID(), java.util.HexFormat.of().formatHex(bytes));
+        }
+    }
 
     /** Webが登録した操作です。費用・条件・ポイントは含まず、Pluginが実ロード定義で再計算します。 */
     public record Operation(
@@ -49,6 +59,7 @@ public final class SkillTreeRuntimeRepository {
             @NotNull String serverId,
             @NotNull UUID sessionId,
             @NotNull java.time.Instant serverStartedAtUtc,
+            long publicationRevision,
             @NotNull String pluginVersion,
             @NotNull String compatibilityVersion,
             @NotNull String definitionGenerationId,
@@ -57,6 +68,7 @@ public final class SkillTreeRuntimeRepository {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", sessionId.toString());
         body.addProperty("serverStartedAtUtc", serverStartedAtUtc.toString());
+        body.addProperty("publicationRevision", publicationRevision);
         body.addProperty("pluginVersion", pluginVersion);
         body.addProperty("compatibilityVersion", compatibilityVersion);
         body.addProperty("definitionGenerationId", definitionGenerationId);
@@ -112,11 +124,13 @@ public final class SkillTreeRuntimeRepository {
     public @Nullable ClaimedOperation claim(
             @NotNull String serverId,
             @NotNull UUID sessionId,
-            @NotNull Operation operation
+            @NotNull Operation operation,
+            @NotNull AccountSession accountSession
     ) {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", sessionId.toString());
         body.addProperty("accountId", operation.accountId().toString());
+        addAccountSession(body, accountSession);
         try {
             JsonObject value = send("POST", path(serverId) + "/operations/" + operation.operationId() + "/claim", body, 200)
                     .getAsJsonObject();
@@ -140,15 +154,45 @@ public final class SkillTreeRuntimeRepository {
             @NotNull String serverId,
             @NotNull UUID sessionId,
             @NotNull UUID accountId,
-            @NotNull JsonObject playerView
+            @NotNull JsonObject playerView,
+            @NotNull AccountSession accountSession,
+            long sequence
     ) {
+        JsonObject body = viewRequest(sessionId, playerView, accountSession, sequence);
+        send("PUT", path(serverId) + "/accounts/" + accountId + "/view", body, 200);
+    }
+
+    /** 現sessionの処理権限を取得・更新する。期限切れまたは終了済みIDは取得し直さない。 */
+    public boolean acquireAccount(String serverId, UUID bootId, UUID accountId, AccountSession session, String generationId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("serverSessionId", bootId.toString());
+        body.addProperty("definitionGenerationId", generationId);
+        addAccountSession(body, session);
+        try { send("POST", path(serverId) + "/accounts/" + accountId + "/sessions", body, 200); return true; }
+        catch (InventoryApiException failure) { if (failure.getStatusCode() == 409) return false; throw failure; }
+    }
+
+    /** 退出保存の完了後に同じsessionだけを閉じ、検証済みの最終viewをオフライン案の基準に残す。 */
+    public void closeAccount(String serverId, UUID bootId, UUID accountId, AccountSession session, JsonObject view, long sequence) {
+        send("POST", path(serverId) + "/accounts/" + accountId + "/session-close", viewRequest(bootId, view, session, sequence), 200);
+    }
+
+    private JsonObject viewRequest(UUID sessionId, JsonObject playerView, AccountSession accountSession, long sequence) {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", sessionId.toString());
-        body.addProperty("definitionGenerationId", playerView.get("definitionGenerationId").getAsString());
-        body.addProperty("playerStateVersion", playerView.get("playerStateVersion").getAsInt());
-        body.addProperty("editEligible", playerView.get("editEligible").getAsBoolean());
+        addAccountSession(body, accountSession);
+        body.addProperty("viewSequence", sequence);
+        body.addProperty("definitionGenerationId", playerView.has("definitionGenerationId") ? playerView.get("definitionGenerationId").getAsString() : "");
+        body.addProperty("playerStateVersion", playerView.has("playerStateVersion") ? playerView.get("playerStateVersion").getAsInt() : 0);
+        body.addProperty("evaluationFingerprint", playerView.has("evaluationFingerprint") ? playerView.get("evaluationFingerprint").getAsString() : "");
+        body.addProperty("editEligible", playerView.has("editEligible") && playerView.get("editEligible").getAsBoolean());
         body.add("view", playerView);
-        send("PUT", path(serverId) + "/accounts/" + accountId + "/view", body, 200);
+        return body;
+    }
+
+    private static void addAccountSession(JsonObject body, AccountSession session) {
+        body.addProperty("accountSessionId", session.id().toString());
+        body.addProperty("accountLeaseToken", session.token());
     }
 
     private @NotNull String path(@NotNull String serverId) {

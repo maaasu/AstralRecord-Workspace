@@ -10,5 +10,6 @@ public sealed class SkillTreeMigrationOperationEntity
     public string BaselineNodeIdsJson { get; set; } = "[]";
     public string RemovedNodeIdsJson { get; set; } = "[]";
     public string Status { get; set; } = string.Empty;
+    public string ResultJson { get; set; } = "{}";
     public DateTime CompletedAtUtc { get; set; }
 }

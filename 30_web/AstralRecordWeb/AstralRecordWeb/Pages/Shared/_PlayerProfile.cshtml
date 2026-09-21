@@ -28,65 +28,11 @@
     </div>
     <p class="ar-portal-sub">保存済みの最新情報です。ゲーム内の変更が反映されるまで時間がかかる場合があります。<br />最終保存：@(DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm:ss"))（日本時間）</p>
     <section class="ar-panel"><h2>クラスの成長記録</h2><div class="ar-class-list">@foreach (var c in account.ClassProgresses) { <div class="ar-class-chip"><span>@c.ClassName</span><strong>Lv. @c.Level</strong></div> }</div></section>
-    <section class="ar-tree-sanctum" aria-labelledby="skilltree-title">
-        <header class="ar-tree-heading">
-            <div><p class="ar-tree-eyebrow">成長の星図</p><h2 id="skilltree-title">スキルツリー</h2><p>星を辿り、あなたの力のつながりを見渡す。</p></div>
-            <div class="ar-tree-progress"><strong>@account.SkillTree.Nodes.Count(n => n.IsUnlocked)<span> / @account.SkillTree.Nodes.Count</span></strong><span>表示中の解放ノード</span></div>
-        </header>
-        @if (account.SkillTree.Nodes.Count == 0)
-        {
-            <p class="ar-empty">現在のアカウントで表示できるスキルツリーはありません。</p>
-        }
-        else
-        {
-            <div data-skilltree-viewer>
-                <script type="application/json" data-tree-json>@Html.Raw(JsonSerializer.Serialize(account.SkillTree, new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
-                <div class="ar-tree-toolbar">
-                    <form class="ar-tree-search" data-tree-search role="search" aria-label="スキルツリー内のノード検索">
-                        <label class="visually-hidden" for="tree-search">ノード名で検索</label>
-                        <span aria-hidden="true">⌕</span><input id="tree-search" type="search" autocomplete="off" placeholder="ノード名で探す…" data-tree-query />
-                        <button type="submit">探す</button>
-                        <div class="ar-tree-search-results" data-tree-results hidden></div>
-                    </form>
-                    <div class="ar-tree-controls" role="group" aria-label="スキルツリーの表示操作">
-                        <button type="button" data-tree-zoom="out" aria-label="スキルツリーを縮小">−</button>
-                        <output data-tree-zoom-label aria-label="表示倍率">100%</output>
-                        <button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button>
-                        <span class="ar-tree-control-divider" aria-hidden="true"></span>
-                        <button type="button" data-tree-home>選択ノードへ</button>
-                        <button type="button" data-tree-fit>全体図</button>
-                    </div>
-                </div>
-                <div class="ar-tree-layout">
-                    <div class="ar-tree-map-shell">
-                        <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ。ドラッグと矢印キーで移動、プラス・マイナスキーで拡大縮小">
-                            <div class="ar-tree-celestial" aria-hidden="true"><i></i><i></i><i></i><span>✧</span></div>
-                            <svg class="ar-tree-canvas" role="group" aria-label="スキルツリーのノードと接続"></svg>
-                        </div>
-                        <div class="ar-tree-map-caption"><span class="ar-tree-live-mark" aria-hidden="true">✦</span><span>閲覧専用 <small>ドラッグで移動 / ホイールで拡大縮小</small></span></div>
-                        <div class="ar-tree-minimap" aria-label="ツリーの全体位置">
-                            <span>全体図</span>
-                            <svg data-tree-minimap role="img" aria-label="現在見ている範囲。クリックで移動"></svg>
-                        </div>
-                    </div>
-                    <aside class="ar-tree-detail" aria-label="選択ノードの詳細">
-                        <div class="ar-tree-detail-header"><span>ノード詳細</span><span data-node-id></span></div>
-                        <div class="ar-tree-relic" data-node-relic><span class="ar-tree-relic-orbit" aria-hidden="true"></span><img data-node-icon alt="" hidden /><span class="ar-tree-relic-fallback" data-node-icon-fallback aria-hidden="true">✦</span></div>
-                        <div class="ar-tree-detail-title"><span data-node-type class="ar-tree-point-kind"></span><h3 data-node-name>ノードを選択</h3><span class="ar-tree-state" data-node-state>習得状況と効果を確認できます。</span></div>
-                        <p class="ar-tree-lore" data-node-lore></p>
-                        <div class="ar-tree-cost"><span>解放コスト</span><strong data-node-cost>—</strong></div>
-                        <section class="ar-tree-detail-section"><h4><span aria-hidden="true">✧</span>得られる効果</h4><ul data-node-effects class="ar-tree-effect-list"></ul></section>
-                        <section class="ar-tree-detail-section"><h4><span aria-hidden="true">◇</span>必要条件</h4><p data-node-requirement></p></section>
-                        <section class="ar-tree-detail-section ar-tree-connections"><h4><span aria-hidden="true">⌘</span>つながるノード</h4><div data-node-connections></div></section>
-                        <p class="ar-tree-readonly-note">解放や変更はゲーム内で行えます。</p>
-                        <p class="visually-hidden" data-tree-announcement role="status" aria-live="polite"></p>
-                    </aside>
-                </div>
-                <footer class="ar-tree-map-footer"><div class="ar-tree-legend"><span><i class="is-unlocked"></i>解放済み</span><span><i></i>未解放</span><span><i class="is-root"></i>開始ノード</span></div><span>アイコンの星を選ぶと詳細が開きます</span></footer>
-                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in account.SkillTree.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@n.RequirementText<br />@string.Join(" / ", n.Lore)<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
-            </div>
-        }
-    </section>
+    @if (ownProfile)
+    {
+        <p><a class="ar-btn-outline" asp-page="/SkillTree/Index" asp-route-accountId="@account.AccountId">スキルツリーを編集する</a></p>
+    }
+    <partial name="_SkillTreeViewer" model="account.SkillTree" />
 }
 else
 {

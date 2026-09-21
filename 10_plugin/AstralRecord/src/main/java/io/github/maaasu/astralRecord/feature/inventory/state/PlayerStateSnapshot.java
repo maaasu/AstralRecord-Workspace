@@ -57,6 +57,16 @@ final class PlayerStateSnapshot {
                         Set<UUID> persistedInventoryIds, Set<UUID> persistedLoadoutIds,
                         Set<String> pendingEquipmentCreationIds,
                         boolean includePendingInventories) {
+        this(state, equipment, sections, persistedEntries, persistedVersions, persistedInventoryIds,
+            persistedLoadoutIds, pendingEquipmentCreationIds, includePendingInventories, null);
+    }
+
+    PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
+                        List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
+                        Map<UUID, LocalDateTime> persistedVersions,
+                        Set<UUID> persistedInventoryIds, Set<UUID> persistedLoadoutIds,
+                        Set<String> pendingEquipmentCreationIds, boolean includePendingInventories,
+                        JsonElement runtimeAuthority) {
         this.accountId = state.getAccountId();
         this.equipment = List.copyOf(equipment);
         this.sections = List.copyOf(sections);
@@ -82,6 +92,7 @@ final class PlayerStateSnapshot {
         this.inventories = state.snapshotInventories().stream()
             .filter(value -> selectedInventoryIds.contains(value.getInventoryId()) && value.isEnabled() && !value.isDeleted()).toList();
         JsonObject body = new JsonObject();
+        if (runtimeAuthority != null) body.add("runtimeAuthority", runtimeAuthority.deepCopy());
         body.addProperty("snapshotId", snapshotId.toString());
         body.addProperty("accountId", accountId.toString());
         body.addProperty("updatedBy", accountId.toString());
@@ -338,7 +349,12 @@ final class PlayerStateSnapshot {
                         }
                     }
                     case "skillBindPresets" -> requireSectionVersions(section.getAsJsonArray("presets"), received, "presetIndex");
-                    case "skillTree" -> requireVersion(section, received, "expectedVersion", "version");
+                    case "skillTree" -> {
+                        requireVersion(section, received, "expectedVersion", "version");
+                        if (section.has("operation") && !section.get("operation").isJsonNull()) {
+                            requireOperationReceipt(section.getAsJsonObject("operation"), received.getAsJsonObject("operation"));
+                        }
+                    }
                     case "accountProgress" -> requireVersion(section, received, "expectedProgressVersion", "progressVersion");
                     case "waystones" -> {
                         requireEqual(section.get("unlockedWaystoneIds"), received.get("unlockedWaystoneIds"));
@@ -385,6 +401,9 @@ final class PlayerStateSnapshot {
                     default -> throw new IllegalStateException("Unsupported section");
                 }
             }
+            if (request.has("skillTreeOperation") && !request.get("skillTreeOperation").isJsonNull()) {
+                requireOperationReceipt(request.getAsJsonObject("skillTreeOperation"), ack.getAsJsonObject("skillTreeOperation"));
+            }
         } catch (RuntimeException invalid) {
             throw new PlayerStateAcknowledgementException(invalid);
         }
@@ -393,6 +412,13 @@ final class PlayerStateSnapshot {
     private static void requireEqual(JsonElement expected, JsonElement actual) {
         if (expected == null || actual == null || !expected.equals(actual))
             throw new IllegalStateException("Acknowledgement identity mismatch");
+    }
+
+    /** HTTP成功だけでは完了とせず、元の操作IDと最終結果の一致を検証します。 */
+    private static void requireOperationReceipt(JsonObject requested, JsonObject received) {
+        if (received == null) throw new IllegalStateException("Missing skill tree operation acknowledgement");
+        requireEqual(requested.get("operationId"), received.get("operationId"));
+        requireEqual(requested.get("finalStatus"), received.get("status"));
     }
 
     private static void requireRows(JsonArray requested, JsonObject ack, String array, String id) {

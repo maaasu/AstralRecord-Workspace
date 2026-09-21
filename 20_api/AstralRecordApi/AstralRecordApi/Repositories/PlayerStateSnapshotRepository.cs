@@ -23,27 +23,9 @@ public sealed class PlayerStateSnapshotRepository(
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private const int MaxRebirthExperienceRemainder = 99;
 
-    // 既存のrepository単体テストはWeb操作receiptを含まないsnapshotを構築する。
-    // そのテスト契約を維持し、実行時DIはより長いprimary constructorを選択する。
     public PlayerStateSnapshotRepository(AstralRecordDbContext dbContext, MasterDataDbContext? masterDataDbContext = null)
-        : this(dbContext, NoopSkillTreeOperationRepository.Instance, masterDataDbContext) { }
-
-    private sealed class NoopSkillTreeOperationRepository : ISkillTreeOperationRepository
-    {
-        public static readonly NoopSkillTreeOperationRepository Instance = new();
-        public Task<SkillTreeServerRuntimeResponse?> RegisterServerAsync(string serverId, SkillTreeServerRegistrationRequest request) => Task.FromResult<SkillTreeServerRuntimeResponse?>(null);
-        public Task<SkillTreeServerRuntimeResponse?> HeartbeatServerAsync(string serverId, SkillTreeServerHeartbeatRequest request) => Task.FromResult<SkillTreeServerRuntimeResponse?>(null);
-        public Task<SkillTreeEditorResponse?> GetEditorAsync(Guid accountId, Guid actorUserId, string? targetServerId = null) => Task.FromResult<SkillTreeEditorResponse?>(null);
-        public Task<SkillTreeEditorResponse?> RegisterPlayerViewAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request) => Task.FromResult<SkillTreeEditorResponse?>(null);
-        public Task<SkillTreeOperationResponse?> CreateAsync(Guid accountId, SkillTreeOperationCreateRequest request) => Task.FromResult<SkillTreeOperationResponse?>(null);
-        public Task<SkillTreeOperationResponse?> FindAsync(Guid accountId, Guid operationId, Guid actorUserId) => Task.FromResult<SkillTreeOperationResponse?>(null);
-        public Task<SkillTreeOperationResponse?> CancelAsync(Guid accountId, Guid operationId, Guid actorUserId) => Task.FromResult<SkillTreeOperationResponse?>(null);
-        public Task<IReadOnlyList<SkillTreeOperationResponse>?> GetClaimableAsync(string serverId, Guid serverSessionId, Guid accountId) => Task.FromResult<IReadOnlyList<SkillTreeOperationResponse>?>(null);
-        public Task<SkillTreeOperationClaimResponse?> ClaimAsync(string serverId, Guid operationId, SkillTreeOperationClaimRequest request) => Task.FromResult<SkillTreeOperationClaimResponse?>(null);
-        public Task<bool> ValidateRuntimeStateSaveAsync(string serverId, Guid serverSessionId, string definitionGenerationId) => Task.FromResult(false);
-        public Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now) => Task.FromResult(false);
-        public Task<SkillTreeMigrationResponse?> MigrateAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request) => Task.FromResult<SkillTreeMigrationResponse?>(null);
-    }
+        : this(dbContext, new SkillTreeOperationRepository(dbContext,
+            new AstralRecordApi.Services.NetworkRuntimeService(TimeProvider.System)), masterDataDbContext) { }
 
     public async Task<PlayerStateSnapshotSaveResult> SaveAsync(PlayerStateSnapshotSaveRequest request)
     {
@@ -75,6 +57,17 @@ public sealed class PlayerStateSnapshotRepository(
             var account = await FindAccountForUpdateAsync(request.AccountId);
             if (account is null)
                 return Failure(PlayerStateSnapshotSaveFailure.AccountNotFound, "Account was not found.");
+            if (await skillTreeOperationRepository.RequiresRuntimeAuthorityAsync(request.AccountId))
+            {
+                var proofJson = request.RuntimeAuthority ?? request.SkillTree;
+                var proof = proofJson.HasValue ? TryDeserializeSection<PlayerStateSkillTreeSection>(proofJson.Value) : null;
+                if (proof?.ServerId is null || proof.ServerSessionId is null || proof.AccountSessionId is null
+                    || proof.AccountLeaseToken is null || proof.DefinitionGenerationId is null
+                    || !await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(request.AccountId,
+                        proof.ServerId, proof.ServerSessionId.Value, proof.DefinitionGenerationId,
+                        proof.AccountSessionId.Value, proof.AccountLeaseToken))
+                    return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Player session no longer owns state persistence.");
+            }
             if (!await ChildIdsBelongToSnapshotParentsAsync(request))
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Child ID belongs to another parent or deleted state.");
 
@@ -664,7 +657,8 @@ public sealed class PlayerStateSnapshotRepository(
                 && !string.IsNullOrWhiteSpace(section.DefinitionGenerationId)
                 && !string.IsNullOrWhiteSpace(section.ServerId)
                 && section.ServerSessionId.HasValue
-                && await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(section.ServerId, section.ServerSessionId.Value, section.DefinitionGenerationId);
+                && section.AccountSessionId.HasValue && section.AccountLeaseToken is not null
+                && await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(request.AccountId, section.ServerId, section.ServerSessionId.Value, section.DefinitionGenerationId, section.AccountSessionId.Value, section.AccountLeaseToken);
             if (section.Operation is null && !string.IsNullOrWhiteSpace(section.DefinitionGenerationId) && !runtimeSaveVerified)
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree runtime generation or session conflicts with current state.");
             var applied = await ApplySkillTreeAsync(section, request, now, runtimeSaveVerified);

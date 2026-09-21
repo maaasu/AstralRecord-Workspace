@@ -1,7 +1,7 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, nodeState } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
 import { loadIcon } from './minecraft-icons.mjs';
 
-// Only the camera and selected node change. The graph and account state stay read-only.
+// Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
@@ -9,17 +9,18 @@ const make = (tag, attrs = {}, text) => {
     if (text !== undefined) element.textContent = text;
     return element;
 };
-for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
+export function initializeViewer(viewer, viewState) {
     let tree;
-    try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { continue; }
-    if (!Array.isArray(tree.nodes) || !tree.nodes.length) continue;
+    try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
+    if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
     const projected = projectNodes(tree.nodes);
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
-    if (!nodes.size) continue;
+    if (!nodes.size) return;
     const bounds = graphBounds(projected.nodes);
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const svg = viewer.querySelector('.ar-tree-canvas');
     const minimap = viewer.querySelector('[data-tree-minimap]');
+    svg.replaceChildren(); minimap.replaceChildren();
     const graph = make('g');
     svg.append(graph);
     const groups = new Map(), links = [], neighbors = new Map([...nodes.keys()].map(id => [id, []]));
@@ -40,6 +41,7 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
             x1: source.px + dx / length * inset, y1: source.py + dy / length * inset,
             x2: target.px - dx / length * inset, y2: target.py - dy / length * inset,
             class: `ar-tree-edge${source.isUnlocked && target.isUnlocked ? ' is-unlocked' : ''}`,
+            'vector-effect': 'non-scaling-stroke',
         });
         graph.append(line);
         links.push({ line, source: source.nodeId, target: target.nodeId });
@@ -66,13 +68,14 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
     };
     const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
     const focusNode = (node, readable = true) => {
-        if (readable) camera.zoom = viewport.clientWidth < 480 ? .82 : .95;
+        if (readable) camera.zoom = .95;
         camera.x = viewport.clientWidth / 2 - node.px * camera.zoom;
         camera.y = viewport.clientHeight / 2 - node.py * camera.zoom;
         draw();
     };
     const showDetails = (node, announce = true) => {
         selectedId = node.nodeId;
+        if (announce) viewer.classList.remove('is-detail-hidden');
         groups.forEach((g, id) => {
             g.setAttribute('aria-pressed', String(id === selectedId));
             g.classList.toggle('is-neighbor', neighbors.get(selectedId).some(n => n.nodeId === id));
@@ -83,13 +86,13 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
         detail.dataset.state = node.isUnlocked ? 'unlocked' : 'locked';
         detail.dataset.pointType = node.pointType;
         viewer.querySelector('[data-node-name]').textContent = node.name;
-        viewer.querySelector('[data-node-id]').textContent = `#${node.nodeId}`;
+        viewer.querySelector('[data-node-id]').textContent = '';
         viewer.querySelector('[data-node-type]').textContent = node.pointType === 'CP' ? 'クラスの成長 · CP' : 'プレイヤーの成長 · PP';
         viewer.querySelector('[data-node-state]').textContent = nodeState(node);
         viewer.querySelector('[data-node-state]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
         viewer.querySelector('[data-node-requirement]').textContent = node.requirementText || 'クラス・プレイヤーレベルの指定条件なし';
         viewer.querySelector('[data-node-requirement]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
-        viewer.querySelector('[data-node-cost]').textContent = `${node.pointCost} ${node.pointType}`;
+        viewer.querySelector('[data-node-cost]').textContent = nodeCost(node);
         const lore = viewer.querySelector('[data-node-lore]');
         lore.textContent = (node.lore ?? []).join('\n'); lore.hidden = !lore.textContent;
         const effects = viewer.querySelector('[data-node-effects]'); effects.replaceChildren();
@@ -112,14 +115,16 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
             icon.src = url; icon.hidden = false; fallback.hidden = true;
         });
         if (announce) viewer.querySelector('[data-tree-announcement]').textContent = `${node.name}。${nodeState(node)}。${node.pointCost} ${node.pointType}`;
+        viewer.dispatchEvent(new CustomEvent('skilltree:select', { bubbles: true, detail: node }));
     };
     for (const node of nodes.values()) {
         const isRoot = node.nodeId === tree.rootNodeId;
         const g = make('g', {
-            class: `ar-tree-node${node.isUnlocked ? ' is-unlocked' : ''}${isRoot ? ' is-root' : ''}${node.isConditionMet === false ? ' is-unmet' : ''}`,
+            class: `ar-tree-node${node.isUnlocked ? ' is-unlocked' : ''}${node.canUnlock ? ' is-available' : ''}${isRoot ? ' is-root' : ''}${node.isConditionMet === false ? ' is-unmet' : ''}`,
             transform: `translate(${node.px},${node.py})`, role: 'button', tabindex: 0,
             'aria-label': `${node.name}、${nodeState(node)}`, 'aria-pressed': 'false', 'data-point-type': node.pointType,
         });
+        const labelLines = nodeLabelLines(node);
         g.append(make('circle', { r: 53, class: 'ar-tree-node-aura', 'aria-hidden': 'true' }));
         g.append(make('circle', { r: 48, class: 'ar-tree-node-runes', 'aria-hidden': 'true' }));
         g.append(make('path', { d: 'M-24-40 L24-40 40-24 40 24 24 40-24 40-40 24-40-24Z', class: 'ar-tree-node-frame' }));
@@ -133,17 +138,17 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
         });
         g.append(make('path', { d: 'M0-55 L5-48 0-41-5-48Z', class: 'ar-tree-node-gem', 'aria-hidden': 'true' }));
         g.append(make('circle', { cx: 31, cy: 31, r: 10, class: 'ar-tree-node-status' }));
-        g.append(make('text', { x: 31, y: 35, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }, node.isUnlocked ? '✓' : '·'));
+        g.append(make('text', { x: 31, y: 35, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }, node.isUnlocked ? '✓' : node.canUnlock ? '＋' : '·'));
         const label = make('g', { class: 'ar-tree-node-label', 'aria-hidden': 'true' });
-        label.append(make('rect', { x: -76, y: 59, width: 152, height: 48, rx: 4 }));
-        label.append(make('text', { y: 79, class: 'ar-tree-node-name' }, node.name.length > 11 ? `${node.name.slice(0, 10)}…` : node.name));
-        label.append(make('text', { y: 97, class: 'ar-tree-node-cost-label' }, `${node.pointType} · ${node.pointCost}`));
+        label.append(make('rect', { x: -128, y: 61, width: 256, height: labelLines.length * 20 + 12, rx: 4 }));
+        labelLines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
         g.append(label);
         g.append(make('title', {}, `${node.name}\n${nodeState(node)}\n${node.requirementText ?? ''}`));
         g.addEventListener('click', () => {
             if (dragged) return;
             const wasOverview = camera.zoom < .4;
             showDetails(node);
+            viewer.classList.remove('is-detail-hidden');
             if (wasOverview) focusNode(node);
         });
         g.addEventListener('keydown', event => {
@@ -159,18 +164,42 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
     viewer.querySelector('[data-tree-zoom="out"]').addEventListener('click', () => zoomBy(1 / 1.25));
     viewer.querySelector('[data-tree-fit]').addEventListener('click', () => { camera = fitCamera(bounds, viewport.clientWidth, viewport.clientHeight); draw(); });
     viewer.querySelector('[data-tree-home]').addEventListener('click', () => focusNode(nodes.get(selectedId) ?? root));
+    viewer.querySelector('[data-tree-reset]')?.addEventListener('click', () => focusNode(root));
+    viewer.querySelector('[data-tree-detail-close]')?.addEventListener('click', () => viewer.classList.add('is-detail-hidden'));
+    viewer.querySelector('[data-tree-expand]')?.addEventListener('click', event => {
+        const expanded = viewer.closest('.ar-tree-sanctum').classList.toggle('is-expanded');
+        event.currentTarget.textContent = expanded ? '通常表示に戻る' : '画面いっぱいに開く';
+        event.currentTarget.setAttribute('aria-pressed', String(expanded));
+        document.body.classList.toggle('ar-tree-expanded', expanded);
+    });
+    const pointers = new Map();
+    let pinch = null;
     viewport.addEventListener('pointerdown', event => {
-        if (event.button !== 0 || event.target.closest('.ar-tree-node')) return;
+        if (event.button !== 0) return;
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         drag = { id: event.pointerId, x: event.clientX, y: event.clientY, originX: camera.x, originY: camera.y };
-        dragged = false; viewport.setPointerCapture(event.pointerId);
+        dragged = false;
+        if (pointers.size === 2) {
+            const [a, b] = [...pointers.values()];
+            pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y), camera: { ...camera } };
+            dragged = true;
+        }
     });
     viewport.addEventListener('pointermove', event => {
+        if (!pointers.has(event.pointerId)) return;
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (pinch && pointers.size === 2) {
+            const [a, b] = [...pointers.values()], rect = viewport.getBoundingClientRect();
+            camera = zoomCamera(pinch.camera, Math.max(minZoom(), Math.min(2, pinch.camera.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.distance))), (a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top);
+            dragged = true; draw(); return;
+        }
         if (!drag || drag.id !== event.pointerId) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 4) dragged = true;
+        if (Math.abs(dx) + Math.abs(dy) > 6) { dragged = true; viewport.setPointerCapture(event.pointerId); }
+        if (!dragged) return;
         camera.x = drag.originX + dx; camera.y = drag.originY + dy; draw();
     });
-    const endDrag = () => { drag = null; requestAnimationFrame(() => { dragged = false; }); };
+    const endDrag = event => { pointers.delete(event.pointerId); pinch = null; drag = null; };
     viewport.addEventListener('pointerup', endDrag);
     viewport.addEventListener('pointercancel', endDrag);
     viewport.addEventListener('lostpointercapture', endDrag);
@@ -213,13 +242,18 @@ for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) {
         if (matches.length) { showDetails(matches[0]); focusNode(matches[0]); results.hidden = true; }
     });
     viewer.addEventListener('click', event => { if (!event.target.closest('[data-tree-search]')) results.hidden = true; });
-    new ResizeObserver(() => {
+    const observer = new ResizeObserver(() => {
         const width = viewport.clientWidth, height = viewport.clientHeight;
         if (previousWidth && previousHeight) {
             camera.x += (width - previousWidth) / 2; camera.y += (height - previousHeight) / 2; draw();
-        } else focusNode(root);
+        } else if (!viewState) focusNode(root);
         previousWidth = width; previousHeight = height;
-    }).observe(viewport);
-    showDetails(root, false);
-    focusNode(root);
+    });
+    observer.observe(viewport);
+    viewer.dispose = () => observer.disconnect();
+    viewer.getViewState = () => ({ camera: { ...camera }, selectedId });
+    showDetails(nodes.get(viewState?.selectedId) ?? root, false);
+    if (viewState) { camera = { ...viewState.camera }; draw(); }
+    else { focusNode(root); if (viewport.clientWidth < 760) viewer.classList.add('is-detail-hidden'); }
 }
+for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) initializeViewer(viewer);
