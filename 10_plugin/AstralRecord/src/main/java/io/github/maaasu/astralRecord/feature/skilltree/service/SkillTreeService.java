@@ -372,7 +372,6 @@ public class SkillTreeService {
         this.structureRepository = structureRepository;
         this.playerStateRepository = playerStateRepository;
         this.nodeInteractionKey = new NamespacedKey(plugin, "skilltree_node_id");
-        if (inventoryService != null) setInventoryService(inventoryService);
     }
 
     /** 全player-state保存へ同じ参加時点の権限を添付する。I/Oやservice monitor取得は行わない。 */
