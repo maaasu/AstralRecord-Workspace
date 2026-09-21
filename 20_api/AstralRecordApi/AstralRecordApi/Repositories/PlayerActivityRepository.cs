@@ -34,19 +34,27 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
     public async Task<PagedPlayerActivityResponse<SameIpActivityResponse>> GetSameIpAsync(PlayerActivityQuery query)
     {
         var (from, to, page, size) = Page(query);
-        var observations = history.PlayerIpObservations.AsNoTracking().Where(x => x.ObservedAt >= from && x.ObservedAt < to)
-            .GroupBy(x => new { x.GlobalIp, x.UserUuid })
-            .Select(group => new { group.Key.GlobalIp, group.Key.UserUuid, AccountId = group.Max(x => x.AccountId), Mcid = group.Max(x => x.Mcid), AccountName = group.Max(x => x.AccountName), First = group.Min(x => x.ObservedAt), Last = group.Max(x => x.ObservedAt) });
-        var pairs = from player in observations
-                    join related in observations on player.GlobalIp equals related.GlobalIp
-                    where player.UserUuid.CompareTo(related.UserUuid) < 0
-                    select new { Player = player, Related = related, First = player.First < related.First ? player.First : related.First, Last = player.Last > related.Last ? player.Last : related.Last };
-        if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); pairs = pairs.Where(x => x.Player.Mcid.Contains(term) || x.Player.AccountName.Contains(term) || x.Related.Mcid.Contains(term) || x.Related.AccountName.Contains(term)); }
-        if (query.UserUuid is { } user) pairs = pairs.Where(x => x.Player.UserUuid == user || x.Related.UserUuid == user);
-        if (query.OtherUserUuid is { } other && query.UserUuid is { } selected) pairs = pairs.Where(x => (x.Player.UserUuid == selected && x.Related.UserUuid == other) || (x.Player.UserUuid == other && x.Related.UserUuid == selected));
-        var result = pairs.Select(x => new { x.Player, x.Related, x.First, x.Last, TradeCount = history.PlayerTradeActivities.Count(t => t.CompletedAt >= from && t.CompletedAt < to && ((t.SourceUserUuid == x.Player.UserUuid && t.DestinationUserUuid == x.Related.UserUuid) || (t.SourceUserUuid == x.Related.UserUuid && t.DestinationUserUuid == x.Player.UserUuid))) });
-        var total = await result.CountAsync(); var rows = await result.OrderByDescending(x => x.TradeCount).ThenByDescending(x => x.Last).Skip((page - 1) * size).Take(size).ToListAsync();
-        return new PagedPlayerActivityResponse<SameIpActivityResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows.Select(x => new SameIpActivityResponse(x.First, x.Last, x.TradeCount, [new ActivityPlayerSnapshotResponse(x.Player.UserUuid, x.Player.AccountId, x.Player.Mcid, x.Player.AccountName), new ActivityPlayerSnapshotResponse(x.Related.UserUuid, x.Related.AccountId, x.Related.Mcid, x.Related.AccountName)])).ToArray() };
+        var observationRows = history.PlayerIpObservations.AsNoTracking().Where(x => x.ObservedAt >= from && x.ObservedAt < to);
+        var commonIpPairs = from player in observationRows
+                            join related in observationRows on player.GlobalIp equals related.GlobalIp
+                            where player.UserUuid.CompareTo(related.UserUuid) < 0
+                            select new { Player = player, Related = related };
+        if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); commonIpPairs = commonIpPairs.Where(x => x.Player.Mcid.Contains(term) || x.Player.AccountName.Contains(term) || x.Related.Mcid.Contains(term) || x.Related.AccountName.Contains(term)); }
+        var pairs = commonIpPairs.GroupBy(x => new { PlayerUserUuid = x.Player.UserUuid, RelatedUserUuid = x.Related.UserUuid }).Select(group => new
+        {
+            group.Key.PlayerUserUuid,
+            group.Key.RelatedUserUuid,
+            First = group.Min(x => x.Player.ObservedAt < x.Related.ObservedAt ? x.Player.ObservedAt : x.Related.ObservedAt),
+            Last = group.Max(x => x.Player.ObservedAt > x.Related.ObservedAt ? x.Player.ObservedAt : x.Related.ObservedAt),
+        });
+        if (query.UserUuid is { } user) pairs = pairs.Where(x => x.PlayerUserUuid == user || x.RelatedUserUuid == user);
+        if (query.OtherUserUuid is { } other && query.UserUuid is { } selected) pairs = pairs.Where(x => (x.PlayerUserUuid == selected && x.RelatedUserUuid == other) || (x.PlayerUserUuid == other && x.RelatedUserUuid == selected));
+        var result = pairs.Select(x => new { x.PlayerUserUuid, x.RelatedUserUuid, x.First, x.Last, TradeCount = history.PlayerTradeActivities.Count(t => t.CompletedAt >= from && t.CompletedAt < to && ((t.SourceUserUuid == x.PlayerUserUuid && t.DestinationUserUuid == x.RelatedUserUuid) || (t.SourceUserUuid == x.RelatedUserUuid && t.DestinationUserUuid == x.PlayerUserUuid))) });
+        var total = await result.CountAsync(); var rows = await result.OrderByDescending(x => x.TradeCount).ThenByDescending(x => x.Last).ThenBy(x => x.PlayerUserUuid).ThenBy(x => x.RelatedUserUuid).Skip((page - 1) * size).Take(size).ToListAsync();
+        var userIds = rows.SelectMany(x => new[] { x.PlayerUserUuid, x.RelatedUserUuid }).Distinct().ToArray();
+        var snapshotRows = await history.PlayerIpObservations.AsNoTracking().Where(x => userIds.Contains(x.UserUuid) && x.ObservedAt >= from && x.ObservedAt < to).OrderByDescending(x => x.ObservedAt).ThenByDescending(x => x.EventId).ToListAsync();
+        var snapshots = snapshotRows.GroupBy(x => x.UserUuid).ToDictionary(group => group.Key, group => Player(group.First()));
+        return new PagedPlayerActivityResponse<SameIpActivityResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows.Select(x => new SameIpActivityResponse(x.First, x.Last, x.TradeCount, [snapshots[x.PlayerUserUuid], snapshots[x.RelatedUserUuid]])).ToArray() };
     }
 
     public async Task<PagedPlayerActivityResponse<PlayerTradeActivityResponse>> GetTradesAsync(PlayerActivityQuery query)
@@ -72,8 +80,11 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
         var (rangeStart, rangeEnd, page, size) = Page(query); var q = from run in history.DungeonClearActivities.AsNoTracking().Where(x => x.ClearedAt >= rangeStart && x.ClearedAt < rangeEnd) from p in history.DungeonParticipantActivities.AsNoTracking().Where(p => p.EventId == run.EventId) select new { run, p };
         if (!string.IsNullOrWhiteSpace(query.DungeonId)) q = q.Where(x => x.run.DungeonId == query.DungeonId.Trim()); if (query.AccountId is { } account) q = q.Where(x => x.p.AccountId == account); if (query.UserUuid is { } user) q = q.Where(x => x.p.UserUuid == user);
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.p.Mcid.Contains(term) || x.p.AccountName.Contains(term)); }
-        var grouped = q.GroupBy(x => new { x.p.UserUuid, x.p.AccountId, x.p.Mcid, x.p.AccountName }).Select(g => new { g.Key.UserUuid, g.Key.AccountId, g.Key.Mcid, g.Key.AccountName, ClearCount = g.Count(), First = g.Min(x => x.run.ClearedAt), Last = g.Max(x => x.run.ClearedAt), DistanceCount = g.Count(x => x.p.DistanceMeters != null), Distance = g.Sum(x => x.p.DistanceMeters ?? 0m) });
-        var total = await grouped.CountAsync(); var rows = (await grouped.OrderByDescending(x => x.ClearCount).ThenBy(x => x.Mcid).Skip((page - 1) * size).Take(size).ToListAsync()).Select(x => new DungeonPlayerSummaryResponse(new ActivityPlayerSnapshotResponse(x.UserUuid, x.AccountId, x.Mcid, x.AccountName), x.ClearCount, x.First, x.Last, x.DistanceCount == 0 ? null : x.Distance)).ToArray(); return new PagedPlayerActivityResponse<DungeonPlayerSummaryResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows };
+        var grouped = q.GroupBy(x => x.p.AccountId).Select(g => new { AccountId = g.Key, ClearCount = g.Count(), First = g.Min(x => x.run.ClearedAt), Last = g.Max(x => x.run.ClearedAt), DistanceCount = g.Count(x => x.p.DistanceMeters != null), Distance = g.Sum(x => x.p.DistanceMeters ?? 0m) });
+        var total = await grouped.CountAsync(); var rows = await grouped.OrderByDescending(x => x.ClearCount).ThenBy(x => x.AccountId).Skip((page - 1) * size).Take(size).ToListAsync();
+        var accountIds = rows.Select(x => x.AccountId).ToArray();
+        var snapshots = (await q.Where(x => accountIds.Contains(x.p.AccountId)).OrderByDescending(x => x.run.ClearedAt).ThenByDescending(x => x.p.EventId).Select(x => x.p).ToListAsync()).GroupBy(x => x.AccountId).ToDictionary(group => group.Key, group => Player(group.First()));
+        return new PagedPlayerActivityResponse<DungeonPlayerSummaryResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows.Select(x => new DungeonPlayerSummaryResponse(snapshots[x.AccountId], x.ClearCount, x.First, x.Last, x.DistanceCount == 0 ? null : x.Distance)).ToArray() };
     }
 
     public async Task<PagedPlayerActivityResponse<MobRankingResponse>> GetMobsAsync(PlayerActivityQuery query)
@@ -84,8 +95,12 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
 
     public async Task<PagedPlayerActivityResponse<MobPlayerSummaryResponse>> GetMobPlayersAsync(string mobId, PlayerActivityQuery query)
     {
-        var (from, to, page, size) = Page(query); var damages = await history.MobDamageSummaries.AsNoTracking().Where(x => x.MobId == mobId && x.WindowEndedAt >= from && x.WindowEndedAt < to).GroupBy(x => new { x.VictimUserUuid, x.VictimAccountId }).Select(g => new { g.Key.VictimUserUuid, g.Key.VictimAccountId, Mcid = g.Max(x => x.VictimMcid), AccountName = g.Max(x => x.VictimAccountName), Damage = g.Sum(x => x.Damage), Hits = g.Sum(x => x.HitCount), Last = g.Max(x => x.WindowEndedAt) }).ToListAsync(); var deaths = await history.MobPlayerDeaths.AsNoTracking().Where(x => x.MobId == mobId && x.OccurredAt >= from && x.OccurredAt < to).GroupBy(x => new { x.VictimUserUuid, x.VictimAccountId }).Select(g => new { g.Key.VictimUserUuid, g.Key.VictimAccountId, Mcid = g.Max(x => x.VictimMcid), AccountName = g.Max(x => x.VictimAccountName), Kills = g.Count(), Last = g.Max(x => x.OccurredAt) }).ToListAsync();
-        var rows = damages.Select(x => (x.VictimUserUuid, x.VictimAccountId)).Concat(deaths.Select(x => (x.VictimUserUuid, x.VictimAccountId))).Distinct().Select(key => { var damage = damages.SingleOrDefault(x => x.VictimAccountId == key.VictimAccountId); var death = deaths.SingleOrDefault(x => x.VictimAccountId == key.VictimAccountId); var player = new ActivityPlayerSnapshotResponse(key.VictimUserUuid, key.VictimAccountId, damage?.Mcid ?? death?.Mcid ?? string.Empty, damage?.AccountName ?? death?.AccountName ?? string.Empty); return new MobPlayerSummaryResponse(player, death?.Kills ?? 0, damage?.Damage ?? 0, damage?.Hits ?? 0, new[] { damage?.Last ?? DateTime.MinValue, death?.Last ?? DateTime.MinValue }.Max()); }).Where(x => Matches(query.Query, x.Player)).OrderByDescending(x => x.DeathCount).ThenByDescending(x => x.DamageTaken).ToList(); return Page(rows, page, size);
+        var (from, to, page, size) = Page(query); var damages = await history.MobDamageSummaries.AsNoTracking().Where(x => x.MobId == mobId && x.WindowEndedAt >= from && x.WindowEndedAt < to).GroupBy(x => x.VictimAccountId).Select(g => new { AccountId = g.Key, Damage = g.Sum(x => x.Damage), Hits = g.Sum(x => x.HitCount), Last = g.Max(x => x.WindowEndedAt) }).ToListAsync(); var deaths = await history.MobPlayerDeaths.AsNoTracking().Where(x => x.MobId == mobId && x.OccurredAt >= from && x.OccurredAt < to).GroupBy(x => x.VictimAccountId).Select(g => new { AccountId = g.Key, Kills = g.Count(), Last = g.Max(x => x.OccurredAt) }).ToListAsync();
+        var accountIds = damages.Select(x => x.AccountId).Concat(deaths.Select(x => x.AccountId)).Distinct().ToArray();
+        var damageSnapshots = await history.MobDamageSummaries.AsNoTracking().Where(x => x.MobId == mobId && x.WindowEndedAt >= from && x.WindowEndedAt < to && accountIds.Contains(x.VictimAccountId)).OrderByDescending(x => x.WindowEndedAt).ThenByDescending(x => x.EventId).ToListAsync();
+        var deathSnapshots = await history.MobPlayerDeaths.AsNoTracking().Where(x => x.MobId == mobId && x.OccurredAt >= from && x.OccurredAt < to && accountIds.Contains(x.VictimAccountId)).OrderByDescending(x => x.OccurredAt).ThenByDescending(x => x.EventId).ToListAsync();
+        var snapshots = damageSnapshots.Select(x => (AccountId: x.VictimAccountId, At: x.WindowEndedAt, EventId: x.EventId, Player: Player(x))).Concat(deathSnapshots.Select(x => (AccountId: x.VictimAccountId, At: x.OccurredAt, EventId: x.EventId, Player: Player(x)))).GroupBy(x => x.AccountId).ToDictionary(group => group.Key, group => group.OrderByDescending(x => x.At).ThenByDescending(x => x.EventId).First().Player);
+        var rows = accountIds.Select(accountId => { var damage = damages.SingleOrDefault(x => x.AccountId == accountId); var death = deaths.SingleOrDefault(x => x.AccountId == accountId); return new MobPlayerSummaryResponse(snapshots[accountId], death?.Kills ?? 0, damage?.Damage ?? 0, damage?.Hits ?? 0, new[] { damage?.Last ?? DateTime.MinValue, death?.Last ?? DateTime.MinValue }.Max()); }).Where(x => Matches(query.Query, x.Player)).OrderByDescending(x => x.DeathCount).ThenByDescending(x => x.DamageTaken).ToList(); return Page(rows, page, size);
     }
 
     public async Task<PagedPlayerActivityResponse<MobPlayerDeathResponse>> GetMobDeathsAsync(string mobId, PlayerActivityQuery query)

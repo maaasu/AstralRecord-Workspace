@@ -30,6 +30,6 @@ DTO定義は `20_api/AstralRecordApi/AstralRecordApi/Models/PlayerActivityModels
 
 Mobランキングとプレイヤー別被害集計は `windowEndedAt`、死亡履歴は `occurredAt` を期間判定に用いる。Pluginは管理対象Mobだけを送信し、通常のダメージは Mob・被害プレイヤー・1分程度の窓で集約する。
 
-入力検証の `400`（将来のサイズ制限時は `413`、意味検証追加時は `422`）はPluginが当該バッチを破棄してよい恒久エラーとする。`429`、`5xx`、ネットワーク例外は一時エラーとして同じ `batchId` と `eventId` を再送する。
+入力検証の `400`（将来のサイズ制限時は `413`、意味検証追加時は `422`）はPluginが当該バッチを破棄してよい恒久エラーとする。`429`、`5xx`、ネットワーク例外は一時エラーとして同じ `batchId` と `eventId` を再送する。Pluginの送信予約・実行中taskは常に1つだけとし、一時失敗後は少なくとも60秒待ってから再送する。
 
 導入時は既存HistoryDBへ `table-definitions/HistoryDB/migrations/20260921_player_activity.sql` を適用してから、API、Web、Pluginの順で配置する。導入前に発生したトレード、ダンジョン、Mob行動は復元できない。
