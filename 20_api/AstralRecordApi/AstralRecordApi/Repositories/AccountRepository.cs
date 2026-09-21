@@ -619,10 +619,13 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
     }
 
     private static string? RemapLearnedSkillBinding(string? binding, IReadOnlyDictionary<Guid, Guid> learnedSkillIds)
-        => Guid.TryParse(binding, out var sourceLearnedSkillId)
-            && learnedSkillIds.TryGetValue(sourceLearnedSkillId, out var targetLearnedSkillId)
-                ? targetLearnedSkillId.ToString()
-                : binding;
+    {
+        if (!Guid.TryParse(binding, out var sourceLearnedSkillId))
+            return binding;
+        return learnedSkillIds.TryGetValue(sourceLearnedSkillId, out var targetLearnedSkillId)
+            ? targetLearnedSkillId.ToString()
+            : null;
+    }
 
     public async Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request)
     {

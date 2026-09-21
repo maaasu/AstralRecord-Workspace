@@ -677,6 +677,7 @@ public class AccountRepositoryTests
         var targetUserId = Guid.NewGuid();
         var sourceAccountId = Guid.NewGuid();
         var sourceLearnedSkillId = Guid.NewGuid();
+        var sourceDeletedLearnedSkillId = Guid.NewGuid();
         var equipmentId = Guid.NewGuid();
         var inventoryId = Guid.NewGuid();
         var now = DateTime.UtcNow;
@@ -705,11 +706,19 @@ public class AccountRepositoryTests
                 LearnedSkillId = sourceLearnedSkillId, AccountId = sourceAccountId, SkillId = "slash", Level = 2,
                 Version = 3, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
             });
+            setup.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = sourceDeletedLearnedSkillId, AccountId = sourceAccountId, SkillId = "forgotten", Level = 1,
+                Version = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+                IsDeleted = true,
+            });
             setup.SkillBindPresets.Add(new SkillBindPresetEntity
             {
                 SkillBindPresetId = Guid.NewGuid(), AccountId = sourceAccountId, PresetIndex = 1,
-                ActiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\"]", LeftClickSkillId = sourceLearnedSkillId.ToString("D"),
-                PassiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\"]", IsUnlocked = true, IsSelected = true,
+                ActiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\",\"{sourceDeletedLearnedSkillId:D}\"]",
+                LeftClickSkillId = sourceDeletedLearnedSkillId.ToString("D"),
+                PassiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\",\"{sourceDeletedLearnedSkillId:D}\"]",
+                IsUnlocked = true, IsSelected = true,
                 Version = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
             });
             setup.Inventories.Add(new InventoryEntity
@@ -767,9 +776,11 @@ public class AccountRepositoryTests
             .Where(row => row.AccountId == cloned.Account.Uuid).Select(row => row.LearnedSkillId).SingleAsync();
         var clonePreset = await dbContext.SkillBindPresets.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
         Assert.DoesNotContain(sourceLearnedSkillId.ToString("D"), clonePreset.ActiveSkillSlotsJson);
+        Assert.DoesNotContain(sourceDeletedLearnedSkillId.ToString("D"), clonePreset.ActiveSkillSlotsJson);
         Assert.Contains(cloneLearnedSkillId.ToString("D"), clonePreset.ActiveSkillSlotsJson);
-        Assert.Equal(cloneLearnedSkillId.ToString("D"), clonePreset.LeftClickSkillId);
+        Assert.Null(clonePreset.LeftClickSkillId);
         Assert.Contains(cloneLearnedSkillId.ToString("D"), clonePreset.PassiveSkillSlotsJson);
+        Assert.DoesNotContain(sourceDeletedLearnedSkillId.ToString("D"), clonePreset.PassiveSkillSlotsJson);
 
         var autoCreated = await repository.CreateAsync(new AccountCreateRequest
         {
