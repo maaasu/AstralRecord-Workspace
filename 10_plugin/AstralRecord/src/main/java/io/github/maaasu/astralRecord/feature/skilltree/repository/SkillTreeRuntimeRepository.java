@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -32,17 +31,13 @@ public final class SkillTreeRuntimeRepository {
             @NotNull String action,
             @NotNull String nodeId,
             @Nullable String sourceClassId,
-            @NotNull String mode,
+            @NotNull String status,
             @Nullable String expectedEvaluationFingerprint
     ) {
     }
 
     /** sessionでfenceされた操作処理権限です。 */
     public record ClaimedOperation(@NotNull String leaseToken, @NotNull Operation operation) {
-    }
-
-    /** Plugin が再評価した操作の確定結果です。API は lease と player-state 保存を同一 transaction で確定します。 */
-    public record CompletedOperation(@NotNull String result, @NotNull JsonObject playerView) {
     }
 
     public boolean isConfigured() {
@@ -101,8 +96,8 @@ public final class SkillTreeRuntimeRepository {
                         value.get("nodeId").getAsString(),
                         value.has("sourceClassId") && !value.get("sourceClassId").isJsonNull()
                                 ? value.get("sourceClassId").getAsString() : null,
-                        value.has("mode") && !value.get("mode").isJsonNull()
-                                ? value.get("mode").getAsString() : "ONLINE",
+                        value.has("status") && !value.get("status").isJsonNull()
+                                ? value.get("status").getAsString() : "PENDING",
                         value.has("expectedEvaluationFingerprint") && !value.get("expectedEvaluationFingerprint").isJsonNull()
                                 ? value.get("expectedEvaluationFingerprint").getAsString() : null
                 ));
@@ -154,43 +149,6 @@ public final class SkillTreeRuntimeRepository {
         body.addProperty("editEligible", playerView.get("editEligible").getAsBoolean());
         body.add("view", playerView);
         send("PUT", path(serverId) + "/accounts/" + accountId + "/view", body, 200);
-    }
-
-    /**
-     * lease を取得した操作を、保存済み player-state と同じ API transaction で確定します。
-     *
-     * @param serverId 実行 backend 識別子
-     * @param sessionId 現在の Plugin 起動 session
-     * @param operation 操作本文
-     * @param leaseToken claim 時に発行された lease
-     * @param result Plugin の再検証結果
-     * @param playerView 確定後または拒否時の再評価ビュー
-     * @return API が確定した結果と再表示ビュー
-     */
-    public @NotNull CompletedOperation complete(
-            @NotNull String serverId,
-            @NotNull UUID sessionId,
-            @NotNull Operation operation,
-            @NotNull String leaseToken,
-            @NotNull String result,
-            @NotNull JsonObject playerView
-    ) {
-        JsonObject body = new JsonObject();
-        body.addProperty("serverSessionId", sessionId.toString());
-        body.addProperty("leaseToken", leaseToken);
-        body.addProperty("accountId", operation.accountId().toString());
-        body.addProperty("expectedDefinitionGenerationId", operation.expectedDefinitionGenerationId());
-        body.addProperty("expectedPlayerStateVersion", operation.expectedPlayerStateVersion());
-        body.addProperty("result", result);
-        body.add("playerView", playerView);
-        JsonObject response = send(
-                "POST", path(serverId) + "/operations/" + operation.operationId() + "/complete", body, 200
-        ).getAsJsonObject();
-        String confirmedResult = response.has("result") ? response.get("result").getAsString() : result;
-        JsonObject confirmedView = response.has("playerView") && response.get("playerView").isJsonObject()
-                ? response.getAsJsonObject("playerView")
-                : playerView;
-        return new CompletedOperation(confirmedResult, confirmedView);
     }
 
     private @NotNull String path(@NotNull String serverId) {

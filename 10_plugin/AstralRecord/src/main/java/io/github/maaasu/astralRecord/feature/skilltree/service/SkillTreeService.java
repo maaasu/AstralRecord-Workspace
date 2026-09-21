@@ -325,6 +325,8 @@ public class SkillTreeService {
     private final Map<UUID, Long> runtimePlayerContextRevisions = new java.util.concurrent.ConcurrentHashMap<>();
     /** 次の skillTree snapshot にだけ同梱する、claim済みWeb操作の原子確定receiptです。 */
     private final Map<UUID, PendingRuntimeOperationReceipt> pendingRuntimeOperationReceipts = new HashMap<>();
+    /** 空のlegacy stateを現在世代へ初回bindしたことを、同じsnapshotでAPIへ明示します。 */
+    private final Set<UUID> pendingLegacyDefinitionGenerationMigrations = new LinkedHashSet<>();
     private final Map<UUID, Long> acknowledgedPlayerStateRevisions = new HashMap<>();
     private final Map<UUID, UUID> playerStateEpochs = new HashMap<>();
     private final Map<UUID, SkillTreePlayerState> initialPlayerStatePublications = new HashMap<>();
@@ -1480,6 +1482,8 @@ public class SkillTreeService {
         acknowledgedPlayerStateRevisions.remove(accountId);
         playerStateEpochs.remove(accountId);
         initialPlayerStatePublications.remove(accountId);
+        pendingRuntimeOperationReceipts.remove(accountId);
+        pendingLegacyDefinitionGenerationMigrations.remove(accountId);
         returnLocations.remove(accountId);
         visualReadyAtMillis.remove(accountId);
         BossBar bossBar = loadingBossBars.remove(accountId);
@@ -1497,6 +1501,8 @@ public class SkillTreeService {
         playerStateRevisions.remove(accountId);
         acknowledgedPlayerStateRevisions.remove(accountId);
         persistedPlayerStateVersions.remove(accountId);
+        pendingRuntimeOperationReceipts.remove(accountId);
+        pendingLegacyDefinitionGenerationMigrations.remove(accountId);
         derivedPlayerStates.remove(accountId);
     }
 
@@ -2079,8 +2085,10 @@ public class SkillTreeService {
                     if (!state.unlock(node.nodeId(), normalizedSource)) {
                         throw new IllegalStateException("Skill tree node is already unlocked.");
                     }
+                    boolean migrateLegacyState = state.definitionGenerationId() == null;
                     SkillTreePlayerState boundState = bindCurrentDefinitionGeneration(state);
                     playerStates.put(accountId, boundState);
+                    markLegacyDefinitionGenerationMigration(accountId, migrateLegacyState);
                     registerPendingRuntimeOperation(astPlayer, runtimeGuard, boundState);
                     markDirty(boundState);
                     SkillTreeMutationCheckpoint committedCheckpoint = checkpoint;
@@ -2135,8 +2143,10 @@ public class SkillTreeService {
                             || !state.relock(node.nodeId())) {
                         throw new IllegalStateException("Skill tree node cannot be relocked.");
                     }
+                    boolean migrateLegacyState = state.definitionGenerationId() == null;
                     SkillTreePlayerState boundState = bindCurrentDefinitionGeneration(state);
                     playerStates.put(accountId, boundState);
+                    markLegacyDefinitionGenerationMigration(accountId, migrateLegacyState);
                     registerPendingRuntimeOperation(astPlayer, runtimeGuard, boundState);
                     markDirty(boundState);
                     SkillTreeMutationCheckpoint committedCheckpoint = checkpoint;
@@ -2183,6 +2193,13 @@ public class SkillTreeService {
         return new SkillTreePlayerState(
                 state.accountId(), state.unlockedNodes(), state.persistedVersion(), definitionGenerationId
         );
+    }
+
+    /** 初回legacy bindだけを保存ACKまで保持します。 */
+    private void markLegacyDefinitionGenerationMigration(@NotNull UUID accountId, boolean migrateLegacyState) {
+        if (migrateLegacyState) {
+            pendingLegacyDefinitionGenerationMigrations.add(accountId);
+        }
     }
 
     /** 保存laneでBukkit APIへ触れずに照合できる、Web操作受付時点の安全境界です。 */
@@ -2233,7 +2250,8 @@ public class SkillTreeService {
             persistedPlayerStateVersions.get(accountId),
             acknowledgedPlayerStateRevisions.get(accountId),
             playerStateEpochs.get(accountId),
-            pendingRuntimeOperationReceipts.get(accountId)
+            pendingRuntimeOperationReceipts.get(accountId),
+            pendingLegacyDefinitionGenerationMigrations.contains(accountId)
         );
     }
 
@@ -2252,6 +2270,10 @@ public class SkillTreeService {
         restoreMapValue(acknowledgedPlayerStateRevisions, accountId, checkpoint.acknowledgedRevision());
         restoreMapValue(playerStateEpochs, accountId, checkpoint.epoch());
         restoreMapValue(pendingRuntimeOperationReceipts, accountId, checkpoint.pendingRuntimeOperationReceipt());
+        restoreSetValue(
+                pendingLegacyDefinitionGenerationMigrations,
+                accountId,
+                checkpoint.legacyDefinitionGenerationMigrationPending());
         if (inventoryBefore != null) {
             persistence.restoreState(inventoryBefore);
         }
@@ -2673,6 +2695,9 @@ public class SkillTreeService {
         } else {
             payload.addProperty("definitionGenerationId", state.definitionGenerationId());
         }
+        payload.addProperty("serverId", ConfigProperties.getInstance().getApiServerId());
+        payload.addProperty("serverSessionId", runtimeServerSessionId.toString());
+        payload.addProperty("migrateLegacyState", pendingLegacyDefinitionGenerationMigrations.contains(accountId));
         PendingRuntimeOperationReceipt pendingOperation = pendingRuntimeOperationReceipts.get(accountId);
         if (pendingOperation != null) {
             payload.add("operation", pendingOperation.toJson());
@@ -2691,12 +2716,15 @@ public class SkillTreeService {
         payload.add("unlockedNodes", nodes);
         UUID capturedEpoch = playerStateEpochs.get(accountId);
         UUID pendingOperationId = pendingOperation == null ? null : pendingOperation.operationId();
+        boolean capturedLegacyMigration = pendingLegacyDefinitionGenerationMigrations.contains(accountId);
         return new PlayerStateSection("skillTree", payload,
-            acknowledged -> acknowledgeSnapshot(accountId, capturedEpoch, capturedRevision, pendingOperationId, acknowledged));
+            acknowledged -> acknowledgeSnapshot(
+                    accountId, capturedEpoch, capturedRevision, pendingOperationId, capturedLegacyMigration, acknowledged));
     }
 
     private synchronized void acknowledgeSnapshot(@NotNull UUID accountId, UUID capturedEpoch,
-        long capturedRevision, @Nullable UUID pendingOperationId, @NotNull JsonElement acknowledged) {
+        long capturedRevision, @Nullable UUID pendingOperationId, boolean capturedLegacyMigration,
+        @NotNull JsonElement acknowledged) {
         if (!Objects.equals(capturedEpoch, playerStateEpochs.get(accountId))
             || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)) return;
         if (!acknowledged.isJsonObject()) {
@@ -2720,6 +2748,9 @@ public class SkillTreeService {
                 pendingRuntimeOperationReceipts.remove(accountId);
                 publishDeferredMasterDataSnapshot();
             }
+        }
+        if (capturedLegacyMigration) {
+            pendingLegacyDefinitionGenerationMigrations.remove(accountId);
         }
         acknowledgedPlayerStateRevisions.put(accountId, capturedRevision);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
@@ -3441,7 +3472,8 @@ public class SkillTreeService {
             @Nullable Integer persistedVersion,
             @Nullable Long acknowledgedRevision,
             @Nullable UUID epoch,
-            @Nullable PendingRuntimeOperationReceipt pendingRuntimeOperationReceipt
+            @Nullable PendingRuntimeOperationReceipt pendingRuntimeOperationReceipt,
+            boolean legacyDefinitionGenerationMigrationPending
     ) {
     }
 
