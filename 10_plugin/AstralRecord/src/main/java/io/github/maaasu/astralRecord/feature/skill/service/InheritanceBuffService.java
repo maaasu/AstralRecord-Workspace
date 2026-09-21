@@ -133,7 +133,8 @@ public final class InheritanceBuffService {
                     order,
                     consumeSourceSkillResources,
                     condition,
-                    condition, element, effect
+                    element,
+                    effect
             );
             active.computeIfAbsent(id, ignored -> new HashMap<>()).put(buffId, inherited);
             // lifecycleの中断でもcleanupが走り、死亡・退出・world移動後へ効果を持ち越さない。
