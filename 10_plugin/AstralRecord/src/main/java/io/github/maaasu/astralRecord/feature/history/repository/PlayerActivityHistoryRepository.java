@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.history.repository;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.history.service.PlayerActivityHistoryService;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -14,7 +13,12 @@ import java.net.http.HttpResponse;
 public final class PlayerActivityHistoryRepository {
     private static final String BATCH_PATH = "/api/history/activity/batch";
 
-    /** バッチを送信します。成功応答以外は呼び出し元で再送する例外として返します。 */
+    /**
+     * バッチを送信します。
+     *
+     * @throws HistorySubmissionException HTTP 応答が成功でない場合。呼び出し側は retryable を確認します
+     * @throws IllegalStateException 通信または中断により結果を取得できない場合
+     */
     public void submit(@NotNull PlayerActivityHistoryService.ActivityBatch batch) {
         JsonObject body = batch.toJson();
         HttpResponse<String> response;
@@ -32,9 +36,28 @@ public final class PlayerActivityHistoryRepository {
             throw new IllegalStateException("Failed to request " + BATCH_PATH, exception);
         }
         if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                "POST " + BATCH_PATH + " returned HTTP " + response.statusCode() + ": " + response.body()
-            );
+            throw new HistorySubmissionException(response.statusCode());
+        }
+    }
+
+    /** 活動履歴 API の HTTP 拒否と、同一バッチを再送すべきかを表します。 */
+    public static final class HistorySubmissionException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+        private final int statusCode;
+
+        private HistorySubmissionException(int statusCode) {
+            super("POST " + BATCH_PATH + " returned HTTP " + statusCode);
+            this.statusCode = statusCode;
+        }
+
+        /** @return API が返した HTTP status code */
+        public int statusCode() {
+            return statusCode;
+        }
+
+        /** @return タイムアウト・レート制限・サーバー障害として同一 batchId で再送する場合 true */
+        public boolean retryable() {
+            return statusCode == 408 || statusCode == 429 || statusCode >= 500;
         }
     }
 }

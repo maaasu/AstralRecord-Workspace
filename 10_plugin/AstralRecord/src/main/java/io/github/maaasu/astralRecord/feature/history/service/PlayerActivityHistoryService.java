@@ -180,6 +180,13 @@ public final class PlayerActivityHistoryService {
             try {
                 repository.submit(batch);
                 retryBatch = null;
+            } catch (PlayerActivityHistoryRepository.HistorySubmissionException failure) {
+                // 入力・認証などの4xxは同じ内容では成功しないため、当該バッチだけを捨てて次を処理する。
+                if (failure.retryable()) {
+                    retryBatch = batch;
+                    return;
+                }
+                retryBatch = null;
             } catch (RuntimeException failure) {
                 // DB保存後に応答だけ失われても API 側の batchId 冪等性で同じ結果を再取得できる。
                 retryBatch = batch;
