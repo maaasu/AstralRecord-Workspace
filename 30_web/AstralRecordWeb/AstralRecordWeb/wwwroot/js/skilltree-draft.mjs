@@ -35,7 +35,7 @@ export function createDraft(state, changes = []) {
         }
         if (unlocked.has(node.nodeId)) return 'すでに解放されています。';
         if (!unlocked.size ? node.nodeId !== tree.rootNodeId : !(neighbors.get(node.nodeId) ?? []).some(id => active.has(id))) return '接続するノードを先に解放案へ追加してください。';
-        if (node.pointType === 'PP') return points.pp === null || points.pp < node.pointCost ? 'PPが不足しています。' : '';
+        if (node.pointType === 'PP') return points.pp === null || node.pointCost > 0 && points.pp < node.pointCost ? 'PPが不足しています。' : '';
         if (node.pointType !== 'CP') return 'ポイント種別を確認できません。';
         if (!node.pointCost) return '';
         const sourceId = node.requiresCpSourceSelection ? change.sourceClassId : node.cpSourceClassId;

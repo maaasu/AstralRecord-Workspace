@@ -872,6 +872,7 @@ public class SkillTreeService {
         view.addProperty("playerStateRevision", playerStateRevisions.getOrDefault(state.accountId(), 0L));
         view.addProperty("evaluationFingerprint", createRuntimeEvaluationFingerprint(astPlayer, state));
         view.addProperty("online", online);
+        view.addProperty("editorVersion", 2);
         view.addProperty("channelName", ConfigProperties.getInstance().getNetworkChannelName());
         view.addProperty("editEligible", eligible);
         view.addProperty("relockGoldCost", RELOCK_GOLD_COST);

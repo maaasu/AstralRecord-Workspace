@@ -139,8 +139,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
             || await dbContext.SkillTreeOperations.AnyAsync(x => x.AccountId == accountId && ActiveStatuses.Contains(x.Status))) return null;
         var view = await dbContext.SkillTreeServerPlayerViews.FindAsync(request.TargetServerId, accountId);
         if (view is null) return null;
-        var runtime = await CurrentRuntimeAsync(request.TargetServerId);
-        if (request.Action == "BATCH" && runtime?.CompatibilityVersion != BatchCompatibility) return null;
+        if (request.Action == "BATCH" && !editor.SupportsBatch) return null;
         var now = DateTime.UtcNow;
         var item = new SkillTreeOperationEntity
         {
@@ -214,7 +213,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         var item = await dbContext.SkillTreeOperations.SingleOrDefaultAsync(x => x.OperationId == operationId && x.AccountId == request.AccountId && x.TargetServerId == serverId);
         if (item is null || item.ExpiresAtUtc <= DateTime.UtcNow
             || item.Status is not (SkillTreeOperationStatuses.PendingOnline or SkillTreeOperationStatuses.PendingOffline)) return null;
-        if (item.Action == "BATCH" && runtime.CompatibilityVersion != BatchCompatibility) return null;
+        if (item.Action == "BATCH" && (runtime.CompatibilityVersion != BatchCompatibility || GetDecimalProperty(view.ViewJson, "editorVersion") != 2)) return null;
         if (item.ExpectedDefinitionGenerationId != runtime.DefinitionGenerationId || item.ExpectedPlayerStateVersion != view.PlayerStateVersion
             || item.ExpectedEvaluationFingerprint != view.EvaluationFingerprint || !view.EditEligible)
         {
@@ -291,6 +290,11 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         var online = owner is not null && runtime?.ServerSessionId == owner.ServerSessionId && view?.AccountSessionId == owner.AccountSessionId
             && view.ServerSessionId == owner.ServerSessionId && view.LastSeenUtc >= DateTime.UtcNow - RuntimeTtl && view.DefinitionGenerationId == runtime.DefinitionGenerationId;
         var offline = owner is null && networkPresence is null && view?.OfflineConfirmed == true;
+        // 保存済みの案には稼働中serverを要求しない。確定権限はclaim時に別途検証する。
+        var batchCompatibility = runtime?.CompatibilityVersion;
+        if (offline && batchCompatibility is null && selected is not null)
+            batchCompatibility = await dbContext.SkillTreeServerRuntimes.AsNoTracking()
+                .Where(x => x.ServerId == selected).Select(x => x.CompatibilityVersion).SingleOrDefaultAsync();
         var usable = (online || offline) && view is not null && state?.DefinitionGenerationId == view.DefinitionGenerationId && state.Version == view.PlayerStateVersion;
         if (offline && usable && (account.UpdatedAt > view!.LastSeenUtc
             || await dbContext.InventoryEntries.AnyAsync(entry => entry.UpdatedAt > view.LastSeenUtc
@@ -302,9 +306,9 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         {
             AccountId = account.Uuid, AccountName = account.AccountName, GenerationId = usable ? view?.DefinitionGenerationId : null,
             StateRevision = state?.Version ?? 0, CanEdit = usable && (offline || view!.EditEligible),
-            SupportsBatch = runtime?.CompatibilityVersion == BatchCompatibility,
+            SupportsBatch = batchCompatibility == BatchCompatibility && GetDecimalProperty(view?.ViewJson, "editorVersion") == 2,
             HasFreshState = online && usable, BalanceKind = usable ? online ? "LIVE" : "SAVED" : "UNKNOWN",
-            Reason = !usable ? "サーバーの更新待ち、または状態の再確認が必要です。" : online && !view!.EditEligible ? "拠点またはスキルツリーワールドで編集してください。" : null,
+            Reason = usable && batchCompatibility == BatchCompatibility && GetDecimalProperty(view?.ViewJson, "editorVersion") != 2 ? "一括編集の情報を更新するため、一度ゲームに参加してから再取得してください。" : !usable ? "サーバーの更新待ち、または状態の再確認が必要です。" : online && !view!.EditEligible ? "拠点またはスキルツリーワールドで編集してください。" : null,
             Connection = new()
             {
                 Status = status, ServerId = selected, CanEdit = online && view!.EditEligible,

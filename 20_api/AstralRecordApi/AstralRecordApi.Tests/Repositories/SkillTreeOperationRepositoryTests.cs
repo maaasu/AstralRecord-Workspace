@@ -224,7 +224,7 @@ public sealed class SkillTreeOperationRepositoryTests
         {
             ServerSessionId = Boot, AccountSessionId = Session, AccountLeaseToken = Token, ViewSequence = sequence ?? this.sequence,
             DefinitionGenerationId = Generation, PlayerStateVersion = 1, EvaluationFingerprint = Fingerprint, EditEligible = true,
-            View = JsonSerializer.SerializeToElement(new { tree = new { structureId = "main", name = "tree", rootNodeId = "root", nodes = Array.Empty<object>(), edges = Array.Empty<object>() }, points = new { pp = 10, gold = 1000, classes = Array.Empty<object>() }, relockGoldCost = 100, channelName = "test", location = new { worldDisplayName = "base", x = 1, y = 2, z = 3 } }),
+            View = JsonSerializer.SerializeToElement(new { editorVersion = 2, tree = new { structureId = "main", name = "tree", rootNodeId = "root", nodes = Array.Empty<object>(), edges = Array.Empty<object>() }, points = new { pp = 10, gold = 1000, classes = Array.Empty<object>() }, relockGoldCost = 100, channelName = "test", location = new { worldDisplayName = "base", x = 1, y = 2, z = 3 } }),
         };
         internal async Task CloseAsync() => Assert.True(await Repository.CloseAccountSessionAsync(Server, Account, ViewRequest()));
         internal async Task NewSessionAsync()

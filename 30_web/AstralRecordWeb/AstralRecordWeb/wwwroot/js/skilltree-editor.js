@@ -43,7 +43,7 @@ function startEditor(editor) {
         if (state.connection?.status === 'unknown' || state.connection?.status === 'stale') return '接続状態を確認できません。マイページで接続情報を確認してください。';
         if (state.connection?.status === 'online' && !state.connection.canEdit) return 'ログイン中の編集は、拠点またはスキルツリーワールドで行ってください。';
         if (!state.canEdit) return 'サーバーの更新待ち、または状態の再確認が必要です。';
-        if (!state.supportsBatch) return '一括編集に対応するサーバーの更新を待っています。';
+        if (!state.supportsBatch) return state.reason || '一括編集に対応するサーバーの更新を待っています。';
         return '';
     };
     const busy = () => Boolean(submitting || unknownSubmission || operation && !terminal.has(operation.status));

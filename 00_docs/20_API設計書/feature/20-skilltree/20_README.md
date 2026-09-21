@@ -57,3 +57,7 @@ Web操作のclaim leaseは30秒、編集案は7日で期限切れとなる。有
 `skilltree-operation-v1`は従来単件のみ、`skilltree-operation-v2`は単件とBATCHを受理する。新Webは`supportsBatch`を確認して一括操作を送る。BATCHは親operation一件の`changes_json`に順序付き1〜512変更を保持し、同じnodeの重複を拒否する。旧Pluginへ先頭の単件として配信しない。receipt、世代・版数、lease、取消、再送、offline案は全体で一件として扱う。
 
 Webプロフィールの`currentAccount.connection`は本人閲覧時だけ含め、公開プロフィールと管理者の他人閲覧ではnullにする。
+
+一括対応の`view.editorVersion=2`も確認する。旧Pluginのオフライン保存viewは、server本体をv2へ更新しただけで一括対応済みと扱わず、対応Pluginへの参加で評価情報を更新してから利用する。
+
+明示退出済みのv2保存viewがあれば、server停止中もoffline案を保存できる。稼働情報の期限切れで即時確定は許可せず、次回参加時のlive runtime・所有session・世代・条件のclaim検証を必須とする。

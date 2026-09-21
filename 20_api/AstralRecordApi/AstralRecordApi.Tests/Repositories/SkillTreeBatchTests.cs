@@ -46,6 +46,35 @@ public sealed class SkillTreeBatchTests
             Assert.Null(await f.Repository.CreateAsync(f.Account, Request(f, changes: changes)));
         Assert.Empty(await f.Db.SkillTreeOperations.ToListAsync());
     }
+    [Fact]
+    public async Task OldOfflineViewDoesNotBecomeBatchEligibleMerelyByUpgradingServer()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync(); await Upgrade(f);
+        var view = await f.Db.SkillTreeServerPlayerViews.SingleAsync();
+        var json = System.Text.Json.Nodes.JsonNode.Parse(view.ViewJson)!;
+        json.AsObject().Remove("editorVersion"); view.ViewJson = json.ToJsonString();
+        await f.Db.SaveChangesAsync();
+        var editor = await f.Repository.GetEditorAsync(f.Account, f.User);
+        Assert.NotNull(editor); Assert.True(editor.CanEdit); Assert.False(editor.SupportsBatch);
+        Assert.Contains("ゲームに参加", editor.Reason);
+        Assert.Null(await f.Repository.CreateAsync(f.Account, Request(f)));
+    }
+
+    [Fact]
+    public async Task ConfirmedOfflineBatchCanWaitWhileServerIsDown_ButCannotBeClaimed()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync(); await Upgrade(f);
+        (await f.Db.SkillTreeServerRuntimes.SingleAsync()).LastSeenUtc = DateTime.UtcNow.AddMinutes(-2);
+        await f.Db.SaveChangesAsync();
+        var editor = await f.Repository.GetEditorAsync(f.Account, f.User);
+        Assert.NotNull(editor); Assert.True(editor.CanEdit); Assert.True(editor.SupportsBatch);
+        var operation = await f.Repository.CreateAsync(f.Account, Request(f));
+        Assert.NotNull(operation); Assert.Equal("PENDING_OFFLINE", operation.Status);
+        Assert.Null(await f.Repository.ClaimAsync(f.Server, operation.OperationId, f.Claim()));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

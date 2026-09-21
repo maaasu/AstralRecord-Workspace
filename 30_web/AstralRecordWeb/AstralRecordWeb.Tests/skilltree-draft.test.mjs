@@ -62,3 +62,12 @@ test('another tab completing an operation retains this tabs unsent draft for rev
     assert.deepEqual(settleDraft(changes, null, { operationId: 'another-tab', status: 'APPLIED' }), { changes, needsReview: true });
     assert.deepEqual(settleDraft(changes, 'mine', { operationId: 'mine', status: 'CANCELED' }), { changes, needsReview: true });
 });
+
+test('zero-cost PP unlock stays possible with inactive overspent allocations', () => {
+    const before = state(); before.points.pp = 0; before.points.earnedPp = 2; before.points.spentPp = 5;
+    before.tree.nodes[1].pointCost = 0;
+    before.tree.nodes.push(node('debt', { pointCost: 5, isUnlocked: true, isEffectiveUnlocked: false }));
+    before.tree.edges.push({ sourceNodeId: 'root', targetNodeId: 'debt' });
+    const draft = createDraft(before, [{ action: 'UNLOCK', nodeId: 'a' }]);
+    assert.equal(draft.error, ''); assert.equal(draft.points.pp, 0);
+});
