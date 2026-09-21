@@ -59,7 +59,7 @@ public class AccountSkillTreeStateRepository(
         var normalizedNodes = NormalizeUnlockedNodes(request.UnlockedNodes);
         var current = await dbContext.AccountSkillTreeStates.AsNoTracking()
             .SingleOrDefaultAsync(state => state.AccountId == accountId && !state.IsDeleted);
-        if (current?.DefinitionGenerationId is not null || await dbContext.SkillTreeAccountSessions.AnyAsync(x => x.AccountId == accountId))
+        if (current?.DefinitionGenerationId is not null || await SkillTreeSessionReads.Query(dbContext).AnyAsync(x => x.AccountId == accountId))
             throw new InvalidOperationException("Generation-bound skill tree state must be changed through the Plugin operation flow.");
         await ReplaceUnlockedNodesAsync(accountId, normalizedNodes, request.UpdatedBy, now);
 
@@ -114,11 +114,11 @@ public class AccountSkillTreeStateRepository(
             var currentGeneration = await dbContext.AccountSkillTreeStates
                 .AsNoTracking().Where(state => state.AccountId == accountId && !state.IsDeleted)
                 .Select(state => state.DefinitionGenerationId).SingleOrDefaultAsync();
-            if (currentGeneration is null && await dbContext.SkillTreeAccountSessions.AnyAsync(x => x.AccountId == accountId))
+            if (currentGeneration is null && await SkillTreeSessionReads.Query(dbContext).AnyAsync(x => x.AccountId == accountId))
                 throw new DbUpdateConcurrencyException("Legacy enrolled state requires explicit migration, not automatic repair.");
             if (currentGeneration is not null)
             {
-                var owner = await dbContext.SkillTreeAccountSessions.SingleOrDefaultAsync(session => session.AccountId == accountId
+                var owner = await SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(session => session.AccountId == accountId
                     && session.AccountSessionId == request.AccountSessionId && session.ServerId == request.ServerId
                     && session.ServerSessionId == request.ServerSessionId && !session.Closed && session.ExpiresAtUtc > DateTime.UtcNow);
                 var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(server => server.ServerId == request.ServerId

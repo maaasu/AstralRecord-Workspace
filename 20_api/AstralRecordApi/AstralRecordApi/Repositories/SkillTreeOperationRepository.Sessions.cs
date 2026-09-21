@@ -17,7 +17,7 @@ public sealed partial class SkillTreeOperationRepository
         if (await LockAccountAsync(accountId) is null) return false;
         var runtime = await VerifyRuntimeAsync(serverId, request.ServerSessionId);
         if (runtime is null || runtime.DefinitionGenerationId != request.DefinitionGenerationId) return false;
-        var existing = await dbContext.SkillTreeAccountSessions.FindAsync(request.AccountSessionId);
+        var existing = await SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(x => x.AccountSessionId == request.AccountSessionId);
         if (existing is not null)
         {
             if (existing.Closed || existing.ExpiresAtUtc <= DateTime.UtcNow || existing.AccountId != accountId
@@ -29,7 +29,7 @@ public sealed partial class SkillTreeOperationRepository
             return true;
         }
         var now = DateTime.UtcNow;
-        var owners = await dbContext.SkillTreeAccountSessions.Where(x => x.AccountId == accountId && !x.Closed).ToListAsync();
+        var owners = await SkillTreeSessionReads.Query(dbContext).Where(x => x.AccountId == accountId && !x.Closed).ToListAsync();
         if (owners.Any(x => x.ExpiresAtUtc > now && !(x.ServerId == serverId && x.ServerSessionId != request.ServerSessionId))) return false;
         owners.ForEach(x => x.Closed = true);
         await dbContext.SaveChangesAsync();
@@ -58,9 +58,9 @@ public sealed partial class SkillTreeOperationRepository
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         if (await LockAccountAsync(accountId) is null) return false;
+        var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(x => x.ServerId == serverId);
         var session = await MatchingSessionAsync(accountId, serverId, request.ServerSessionId, request.AccountSessionId, request.AccountLeaseToken);
         if (session is null) return false;
-        var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(x => x.ServerId == serverId);
         var state = await dbContext.AccountSkillTreeStates.SingleOrDefaultAsync(x => x.AccountId == accountId && !x.IsDeleted);
         if (runtime is not null && runtime.ServerSessionId == request.ServerSessionId
             && state?.Version == request.PlayerStateVersion && state.DefinitionGenerationId == request.DefinitionGenerationId
@@ -81,7 +81,7 @@ public sealed partial class SkillTreeOperationRepository
     }
 
     public async Task<bool> RequiresRuntimeAuthorityAsync(Guid accountId) =>
-        await dbContext.SkillTreeAccountSessions.AnyAsync(x => x.AccountId == accountId)
+        await SkillTreeSessionReads.Query(dbContext).AnyAsync(x => x.AccountId == accountId)
         || await dbContext.AccountSkillTreeStates.AnyAsync(x => x.AccountId == accountId && !x.IsDeleted && x.DefinitionGenerationId != null);
 
     private async Task<AccountEntity?> LockAccountAsync(Guid accountId)
@@ -93,7 +93,7 @@ public sealed partial class SkillTreeOperationRepository
     }
 
     private Task<SkillTreeAccountSessionEntity?> ActiveSessionAsync(Guid accountId) =>
-        dbContext.SkillTreeAccountSessions.SingleOrDefaultAsync(x => x.AccountId == accountId && !x.Closed && x.ExpiresAtUtc > DateTime.UtcNow);
+        SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(x => x.AccountId == accountId && !x.Closed && x.ExpiresAtUtc > DateTime.UtcNow);
 
     private async Task<SkillTreeAccountSessionEntity?> MatchingSessionAsync(Guid accountId, string serverId, Guid bootId, Guid sessionId, string token)
     {

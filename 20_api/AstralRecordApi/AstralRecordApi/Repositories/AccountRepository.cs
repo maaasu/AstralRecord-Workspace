@@ -334,7 +334,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
     }
 
     private Task<bool> HasActiveSkillTreeSessionAsync(Guid accountId) =>
-        dbContext.SkillTreeAccountSessions.AnyAsync(session => session.AccountId == accountId
+        SkillTreeSessionReads.Query(dbContext).AnyAsync(session => session.AccountId == accountId
             && !session.Closed && session.ExpiresAtUtc > DateTime.UtcNow);
 
     private async Task CloneOwnedPlayerDataAsync(AccountEntity source, AccountEntity target, DateTime now, Guid actorId)

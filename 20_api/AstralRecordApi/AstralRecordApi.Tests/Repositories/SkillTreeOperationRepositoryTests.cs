@@ -185,15 +185,15 @@ public sealed class SkillTreeOperationRepositoryTests
         internal readonly Guid Account = Guid.NewGuid(), User = Guid.NewGuid(), Boot = Guid.NewGuid();
         internal Guid Session = Guid.NewGuid();
         internal string Token = Hash("account-token");
-        internal readonly string Server = "test-server";
+        internal readonly string Server;
         internal readonly DateTime Started = DateTime.UtcNow;
         internal readonly string Canonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"gain","pointType":"PASSIVE_POINT","pointCost":2,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"gain"}],"edges":["root->gain"],"classes":{}}""";
         internal string Generation => Hash(Canonical);
         internal string Fingerprint = Hash("initial");
         private long sequence = 1;
-        internal Fixture(SqliteConnection? connection, AstralRecordDbContext db)
+        internal Fixture(SqliteConnection? connection, AstralRecordDbContext db, string server = "test-server")
         {
-            Connection = connection; Db = db;
+            Connection = connection; Db = db; Server = server;
             Repository = new(db, new NetworkRuntimeService(TimeProvider.System));
         }
         internal static async Task<Fixture> CreateAsync()
@@ -203,9 +203,9 @@ public sealed class SkillTreeOperationRepositoryTests
             await db.Database.EnsureCreatedAsync();
             return await SeedAsync(db, connection);
         }
-        internal static async Task<Fixture> SeedAsync(AstralRecordDbContext db, SqliteConnection? connection = null)
+        internal static async Task<Fixture> SeedAsync(AstralRecordDbContext db, SqliteConnection? connection = null, string server = "test-server")
         {
-            var f = new Fixture(connection, db); var now = DateTime.UtcNow;
+            var f = new Fixture(connection, db, server); var now = DateTime.UtcNow;
             db.Accounts.Add(new() { Uuid = f.Account, UserId = f.User, AccountName = "fixture", SlotIndex = 0, IsActive = true, Level = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = f.User, UpdatedBy = f.User });
             await db.SaveChangesAsync();
             Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, f.Registration()));
