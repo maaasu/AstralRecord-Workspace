@@ -23,10 +23,15 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public final class ShopGuiEventHandler extends AbstractEventHandler {
     private final ShopGui shopGui;
     private final ShopService shopService;
     private final InventoryService inventoryService;
+    private final Set<UUID> purchasesInFlight = new HashSet<>();
 
     public ShopGuiEventHandler(
         @NotNull ShopGui shopGui,
@@ -163,7 +168,18 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         GuiSound.SELECT.play(player);
     }
 
+    /**
+     * 購入確認画面の操作を処理し、非同期購入の完了までは同一プレイヤーの再操作を拒否します。
+     *
+     * @param event 対象のクリックイベント
+     * @param player 操作したプレイヤー
+     */
     private void handleConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        if (purchasesInFlight.contains(playerId)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         if (handleHotbarShortcutClick(event, player)) {
             return;
         }
@@ -211,26 +227,44 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        shopService.purchase(astPlayer, entry, quantity).whenComplete((purchased, failure) ->
-            AsyncTaskUtil.runSyncEventually(AstralRecord.getInstance(), () -> {
-                AstPlayer current = AstPlayerCache.get(player);
-                if (current == null || !player.isOnline()) return;
-                if (failure != null || !Boolean.TRUE.equals(purchased)) {
-                    inventoryService.applyInventoriesToGui(current);
-                    if (failure != null) {
-                        PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5252);
+        if (!purchasesInFlight.add(playerId)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        var purchaseInventory = event.getView().getTopInventory();
+        shopGui.showPurchaseProcessing(purchaseInventory);
+        try {
+            shopService.purchase(astPlayer, entry, quantity).whenComplete((purchased, failure) ->
+                AsyncTaskUtil.runSyncEventually(AstralRecord.getInstance(), () -> {
+                    purchasesInFlight.remove(playerId);
+                    AstPlayer current = AstPlayerCache.get(player);
+                    if (current == null || !player.isOnline()) return;
+                    boolean refreshConfirm = player.getOpenInventory().getTopInventory() == purchaseInventory;
+                    if (failure != null || !Boolean.TRUE.equals(purchased)) {
+                        inventoryService.applyInventoriesToGui(current);
+                        if (failure != null) {
+                            PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5252);
+                        }
+                        if (refreshConfirm) {
+                            shopGui.openConfirm(
+                                player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
+                        }
+                        GuiSound.DENY.play(player);
+                        return;
                     }
-                    shopGui.openConfirm(
-                        player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
-                    GuiSound.DENY.play(player);
-                    return;
-                }
-                shopService.applyCommittedPurchase(current, entry);
-                shopGui.openConfirm(
-                    player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
-                GuiSound.PURCHASE.play(player);
-            })
-        );
+                    shopService.applyCommittedPurchase(current, entry);
+                    if (refreshConfirm) {
+                        shopGui.openConfirm(
+                            player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
+                    }
+                    GuiSound.PURCHASE.play(player);
+                })
+            );
+        } catch (RuntimeException | Error failure) {
+            purchasesInFlight.remove(playerId);
+            shopGui.openConfirm(player, shop, entry, quantity, preview, pageIndex);
+            throw failure;
+        }
     }
 
     private boolean isInventoryFull(

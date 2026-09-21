@@ -252,6 +252,17 @@ public final class ShopGui {
         return 0;
     }
 
+    /**
+     * 購入処理の完了待ち中であることを購入ボタンへ表示します。
+     *
+     * @param inventory 更新対象のショップ購入確認 inventory
+     */
+    public void showPurchaseProcessing(@NotNull Inventory inventory) {
+        if (inventory.getHolder() instanceof ConfirmHolder) {
+            inventory.setItem(BUY_SLOT, GuiItems.processingItem());
+        }
+    }
+
     public @Nullable String getEntryId(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR || !itemStack.hasItemMeta()) {
             return null;
