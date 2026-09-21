@@ -125,6 +125,25 @@ public sealed class SkillTreeOperationRepository(AstralRecordDbContext dbContext
         return runtime is not null && runtime.DefinitionGenerationId == definitionGenerationId;
     }
 
+    public async Task<SkillTreeMigrationResponse?> MigrateAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request)
+    {
+        if (request.OperationId == Guid.Empty || request.ExpectedStateVersion < 0 || !ValidHash(request.ToGenerationId) || !ValidHash(request.CompatibilityProofHash) || request.LegacyBaselineNodeIds is null || request.RemoveNodeIds is null) return null;
+        var runtime = await VerifyRuntimeAsync(serverId, sessionId); if (runtime is null || runtime.DefinitionGenerationId != request.ToGenerationId) return null;
+        if (networkRuntimeService.GetPlayers().Any(x => x.AccountId == accountId)) return null;
+        var hash = Hash(JsonSerializer.Serialize(request)); var prior = await dbContext.SkillTreeMigrationOperations.FindAsync(request.OperationId);
+        if (prior is not null) return prior.RequestHash == hash ? new SkillTreeMigrationResponse { OperationId = prior.OperationId, Status = prior.Status, StateVersion = prior.ExpectedStateVersion + 1, RemovedNodeIds = JsonSerializer.Deserialize<string[]>(prior.RemovedNodeIdsJson) ?? [] } : null;
+        await using var tx = await dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var state = await dbContext.AccountSkillTreeStates.Include(x => x.UnlockedNodes).SingleOrDefaultAsync(x => x.AccountId == accountId && !x.IsDeleted);
+        if (state is null || state.Version != request.ExpectedStateVersion || (state.DefinitionGenerationId is not null && state.DefinitionGenerationId != request.FromGenerationId)) return null;
+        var baseline = request.LegacyBaselineNodeIds.Order(StringComparer.Ordinal).ToArray(); var actual = state.UnlockedNodes.Select(x => x.NodeId).Order(StringComparer.Ordinal).ToArray();
+        if (!baseline.SequenceEqual(actual, StringComparer.Ordinal) || request.RemoveNodeIds.Except(baseline, StringComparer.Ordinal).Any() || request.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() != request.RemoveNodeIds.Count) return null;
+        dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(state.UnlockedNodes.Where(x => request.RemoveNodeIds.Contains(x.NodeId, StringComparer.Ordinal)));
+        state.DefinitionGenerationId = request.ToGenerationId; state.Version++; state.UpdatedAt = DateTime.UtcNow; state.UpdatedBy = Guid.Empty;
+        await dbContext.SkillTreeMigrationOperations.AddAsync(new SkillTreeMigrationOperationEntity { OperationId = request.OperationId, AccountId = accountId, RequestHash = hash, ExpectedStateVersion = request.ExpectedStateVersion, FromGenerationId = request.FromGenerationId, ToGenerationId = request.ToGenerationId, BaselineNodeIdsJson = JsonSerializer.Serialize(baseline), RemovedNodeIdsJson = JsonSerializer.Serialize(request.RemoveNodeIds), Status = "APPLIED", CompletedAtUtc = DateTime.UtcNow });
+        await dbContext.SkillTreeServerPlayerViews.Where(x => x.AccountId == accountId).ExecuteDeleteAsync(); await dbContext.SaveChangesAsync(); await tx.CommitAsync();
+        return new SkillTreeMigrationResponse { OperationId = request.OperationId, Status = "APPLIED", StateVersion = state.Version, RemovedNodeIds = request.RemoveNodeIds };
+    }
+
     public async Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now)
     {
         if (section.OperationId == Guid.Empty || string.IsNullOrWhiteSpace(section.LeaseToken) || !ValidHash(section.DefinitionGenerationId) || !ValidHash(section.FinalEvaluationFingerprint) || section.FinalStatus is not (SkillTreeOperationStatuses.Applied or SkillTreeOperationStatuses.ReconfirmationRequired or SkillTreeOperationStatuses.Failed or SkillTreeOperationStatuses.Canceled)) return false;

@@ -106,6 +106,20 @@ public sealed class SkillTreeOperationClaimResponse
     public required SkillTreeOperationResponse Operation { get; init; }
 }
 
+/// <summary>nonempty legacy採用または廃止node除去だけを許可する明示移行です。</summary>
+public sealed class SkillTreeMigrationRequest
+{
+    public Guid OperationId { get; init; }
+    public int ExpectedStateVersion { get; init; }
+    public string? FromGenerationId { get; init; }
+    public required string ToGenerationId { get; init; }
+    public required IReadOnlyList<string> LegacyBaselineNodeIds { get; init; }
+    public required IReadOnlyList<string> RemoveNodeIds { get; init; }
+    /// <summary>Pluginが旧新snapshotの保持node互換性・graph連結性を検証した証明。APIはゲーム条件を再実装しない。</summary>
+    public required string CompatibilityProofHash { get; init; }
+}
+public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } }
+
 /// <summary>Plugin の既存player-state snapshotと同一transactionで確定する操作結果です。</summary>
 public sealed class PlayerStateSkillTreeOperationSection
 {

@@ -42,6 +42,7 @@ public sealed class PlayerStateSnapshotRepository(
         public Task<SkillTreeOperationClaimResponse?> ClaimAsync(string serverId, Guid operationId, SkillTreeOperationClaimRequest request) => Task.FromResult<SkillTreeOperationClaimResponse?>(null);
         public Task<bool> ValidateRuntimeStateSaveAsync(string serverId, Guid serverSessionId, string definitionGenerationId) => Task.FromResult(false);
         public Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now) => Task.FromResult(false);
+        public Task<SkillTreeMigrationResponse?> MigrateAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request) => Task.FromResult<SkillTreeMigrationResponse?>(null);
     }
 
     public async Task<PlayerStateSnapshotSaveResult> SaveAsync(PlayerStateSnapshotSaveRequest request)
@@ -1556,7 +1557,7 @@ public sealed class PlayerStateSnapshotRepository(
             if (state.DefinitionGenerationId is not null
                 && !string.Equals(state.DefinitionGenerationId, section.Operation.DefinitionGenerationId, StringComparison.Ordinal))
                 return null;
-            if (state.DefinitionGenerationId is null && !section.Operation.MigrateLegacyState)
+            if (!isNew && state.DefinitionGenerationId is null && !section.Operation.MigrateLegacyState)
                 return null;
             state.DefinitionGenerationId = section.Operation.DefinitionGenerationId;
         }

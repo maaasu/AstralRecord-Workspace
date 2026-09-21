@@ -78,4 +78,18 @@ CREATE TABLE [dbo].[skilltree_operation] (
 CREATE NONCLUSTERED INDEX [IX_skilltree_operation_account_status] ON [dbo].[skilltree_operation] ([account_id], [status]);
 CREATE NONCLUSTERED INDEX [IX_skilltree_operation_server_status] ON [dbo].[skilltree_operation] ([target_server_id], [status]);
 
+CREATE TABLE [dbo].[skilltree_migration_operation] (
+    [operation_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [request_hash] NVARCHAR(64) NOT NULL,
+    [expected_state_version] INT NOT NULL,
+    [from_generation_id] NVARCHAR(64) NULL,
+    [to_generation_id] NVARCHAR(64) NOT NULL,
+    [baseline_node_ids_json] NVARCHAR(MAX) NOT NULL,
+    [removed_node_ids_json] NVARCHAR(MAX) NOT NULL,
+    [status] NVARCHAR(32) NOT NULL,
+    [completed_at_utc] DATETIME2(3) NOT NULL,
+    CONSTRAINT [FK_skilltree_migration_operation_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid])
+);
+
 COMMIT TRANSACTION;

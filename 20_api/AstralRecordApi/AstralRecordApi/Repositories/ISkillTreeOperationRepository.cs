@@ -15,4 +15,5 @@ public interface ISkillTreeOperationRepository
     Task<SkillTreeOperationClaimResponse?> ClaimAsync(string serverId, Guid operationId, SkillTreeOperationClaimRequest request);
     Task<bool> ValidateRuntimeStateSaveAsync(string serverId, Guid serverSessionId, string definitionGenerationId);
     Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now);
+    Task<SkillTreeMigrationResponse?> MigrateAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request);
 }

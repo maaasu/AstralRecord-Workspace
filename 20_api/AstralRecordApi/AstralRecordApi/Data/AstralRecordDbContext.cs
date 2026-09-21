@@ -49,6 +49,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<SkillTreeServerRuntimeEntity> SkillTreeServerRuntimes => Set<SkillTreeServerRuntimeEntity>();
     public DbSet<SkillTreeOperationEntity> SkillTreeOperations => Set<SkillTreeOperationEntity>();
     public DbSet<SkillTreeServerPlayerViewEntity> SkillTreeServerPlayerViews => Set<SkillTreeServerPlayerViewEntity>();
+    public DbSet<SkillTreeMigrationOperationEntity> SkillTreeMigrationOperations => Set<SkillTreeMigrationOperationEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
     public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
@@ -119,6 +120,14 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(x => x.LastSeenUtc).HasColumnName("last_seen_utc");
             entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<SkillTreeDefinitionGenerationEntity>().WithMany().HasForeignKey(x => x.DefinitionGenerationId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<SkillTreeMigrationOperationEntity>(entity =>
+        {
+            entity.ToTable("skilltree_migration_operation", "dbo"); entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id"); entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64); entity.Property(x => x.ExpectedStateVersion).HasColumnName("expected_state_version");
+            entity.Property(x => x.FromGenerationId).HasColumnName("from_generation_id").HasMaxLength(64); entity.Property(x => x.ToGenerationId).HasColumnName("to_generation_id").HasMaxLength(64);
+            entity.Property(x => x.BaselineNodeIdsJson).HasColumnName("baseline_node_ids_json"); entity.Property(x => x.RemovedNodeIdsJson).HasColumnName("removed_node_ids_json"); entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32); entity.Property(x => x.CompletedAtUtc).HasColumnName("completed_at_utc");
         });
         modelBuilder.Entity<UserEntity>(entity =>
         {

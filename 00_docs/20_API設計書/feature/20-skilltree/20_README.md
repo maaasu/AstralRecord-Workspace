@@ -27,6 +27,7 @@ skill effectはスキル個体を習得させず、現在クラス条件を満�
 - Webは対象serverが実際に登録したgeneration、skilltree state version、Plugin評価fingerprintで操作を要求する。online時は同じ接続serverかつPluginが拠点・スキルツリーワールドと判定した場合だけ要求を作成する。offline時は同一target serverへ編集案を保存し、次回参加時にPluginが世代・state・fingerprint・位置を再検証する。
 - 旧generationへのtarget固定案を別serverへ読み替えない。参加先が異なる場合は旧案を`RECONFIRMATION_REQUIRED`または`CANCELED`として結果照会可能にする。
 - `account_skilltree_state.definition_generation_id`が`NULL`のlegacy状態は明示移行までWeb確定・自動補修対象外である。世代不一致は保留し、構造不整合だけが既存補修対象である。ノード廃止は別途明示移行で返還を検証してから適用する。
+- 明示移行はruntime-keyでoffline accountにのみ実行する。operation ID、expected state version、旧node集合baseline、from/to世代、明示remove node ID、Pluginのgraph・保持node互換性証明を固定する。APIは新node付与、CP元付替え、Gold変更を行わず、除去nodeの既存spent返還はPlugin既存規則に委ねる。
 
 ## 関連 feature
 

@@ -45,6 +45,11 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> RegisterPlayerView(string serverId, Guid accountId, [FromBody] SkillTreePlayerViewRegistrationRequest request)
         => !HasRuntimeCredential() ? Unauthorized() : await repository.RegisterPlayerViewAsync(serverId, accountId, request) is { } result ? Ok(result) : Conflict();
 
+    /// <summary>保守中・offline accountのlegacy採用または明示廃止node除去を一回だけ確定します。</summary>
+    [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/migrations")]
+    public async Task<IActionResult> Migrate(string serverId, Guid accountId, [FromQuery(Name = "server_session_id")] Guid sessionId, [FromBody] SkillTreeMigrationRequest request)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.MigrateAsync(serverId, sessionId, accountId, request) is { } result ? Ok(result) : Conflict();
+
     [HttpGet("runtime/servers/{serverId}/operations")]
     public async Task<IActionResult> GetClaimable(string serverId, [FromQuery(Name = "server_session_id")] Guid serverSessionId, [FromQuery(Name = "account_id")] Guid accountId)
     {
