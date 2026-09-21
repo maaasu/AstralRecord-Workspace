@@ -30,7 +30,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -70,6 +72,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private static final long JOIN_STEP_DELAY_TICKS = 10L;
     private static final long JOIN_LOADING_TITLE_INTERVAL_TICKS = 100L;
     private static final long INITIAL_GUIDE_TITLE_INTERVAL_TICKS = 100L;
+    private static final NamespacedKey JOIN_LOADING_MODIFIER =
+        new NamespacedKey("astralrecord", "join_loading_lock");
 
     private final PlayerService playerService;
     private final SkillTreeService skillTreeService;
@@ -504,6 +508,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         // アカウント読み込み前は MCID をゲーム内表示へ出さず、読み込み完了後にアカウント名で通知する。
         event.joinMessage(null);
 
+        recoverLegacyLoadingAttributes(player);
         JoinAttempt attempt = startJoinLoading(player);
         enqueueJoinLoad(attempt, () -> loadUserStep(attempt, playerName));
     }
@@ -1035,6 +1040,12 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         );
     }
 
+    /**
+     * 読込中だけ保存されない属性 modifier で移動とジャンプを抑止します。
+     *
+     * @param player メインスレッド上でロードを開始する対象
+     * @return この接続のロード試行
+     */
     private JoinAttempt startJoinLoading(Player player) {
         UUID playerUuid = player.getUniqueId();
         JoinAttempt attempt = new JoinAttempt(
@@ -1045,7 +1056,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         );
         joinAttempts.put(playerUuid, attempt);
         LoadingControl previous = loadingControls.remove(playerUuid);
-        restoreLoadingControl(player, previous, true);
+        restoreLoadingControl(previous, true);
         BukkitTask titleTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> showJoinLoadingTitle(attempt),
@@ -1055,12 +1066,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         loadingControls.put(
             playerUuid,
             new LoadingControl(
+                player,
                 player.getLocation().clone(),
-                setAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, 0.0D),
-                setAttributeBaseValue(player, Attribute.JUMP_STRENGTH, 0.0D),
+                applyLoadingAttributeLock(player, Attribute.MOVEMENT_SPEED),
                 titleTask
             )
         );
+        applyLoadingAttributeLock(player, Attribute.JUMP_STRENGTH);
         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5071);
         return attempt;
     }
@@ -1087,12 +1099,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
         releaseJoinLoad(attempt);
         LoadingControl loadingControl = loadingControls.remove(attempt.playerUuid());
+        // 退出済みでも、この試行が変更した Player 自体から解除する。再接続先には触れない。
+        restoreLoadingControl(loadingControl, !notifyComplete);
 
         Player player = plugin.getServer().getPlayer(attempt.playerUuid());
         if (player == attempt.player() && player.isOnline()) {
-            // 成功時は参加反映中の StatusService.refreshStatus が設定した MOVEMENT_SPEED を保持する。
-            // 失敗時だけログイン前の値へ戻し、ロード中の一時ロックが残らないようにする。
-            restoreLoadingControl(player, loadingControl, !notifyComplete);
             player.clearTitle();
             if (notifyLoadCompleteMessage) {
                 PlayerMessageService.getInstance().send(
@@ -1101,9 +1112,25 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     elapsedMillisSince(attempt.startedAtNanos())
                 );
             }
-        } else if (loadingControl != null && loadingControl.titleTask() != null) {
-            loadingControl.titleTask().cancel();
         }
+    }
+
+    /**
+     * 全参加ロードを無効化し、一時属性と title task を解除します。
+     * 停止時にメインスレッドから呼び出し、後続のロードを開始しません。
+     */
+    public void stop() {
+        joinAttempts.clear();
+        synchronized (joinLoadQueueLock) {
+            queuedJoinLoads.clear();
+            activeJoinLoads.clear();
+        }
+        for (LoadingControl control : loadingControls.values()) {
+            restoreLoadingControl(control, true);
+        }
+        loadingControls.clear();
+        initialGuideTitleTasks.values().forEach(BukkitTask::cancel);
+        initialGuideTitleTasks.clear();
     }
 
     @Nullable
@@ -1351,15 +1378,39 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         ));
     }
 
+    /**
+     * 基礎値を保持したまま一時 modifier を付与します。メインスレッド専用です。
+     *
+     * @param player 読込中のプレイヤー
+     * @param attribute 抑止する属性
+     * @return 失敗時復元用の基礎値。属性を持たない場合は null
+     */
     @Nullable
-    private Double setAttributeBaseValue(Player player, Attribute attribute, double value) {
+    private Double applyLoadingAttributeLock(Player player, Attribute attribute) {
         AttributeInstance instance = player.getAttribute(attribute);
         if (instance == null) {
             return null;
         }
         double previousValue = instance.getBaseValue();
-        instance.setBaseValue(value);
+        instance.removeModifier(JOIN_LOADING_MODIFIER);
+        instance.addTransientModifier(new AttributeModifier(
+            JOIN_LOADING_MODIFIER, -1.0D, AttributeModifier.Operation.MULTIPLY_SCALAR_1
+        ));
         return previousValue;
+    }
+
+    /**
+     * 旧実装の読込ロックで保存された 0 の基礎値だけを参加時に既定値へ戻します。
+     *
+     * @param player メインスレッド上で新規接続を開始するプレイヤー
+     */
+    private void recoverLegacyLoadingAttributes(Player player) {
+        for (Attribute attribute : new Attribute[] {Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH}) {
+            AttributeInstance instance = player.getAttribute(attribute);
+            if (instance != null && instance.getBaseValue() == 0.0D) {
+                instance.setBaseValue(instance.getDefaultValue());
+            }
+        }
     }
 
     private void restoreAttributeBaseValue(Player player, Attribute attribute, @Nullable Double value) {
@@ -1372,8 +1423,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
     }
 
+    /**
+     * 対象セッションの一時 modifier を除去します。メインスレッド専用です。
+     *
+     * @param loadingControl 解除する制御。null の場合は何もしません
+     * @param restoreMovementSpeed 失敗・停止時に元の移動速度も復元する場合は true
+     */
     private void restoreLoadingControl(
-        Player player,
         @Nullable LoadingControl loadingControl,
         boolean restoreMovementSpeed
     ) {
@@ -1383,10 +1439,16 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         if (loadingControl.titleTask() != null) {
             loadingControl.titleTask().cancel();
         }
+        Player player = loadingControl.player();
+        for (Attribute attribute : new Attribute[] {Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH}) {
+            AttributeInstance instance = player.getAttribute(attribute);
+            if (instance != null) {
+                instance.removeModifier(JOIN_LOADING_MODIFIER);
+            }
+        }
         if (restoreMovementSpeed) {
             restoreAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, loadingControl.movementSpeed());
         }
-        restoreAttributeBaseValue(player, Attribute.JUMP_STRENGTH, loadingControl.jumpStrength());
     }
 
     /**
@@ -1414,13 +1476,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private record LoadingControl(
+        Player player,
         Location lockLocation,
         @Nullable Double movementSpeed,
-        @Nullable Double jumpStrength,
         @Nullable BukkitTask titleTask
     ) {
         private LoadingControl withLockLocation(Location updatedLockLocation) {
-            return new LoadingControl(updatedLockLocation, movementSpeed, jumpStrength, titleTask);
+            return new LoadingControl(player, updatedLockLocation, movementSpeed, titleTask);
         }
     }
 

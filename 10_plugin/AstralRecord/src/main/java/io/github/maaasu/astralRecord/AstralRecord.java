@@ -554,6 +554,7 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         invulnerabilityVisualService = new InvulnerabilityVisualService(this);
+        getServer().getPluginManager().registerEvents(invulnerabilityVisualService, this);
         mobService = new MobService(this, new MobRepository());
         mobService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
@@ -719,6 +720,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (stoneButtonReachService != null) {
             stoneButtonReachService.stop();
+        }
+        if (playerJoinEventHandler != null) {
+            playerJoinEventHandler.stop();
         }
         if (playerService != null) {
             // accepted済みorb operationの後ろへ停止保存を全件登録してからlane受付を閉じる。
