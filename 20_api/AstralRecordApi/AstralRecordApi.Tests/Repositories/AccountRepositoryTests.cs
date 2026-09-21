@@ -237,13 +237,13 @@ public class AccountRepositoryTests
         });
 
         Assert.Equal("Alice", first.AccountName);
-        Assert.Equal("alice(1)", second.AccountName);
-        Assert.Equal("Alice(2)", third.AccountName);
+        Assert.Equal("alice1", second.AccountName);
+        Assert.Equal("Alice2", third.AccountName);
     }
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.03-更新系.md
-    /// 検証契約: 手動変更名は ASCII 英字だけを受理し、既存名との大小無視重複は拒否する。
+    /// 検証契約: 手動変更名は ASCII 英数字3文字以上を受理し、既存名との大小無視重複は拒否する。
     /// </summary>
     [Fact]
     public async Task UpdateAsync_RejectsInvalidOrDuplicateManualAccountName()
@@ -278,12 +278,15 @@ public class AccountRepositoryTests
         await Assert.ThrowsAsync<AccountNameConflictException>(() => repository.UpdateAsync(
             secondAccountId,
             new AccountUpdateRequest { AccountName = "alice", UpdatedBy = userId }));
-        await Assert.ThrowsAsync<ArgumentException>(() => repository.UpdateAsync(
+        var renamed = await repository.UpdateAsync(
             secondAccountId,
-            new AccountUpdateRequest { AccountName = "Bob_2", UpdatedBy = userId }));
+            new AccountUpdateRequest { AccountName = "Bob2", UpdatedBy = userId });
+        Assert.Equal("Bob2", renamed!.AccountName);
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.UpdateAsync(
+            secondAccountId, new AccountUpdateRequest { AccountName = "Bo", UpdatedBy = userId }));
 
         var unchanged = await dbContext.Accounts.SingleAsync(account => account.Uuid == secondAccountId);
-        Assert.Equal("Bob", unchanged.AccountName);
+        Assert.Equal("Bob2", unchanged.AccountName);
     }
 
     [Fact]
@@ -662,6 +665,238 @@ public class AccountRepositoryTests
             Level = 2,
             UpdatedBy = userId
         }));
+    }
+
+    [Fact]
+    public async Task CreateAndCloneAsync_AssignsLowestSlotAndCopiesReidentifiedPlayerState()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var sourceUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var sourceAccountId = Guid.NewGuid();
+        var sourceLearnedSkillId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var inventoryId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var setup = new AstralRecordDbContext(options))
+        {
+            await setup.Database.EnsureCreatedAsync();
+            setup.Users.AddRange(CreateUser(sourceUserId, sourceAccountId, now), new UserEntity
+            {
+                Uuid = targetUserId, Mcid = "target_user", JoinDate = now, LastJoinDate = now,
+                GlobalIp = "127.0.0.2", CreatedAt = now, UpdatedAt = now,
+                CreatedBy = targetUserId, UpdatedBy = targetUserId,
+            });
+            var source = CreateAccount(sourceAccountId, sourceUserId, 3, true, now);
+            source.AccountName = "Source1";
+            source.Level = 12;
+            source.TotalExperience = 3456;
+            source.ClassProgresses.Add(new AccountClassProgressEntity
+            {
+                AccountId = sourceAccountId, ClassId = "warrior", Level = 7, Experience = 987,
+                UpdatedAt = now, UpdatedBy = sourceUserId,
+            });
+            setup.Accounts.Add(source);
+            setup.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = sourceLearnedSkillId, AccountId = sourceAccountId, SkillId = "slash", Level = 2,
+                Version = 3, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            setup.SkillBindPresets.Add(new SkillBindPresetEntity
+            {
+                SkillBindPresetId = Guid.NewGuid(), AccountId = sourceAccountId, PresetIndex = 1,
+                ActiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\"]", LeftClickSkillId = sourceLearnedSkillId.ToString("D"),
+                PassiveSkillSlotsJson = $"[\"{sourceLearnedSkillId:D}\"]", IsUnlocked = true, IsSelected = true,
+                Version = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            setup.Inventories.Add(new InventoryEntity
+            {
+                InventoryId = inventoryId, AccountId = sourceAccountId, InventoryType = "PLAYER", SlotCapacity = 36,
+                IsEnabled = true, CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            setup.EquipmentInstances.Add(new EquipmentInstanceEntity
+            {
+                EquipmentInstanceId = equipmentId, AccountId = sourceAccountId, ItemId = "sword", EnhanceLevel = 2,
+                CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            setup.InventoryEntries.Add(new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(), InventoryId = inventoryId, SlotIndex = 0, ItemCategory = "EQUIPMENT",
+                InstanceType = "EQUIPMENT", InstanceId = equipmentId, Quantity = 1,
+                CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            var treeStateId = Guid.NewGuid();
+            setup.AccountSkillTreeStates.Add(new AccountSkillTreeStateEntity
+            {
+                AccountSkillTreeStateId = treeStateId, AccountId = sourceAccountId, Version = 4,
+                CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            setup.AccountSkillTreeUnlockedNodes.Add(new AccountSkillTreeUnlockedNodeEntity
+            {
+                AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = treeStateId, NodeId = "node-a",
+                CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
+            await setup.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var cloned = await repository.CloneAsync(sourceAccountId, new AccountCloneRequest
+        {
+            TargetUserId = targetUserId, TargetSlotIndex = 0, CreatedBy = sourceUserId,
+        });
+
+        Assert.NotNull(cloned);
+        Assert.NotEqual(sourceAccountId, cloned!.Account.Uuid);
+        Assert.Equal(targetUserId, cloned.Account.UserId);
+        Assert.Equal(0, cloned.Account.SlotIndex);
+        Assert.Equal(12, cloned.Account.Level);
+        Assert.Equal("Source11", cloned.Account.AccountName);
+        Assert.Equal(0, cloned.Account.Mode);
+        Assert.Equal(cloned.Account.Uuid, (await dbContext.Users.SingleAsync(row => row.Uuid == targetUserId)).AccountId);
+        var cloneInventory = await dbContext.Inventories.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
+        var cloneEntry = await dbContext.InventoryEntries.SingleAsync(row => row.InventoryId == cloneInventory.InventoryId);
+        Assert.NotEqual(equipmentId, cloneEntry.InstanceId);
+        Assert.True(await dbContext.EquipmentInstances.AnyAsync(row => row.AccountId == cloned.Account.Uuid));
+        var cloneState = await dbContext.AccountSkillTreeStates.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
+        Assert.True(await dbContext.AccountSkillTreeUnlockedNodes.AnyAsync(row => row.AccountSkillTreeStateId == cloneState.AccountSkillTreeStateId));
+        var cloneLearnedSkillId = await dbContext.AccountLearnedSkills
+            .Where(row => row.AccountId == cloned.Account.Uuid).Select(row => row.LearnedSkillId).SingleAsync();
+        var clonePreset = await dbContext.SkillBindPresets.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
+        Assert.DoesNotContain(sourceLearnedSkillId.ToString("D"), clonePreset.ActiveSkillSlotsJson);
+        Assert.Contains(cloneLearnedSkillId.ToString("D"), clonePreset.ActiveSkillSlotsJson);
+        Assert.Equal(cloneLearnedSkillId.ToString("D"), clonePreset.LeftClickSkillId);
+        Assert.Contains(cloneLearnedSkillId.ToString("D"), clonePreset.PassiveSkillSlotsJson);
+
+        var autoCreated = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = targetUserId, AccountName = "x_", Mode = 0, CreatedBy = sourceUserId,
+        });
+        Assert.Equal(1, autoCreated.SlotIndex);
+        Assert.Equal("Player", autoCreated.AccountName);
+    }
+
+    [Fact]
+    public async Task CloneAsync_RequiresMatchingConfirmationBeforeReplacingSelectedTarget()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var sourceUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setup = new AstralRecordDbContext(options))
+        {
+            await setup.Database.EnsureCreatedAsync();
+            setup.Users.AddRange(CreateUser(sourceUserId, sourceId, now), CreateUser(targetUserId, targetId, now));
+            var source = CreateAccount(sourceId, sourceUserId, 0, true, now);
+            source.AccountName = "Source2";
+            source.Level = 20;
+            var target = CreateAccount(targetId, targetUserId, 4, true, now);
+            target.AccountName = "Target2";
+            setup.Accounts.AddRange(source, target);
+            await setup.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var conflict = await Assert.ThrowsAsync<AccountCloneConflictException>(() => repository.CloneAsync(sourceId,
+            new AccountCloneRequest { TargetUserId = targetUserId, TargetSlotIndex = 4, CreatedBy = sourceUserId }));
+        Assert.Equal("TARGET_ACCOUNT_EXISTS", conflict.Code);
+        Assert.False((await dbContext.Accounts.SingleAsync(account => account.Uuid == targetId)).IsDeleted);
+
+        var cloned = await repository.CloneAsync(sourceId, new AccountCloneRequest
+        {
+            TargetUserId = targetUserId, TargetSlotIndex = 4, ExpectedTargetAccountId = targetId,
+            Overwrite = true, CreatedBy = sourceUserId,
+        });
+        Assert.NotNull(cloned);
+        Assert.Equal(targetId, cloned!.ReplacedAccountId);
+        Assert.True((await dbContext.Accounts.SingleAsync(account => account.Uuid == targetId)).IsDeleted);
+        var targetUser = await dbContext.Users.SingleAsync(user => user.Uuid == targetUserId);
+        Assert.Equal(cloned.Account.Uuid, targetUser.AccountId);
+        Assert.True(cloned.Account.IsActive);
+    }
+
+    [Fact]
+    public async Task CloneAsync_RejectsSourceWithAnActiveRuntimeSession()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var sourceUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setup = new AstralRecordDbContext(options))
+        {
+            await setup.Database.EnsureCreatedAsync();
+            setup.Users.AddRange(CreateUser(sourceUserId, sourceId, now), new UserEntity
+            {
+                Uuid = targetUserId, Mcid = "target2", JoinDate = now, LastJoinDate = now, GlobalIp = "127.0.0.3",
+                CreatedAt = now, UpdatedAt = now, CreatedBy = targetUserId, UpdatedBy = targetUserId,
+            });
+            setup.Accounts.Add(CreateAccount(sourceId, sourceUserId, 0, true, now));
+            setup.SkillTreeAccountSessions.Add(new SkillTreeAccountSessionEntity
+            {
+                AccountSessionId = Guid.NewGuid(), AccountId = sourceId, ServerId = "rpg-1",
+                ServerSessionId = Guid.NewGuid(), DefinitionGenerationId = "test", LeaseTokenHash = "hash",
+                CreatedAtUtc = now, ExpiresAtUtc = now.AddMinutes(1), Closed = false,
+            });
+            await setup.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var conflict = await Assert.ThrowsAsync<AccountCloneConflictException>(() => repository.CloneAsync(sourceId,
+            new AccountCloneRequest { TargetUserId = targetUserId, TargetSlotIndex = 0, CreatedBy = sourceUserId }));
+        Assert.Equal("SOURCE_ACCOUNT_SESSION_ACTIVE", conflict.Code);
+        Assert.Empty(await dbContext.Accounts.Where(account => account.UserId == targetUserId).ToListAsync());
+    }
+
+    [Fact]
+    public async Task CloneAsync_CommitResultUnknownReturnsTheCommittedClone()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var interceptor = new CommitResultUnknownInterceptor();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new CommitResultUnknownRetryingExecutionStrategy(dependencies)))
+            .AddInterceptors(interceptor)
+            .Options;
+        var sourceUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setup = new AstralRecordDbContext(options))
+        {
+            await setup.Database.EnsureCreatedAsync();
+            setup.Users.AddRange(CreateUser(sourceUserId, sourceId, now), new UserEntity
+            {
+                Uuid = targetUserId, Mcid = "target3", JoinDate = now, LastJoinDate = now, GlobalIp = "127.0.0.4",
+                CreatedAt = now, UpdatedAt = now, CreatedBy = targetUserId, UpdatedBy = targetUserId,
+            });
+            setup.Accounts.Add(CreateAccount(sourceId, sourceUserId, 0, true, now));
+            await setup.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        interceptor.Arm();
+        var cloned = await repository.CloneAsync(sourceId, new AccountCloneRequest
+        {
+            TargetUserId = targetUserId, TargetSlotIndex = 0, CreatedBy = sourceUserId,
+        });
+
+        Assert.NotNull(cloned);
+        Assert.True(interceptor.WasThrown);
+        Assert.Single(await dbContext.Accounts.Where(account => account.UserId == targetUserId && !account.IsDeleted).ToListAsync());
     }
 
     private static UserEntity CreateUser(Guid userId, Guid accountId, DateTime now) => new()

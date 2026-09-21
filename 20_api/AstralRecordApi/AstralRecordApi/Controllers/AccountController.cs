@@ -19,9 +19,72 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     {
         if (!AccessControlContract.IsValidAccountMode(request.Mode))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Account mode is invalid.");
+        if (request.UserId == Guid.Empty || request.CreatedBy == Guid.Empty)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "userId and createdBy are required.");
+        if (request.SlotIndex is < 0 or > 99)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "slotIndex must be between 0 and 99.");
 
-        var created = await accountRepository.CreateAsync(request);
-        return CreatedAtAction(nameof(GetByUuid), new { uuid = created.Uuid }, created);
+        try
+        {
+            var created = await accountRepository.CreateAsync(request);
+            return CreatedAtAction(nameof(GetByUuid), new { uuid = created.Uuid }, created);
+        }
+        catch (AccountCloneConflictException ex)
+        {
+            return Conflict(new { code = ex.Code, message = ex.Message, targetAccountId = ex.TargetAccountId });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>UUID、アカウント名、またはユーザー内のスロット番号からアカウントを解決します。</summary>
+    [HttpGet("resolve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Resolve([FromQuery] string? selector, [FromQuery(Name = "user_mcid")] string? userMcid)
+    {
+        try
+        {
+            var account = await accountRepository.ResolveAsync(selector, userMcid);
+            return account is null ? NotFound() : Ok(account);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>複製元 UUID のアカウントを指定ユーザーのスロットへ複製します。</summary>
+    [HttpPost("{sourceUuid:guid}/clone")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Clone(Guid sourceUuid, [FromBody] AccountCloneRequest request)
+    {
+        if (request.TargetUserId == Guid.Empty || request.CreatedBy == Guid.Empty)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "targetUserId and createdBy are required.");
+        if (request.TargetSlotIndex is < 0 or > 99)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "targetSlotIndex must be between 0 and 99.");
+
+        try
+        {
+            var cloned = await accountRepository.CloneAsync(sourceUuid, request);
+            return cloned is null
+                ? NotFound()
+                : CreatedAtAction(nameof(GetByUuid), new { uuid = cloned.Account.Uuid }, cloned);
+        }
+        catch (AccountCloneConflictException ex)
+        {
+            return Conflict(new { code = ex.Code, message = ex.Message, targetAccountId = ex.TargetAccountId });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>アカウント情報更新</summary>

@@ -418,7 +418,13 @@ public class EquipmentServiceTests
         public Task<AccountResponse?> GetByUuidAsync(Guid uuid) =>
             Task.FromResult<AccountResponse?>(uuid == accountId ? new AccountResponse { Uuid = uuid } : null);
 
+        public Task<AccountResponse?> ResolveAsync(string? selector, string? userMcid) =>
+            throw new NotSupportedException();
+
         public Task<AccountResponse> CreateAsync(AccountCreateRequest request) =>
+            throw new NotSupportedException();
+
+        public Task<AccountCloneResponse?> CloneAsync(Guid sourceUuid, AccountCloneRequest request) =>
             throw new NotSupportedException();
 
         public Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request) =>
