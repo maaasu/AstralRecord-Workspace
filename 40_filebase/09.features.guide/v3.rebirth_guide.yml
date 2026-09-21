@@ -25,3 +25,43 @@ steps:
       description: "&dクリックで転生の魔女リネアの場所を表示し、発光させる。"
     condition:
       type: GUIDE_OPENED
+  - id: exchange_exp_points_for_item
+    text: "&f溜まったEXPポイントでアイテムを交換する"
+    details:
+      - "&7転生中に溜まったEXPポイントは、アイテムと交換できる。"
+      - "&7&eEXPポイント・シジル交換所&7を開けるNPCに話しかけ、交換所GUIを開く。"
+      - "&7EXPポイントを使って、交換したいアイテムをクリックして購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: rebirth_sigil_shopkeeper
+      description: "&dクリックで転生シジル交換商の場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetIds:
+        - cooldown_sigil_i
+        - cooldown_sigil_ii
+        - cooldown_sigil_iii
+        - cooldown_sigil_iv
+        - cooldown_sigil_v
+        - cooldown_sigil_vi
+        - cooldown_sigil_vii
+        - cooldown_sigil_viii
+        - cooldown_sigil_ix
+        - cooldown_sigil_x
+        - cast_time_sigil_i
+        - cast_time_sigil_ii
+        - cast_time_sigil_iii
+        - cast_time_sigil_iv
+        - cast_time_sigil_v
+        - bragi_orb
+        - mimir_orb
+        - skill_damage_sigil_i
+        - skill_damage_sigil_ii
+        - skill_damage_sigil_iii
+        - skill_damage_sigil_iv
+        - skill_damage_sigil_v
+        - skill_damage_sigil_vi
+        - skill_damage_sigil_vii
+        - skill_damage_sigil_viii
+        - skill_damage_sigil_ix
+        - skill_damage_sigil_x

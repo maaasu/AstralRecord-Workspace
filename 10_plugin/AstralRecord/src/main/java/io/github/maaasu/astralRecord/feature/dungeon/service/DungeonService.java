@@ -176,6 +176,7 @@ public final class DungeonService {
     private @Nullable StatusService statusService;
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
+    private @NotNull BiConsumer<AstPlayer, String> cartographTeleportListener = (player, dungeonId) -> { };
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
@@ -507,6 +508,15 @@ public final class DungeonService {
      */
     public void setClearListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         this.clearListener = listener;
+    }
+
+    /**
+     * カルトグラフによる攻略済み部屋への実テレポート成功後の通知先を設定します。
+     *
+     * @param listener テレポート成功者とダンジョン ID を受け取る通知先
+     */
+    public void setCartographTeleportListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.cartographTeleportListener = listener;
     }
 
     /** 現在ロード済みの Mob/World を参照して初回ロードします。 */
@@ -2671,7 +2681,7 @@ public final class DungeonService {
                 worldService.teleportPlayerAsync(
                         player,
                         target,
-                        null,
+                        () -> notifyCartographTeleportSuccess(session, player, transferGeneration),
                         () -> canRunCartographTeleport(
                                 session, player, equipmentInstanceId, roomId, transferGeneration)
                 ))
@@ -2687,6 +2697,22 @@ public final class DungeonService {
                     }
                 });
         return true;
+    }
+
+    private void notifyCartographTeleportSuccess(
+            @NotNull Session session,
+            @NotNull Player player,
+            long transferGeneration
+    ) {
+        if (!isActiveTransferCallback(session, transferGeneration)
+                || !isCurrentParticipant(session, player.getUniqueId())
+                || !player.isOnline()) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            cartographTeleportListener.accept(astPlayer, session.loaded.definition().id());
+        }
     }
 
     /** チャンク準備後の実転送直前にも、カルトグラフ転送の全所有権と部屋状態を検証します。 */

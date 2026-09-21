@@ -83,6 +83,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |
 | `GATHERING_COMPLETED` | gathering spawner ID | 指定スポナーに属する採集を完了したとき |
 | `WAYSTONE_TELEPORTED` | waystone ID | 指定ウェイストーンへのテレポートが成功したとき |
+| `CARTOGRAPH_ROOM_TELEPORTED` | dungeon ID | カルトグラフの緑色の色ガラスで示された攻略済み部屋への実テレポートが成功したとき。テレポートによるカルトグラフ耐久値の消費はない |
 | `QUEST_ACCEPTED` | quest ID | クエストの受注が成功したとき |
 | `QUEST_COMPLETED` | quest ID | クエスト報酬と関連状態の保存が成功したとき。NPC方式では報告完了時 |
 | `DUNGEON_CLEARED` | dungeon ID | ボス部屋を攻略し、クリア参加者として踏破記録を開始したとき |

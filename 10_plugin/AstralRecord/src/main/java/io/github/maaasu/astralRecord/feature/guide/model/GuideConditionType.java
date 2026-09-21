@@ -50,6 +50,8 @@ public enum GuideConditionType {
     GATHERING_COMPLETED,
     /** ウェイストーンへのテレポートに成功した。 */
     WAYSTONE_TELEPORTED,
+    /** カルトグラフから攻略済み部屋へのテレポートに成功した。 */
+    CARTOGRAPH_ROOM_TELEPORTED,
     /** クエストの受領に成功した。 */
     QUEST_ACCEPTED,
     /** クエストの報酬・状態確定に成功した。 */

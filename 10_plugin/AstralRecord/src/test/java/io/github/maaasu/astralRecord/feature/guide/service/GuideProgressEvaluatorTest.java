@@ -538,6 +538,38 @@ class GuideProgressEvaluatorTest {
         )));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: カルトグラフによる攻略済み部屋テレポートは対象ダンジョン ID が一致した場合だけ達成する。
+     */
+    @Test
+    void evaluateMatchesCartographRoomTeleportDungeonTarget() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "cartograph_teleport",
+            "world",
+            20,
+            "cartograph",
+            null,
+            null,
+            List.of(new GuideStep(
+                "teleport_to_cleared_room",
+                "teleport",
+                List.of(),
+                new GuideCondition(GuideConditionType.CARTOGRAPH_ROOM_TELEPORTED, "middle_earth_ruins"),
+                null
+            ))
+        );
+
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.CARTOGRAPH_ROOM_TELEPORTED, "other_dungeon"
+        ));
+        assertEquals(List.of("teleport_to_cleared_room"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.CARTOGRAPH_ROOM_TELEPORTED, "middle_earth_ruins"
+        )));
+    }
+
     private GuideEntry guide() {
         return new GuideEntry(
             3,

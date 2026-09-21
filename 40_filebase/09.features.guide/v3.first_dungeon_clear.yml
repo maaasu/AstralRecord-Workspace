@@ -33,3 +33,12 @@ steps:
     condition:
       type: SHOP_PURCHASED
       targetId: 20a00042
+  - id: teleport_to_cleared_room
+    text: "&fカルトグラフで攻略済みの部屋へテレポートする"
+    details:
+      - "&7カルトグラフを手に持って右クリックし、ダンジョンの現在地図を開く。"
+      - "&7攻略済みの部屋は緑色の色ガラスのアイコンで表示される。アイコンをクリックして、その部屋へテレポートする。"
+      - "&7攻略済みの部屋へのテレポートでは、カルトグラフの耐久値は消費されない。"
+    condition:
+      type: CARTOGRAPH_ROOM_TELEPORTED
+      targetId: middle_earth_ruins
