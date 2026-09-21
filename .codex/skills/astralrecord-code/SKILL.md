@@ -34,7 +34,7 @@ description: AstralRecord モノレポ全体の実装担当。準備済みの作
 1. 依頼を分類する。
    - `00_docs/` 配下の設計パス → `references/design-driven-implementation.md` を使う。
    - `10_plugin/AstralRecord` 配下のプラグイン実装 → `PLUGIN_GUIDE.md` と `references/plugin-code.md` を使う。
-   - `10_plugin/AstralRecord` 配下のプラグインテスト / MockBukkit / dev-server の足場作り → 主目的が機能挙動ではなく検証基盤なら `$astralrecord-plugin-test` を優先する。
+   - `10_plugin/AstralRecord` 配下のプラグインテスト / 一時MockBukkit診断 / dev-server の足場作り → 主目的が機能挙動ではなく検証基盤なら `$astralrecord-plugin-test` を優先する。
    - API 実装 → `API_GUIDE.md` と `references/api-code.md` を使い、その後このスキルの一般手順を適用する。
    - Web 実装 → ルート `README.md` の「AstralRecord Web」節を使い、その後このスキルの一般手順を適用する。
    - データベース、ファイルベース、リソースパック の変更 → `00_docs/40_Database設計書/README.md` またはルート `README.md` の「AstralRecord Filebase」/「AstralRecord Resource Pack」節を使う。プロジェクトルールが別途定めない限り、生成物と実行時出力は対象外とする。

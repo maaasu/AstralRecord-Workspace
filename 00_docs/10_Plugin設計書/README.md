@@ -176,7 +176,8 @@ python .codex/skills/astralrecord-docs-review/scripts/docs_structure_audit.py 00
 ### 11.1 恒久テストの設計入力
 
 - `10_plugin/AstralRecord/src/test` に残す恒久テストは、採用済みの設計契約を入力として期待結果を決める。ただし、設計書に契約があることは恒久テスト化の十分条件ではない。
-- 恒久テストは、コンテンツ非依存で複数機能から再利用される共通ロジックを対象とし、純粋な計算、入力正規化、共通の状態遷移・不変条件、冪等性、補償、データ保全、権限境界のいずれかを守るものに限る。決定的に検証でき、不具合時の影響が大きい、または手作業で見逃しやすい契約であることも必要とする。
+- 恒久テストは、コンテンツ非依存で複数機能から再利用される共通ロジックを対象とし、純粋な計算、入力正規化、共通の状態遷移・不変条件、冪等性、補償、データ保全、権限境界のいずれかを守るものに限る。疑似サーバーを起動せず決定的に検証でき、不具合時の影響が大きい、または手作業で見逃しやすい契約であることも必要とする。
+- MockBukkit等の疑似サーバーを利用するテストは恒久テストにしない。Bukkit境界が必要な確認は一時テストとしてだけ実施し、恒久化する契約はadapterから純ロジックを分離してJUnitで検証する。
 - 個別スキル・Mobスキル・ボスギミック・アイテム・クエストの固有処理、倍率・射程・対象数・クールダウン・個別params・ID一覧、マスタ値、表示文言、Lore、GUI配置、アイコン、particle、sound、演出、視認性は、採用済み設計契約であっても恒久テストの対象にしない。
 - 文字列を使う検証でも、共通parser・正規化・変換ロジックの不変条件を守る場合は恒久テストにできる。表示コピーやコンテンツ値の固定と区別する。
 - 実装コードや既存テストは fixture、依存関係、観測方法を判断する資料であり、期待結果の正本にはしない。
@@ -206,7 +207,7 @@ void returnsCurrentAndMaximumValuesFromOneSnapshot() {
 - `検証契約:` には、どの入力・条件に対して何が返るか、どの状態へ遷移するか、または何を不変とするかを一文で書く。「動作を確認する」のような汎用文は認めない。
 - 一つの method が複数 feature の契約を結合して検証する場合は、`設計入力:` と対応する `章・見出し:` の対を空の Javadoc 装飾行以外を挟まず物理的に隣接させ、必要数だけ繰り返す。`検証契約:` はそれらの結合条件が分かる一文にまとめる。
 - class 単位のコメントだけでは method ごとの根拠を代替できない。同じ設計箇所を参照する場合も各 test method に記載する。
-- test annotation を持たない fixture、builder、MockBukkit 基底 class などの support source は対象外とする。
+- test annotation を持たない fixture、builder等のsupport sourceはトレーサビリティコメントの対象外とする。ただし、MockBukkit等の疑似サーバー用support sourceは一時テストと同時に削除し、恒久テストとして残さない。
 
 ### 11.3 設計書に契約が不足している場合
 
@@ -218,13 +219,13 @@ void returnsCurrentAndMaximumValuesFromOneSnapshot() {
 
 ### 11.4 一時テストの運用
 
-不具合の切り分け、実装中の仮説、設計に現れない内部詳細の一度限りの確認には `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` を使用できる。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。一時テストは次の順序で使用し、コミット対象へ残さない。
+不具合の切り分け、実装中の仮説、設計に現れない内部詳細の一度限りの確認には `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` を使用できる。MockBukkit等の疑似サーバーを利用する検証も、この一時テストに限り許可する。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。一時テストは次の順序で使用し、コミット対象へ残さない。
 
-1. `AdHoc<目的>Test` または `<目的>OneShotTest` を追加する。
+1. `AdHoc<目的>Test` または `<目的>OneShotTest` を追加する。疑似サーバーが必要な場合は、専用support sourceとビルド依存も一時変更として追加できる。
 2. `mvn -q -Dtest=<一時テストClass名> test` を実行し、手順1で選んだ実際の class 名の test が検出・実行されたことを確認する。
 3. 結果を修正または調査記録へ反映する。恒久契約と判断した場合は、設計書を更新して通常名の恒久テストへ変更する。
-4. 追加した ad-hoc test を削除する。
-5. `git status --short` で一時ファイルが残っていないことを確認する。
+4. 追加したad-hoc testを削除する。疑似サーバーを利用した場合は、専用support sourceとビルド依存も削除する。
+5. `git status --short` とリポジトリ検索で、一時ファイルおよび疑似サーバーのsource・依存が残っていないことを確認する。
 6. トレーサビリティ validator を実行する。
 7. `mvn -q test` を実行する。
 
@@ -235,13 +236,13 @@ Kotlin の import alias / typealias で test annotation を隠す、`@Disabled` 
 | 検証層 | 対象 | 保証できないもの |
 |:--|:--|:--|
 | JUnit | 純粋な計算、判定、状態遷移、repository/service の契約 | Bukkit/Paper の実ライフサイクル |
-| MockBukkit | データ保全、権限、不可逆な状態遷移など、Bukkit境界が不可欠な共通契約の例外的確認 | Purpur/Paper 固有 API、ProtocolLib、実 plugin 構成 |
+| MockBukkit（一時診断のみ） | Bukkit境界を分離できない挙動の一度限りの再現 | Purpur/Paper 固有 API、ProtocolLib、実 plugin 構成。結果確認後にsource・support・依存を削除する |
 | 一時 Purpur/Paper server | server lifecycle、scheduler、Paper/Purpur 固有挙動 | 本番 plugin・proxy・world 構成との組合せ |
 | live server clone integration | ProtocolLib、依存 plugin、proxy、world、設定を含む結合挙動 | client 上の見た目、視認性、操作感 |
 | 実 client 確認 | 表示配置、視認性、入力感、演出 | 自動回帰検知 |
 
 - 下位層で保証できる契約を、理由なく上位の重い層だけで確認しない。
-- 恒久テストはJUnitを既定とし、Bukkit adapterは薄く保って共通ロジックを分離する。MockBukkit、一時server、live cloneはテスト数を増やすための代替層としない。
+- 恒久テストは疑似サーバーを使わないJUnitに限定し、Bukkit adapterは薄く保って共通ロジックを分離する。MockBukkitは一時診断専用とし、一時serverとlive cloneも恒久JUnitの件数を増やすための代替層としない。
 - packet probe と test bot は packet-level の再現証跡であり、client 表示確認の代替にはしない。
 - 恒久的な integration scenario は対応する設計入力と見出しをスクリプトのコメントまたは隣接する運用文書へ記録する。一度限りの probe は結果確認後に削除する。
 
@@ -257,4 +258,4 @@ cd 10_plugin/AstralRecord
 mvn -q test
 ```
 
-validator は Java / Kotlin の test annotation、Kotlin import alias / typealias、Javadoc の三項目と path-heading pair の物理隣接、設計文書・見出し階層・採用済み契約本文の実在、恒久仕様として使用できない文書、一時テスト、無効化・条件付き skip annotation、Surefire の既定命名、Maven 既定 test source、compiler / Surefire の custom test filter 不在を検査する。
+validator は Java / Kotlin の test annotation、Kotlin import alias / typealias、Javadoc の三項目と path-heading pair の物理隣接、設計文書・見出し階層・採用済み契約本文の実在、恒久仕様として使用できない文書、一時テスト、疑似サーバーのsource・ビルド依存、無効化・条件付き skip annotation、Surefire の既定命名、Maven 既定 test source、compiler / Surefire の custom test filter 不在を検査する。

@@ -255,6 +255,23 @@ STANDARD_TEST_SOURCE_DIRECTORIES = frozenset(
     }
 )
 COMPILER_TEST_FILTER_ELEMENTS = frozenset({"testIncludes", "testExcludes"})
+MOCK_SERVER_SOURCE_PATTERN = re.compile(
+    r"\b(?:org\.mockbukkit|be\.seeseemelk\.mockbukkit)"
+    r"(?:\.[A-Za-z_$][\w$]*)*\b|"
+    r"\bMockBukkit(?:TestBase)?\b"
+)
+MOCK_SERVER_DEPENDENCY_MARKERS = (
+    "mockbukkit",
+    "bukkitmock",
+    "bukkit-mock",
+    "fakebukkit",
+    "fake-bukkit",
+    "bukkit-test-server",
+    "paper-test-server",
+    "spigot-test-server",
+    "paper-server-mock",
+    "spigot-server-mock",
+)
 
 
 @dataclass(frozen=True, order=True)
@@ -1045,6 +1062,16 @@ def _validate_source_file(
     scan = _scan_source(text)
     issues: list[ValidationIssue] = []
     type_blocks = _source_type_blocks(scan.code)
+    mock_server_match = MOCK_SERVER_SOURCE_PATTERN.search(scan.code)
+    if mock_server_match is not None:
+        issues.append(
+            ValidationIssue(
+                source_path,
+                _line_number(text, mock_server_match.start()),
+                "MOCK_SERVER_SOURCE_REMAINS",
+                "MockBukkit等の疑似サーバーを利用するsourceは一時診断後に削除してください",
+            )
+        )
 
     ad_hoc_file = _is_ad_hoc_test_name(source_file.stem)
     if ad_hoc_file:
@@ -1253,6 +1280,24 @@ def _validate_pom_configuration(
                 f"Plugin POM を解析できません: {error}",
             )
         ]
+
+    for dependency in pom_root.iter():
+        if _xml_local_name(dependency.tag) != "dependency":
+            continue
+        group_id = _direct_xml_child_text(dependency, "groupId")
+        artifact_id = _direct_xml_child_text(dependency, "artifactId")
+        coordinate = f"{group_id}:{artifact_id}".casefold()
+        if not any(marker in coordinate for marker in MOCK_SERVER_DEPENDENCY_MARKERS):
+            continue
+        issues.append(
+            ValidationIssue(
+                display_path,
+                1,
+                "POM_MOCK_SERVER_DEPENDENCY",
+                "MockBukkit等の疑似サーバー依存は一時診断後にPOMから削除してください: "
+                f"{group_id}:{artifact_id}",
+            )
+        )
 
     reported_filters: set[str] = set()
     reported_compiler_filters: set[str] = set()

@@ -116,7 +116,7 @@ README のルールを適用した後、次を確認する。
 - `.codex/skills/astralrecord-code-version-commit-develop/SKILL.md`
 - `.codex/skills/astralrecord-docs-fix/SKILL.md`
 
-最終の Maven テスト実行前とレビューへの引き渡し前にゲートを実行する。追跡されていないテストメソッド、無効化されたまたは条件付きでスキップされるテスト、標準外の Maven テストソース、コンパイラー/Surefire から除外されたテスト、Kotlin JUnit アノテーション別名、一時的な `AdHoc*Test` / `*OneShotTest` ソースを最終差分に残さない。プラグイン Shade 設定がメインワークスペースの配布先へ書き込むため、このコマンドを `mvn verify` で代替しない。
+最終の Maven テスト実行前とレビューへの引き渡し前にゲートを実行する。追跡されていないテストメソッド、無効化されたまたは条件付きでスキップされるテスト、標準外の Maven テストソース、コンパイラー/Surefire から除外されたテスト、Kotlin JUnit アノテーション別名、一時的な `AdHoc*Test` / `*OneShotTest` ソース、MockBukkit等の疑似サーバーを利用するsource・support・ビルド依存を最終差分に残さない。疑似サーバーテストは一時診断として実行後に削除する。プラグイン Shade 設定がメインワークスペースの配布先へ書き込むため、このコマンドを `mvn verify` で代替しない。
 
 ## 個別実装指示の例
 

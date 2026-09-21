@@ -223,11 +223,11 @@ class TraceabilityValidatorTest(unittest.TestCase):
         self.assertEqual([], issues)
         self.assertEqual(1, method_count)
 
-    def test_ignores_support_sources_without_test_annotations(self) -> None:
+    def test_ignores_plain_support_sources_without_test_annotations(self) -> None:
         self._test_source(
-            "support/MockBukkitTestBase.java",
+            "support/TestFixture.java",
             """
-            class MockBukkitTestBase {
+            class TestFixture {
                 String text = "@Test";
                 // @Test
                 /* @TestFactory */
@@ -238,6 +238,67 @@ class TraceabilityValidatorTest(unittest.TestCase):
         issues, method_count, file_count = self._validate()
 
         self.assertEqual([], issues)
+        self.assertEqual(0, method_count)
+        self.assertEqual(1, file_count)
+
+    def test_rejects_mockbukkit_source_even_without_test_annotations(self) -> None:
+        self._test_source(
+            "support/MockBukkitTestBase.java",
+            """
+            import org.mockbukkit.mockbukkit.MockBukkit;
+
+            class MockBukkitTestBase {
+                void start() { MockBukkit.mock(); }
+            }
+            """,
+        )
+
+        issues, method_count, file_count = self._validate()
+
+        self.assertIn(
+            "MOCK_SERVER_SOURCE_REMAINS",
+            [issue.code for issue in issues],
+        )
+        self.assertEqual(0, method_count)
+        self.assertEqual(1, file_count)
+
+    def test_rejects_legacy_mockbukkit_source_using_server_mock(self) -> None:
+        self._test_source(
+            "support/LegacyServerFixture.java",
+            """
+            import be.seeseemelk.mockbukkit.ServerMock;
+
+            class LegacyServerFixture {
+                private ServerMock server;
+            }
+            """,
+        )
+
+        issues, method_count, file_count = self._validate()
+
+        self.assertIn(
+            "MOCK_SERVER_SOURCE_REMAINS",
+            [issue.code for issue in issues],
+        )
+        self.assertEqual(0, method_count)
+        self.assertEqual(1, file_count)
+
+    def test_allows_custom_player_mock_without_pseudo_server_package(self) -> None:
+        self._test_source(
+            "support/PlayerMock.java",
+            """
+            class PlayerMock {
+                String name() { return "test-player"; }
+            }
+            """,
+        )
+
+        issues, method_count, file_count = self._validate()
+
+        self.assertNotIn(
+            "MOCK_SERVER_SOURCE_REMAINS",
+            [issue.code for issue in issues],
+        )
         self.assertEqual(0, method_count)
         self.assertEqual(1, file_count)
 
@@ -1051,6 +1112,64 @@ class TraceabilityValidatorTest(unittest.TestCase):
         self.assertEqual(
             {"CONTRACT_NOT_CONCRETE"},
             {issue.code for issue in issues},
+        )
+
+    def test_rejects_mockbukkit_dependency_in_pom(self) -> None:
+        self._write(
+            "10_plugin/AstralRecord/pom.xml",
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>example</groupId>
+              <artifactId>sample</artifactId>
+              <version>1.0.0</version>
+              <dependencies>
+                <dependency>
+                  <groupId>org.mockbukkit.mockbukkit</groupId>
+                  <artifactId>mockbukkit-v1.21</artifactId>
+                  <version>4.110.0</version>
+                  <scope>test</scope>
+                </dependency>
+              </dependencies>
+            </project>
+            """,
+        )
+
+        issues, _, _ = self._validate()
+
+        self.assertIn(
+            "POM_MOCK_SERVER_DEPENDENCY",
+            [issue.code for issue in issues],
+        )
+
+    def test_rejects_other_pseudo_server_dependency_marker_in_pom(self) -> None:
+        self._write(
+            "10_plugin/AstralRecord/pom.xml",
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>example</groupId>
+              <artifactId>sample</artifactId>
+              <version>1.0.0</version>
+              <dependencies>
+                <dependency>
+                  <groupId>example.test</groupId>
+                  <artifactId>paper-test-server</artifactId>
+                  <version>1.0.0</version>
+                  <scope>test</scope>
+                </dependency>
+              </dependencies>
+            </project>
+            """,
+        )
+
+        issues, _, _ = self._validate()
+
+        self.assertIn(
+            "POM_MOCK_SERVER_DEPENDENCY",
+            [issue.code for issue in issues],
         )
 
     def test_rejects_surefire_filters_in_namespaced_profile_configuration(self) -> None:

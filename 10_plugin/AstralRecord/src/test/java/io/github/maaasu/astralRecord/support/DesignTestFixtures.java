@@ -1,7 +1,5 @@
 package io.github.maaasu.astralRecord.support;
 
-import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -21,14 +19,11 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
-import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
-import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
-import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.time.LocalDateTime;
 import java.util.EnumMap;
@@ -42,54 +37,6 @@ import java.util.UUID;
 public final class DesignTestFixtures {
 
     private DesignTestFixtures() {
-    }
-
-    public static AstPlayer astPlayer(PlayerMock player, AccountMode mode) {
-        return astPlayer(player, mode, 0);
-    }
-
-    public static AstPlayer astPlayer(PlayerMock player, AccountMode mode, int permission) {
-        return astPlayer(player, mode, permission, 1);
-    }
-
-    public static AstPlayer astPlayer(PlayerMock player, AccountMode mode, int permission, int level) {
-        UUID userId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
-        UUID systemId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now();
-        UserModel user = new UserModel(
-            userId,
-            player.getName(),
-            now,
-            now,
-            "127.0.0.1",
-            accountId,
-            false,
-            null,
-            false,
-            permission,
-            now,
-            now,
-            systemId,
-            systemId,
-            false
-        );
-        AccountModel account = new AccountModel(
-            accountId,
-            userId,
-            "test-account",
-            0,
-            true,
-            mode,
-            "{}",
-            now,
-            now,
-            systemId,
-            systemId,
-            false,
-            level
-        );
-        return new AstPlayer(player, user, account);
     }
 
     public static InventoryModel inventory(UUID accountId, InventoryType type) {
