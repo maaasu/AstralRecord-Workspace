@@ -14,11 +14,14 @@ public sealed partial class SkillTreeOperationRepository
     private async Task<SkillTreeMigrationResponse?> MigrateCoreAsync(string serverId, Guid sessionId, Guid accountId, SkillTreeMigrationRequest request)
     {
         if (request.OperationId == Guid.Empty || request.ExpectedStateVersion < 0 || !ValidHash(request.ToGenerationId)
-            || request.LegacyBaselineNodeIds is null || request.RemoveNodeIds is null) return null;
+            || request.LegacyBaselineNodeIds is null || request.RemoveNodeIds is null || request.ConsumedClassAssignments is null
+            || request.ConsumedClassAssignments.Any(assignment => !ValidMigrationAssignment(assignment))
+            || request.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Distinct(StringComparer.Ordinal).Count()
+                != request.ConsumedClassAssignments.Count) return null;
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var account = await LockAccountAsync(accountId);
         if (account is null) return null;
-        var requestHash = Hash(JsonSerializer.Serialize(new { accountId, request }));
+        var requestHash = MigrationRequestHash(accountId, request);
         var previous = await dbContext.SkillTreeMigrationOperations.FindAsync(request.OperationId);
         if (previous is not null)
             return previous.AccountId == accountId && previous.RequestHash == requestHash
@@ -35,18 +38,32 @@ public sealed partial class SkillTreeOperationRepository
         var actual = state.UnlockedNodes.Select(x => x.NodeId).Order(StringComparer.Ordinal).ToArray();
         if (!actual.SequenceEqual(request.LegacyBaselineNodeIds.Order(StringComparer.Ordinal), StringComparer.Ordinal)
             || request.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() != request.RemoveNodeIds.Count
-            || request.RemoveNodeIds.Except(actual, StringComparer.Ordinal).Any()) return null;
+            || request.RemoveNodeIds.Except(actual, StringComparer.Ordinal).Any()
+            || request.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Except(actual, StringComparer.Ordinal).Any()
+            || request.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Distinct(StringComparer.Ordinal).Count()
+                != request.ConsumedClassAssignments.Count) return null;
         var target = await dbContext.SkillTreeDefinitionGenerations.FindAsync(request.ToGenerationId);
         var source = state.DefinitionGenerationId is null ? target : await dbContext.SkillTreeDefinitionGenerations.FindAsync(state.DefinitionGenerationId);
         if (source is null || target is null) return null;
-        var refunds = ValidateRetirementMigration(source.CanonicalSnapshotJson, target.CanonicalSnapshotJson, state.UnlockedNodes, request.RemoveNodeIds);
+        var assignments = request.ConsumedClassAssignments.ToDictionary(
+            assignment => assignment.NodeId, assignment => assignment.ConsumedClassId, StringComparer.Ordinal);
+        var refunds = ValidateRetirementMigration(source.CanonicalSnapshotJson, target.CanonicalSnapshotJson, state.UnlockedNodes,
+            request.RemoveNodeIds, assignments);
         if (refunds is null) return null;
         var result = new SkillTreeMigrationResponse
         {
             OperationId = request.OperationId, Status = request.PreviewOnly ? "PREVIEW" : "APPLIED",
             StateVersion = checked(state.Version + 1), RemovedNodeIds = request.RemoveNodeIds, Refunds = refunds,
+            ConsumedClassAssignments = request.ConsumedClassAssignments,
         };
         if (request.PreviewOnly) return result;
+        foreach (var row in state.UnlockedNodes)
+            if (row.ConsumedClassId is null && assignments.TryGetValue(row.NodeId, out var consumedClassId))
+            {
+                row.ConsumedClassId = consumedClassId;
+                row.UpdatedAt = DateTime.UtcNow;
+                row.UpdatedBy = account.UserId;
+            }
         dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(state.UnlockedNodes.Where(x => request.RemoveNodeIds.Contains(x.NodeId, StringComparer.Ordinal)));
         state.DefinitionGenerationId = request.ToGenerationId;
         state.Version = result.StateVersion;
@@ -66,9 +83,28 @@ public sealed partial class SkillTreeOperationRepository
         return result;
     }
 
+    private static string MigrationRequestHash(Guid accountId, SkillTreeMigrationRequest request)
+    {
+        if (request.ConsumedClassAssignments.Count != 0)
+            return Hash(JsonSerializer.Serialize(new { accountId, request }));
+        var legacyRequest = new
+        {
+            request.OperationId,
+            request.ExpectedStateVersion,
+            request.FromGenerationId,
+            request.ToGenerationId,
+            request.LegacyBaselineNodeIds,
+            request.RemoveNodeIds,
+            request.ConfirmLegacyBaseline,
+            request.PreviewOnly,
+        };
+        return Hash(JsonSerializer.Serialize(new { accountId, request = legacyRequest }));
+    }
+
     /// <summary>再課金しない保持・明示除去だけを検証する。ノード追加とCP付替えは許可しない。</summary>
     internal static IReadOnlyList<SkillTreeMigrationRefund>? ValidateRetirementMigration(string sourceJson, string targetJson,
-        IEnumerable<AccountSkillTreeUnlockedNodeEntity> unlocked, IReadOnlyList<string> removedIds)
+        IEnumerable<AccountSkillTreeUnlockedNodeEntity> unlocked, IReadOnlyList<string> removedIds,
+        IReadOnlyDictionary<string, string>? consumedClassAssignments = null)
     {
         try
         {
@@ -79,6 +115,7 @@ public sealed partial class SkillTreeOperationRepository
             var newNodes = newRoot.GetProperty("nodes").EnumerateArray().ToDictionary(x => x.GetProperty("nodeId").GetString()!, StringComparer.Ordinal);
             var positions = newRoot.GetProperty("positions").EnumerateArray().Select(x => x.GetProperty("nodeId").GetString()!).ToHashSet(StringComparer.Ordinal);
             var removed = removedIds.ToHashSet(StringComparer.Ordinal);
+            var assignments = consumedClassAssignments ?? new Dictionary<string, string>();
             var retained = new HashSet<string>(StringComparer.Ordinal);
             var refunds = new List<SkillTreeMigrationRefund>();
             foreach (var row in unlocked)
@@ -86,11 +123,21 @@ public sealed partial class SkillTreeOperationRepository
                 if (!oldNodes.TryGetValue(row.NodeId, out var oldNode)) return null;
                 var kind = oldNode.GetProperty("pointType").GetString(); var cost = oldNode.GetProperty("pointCost").GetInt32();
                 if (cost < 0 || kind is not ("CLASS_POINT" or "PASSIVE_POINT")) return null;
+                var consumedClassId = row.ConsumedClassId;
+                if (assignments.TryGetValue(row.NodeId, out var assignedClassId))
+                {
+                    if (kind != "CLASS_POINT" || cost <= 0 || consumedClassId is not null) return null;
+                    if (!oldNode.TryGetProperty("unlockCondition", out var oldCondition)
+                        || !oldCondition.TryGetProperty("classId", out var oldFixedClass)
+                        || oldFixedClass.ValueKind != JsonValueKind.String || oldFixedClass.GetString() != assignedClassId) return null;
+                    consumedClassId = assignedClassId;
+                }
                 if (removed.Contains(row.NodeId))
                 {
-                    if (kind == "CLASS_POINT" && cost > 0 && (row.ConsumedClassId is null
-                        || !newRoot.TryGetProperty("classes", out var refundClasses) || !refundClasses.TryGetProperty(row.ConsumedClassId, out _))) return null;
-                    refunds.Add(new() { NodeId = row.NodeId, PointType = kind == "CLASS_POINT" ? "CP" : "PP", Points = cost, ClassId = row.ConsumedClassId });
+                    if (assignments.ContainsKey(row.NodeId)) return null;
+                    if (kind == "CLASS_POINT" && cost > 0 && (consumedClassId is null
+                        || !newRoot.TryGetProperty("classes", out var refundClasses) || !refundClasses.TryGetProperty(consumedClassId, out _))) return null;
+                    refunds.Add(new() { NodeId = row.NodeId, PointType = kind == "CLASS_POINT" ? "CP" : "PP", Points = cost, ClassId = consumedClassId });
                     continue;
                 }
                 if (!newNodes.TryGetValue(row.NodeId, out var target) || !positions.Contains(row.NodeId)
@@ -98,11 +145,11 @@ public sealed partial class SkillTreeOperationRepository
                     || !JsonElement.DeepEquals(oldNode.GetProperty("unlockCondition"), target.GetProperty("unlockCondition"))) return null;
                 if (kind == "CLASS_POINT" && cost > 0)
                 {
-                    if (row.ConsumedClassId is null || !newRoot.TryGetProperty("classes", out var classes)
-                        || !classes.TryGetProperty(row.ConsumedClassId, out _)) return null;
+                    if (consumedClassId is null || !newRoot.TryGetProperty("classes", out var classes)
+                        || !classes.TryGetProperty(consumedClassId, out _)) return null;
                     if (oldRoot.TryGetProperty("classes", out var oldClasses) && !JsonElement.DeepEquals(oldClasses, classes)) return null;
                     var fixedSource = target.GetProperty("unlockCondition").GetProperty("classId");
-                    if (fixedSource.ValueKind == JsonValueKind.String && fixedSource.GetString() != row.ConsumedClassId) return null;
+                    if (fixedSource.ValueKind == JsonValueKind.String && fixedSource.GetString() != consumedClassId) return null;
                 }
                 retained.Add(row.NodeId);
             }

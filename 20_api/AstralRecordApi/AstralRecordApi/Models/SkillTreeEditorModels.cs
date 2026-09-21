@@ -135,11 +135,14 @@ public sealed class SkillTreeMigrationRequest
     public required string ToGenerationId { get; init; }
     public required IReadOnlyList<string> LegacyBaselineNodeIds { get; init; }
     public required IReadOnlyList<string> RemoveNodeIds { get; init; }
+    /// <summary>保存値が欠損しているCPノードだけに、旧新定義の固定classIdと一致する消費元を明示します。</summary>
+    public IReadOnlyList<SkillTreeMigrationConsumedClassAssignment> ConsumedClassAssignments { get; init; } = [];
     public bool ConfirmLegacyBaseline { get; init; }
     public bool PreviewOnly { get; init; }
 }
-public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } public IReadOnlyList<SkillTreeMigrationRefund> Refunds { get; init; } = []; }
+public sealed class SkillTreeMigrationResponse { public Guid OperationId { get; init; } public required string Status { get; init; } public int StateVersion { get; init; } public required IReadOnlyList<string> RemovedNodeIds { get; init; } public IReadOnlyList<SkillTreeMigrationRefund> Refunds { get; init; } = []; public IReadOnlyList<SkillTreeMigrationConsumedClassAssignment> ConsumedClassAssignments { get; init; } = []; }
 public sealed class SkillTreeMigrationRefund { public required string NodeId { get; init; } public required string PointType { get; init; } public int Points { get; init; } public string? ClassId { get; init; } }
+public sealed class SkillTreeMigrationConsumedClassAssignment { public required string NodeId { get; init; } public required string ConsumedClassId { get; init; } }
 
 public static class SkillTreeMigrationBatchModes
 {

@@ -8,6 +8,8 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class SkillTreeMigrationTests
 {
     private const string AdditiveCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"gain","pointType":"PASSIVE_POINT","pointCost":2,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"bonus","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"gain"},{"nodeId":"bonus"}],"edges":["root->gain","gain->bonus"],"classes":{}}""";
+    private const string ClassSourceCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"class","pointType":"CLASS_POINT","pointCost":2,"unlockCondition":{"classId":"adventurer","playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"class"}],"edges":["root->class"],"classes":{"adventurer":{"classId":"adventurer"}}}""";
+    private const string ClassTargetCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"class","pointType":"CLASS_POINT","pointCost":2,"unlockCondition":{"classId":"adventurer","playerLevel":0}},{"nodeId":"bonus","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"class"},{"nodeId":"bonus"}],"edges":["root->class","class->bonus"],"classes":{"adventurer":{"classId":"adventurer"}}}""";
 
     [Theory]
     [InlineData(false)]
@@ -248,6 +250,91 @@ public sealed class SkillTreeMigrationTests
             Assert.Equal(1, state.Version);
         });
         Assert.Empty(await f.Db.SkillTreeMigrationOperations.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task MigrationCanAssignMissingConsumedClassFromFixedDefinitionOnlyOnCommit()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        f.Db.ChangeTracker.Clear();
+        var state = await f.Db.AccountSkillTreeStates.AsNoTracking().SingleAsync();
+        var sourceGeneration = SkillTreeOperationRepositoryTests.Hash(ClassSourceCanonical);
+        var targetGeneration = SkillTreeOperationRepositoryTests.Hash(ClassTargetCanonical);
+        await f.Db.AccountSkillTreeStates.Where(x => x.AccountId == f.Account)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.DefinitionGenerationId, sourceGeneration));
+        f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(),
+            AccountSkillTreeStateId = state.AccountSkillTreeStateId,
+            NodeId = "class",
+            ConsumedClassId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = f.User,
+            UpdatedBy = f.User,
+        });
+        await f.Db.SaveChangesAsync();
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, new()
+        {
+            ServerSessionId = f.Boot,
+            ServerStartedAtUtc = f.Started,
+            PublicationRevision = 2,
+            PluginVersion = "test",
+            CompatibilityVersion = "skilltree-operation-v1",
+            Ready = true,
+            DefinitionGenerationId = sourceGeneration,
+            CanonicalSnapshotJson = ClassSourceCanonical,
+        }));
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, new()
+        {
+            ServerSessionId = f.Boot,
+            ServerStartedAtUtc = f.Started,
+            PublicationRevision = 3,
+            PluginVersion = "test",
+            CompatibilityVersion = "skilltree-operation-v1",
+            Ready = true,
+            DefinitionGenerationId = targetGeneration,
+            CanonicalSnapshotJson = ClassTargetCanonical,
+        }));
+
+        SkillTreeMigrationRequest Request(bool preview, string assignedClass) => new()
+        {
+            OperationId = Guid.NewGuid(),
+            ExpectedStateVersion = 1,
+            FromGenerationId = sourceGeneration,
+            ToGenerationId = targetGeneration,
+            LegacyBaselineNodeIds = ["root", "class"],
+            RemoveNodeIds = [],
+            ConsumedClassAssignments = [new() { NodeId = "class", ConsumedClassId = assignedClass }],
+            PreviewOnly = preview,
+        };
+        Assert.Null(await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, Request(true, "warrior")));
+        var preview = Request(true, "adventurer");
+        Assert.NotNull(await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, preview));
+        f.Db.ChangeTracker.Clear();
+        Assert.Null((await f.Db.AccountSkillTreeUnlockedNodes.SingleAsync(x => x.NodeId == "class")).ConsumedClassId);
+
+        var commit = new SkillTreeMigrationRequest
+        {
+            OperationId = preview.OperationId,
+            ExpectedStateVersion = preview.ExpectedStateVersion,
+            FromGenerationId = preview.FromGenerationId,
+            ToGenerationId = preview.ToGenerationId,
+            LegacyBaselineNodeIds = preview.LegacyBaselineNodeIds,
+            RemoveNodeIds = preview.RemoveNodeIds,
+            ConsumedClassAssignments = preview.ConsumedClassAssignments,
+            PreviewOnly = false,
+        };
+        var applied = await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, commit);
+        Assert.NotNull(applied);
+        Assert.Equal("adventurer", Assert.Single(applied.ConsumedClassAssignments).ConsumedClassId);
+        var replay = await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, commit);
+        Assert.NotNull(replay);
+        Assert.Equal(applied.StateVersion, replay.StateVersion);
+        f.Db.ChangeTracker.Clear();
+        Assert.Equal("adventurer", (await f.Db.AccountSkillTreeUnlockedNodes.SingleAsync(x => x.NodeId == "class")).ConsumedClassId);
+        Assert.Equal(targetGeneration, (await f.Db.AccountSkillTreeStates.SingleAsync()).DefinitionGenerationId);
     }
 
     private static async Task<Guid> AddOfflineAccountAsync(SkillTreeOperationRepositoryTests.Fixture f, string name)

@@ -80,7 +80,11 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     /// <summary>保守中・offline accountのlegacy採用または明示廃止node除去を一回だけ確定します。</summary>
     [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/migrations")]
     public async Task<IActionResult> Migrate(string serverId, Guid accountId, [FromQuery(Name = "server_session_id")] Guid sessionId, [FromBody] SkillTreeMigrationRequest request)
-        => !HasMigrationCredential() ? Unauthorized() : await repository.MigrateAsync(serverId, sessionId, accountId, request) is { } result ? Ok(result) : Conflict();
+    {
+        if (!HasMigrationCredential()) return Unauthorized();
+        if (!ValidServer(serverId) || accountId == Guid.Empty || sessionId == Guid.Empty || !ValidMigration(request)) return BadRequest();
+        return await repository.MigrateAsync(serverId, sessionId, accountId, request) is { } result ? Ok(result) : Conflict();
+    }
 
     /// <summary>現在世代と異なる保存状態を、明示移行用の不変入力としてページ単位で返します。</summary>
     [HttpGet("runtime/servers/{serverId}/migration-candidates")]
@@ -160,8 +164,15 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
             && ValidHash(request.ToGenerationId)
             && (request.FromGenerationId is null || ValidHash(request.FromGenerationId))
             && request.LegacyBaselineNodeIds is not null && request.RemoveNodeIds is not null
+            && request.ConsumedClassAssignments is not null
             && request.LegacyBaselineNodeIds.Distinct(StringComparer.Ordinal).Count() == request.LegacyBaselineNodeIds.Count
-            && request.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() == request.RemoveNodeIds.Count;
+            && request.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() == request.RemoveNodeIds.Count
+            && request.ConsumedClassAssignments.All(assignment => assignment is not null && !string.IsNullOrWhiteSpace(assignment.NodeId)
+                && assignment.NodeId == assignment.NodeId.Trim() && assignment.NodeId.Length <= 200
+                && !string.IsNullOrWhiteSpace(assignment.ConsumedClassId)
+                && assignment.ConsumedClassId == assignment.ConsumedClassId.Trim() && assignment.ConsumedClassId.Length <= 100)
+            && request.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Distinct(StringComparer.Ordinal).Count()
+                == request.ConsumedClassAssignments.Count;
 
     private static bool ValidHash(string? value)
         => value?.Length == 64 && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');

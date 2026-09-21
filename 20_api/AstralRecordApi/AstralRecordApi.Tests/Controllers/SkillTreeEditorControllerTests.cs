@@ -42,6 +42,20 @@ public sealed class SkillTreeEditorControllerTests
             fixture.Server,
             fixture.Boot,
             new SkillTreeMigrationBatchRequest { Mode = "INVALID", Items = [] }));
+        Assert.IsType<BadRequestResult>(await controller.Migrate(
+            fixture.Server,
+            fixture.Account,
+            fixture.Boot,
+            new SkillTreeMigrationRequest
+            {
+                OperationId = Guid.NewGuid(),
+                ExpectedStateVersion = 1,
+                FromGenerationId = fixture.Generation,
+                ToGenerationId = fixture.Generation,
+                LegacyBaselineNodeIds = ["root"],
+                RemoveNodeIds = [],
+                ConsumedClassAssignments = [null!],
+            }));
     }
 
     [Fact]

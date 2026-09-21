@@ -113,8 +113,12 @@ public sealed partial class SkillTreeOperationRepository
                 || !ValidHash(item.Migration.ToGenerationId)
                 || item.Migration.FromGenerationId is not null && !ValidHash(item.Migration.FromGenerationId)
                 || item.Migration.LegacyBaselineNodeIds is null || item.Migration.RemoveNodeIds is null
+                || item.Migration.ConsumedClassAssignments is null
                 || item.Migration.LegacyBaselineNodeIds.Distinct(StringComparer.Ordinal).Count() != item.Migration.LegacyBaselineNodeIds.Count
-                || item.Migration.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() != item.Migration.RemoveNodeIds.Count)
+                || item.Migration.RemoveNodeIds.Distinct(StringComparer.Ordinal).Count() != item.Migration.RemoveNodeIds.Count
+                || item.Migration.ConsumedClassAssignments.Any(assignment => !ValidMigrationAssignment(assignment))
+                || item.Migration.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Distinct(StringComparer.Ordinal).Count()
+                    != item.Migration.ConsumedClassAssignments.Count)
             || request.Items.Select(item => item.AccountId).Distinct().Count() != request.Items.Count
             || request.Items.Select(item => item.Migration.OperationId).Distinct().Count() != request.Items.Count
             || request.Items.Select(item => item.Migration.ToGenerationId).Distinct(StringComparer.Ordinal).Count() != 1) return null;
@@ -134,6 +138,7 @@ public sealed partial class SkillTreeOperationRepository
                 ToGenerationId = source.ToGenerationId,
                 LegacyBaselineNodeIds = source.LegacyBaselineNodeIds,
                 RemoveNodeIds = source.RemoveNodeIds,
+                ConsumedClassAssignments = source.ConsumedClassAssignments,
                 ConfirmLegacyBaseline = source.ConfirmLegacyBaseline,
                 PreviewOnly = preview,
             };
@@ -156,4 +161,10 @@ public sealed partial class SkillTreeOperationRepository
             Items = items,
         };
     }
+
+    private static bool ValidMigrationAssignment(SkillTreeMigrationConsumedClassAssignment? assignment)
+        => assignment is not null && !string.IsNullOrWhiteSpace(assignment.NodeId)
+            && assignment.NodeId == assignment.NodeId.Trim() && assignment.NodeId.Length <= 200
+            && !string.IsNullOrWhiteSpace(assignment.ConsumedClassId)
+            && assignment.ConsumedClassId == assignment.ConsumedClassId.Trim() && assignment.ConsumedClassId.Length <= 100;
 }
