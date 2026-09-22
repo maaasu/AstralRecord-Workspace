@@ -1873,6 +1873,7 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
         );
         skillBindGui = new SkillBindGui(this, itemService, skillService);
+        playerDetailGui.setSkillInformationViewServices(skillBindGui, passiveSkillService);
         itemWeaponAttackService = new ItemWeaponAttackService(
             inventoryService,
             skillService,

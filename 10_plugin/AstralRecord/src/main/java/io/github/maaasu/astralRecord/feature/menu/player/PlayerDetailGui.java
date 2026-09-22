@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -12,9 +11,13 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
@@ -24,7 +27,6 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuIconFactory;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
-import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -51,8 +53,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,6 +78,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int BUFF_SLOT = 32;
     public static final int SEND_SLOT = 38;
     public static final int PARTY_INVITE_SLOT = 42;
+    public static final int SKILL_VIEW_TOGGLE_SLOT = 47;
+    public static final int BIND_LEFT_CLICK_SLOT = 9;
+    public static final int BIND_PASSIVE_PREVIOUS_SLOT = 18;
+    public static final int BIND_PASSIVE_SLOT_START = 19;
+    public static final int BIND_PASSIVE_NEXT_SLOT = 26;
+    public static final int BIND_ACTIVE_PREVIOUS_SLOT = 27;
+    public static final int BIND_ACTIVE_SLOT_START = 28;
+    public static final int BIND_ACTIVE_NEXT_SLOT = 35;
 
     private static final String SEPARATOR = "◇════════════════◇";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
@@ -116,6 +128,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
     private SkillPermissionService skillPermissionService;
+    private SkillBindGui skillBindGui;
+    private PassiveSkillService passiveSkillService;
 
     /**
      * プレイヤー詳細 GUI を生成します。
@@ -167,6 +181,20 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         this.skillBindPresetService = skillBindPresetService;
         this.learnedSkillService = learnedSkillService;
         this.skillPermissionService = skillPermissionService;
+    }
+
+    /**
+     * 読み取り専用のスキル情報画面で利用するバインド表示サービスを設定します。
+     *
+     * @param skillBindGui スキルマネージャーと共通の表示生成 GUI
+     * @param passiveSkillService 現在有効なパッシブ枠数を解決するサービス
+     */
+    public void setSkillInformationViewServices(
+        @NotNull SkillBindGui skillBindGui,
+        @NotNull PassiveSkillService passiveSkillService
+    ) {
+        this.skillBindGui = skillBindGui;
+        this.passiveSkillService = passiveSkillService;
     }
 
     /**
@@ -227,23 +255,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     /**
-     * スキル情報の一覧選択 GUI か判定します。
+     * 統合スキル情報 GUI か判定します。
      *
      * @param inventory 判定対象のインベントリ
-     * @return 一覧選択 GUI なら true
+     * @return 統合スキル情報 GUI なら true
      */
-    public boolean isSkillInfoSelectionInventory(@Nullable Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof SkillInfoSelectionHolder;
-    }
-
-    /**
-     * スキル一覧 GUI か判定します。
-     *
-     * @param inventory 判定対象のインベントリ
-     * @return スキル一覧 GUI なら true
-     */
-    public boolean isSkillListInventory(@Nullable Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof SkillListHolder;
+    public boolean isSkillInfoInventory(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof SkillInfoHolder;
     }
 
     /**
@@ -260,14 +278,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     /**
-     * スキル一覧の種別を取得します。
+     * スキル情報画面の表示種別を取得します。
      *
      * @param inventory 判定対象のインベントリ
-     * @return 一覧種別。対象外なら null
+     * @return 表示種別。対象外なら null
      */
-    public @Nullable SkillListType getSkillListType(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof SkillListHolder holder) {
-            return holder.type();
+    public @Nullable SkillInfoView getSkillInfoView(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof SkillInfoHolder holder) {
+            return holder.view();
         }
         return null;
     }
@@ -279,86 +297,98 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
      * @return ページ番号。対象外なら 0
      */
     public int getSkillListPageIndex(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof SkillListHolder holder) {
+        if (inventory != null && inventory.getHolder() instanceof SkillInfoHolder holder) {
             return holder.pageIndex();
         }
         return 0;
     }
 
     /**
-     * 指定スキル一覧に次ページが存在するか判定します。
+     * バインド表示中のパッシブ枠先頭 index を取得します。
      *
-     * @param target 表示対象プレイヤー
-     * @param type 一覧種別
-     * @param pageIndex 現在のページ番号
-     * @return 次ページがあれば true
+     * @param inventory 判定対象のインベントリ
+     * @return 対象外なら 0、対象画面なら現在の先頭 index
      */
-    public boolean hasNextSkillListPage(@NotNull AstPlayer target, @NotNull SkillListType type, int pageIndex) {
-        return pagedGuiView.hasNextPage(pageIndex, skillListSize(target, type));
-    }
-
-    private int skillListSize(@NotNull AstPlayer target, @NotNull SkillListType type) {
-        return type == SkillListType.PERMITTED
-            ? permittedSkillItems(target, Set.of()).size()
-            : learnedSkillItems(target, Set.of()).size();
+    public int getPassiveBindOffset(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof SkillInfoHolder holder
+            ? holder.passiveOffset() : 0;
     }
 
     /**
-     * 使用許可スキル一覧と習得済みスキル一覧の選択画面を開きます。
+     * バインド表示中のアクション枠先頭 index を取得します。
+     *
+     * @param inventory 判定対象のインベントリ
+     * @return 対象外なら 0、対象画面なら現在の先頭 index
+     */
+    public int getActiveBindOffset(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof SkillInfoHolder holder
+            ? holder.activeOffset() : 0;
+    }
+
+    /**
+     * 指定スキル一覧に次ページが存在するか判定します。
+     *
+     * @param target 表示対象プレイヤー
+     * @param pageIndex 現在のページ番号
+     * @return 次ページがあれば true
+     */
+    public boolean hasNextSkillListPage(@NotNull AstPlayer target, int pageIndex) {
+        return pagedGuiView.hasNextPage(pageIndex, skillInformationEntries(target).size());
+    }
+
+    /**
+     * 統合スキル情報画面を開きます。
      *
      * @param viewer 閲覧者
      * @param target 表示対象プレイヤー
      */
-    public void openSkillInfoSelection(@NotNull Player viewer, @NotNull AstPlayer target) {
-        Inventory inventory = Bukkit.createInventory(
-            new SkillInfoSelectionHolder(target.getBukkit().getUniqueId()),
-            SIZE,
-            Component.text("スキル情報", NamedTextColor.AQUA)
-        );
-        fill(inventory);
-        inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(20, createItem(
-            Material.ENCHANTED_BOOK,
-            noItalic(Component.text("使用許可スキル", NamedTextColor.GREEN, TextDecoration.BOLD)),
-            List.of(
-                noItalic(Component.text("現在のクラス・スキルツリーで", NamedTextColor.GRAY)),
-                noItalic(Component.text("使用を許可されているスキル", NamedTextColor.GRAY)),
-                noItalic(Component.text("クリックで一覧を表示", NamedTextColor.YELLOW))
-            )
-        ));
-        inventory.setItem(24, createItem(
-            Material.BOOK,
-            noItalic(Component.text("習得済みスキル", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)),
-            List.of(
-                noItalic(Component.text("スキルマネージャーで習得した", NamedTextColor.GRAY)),
-                noItalic(Component.text("スキル個体の一覧", NamedTextColor.GRAY)),
-                noItalic(Component.text("クリックで一覧を表示", NamedTextColor.YELLOW))
-            )
-        ));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+    public void openSkillInfo(@NotNull Player viewer, @NotNull AstPlayer target) {
+        openSkillInfo(viewer, target, SkillInfoView.SKILL_LIST, 0, 0, 0);
     }
 
-    /** スキル一覧をページ付きで開きます。 */
-    public void openSkillList(
+    /**
+     * 統合スキル情報画面を指定状態で開きます。
+     *
+     * @param viewer 閲覧者
+     * @param target 表示対象プレイヤー
+     * @param view 表示種別
+     * @param pageIndex スキル一覧ページ
+     * @param passiveOffset パッシブ枠の表示先頭 index
+     * @param activeOffset アクション枠の表示先頭 index
+     */
+    public void openSkillInfo(
         @NotNull Player viewer,
         @NotNull AstPlayer target,
-        @NotNull SkillListType type,
-        int pageIndex
+        @NotNull SkillInfoView view,
+        int pageIndex,
+        int passiveOffset,
+        int activeOffset
     ) {
-        AstPlayer viewerPlayer = AstPlayerCache.get(viewer);
-        Set<String> viewerPermittedSkillIds = viewerPlayer == null || skillPermissionService == null
-            ? Set.of()
-            : skillPermissionService.permittedSkillIds(viewerPlayer);
-        List<ItemStack> items = type == SkillListType.PERMITTED
-            ? permittedSkillItems(target, viewerPermittedSkillIds)
-            : learnedSkillItems(target, viewerPermittedSkillIds);
-        int normalizedPage = pagedGuiView.normalizePage(pageIndex, items.size());
+        List<SkillInformationEntry> entries = skillInformationEntries(target);
+        int normalizedPage = pagedGuiView.normalizePage(pageIndex, entries.size());
+        int normalizedPassiveOffset = normalizeBindOffset(passiveOffset, SkillBindPreset.PASSIVE_SLOT_COUNT);
+        int normalizedActiveOffset = normalizeBindOffset(activeOffset, SkillBindPreset.ACTIVE_SLOT_COUNT);
         Inventory inventory = Bukkit.createInventory(
-            new SkillListHolder(target.getBukkit().getUniqueId(), type, normalizedPage),
+            new SkillInfoHolder(
+                target.getBukkit().getUniqueId(), view, normalizedPage,
+                normalizedPassiveOffset, normalizedActiveOffset
+            ),
             PagedGuiView.SIZE,
-            Component.text(type.title(), type.color())
+            Component.text(
+                view == SkillInfoView.SKILL_LIST ? "スキル情報" : "現在のバインド",
+                NamedTextColor.AQUA
+            )
         );
-        pagedGuiView.render(inventory, items, normalizedPage);
+        if (view == SkillInfoView.SKILL_LIST) {
+            pagedGuiView.render(
+                inventory,
+                entries.stream().map(this::skillInformationItem).toList(),
+                normalizedPage
+            );
+        } else {
+            renderBoundSkills(inventory, target, normalizedPassiveOffset, normalizedActiveOffset);
+        }
+        inventory.setItem(SKILL_VIEW_TOGGLE_SLOT, skillViewToggleItem(view));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
@@ -575,58 +605,276 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             .toList();
     }
 
-    private @NotNull List<ItemStack> permittedSkillItems(
-        @NotNull AstPlayer target,
-        @NotNull Set<String> viewerPermittedSkillIds
-    ) {
-        if (skillPermissionService == null || skillService == null) return List.of();
-        return skillPermissionService.permittedSkillIds(target).stream()
-            .map(skillService.registry()::getDefinition)
-            .filter(definition -> definition != null)
-            .sorted(Comparator.comparing(definition -> SkillPresentationUtil.plainName(definition, definition.getId())))
-            .map(definition -> skillItem(definition, null, "使用許可済み", viewerPermittedSkillIds))
-            .toList();
-    }
-
-    private @NotNull List<ItemStack> learnedSkillItems(
-        @NotNull AstPlayer target,
-        @NotNull Set<String> viewerPermittedSkillIds
-    ) {
-        if (learnedSkillService == null || skillService == null) return List.of();
-        return learnedSkillService.getLearnedSkills(target.getAccount().getUuid()).stream()
-            .map(skillService::resolveLearnedSkill)
-            .filter(resolved -> resolved != null)
-            .sorted(Comparator.comparing(resolved -> SkillPresentationUtil.plainName(resolved.definition(), resolved.learnedSkill().getSkillId())))
-            .map(resolved -> skillItem(resolved.definition(), resolved, "習得済み", viewerPermittedSkillIds))
-            .toList();
-    }
-
-    private @NotNull ItemStack skillItem(
-        @NotNull SkillDefinition definition,
-        @Nullable ResolvedLearnedSkill resolved,
-        @NotNull String state,
-        @NotNull Set<String> viewerPermittedSkillIds
-    ) {
-        Material material = MaterialNameResolver.match(definition.getIcon());
-        List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(Component.text(state + " / "
-            + (definition.getKind() == SkillKind.ACTIVE ? "アクティブ" : "パッシブ"), NamedTextColor.GRAY)));
-        if (resolved != null) {
-            lore.add(noItalic(Component.text("レベル: " + resolved.learnedSkill().getLevel(), NamedTextColor.YELLOW)));
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
-                resolved, viewerPermittedSkillIds, NamedTextColor.WHITE
-            ));
-        } else {
-            lore.addAll(SkillPresentationUtil.skillDescriptionAndLore(
-                definition, viewerPermittedSkillIds, NamedTextColor.WHITE
+    /**
+     * 使用許可スキルと習得済みスキルをスキル定義単位で統合します。
+     *
+     * @param target 表示対象プレイヤー
+     * @return 表示順に並べた統合スキル情報
+     */
+    private @NotNull List<SkillInformationEntry> skillInformationEntries(@NotNull AstPlayer target) {
+        if (skillPermissionService == null || learnedSkillService == null || skillService == null) {
+            return List.of();
+        }
+        Set<String> permittedSkillIds = skillPermissionService.permittedSkillIds(target);
+        List<SkillInformationEntry> entries = new ArrayList<>();
+        Set<String> learnedDefinitionIds = new java.util.HashSet<>();
+        for (LearnedSkillInstance learned : learnedSkillService.getLearnedSkills(target.getAccount().getUuid())) {
+            SkillDefinition base = skillService.registry().getDefinition(learned.getSkillId());
+            if (base == null) {
+                continue;
+            }
+            learnedDefinitionIds.add(base.getId());
+            ResolvedLearnedSkill resolved = skillService.resolveLearnedSkill(learned);
+            if (resolved == null) {
+                resolved = new ResolvedLearnedSkill(learned, base, Map.of(), Set.of());
+            }
+            entries.add(new SkillInformationEntry(
+                resolved.definition(), resolved, permittedSkillIds.contains(base.getId()), permittedSkillIds
             ));
         }
-        lore.add(Component.empty());
-        lore.add(noItalic(Component.text("スキルID: " + definition.getId(), NamedTextColor.DARK_GRAY)));
-        ItemStack itemStack = createItem(material == null ? Material.BOOK : material,
-            SkillPresentationUtil.skillNameComponent(definition, definition.getId(), NamedTextColor.WHITE), lore);
-        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, definition.getIconTexture());
-        return itemStack;
+        for (String permittedSkillId : permittedSkillIds) {
+            SkillDefinition definition = skillService.registry().getDefinition(permittedSkillId);
+            if (definition != null && !learnedDefinitionIds.contains(definition.getId())) {
+                entries.add(new SkillInformationEntry(definition, null, true, permittedSkillIds));
+            }
+        }
+        entries.sort(Comparator
+            .comparing((SkillInformationEntry entry) -> SkillPresentationUtil.plainName(
+                entry.definition(), "未登録のスキル"
+            ))
+            .thenComparing(entry -> entry.resolved() == null)
+            .thenComparing(entry -> entry.definition().getId()));
+        return List.copyOf(entries);
+    }
+
+    /**
+     * 統合スキル情報を読み取り専用アイテムへ変換します。
+     *
+     * @param entry 表示対象の統合スキル情報
+     * @return GUIへ配置するアイテム
+     */
+    private @NotNull ItemStack skillInformationItem(@NotNull SkillInformationEntry entry) {
+        if (skillBindGui != null) {
+            return skillBindGui.createReadOnlySkillInformationItem(
+                entry.definition(), entry.resolved(), entry.permitted(), entry.permittedSkillIds()
+            );
+        }
+        List<Component> lore = List.of(
+            noItalic(Component.text(entry.permitted() ? "使用許可: あり" : "使用許可: なし",
+                entry.permitted() ? NamedTextColor.GREEN : NamedTextColor.RED)),
+            noItalic(Component.text(entry.resolved() == null ? "習得状態: 未習得" : "習得状態: 習得済み",
+                entry.resolved() == null ? NamedTextColor.RED : NamedTextColor.LIGHT_PURPLE))
+        );
+        return createItem(
+            Material.BOOK,
+            SkillPresentationUtil.skillNameComponent(entry.definition(), "未登録のスキル", NamedTextColor.WHITE),
+            lore
+        );
+    }
+
+    /**
+     * 選択中プリセットのバインドをスキルマネージャーと同じ配置で描画します。
+     *
+     * @param inventory 描画先
+     * @param target 表示対象プレイヤー
+     * @param passiveOffset パッシブ枠の表示先頭 index
+     * @param activeOffset アクション枠の表示先頭 index
+     */
+    private void renderBoundSkills(
+        @NotNull Inventory inventory,
+        @NotNull AstPlayer target,
+        int passiveOffset,
+        int activeOffset
+    ) {
+        fill(inventory);
+        inventory.setItem(PagedGuiView.BACK_SLOT, backItem());
+        SkillBindPreset preset = selectedSkillBindPreset(target);
+        if (preset == null || skillBindGui == null) {
+            inventory.setItem(22, createItem(
+                Material.BARRIER,
+                noItalic(Component.text("バインド情報を取得できません", NamedTextColor.RED)),
+                List.of(noItalic(Component.text("選択中のプリセットがありません", NamedTextColor.GRAY)))
+            ));
+            return;
+        }
+
+        List<SkillDefinition> permittedDefinitions = permittedSkillDefinitions(target);
+        Map<String, SkillManagerEntry> entries = skillManagerEntries(target);
+        inventory.setItem(BIND_LEFT_CLICK_SLOT, skillBindGui.createReadOnlyBindSlot(
+            SkillBindType.LEFT_CLICK, 0, preset.getLeftClickSkillId(), entries, permittedDefinitions, true
+        ));
+        renderBoundSkillRow(
+            inventory,
+            SkillBindType.PASSIVE,
+            BIND_PASSIVE_SLOT_START,
+            passiveOffset,
+            preset.getPassiveSkillSlots(),
+            entries,
+            permittedDefinitions,
+            passiveSkillService == null
+                ? SkillBindPreset.PASSIVE_SLOT_COUNT
+                : passiveSkillService.activePassiveSlotCount(target)
+        );
+        renderBoundSkillRow(
+            inventory,
+            SkillBindType.ACTIVE,
+            BIND_ACTIVE_SLOT_START,
+            activeOffset,
+            preset.getActiveSkillSlots(),
+            entries,
+            permittedDefinitions,
+            SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+        );
+        inventory.setItem(BIND_PASSIVE_PREVIOUS_SLOT, bindScrollItem("パッシブを左へ", passiveOffset > 0));
+        inventory.setItem(BIND_PASSIVE_NEXT_SLOT, bindScrollItem(
+            "パッシブを右へ",
+            passiveOffset + SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT < SkillBindPreset.PASSIVE_SLOT_COUNT
+        ));
+        inventory.setItem(BIND_ACTIVE_PREVIOUS_SLOT, bindScrollItem("アクションを左へ", activeOffset > 0));
+        inventory.setItem(BIND_ACTIVE_NEXT_SLOT, bindScrollItem(
+            "アクションを右へ",
+            activeOffset + SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT < SkillBindPreset.ACTIVE_SLOT_COUNT
+        ));
+    }
+
+    /**
+     * 1種別分のバインド枠を7枠の横スクロール行として描画します。
+     *
+     * @param inventory 描画先
+     * @param type バインド種別
+     * @param firstSlot 行の先頭 slot
+     * @param offset バインド配列の表示先頭 index
+     * @param bindings バインド ID 配列
+     * @param entries バインド ID ごとの習得個体
+     * @param permittedDefinitions 使用許可スキル定義
+     * @param enabledSlotCount 現在有効な枠数
+     */
+    private void renderBoundSkillRow(
+        @NotNull Inventory inventory,
+        @NotNull SkillBindType type,
+        int firstSlot,
+        int offset,
+        @NotNull List<String> bindings,
+        @NotNull Map<String, SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> permittedDefinitions,
+        int enabledSlotCount
+    ) {
+        for (int displayIndex = 0; displayIndex < SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT; displayIndex++) {
+            int index = offset + displayIndex;
+            inventory.setItem(firstSlot + displayIndex, skillBindGui.createReadOnlyBindSlot(
+                type, index, bindings.get(index), entries, permittedDefinitions, index < enabledSlotCount
+            ));
+        }
+    }
+
+    /**
+     * 表示対象の習得済み個体をバインド ID で索引化します。
+     *
+     * @param target 表示対象プレイヤー
+     * @return バインド ID ごとの表示情報
+     */
+    private @NotNull Map<String, SkillManagerEntry> skillManagerEntries(@NotNull AstPlayer target) {
+        Map<String, SkillManagerEntry> result = new LinkedHashMap<>();
+        if (learnedSkillService == null || skillService == null || skillPermissionService == null) {
+            return result;
+        }
+        for (LearnedSkillInstance learned : learnedSkillService.getLearnedSkills(target.getAccount().getUuid())) {
+            SkillDefinition base = skillService.registry().getDefinition(learned.getSkillId());
+            if (base == null) {
+                continue;
+            }
+            ResolvedLearnedSkill resolved = skillService.resolveLearnedSkill(learned);
+            SkillManagerEntry entry = resolved == null
+                ? new SkillManagerEntry(learned, base, skillPermissionService.isPermitted(target, base.getId()))
+                : new SkillManagerEntry(
+                    learned, resolved.definition(), skillPermissionService.isPermitted(target, base.getId()), resolved
+                );
+            result.put(entry.bindingId(), entry);
+        }
+        return result;
+    }
+
+    /**
+     * 表示対象が現在使用を許可されているスキル定義を取得します。
+     *
+     * @param target 表示対象プレイヤー
+     * @return 表示名順の使用許可スキル定義
+     */
+    private @NotNull List<SkillDefinition> permittedSkillDefinitions(@NotNull AstPlayer target) {
+        if (skillPermissionService == null || skillService == null) {
+            return List.of();
+        }
+        return skillPermissionService.permittedSkillIds(target).stream()
+            .map(skillService.registry()::getDefinition)
+            .filter(java.util.Objects::nonNull)
+            .sorted(Comparator.comparing(definition -> SkillPresentationUtil.plainName(
+                definition, "未登録のスキル"
+            )))
+            .toList();
+    }
+
+    /**
+     * 表示対象の選択中かつ解放済みプリセットを取得します。
+     *
+     * @param target 表示対象プレイヤー
+     * @return 選択中プリセット。存在しない場合は {@code null}
+     */
+    private @Nullable SkillBindPreset selectedSkillBindPreset(@NotNull AstPlayer target) {
+        if (skillBindPresetService == null) {
+            return null;
+        }
+        int selectedIndex = skillBindPresetService.selectedPresetIndex(target.getAccount().getUuid());
+        return skillBindPresetService.getPresets(target.getAccount().getUuid()).stream()
+            .filter(candidate -> candidate.isUnlocked() && candidate.getPresetIndex() == selectedIndex)
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * 横スクロールの先頭 index を表示可能範囲へ補正します。
+     *
+     * @param offset 補正前 index
+     * @param slotCount バインド枠の総数
+     * @return 0から最終表示開始位置までに収めた index
+     */
+    private int normalizeBindOffset(int offset, int slotCount) {
+        int maximum = Math.max(0, slotCount - SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT);
+        return Math.max(0, Math.min(offset, maximum));
+    }
+
+    /**
+     * バインド枠の横スクロール項目を生成します。
+     *
+     * @param title 表示名
+     * @param enabled 移動可能なら {@code true}
+     * @return スクロール項目
+     */
+    private @NotNull ItemStack bindScrollItem(@NotNull String title, boolean enabled) {
+        return createItem(
+            enabled ? Material.ARROW : Material.BARRIER,
+            noItalic(Component.text(title, enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY)),
+            List.of(noItalic(Component.text(enabled ? "クリックで1枠移動" : "これ以上移動できません",
+                enabled ? NamedTextColor.GRAY : NamedTextColor.RED)))
+        );
+    }
+
+    /**
+     * スキル一覧と現在のバインドを切り替える項目を生成します。
+     *
+     * @param currentView 現在の表示種別
+     * @return 切り替え項目
+     */
+    private @NotNull ItemStack skillViewToggleItem(@NotNull SkillInfoView currentView) {
+        boolean showBindings = currentView == SkillInfoView.SKILL_LIST;
+        return createItem(
+            showBindings ? Material.COMPASS : Material.KNOWLEDGE_BOOK,
+            noItalic(Component.text(
+                showBindings ? "現在のバインドを表示" : "スキル一覧を表示",
+                NamedTextColor.AQUA,
+                TextDecoration.BOLD
+            )),
+            List.of(noItalic(Component.text("クリックで表示を切り替え", NamedTextColor.YELLOW)))
+        );
     }
 
     private @NotNull ItemStack playerHead(
@@ -999,68 +1247,38 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         }
     }
 
-    /** スキル一覧の種別です。 */
-    public enum SkillListType {
-        PERMITTED("使用許可スキル一覧", NamedTextColor.GREEN),
-        LEARNED("習得済みスキル一覧", NamedTextColor.LIGHT_PURPLE);
-
-        private final String title;
-        private final NamedTextColor color;
-
-        SkillListType(@NotNull String title, @NotNull NamedTextColor color) {
-            this.title = title;
-            this.color = color;
-        }
-
-        @NotNull String title() {
-            return title;
-        }
-
-        @NotNull NamedTextColor color() {
-            return color;
-        }
+    /** 統合スキル情報画面の表示種別です。 */
+    public enum SkillInfoView {
+        SKILL_LIST,
+        CURRENT_BINDINGS
     }
 
-    private interface SkillInfoHolder extends org.bukkit.inventory.InventoryHolder {
-        @NotNull UUID targetId();
+    private record SkillInformationEntry(
+        @NotNull SkillDefinition definition,
+        @Nullable ResolvedLearnedSkill resolved,
+        boolean permitted,
+        @NotNull Set<String> permittedSkillIds
+    ) {
     }
 
-    private record SkillInfoSelectionHolder(@NotNull UUID targetId)
-        implements SkillInfoHolder, HotbarShortcutGuiHolder {
-        @Override
-        public @NotNull GuiNavigationDestination getNavigationDestination() {
-            return new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキル情報");
-        }
-
-        @Override
-        public @NotNull String getNavigationId() {
-            return "player-skill-info-selection:" + targetId;
-        }
-
-        @Override
-        public int getBackSlot() {
-            return BACK_SLOT;
-        }
-
-        @Override
-        public @NotNull Inventory getInventory() {
-            return Bukkit.createInventory(this, SIZE);
-        }
-    }
-
-    private record SkillListHolder(
+    private record SkillInfoHolder(
         @NotNull UUID targetId,
-        @NotNull SkillListType type,
-        int pageIndex
-    ) implements SkillInfoHolder, HotbarShortcutGuiHolder {
+        @NotNull SkillInfoView view,
+        int pageIndex,
+        int passiveOffset,
+        int activeOffset
+    ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull GuiNavigationDestination getNavigationDestination() {
-            return new GuiNavigationDestination(Material.KNOWLEDGE_BOOK, type.title());
+            return new GuiNavigationDestination(
+                view == SkillInfoView.SKILL_LIST ? Material.KNOWLEDGE_BOOK : Material.COMPASS,
+                view == SkillInfoView.SKILL_LIST ? "スキル情報" : "現在のバインド"
+            );
         }
 
         @Override
         public @NotNull String getNavigationId() {
-            return "player-skill-info-list:" + targetId + ":" + type.name();
+            return "player-skill-info:" + targetId;
         }
 
         @Override

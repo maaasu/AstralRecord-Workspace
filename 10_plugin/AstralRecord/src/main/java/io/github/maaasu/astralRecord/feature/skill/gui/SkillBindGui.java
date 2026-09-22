@@ -554,6 +554,83 @@ public final class SkillBindGui {
         return withBindingId(item, entry.bindingId());
     }
 
+    /**
+     * プレイヤー情報から参照する読み取り専用のスキル情報アイテムを生成します。
+     *
+     * @param definition 表示するスキル定義
+     * @param resolved 習得済み個体の解決結果。未習得の場合は {@code null}
+     * @param permitted 表示対象プレイヤーが現在使用を許可されている場合は {@code true}
+     * @param permittedSkillIds 条件付き説明の表示判定に使う、対象プレイヤーの使用許可スキル ID
+     * @return プレイヤー状態とマスター情報を含む読み取り専用アイテム
+     */
+    public @NotNull ItemStack createReadOnlySkillInformationItem(
+        @NotNull SkillDefinition definition,
+        @Nullable ResolvedLearnedSkill resolved,
+        boolean permitted,
+        @NotNull Set<String> permittedSkillIds
+    ) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(
+            permitted ? "使用許可: あり" : "使用許可: なし",
+            permitted ? NamedTextColor.GREEN : NamedTextColor.RED
+        ));
+        lore.add(Component.text(
+            resolved == null ? "習得状態: 未習得" : "習得状態: 習得済み",
+            resolved == null ? NamedTextColor.RED : NamedTextColor.LIGHT_PURPLE
+        ));
+        if (resolved != null) {
+            lore.add(Component.text(
+                "現在レベル: Lv." + resolved.learnedSkill().getLevel()
+                    + " / 最大 Lv." + definition.getMaxLevel(),
+                NamedTextColor.GOLD
+            ));
+        }
+        lore.add(separator());
+
+        if (resolved == null) {
+            lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+                definition, permittedSkillIds, NamedTextColor.GRAY
+            ));
+            if (!lore.isEmpty()) {
+                lore.add(separator());
+            }
+            appendBaseCastCostLore(lore, definition);
+            lore.add(separator());
+            String tagNames = SkillPresentationUtil.skillTagDisplayNames(definition,
+                Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
+            if (!tagNames.isBlank()) {
+                lore.add(Component.text("タグ: " + tagNames, NamedTextColor.DARK_AQUA));
+            }
+            lore.add(Component.text(
+                "種別: " + (definition.getKind().isPassive() ? "パッシブ" : "アクティブ"),
+                NamedTextColor.GRAY
+            ));
+            lore.add(Component.text("現在レベル: なし / 最大 Lv." + definition.getMaxLevel(), NamedTextColor.DARK_GRAY));
+            lore.add(Component.text("シジル: 未習得のため装着なし", NamedTextColor.DARK_GRAY));
+        } else {
+            appendLearnedSkillDetails(
+                lore,
+                new SkillManagerEntry(resolved.learnedSkill(), definition, permitted, resolved),
+                permittedSkillIds
+            );
+        }
+
+        Component name = SkillPresentationUtil.skillNameComponent(
+            definition, "未登録のスキル", NamedTextColor.WHITE
+        );
+        if (resolved != null) {
+            name = name.append(skillLevelDisplay(
+                resolved.learnedSkill().getLevel(), definition.getMaxLevel(), NamedTextColor.GOLD
+            ));
+        }
+        return createItem(
+            permitted ? parseMaterial(definition.getIcon(), DEFAULT_SKILL_ICON) : Material.LIGHT_GRAY_WOOL,
+            name,
+            lore,
+            permitted ? definition.getIconTexture() : null
+        );
+    }
+
     private ItemStack createUnlearnedSkillItem(
         @NotNull SkillDefinition skill,
         @Nullable String processingSkillId,
@@ -656,6 +733,35 @@ public final class SkillBindGui {
         @NotNull ResolvedLearnedSkill resolved
     ) {
         SkillDefinition skill = resolved.definition();
+        double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);
+        appendCastCostLore(lore, skill, reduction);
+    }
+
+    /**
+     * 未習得スキルの基礎消費リソースとクールダウンを表示します。
+     *
+     * @param lore 追記先
+     * @param skill 基礎スキル定義
+     */
+    private void appendBaseCastCostLore(
+        @NotNull List<Component> lore,
+        @NotNull SkillDefinition skill
+    ) {
+        appendCastCostLore(lore, skill, 0.0D);
+    }
+
+    /**
+     * スキル定義とクールダウン短縮率から消費・クールダウン表示を生成します。
+     *
+     * @param lore 追記先
+     * @param skill 表示対象スキル
+     * @param cooldownReduction クールダウン短縮率
+     */
+    private void appendCastCostLore(
+        @NotNull List<Component> lore,
+        @NotNull SkillDefinition skill,
+        double cooldownReduction
+    ) {
         double resourceCost = skill.getResourceCost() == null ? skill.getManaCost() : skill.getResourceCost();
         SkillResourceType resourceType = skill.getResourceType() == null
             ? SkillResourceType.MANA
@@ -672,9 +778,8 @@ public final class SkillBindGui {
             lore.add(Component.text("消費リソース: MP " + manaCost, NamedTextColor.AQUA));
         }
         if (!skill.getKind().isPassive()) {
-            double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);
             long cooldownTicks = io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator
-                .resolveCooldownTicks(skill.getCooldownTicks(), reduction);
+                .resolveCooldownTicks(skill.getCooldownTicks(), cooldownReduction);
             String cooldownSeconds = BigDecimal.valueOf(cooldownTicks / 20.0D)
                 .stripTrailingZeros().toPlainString();
             lore.add(Component.text("クールダウン: " + cooldownSeconds + "秒", NamedTextColor.YELLOW));
@@ -688,11 +793,11 @@ public final class SkillBindGui {
     private void appendSigilEffectLore(List<Component> lore, int slotIndex, LearnedSkillSigil attached) {
         ItemModel item = itemService.findLoadedById(attached.getSigilId());
         if (item == null || item.getSigil() == null) {
-            lore.add(Component.text("  スロット " + (slotIndex + 1) + ": " + attached.getSigilId(), NamedTextColor.GRAY));
+            lore.add(Component.text("  スロット " + (slotIndex + 1) + ": 未登録のシジル", NamedTextColor.RED));
             return;
         }
         lore.add(Component.text("  スロット " + (slotIndex + 1) + ": ", NamedTextColor.GRAY).append(
-            SkillPresentationUtil.itemNameComponent(item, attached.getSigilId(), NamedTextColor.WHITE)
+            SkillPresentationUtil.itemNameComponent(item, "未登録のシジル", NamedTextColor.WHITE)
         ));
         for (ItemSigilModifier modifier : item.getSigil().getModifiers()) {
             StatusType status = StatusType.fromId(modifier.getStatus());
@@ -785,6 +890,56 @@ public final class SkillBindGui {
         boolean selected,
         boolean enabled
     ) {
+        return createBindSlot(type, index, bindingId, entries, permittedSkillDefinitions, selected, enabled, true);
+    }
+
+    /**
+     * プレイヤー情報から参照する読み取り専用のバインド枠を生成します。
+     *
+     * @param type バインド種別
+     * @param index 種別内の枠番号
+     * @param bindingId バインドされた個体 ID または通常攻撃予約 ID
+     * @param entries バインド ID ごとの習得個体
+     * @param permittedSkillDefinitions 現在の使用許可スキル定義
+     * @param enabled 現在有効な枠なら {@code true}
+     * @return 操作案内を含まない読み取り専用の表示アイテム
+     */
+    public @NotNull ItemStack createReadOnlyBindSlot(
+        @NotNull SkillBindType type,
+        int index,
+        @Nullable String bindingId,
+        @NotNull Map<String, SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
+        boolean enabled
+    ) {
+        return createBindSlot(
+            type, index, bindingId, entries, permittedSkillDefinitions, false, enabled, false
+        );
+    }
+
+    /**
+     * 操作可否を含めて共通バインド枠アイテムを生成します。
+     *
+     * @param type バインド種別
+     * @param index 種別内の枠番号
+     * @param bindingId バインド ID
+     * @param entries バインド ID ごとの習得個体
+     * @param permittedSkillDefinitions 使用許可スキル定義
+     * @param selected 編集画面で選択中なら {@code true}
+     * @param enabled 現在有効な枠なら {@code true}
+     * @param interactive 操作用案内を表示する場合は {@code true}
+     * @return バインド枠アイテム
+     */
+    private @NotNull ItemStack createBindSlot(
+        @NotNull SkillBindType type,
+        int index,
+        @Nullable String bindingId,
+        @NotNull Map<String, SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
+        boolean selected,
+        boolean enabled,
+        boolean interactive
+    ) {
         SkillManagerEntry entry = bindingId == null ? null : entries.get(bindingId);
         boolean normalAttack = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(bindingId);
         String label = switch (type) {
@@ -801,10 +956,15 @@ public final class SkillBindGui {
         if (!enabled && bindingId != null) {
             lore.add(Component.text("設定は保持されますが機能しません。解除のみ可能です。", NamedTextColor.RED));
         } else if (bindingId == null) {
-            lore.add(Component.text(enabled ? "クリックして設定先に選択" : "枠数を増やすまで設定不可", NamedTextColor.GRAY));
+            lore.add(Component.text(
+                interactive
+                    ? (enabled ? "クリックして設定先に選択" : "枠数を増やすまで設定不可")
+                    : (enabled ? "未設定" : "現在は設定できません"),
+                NamedTextColor.GRAY
+            ));
             appendPermittedSkillLore(lore, type, permittedSkillDefinitions);
         } else {
-            lore.add(Component.text("クリックで解除", NamedTextColor.YELLOW));
+            lore.add(Component.text(interactive ? "クリックで解除" : "設定済み", NamedTextColor.YELLOW));
         }
         if (entry != null) {
             lore.add(separator());
@@ -813,7 +973,9 @@ public final class SkillBindGui {
         } else if (bindingId != null && !normalAttack) {
             lore.add(separator());
             lore.add(Component.text("未習得スキルです。発動できません。", NamedTextColor.RED));
-            lore.add(Component.text("この枠をクリックしてバインドを解除してください。", NamedTextColor.YELLOW));
+            if (interactive) {
+                lore.add(Component.text("この枠をクリックしてバインドを解除してください。", NamedTextColor.YELLOW));
+            }
         }
         Material material = bindSlotMaterial(enabled, bindingId, normalAttack, entry);
         Component name = bindingId == null
@@ -824,7 +986,7 @@ public final class SkillBindGui {
                     ? Component.text(label + ": 未習得スキル", enabled ? NamedTextColor.RED : NamedTextColor.DARK_GRAY)
                     : Component.text(label + ": ", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
                         .append(SkillPresentationUtil.skillNameComponent(
-                            entry.definition(), entry.definition().getId(), NamedTextColor.WHITE
+                            entry.definition(), "未登録のスキル", NamedTextColor.WHITE
                         ))
                         .append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
         ItemStack item = createItem(material, name, lore);

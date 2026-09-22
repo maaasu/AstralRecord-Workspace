@@ -105,8 +105,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!playerDetailGui.isInventory(event.getView().getTopInventory())) {
-                if (playerDetailGui.isSkillInfoSelectionInventory(event.getView().getTopInventory())
-                    || playerDetailGui.isSkillListInventory(event.getView().getTopInventory())) {
+                if (playerDetailGui.isSkillInfoInventory(event.getView().getTopInventory())) {
                     event.setCancelled(true);
                     if (event.getWhoClicked() instanceof Player player) {
                         if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
@@ -144,8 +143,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             if (!playerListGui.isInventory(event.getView().getTopInventory())
                 && !playerDetailGui.isInventory(event.getView().getTopInventory())
                 && !playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())
-                && !playerDetailGui.isSkillInfoSelectionInventory(event.getView().getTopInventory())
-                && !playerDetailGui.isSkillListInventory(event.getView().getTopInventory())) {
+                && !playerDetailGui.isSkillInfoInventory(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -255,7 +253,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            playerDetailGui.openSkillInfoSelection(player, target);
+            playerDetailGui.openSkillInfo(player, target);
             return;
         }
         if (rawSlot == PlayerDetailGui.SEND_SLOT) {
@@ -275,6 +273,13 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
+    /**
+     * 統合スキル情報画面の戻る・表示切り替え・ページ移動・横スクロールを処理します。
+     *
+     * @param player 操作したプレイヤー
+     * @param rawSlot クリックされた raw slot
+     * @param inventory 操作対象の統合スキル情報 inventory
+     */
     private void handleSkillInfoClick(
         @NotNull Player player,
         int rawSlot,
@@ -287,33 +292,61 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (playerDetailGui.isSkillInfoSelectionInventory(inventory)) {
-            if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
-                GuiSound.SELECT.play(player);
-                plugin.getGuiNavigationService().openPrevious(player);
-                return;
-            }
-            PlayerDetailGui.SkillListType type = rawSlot == 20
-                ? PlayerDetailGui.SkillListType.PERMITTED
-                : rawSlot == 24 ? PlayerDetailGui.SkillListType.LEARNED : null;
-            if (type == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.SELECT.play(player);
-            playerDetailGui.openSkillList(player, target, type, 0);
-            return;
-        }
-
-        PlayerDetailGui.SkillListType type = playerDetailGui.getSkillListType(inventory);
-        if (type == null) {
+        PlayerDetailGui.SkillInfoView view = playerDetailGui.getSkillInfoView(inventory);
+        if (view == null) {
             GuiSound.DENY.play(player);
             return;
         }
         int page = playerDetailGui.getSkillListPageIndex(inventory);
+        int passiveOffset = playerDetailGui.getPassiveBindOffset(inventory);
+        int activeOffset = playerDetailGui.getActiveBindOffset(inventory);
         if (rawSlot == PagedGuiView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             plugin.getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        if (rawSlot == PlayerDetailGui.SKILL_VIEW_TOGGLE_SLOT) {
+            GuiSound.SELECT.play(player);
+            playerDetailGui.openSkillInfo(
+                player,
+                target,
+                view == PlayerDetailGui.SkillInfoView.SKILL_LIST
+                    ? PlayerDetailGui.SkillInfoView.CURRENT_BINDINGS
+                    : PlayerDetailGui.SkillInfoView.SKILL_LIST,
+                page,
+                passiveOffset,
+                activeOffset
+            );
+            return;
+        }
+        if (view == PlayerDetailGui.SkillInfoView.CURRENT_BINDINGS) {
+            int nextPassiveOffset = passiveOffset;
+            int nextActiveOffset = activeOffset;
+            if (rawSlot == PlayerDetailGui.BIND_PASSIVE_PREVIOUS_SLOT && passiveOffset > 0) {
+                nextPassiveOffset--;
+            } else if (rawSlot == PlayerDetailGui.BIND_PASSIVE_NEXT_SLOT
+                && passiveOffset + io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT
+                    < io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset.PASSIVE_SLOT_COUNT) {
+                nextPassiveOffset++;
+            } else if (rawSlot == PlayerDetailGui.BIND_ACTIVE_PREVIOUS_SLOT && activeOffset > 0) {
+                nextActiveOffset--;
+            } else if (rawSlot == PlayerDetailGui.BIND_ACTIVE_NEXT_SLOT
+                && activeOffset + io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT
+                    < io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset.ACTIVE_SLOT_COUNT) {
+                nextActiveOffset++;
+            } else {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.PAGE.play(player);
+            playerDetailGui.openSkillInfo(
+                player,
+                target,
+                view,
+                page,
+                nextPassiveOffset,
+                nextActiveOffset
+            );
             return;
         }
         if (rawSlot == PagedGuiView.PREVIOUS_SLOT) {
@@ -322,16 +355,16 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            playerDetailGui.openSkillList(player, target, type, page - 1);
+            playerDetailGui.openSkillInfo(player, target, view, page - 1, passiveOffset, activeOffset);
             return;
         }
         if (rawSlot == PagedGuiView.NEXT_SLOT) {
-            if (!playerDetailGui.hasNextSkillListPage(target, type, page)) {
+            if (!playerDetailGui.hasNextSkillListPage(target, page)) {
                 GuiSound.DENY.play(player);
                 return;
             }
             GuiSound.PAGE.play(player);
-            playerDetailGui.openSkillList(player, target, type, page + 1);
+            playerDetailGui.openSkillInfo(player, target, view, page + 1, passiveOffset, activeOffset);
             return;
         }
         GuiSound.DENY.play(player);
