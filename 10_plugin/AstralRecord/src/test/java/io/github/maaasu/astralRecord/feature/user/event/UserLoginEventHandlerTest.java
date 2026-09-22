@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.user.event;
 
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPreLoginResult;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -34,7 +35,8 @@ class UserLoginEventHandlerTest {
         when(event.getUniqueId()).thenReturn(playerUuid);
         when(event.getName()).thenReturn("Alice");
         when(event.getAddress()).thenReturn(address);
-        when(userService.onAsyncPreLogin(playerUuid, "Alice", address.getHostAddress())).thenReturn(false);
+        when(userService.onAsyncPreLogin(playerUuid, "Alice", address.getHostAddress()))
+                .thenReturn(UserPreLoginResult.BANNED);
 
         new UserLoginEventHandler(userService).onAsyncPreLogin(event);
 
@@ -65,13 +67,45 @@ class UserLoginEventHandlerTest {
         when(event.getUniqueId()).thenReturn(playerUuid);
         when(event.getName()).thenReturn("Alice");
         when(event.getAddress()).thenReturn(address);
-        when(userService.onAsyncPreLogin(playerUuid, "Alice", address.getHostAddress())).thenReturn(true);
+        when(userService.onAsyncPreLogin(playerUuid, "Alice", address.getHostAddress()))
+                .thenReturn(UserPreLoginResult.ALLOWED);
 
         new UserLoginEventHandler(userService).onAsyncPreLogin(event);
 
         verify(event, never()).disallow(
                 org.mockito.ArgumentMatchers.eq(AsyncPlayerPreLoginEvent.Result.KICK_OTHER),
                 any(Component.class)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-イベント.md
+     * 章・見出し: # 01_3-イベント > ## 1. イベント仕様 > ### ログイン前イベント受付
+     * 検証契約: プレイヤーデータ初期化失敗はBANと異なる再接続案内で接続を拒否する。
+     */
+    @Test
+    void rejectsInitializationFailureWithRetryMessage() throws Exception {
+        UUID playerUuid = UUID.randomUUID();
+        UserService userService = mock(UserService.class);
+        AsyncPlayerPreLoginEvent event = mock(AsyncPlayerPreLoginEvent.class);
+        InetAddress address = InetAddress.getLoopbackAddress();
+        when(event.getUniqueId()).thenReturn(playerUuid);
+        when(event.getName()).thenReturn("Alice");
+        when(event.getAddress()).thenReturn(address);
+        when(userService.onAsyncPreLogin(playerUuid, "Alice", address.getHostAddress()))
+                .thenReturn(UserPreLoginResult.INITIALIZATION_FAILED);
+
+        new UserLoginEventHandler(userService).onAsyncPreLogin(event);
+
+        ArgumentCaptor<Component> messageCaptor = ArgumentCaptor.forClass(Component.class);
+        verify(event).disallow(
+                org.mockito.ArgumentMatchers.eq(AsyncPlayerPreLoginEvent.Result.KICK_OTHER),
+                messageCaptor.capture()
+        );
+        assertEquals(
+                "プレイヤーデータの初期化に失敗しました。時間をおいて再接続してください。"
+                        + "解消しない場合は、公式Discordの問い合わせ窓口からお問い合わせください。",
+                PLAIN_TEXT.serialize(messageCaptor.getValue())
         );
     }
 }

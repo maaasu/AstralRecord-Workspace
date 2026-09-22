@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.user.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
+import io.github.maaasu.astralRecord.feature.user.model.UserPreLoginResult;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessService;
@@ -37,8 +38,9 @@ public class UserService {
      * @param uuid     プレイヤー UUID
      * @param mcid     Minecraft ID
      * @param globalIp グローバル IP
+     * @return 接続許可、BAN拒否、または初期化失敗
      */
-    public boolean onAsyncPreLogin(UUID uuid, String mcid, String globalIp) {
+    public UserPreLoginResult onAsyncPreLogin(UUID uuid, String mcid, String globalIp) {
         UserModel existing;
         try {
             // 初参加チェックのため 404 が正常系となる findByUuidSilent を使用する
@@ -46,7 +48,7 @@ public class UserService {
             existing = userRepository.findByUuidSilent(uuid);
         } catch (Exception e) {
             Logger.log(LogId.W_5051, mcid, e.getMessage());
-            return true;
+            return UserPreLoginResult.ALLOWED;
         }
 
         if (existing == null) {
@@ -54,26 +56,36 @@ public class UserService {
                 registerNewUser(uuid, mcid, globalIp);
             } catch (Exception e) {
                 Logger.log(LogId.W_5051, mcid, e.getMessage());
+                return UserPreLoginResult.INITIALIZATION_FAILED;
             }
             pendingSameIpUsers.put(uuid, hasOtherUsersByGlobalIp(uuid, mcid, globalIp));
         } else {
             if (!NetworkChannelAccessService.getInstance().isManaged()
                 && isActiveBan(existing, LocalDateTime.now())) {
-                return false;
+                return UserPreLoginResult.BANNED;
+            }
+
+            AccountModel selectedAccount;
+            try {
+                // user.accountId を選択状態の正とし、不整合時のみアクティブアカウントへフォールバックする
+                selectedAccount = accountService.getSelectedAccount(uuid, existing.getAccountId());
+                if (selectedAccount == null) {
+                    // 旧障害等で user だけが残った場合は、初期アカウントを再作成して自己修復する
+                    selectedAccount = accountService.createAccount(uuid, mcid, 0, SystemUser.INSTANCE.getUuid());
+                }
+            } catch (Exception e) {
+                Logger.log(LogId.W_5051, mcid, e.getMessage());
+                return UserPreLoginResult.INITIALIZATION_FAILED;
             }
 
             pendingSameIpUsers.put(uuid, hasOtherUsersByGlobalIp(uuid, mcid, globalIp));
-            // user.accountId を選択状態の正とし、不整合時のみアクティブアカウントへフォールバックする
-            AccountModel selectedAccount = accountService.getSelectedAccount(uuid, existing.getAccountId());
-            if (selectedAccount != null) {
-                try {
-                    userRepository.updateJoinInfo(uuid, globalIp, selectedAccount.getUuid(), SystemUser.INSTANCE.getUuid());
-                } catch (Exception e) {
-                    Logger.log(LogId.W_5051, mcid, e.getMessage());
-                }
+            try {
+                userRepository.updateJoinInfo(uuid, globalIp, selectedAccount.getUuid(), SystemUser.INSTANCE.getUuid());
+            } catch (Exception e) {
+                Logger.log(LogId.W_5051, mcid, e.getMessage());
             }
         }
-        return true;
+        return UserPreLoginResult.ALLOWED;
     }
 
     /**

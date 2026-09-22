@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AstralRecordApi.Models;
 
 /// <summary>アカウント複製の作成先と上書き確認情報です。</summary>
@@ -7,6 +9,7 @@ public sealed class AccountCloneRequest
     public int TargetSlotIndex { get; set; }
     public Guid? ExpectedTargetAccountId { get; set; }
     public bool Overwrite { get; set; }
+    [JsonRequired]
     public Guid CreatedBy { get; set; }
 }
 

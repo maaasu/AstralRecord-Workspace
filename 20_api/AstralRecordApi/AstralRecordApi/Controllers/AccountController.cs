@@ -19,8 +19,8 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     {
         if (!AccessControlContract.IsValidAccountMode(request.Mode))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Account mode is invalid.");
-        if (request.UserId == Guid.Empty || request.CreatedBy == Guid.Empty)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "userId and createdBy are required.");
+        if (request.UserId == Guid.Empty)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "userId is required.");
         if (request.SlotIndex is < 0 or > 99)
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "slotIndex must be between 0 and 99.");
 
@@ -65,8 +65,8 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Clone(Guid sourceUuid, [FromBody] AccountCloneRequest request)
     {
-        if (request.TargetUserId == Guid.Empty || request.CreatedBy == Guid.Empty)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "targetUserId and createdBy are required.");
+        if (request.TargetUserId == Guid.Empty)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "targetUserId is required.");
         if (request.TargetSlotIndex is < 0 or > 99)
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "targetSlotIndex must be between 0 and 99.");
 

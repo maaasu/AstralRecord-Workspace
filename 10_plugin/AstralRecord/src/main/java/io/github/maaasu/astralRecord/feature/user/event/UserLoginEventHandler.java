@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.user.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.user.model.UserPreLoginResult;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -32,11 +33,20 @@ public class UserLoginEventHandler extends AbstractEventHandler {
         String globalIp = address.getHostAddress();
 
         try {
-            boolean allowed = userService.onAsyncPreLogin(event.getUniqueId(), event.getName(), globalIp);
-            if (!allowed) {
+            UserPreLoginResult result = userService.onAsyncPreLogin(
+                    event.getUniqueId(),
+                    event.getName(),
+                    globalIp
+            );
+            if (result == UserPreLoginResult.BANNED) {
                 event.disallow(
                         AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
                         PlayerMsgResource.getComponent(PlayerMsgId.P_5307.getId())
+                );
+            } else if (result == UserPreLoginResult.INITIALIZATION_FAILED) {
+                event.disallow(
+                        AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+                        PlayerMsgResource.getComponent(PlayerMsgId.P_5313.getId())
                 );
             }
         } catch (Exception e) {

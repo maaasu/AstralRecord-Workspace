@@ -478,6 +478,8 @@ public enum PlayerMsgId {
     P_5311(5311),
     /** 有期限 BAN の設定完了通知。{0}: Minecraft ID、{1}: 日数、{2}: 期限 */
     P_5312(5312),
+    /** プレイヤーデータ初期化失敗による接続拒否通知。 */
+    P_5313(5313),
     // endregion
 
     // region /feature/guide 5180-5189

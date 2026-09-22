@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AstralRecordApi.Models;
 
 public class AccountCreateRequest
@@ -9,5 +11,6 @@ public class AccountCreateRequest
     /// </summary>
     public int? SlotIndex { get; set; }
     public byte Mode { get; set; }
+    [JsonRequired]
     public Guid CreatedBy { get; set; }
 }
