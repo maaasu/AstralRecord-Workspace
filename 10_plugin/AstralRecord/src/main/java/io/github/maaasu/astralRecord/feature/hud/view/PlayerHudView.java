@@ -532,7 +532,8 @@ public class PlayerHudView {
                 + ColorCodeUtil.GRAY + " " + classLevelText);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + Math.max(0L, goldAmount) + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
+                + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
+                + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
         if (showSkillTreePoints) {
             lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
                     + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
