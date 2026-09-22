@@ -46,7 +46,7 @@ class NetworkApiClientTest {
             ProxyConfig config = new ProxyConfig(
                 "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
                 "https://127.0.0.1:" + server.getLocalPort(), "test-key", "sync-key", 3000, 500L, 5L, true,
-                List.of(), java.util.Set.of());
+                "mc.astralrecord.com", List.of(), java.util.Set.of());
 
             NetworkApiClient.DiscordChatBatch batch = new NetworkApiClient(config).getDiscordChat(0L).get(5, TimeUnit.SECONDS);
 

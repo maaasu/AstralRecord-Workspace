@@ -29,6 +29,7 @@ record ProxyConfig(
     long discordPollMillis,
     long settingsRefreshSeconds,
     boolean allowInsecureTls,
+    String tabServerAddress,
     List<String> discordExcludedSourceServers,
     Set<UUID> serverAuthorityUsers
 ) implements NetworkSettings {
@@ -51,6 +52,7 @@ record ProxyConfig(
         }
         Map<String, Object> api = child(root, "api");
         Map<String, Object> discord = child(root, "discord");
+        Map<String, Object> tab = child(root, "tab");
         Map<String, String> channels = new LinkedHashMap<>();
         child(root, "channelNames").forEach((key, value) -> channels.put(key, String.valueOf(value)));
         Map<String, ServerCapacity> capacities = new LinkedHashMap<>();
@@ -76,6 +78,7 @@ record ProxyConfig(
             Math.max(250L, number(api, "discordPollMillis", 500L)),
             Math.max(1L, number(api, "settingsRefreshSeconds", 5L)),
             bool(api, "allowInsecureTls", false),
+            text(tab, "serverAddress", "mc.astralrecord.com"),
             textList(discord, "excludedSourceServers"),
             uuidSet(root, "serverAuthorityUsers")
         );

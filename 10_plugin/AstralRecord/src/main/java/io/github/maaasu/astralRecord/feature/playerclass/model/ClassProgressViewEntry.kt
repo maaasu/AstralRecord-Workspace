@@ -6,6 +6,7 @@ data class ClassProgressViewEntry @JvmOverloads constructor(
     val name: String,
     val icon: String?,
     val level: Int,
+    val maxLevel: Int,
     val experience: Long,
     val experienceProgress: Double,
     val experienceRemaining: Long,

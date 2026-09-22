@@ -139,6 +139,7 @@ public class SkillTreeService {
             @NotNull String classId,
             @NotNull String displayName,
             int classLevel,
+            boolean maxLevel,
             int availablePoints
     ) {
     }
@@ -1460,6 +1461,8 @@ public class SkillTreeService {
                     classId,
                     displayName,
                     Math.max(1, progress.getLevel()),
+                    playerClassService != null
+                            && playerClassService.isMaxClassLevel(classId, progress.getLevel()),
                     availableClassPoints(astPlayer, classId)
             ));
         }

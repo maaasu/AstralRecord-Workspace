@@ -30,6 +30,9 @@ serverCapacities:
 transferCooldownSeconds: 30
 tabRefreshSeconds: 2
 presenceHeartbeatSeconds: 10
+tab:
+  # Tabヘッダーに表示する公開接続先。空文字にするとアドレス行を省略します。
+  serverAddress: "mc.astralrecord.com"
 # Proxy全体で最高権限として扱うプレイヤーUUID。Lobby/RPGのローカル設定より優先されます。
 serverAuthorityUsers: []
 discord:

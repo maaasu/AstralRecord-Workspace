@@ -255,6 +255,7 @@ public class PlayerHudService {
                     playerLevel,
                     classExperienceProgress,
                     astPlayer.getClassLevel(),
+                    playerClassService.isMaxClassLevel(astPlayer),
                     className,
                     currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
                     skillTreeClassPointLabel,

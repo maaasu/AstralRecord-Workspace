@@ -276,6 +276,9 @@ public final class AstralRecordProxyPlugin {
             lastGameConnectMillis.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
         }
         refreshTabEntries();
+        proxy.getScheduler().buildTask(this, this::refreshTabEntries)
+            .delay(Duration.ofSeconds(1L))
+            .schedule();
     }
 
     @Subscribe
@@ -310,13 +313,22 @@ public final class AstralRecordProxyPlugin {
             lastGameConnectMillis.put(playerId, System.currentTimeMillis());
         }
         metadata.remove(playerId);
-        tabDisplayCache.remove(playerId);
-        tabDisplayCache.values().forEach(cache -> cache.remove(playerId));
-        removeTabEntryFromAllViewers(proxy.getAllPlayers(), playerId);
+        removeDisconnectedTabEntry(playerId);
         api.removePlayer(playerId).exceptionally(failure -> {
             logger.warn("Failed to remove player presence for {}", playerId, failure);
             return null;
         });
+    }
+
+    /**
+     * 切断者のTabキャッシュとentryを、全体同期と同じ排他境界で削除します。
+     *
+     * @param playerId 切断したプレイヤーUUID
+     */
+    private synchronized void removeDisconnectedTabEntry(UUID playerId) {
+        tabDisplayCache.remove(playerId);
+        tabDisplayCache.values().forEach(cache -> cache.remove(playerId));
+        removeTabEntryFromAllViewers(proxy.getAllPlayers(), playerId);
     }
 
     @Subscribe
@@ -348,7 +360,8 @@ public final class AstralRecordProxyPlugin {
                 }
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
-                    update.level(), update.className(), update.afk(), update.permission()));
+                    update.level(), update.className(), update.afk(), update.permission(), update.classLevelMax()));
+                refreshTabEntries();
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
                     return;
@@ -912,27 +925,29 @@ public final class AstralRecordProxyPlugin {
         });
     }
 
-    private void refreshTabEntries() {
+    private synchronized void refreshTabEntries() {
         NetworkSettings settings = settings();
         if (settings == null) return;
+        List<Player> connectedPlayers = List.copyOf(proxy.getAllPlayers());
         Set<UUID> onlineIds = new HashSet<>();
-        proxy.getAllPlayers().forEach(player -> onlineIds.add(player.getUniqueId()));
+        connectedPlayers.forEach(player -> onlineIds.add(player.getUniqueId()));
         int totalPlayers = onlineIds.size();
         long nowNanos = System.nanoTime();
         serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
-        for (Player viewer : proxy.getAllPlayers()) {
+        for (Player viewer : connectedPlayers) {
             String currentServer = viewer.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
                 .orElse("");
             ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
-                viewer.getPing(), resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers);
+                config.tabServerAddress(), viewer.getPing(),
+                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             removeStaleTabEntries(tabList, onlineIds);
             Map<UUID, PlayerMetadata> cached =
                 tabDisplayCache.computeIfAbsent(viewer.getUniqueId(), ignored -> new ConcurrentHashMap<>());
             cached.keySet().removeIf(playerId -> !onlineIds.contains(playerId));
-            for (Player target : proxy.getAllPlayers()) {
+            for (Player target : connectedPlayers) {
                 PlayerMetadata value = metadata.getOrDefault(
                     target.getUniqueId(), lobbyMetadata(target, settings.lobbyServer()));
                 Component displayName = tabDisplayName(value);
@@ -999,10 +1014,15 @@ public final class AstralRecordProxyPlugin {
         Component className = LEGACY_SERIALIZER.deserialize(value.className())
             .colorIfAbsent(NamedTextColor.AQUA);
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
-            .append(className)
-            .append(Component.text(" Lv.", NamedTextColor.GRAY))
-            .append(Component.text(String.valueOf(value.level()), NamedTextColor.YELLOW))
-            .append(Component.text("] ", NamedTextColor.DARK_GRAY));
+            .append(className);
+        if (value.classLevelMax()) {
+            classTag = classTag.append(Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD));
+        } else {
+            classTag = classTag
+                .append(Component.text(" Lv.", NamedTextColor.GRAY))
+                .append(Component.text(String.valueOf(value.level()), NamedTextColor.YELLOW));
+        }
+        classTag = classTag.append(Component.text("] ", NamedTextColor.DARK_GRAY));
         Component afk = value.afk() ? Component.text("[AFK] ", NamedTextColor.RED) : Component.empty();
         return prefix
             .append(classTag)
@@ -1032,7 +1052,7 @@ public final class AstralRecordProxyPlugin {
         String channel = settings == null ? serverId : settings.channelName(serverId);
         return new PlayerMetadata(
             player.getUniqueId(), player.getUsername(), serverId, channel,
-            player.getUsername(), null, null, false, 0);
+            player.getUsername(), null, null, false, 0, false);
     }
 
     private NetworkSettings settings() {

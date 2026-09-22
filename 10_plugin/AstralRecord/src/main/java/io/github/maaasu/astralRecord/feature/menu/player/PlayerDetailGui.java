@@ -925,7 +925,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         } else {
             lore.add(noItalic(Component.text("現在: ", NamedTextColor.GRAY)
                 .append(legacy(current.getName()))
-                .append(Component.text(" Lv." + current.getLevel(), NamedTextColor.AQUA, TextDecoration.BOLD))));
+                .append(classLevelSuffix(current, NamedTextColor.AQUA))));
             lore.add(noItalic(Component.text("累計 CEXP: " + formatInt(current.getExperience()), NamedTextColor.YELLOW)));
             lore.add(classExperienceBar(current.getExperienceProgress()));
             lore.add(noItalic(Component.text(
@@ -943,7 +943,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                 );
                 lore.add(noItalic(marker
                     .append(legacy(progress.getName()))
-                    .append(Component.text(" Lv." + progress.getLevel(), NamedTextColor.WHITE))));
+                    .append(classLevelSuffix(progress, NamedTextColor.WHITE))));
             }
         }
         ItemStack itemStack = createItem(
@@ -954,6 +954,16 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(
             itemStack, current == null ? null : current.getIconTexture());
         return itemStack;
+    }
+
+    private static @NotNull Component classLevelSuffix(
+        @NotNull ClassProgressViewEntry progress,
+        @NotNull NamedTextColor normalColor
+    ) {
+        if (progress.getLevel() >= progress.getMaxLevel()) {
+            return Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD);
+        }
+        return Component.text(" Lv." + progress.getLevel(), normalColor);
     }
 
     private @NotNull List<StatusType> statusesInCategory(

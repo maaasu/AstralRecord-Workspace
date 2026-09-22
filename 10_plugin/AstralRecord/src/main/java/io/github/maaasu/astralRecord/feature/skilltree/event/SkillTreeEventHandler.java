@@ -359,7 +359,10 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                         affordable ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY
                 ).decoration(TextDecoration.ITALIC, false));
                 meta.lore(List.of(
-                        Component.text("クラスLv. " + option.classLevel(), NamedTextColor.GRAY)
+                        Component.text("クラスLv. ", NamedTextColor.GRAY)
+                                .append(option.maxLevel()
+                                        ? Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)
+                                        : Component.text(option.classLevel(), NamedTextColor.YELLOW))
                                 .decoration(TextDecoration.ITALIC, false),
                         Component.text("残りCP: " + option.availablePoints(), NamedTextColor.YELLOW)
                                 .decoration(TextDecoration.ITALIC, false),

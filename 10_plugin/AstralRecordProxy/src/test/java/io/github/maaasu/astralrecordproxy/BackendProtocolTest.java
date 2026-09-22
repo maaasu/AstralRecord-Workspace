@@ -2,6 +2,8 @@ package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -94,6 +96,7 @@ class BackendProtocolTest {
         BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
 
         assertEquals(5, metadata.permission());
+        assertFalse(metadata.classLevelMax());
     }
 
     @Test
@@ -115,6 +118,35 @@ class BackendProtocolTest {
         BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
 
         assertEquals(0, metadata.permission());
+        assertFalse(metadata.classLevelMax());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: backendは最大クラスレベル到達状態をProxyへ送信する。
+     */
+    @Test
+    void decodesMaximumClassLevelFromMetadata() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("metadata");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("mcid");
+            output.writeUTF("rpg");
+            output.writeUTF("account#0");
+            output.writeInt(100);
+            output.writeUTF("MAG");
+            output.writeBoolean(false);
+            output.writeInt(0);
+            output.writeBoolean(true);
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
+
+        assertTrue(metadata.classLevelMax());
     }
 
     @Test

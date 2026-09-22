@@ -10,6 +10,7 @@ import com.velocitypowered.api.util.GameProfile;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,40 +27,69 @@ class ProxyTabDisplayTest {
     private static final UUID ONLINE_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final UUID DISCONNECTED_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: Tab同期はスナップショット取得からentry反映まで直列実行する。
+     */
+    @Test
+    void serializesTabRefreshes() throws Exception {
+        var method = AstralRecordProxyPlugin.class.getDeclaredMethod("refreshTabEntries");
+
+        assertTrue(Modifier.isSynchronized(method.getModifiers()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: 切断時のentry削除はTab同期と同じ排他境界で直列実行する。
+     */
+    @Test
+    void serializesDisconnectCleanupWithTabRefresh() throws Exception {
+        var method = AstralRecordProxyPlugin.class.getDeclaredMethod(
+            "removeDisconnectedTabEntry", UUID.class);
+
+        assertTrue(Modifier.isSynchronized(method.getModifiers()));
+    }
+
     @Test
     void rendersBrandCurrentBackendMsptPingAndTotalPlayers() {
-        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render(48L, 12.34D, 83);
+        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83);
 
+        assertEquals(Component.text("✦ ASTRAL RECORD ✦", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+            .append(Component.newline())
+            .append(Component.text("mc.astralrecord.com", NamedTextColor.AQUA))
+            .append(Component.newline())
+            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY)), display.header());
         assertEquals(Component.text()
-            .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
+            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
             .append(Component.newline())
             .append(Component.text("MSPT ", NamedTextColor.GRAY))
             .append(Component.text("12.3", NamedTextColor.GREEN))
-            .build(), display.header());
-        assertEquals(Component.text()
-            .append(Component.text("通信遅延 ", NamedTextColor.GRAY))
+            .append(Component.text("  |  PING ", NamedTextColor.DARK_GRAY))
             .append(Component.text("48ms", NamedTextColor.GREEN))
             .append(Component.newline())
-            .append(Component.text("総参加人数 ", NamedTextColor.GRAY))
+            .append(Component.text("オンライン ", NamedTextColor.GRAY))
             .append(Component.text("83人", NamedTextColor.AQUA))
             .build(), display.footer());
     }
 
     @Test
     void showsMeasuringUntilBackendMetricsArrive() {
-        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render(-1L, null, -1);
+        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", -1L, null, -1);
 
+        assertEquals(Component.text("✦ ASTRAL RECORD ✦", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+            .append(Component.newline())
+            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY)), display.header());
         assertEquals(Component.text()
-            .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
+            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
             .append(Component.newline())
             .append(Component.text("MSPT ", NamedTextColor.GRAY))
             .append(Component.text("計測中", NamedTextColor.GRAY))
-            .build(), display.header());
-        assertEquals(Component.text()
-            .append(Component.text("通信遅延 ", NamedTextColor.GRAY))
+            .append(Component.text("  |  PING ", NamedTextColor.DARK_GRAY))
             .append(Component.text("0ms", NamedTextColor.GREEN))
             .append(Component.newline())
-            .append(Component.text("総参加人数 ", NamedTextColor.GRAY))
+            .append(Component.text("オンライン ", NamedTextColor.GRAY))
             .append(Component.text("0人", NamedTextColor.AQUA))
             .build(), display.footer());
     }
@@ -85,7 +115,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersRpgStyleTabEntry() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 0);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 0, false);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
@@ -100,10 +130,32 @@ class ProxyTabDisplayTest {
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: 最大クラスレベル到達者は数値の代わりに赤太字のMAXを表示する。
+     */
+    @Test
+    void rendersMaximumClassLevelInTabEntry() {
+        PlayerMetadata metadata = new PlayerMetadata(
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 100, "§dMAG", false, 0, true);
+
+        Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
+            .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
+            .append(Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD))
+            .append(Component.text("] ", NamedTextColor.DARK_GRAY));
+
+        assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
+                .append(classTag)
+                .append(Component.text("account", NamedTextColor.WHITE)
+                    .append(Component.text("#0", NamedTextColor.GRAY))),
+            AstralRecordProxyPlugin.tabDisplayName(metadata));
+    }
+
     @Test
     void rendersDonorAccountNameInBoldAqua() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 5);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 5, false);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
@@ -121,7 +173,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersAdminAccountNameInGrayWithoutDonorDecoration() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 99);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 99, false);
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(Component.text("[", NamedTextColor.DARK_GRAY)
@@ -142,7 +194,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersRedAfkPrefixInTabEntry() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§c§lADM", true, 0);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§c§lADM", true, 0, false);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("ADM", NamedTextColor.RED, TextDecoration.BOLD))
@@ -166,7 +218,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersMcidWhenClassMetadataIsUnavailable() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", null, null, false, 0);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", null, null, false, 0, false);
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(Component.text("test-account", NamedTextColor.WHITE)),

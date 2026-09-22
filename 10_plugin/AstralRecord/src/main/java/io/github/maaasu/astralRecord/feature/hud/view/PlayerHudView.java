@@ -253,6 +253,7 @@ public class PlayerHudView {
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
+     * @param classLevelMax 現在クラスが最大レベルへ到達済みか
      * @param className 現在のクラス表示名
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
@@ -266,6 +267,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         String worldName,
         String regionName,
@@ -275,7 +277,7 @@ public class PlayerHudView {
         boolean showBuffInfo,
         List<ActiveBuff> activeBuffs
     ) {
-        renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, className,
+        renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, classLevelMax, className,
                 0L, null, 0, 0, worldName, regionName, regionLevel, showPerformanceInfo,
                 bossInfo, null, showBuffInfo, activeBuffs);
     }
@@ -287,6 +289,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         String worldName,
         String regionName,
@@ -303,6 +306,7 @@ public class PlayerHudView {
             playerLevel,
             classExperienceProgress,
             classLevel,
+            classLevelMax,
             className,
             0L,
             null,
@@ -326,6 +330,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         long goldAmount,
         String worldName,
@@ -343,6 +348,7 @@ public class PlayerHudView {
             playerLevel,
             classExperienceProgress,
             classLevel,
+            classLevelMax,
             className,
             goldAmount,
             null,
@@ -366,6 +372,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         String worldName,
         String regionName,
@@ -379,6 +386,7 @@ public class PlayerHudView {
             playerLevel,
             classExperienceProgress,
             classLevel,
+            classLevelMax,
             className,
             0L,
             null,
@@ -402,6 +410,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         long goldAmount,
         @Nullable String skillTreeClassPointLabel,
@@ -417,7 +426,7 @@ public class PlayerHudView {
         List<ActiveBuff> activeBuffs
     ) {
         renderSidebar(
-            player, mspt, playerLevel, classExperienceProgress, classLevel, className, goldAmount,
+            player, mspt, playerLevel, classExperienceProgress, classLevel, classLevelMax, className, goldAmount,
             skillTreeClassPointLabel, availableClassPoints, availablePassivePoints, worldName, regionName,
             regionLevel, showPerformanceInfo, bossInfo, dungeonInfo, showBuffInfo, activeBuffs, null
         );
@@ -432,6 +441,7 @@ public class PlayerHudView {
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
+     * @param classLevelMax 現在クラスが最大レベルへ到達済みか
      * @param className 現在のクラス表示名
      * @param goldAmount 現在のゴールド所持量
      * @param skillTreeClassPointLabel スキルツリーワールドで表示する現在クラスの CP 表示名。通常は null
@@ -452,6 +462,7 @@ public class PlayerHudView {
         int playerLevel,
         double classExperienceProgress,
         int classLevel,
+        boolean classLevelMax,
         String className,
         long goldAmount,
         @Nullable String skillTreeClassPointLabel,
@@ -514,8 +525,11 @@ public class PlayerHudView {
                 : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
                     + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
         lines.add(playerLevelLine);
+        String classLevelText = classLevelMax
+                ? ColorCodeUtil.RED + ColorCodeUtil.BOLD + "MAX"
+                : ColorCodeUtil.GRAY + "Lv." + ColorCodeUtil.YELLOW + classLevel;
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
-                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
+                + ColorCodeUtil.GRAY + " " + classLevelText);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Math.max(0L, goldAmount) + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");

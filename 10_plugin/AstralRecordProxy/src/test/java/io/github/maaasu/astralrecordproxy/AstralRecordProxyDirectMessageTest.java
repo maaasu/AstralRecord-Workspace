@@ -33,7 +33,7 @@ class AstralRecordProxyDirectMessageTest {
         setConfig(plugin, new ProxyConfig(
             "lobby", List.of("ch1", "ch2"), Map.of(), Map.of(), 30L, 2L, 10L,
             "https://example.invalid", "api-key", "sync-key", 3000, 500L, 5L, true,
-            List.of(), Set.of(authorityId)));
+            "mc.astralrecord.com", List.of(), Set.of(authorityId)));
 
         plugin.deliverDirectMessage("ch1", sender, new BackendProtocol.DirectMessage(
             sender.getUniqueId(), "target", "sender#0", 7, "gakkou", "学校"));

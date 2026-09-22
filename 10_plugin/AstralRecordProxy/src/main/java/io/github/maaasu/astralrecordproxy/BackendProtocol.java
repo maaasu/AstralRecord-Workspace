@@ -29,10 +29,19 @@ final class BackendProtocol {
             String type = input.readUTF();
             return switch (type) {
                 case CONNECT -> new Connect(input.readUTF(), input.available() >= Integer.BYTES ? input.readInt() : 0);
-                case METADATA -> new Metadata(
-                    UUID.fromString(input.readUTF()), input.readUTF(), input.readUTF(), input.readUTF(),
-                    input.readInt(), input.readUTF(), input.readBoolean(),
-                    input.available() >= Integer.BYTES ? input.readInt() : 0);
+                case METADATA -> {
+                    UUID playerId = UUID.fromString(input.readUTF());
+                    String mcid = input.readUTF();
+                    String channel = input.readUTF();
+                    String displayName = input.readUTF();
+                    int level = input.readInt();
+                    String className = input.readUTF();
+                    boolean afk = input.readBoolean();
+                    int permission = input.available() >= Integer.BYTES ? input.readInt() : 0;
+                    boolean classLevelMax = input.available() > 0 && input.readBoolean();
+                    yield new Metadata(
+                        playerId, mcid, channel, displayName, level, className, afk, permission, classLevelMax);
+                }
                 case CHAT -> {
                     UUID messageId = UUID.fromString(input.readUTF());
                     UUID playerId = UUID.fromString(input.readUTF());
@@ -106,7 +115,8 @@ final class BackendProtocol {
         int level,
         String className,
         boolean afk,
-        int permission
+        int permission,
+        boolean classLevelMax
     ) implements Incoming {
     }
 

@@ -55,8 +55,6 @@ public final class NpcPlayerSkinPacketService {
     private static final byte ENTITY_FLAG_GLOWING = (byte) 0x40;
     private static final int PLAYER_SKIN_PARTS_METADATA_INDEX = 16;
     private static final byte PLAYER_SKIN_PARTS_ALL = (byte) 0x7F;
-    /** クライアントがスキン付き GameProfile を解決するために tab list へ保持する時間。 */
-    private static final long SKIN_PROFILE_RETENTION_TICKS = 20L;
     private static final EnumSet<EnumWrappers.PlayerInfoAction> PLAYER_INFO_ACTIONS = EnumSet.of(
             EnumWrappers.PlayerInfoAction.ADD_PLAYER,
             EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
@@ -64,10 +62,6 @@ public final class NpcPlayerSkinPacketService {
             EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
             EnumWrappers.PlayerInfoAction.UPDATE_HAT
     );
-    private static final EnumSet<EnumWrappers.PlayerInfoAction> PLAYER_INFO_HIDE_ACTIONS = EnumSet.of(
-            EnumWrappers.PlayerInfoAction.UPDATE_LISTED
-    );
-
     private final Plugin plugin;
     private final MobEntityController entityController;
     private @Nullable ProtocolManager protocolManager;
@@ -386,13 +380,12 @@ public final class NpcPlayerSkinPacketService {
         OverheadDisplayService.hideNameTag(viewer, state.profileName());
         UUID viewerId = viewer.getUniqueId();
         state.hiddenRealEntity(viewerId, realEntity.getUniqueId());
-        long displayGeneration = state.beginViewerDisplay(viewerId, location, headYaw, headPitch);
+        state.beginViewerDisplay(viewerId, location, headYaw, headPitch);
         sendPacket(viewer, createPlayerInfoPacket(state));
         sendPacket(viewer, createPlayerSpawnPacket(state, location, headYaw, headPitch));
         sendPacket(viewer, createEntityMetadataPacket(state));
         sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), headPitch));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), headYaw));
-        hideFromPlayerListNextTick(viewer, state, displayGeneration);
     }
 
     private void spawnTemporaryForViewer(
@@ -401,7 +394,7 @@ public final class NpcPlayerSkinPacketService {
             @NotNull Location location
     ) {
         OverheadDisplayService.hideNameTag(viewer, state.profileName());
-        long displayGeneration = state.beginViewerDisplay(
+        state.beginViewerDisplay(
                 viewer.getUniqueId(),
                 location,
                 location.getYaw(),
@@ -412,7 +405,6 @@ public final class NpcPlayerSkinPacketService {
         sendPacket(viewer, createEntityMetadataPacket(state));
         sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), location.getPitch()));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
-        hideFromPlayerListNextTick(viewer, state, displayGeneration);
     }
 
     private void removeTemporaryForViewer(@NotNull Player viewer, @NotNull SkinViewState state) {
@@ -486,33 +478,8 @@ public final class NpcPlayerSkinPacketService {
         }
     }
 
-    /**
-     * スキンを含む GameProfile がクライアントへ反映されるまで待機してから、NPC を tab list から除外します。
-     *
-     * @param viewer 表示先プレイヤー
-     * @param state  対象 NPC の表示状態
-     * @param displayGeneration 表示開始時に採番した世代
-     */
-    private void hideFromPlayerListNextTick(
-            @NotNull Player viewer,
-            @NotNull SkinViewState state,
-            long displayGeneration
-    ) {
-        UUID viewerId = viewer.getUniqueId();
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!viewer.isOnline() || !state.isCurrentDisplay(viewerId, displayGeneration)) {
-                return;
-            }
-            sendPacket(viewer, createPlayerInfoHidePacket(state));
-        }, SKIN_PROFILE_RETENTION_TICKS);
-    }
-
     private @NotNull PacketContainer createPlayerInfoPacket(@NotNull SkinViewState state) {
-        return createPlayerInfoPacket(state, PLAYER_INFO_ACTIONS, true);
-    }
-
-    private @NotNull PacketContainer createPlayerInfoHidePacket(@NotNull SkinViewState state) {
-        return createPlayerInfoPacket(state, PLAYER_INFO_HIDE_ACTIONS, false);
+        return createPlayerInfoPacket(state, PLAYER_INFO_ACTIONS, false);
     }
 
     private @NotNull PacketContainer createPlayerInfoPacket(

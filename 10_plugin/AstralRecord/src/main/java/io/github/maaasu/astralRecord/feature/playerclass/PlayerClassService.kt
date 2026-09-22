@@ -125,7 +125,7 @@ class PlayerClassService @JvmOverloads constructor(
         val classTag = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5948.id,
             classDisplayName,
-            astPlayer.classLevel,
+            classLevelDisplay(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
         )
         val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
         var playerListName = classTag.append(Component.space())
@@ -138,6 +138,27 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
+
+    /**
+     * 指定クラスレベルが公開中マスタの最大レベルへ到達済みか返します。
+     *
+     * @param classId 判定するクラス ID
+     * @param level 判定するクラスレベル
+     * @return 最大レベル以上なら {@code true}。クラス未ロード時は {@code false}
+     */
+    fun isMaxClassLevel(classId: String, level: Int): Boolean {
+        val model = classService.getLoadedClass(classId) ?: return false
+        return level >= maxClassLevel(model)
+    }
+
+    /**
+     * 現在クラスが最大レベルへ到達済みか返します。
+     *
+     * @param astPlayer 判定対象プレイヤー
+     * @return 現在クラスが最大レベル以上なら {@code true}
+     */
+    fun isMaxClassLevel(astPlayer: AstPlayer): Boolean =
+        isMaxClassLevel(astPlayer.classId, astPlayer.classLevel)
 
     /**
      * 現在クラスの指定ステータス補正を返します。
@@ -343,6 +364,7 @@ class PlayerClassService @JvmOverloads constructor(
                     icon = model.icon,
                     iconTexture = model.iconTexture,
                     level = progress.level,
+                    maxLevel = maxClassLevel(model),
                     experience = progress.experience,
                     experienceProgress = classExperienceProgress(model, progress.level, progress.experience),
                     experienceRemaining = classExperienceRemainingToNextLevel(model, progress.level, progress.experience),
@@ -531,6 +553,9 @@ class PlayerClassService @JvmOverloads constructor(
 
     private fun formatSignedClassStat(value: Double): String =
         (if (value > 0.0) "+" else "") + formatClassStat(value)
+
+    private fun classLevelDisplay(level: Int, maxLevel: Boolean): String =
+        if (maxLevel) "&c&lMAX" else "Lv.&e${level.coerceAtLeast(1)}"
 
     private fun persistClassProgress(astPlayer: AstPlayer) {
         persistClassProgress(astPlayer, astPlayer.classId, astPlayer.classLevel, astPlayer.classExperience)

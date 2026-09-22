@@ -380,7 +380,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         BackendProtocol.sendMetadata(
             plugin, player, channelName, displayName(player), tabClassName(
                 playerClassService.getShortDisplayName(player.getClassId()), player.getClassId()),
-            afkService.isAfk(player));
+            afkService.isAfk(player), playerClassService.isMaxClassLevel(player));
     }
 
     /** プレイヤーTabメタデータとサーバー平均MSPTをProxyへ送る。 */

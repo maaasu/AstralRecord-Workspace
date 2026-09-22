@@ -55,7 +55,8 @@ final class BackendProtocol {
         @NotNull String channel,
         @NotNull String displayName,
         @NotNull String className,
-        boolean afk
+        boolean afk,
+        boolean classLevelMax
     ) {
         send(plugin, player.getBukkit(), output -> {
             output.writeUTF("metadata");
@@ -67,6 +68,7 @@ final class BackendProtocol {
             output.writeUTF(className);
             output.writeBoolean(afk);
             output.writeInt(player.getEffectivePermissionLevel());
+            output.writeBoolean(classLevelMax);
         });
     }
 
