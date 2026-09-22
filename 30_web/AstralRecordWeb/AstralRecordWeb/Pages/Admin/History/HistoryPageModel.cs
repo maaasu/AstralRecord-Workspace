@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Net;
 using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -48,11 +50,140 @@ public abstract class HistoryPageModel : PageModel
     }
 
     public static string Timestamp(DateTime value) => value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+    public static string FormatMinecraftText(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        var builder = new StringBuilder(text.Length);
+        string? colorClass = null;
+        var bold = false;
+        var segmentOpen = false;
+
+        void CloseSegment()
+        {
+            if (!segmentOpen)
+                return;
+
+            if (bold)
+                builder.Append("</strong>");
+            if (colorClass is not null)
+                builder.Append("</span>");
+            segmentOpen = false;
+        }
+
+        void OpenSegment()
+        {
+            if (segmentOpen)
+                return;
+
+            if (colorClass is not null)
+                builder.Append("<span class=\"").Append(colorClass).Append("\">");
+            if (bold)
+                builder.Append("<strong>");
+            segmentOpen = true;
+        }
+
+        for (var index = 0; index < text.Length; index++)
+        {
+            var current = text[index];
+            if ((current is '&' or '§') && index + 1 < text.Length)
+            {
+                var code = char.ToLowerInvariant(text[index + 1]);
+                var nextColorClass = MinecraftColorClass(code);
+                if (nextColorClass is not null)
+                {
+                    CloseSegment();
+                    colorClass = nextColorClass;
+                    bold = false;
+                    index++;
+                    continue;
+                }
+
+                if (code == 'x' && IsLegacyHexColor(text, index))
+                {
+                    CloseSegment();
+                    colorClass = null;
+                    bold = false;
+                    index += 13;
+                    continue;
+                }
+
+                if (code == 'l')
+                {
+                    CloseSegment();
+                    bold = true;
+                    index++;
+                    continue;
+                }
+
+                if (code == 'r')
+                {
+                    CloseSegment();
+                    colorClass = "mc-white";
+                    bold = false;
+                    index++;
+                    continue;
+                }
+
+                if (code is 'k' or 'm' or 'n' or 'o')
+                {
+                    index++;
+                    continue;
+                }
+            }
+
+            OpenSegment();
+            builder.Append(WebUtility.HtmlEncode(current.ToString()));
+        }
+
+        CloseSegment();
+        return builder.ToString();
+    }
+
     public static string Duration(double seconds)
     {
         var duration = TimeSpan.FromSeconds(Math.Clamp(seconds, 0, 315360000));
         return duration.TotalHours >= 1
             ? $"{(long)duration.TotalHours}時間 {duration.Minutes}分 {duration.Seconds}秒"
             : $"{duration.Minutes}分 {duration.Seconds}秒";
+    }
+
+    private static string? MinecraftColorClass(char code)
+        => code switch
+        {
+            '0' => "mc-black",
+            '1' => "mc-dark-blue",
+            '2' => "mc-dark-green",
+            '3' => "mc-dark-aqua",
+            '4' => "mc-dark-red",
+            '5' => "mc-dark-purple",
+            '6' => "mc-gold",
+            '7' => "mc-gray",
+            '8' => "mc-dark-gray",
+            '9' => "mc-blue",
+            'a' => "mc-green",
+            'b' => "mc-aqua",
+            'c' => "mc-red",
+            'd' => "mc-light-purple",
+            'e' => "mc-yellow",
+            'f' => "mc-white",
+            _ => null,
+        };
+
+    private static bool IsLegacyHexColor(string text, int startIndex)
+    {
+        const int sequenceLength = 14;
+        if (startIndex + sequenceLength > text.Length)
+            return false;
+
+        for (var offset = 2; offset < sequenceLength; offset += 2)
+        {
+            if (text[startIndex + offset] is not ('&' or '§')
+                || !Uri.IsHexDigit(text[startIndex + offset + 1]))
+                return false;
+        }
+
+        return true;
     }
 }

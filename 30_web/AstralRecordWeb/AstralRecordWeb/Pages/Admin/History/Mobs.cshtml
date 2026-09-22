@@ -32,7 +32,7 @@
         @for (var index = 0; index < results.Items.Count; index++)
         {
             var mob = results.Items[index];
-            <tr><td>@(((long)Model.PageNumber - 1) * results.PageSize + index + 1)</td><td><a asp-page="Mobs" asp-route-mobId="@mob.MobId" asp-route-view="players" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@mob.MobName</a><small>@mob.MobId</small></td><td class="ar-history-value">@mob.PlayerKillCount.ToString("N0") 回</td><td class="ar-history-value">@mob.DamageToPlayers.ToString("N1")</td><td>@mob.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(mob.LastOccurredAt)</td></tr>
+            <tr><td>@(((long)Model.PageNumber - 1) * results.PageSize + index + 1)</td><td><a asp-page="Mobs" asp-route-mobId="@mob.MobId" asp-route-view="players" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@Html.Raw(HistoryPageModel.FormatMinecraftText(mob.MobName))</a><small>@mob.MobId</small></td><td class="ar-history-value">@mob.PlayerKillCount.ToString("N0") 回</td><td class="ar-history-value">@mob.DamageToPlayers.ToString("N1")</td><td>@mob.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(mob.LastOccurredAt)</td></tr>
         }
         </tbody></table></div>
     }
@@ -52,7 +52,7 @@
         <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>日時（UTC）</th><th>モブ</th><th>倒されたプレイヤー / アカウント</th></tr></thead><tbody>
         @foreach (var death in deaths.Items)
         {
-            <tr><td>@HistoryPageModel.Timestamp(death.OccurredAt)<small>@death.EventId</small></td><td>@death.MobName</td><td>@death.Victim.Mcid / @death.Victim.AccountName<small>@death.Victim.AccountId</small></td></tr>
+            <tr><td>@HistoryPageModel.Timestamp(death.OccurredAt)<small>@death.EventId</small></td><td>@Html.Raw(HistoryPageModel.FormatMinecraftText(death.MobName))</td><td>@death.Victim.Mcid / @death.Victim.AccountName<small>@death.Victim.AccountId</small></td></tr>
         }
         </tbody></table></div>
     }
