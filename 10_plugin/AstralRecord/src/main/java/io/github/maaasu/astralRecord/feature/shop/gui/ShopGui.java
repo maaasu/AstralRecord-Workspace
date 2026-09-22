@@ -534,7 +534,7 @@ public final class ShopGui {
                 : shopService.getOwnedCostAmount(astPlayer.getAccount().getUuid(), required);
             lore.add(Component.text("• ", NamedTextColor.AQUA)
                 .append(Component.text(shopService.resolveItemDisplayName(required), NamedTextColor.WHITE))
-                .append(Component.text(" ×" + quantityText(required.amount()), NamedTextColor.AQUA))
+                .append(Component.text(quantityText(required.amount()), NamedTextColor.AQUA))
                 .append(Component.text(" （所持: " + owned + "）", NamedTextColor.GRAY))
                 .decoration(TextDecoration.ITALIC, false));
         }
