@@ -4,22 +4,34 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /** アカウントモードのローカル確定とオンラインプレイヤーへの反映を一括で行います。 */
 public final class AccountModeApplicationService {
     private final AccountService accountService;
     private final InventoryService inventoryService;
     private final Map<UUID, ModeChangeState> modeChangeStates = new ConcurrentHashMap<>();
+    private Consumer<AstPlayer> modeAppliedListener = ignored -> { };
 
     public AccountModeApplicationService(@NotNull AccountService accountService, @NotNull InventoryService inventoryService) {
         this.accountService = accountService;
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * オンラインプレイヤーへモードを反映した直後に呼ぶlistenerを設定します。
+     *
+     * @param listener 反映後のプレイヤーを受け取るlistener
+     */
+    public void setModeAppliedListener(@NotNull Consumer<AstPlayer> listener) {
+        modeAppliedListener = listener;
     }
 
     /**
@@ -165,6 +177,7 @@ public final class AccountModeApplicationService {
                 }
                 return null;
             });
+            modeAppliedListener.accept(astPlayer);
         }
         // account と inventory/UI のローカル反映を終え、state lock を解放してから保存を要求する。
         if (!persisted.savedRemotely()) {

@@ -97,6 +97,7 @@ class BackendProtocolTest {
 
         assertEquals(5, metadata.permission());
         assertFalse(metadata.classLevelMax());
+        assertFalse(metadata.accountNameOnly());
     }
 
     @Test
@@ -119,6 +120,7 @@ class BackendProtocolTest {
 
         assertEquals(0, metadata.permission());
         assertFalse(metadata.classLevelMax());
+        assertFalse(metadata.accountNameOnly());
     }
 
     /**
@@ -147,6 +149,37 @@ class BackendProtocolTest {
         BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
 
         assertTrue(metadata.classLevelMax());
+        assertFalse(metadata.accountNameOnly());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: ADMINアカウントはアカウント名だけを表示する状態をProxyへ送信する。
+     */
+    @Test
+    void decodesAccountNameOnlyFromMetadata() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("metadata");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("mcid");
+            output.writeUTF("rpg");
+            output.writeUTF("admin#1");
+            output.writeInt(100);
+            output.writeUTF("ADM");
+            output.writeBoolean(true);
+            output.writeInt(99);
+            output.writeBoolean(true);
+            output.writeBoolean(true);
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
+
+        assertTrue(metadata.classLevelMax());
+        assertTrue(metadata.accountNameOnly());
     }
 
     @Test

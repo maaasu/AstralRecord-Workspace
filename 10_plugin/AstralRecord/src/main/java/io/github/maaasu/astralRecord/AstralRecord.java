@@ -1984,6 +1984,10 @@ public final class AstralRecord extends JavaPlugin {
             playerSessionTransitionGuard
         );
         networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
+        accountModeApplicationService.setModeAppliedListener(player -> {
+            playerClassService.updatePlayerListName(player);
+            networkBridgeService.refreshPlayerMetadata(player);
+        });
         networkBridgeService.start();
         playerMessageService.setNetworkChatBridge(networkBridgeService);
     }

@@ -41,4 +41,4 @@ plugin 専用 objective `astral_info` を player scoreboard に作成・再描�
 
 header に `ASTRAL RECORD` を表示し、performance 表示が有効な場合だけ MSPT と ping を色分けして追加する。network 機能が有効なRPGでは、Tabヘッダー/フッターはProxyが正本となるため `PlayerHudService` からこの描画を呼び出さない。
 
-各プレイヤーのリスト名は、ログインデータ反映時・クラス変更時・クラスレベル変更時・クラスマスター再読込時・AFK状態遷移時に `PlayerClassService.updatePlayerListName` が更新し、クラス短縮名 `shortName` と現在クラスレベルを `[短縮名 Lv.レベル]` のタグとしてアカウント名の左へ表示する。最大到達時は数値の代わりに赤太字の `MAX` を表示する。`shortName` に定義した色・装飾コードを反映する。AFK中は、その左に赤い`[AFK]`接頭辞を付与する。network 機能が有効なRPGでは、ProxyがTabを正本として更新するため、RPG側のプレイヤーリスト名更新を停止する。
+各プレイヤーのリスト名は、ログインデータ反映時・アカウントモード変更時・クラス変更時・クラスレベル変更時・クラスマスター再読込時・AFK状態遷移時に `PlayerClassService.updatePlayerListName` が更新する。`AccountMode.ADMIN` はクラス・レベル・AFK接頭辞を付けず、`accountName#slotIndex` だけを表示する。それ以外はクラス短縮名 `shortName` と現在クラスレベルを `[短縮名 Lv.レベル]` のタグとしてアカウント名の左へ表示し、最大到達時は数値の代わりに赤太字の `MAX` を表示する。`shortName` に定義した色・装飾コードを反映し、AFK中は、その左に赤い`[AFK]`接頭辞を付与する。network 機能が有効なRPGでは、ProxyがTabを正本として更新するため、RPG側のプレイヤーリスト名更新を停止する。

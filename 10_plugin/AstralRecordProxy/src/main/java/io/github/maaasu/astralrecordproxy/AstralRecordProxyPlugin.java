@@ -360,7 +360,8 @@ public final class AstralRecordProxyPlugin {
                 }
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
-                    update.level(), update.className(), update.afk(), update.permission(), update.classLevelMax()));
+                    update.level(), update.className(), update.afk(), update.permission(),
+                    update.classLevelMax(), update.accountNameOnly()));
                 refreshTabEntries();
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
@@ -1007,6 +1008,9 @@ public final class AstralRecordProxyPlugin {
 
     /** ProxyのTabエントリへ適用するRPG側準拠の表示名を生成する。 */
     static Component tabDisplayName(PlayerMetadata value) {
+        if (value.accountNameOnly()) {
+            return accountDisplayName(value);
+        }
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
@@ -1052,7 +1056,7 @@ public final class AstralRecordProxyPlugin {
         String channel = settings == null ? serverId : settings.channelName(serverId);
         return new PlayerMetadata(
             player.getUniqueId(), player.getUsername(), serverId, channel,
-            player.getUsername(), null, null, false, 0, false);
+            player.getUsername(), null, null, false, 0, false, false);
     }
 
     private NetworkSettings settings() {

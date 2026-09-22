@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.network;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
@@ -124,6 +125,15 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     }
 
     public void onPlayerLoaded(@NotNull AstPlayer player) {
+        refreshPlayerMetadata(player);
+    }
+
+    /**
+     * 現在のアカウント・クラス・AFK情報をProxyのTabへ即時送信します。
+     *
+     * @param player 更新対象プレイヤー
+     */
+    public void refreshPlayerMetadata(@NotNull AstPlayer player) {
         if (enabled) publishMetadata(player);
     }
 
@@ -380,7 +390,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         BackendProtocol.sendMetadata(
             plugin, player, channelName, displayName(player), tabClassName(
                 playerClassService.getShortDisplayName(player.getClassId()), player.getClassId()),
-            afkService.isAfk(player), playerClassService.isMaxClassLevel(player));
+            afkService.isAfk(player), playerClassService.isMaxClassLevel(player),
+            player.getAccount().getMode() == AccountMode.ADMIN);
     }
 
     /** プレイヤーTabメタデータとサーバー平均MSPTをProxyへ送る。 */

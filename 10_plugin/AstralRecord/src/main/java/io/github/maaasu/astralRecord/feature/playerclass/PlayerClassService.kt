@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playerclass
 import io.github.maaasu.astralRecord.AstralRecord
 import io.github.maaasu.astralRecord.feature.account.service.AccountService
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
@@ -117,6 +118,11 @@ class PlayerClassService @JvmOverloads constructor(
         if (!playerListNameUpdatesEnabled) {
             return
         }
+        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
+        if (astPlayer.account.mode == AccountMode.ADMIN) {
+            astPlayer.bukkit.playerListName(standardName)
+            return
+        }
         val classDisplayName = if (getLoadedClass(astPlayer.classId) == null) {
             PlayerMsgResource.getMessage(PlayerMsgId.P_7122.id)
         } else {
@@ -127,7 +133,6 @@ class PlayerClassService @JvmOverloads constructor(
             classDisplayName,
             classLevelDisplay(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
         )
-        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
         var playerListName = classTag.append(Component.space())
         if (afkStateProvider.test(astPlayer)) {
             playerListName = playerListName

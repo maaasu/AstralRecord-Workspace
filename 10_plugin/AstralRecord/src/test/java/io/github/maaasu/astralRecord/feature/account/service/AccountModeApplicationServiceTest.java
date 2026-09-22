@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,6 +53,9 @@ class AccountModeApplicationServiceTest {
             org.mockito.ArgumentMatchers.<Supplier<AccountModel>>any()
         )).thenAnswer(invocation -> invocation.<Supplier<AccountModel>>getArgument(1).get());
         AccountModeApplicationService service = new AccountModeApplicationService(accountService, inventoryService);
+        @SuppressWarnings("unchecked")
+        Consumer<AstPlayer> modeAppliedListener = mock(Consumer.class);
+        service.setModeAppliedListener(modeAppliedListener);
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(AstPlayerCache::getAll).thenReturn(List.of(astPlayer));
@@ -70,9 +74,11 @@ class AccountModeApplicationServiceTest {
 
             assertFalse(service.applyPersistedMode(delayedEvent));
             verify(astPlayer, never()).applyAccountMode(eventResult);
+            verify(modeAppliedListener, never()).accept(astPlayer);
 
             assertTrue(service.applyPersistedMode(newerCommand));
             verify(astPlayer).applyAccountMode(commandResult);
+            verify(modeAppliedListener).accept(astPlayer);
             verify(inventoryService).applyInventoriesToGui(astPlayer);
             verify(accountService).requestLocalPlayerSave(accountUuid);
         }
