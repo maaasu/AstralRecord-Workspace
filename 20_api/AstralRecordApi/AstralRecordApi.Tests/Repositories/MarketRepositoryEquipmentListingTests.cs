@@ -16,6 +16,58 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task GetTradeHistory_FiltersAndPagesNewestTransactionsWithoutAccountDetails()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 1);
+        var created = await harness.Repository.CreateListingAsync(harness.CreateStackRequest(entryId, quantity: 1));
+        Assert.True(created.Succeeded);
+        var completedAt = DateTime.UtcNow;
+        harness.DbContext.MarketTransactions.AddRange(Enumerable.Range(0, 41).Select(index =>
+            new MarketTransactionEntity
+            {
+                TransactionId = Guid.NewGuid(), ListingId = created.Value!.ListingId,
+                SellerAccountId = harness.AccountId, BuyerAccountId = harness.AccountId,
+                ItemCategory = "material", ItemId = "astral_ore", Quantity = 1,
+                CurrencyId = "gold", UnitPrice = 100 + index, TotalPrice = 100 + index,
+                SellerProceeds = 100 + index, IdempotencyKey = Guid.NewGuid().ToString(),
+                CompletedAt = completedAt, CreatedAt = completedAt,
+                CreatedBy = harness.AccountId,
+            }));
+        await harness.DbContext.SaveChangesAsync();
+        var expectedTransactionIds = await harness.DbContext.MarketTransactions
+            .AsNoTracking()
+            .OrderByDescending(transaction => transaction.CompletedAt)
+            .ThenByDescending(transaction => transaction.TransactionId)
+            .Select(transaction => transaction.TransactionId)
+            .ToArrayAsync();
+
+        async Task<MarketTradeHistoryPageResponse> ReadPage(int page) =>
+            await harness.Repository.GetTradeHistoryAsync(new MarketTradeHistoryQuery
+            {
+                ItemCategory = "material",
+                ItemId = "astral_ore",
+                Page = page,
+                PageSize = 20,
+            });
+        var first = await ReadPage(1);
+        var second = await ReadPage(2);
+        var third = await ReadPage(3);
+
+        Assert.Equal(20, first.Items.Count);
+        Assert.Equal(20, second.Items.Count);
+        Assert.Single(third.Items);
+        Assert.True(first.HasNextPage);
+        Assert.True(second.HasNextPage);
+        Assert.False(third.HasNextPage);
+        var all = first.Items.Concat(second.Items).Concat(third.Items).ToArray();
+        Assert.Equal(41, all.Select(transaction => transaction.TransactionId).Distinct().Count());
+        Assert.Equal(expectedTransactionIds, all.Select(transaction => transaction.TransactionId));
+        Assert.Equal(completedAt, all[0].CompletedAt);
+        Assert.All(all, transaction => Assert.Equal("astral_ore", transaction.ItemId));
+    }
+
+    [Fact]
     public async Task CreateListing_SameOperationId_ReplaysReceiptWithoutDoubleEscrow()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

@@ -1630,7 +1630,15 @@ CREATE NONCLUSTERED INDEX [IX_market_transaction_listing]
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_item_completed]
-    ON [dbo].[market_transaction] ([item_category], [item_id], [completed_at]);
+    ON [dbo].[market_transaction] ([item_category], [item_id], [completed_at] DESC, [transaction_id] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_completed]
+    ON [dbo].[market_transaction] ([completed_at] DESC, [transaction_id] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_category_completed]
+    ON [dbo].[market_transaction] ([item_category], [completed_at] DESC, [transaction_id] DESC);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_signature_completed]

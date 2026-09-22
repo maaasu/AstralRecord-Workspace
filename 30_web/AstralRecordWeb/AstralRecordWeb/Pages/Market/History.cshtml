@@ -1,0 +1,85 @@
+@page
+@model AstralRecordWeb.Pages.Market.HistoryModel
+@{
+    ViewData["Title"] = "マーケット取引履歴";
+}
+<link rel="stylesheet" href="~/css/market.css" asp-append-version="true" />
+
+<section class="ar-portal market-page market-history-page">
+    <div class="container">
+        <header class="ar-portal-heading">
+            <div>
+                <p class="ar-portal-eyebrow">ASTRAL EXCHANGE</p>
+                <h1>マーケット取引履歴</h1>
+                <p class="ar-portal-sub">成立した取引の商品・数量・価格を新しい順に確認できます。</p>
+            </div>
+            <div class="market-heading-actions">
+                <a class="btn ar-btn-outline" asp-page="/Market/Index">出品一覧へ戻る</a>
+                <span class="ar-profile-badge ar-profile-badge--other">成立済み取引</span>
+            </div>
+        </header>
+
+        <form method="get" class="ar-panel market-search market-history-search" role="search" aria-label="取引履歴の検索条件">
+            <div class="market-search-heading">
+                <div><p class="ar-portal-eyebrow">HISTORY SEARCH</p><h2>取引を絞り込む</h2></div>
+                <a class="btn ar-btn-outline" asp-page="/Market/History">条件をクリア</a>
+            </div>
+            <div class="market-filter-grid market-history-filter-grid">
+                <div><label asp-for="ItemId">アイテムID</label><input asp-for="ItemId" maxlength="100" placeholder="例: astral_blade" autocomplete="off" /></div>
+                <div><label asp-for="Category">カテゴリ</label><input asp-for="Category" maxlength="50" placeholder="例: equipment" autocomplete="off" /></div>
+                <div class="market-search-actions"><button type="submit" class="btn ar-btn-primary">検索する</button></div>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div>
+        }
+        else
+        {
+            <div class="market-results-heading">
+                <div><p class="ar-portal-eyebrow">COMPLETED TRADES</p><h2>成立履歴</h2></div>
+                <p class="ar-portal-sub">ページ @Model.PageNumber</p>
+            </div>
+
+            @if (Model.Transactions.Count == 0)
+            {
+                <div class="ar-empty">条件に一致する成立済み取引はありません。</div>
+            }
+            else
+            {
+                <div class="market-history-list">
+                    @foreach (var entry in Model.Transactions)
+                    {
+                        var transaction = entry.Transaction;
+                        <article class="ar-panel market-history-card">
+                            <div class="ar-item-icon" aria-hidden="true"><img data-market-icon="@entry.Icon" alt="" hidden /><span data-market-icon-fallback>✦</span></div>
+                            <div class="market-history-item">
+                                <p class="ar-portal-eyebrow">@entry.Category</p>
+                                <h3>@entry.DisplayName</h3>
+                                <p class="ar-item-id">@transaction.ItemId</p>
+                            </div>
+                            <dl class="market-history-facts">
+                                <div><dt>数量</dt><dd>@transaction.Quantity.ToString("N0")</dd></div>
+                                <div><dt>単価</dt><dd>@transaction.UnitPrice.ToString("N0") @transaction.CurrencyId</dd></div>
+                                <div><dt>総額</dt><dd>@transaction.TotalPrice.ToString("N0") @transaction.CurrencyId</dd></div>
+                                <div><dt>成立日時</dt><dd>@HistoryModel.CompletedAtText(transaction.CompletedAt)</dd></div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+
+            }
+            @if (Model.ShowPagination)
+            {
+                <nav class="ar-pagination" aria-label="マーケット取引履歴のページ">
+                    @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+                    <span>@Model.PageNumber</span>
+                    @if (Model.HasNextPage) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+                </nav>
+            }
+        }
+    </div>
+</section>
+
+@section Scripts { <script type="module" src="~/js/market-icons.js" asp-append-version="true"></script> }

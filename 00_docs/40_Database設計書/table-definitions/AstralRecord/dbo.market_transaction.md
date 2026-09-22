@@ -70,7 +70,9 @@
 | `PK_market_transaction` | `transaction_id` | CLUSTERED | 主キー検索 |
 | `IX_market_transaction_listing` | `listing_id` | NONCLUSTERED | 部分購入を含む出品別約定検索 |
 | `UQ_market_transaction_idempotency` | `buyer_account_id`, `idempotency_key` | UNIQUE | 冪等性保証 |
-| `IX_market_transaction_item_completed` | `item_category`, `item_id`, `completed_at` | NONCLUSTERED | 相場算出 |
+| `IX_market_transaction_item_completed` | `item_category`, `item_id`, `completed_at DESC`, `transaction_id DESC` | NONCLUSTERED | 相場算出・アイテム別公開履歴 |
+| `IX_market_transaction_completed` | `completed_at DESC`, `transaction_id DESC` | NONCLUSTERED | 公開履歴の新着ページング |
+| `IX_market_transaction_category_completed` | `item_category`, `completed_at DESC`, `transaction_id DESC` | NONCLUSTERED | カテゴリ別公開履歴の新着ページング |
 | `IX_market_transaction_signature_completed` | `valuation_signature`, `completed_at` | NONCLUSTERED | 個体条件別相場算出 |
 | `IX_market_transaction_seller` | `seller_account_id`, `completed_at` | NONCLUSTERED | 出品者履歴 |
 | `IX_market_transaction_buyer` | `buyer_account_id`, `completed_at` | NONCLUSTERED | 購入者履歴 |
@@ -123,7 +125,15 @@ CREATE NONCLUSTERED INDEX [IX_market_transaction_listing]
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_item_completed]
-    ON [dbo].[market_transaction] ([item_category], [item_id], [completed_at]);
+    ON [dbo].[market_transaction] ([item_category], [item_id], [completed_at] DESC, [transaction_id] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_completed]
+    ON [dbo].[market_transaction] ([completed_at] DESC, [transaction_id] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_category_completed]
+    ON [dbo].[market_transaction] ([item_category], [completed_at] DESC, [transaction_id] DESC);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_signature_completed]

@@ -80,6 +80,44 @@ public class MarketRepository(
             .ToList();
     }
 
+    public async Task<MarketTradeHistoryPageResponse> GetTradeHistoryAsync(
+        MarketTradeHistoryQuery query)
+    {
+        var page = Math.Clamp(query.Page, 1, 100000);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var transactions = dbContext.MarketTransactions.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.ItemCategory))
+            transactions = transactions.Where(transaction => transaction.ItemCategory == query.ItemCategory);
+        if (!string.IsNullOrWhiteSpace(query.ItemId))
+            transactions = transactions.Where(transaction => transaction.ItemId == query.ItemId);
+
+        var result = await transactions
+            .OrderByDescending(transaction => transaction.CompletedAt)
+            .ThenByDescending(transaction => transaction.TransactionId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize + 1)
+            .Select(transaction => new MarketTradeHistoryResponse
+            {
+                TransactionId = transaction.TransactionId,
+                ItemCategory = transaction.ItemCategory,
+                ItemId = transaction.ItemId,
+                InstanceType = transaction.InstanceType,
+                Quantity = transaction.Quantity,
+                CurrencyId = transaction.CurrencyId,
+                UnitPrice = transaction.UnitPrice,
+                TotalPrice = transaction.TotalPrice,
+                CompletedAt = transaction.CompletedAt,
+            })
+            .ToListAsync();
+
+        return new MarketTradeHistoryPageResponse
+        {
+            Items = result.Take(pageSize).ToArray(),
+            HasNextPage = result.Count > pageSize,
+        };
+    }
+
     public async Task<MarketListingResponse?> GetListingAsync(Guid listingId)
     {
         var listing = await dbContext.MarketListings

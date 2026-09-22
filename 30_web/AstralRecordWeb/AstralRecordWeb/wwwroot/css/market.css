@@ -1,4 +1,6 @@
 .market-page .ar-portal-heading { align-items: center; }
+.market-heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .75rem; }
+.market-heading-actions .btn { width: auto; }
 .market-search { margin-bottom: 2rem; }
 .market-search-heading, .market-results-heading, .market-card-title-row, .market-price-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .market-search-heading h2, .market-results-heading h2 { margin: .35rem 0 0; }
@@ -40,16 +42,29 @@
 .ar-item-icon [data-market-icon-fallback] { display: grid; }
 .ar-item-icon [data-market-icon-fallback][hidden] { display: none; }
 .ar-item-icon img:not([hidden]) + [data-market-icon-fallback] { display: none; }
+.market-history-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) auto; }
+.market-history-filter-grid .market-search-actions { align-self: end; margin-top: 0; }
+.market-history-list { display: grid; gap: .8rem; }
+.market-history-card { display: grid; grid-template-columns: auto minmax(12rem, 1fr) minmax(28rem, 2fr); align-items: center; gap: 1rem; margin: 0; }
+.market-history-item h3 { margin: .2rem 0; font-size: 1.05rem; }
+.market-history-item p { margin-bottom: 0; }
+.market-history-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.market-history-facts div { min-width: 0; padding: .65rem; background: #080d15a8; border: 1px solid #ffffff0d; border-radius: 7px; }
+.market-history-facts dt { color: var(--ar-text-muted); font-size: .68rem; }
+.market-history-facts dd { margin: .2rem 0 0; color: #edf2f7; font-weight: 700; overflow-wrap: anywhere; }
 
 @media (max-width: 1199px) {
     .market-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .market-filter-wide { grid-column: 1 / -1; }
     .market-numeric-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .market-history-card { grid-template-columns: auto 1fr; }
+    .market-history-facts { grid-column: 1 / -1; }
 }
 @media (max-width: 680px) {
-    .market-search-heading, .market-results-heading { align-items: flex-start; flex-direction: column; }
-    .market-filter-grid, .market-range-grid, .market-numeric-filters, .market-detail-grid { grid-template-columns: 1fr; }
+    .market-search-heading, .market-results-heading, .market-heading-actions { align-items: flex-start; flex-direction: column; }
+    .market-filter-grid, .market-range-grid, .market-numeric-filters, .market-detail-grid, .market-history-facts { grid-template-columns: 1fr; }
     .market-instance-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .market-price-row { flex-wrap: wrap; }
     .market-price-row strong { margin-left: 0; }
+    .market-history-card { grid-template-columns: auto 1fr; }
 }

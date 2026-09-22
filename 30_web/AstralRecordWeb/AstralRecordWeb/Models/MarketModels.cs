@@ -43,6 +43,46 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
     public IReadOnlyDictionary<string, decimal> NumericAttributes { get; init; } = new Dictionary<string, decimal>();
 }
 
+public sealed class MarketTradeHistoryResponse
+{
+    public Guid TransactionId { get; init; }
+    public string ItemCategory { get; init; } = string.Empty;
+    public string ItemId { get; init; } = string.Empty;
+    public string? InstanceType { get; init; }
+    public long Quantity { get; init; }
+    public string CurrencyId { get; init; } = string.Empty;
+    public long UnitPrice { get; init; }
+    public long TotalPrice { get; init; }
+    public DateTime CompletedAt { get; init; }
+}
+
+public sealed class MarketTradeHistoryPageResponse
+{
+    public IReadOnlyList<MarketTradeHistoryResponse> Items { get; init; } = [];
+    public bool HasNextPage { get; init; }
+}
+
+public sealed record MarketTradeHistoryItem(MarketTradeHistoryResponse Transaction, ItemMasterResponse? Item)
+{
+    public string Category => Item?.Category ?? Transaction.ItemCategory;
+    public string DisplayName => MarketText.PlainText(string.IsNullOrWhiteSpace(Item?.Name) ? Transaction.ItemId : Item.Name);
+    public string? Rarity => Item?.Rarity;
+    public string? Icon => Item?.Icon;
+}
+
+public sealed record MarketTradeHistoryPage(
+    IReadOnlyList<MarketTradeHistoryItem> Items,
+    bool HasNextPage);
+
+internal static class MarketText
+{
+    public static string PlainText(string value) => System.Text.RegularExpressions.Regex.Replace(
+        value,
+        "[&§][0-9A-FK-ORX]",
+        string.Empty,
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+}
+
 public sealed class MarketEquipmentInstanceResponse
 {
     public Guid EquipmentInstanceId { get; init; }

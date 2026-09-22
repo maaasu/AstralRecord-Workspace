@@ -169,6 +169,28 @@ public class MarketTransactionResponse
     public DateTime CompletedAt { get; init; }
 }
 
+/// <summary>
+/// 公開マーケットの約定履歴に表示する、アカウント識別情報を含まない取引情報です。
+/// </summary>
+public class MarketTradeHistoryResponse
+{
+    public Guid TransactionId { get; init; }
+    public string ItemCategory { get; init; } = string.Empty;
+    public string ItemId { get; init; } = string.Empty;
+    public string? InstanceType { get; init; }
+    public long Quantity { get; init; }
+    public string CurrencyId { get; init; } = string.Empty;
+    public long UnitPrice { get; init; }
+    public long TotalPrice { get; init; }
+    public DateTime CompletedAt { get; init; }
+}
+
+public class MarketTradeHistoryPageResponse
+{
+    public IReadOnlyList<MarketTradeHistoryResponse> Items { get; init; } = Array.Empty<MarketTradeHistoryResponse>();
+    public bool HasNextPage { get; init; }
+}
+
 public class MarketAccountSummaryResponse
 {
     public Guid AccountId { get; init; }
@@ -194,6 +216,14 @@ public class MarketListingQuery
     public long? MinPrice { get; init; }
     public long? MaxPrice { get; init; }
     public string? Sort { get; init; }
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 50;
+}
+
+public class MarketTradeHistoryQuery
+{
+    public string? ItemCategory { get; init; }
+    public string? ItemId { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
 }

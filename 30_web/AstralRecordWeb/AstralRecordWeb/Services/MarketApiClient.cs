@@ -8,6 +8,7 @@ namespace AstralRecordWeb.Services;
 public sealed class MarketApiClient(HttpClient httpClient)
 {
     private const int ListingPageSize = 100;
+    public const int TradeHistoryPageSize = 20;
 
     public async Task<IReadOnlyList<MarketListingResponse>> GetActiveListingsAsync(
         string? category,
@@ -73,5 +74,34 @@ public sealed class MarketApiClient(HttpClient httpClient)
         return results
             .Where(result => result.Item is not null)
             .ToDictionary(result => result.ItemId, result => result.Item!, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<MarketTradeHistoryPage> GetTradeHistoryAsync(
+        string? category,
+        string? itemId,
+        int page,
+        CancellationToken cancellationToken)
+    {
+        var query = new List<string>
+        {
+            $"page={page}",
+            $"page_size={TradeHistoryPageSize}",
+        };
+        if (!string.IsNullOrWhiteSpace(category))
+            query.Add($"item_category={Uri.EscapeDataString(category.Trim())}");
+        if (!string.IsNullOrWhiteSpace(itemId))
+            query.Add($"item_id={Uri.EscapeDataString(itemId.Trim())}");
+
+        var response = await httpClient.GetFromJsonAsync<MarketTradeHistoryPageResponse>(
+            $"api/market/transactions?{string.Join('&', query)}",
+            cancellationToken) ?? new MarketTradeHistoryPageResponse();
+        var transactions = response.Items;
+        var items = await GetItemsAsync(transactions.Select(transaction => transaction.ItemId), cancellationToken);
+
+        return new MarketTradeHistoryPage(
+            transactions.Select(transaction => new MarketTradeHistoryItem(
+                transaction,
+                items.GetValueOrDefault(transaction.ItemId))).ToArray(),
+            response.HasNextPage);
     }
 }

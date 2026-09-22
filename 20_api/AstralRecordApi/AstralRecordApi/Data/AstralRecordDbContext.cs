@@ -1076,7 +1076,15 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.HasIndex(e => e.ListingId).HasDatabaseName("IX_market_transaction_listing");
             entity.HasIndex(e => new { e.BuyerAccountId, e.IdempotencyKey }).IsUnique().HasDatabaseName("UQ_market_transaction_idempotency");
-            entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.CompletedAt }).HasDatabaseName("IX_market_transaction_item_completed");
+            entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.CompletedAt, e.TransactionId })
+                .IsDescending(false, false, true, true)
+                .HasDatabaseName("IX_market_transaction_item_completed");
+            entity.HasIndex(e => new { e.CompletedAt, e.TransactionId })
+                .IsDescending(true, true)
+                .HasDatabaseName("IX_market_transaction_completed");
+            entity.HasIndex(e => new { e.ItemCategory, e.CompletedAt, e.TransactionId })
+                .IsDescending(false, true, true)
+                .HasDatabaseName("IX_market_transaction_category_completed");
             entity.HasIndex(e => new { e.ValuationSignature, e.CompletedAt }).HasDatabaseName("IX_market_transaction_signature_completed");
         });
 

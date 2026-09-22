@@ -76,6 +76,7 @@
 | GET `/api/web-auth/users/{userUuid}/authorization` | Web管理権限照会 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | POST `/api/web-auth/users/{userUuid}/trusted-browsers/validate` | 信頼済みブラウザ検証・最終利用日時更新 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| GET `/api/market/transactions` | 公開マーケット取引履歴取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/market/listing-create-results/{operationId}` | 出品作成の冪等結果照会 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.02-登録系.md` |
 | GET `/api/market/listings/{listingId}` | マーケット出品取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/market/accounts/{accountId}/summary` | アカウント単位のマーケット利用状態取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |

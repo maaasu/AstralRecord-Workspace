@@ -50,6 +50,34 @@ public class MarketController(
     }
 
     /// <summary>
+    /// 成立済みマーケット取引を、アカウント識別情報を含めず新しい順に取得します。
+    /// </summary>
+    [HttpGet("transactions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetTradeHistory(
+        [FromQuery(Name = "item_category")] string? itemCategory,
+        [FromQuery(Name = "item_id")] string? itemId,
+        [FromQuery] int page = 1,
+        [FromQuery(Name = "page_size")] int pageSize = 50)
+    {
+        if (page is < 1 or > 100000 || pageSize is < 1 or > 100)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Paging query is invalid.");
+        if (itemCategory?.Length > 50 || itemId?.Length > 100)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Item query is invalid.");
+
+        var transactions = await marketRepository.GetTradeHistoryAsync(new MarketTradeHistoryQuery
+        {
+            ItemCategory = itemCategory?.Trim(),
+            ItemId = itemId?.Trim(),
+            Page = page,
+            PageSize = pageSize,
+        });
+
+        return Ok(transactions);
+    }
+
+    /// <summary>
     /// 指定されたマーケット出品を取得します。
     /// </summary>
     [HttpGet("listings/{listingId:guid}")]

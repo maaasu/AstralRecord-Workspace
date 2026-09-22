@@ -13,7 +13,10 @@
                 <h1>マーケット</h1>
                 <p class="ar-portal-sub">公開中の出品を検索し、個体装備の強化値やランダム性能まで購入前に確認できます。</p>
             </div>
-            <span class="ar-profile-badge ar-profile-badge--other">閲覧・検索のみ</span>
+            <div class="market-heading-actions">
+                <a class="btn ar-btn-outline" asp-page="/Market/History">取引履歴を見る</a>
+                <span class="ar-profile-badge ar-profile-badge--other">閲覧・検索のみ</span>
+            </div>
         </header>
 
         <form method="get" class="ar-panel market-search" role="search" aria-label="マーケット検索条件" data-market-search>
