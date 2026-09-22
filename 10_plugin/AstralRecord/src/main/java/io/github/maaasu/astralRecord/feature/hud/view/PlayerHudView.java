@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
@@ -525,9 +526,7 @@ public class PlayerHudView {
                 : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
                     + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
         lines.add(playerLevelLine);
-        String classLevelText = classLevelMax
-                ? ColorCodeUtil.RED + ColorCodeUtil.BOLD + "MAX"
-                : ColorCodeUtil.GRAY + "Lv." + ColorCodeUtil.YELLOW + classLevel;
+        String classLevelText = ClassLevelDisplay.legacy(classLevel, classLevelMax);
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " " + classLevelText);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));

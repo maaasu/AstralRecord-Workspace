@@ -1045,7 +1045,9 @@ public final class AstralRecordProxyPlugin {
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(className);
         if (value.classLevelMax()) {
-            classTag = classTag.append(Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD));
+            classTag = classTag
+                .append(Component.text(" Lv.", NamedTextColor.GRAY))
+                .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD));
         } else {
             classTag = classTag
                 .append(Component.text(" Lv.", NamedTextColor.GRAY))

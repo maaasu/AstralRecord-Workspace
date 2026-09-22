@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
@@ -359,10 +360,10 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                         affordable ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY
                 ).decoration(TextDecoration.ITALIC, false));
                 meta.lore(List.of(
-                        Component.text("クラスLv. ", NamedTextColor.GRAY)
-                                .append(option.maxLevel()
-                                        ? Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)
-                                        : Component.text(option.classLevel(), NamedTextColor.YELLOW))
+                        Component.text("クラス", NamedTextColor.GRAY)
+                                .append(ClassLevelDisplay.component(
+                                        option.classLevel(), option.maxLevel(),
+                                        NamedTextColor.GRAY, NamedTextColor.YELLOW))
                                 .decoration(TextDecoration.ITALIC, false),
                         Component.text("残りCP: " + option.availablePoints(), NamedTextColor.YELLOW)
                                 .decoration(TextDecoration.ITALIC, false),

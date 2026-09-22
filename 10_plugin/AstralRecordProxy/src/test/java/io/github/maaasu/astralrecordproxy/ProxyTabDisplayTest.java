@@ -133,7 +133,7 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: 最大クラスレベル到達者は数値の代わりに赤太字のMAXを表示する。
+     * 検証契約: 最大クラスレベル到達者はLv.を維持し、数値の代わりに赤太字のmaxを表示する。
      */
     @Test
     void rendersMaximumClassLevelInTabEntry() {
@@ -142,7 +142,8 @@ class ProxyTabDisplayTest {
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
-            .append(Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD))
+            .append(Component.text(" Lv.", NamedTextColor.GRAY))
+            .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD))
             .append(Component.text("] ", NamedTextColor.DARK_GRAY));
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)

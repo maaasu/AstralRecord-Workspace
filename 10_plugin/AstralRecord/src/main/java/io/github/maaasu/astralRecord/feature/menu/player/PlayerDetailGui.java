@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameF
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -960,10 +961,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull ClassProgressViewEntry progress,
         @NotNull NamedTextColor normalColor
     ) {
-        if (progress.getLevel() >= progress.getMaxLevel()) {
-            return Component.text(" MAX", NamedTextColor.RED, TextDecoration.BOLD);
-        }
-        return Component.text(" Lv." + progress.getLevel(), normalColor);
+        return Component.space().append(ClassLevelDisplay.component(
+            progress.getLevel(), progress.getLevel() >= progress.getMaxLevel(), normalColor));
     }
 
     private @NotNull List<StatusType> statusesInCategory(

@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceRe
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassLevelSetResult
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 import io.github.maaasu.astralRecord.feature.status.model.StatusType
@@ -131,7 +132,7 @@ class PlayerClassService @JvmOverloads constructor(
         val classTag = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5948.id,
             classDisplayName,
-            classLevelDisplay(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
+            ClassLevelDisplay.legacy(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
         )
         var playerListName = classTag.append(Component.space())
         if (afkStateProvider.test(astPlayer)) {
@@ -558,9 +559,6 @@ class PlayerClassService @JvmOverloads constructor(
 
     private fun formatSignedClassStat(value: Double): String =
         (if (value > 0.0) "+" else "") + formatClassStat(value)
-
-    private fun classLevelDisplay(level: Int, maxLevel: Boolean): String =
-        if (maxLevel) "&c&lMAX" else "Lv.&e${level.coerceAtLeast(1)}"
 
     private fun persistClassProgress(astPlayer: AstPlayer) {
         persistClassProgress(astPlayer, astPlayer.classId, astPlayer.classLevel, astPlayer.classExperience)
