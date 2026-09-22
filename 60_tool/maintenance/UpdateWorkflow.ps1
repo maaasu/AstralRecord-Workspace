@@ -212,6 +212,7 @@ function Invoke-UpdateWorkflow {
         [Parameter(Mandatory)][string] $ConfigurationFingerprint,
         [Parameter(Mandatory)][string[]] $ServerRoots,
         [Parameter(Mandatory)][scriptblock] $DeployAction,
+        [scriptblock] $PrepareRunAction,
         [switch] $ServersStopped,
         [switch] $AdmissionClosed,
         [ValidateSet('Dev','Channels')][string] $Label = 'Dev',
@@ -252,6 +253,15 @@ function Invoke-UpdateWorkflow {
         $statePath = Join-Path $runDirectory 'workflow-state.json'
         $state = if (Test-Path -LiteralPath $statePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable } else { $null }
         if ($state -and ($state.schemaVersion -ne 1 -or $state.configurationFingerprint -ne $ConfigurationFingerprint -or $state.label -cne $Label)) { throw 'Configuration or workflow label changed within this run.' }
+        # Optional entry-specific choices are fixed under the root lock, before any API/deployment action.
+        $preparedFingerprint=$null
+        if ($PrepareRunAction) {
+            $preparedFingerprint=& $PrepareRunAction $runDirectory
+            if ($preparedFingerprint -isnot [string] -or $preparedFingerprint -cnotmatch '^[0-9a-f]{64}$') { throw 'Run preparation must return a SHA-256 fingerprint.' }
+            if ($state -and $state.ContainsKey('runPreparationFingerprint') -and $state.runPreparationFingerprint -cne $preparedFingerprint) {
+                throw 'Deployment selections changed within this run.'
+            }
+        }
         if (!$state) {
             # This happens before the deployment action and establishes the old session baseline.
             $baseline = [ordered]@{}
@@ -260,6 +270,7 @@ function Invoke-UpdateWorkflow {
                 $baseline[$serverId] = if ($null -eq $runtime) { $null } else { $runtime.ServerSessionId }
             }
             $state = [ordered]@{ schemaVersion=1; configurationFingerprint=$ConfigurationFingerprint; label=$Label; status='AwaitingDeployment'; baselineSessions=$baseline; deployedRuntimes=@(); seedStatus='PENDING'; createdAtUtc=[DateTime]::UtcNow.ToString('o') }
+            if ($PrepareRunAction) { $state.runPreparationFingerprint=$preparedFingerprint }
             Save-UpdateWorkflowJson $state $statePath
         }
         if ($state.status -eq 'Completed') {

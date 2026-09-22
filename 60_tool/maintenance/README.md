@@ -30,7 +30,7 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 ## メンテナンス運用
 
 1. 入場制限をかけ、保存完了後に対象チャンネルを停止します。コピー元のDev/Build、更新対象のLobby/Proxyも必要に応じ停止し、自動ビルド配置などの書込みを止めます。
-2. `16-maintenance.bat` を一度実行し、停止・入場制限の確認に応答します。
+2. `16-maintenance.bat` を一度実行し、ワールド配布とネットワークプラグイン配布をそれぞれ選択します（`1`＝配布する、`2`＝配布しない）。その後、停止・入場制限の確認に応答します。
 3. 設定した配布とseedが完了すると、バッチが起動案内を表示して自動待機します。
 4. サーバーを起動します。入場制限は維持します。
 5. 対象チャンネルが新しい起動sessionでreadyかつ同一世代になったことを確認し、バッチが対象アカウントを移行します。
@@ -41,7 +41,17 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 .\60_tool\16-maintenance.bat -Phase Plan
 # 通常の実行
 .\60_tool\16-maintenance.bat
+# 対話なしで配布対象を指定（停止・入場制限は別途確認）
+.\60_tool\16-maintenance.bat -WorldCopy Skip -NetworkPlugins Include
+# ワールド・ネットワークを除いたプランの確認
+.\60_tool\16-maintenance.bat -Phase Plan -WorldCopy Skip -NetworkPlugins Skip
 ```
+
+ワールドとネットワークの選択は独立です。ワールドを省略すると `kind=World` のコピー・ハッシュ検査を行いません。ネットワークを省略すると `networkPlugins` に設定したLobby／Proxy／Geyser拡張のJARを配置しません。Devの通常プラグインJAR・配置設定・Filebase（有効な場合）は従来どおり対象です。ネットワーク選択は設定済み項目を一括で切り替え、ビルドは行いません。
+
+選択は実行フォルダーの `deployment-selection.json` に保存し、子Deployへ引き継ぎます。途中再開では聞き直さず保存値を使用し、同じrunの選択変更は拒否します。新しいWorkflow状態にも選択のfingerprintを保持します。既存の選択記録がない旧runは従来どおり両方Includeとして扱います。設定JSONや既存runの記録を手で書き換えないでください。
+
+自動実行では `-WorldCopy Include|Skip` と `-NetworkPlugins Include|Skip` を両方指定してください（新規Workflowで未指定なら停止）。`-Phase Plan` と詳細 `-Phase Deploy` は互換性のため新規時の未指定をIncludeとして扱います。Restore／移行フェーズでは選択引数を受け付けず、実際の配布journalから処理します。省略しても残る配布対象・配布元の停止、自動書込み停止、入場制限は必要です。全ての配布が無効になる選択ではDeployは従来どおり停止します。
 
 `workflow.runRoot` が空なら設定JSONと同じ場所の `runs` へ実行記録を自動作成します。`startupTimeoutSeconds` / `pollIntervalSeconds` は起動待ち時間と確認間隔、`seedMasterData` は配布後のAPI diff seedです。起動案内はseed成功後に表示します。共有API側のFilebaseが今回のリリースと一致していることが前提です。起動確認対象は `migration.serverIds` なので、今回更新する全チャンネルの実server IDを列挙してください。
 
@@ -134,6 +144,7 @@ pwsh -NoProfile -File .\60_tool\maintenance\tests\update-workflow.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\network-distribution.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\diagnostics.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\unchanged-distribution.tests.ps1
+pwsh -NoProfile -File .\60_tool\maintenance\tests\deployment-selection.tests.ps1
 ```
 
 対象外はサーバープロセス管理、Proxyの入場制御、API/Webのデプロイ、DBスキーマ変更です。

@@ -5,15 +5,19 @@ param(
     [string]$Phase = 'Workflow',
     [string]$ConfigPath = (Join-Path $PSScriptRoot 'maintenance.local.json'),
     [string]$RunDirectory,
+    [ValidateSet('Ask','Include','Skip')][string]$WorldCopy = 'Ask',
+    [ValidateSet('Ask','Include','Skip')][string]$NetworkPlugins = 'Ask',
     [switch]$ServersStopped,
     [switch]$AdmissionClosed
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Distribution.ps1')
+. (Join-Path $PSScriptRoot 'DeploymentSelection.ps1')
 $locks = [Collections.Generic.List[IDisposable]]::new()
 $maintenanceDiagnosticFile = $null
 try {
+    if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins')) -and $Phase -notin @('Workflow','Plan','Deploy')) { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
     if (!(Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { throw 'Create maintenance.local.json from maintenance.example.json and configure paths first.' }
     $config = Get-Content -Raw -Encoding utf8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
     if ($config.schemaVersion -ne 1) { throw 'Unsupported schemaVersion.' }
@@ -30,25 +34,43 @@ try {
         if (!$workflow.runRoot) { $workflow.runRoot=Join-Path ([IO.Path]::GetDirectoryName($ConfigPath)) 'runs' }
         $workflow.runRoot=Get-MaintenanceAbsolutePath $workflow.runRoot
         if ($RunDirectory) { throw 'Workflow manages its own run directory. Use explicit phases only for advanced recovery.' }
-        $plan=@(Get-MaintenancePlan $config)
+        # All configured server roots are protected; worlds are validated only after selection.
+        $networkRoots=@(Assert-MaintenanceNetworkRunBoundary $config $workflow.runRoot -PassThru)
+        $plan=@(Get-MaintenancePlan (Get-MaintenanceSelectedConfig $config 'Skip' 'Skip'))
         $roots=@($config.servers | Where-Object enabled | ForEach-Object { Get-MaintenanceAbsolutePath $_.rootPath })
+        $roots+=$networkRoots
         $roots+=@($plan | ForEach-Object { $_.root; if ($_.directory) { $_.source } else { [IO.Path]::GetDirectoryName($_.source) } })
         $fingerprint=Get-SkillTreeMigrationSha256 ((Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash + '|Channels')
         $entryScript=$PSCommandPath
         $pwsh=(Get-Process -Id $PID).Path
+        $selectionConfigurationDigest=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
+        $selection=@{choices=$null}
+        $prepareRunAction={
+            param($RunDirectory)
+            $selectionLock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
+            try {
+                $selection.choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -PromptForNewRun -ConfigurationDigest $selectionConfigurationDigest
+                $null=@(Get-MaintenancePlan (Get-MaintenanceSelectedConfig $config $selection.choices.worldCopy $selection.choices.networkPlugins))
+                Get-SkillTreeMigrationSha256 ($selection.choices.worldCopy + '|' + $selection.choices.networkPlugins)
+            } finally { $selectionLock.Dispose() }
+        }
         $deployAction={
             param($RunDirectory)
             Write-MaintenanceDiagnostic 'child.launch' @{phase='Deploy'}
-            & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -ServersStopped 2>&1 |
+            & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -WorldCopy $selection.choices.worldCopy -NetworkPlugins $selection.choices.networkPlugins -ServersStopped 2>&1 |
                 Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') -Append | Out-Host
             Write-MaintenanceDiagnostic 'child.exit' @{exitCode=$LASTEXITCODE}
             if ($LASTEXITCODE -ne 0) { throw "Distribution failed. Keep servers stopped and inspect $RunDirectory. Use Restore before retrying an incomplete deployment." }
         }
         Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
-            -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels'
+            -ServerRoots $roots -DeployAction $deployAction -PrepareRunAction $prepareRunAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels'
         exit 0
     }
     if ($Phase -eq 'Plan') {
+        $planChoice=if ($WorldCopy -eq 'Ask') { 'Include' } else { $WorldCopy }
+        $networkChoice=if ($NetworkPlugins -eq 'Ask') { 'Include' } else { $NetworkPlugins }
+        $config=Get-MaintenanceSelectedConfig $config $planChoice $networkChoice
+        Write-Host "World copy: $planChoice; Network plugins: $networkChoice (plan only)"
         $plan = @(Get-MaintenancePlan $config)
         foreach ($op in $plan) { Write-Host "$($op.kind): $($op.source) -> $($op.destination)" }
         Write-Host "Distribution targets: $($plan.Count)"
@@ -66,6 +88,7 @@ try {
     if ($Phase -in @('MigratePreview','MigrateCommit') -and !$AdmissionClosed) { throw 'Keep players offline and admission closed, then specify -AdmissionClosed.' }
     if (!$RunDirectory) { throw '-RunDirectory is required; reuse it for the same release and migration retries.' }
     $RunDirectory = Get-MaintenanceAbsolutePath $RunDirectory
+    Assert-MaintenanceNetworkRunBoundary $config $RunDirectory
     # Keep run outputs separate from every configured server, including migration-only runs.
     foreach ($server in $config.servers) {
         if ($server.enabled) {
@@ -83,9 +106,12 @@ try {
     if (Test-Path -LiteralPath $configRecordPath) {
         $record = Get-Content -Raw -Encoding utf8 -LiteralPath $configRecordPath | ConvertFrom-Json
         if ($record.sha256 -ne $configDigest) { throw 'Configuration changed within this run. Restore the original configuration before retrying.' }
-    } else {
-        Write-MaintenanceJson @{ sha256=$configDigest } $configRecordPath
     }
+    if ($Phase -eq 'Deploy') {
+        $choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -ConfigurationDigest $configDigest
+        $config=Get-MaintenanceSelectedConfig $config $choices.worldCopy $choices.networkPlugins
+    }
+    if (!(Test-Path -LiteralPath $configRecordPath)) { Write-MaintenanceJson @{ sha256=$configDigest } $configRecordPath }
     if ($Phase -in @('Deploy','Restore')) {
         # A server lock coordinates separate configs/run directories using this tool.
         $roots = if ($Phase -eq 'Deploy') {
