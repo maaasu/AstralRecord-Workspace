@@ -63,4 +63,5 @@ public abstract class HistoryPageModel : PageModel
             ? $"{(long)duration.TotalHours}時間 {duration.Minutes}分 {duration.Seconds}秒"
             : $"{duration.Minutes}分 {duration.Seconds}秒";
     }
+
 }

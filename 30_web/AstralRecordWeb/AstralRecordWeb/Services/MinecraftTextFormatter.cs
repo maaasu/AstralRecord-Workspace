@@ -11,19 +11,33 @@ public static class MinecraftTextFormatter
         if (string.IsNullOrEmpty(text))
             return string.Empty;
 
-        var builder = new StringBuilder();
-        var currentClass = "mc-white";
-        var openSpan = false;
+        var builder = new StringBuilder(text.Length);
+        string? currentClass = "mc-white";
+        var bold = false;
+        var segmentOpen = false;
 
-        void OpenSpan()
+        void CloseSegment()
         {
-            if (openSpan)
+            if (!segmentOpen)
                 return;
 
-            builder.Append("<span class=\"");
-            builder.Append(currentClass);
-            builder.Append("\">");
-            openSpan = true;
+            if (bold)
+                builder.Append("</strong>");
+            if (currentClass is not null)
+                builder.Append("</span>");
+            segmentOpen = false;
+        }
+
+        void OpenSegment()
+        {
+            if (segmentOpen)
+                return;
+
+            if (currentClass is not null)
+                builder.Append("<span class=\"").Append(currentClass).Append("\">");
+            if (bold)
+                builder.Append("<strong>");
+            segmentOpen = true;
         }
 
         for (var index = 0; index < text.Length; index++)
@@ -31,28 +45,46 @@ public static class MinecraftTextFormatter
             var current = text[index];
             if ((current is '&' or '§') && index + 1 < text.Length)
             {
-                var cssClass = MinecraftColorClass(char.ToLowerInvariant(text[index + 1]));
-                if (cssClass is not null)
+                var code = char.ToLowerInvariant(text[index + 1]);
+                var nextColorClass = MinecraftColorClass(code);
+                if (nextColorClass is not null)
                 {
-                    if (openSpan)
-                    {
-                        builder.Append("</span>");
-                        openSpan = false;
-                    }
+                    CloseSegment();
+                    currentClass = nextColorClass;
+                    bold = false;
+                    index++;
+                    continue;
+                }
 
-                    currentClass = cssClass;
+                if (code == 'x' && IsLegacyHexColor(text, index))
+                {
+                    CloseSegment();
+                    currentClass = null;
+                    bold = false;
+                    index += 13;
+                    continue;
+                }
+
+                if (code == 'l')
+                {
+                    CloseSegment();
+                    bold = true;
+                    index++;
+                    continue;
+                }
+
+                if (code is 'k' or 'm' or 'n' or 'o')
+                {
                     index++;
                     continue;
                 }
             }
 
-            OpenSpan();
+            OpenSegment();
             builder.Append(WebUtility.HtmlEncode(current.ToString()));
         }
 
-        if (openSpan)
-            builder.Append("</span>");
-
+        CloseSegment();
         return builder.ToString();
     }
 
@@ -94,4 +126,20 @@ public static class MinecraftTextFormatter
             'f' or 'r' => "mc-white",
             _ => null,
         };
+
+    private static bool IsLegacyHexColor(string text, int startIndex)
+    {
+        const int sequenceLength = 14;
+        if (startIndex + sequenceLength > text.Length)
+            return false;
+
+        for (var offset = 2; offset < sequenceLength; offset += 2)
+        {
+            if (text[startIndex + offset] is not ('&' or '§')
+                || !Uri.IsHexDigit(text[startIndex + offset + 1]))
+                return false;
+        }
+
+        return true;
+    }
 }

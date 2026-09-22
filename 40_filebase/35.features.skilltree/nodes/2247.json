@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2247",
+  "name": "&b氷矢の星環",
+  "icon": "PACKED_ICE",
+  "tags": [
+    "status",
+    "offense",
+    "ice",
+    "frozen",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ICE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    },
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

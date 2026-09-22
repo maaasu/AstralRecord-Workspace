@@ -391,7 +391,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## シャープシューター専門枝
 
-シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、skill解放node 3個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` と `2242` は属性矢の使用許可を与える未配置nodeとする。
+シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 3個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` と `2242` は属性矢の使用許可を与える未配置nodeとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -426,6 +426,10 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `status-sharpshooter-sniper-super-critical-notable` | `2175` | SUPER_CRITICAL_RATE `FLAT +1.5`、SUPER_CRITICAL_DAMAGE `FLAT +10` | `&6超星穿の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-lightning` | `2178`〜`2182` | LIGHTNING_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&e雷矢の星環` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
 | `status-sharpshooter-sniper-lightning-notable` | `2183` | LIGHTNING_DAMAGE_INCREASE `FLAT +8`、LIGHTNING_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6天雷の極星` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
+| `status-sharpshooter-ice-arrow` | `2243`〜`2247` | ICE_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&b氷矢の星環` | `PACKED_ICE` | `status`, `offense`, `ice`, `frozen`, `azure` |
+| `status-sharpshooter-ice-arrow-notable` | `2248` | ICE_DAMAGE_INCREASE `FLAT +8`、ICE_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6凍穿の極星` | `BLUE_ICE` | `status`, `offense`, `ice`, `frozen`, `azure`, `astral` |
+| `status-sharpshooter-fire-arrow` | `2249`〜`2253` | FIRE_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&c炎矢の星環` | `BLAZE_POWDER` | `status`, `offense`, `fire`, `burning`, `ember` |
+| `status-sharpshooter-fire-arrow-notable` | `2254` | FIRE_DAMAGE_INCREASE `FLAT +8`、FIRE_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6炎穿の極星` | `FIRE_CHARGE` | `status`, `offense`, `fire`, `burning`, `ember`, `astral` |
 | `status-sharpshooter-sniper-evasion` | `2186`〜`2190` | EVASION `FLAT +0.5`、MOVEMENT_SPEED `FLAT +1` | `&b残影の星環` | `RABBIT_FOOT` | `status`, `agility`, `defense`, `wind` |
 | `status-sharpshooter-sniper-evasion-notable` | `2191` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6幻走の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
 

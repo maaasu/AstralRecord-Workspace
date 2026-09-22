@@ -91,6 +91,38 @@ public sealed class ActivityHistoryTests
         if (path == "Dungeons") Assert.Contains("0.0 m", text);
     }
 
+    [Theory]
+    [InlineData("Mobs")]
+    [InlineData("Mobs?MobId=test-mob&View=deaths")]
+    public async Task MobHistory_RendersBoldMinecraftNamesWithoutExposingCodesOrHtml(string path)
+    {
+        var api = new HistoryHandler { Admin = true, Evidence = true };
+        await using var factory = new HistoryFactory(api);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        await Login(client);
+
+        var body = await client.GetStringAsync("/Admin/History/" + path);
+
+        Assert.Contains("<strong>テストモブ&lt;script&gt;fixture&lt;/script&gt;</strong>", body);
+        Assert.DoesNotContain("&amp;l", body);
+        Assert.DoesNotContain("<script>fixture</script>", body);
+    }
+
+    [Fact]
+    public void MinecraftTextFormatter_RendersSupportedCodesAndHidesUnsupportedCodes()
+    {
+        const string source = "&a&l緑太字&r 白 &k難読&m取消&n下線&o斜体 &x&F&F&5&5&5&5RGB §x§0§0§A§A§F§FHEX <script>";
+
+        var result = MinecraftTextFormatter.ToHtml(source);
+
+        Assert.Contains("<span class=\"mc-green\"><strong>緑太字</strong></span>", result);
+        Assert.Contains("<span class=\"mc-white\"> 白 難読取消下線斜体 </span>", result);
+        Assert.Contains("RGB HEX &lt;script&gt;", result);
+        Assert.DoesNotContain("&amp;", result);
+        Assert.DoesNotContain("§", result);
+        Assert.DoesNotContain("<script>", result);
+    }
+
     [Fact]
     public async Task TradeSearch_PreservesPairAndUsesExclusiveUtcEndDate()
     {
@@ -123,11 +155,11 @@ public sealed class ActivityHistoryTests
         Assert.DoesNotContain("PAPER", trades);
 
         var ranking = await client.GetStringAsync("/Admin/History/Mobs");
-        Assert.Contains("<span class=\"mc-red\">テストモブ&lt;script&gt;fixture&lt;/script&gt;</span>", ranking);
+        Assert.Contains("<span class=\"mc-red\"><strong>テストモブ&lt;script&gt;fixture&lt;/script&gt;</strong></span>", ranking);
         Assert.DoesNotContain("<script>fixture</script>", ranking);
 
         var deaths = await client.GetStringAsync("/Admin/History/Mobs?MobId=test-mob&View=deaths");
-        Assert.Contains("<span class=\"mc-red\">テストモブ&lt;script&gt;fixture&lt;/script&gt;</span>", deaths);
+        Assert.Contains("<span class=\"mc-red\"><strong>テストモブ&lt;script&gt;fixture&lt;/script&gt;</strong></span>", deaths);
         Assert.DoesNotContain("<script>fixture</script>", deaths);
     }
 
@@ -205,8 +237,8 @@ public sealed class ActivityHistoryTests
             if (path.EndsWith("dungeons/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, totalDistanceMeters = 120.5m }];
             if (path.EndsWith("dungeons")) return [new { eventId = ActorId, dungeonId = "test-dungeon", dungeonName = "テスト迷宮", startedAt = at, clearedAt = at, durationSeconds = 100, participants = new object[] { new { player, distanceMeters = 120.5m, movementSampleCount = 25 }, new { player = other, distanceMeters = (decimal?)null, movementSampleCount = 0 }, new { player = new { userUuid = Guid.Parse("33333333-3333-3333-3333-333333333333"), accountId = Guid.Parse("33333333-3333-3333-3333-333333333333"), mcid = "Stationary", accountName = "静止" }, distanceMeters = 0m, movementSampleCount = 25 } } }];
             if (path.EndsWith("/players")) return [new { player, deathCount = 2, damageTaken = 125.5m, hitCount = 4, lastOccurredAt = at }];
-            if (path.EndsWith("/kills")) return [new { eventId = ActorId, occurredAt = at, mobId = "test-mob", mobName = "§cテストモブ<script>fixture</script>", victim = player }];
-            return [new { mobId = "test-mob", mobName = "§cテストモブ<script>fixture</script>", playerKillCount = 2, damageToPlayers = 125.5m, hitCount = 4, lastOccurredAt = at }];
+            if (path.EndsWith("/kills")) return [new { eventId = ActorId, occurredAt = at, mobId = "test-mob", mobName = "&c&lテストモブ<script>fixture</script>", victim = player }];
+            return [new { mobId = "test-mob", mobName = "&c&lテストモブ<script>fixture</script>", playerKillCount = 2, damageToPlayers = 125.5m, hitCount = 4, lastOccurredAt = at }];
         }
     }
 }
