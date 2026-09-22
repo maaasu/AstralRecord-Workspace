@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +25,7 @@ public class AccountCommand extends AstCommand {
      */
     public AccountCommand() {
         super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch|uuid|clone|confirm> ...", false,
-            AstCommand.PERMISSION_NONE);
+            UserPermission.ADMIN.getValue());
     }
 
     /**

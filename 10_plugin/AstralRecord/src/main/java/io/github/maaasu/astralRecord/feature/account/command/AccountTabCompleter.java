@@ -28,14 +28,11 @@ public class AccountTabCompleter extends AstTabCompleter {
      */
     @Override
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
-        if (args.length == 1) {
-            if (hasAdminPermission(sender)) {
-                return List.of("create", "rename", "mode", "delete", "switch", "uuid", "clone", "confirm");
-            }
-            return List.of("uuid");
-        }
         if (!hasAdminPermission(sender)) {
             return List.of();
+        }
+        if (args.length == 1) {
+            return List.of("create", "rename", "mode", "delete", "switch", "uuid", "clone", "confirm");
         }
         if (args.length > 1 && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("clone"))) {
             return managementTabCompleter.onTabComplete(sender, null, "account", args);
