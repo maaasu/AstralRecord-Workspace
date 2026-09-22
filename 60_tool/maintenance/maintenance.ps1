@@ -19,7 +19,7 @@ try {
     if ($config.migration.enabled -isnot [bool]) { throw 'Migration enabled must be boolean.' }
     if ($config.migration.enabled) {
         . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
-        $null = ConvertTo-SkillTreeMigrationConfig $config.migration
+        $normalizedMigration = ConvertTo-SkillTreeMigrationConfig $config.migration
     }
     if ($Phase -eq 'Workflow') {
         if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable migration before using the guided maintenance workflow.' }
@@ -50,6 +50,11 @@ try {
         foreach ($op in $plan) { Write-Host "$($op.kind): $($op.source) -> $($op.destination)" }
         Write-Host "Distribution targets: $($plan.Count)"
         Write-Host "Migration enabled: $($config.migration.enabled); scope: $($config.migration.scope)"
+        if ($config.migration.enabled) {
+            Write-Host "API endpoint: $($normalizedMigration.BaseUrl)"
+            if ($normalizedMigration.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalizedMigration.ApiSettingsPath)" }
+            else { Write-Host "Authentication source: environment variables $($normalizedMigration.ApiKeyEnvironmentVariable), $($normalizedMigration.MigrationKeyEnvironmentVariable)" }
+        }
         Write-Host 'Plan only. No API calls, server writes, stop/start, or admission changes.'
         exit 0
     }

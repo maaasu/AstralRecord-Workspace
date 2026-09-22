@@ -64,6 +64,9 @@ function ConvertTo-SkillTreeMigrationConfig {
     if ($apiEnvironment -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or $migrationEnvironment -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
         throw 'Key environment variable names are invalid.'
     }
+    $apiSettingsPath = Get-SkillTreeMigrationValue $Config 'apiSettingsPath'
+    if ($null -ne $apiSettingsPath -and $apiSettingsPath -isnot [string]) { throw 'apiSettingsPath must be a string.' }
+    if (![string]::IsNullOrWhiteSpace($apiSettingsPath) -and ![IO.Path]::IsPathFullyQualified($apiSettingsPath)) { throw 'apiSettingsPath must be absolute.' }
 
     $serverIdsValue = Get-SkillTreeMigrationValue $Config 'serverIds'
     if ($serverIdsValue -is [string] -or $null -eq $serverIdsValue -or $serverIdsValue -isnot [System.Collections.IEnumerable]) { throw 'serverIds must be an array.' }
@@ -79,12 +82,44 @@ function ConvertTo-SkillTreeMigrationConfig {
         catch { throw 'accountIds must contain UUIDs.' }
     })
     if ($accountIds.Count -ne @($accountIds | Select-Object -Unique).Count) { throw 'accountIds must not contain duplicates.' }
-    if ($scope -eq 'ExplicitAccounts' -and $accountIds.Count -eq 0) { throw 'ExplicitAccounts requires at least one accountId.' }
+    $userIdsValue=Get-SkillTreeMigrationValue $Config 'accountUserIds'
+    $userIds=@()
+    if ($null -ne $userIdsValue) {
+        if ($userIdsValue -is [string] -or $userIdsValue -isnot [Collections.IEnumerable]) { throw 'accountUserIds must be an array.' }
+        $userIds=@($userIdsValue | ForEach-Object {
+            try { $id=[guid](Get-SkillTreeMigrationRequiredString $_ 'accountUserIds[]'); if ($id -eq [guid]::Empty) { throw 'Empty UUID' }; $id.ToString('D') }
+            catch { throw 'accountUserIds must contain non-empty UUIDs.' }
+        })
+        if ($userIds.Count -ne @($userIds | Select-Object -Unique).Count) { throw 'accountUserIds must not contain duplicates.' }
+    }
+    if ($scope -eq 'AllCandidates' -and $userIds.Count -gt 0) { throw 'accountUserIds requires ExplicitAccounts scope.' }
+    if ($scope -eq 'ExplicitAccounts' -and $accountIds.Count -eq 0 -and $userIds.Count -eq 0) { throw 'ExplicitAccounts requires accountIds or accountUserIds.' }
 
     return [pscustomobject][ordered]@{
         Enabled = $enabled; BaseUrl = $uri.AbsoluteUri.TrimEnd('/'); ApiKeyEnvironmentVariable = $apiEnvironment
         MigrationKeyEnvironmentVariable = $migrationEnvironment; ServerIds = $serverIds; Scope = $scope; AccountIds = $accountIds
+        ApiSettingsPath=$apiSettingsPath; AccountUserIds=$userIds
     }
+}
+
+function Get-SkillTreeMigrationCredentials {
+    param([Parameter(Mandatory)] $NormalizedConfig)
+    if (![string]::IsNullOrWhiteSpace($NormalizedConfig.ApiSettingsPath)) {
+        try {
+            $settings=Get-Content -Raw -Encoding UTF8 -LiteralPath $NormalizedConfig.ApiSettingsPath | ConvertFrom-Json
+            $apiKey=[string]$settings.ApiKey.Key
+            $migrationKey=[string]$settings.SkillTreeRuntime.MigrationKey
+            $runtimeKey=[string]$settings.SkillTreeRuntime.Key
+        } catch { throw 'Unable to load API authentication settings from apiSettingsPath.' }
+        if ([string]::IsNullOrWhiteSpace($runtimeKey)) { throw 'The API settings runtime key must be non-empty.' }
+        if ($migrationKey -ceq $runtimeKey) { throw 'The migration key must differ from the runtime key.' }
+    } else {
+        $apiKey=[Environment]::GetEnvironmentVariable($NormalizedConfig.ApiKeyEnvironmentVariable)
+        $migrationKey=[Environment]::GetEnvironmentVariable($NormalizedConfig.MigrationKeyEnvironmentVariable)
+    }
+    if ([string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($migrationKey)) { throw 'API and migration credentials must be non-empty.' }
+    if ($apiKey -ceq $migrationKey) { throw 'The migration key must differ from the common API key.' }
+    return [pscustomobject]@{ApiKey=$apiKey;MigrationKey=$migrationKey}
 }
 
 function Invoke-SkillTreeMigrationHttp {
@@ -203,14 +238,13 @@ function Invoke-SkillTreeMigration {
     $resolvedRunDirectory = (Resolve-Path -LiteralPath $RunDirectory).Path
     if (-not $normalized.Enabled) { return [pscustomobject]@{ Status = 'DISABLED'; RunDirectory = $resolvedRunDirectory } }
 
-    $apiKey = [Environment]::GetEnvironmentVariable($normalized.ApiKeyEnvironmentVariable)
-    $migrationKey = [Environment]::GetEnvironmentVariable($normalized.MigrationKeyEnvironmentVariable)
-    if ([string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($migrationKey)) { throw 'Configured API key environment variables must be non-empty.' }
-    if ($apiKey -ceq $migrationKey) { throw 'The migration key must differ from the common API key.' }
-    $headers = @{ 'X-Api-Key' = $apiKey; 'X-SkillTree-Migration-Key' = $migrationKey }
+    $credentials=Get-SkillTreeMigrationCredentials $normalized
+    $headers = @{ 'X-Api-Key' = $credentials.ApiKey; 'X-SkillTree-Migration-Key' = $credentials.MigrationKey }
     if (-not $HttpInvoker) { $HttpInvoker = ${function:Invoke-SkillTreeMigrationHttp} }
 
     $fingerprintInput = [ordered]@{ baseUrl = $normalized.BaseUrl; apiKeyEnvironmentVariable = $normalized.ApiKeyEnvironmentVariable; migrationKeyEnvironmentVariable = $normalized.MigrationKeyEnvironmentVariable; serverIds = @($normalized.ServerIds); scope = $normalized.Scope; accountIds = @($normalized.AccountIds) }
+    if (![string]::IsNullOrWhiteSpace($normalized.ApiSettingsPath)) { $fingerprintInput.apiSettingsPath=$normalized.ApiSettingsPath }
+    if ($normalized.AccountUserIds.Count) { $fingerprintInput.accountUserIds=@($normalized.AccountUserIds) }
     $configurationFingerprint = Get-SkillTreeMigrationSha256 (ConvertTo-SkillTreeMigrationJson $fingerprintInput)
     $statePath = Join-Path $resolvedRunDirectory 'skilltree-migration-state.json'
     $resultPath = Join-Path $resolvedRunDirectory 'skilltree-migration-result.json'
@@ -249,6 +283,38 @@ function Invoke-SkillTreeMigration {
     $targetSnapshotHash = Assert-SkillTreeMigrationSnapshot $targetSnapshot $targetRuntime.DefinitionGenerationId $(if ($state) { $state.TargetDefinitionSnapshotHash } else { $null })
 
     if (-not $state) {
+        # Freeze the resolved account set in this run. New characters are picked up next run,
+        # not during a retry of a partially committed migration.
+        $targetAccountIds=@($normalized.AccountIds)
+        if ($normalized.AccountUserIds.Count) {
+            $targetsPath=Join-Path $resolvedRunDirectory 'skilltree-migration-targets.json'
+            $runtimeFingerprint=Get-SkillTreeMigrationSha256 (ConvertTo-SkillTreeMigrationJson @($runtimes))
+            if (Test-Path -LiteralPath $targetsPath) {
+                $targets=Get-Content -Raw -Encoding UTF8 -LiteralPath $targetsPath | ConvertFrom-Json -AsHashtable
+                if ($targets.configurationFingerprint -ne $configurationFingerprint -or $targets.runtimeFingerprint -ne $runtimeFingerprint) { throw 'Resolved migration targets belong to another configuration or runtime.' }
+            } else {
+                $targets=@{configurationFingerprint=$configurationFingerprint;runtimeFingerprint=$runtimeFingerprint;accountsByUser=@{}}
+                Save-SkillTreeMigrationState $targets $targetsPath
+            }
+        }
+        foreach ($userId in $normalized.AccountUserIds) {
+            if (!$targets.accountsByUser.ContainsKey($userId)) {
+                $accounts=Invoke-SkillTreeMigrationRequest $HttpInvoker 'GET' "$($normalized.BaseUrl)/api/account?user_id=$userId" $headers $null
+                $resolvedAccounts=@()
+                foreach ($account in @($accounts)) {
+                    if ($null -eq $account) { continue }
+                    $owner=Get-SkillTreeMigrationValue $account 'userId'
+                    if ($owner -ne $userId) { throw 'Account resolution returned an unexpected owner.' }
+                    try { $id=[guid](Get-SkillTreeMigrationValue $account 'uuid'); if ($id -eq [guid]::Empty) { throw 'Empty UUID' } }
+                    catch { throw 'Account resolution returned an invalid account UUID.' }
+                    $resolvedAccounts+=$id.ToString('D')
+                }
+                $targets.accountsByUser[$userId]=@($resolvedAccounts)
+                Save-SkillTreeMigrationState $targets $targetsPath
+            }
+            $targetAccountIds+=@($targets.accountsByUser[$userId])
+        }
+        $targetAccountIds=@($targetAccountIds | Select-Object -Unique)
         $allCandidates = @(); $pageSize = 100; $page = 1; $total = $null
         do {
             $candidateUri = "$($normalized.BaseUrl)/api/skilltree/runtime/servers/$([Uri]::EscapeDataString($targetRuntime.ServerId))/migration-candidates?server_session_id=$($targetRuntime.ServerSessionId)&to_generation_id=$($targetRuntime.DefinitionGenerationId)&page=$page&page_size=$pageSize"
@@ -267,7 +333,7 @@ function Invoke-SkillTreeMigration {
         $candidateIds = @($allCandidates | ForEach-Object { ([Guid](Get-SkillTreeMigrationValue $_ 'accountId')).ToString('D') })
         if ($candidateIds.Count -ne @($candidateIds | Select-Object -Unique).Count) { throw 'Candidate enumeration contained duplicate account IDs.' }
         $selected = @(if ($normalized.Scope -eq 'AllCandidates') { $allCandidates } else {
-            $missing = @($normalized.AccountIds | Where-Object { $_ -notin $candidateIds })
+            $missing = @($targetAccountIds | Where-Object { $_ -notin $candidateIds })
             foreach ($accountId in $missing) {
                 $current = Invoke-SkillTreeMigrationRequest $HttpInvoker 'GET' "$($normalized.BaseUrl)/api/skilltree/runtime/accounts/$accountId/migration-state" $headers $null
                 $currentGeneration = Get-SkillTreeMigrationValue $current 'definitionGenerationId'
@@ -275,7 +341,7 @@ function Invoke-SkillTreeMigration {
                 if ($null -eq $currentGeneration -and @(Get-SkillTreeMigrationNodeIds $current).Count -eq 0) { Write-Host "SKIP empty unbound account: $accountId"; continue }
                 throw "Explicit account '$accountId' was not a candidate and is not already compatible."
             }
-            @($allCandidates | Where-Object { ([Guid](Get-SkillTreeMigrationValue $_ 'accountId')).ToString('D') -in $normalized.AccountIds })
+            @($allCandidates | Where-Object { ([Guid](Get-SkillTreeMigrationValue $_ 'accountId')).ToString('D') -in $targetAccountIds })
         })
         $records = @($selected | ForEach-Object {
             $accountId = ([Guid](Get-SkillTreeMigrationValue $_ 'accountId')).ToString('D')

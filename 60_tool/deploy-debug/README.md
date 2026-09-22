@@ -15,9 +15,11 @@ JARコピーだけでは完了扱いにしません。API障害、起動待ち�
 
 既存の `deploy-debug.config.json` に `devWorkflow` を追加しています。必要ならこのファイルを `deploy-debug.local.json` にコピーしてください。localが存在する場合はそちらが優先されます。明示の `-ConfigPath` も使用できます。配置先・API/Webの有効無効は既存設定を引き継ぎます。DevのJARとマスタだけなら `api.enabled` / `web.enabled` をfalseにして設定します。
 
-`devWorkflow.migration.serverIds` に実際のDevの `api.serverId` を1つ、`accountIds` に開発用 **アカウントUUID** を設定します。MinecraftユーザーUUIDではありません。`ExplicitAccounts` 固定で、全DB候補を移行する `AllCandidates` はDev入口では拒否します。DBの再構築は不要です。
+`devWorkflow.migration.serverIds` に実際のDevの `api.serverId` を1つ設定します。対象は `accountIds` の **アカウントUUID**、または `accountUserIds` の **ユーザーUUID配下の全アカウント** で指定できます。ユーザー指定では新しい実行ごとにAPIからキャラクター一覧を取得し、途中再試行では同じ対象集合を保持します。`ExplicitAccounts` 固定で、全DB候補を移行する `AllCandidates` はDev入口では拒否します。DBの再構築は不要です。
 
 `baseUrl` と、共通APIキー・専用migrationキーを取得する環境変数名も設定します。キーは環境変数へ安全に設定し、JSONやログへ実値を保存しません。HTTPS証明書は通常の信頼設定を使用します。Devとチャンネルで同じAPI/マスターDBを共有している場合、APIマスタ更新の影響も共有する点は従来どおりです。
+
+既存APIの設定を流用する場合は `migration.apiSettingsPath` に配置先 `appsettings.json` の絶対パスを指定できます。その場合は環境変数よりファイル参照を優先し、`ApiKey:Key` と `SkillTreeRuntime:MigrationKey` を毎回読み取ります。APIキーの複製や環境変数の手入力は不要で、ファイルのキー変更にも追従します。migrationキーは共通キー・runtimeキーと分離します。キー値をログや実行記録へ出力しません。
 
 | 設定 | 意味 |
 |---|---|

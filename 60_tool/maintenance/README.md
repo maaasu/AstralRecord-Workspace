@@ -61,8 +61,10 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 - `baseUrl`: APIのHTTPS URL。ローカル試験のloopbackのみHTTPを許可します。証明書検証は無効にしません。
 - `apiKeyEnvironmentVariable` / `migrationKeyEnvironmentVariable`: 共通APIキーと専用migrationキーを格納した環境変数名。
+- `apiSettingsPath`（任意）: 既存APIの `appsettings.json` の絶対パス。指定時は環境変数より優先し、共通APIキーと専用migrationキーをファイルから毎回読み取る。実値は実行記録に保存しない。
 - `serverIds`: APIへ登録される実際の `api.serverId` 一覧。全てreadyで同一世代でなければ停止します。配布用のIDと同名である必要はありません。
-- `scope=ExplicitAccounts`: `accountIds` のアカウントUUIDだけが対象。空配列は禁止します。MinecraftユーザーUUIDではありません。
+- `scope=ExplicitAccounts`: `accountIds` のアカウントUUID、または `accountUserIds` のユーザー配下を対象にする。どちらかを1件以上指定する。`accountIds` はMinecraftユーザーUUIDではありません。
+- `accountUserIds`（任意）: `ExplicitAccounts` で指定ユーザー配下の全キャラクターを対象にするUUID一覧。指定時は `accountIds` を空にできる。新規runで一覧を解決し、途中再試行では対象を増減しない。APIが別ユーザーのアカウントを返した場合は拒否する。
 - `scope=AllCandidates`: DB全体の世代不一致候補が対象。本番メンテナンス用です。**serverIdsは移行先の指定であり、候補をそのサーバーの利用者に限定しません。**
 
 候補は全ページを取得して固定し、削除ノードなし・消費元付替えなしの保持移行を最大100件ずつPREVIEWします。全件が成功した場合にCOMMITへ進めます。Commit単独で開始してもpreview検証を経由します。`operationId` と入力は実行記録先に保存し、通信失敗時も **同じRunDirectory** で再実行します。成功済みを維持し、確定結果不明の要求も同じoperation IDで再送します。対象・移行先世代・保存状態の競合は無条件で上書きしません。

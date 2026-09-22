@@ -72,13 +72,8 @@ function Assert-UpdateWorkflowInputs {
 
     $normalizedMigration = ConvertTo-SkillTreeMigrationConfig $MigrationConfig
     if (!$normalizedMigration.Enabled) { throw 'migration.enabled must be true for the update workflow.' }
-    $apiKey = [Environment]::GetEnvironmentVariable($normalizedMigration.ApiKeyEnvironmentVariable)
-    $migrationKey = [Environment]::GetEnvironmentVariable($normalizedMigration.MigrationKeyEnvironmentVariable)
-    if ([string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($migrationKey)) {
-        throw 'Configured API and migration key environment variables must be non-empty.'
-    }
-    if ($apiKey -ceq $migrationKey) { throw 'The migration key must differ from the common API key.' }
-    return [pscustomobject]@{ RunRoot=$runRoot; Migration=$normalizedMigration; ApiKey=$apiKey; MigrationKey=$migrationKey }
+    $credentials=Get-SkillTreeMigrationCredentials $normalizedMigration
+    return [pscustomobject]@{ RunRoot=$runRoot; Migration=$normalizedMigration; ApiKey=$credentials.ApiKey; MigrationKey=$credentials.MigrationKey }
 }
 
 function Invoke-UpdateWorkflowHttp {

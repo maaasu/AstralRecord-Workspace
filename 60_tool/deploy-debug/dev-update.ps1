@@ -56,7 +56,10 @@ try {
     foreach ($root in $roots) { if (Test-MaintenanceOverlap $workflow.runRoot $root) { throw 'Workflow runRoot overlaps deployment/source data.' } }
     if ($Plan) {
         Write-Host "Dev update mode: $mode"
-        Write-Host "Target runtime: $($normalized.ServerIds[0]); explicit accounts: $($normalized.AccountIds.Count)"
+        Write-Host "Target runtime: $($normalized.ServerIds[0]); explicit accounts: $($normalized.AccountIds.Count); users (all characters): $($normalized.AccountUserIds.Count)"
+        Write-Host "API endpoint: $($normalized.BaseUrl)"
+        if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
+        else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
         Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> migrate -> complete.'
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0

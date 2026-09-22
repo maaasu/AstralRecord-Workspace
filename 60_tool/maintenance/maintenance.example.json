@@ -34,8 +34,10 @@
     "baseUrl": "https://device_server:444",
     "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
     "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
+    "apiSettingsPath": "",
     "serverIds": ["channel1", "channel2"],
     "scope": "ExplicitAccounts",
-    "accountIds": []
+    "accountIds": [],
+    "accountUserIds": []
   }
 }
