@@ -433,6 +433,25 @@ public final class QuestService {
      * @return 受領して保存予約まで開始できた場合は{@code true}、受領条件または報酬保存中のclaimにより拒否した場合は{@code false}
      */
     public boolean accept(@NotNull AstPlayer player, @NotNull QuestDefinition quest, @Nullable String npcId) {
+        return accept(player, quest, npcId, () -> {
+        });
+    }
+
+    /**
+     * クエストを受領し、必要な条件itemを消費して進行状態を保存予約します。
+     *
+     * @param player 受領するgameplay accountのプレイヤー
+     * @param quest 受領するクエスト定義
+     * @param npcId 受領元NPC ID。未指定の場合はNPC指定なしとして扱う
+     * @param onAccepted 受領処理と関連する永続化が成功した後にメインスレッドで呼び出す処理
+     * @return 受領して保存予約まで開始できた場合は{@code true}、受領条件または報酬保存中のclaimにより拒否した場合は{@code false}
+     */
+    public boolean accept(
+        @NotNull AstPlayer player,
+        @NotNull QuestDefinition quest,
+        @Nullable String npcId,
+        @NotNull Runnable onAccepted
+    ) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             return false;
         }
@@ -492,6 +511,7 @@ public final class QuestService {
                         : criticalSaveFailed(cause) ? PlayerMsgId.P_6609 : PlayerMsgId.P_6606);
                 return;
             }
+            onAccepted.run();
             questAcceptedListener.accept(player, quest.id());
             send(player, PlayerMsgId.P_6603, quest.name());
             player.getBukkit().playSound(player.getBukkit().getLocation(), Sound.UI_TOAST_IN, SoundCategory.PLAYERS, 0.7F, 1.1F);

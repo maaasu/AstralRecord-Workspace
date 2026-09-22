@@ -112,7 +112,12 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         String npcId = questGui.getNpcId(event.getView().getTopInventory());
         QuestDisplayState state = questService.displayState(astPlayer, quest);
         boolean changed = switch (state) {
-            case AVAILABLE -> questService.accept(astPlayer, quest, npcId);
+            case AVAILABLE -> questService.accept(
+                astPlayer,
+                quest,
+                npcId,
+                () -> refreshBoardIfCurrent(player, astPlayer, board.id())
+            );
             case READY_TO_TURN_IN -> questService.turnIn(
                 astPlayer,
                 quest,
@@ -121,7 +126,9 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
             );
             default -> false;
         };
-        refreshBoardIfCurrent(player, astPlayer, board.id());
+        if (state != QuestDisplayState.AVAILABLE) {
+            refreshBoardIfCurrent(player, astPlayer, board.id());
+        }
         if (!changed) {
             GuiSound.DENY.play(player);
         } else {
