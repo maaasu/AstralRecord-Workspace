@@ -6,6 +6,22 @@ namespace AstralRecordWeb.Services;
 
 public class ItemMasterApiClient(HttpClient httpClient)
 {
+    public async Task<IReadOnlyDictionary<string, string>> GetNamesAsync(
+        IEnumerable<string> itemIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = itemIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var summaries = await httpClient.GetFromJsonAsync<IReadOnlyList<ItemSummaryResponse>>(
+            "api/item",
+            cancellationToken) ?? [];
+
+        return summaries
+            .Where(summary => ids.Contains(summary.Id) && !string.IsNullOrWhiteSpace(summary.Name))
+            .ToDictionary(summary => summary.Id, summary => summary.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<IReadOnlyList<ItemMasterResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
         var summaries = await httpClient.GetFromJsonAsync<IReadOnlyList<ItemSummaryResponse>>(

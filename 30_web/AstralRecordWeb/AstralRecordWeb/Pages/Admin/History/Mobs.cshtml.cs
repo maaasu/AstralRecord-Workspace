@@ -14,6 +14,8 @@ public sealed class MobsModel(ActivityHistoryApiClient api) : HistoryPageModel
     public PagedPlayerActivityResponse<MobRankingResponse>? Results { get; private set; }
     public PagedPlayerActivityResponse<MobPlayerSummaryResponse>? Players { get; private set; }
     public PagedPlayerActivityResponse<MobPlayerDeathResponse>? Deaths { get; private set; }
+    public static string FormatMobName(string mobName) => MinecraftTextFormatter.ToHtml(mobName);
+
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (!Prepare(out var actor)) return Page();

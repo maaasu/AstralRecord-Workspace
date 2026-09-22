@@ -28,7 +28,7 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
 
     public IReadOnlyList<ItemSummaryResponse> GetAllSummaries()
     {
-        var items = dbContext.Entries
+        var entries = dbContext.Entries
             .AsNoTracking()
             .Where(entry => !entry.IsDeleted
                 && entry.MasterType == MasterType
@@ -36,14 +36,16 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
                 && SupportedCategories.Contains(entry.Category))
             .OrderBy(entry => entry.Category)
             .ThenBy(entry => entry.MasterId)
-            .Select(entry => new ItemSummaryResponse
-            {
-                Id = entry.MasterId,
-                Category = entry.Category ?? string.Empty,
-            })
+            .Select(entry => new { entry.MasterId, entry.Category, entry.PayloadJson })
             .ToList();
 
-        return items;
+        return entries.Select(entry => new ItemSummaryResponse
+        {
+            Id = entry.MasterId,
+            Category = entry.Category ?? string.Empty,
+            Name = JsonNode.Parse(entry.PayloadJson)?["name"]?.GetValue<string>()
+                ?? throw new System.Text.Json.JsonException($"Item master '{entry.MasterId}' has no name."),
+        }).ToList();
     }
 
     public ItemResponse? GetById(string itemId)

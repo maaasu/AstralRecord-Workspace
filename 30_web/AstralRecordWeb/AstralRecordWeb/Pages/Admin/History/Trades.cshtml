@@ -12,17 +12,17 @@
         <button class="btn ar-btn-primary">検索する</button>
     </form>
     @if (Model.UserUuid is not null || Model.AccountId is not null || Model.OtherUserUuid is not null) { <p class="ar-history-note">選択したプレイヤー／アカウントに絞り込み中。<a asp-page="Trades" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">絞り込みを解除</a></p> }
-    <p class="ar-history-note">時刻はUTC。矢印は資産の移動方向です。導入後に記録できたトレードのみを表示し、未記録の期間は復元しません。</p>
+    <p class="ar-history-note">時刻は日本時間（JST）。矢印は資産の移動方向です。導入後に記録できたトレードのみを表示し、未記録の期間は復元しません。</p>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Results is { } results)
     {
         <p>期間内 @results.TotalCount.ToString("N0") 回</p>
         @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>成立日時（UTC）</th><th>送り手 → 受け手</th><th>送った内容</th></tr></thead><tbody>
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>成立日時（JST）</th><th>送り手 → 受け手</th><th>送った内容</th></tr></thead><tbody>
         @foreach (var trade in results.Items)
         {
             <tr><td class="ar-history-value">@HistoryPageModel.Timestamp(trade.CompletedAt)<small>@trade.EventId</small></td><td><strong>@trade.Source.Mcid / @trade.Source.AccountName</strong><small>@trade.Source.AccountId</small><span aria-label="送信先">↓</span><br /><strong>@trade.Destination.Mcid / @trade.Destination.AccountName</strong><small>@trade.Destination.AccountId</small></td>
-                <td><ul class="ar-history-transfer">@foreach (var item in trade.Items) { <li>@item.ItemName × @item.Quantity.ToString("N0")<small>@item.ItemId</small></li> }</ul>@if (trade.Gold > 0) { <p>@trade.Gold.ToString("N0") ゴールド</p> }</td></tr>
+                <td><ul class="ar-history-transfer">@foreach (var item in trade.Items) { <li>@Html.Raw(Model.FormatItemName(item)) × @item.Quantity.ToString("N0")<small>@item.ItemId</small></li> }</ul>@if (trade.Gold > 0) { <p>@trade.Gold.ToString("N0") ゴールド</p> }</td></tr>
         }
         </tbody></table></div>
         <nav class="ar-pagination" aria-label="トレード履歴のページ">

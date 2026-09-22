@@ -5,6 +5,8 @@ public class ItemSummaryResponse
     public required string Id { get; init; }
 
     public required string Category { get; init; }
+
+    public string Name { get; init; } = string.Empty;
 }
 
 public class ItemMasterResponse

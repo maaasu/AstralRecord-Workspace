@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
@@ -107,56 +106,7 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
         return IconBaseUrl + Uri.EscapeDataString(iconFile) + ".png";
     }
 
-    public string FormatMinecraftText(string? text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
-
-        var builder = new StringBuilder();
-        var currentClass = "mc-white";
-        var openSpan = false;
-
-        void OpenSpan()
-        {
-            if (!openSpan)
-            {
-                builder.Append("<span class=\"");
-                builder.Append(currentClass);
-                builder.Append("\">");
-                openSpan = true;
-            }
-        }
-
-        for (var index = 0; index < text.Length; index++)
-        {
-            var current = text[index];
-            if ((current is '&' or '§') && index + 1 < text.Length)
-            {
-                var next = char.ToLowerInvariant(text[index + 1]);
-                var cssClass = MinecraftColorClass(next);
-                if (cssClass is not null)
-                {
-                    if (openSpan)
-                    {
-                        builder.Append("</span>");
-                        openSpan = false;
-                    }
-
-                    currentClass = cssClass;
-                    index++;
-                    continue;
-                }
-            }
-
-            OpenSpan();
-            builder.Append(WebUtility.HtmlEncode(current.ToString()));
-        }
-
-        if (openSpan)
-            builder.Append("</span>");
-
-        return builder.ToString();
-    }
+    public string FormatMinecraftText(string? text) => MinecraftTextFormatter.ToHtml(text);
 
     public string RarityClass(string? rarity)
         => "rarity-" + (rarity ?? "common").Trim().ToLowerInvariant();
@@ -181,9 +131,9 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
             var query = Query.Trim();
             filtered = filtered.Where(item =>
                 Contains(item.Id, query)
-                || Contains(StripMinecraftCodes(item.Name), query)
+                || Contains(MinecraftTextFormatter.StripCodes(item.Name), query)
                 || Contains(item.Icon, query)
-                || item.Lore.Any(line => Contains(StripMinecraftCodes(line), query)));
+                || item.Lore.Any(line => Contains(MinecraftTextFormatter.StripCodes(line), query)));
         }
 
         if (!string.IsNullOrWhiteSpace(Category))
@@ -222,42 +172,4 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
             _ => 99,
         };
 
-    private static string StripMinecraftCodes(string text)
-    {
-        var builder = new StringBuilder(text.Length);
-        for (var index = 0; index < text.Length; index++)
-        {
-            if ((text[index] is '&' or '§') && index + 1 < text.Length)
-            {
-                index++;
-                continue;
-            }
-
-            builder.Append(text[index]);
-        }
-
-        return builder.ToString();
-    }
-
-    private static string? MinecraftColorClass(char code)
-        => code switch
-        {
-            '0' => "mc-black",
-            '1' => "mc-dark-blue",
-            '2' => "mc-dark-green",
-            '3' => "mc-dark-aqua",
-            '4' => "mc-dark-red",
-            '5' => "mc-dark-purple",
-            '6' => "mc-gold",
-            '7' => "mc-gray",
-            '8' => "mc-dark-gray",
-            '9' => "mc-blue",
-            'a' => "mc-green",
-            'b' => "mc-aqua",
-            'c' => "mc-red",
-            'd' => "mc-light-purple",
-            'e' => "mc-yellow",
-            'f' or 'r' => "mc-white",
-            _ => null,
-        };
 }

@@ -5,17 +5,19 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AstralRecordWeb.Pages.Admin.History;
 
-/// <summary>履歴検索の期間とページ送りを共通化します。時刻は UTC で扱います。</summary>
+/// <summary>履歴検索の期間とページ送りを共通化します。画面では日本時間を扱います。</summary>
 public abstract class HistoryPageModel : PageModel
 {
+    private static readonly TimeSpan JapanOffset = TimeSpan.FromHours(9);
+
     [BindProperty(SupportsGet = true)] public DateOnly? From { get; set; }
     [BindProperty(SupportsGet = true)] public DateOnly? To { get; set; }
     [BindProperty(SupportsGet = true)] public string? Query { get; set; }
     [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
     public string? ErrorMessage { get; protected set; }
     public const int PageSize = 50;
-    public DateTimeOffset FromUtc => new(From!.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
-    public DateTimeOffset ToUtc => new(To!.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+    public DateTimeOffset FromUtc => new DateTimeOffset(From!.Value.ToDateTime(TimeOnly.MinValue), JapanOffset).ToUniversalTime();
+    public DateTimeOffset ToUtc => new DateTimeOffset(To!.Value.AddDays(1).ToDateTime(TimeOnly.MinValue), JapanOffset).ToUniversalTime();
 
     protected bool Prepare(out Guid actor)
     {
@@ -25,7 +27,7 @@ public abstract class HistoryPageModel : PageModel
             ErrorMessage = "日付・ページ番号・検索条件を確認してください。";
             return false;
         }
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(JapanOffset).DateTime);
         From ??= today.AddDays(-29);
         To ??= today;
         Query = Query?.Trim();
@@ -47,7 +49,13 @@ public abstract class HistoryPageModel : PageModel
         return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(Request.Path, values);
     }
 
-    public static string Timestamp(DateTime value) => value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+    public static string Timestamp(DateTime value)
+    {
+        var utc = DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        return new DateTimeOffset(utc, TimeSpan.Zero)
+            .ToOffset(JapanOffset)
+            .ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+    }
     public static string Duration(double seconds)
     {
         var duration = TimeSpan.FromSeconds(Math.Clamp(seconds, 0, 315360000));

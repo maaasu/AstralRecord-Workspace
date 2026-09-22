@@ -79,6 +79,7 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.Contains(summaries, item => item.Id == "sindri_orb");
         Assert.Contains(summaries, item => item.Id == "transcendence_orb");
         Assert.Contains(summaries, item => item.Id == "enchant_fill_all_orb");
+        Assert.All(allSummaries, item => Assert.False(string.IsNullOrWhiteSpace(item.Name)));
 
         foreach (var itemId in summaries.Select(item => item.Id))
         {

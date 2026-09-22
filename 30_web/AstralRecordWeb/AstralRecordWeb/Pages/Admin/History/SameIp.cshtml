@@ -17,7 +17,7 @@
         {
             <article class="ar-history-card">
                 <h2>同じIPで接続したアカウント <span class="ar-profile-badge">トレード @relation.TradeCount.ToString("N0") 回</span></h2>
-                <p class="ar-history-note">最初の観測 @HistoryPageModel.Timestamp(relation.FirstObservedAt) ／ 最後の観測 @HistoryPageModel.Timestamp(relation.LastObservedAt) UTC</p>
+                <p class="ar-history-note">最初の観測 @HistoryPageModel.Timestamp(relation.FirstObservedAt) ／ 最後の観測 @HistoryPageModel.Timestamp(relation.LastObservedAt) JST</p>
                 <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー</th><th>代表アカウント</th><th>代表アカウントの履歴</th></tr></thead><tbody>
                 @foreach (var player in relation.Players)
                 {

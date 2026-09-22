@@ -9,6 +9,26 @@ namespace AstralRecordWeb.Tests;
 public sealed class ItemMasterApiClientTests
 {
     [Fact]
+    public async Task GetNamesAsync_LoadsRequestedNamesFromSingleSummaryRequest()
+    {
+        var handler = new ItemMasterApiHandler();
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.example/"),
+        };
+        var subject = new ItemMasterApiClient(httpClient);
+
+        var names = await subject.GetNamesAsync(
+            ["debug_sword", "DEBUG_SWORD", "legacy-item", "missing-item"],
+            CancellationToken.None);
+
+        Assert.Equal("Debug Sword", Assert.Single(names).Value);
+        Assert.Equal(1, handler.RequestCounts["/api/item"]);
+        Assert.DoesNotContain("/api/item/debug_sword", handler.RequestCounts.Keys);
+        Assert.DoesNotContain("/api/item/missing-item", handler.RequestCounts.Keys);
+    }
+
+    [Fact]
     public async Task GetAllAsync_DeserializesCurrentEquipmentAndBundleContracts()
     {
         using var httpClient = new HttpClient(new ItemMasterApiHandler())
@@ -81,14 +101,18 @@ public sealed class ItemMasterApiClientTests
 
     private sealed class ItemMasterApiHandler : HttpMessageHandler
     {
+        public Dictionary<string, int> RequestCounts { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            var path = request.RequestUri!.AbsolutePath;
+            RequestCounts[path] = RequestCounts.GetValueOrDefault(path) + 1;
             var json = request.RequestUri!.AbsolutePath switch
             {
                 "/api/item" => """
-                    [{"id":"debug_sword","category":"equipment"},{"id":"initial_bundle","category":"bundle"}]
+                    [{"id":"debug_sword","category":"equipment","name":"Debug Sword"},{"id":"initial_bundle","category":"bundle","name":"Initial Bundle"},{"id":"legacy-item","category":"material"}]
                     """,
                 "/api/item/debug_sword" => """
                     {

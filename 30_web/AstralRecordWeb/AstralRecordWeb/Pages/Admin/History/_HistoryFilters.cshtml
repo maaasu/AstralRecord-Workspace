@@ -1,4 +1,4 @@
 @model AstralRecordWeb.Pages.Admin.History.HistoryPageModel
 <div><label for="Query">プレイヤー名・アカウント名</label><input id="Query" name="Query" value="@Model.Query" maxlength="100" placeholder="名前で検索" /></div>
-<div><label for="From">開始日（UTC）</label><input id="From" name="From" type="date" value="@Model.From?.ToString("yyyy-MM-dd")" /></div>
-<div><label for="To">終了日（UTC・当日を含む）</label><input id="To" name="To" type="date" value="@Model.To?.ToString("yyyy-MM-dd")" /></div>
+<div><label for="From">開始日（JST）</label><input id="From" name="From" type="date" value="@Model.From?.ToString("yyyy-MM-dd")" /></div>
+<div><label for="To">終了日（JST・当日を含む）</label><input id="To" name="To" type="date" value="@Model.To?.ToString("yyyy-MM-dd")" /></div>
