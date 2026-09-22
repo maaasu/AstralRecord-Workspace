@@ -4,6 +4,9 @@ import io.github.maaasu.astralRecord.feature.player.service.ChatMessageConversio
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.UUID;
+
 /** Proxy経由の全体チャット送信口です。 */
 @FunctionalInterface
 public interface NetworkChatBridge {
@@ -18,12 +21,14 @@ public interface NetworkChatBridge {
      * @param sender 送信元プレイヤー
      * @param senderName 送信者表示名
      * @param targetName 受信者表示名
+     * @param participantIds チャット当事者のUUID一覧。監視対象から除外する
      * @param message 変換前後を保持する本文
      */
     default void publishDirectMessage(
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String targetName,
+        @NotNull Collection<UUID> participantIds,
         @NotNull ChatMessageConversion message
     ) {
     }
@@ -50,12 +55,14 @@ public interface NetworkChatBridge {
      * @param sender 送信元プレイヤー
      * @param senderName 発言者表示名
      * @param partyName パーティー識別名
+     * @param participantIds チャット当事者のUUID一覧。監視対象から除外する
      * @param message 変換前後を保持する本文
      */
     default void publishPartyMessage(
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String partyName,
+        @NotNull Collection<UUID> participantIds,
         @NotNull ChatMessageConversion message
     ) {
     }

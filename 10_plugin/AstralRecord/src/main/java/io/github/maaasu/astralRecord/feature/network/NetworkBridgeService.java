@@ -37,6 +37,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -157,11 +158,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String targetName,
+        @NotNull Collection<UUID> participantIds,
         @NotNull ChatMessageConversion message
     ) {
         if (!enabled || !sender.isOnline()) return;
         BackendProtocol.sendPrivateChat(
-            plugin, sender, "direct", senderName, targetName, "", message);
+            plugin, sender, "direct", senderName, targetName, "", participantIds, message);
     }
 
     /** {@inheritDoc} */
@@ -186,11 +188,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         @NotNull Player sender,
         @NotNull String senderName,
         @NotNull String partyName,
+        @NotNull Collection<UUID> participantIds,
         @NotNull ChatMessageConversion message
     ) {
         if (!enabled || !sender.isOnline()) return;
         BackendProtocol.sendPrivateChat(
-            plugin, sender, "party", senderName, "", partyName, message);
+            plugin, sender, "party", senderName, "", partyName, participantIds, message);
     }
 
     /** 全保存の成功後にだけProxyへロビー接続を要求します。 */

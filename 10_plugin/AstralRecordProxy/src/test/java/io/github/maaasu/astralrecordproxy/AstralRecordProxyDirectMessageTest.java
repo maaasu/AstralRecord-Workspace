@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -41,6 +42,85 @@ class AstralRecordProxyDirectMessageTest {
         assertEquals(1, senderMessages.get());
         assertEquals(1, targetMessages.get());
         assertEquals(1, authorityMessages.get());
+    }
+
+    @Test
+    void doesNotSendMonitorCopyToAuthoritySender() {
+        AtomicInteger authorityMessages = new AtomicInteger();
+        AtomicInteger targetMessages = new AtomicInteger();
+        UUID authorityId = UUID.randomUUID();
+        Player authority = player("authority", authorityId, authorityMessages);
+        Player target = player("target", UUID.randomUUID(), targetMessages);
+        ProxyServer proxy = proxy(List.of(authority, target));
+        AstralRecordProxyPlugin plugin = new AstralRecordProxyPlugin(proxy, null, Path.of("target"));
+        setConfig(plugin, new ProxyConfig(
+            "lobby", List.of("ch1", "ch2"), Map.of(), Map.of(), 30L, 2L, 10L,
+            "https://example.invalid", "api-key", "sync-key", 3000, 500L, 5L, true,
+            "mc.astralrecord.com", List.of(), Set.of(authorityId)));
+
+        plugin.deliverDirectMessage("ch1", authority, new BackendProtocol.DirectMessage(
+            authority.getUniqueId(), "target", "authority#0", 7, "gakkou", "学校"));
+
+        assertEquals(1, authorityMessages.get());
+        assertEquals(1, targetMessages.get());
+    }
+
+    @Test
+    void doesNotSendMonitorCopyToAuthorityTarget() {
+        AtomicInteger senderMessages = new AtomicInteger();
+        AtomicInteger authorityMessages = new AtomicInteger();
+        Player sender = player("sender", UUID.randomUUID(), senderMessages);
+        UUID authorityId = UUID.randomUUID();
+        Player authority = player("authority", authorityId, authorityMessages);
+        ProxyServer proxy = proxy(List.of(sender, authority));
+        AstralRecordProxyPlugin plugin = new AstralRecordProxyPlugin(proxy, null, Path.of("target"));
+        setConfig(plugin, new ProxyConfig(
+            "lobby", List.of("ch1", "ch2"), Map.of(), Map.of(), 30L, 2L, 10L,
+            "https://example.invalid", "api-key", "sync-key", 3000, 500L, 5L, true,
+            "mc.astralrecord.com", List.of(), Set.of(authorityId)));
+
+        plugin.deliverDirectMessage("ch1", sender, new BackendProtocol.DirectMessage(
+            sender.getUniqueId(), "authority", "sender#0", 7, "gakkou", "学校"));
+
+        assertEquals(1, senderMessages.get());
+        assertEquals(1, authorityMessages.get());
+    }
+
+    @Test
+    void identifiesPartyParticipantForMonitorExclusion() {
+        UUID senderId = UUID.randomUUID();
+        UUID authorityId = UUID.randomUUID();
+        Player authority = player("authority", authorityId, new AtomicInteger());
+        BackendProtocol.PrivateChat chat = new BackendProtocol.PrivateChat(
+            senderId, "party", "sender", "", "party", "message", "message",
+            Set.of(senderId, authorityId));
+
+        assertTrue(pluginFor(authority).isPrivateChatParticipant(authority, chat));
+    }
+
+    @Test
+    void excludesLegacyDirectMonitorCopyUsingAuthorityDisplayName() {
+        AtomicInteger authorityMessages = new AtomicInteger();
+        UUID authorityId = UUID.randomUUID();
+        Player authority = player("authority", authorityId, authorityMessages);
+        AstralRecordProxyPlugin plugin = pluginFor(authority);
+        setMetadata(plugin, new PlayerMetadata(
+            authorityId, "authority", "ch1", "ch1", "authority#0", 0, "", false, 0, false, false));
+
+        plugin.broadcastPrivateChat("ch1", new BackendProtocol.PrivateChat(
+            UUID.randomUUID(), "direct", "sender#0", "authority#0", "", "message", "message", Set.of()));
+
+        assertEquals(0, authorityMessages.get());
+    }
+
+    private static AstralRecordProxyPlugin pluginFor(Player authority) {
+        AstralRecordProxyPlugin plugin = new AstralRecordProxyPlugin(
+            proxy(List.of(authority)), null, Path.of("target"));
+        setConfig(plugin, new ProxyConfig(
+            "lobby", List.of("ch1", "ch2"), Map.of(), Map.of(), 30L, 2L, 10L,
+            "https://example.invalid", "api-key", "sync-key", 3000, 500L, 5L, true,
+            "mc.astralrecord.com", List.of(), Set.of(authority.getUniqueId())));
+        return plugin;
     }
 
     private static Player player(String username, UUID playerId, AtomicInteger messages) {
@@ -87,6 +167,18 @@ class AstralRecordProxyDirectMessageTest {
             managed.set(config.legacySettings());
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("Proxy configuration setup failed", exception);
+        }
+    }
+
+    private static void setMetadata(AstralRecordProxyPlugin plugin, PlayerMetadata metadata) {
+        try {
+            var field = AstralRecordProxyPlugin.class.getDeclaredField("metadata");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<UUID, PlayerMetadata> values = (Map<UUID, PlayerMetadata>) field.get(plugin);
+            values.put(metadata.playerId(), metadata);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Proxy metadata setup failed", exception);
         }
     }
 }

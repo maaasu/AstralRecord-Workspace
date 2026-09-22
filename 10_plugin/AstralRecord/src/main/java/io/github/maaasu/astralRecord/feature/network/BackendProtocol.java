@@ -11,6 +11,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Objects;
 import java.util.UUID;
 
 final class BackendProtocol {
@@ -149,6 +151,7 @@ final class BackendProtocol {
      * @param senderName 発言者表示名
      * @param targetName DM受信者表示名。partyでは空文字
      * @param partyName party識別名。DMでは空文字
+     * @param participantIds チャット当事者のUUID一覧
      * @param message 本文
      */
     static void sendPrivateChat(
@@ -158,6 +161,7 @@ final class BackendProtocol {
         @NotNull String senderName,
         @NotNull String targetName,
         @NotNull String partyName,
+        @NotNull Collection<UUID> participantIds,
         @NotNull ChatMessageConversion message
     ) {
         send(plugin, player, output -> {
@@ -169,6 +173,15 @@ final class BackendProtocol {
             output.writeUTF(partyName);
             output.writeUTF(message.original());
             output.writeUTF(message.converted());
+            var ids = participantIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+            output.writeInt(ids.size());
+            for (UUID participantId : ids) {
+                output.writeUTF(participantId.toString());
+            }
         });
     }
 

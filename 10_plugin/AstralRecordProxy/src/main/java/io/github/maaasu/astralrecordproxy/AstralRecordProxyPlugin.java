@@ -762,7 +762,7 @@ public final class AstralRecordProxyPlugin {
     }
 
     /** Proxy最高権限UUIDに一致するプレイヤーだけへプライベートチャット監視を配信する。 */
-    private void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
+    void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
         NetworkSettings settings = settings();
         if (settings == null) return;
         Component message = Component.text("[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
@@ -778,7 +778,32 @@ public final class AstralRecordProxyPlugin {
         Component completed = message.append(chatBodyComponent(chat.original(), chat.converted()));
         proxy.getAllPlayers().stream()
             .filter(player -> settings.isServerAuthority(player.getUniqueId()))
+            .filter(player -> !isPrivateChatParticipant(player, chat))
             .forEach(player -> player.sendMessage(completed));
+    }
+
+    /**
+     * 監視対象の管理者がプライベートチャット当事者かを判定します。
+     * 当事者には通常配信が届くため、監視コピーを重ねて送信しません。
+     *
+     * @param player 判定対象の管理者
+     * @param chat 監視対象チャット
+     * @return チャット当事者ならtrue
+     */
+    boolean isPrivateChatParticipant(Player player, BackendProtocol.PrivateChat chat) {
+        UUID playerId = player.getUniqueId();
+        if (chat.participantIds().contains(playerId) || playerId.equals(chat.playerId())) {
+            return true;
+        }
+        if (!"direct".equalsIgnoreCase(chat.type())) {
+            return false;
+        }
+        if (player.getUsername().equalsIgnoreCase(chat.targetName())) {
+            return true;
+        }
+        PlayerMetadata playerMetadata = metadata.get(playerId);
+        return playerMetadata != null
+            && playerMetadata.displayName().equalsIgnoreCase(chat.targetName());
     }
 
     /**
@@ -818,7 +843,7 @@ public final class AstralRecordProxyPlugin {
         target.sendMessage(received);
         broadcastPrivateChat(sourceServerId, new BackendProtocol.PrivateChat(
             sender.getUniqueId(), "direct", message.senderName(), targetName, "",
-            message.original(), message.converted()));
+            message.original(), message.converted(), Set.of(sender.getUniqueId(), target.getUniqueId())));
     }
 
     /** Proxyから直接配送するDMの表示Componentを生成します。 */

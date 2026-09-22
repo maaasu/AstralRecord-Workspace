@@ -20,6 +20,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -441,7 +443,12 @@ public final class PlayerMessageService {
         }
         NetworkChatBridge bridge = networkChatBridge;
         if (bridge != null) {
-            bridge.publishPartyMessage(sender, displayName, partyName, conversion);
+            Set<UUID> participantIds = new LinkedHashSet<>();
+            participantIds.add(sender.getUniqueId());
+            for (Player recipient : recipients) {
+                participantIds.add(recipient.getUniqueId());
+            }
+            bridge.publishPartyMessage(sender, displayName, partyName, participantIds, conversion);
         }
     }
 
@@ -529,7 +536,13 @@ public final class PlayerMessageService {
         }
         NetworkChatBridge bridge = networkChatBridge;
         if (bridge != null) {
-            bridge.publishDirectMessage(sender, senderDisplayName, targetDisplayName, conversion);
+            bridge.publishDirectMessage(
+                sender,
+                senderDisplayName,
+                targetDisplayName,
+                Set.of(sender.getUniqueId(), target.getUniqueId()),
+                conversion
+            );
         }
     }
 

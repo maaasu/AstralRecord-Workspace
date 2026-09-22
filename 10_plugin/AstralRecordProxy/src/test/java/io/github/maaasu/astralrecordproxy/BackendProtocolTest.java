@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -206,6 +207,34 @@ class BackendProtocolTest {
         assertEquals("Target", chat.targetName());
         assertEquals("romaji", chat.original());
         assertEquals("秘密", chat.converted());
+        assertTrue(chat.participantIds().isEmpty());
+    }
+
+    @Test
+    void decodesPrivateChatParticipantIds() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF(BackendProtocol.PRIVATE_CHAT);
+            output.writeUTF(senderId.toString());
+            output.writeUTF("party");
+            output.writeUTF("Sender");
+            output.writeUTF("");
+            output.writeUTF("Senderのパーティー");
+            output.writeUTF("message");
+            output.writeUTF("message");
+            output.writeInt(2);
+            output.writeUTF(senderId.toString());
+            output.writeUTF(targetId.toString());
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.PrivateChat chat = assertInstanceOf(
+            BackendProtocol.PrivateChat.class, BackendProtocol.decode(payload));
+
+        assertEquals(Set.of(senderId, targetId), chat.participantIds());
     }
 
     /**

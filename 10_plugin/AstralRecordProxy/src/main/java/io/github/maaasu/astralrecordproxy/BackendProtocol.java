@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 final class BackendProtocol {
@@ -65,7 +67,9 @@ final class BackendProtocol {
                     String partyName = input.readUTF();
                     String original = input.readUTF();
                     String converted = input.available() > 0 ? input.readUTF() : original;
-                    yield new PrivateChat(playerId, chatType, senderName, targetName, partyName, original, converted);
+                    yield new PrivateChat(
+                        playerId, chatType, senderName, targetName, partyName, original, converted,
+                        readParticipantIds(input));
                 }
                 case DIRECT_MESSAGE -> {
                     UUID playerId = UUID.fromString(input.readUTF());
@@ -83,6 +87,31 @@ final class BackendProtocol {
 
     static byte[] openMenu() {
         return outgoing(OPEN_MENU, null);
+    }
+
+    private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {
+        if (input.available() == 0) {
+            return Set.of();
+        }
+        if (input.available() < Integer.BYTES) {
+            throw new IOException("Private chat participant count is missing");
+        }
+        int count = input.readInt();
+        if (count < 0 || count > 64) {
+            throw new IOException("Private chat participant count is invalid");
+        }
+        Set<UUID> participantIds = new LinkedHashSet<>();
+        for (int index = 0; index < count; index++) {
+            try {
+                participantIds.add(UUID.fromString(input.readUTF()));
+            } catch (IllegalArgumentException | IOException exception) {
+                throw new IOException("Private chat participant UUID is invalid", exception);
+            }
+        }
+        if (input.available() > 0) {
+            throw new IOException("Private chat payload has trailing data");
+        }
+        return Set.copyOf(participantIds);
     }
 
     /** RPG backendへ保存完了後のチャンネル接続要求を指示する。 */
@@ -146,7 +175,8 @@ final class BackendProtocol {
         String targetName,
         String partyName,
         String original,
-        String converted
+        String converted,
+        Set<UUID> participantIds
     ) implements Incoming {
     }
 

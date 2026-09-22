@@ -245,8 +245,20 @@ class PlayerMessageServiceTest {
 
         ChatMessageConversion expectedConversion = new ChatMessageConversion("gakkou", "変換済み");
         verify(bridge).publish(sender, expectedConversion);
-        verify(bridge).publishPartyMessage(sender, "Alice", "Aliceのパーティー", expectedConversion);
-        verify(bridge).publishDirectMessage(sender, "Alice", "Bob", expectedConversion);
+        verify(bridge).publishPartyMessage(
+            sender,
+            "Alice",
+            "Aliceのパーティー",
+            Set.of(sender.getUniqueId(), partyRecipient.getUniqueId()),
+            expectedConversion
+        );
+        verify(bridge).publishDirectMessage(
+            sender,
+            "Alice",
+            "Bob",
+            Set.of(sender.getUniqueId(), target.getUniqueId()),
+            expectedConversion
+        );
     }
 
     /**
@@ -407,9 +419,19 @@ class PlayerMessageServiceTest {
         }
 
         verify(bridge).publishDirectMessage(
-            sender, "Alice", "Bob", new ChatMessageConversion("direct", "direct"));
+            sender,
+            "Alice",
+            "Bob",
+            Set.of(sender.getUniqueId(), target.getUniqueId()),
+            new ChatMessageConversion("direct", "direct")
+        );
         verify(bridge).publishPartyMessage(
-            sender, "Alice", "Aliceのパーティー", new ChatMessageConversion("party", "party"));
+            sender,
+            "Alice",
+            "Aliceのパーティー",
+            Set.of(sender.getUniqueId()),
+            new ChatMessageConversion("party", "party")
+        );
     }
 
     /**
