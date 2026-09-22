@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "servers": [
+    { "id": "dev", "enabled": false, "rootPath": "" },
+    { "id": "build", "enabled": false, "rootPath": "" },
+    { "id": "channel1", "enabled": false, "rootPath": "" },
+    { "id": "channel2", "enabled": false, "rootPath": "" }
+  ],
+  "distributions": [
+    { "enabled": false, "kind": "Jar", "source": "dev", "relativePath": "plugins/AstralRecord.jar", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "Placement", "source": "dev", "relativePath": "plugins/AstralRecord/mob_spawners.yml", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "Placement", "source": "dev", "relativePath": "plugins/AstralRecord/gathering_spawners.yml", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "Placement", "source": "dev", "relativePath": "plugins/AstralRecord/npc_locations.yml", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "Placement", "source": "dev", "relativePath": "plugins/AstralRecord/waystones.yml", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "Filebase", "source": "dev", "relativePath": "filebase", "targets": ["build", "channel1", "channel2"] },
+    { "enabled": false, "kind": "World", "source": "build", "relativePath": "plugins/AstralRecord/worlds/hub/skill_tree", "targets": ["dev", "channel1", "channel2"] }
+  ],
+  "migration": {
+    "enabled": false,
+    "baseUrl": "https://device_server:444",
+    "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
+    "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
+    "serverIds": ["channel1", "channel2"],
+    "scope": "ExplicitAccounts",
+    "accountIds": []
+  }
+}

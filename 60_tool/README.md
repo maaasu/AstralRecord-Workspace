@@ -21,6 +21,7 @@
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
 | 14 | `14-management-db-migrate.bat` | ManagementDB の明示登録済み migration を非破壊で適用・検査 |
 | 15 | `15-history-db-migrate.bat` | HistoryDB の明示登録済み migration を非破壊で適用・検査 |
+| 16 | `16-maintenance.bat` | DevのJAR/配置/Filebase、Buildのワールド配布と起動後のスキルツリー世代移行（[設定・手順](maintenance/README.md)） |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
