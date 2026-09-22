@@ -21,6 +21,8 @@ JARコピーだけでは完了扱いにしません。API障害、起動待ち�
 
 既存APIの設定を流用する場合は `migration.apiSettingsPath` に配置先 `appsettings.json` の絶対パスを指定できます。その場合は環境変数よりファイル参照を優先し、`ApiKey:Key` と `SkillTreeRuntime:MigrationKey` を毎回読み取ります。APIキーの複製や環境変数の手入力は不要で、ファイルのキー変更にも追従します。migrationキーは共通キー・runtimeキーと分離します。キー値をログや実行記録へ出力しません。
 
+既存の閉域APIで証明書検証を省略する運用は `migration.allowPrivateApiInsecureTls=true` で明示できます。`baseUrl` は **HTTPSのプライベートIPv4またはループバックIPを直接指定** してください（例: `https://192.168.0.88:444`）。DNS名、公開IP、リンクローカル、HTTPにはこの例外を適用できません。省略時は設定した同一originへの要求だけを許可し、プロキシとリダイレクトを使いません。既定値falseでは通常の証明書検証を維持し、OS全体の信頼設定は変更しません。
+
 | 設定 | 意味 |
 |---|---|
 | `runRoot` | 空なら設定ファイルと同じ場所の `runs`。実行ごとの保存先は自動作成 |

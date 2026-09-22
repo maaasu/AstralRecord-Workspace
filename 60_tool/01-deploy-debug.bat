@@ -2,13 +2,7 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0deploy-debug"
-where pwsh >nul 2>nul
-if errorlevel 1 (
-    echo PowerShell 7 is required. Install it and add pwsh to PATH.
-    pause
-    exit /b 1
-)
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\dev-update.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0invoke-powershell7.ps1" "%SCRIPT_DIR%\dev-update.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

@@ -58,6 +58,7 @@ try {
         Write-Host "Dev update mode: $mode"
         Write-Host "Target runtime: $($normalized.ServerIds[0]); explicit accounts: $($normalized.AccountIds.Count); users (all characters): $($normalized.AccountUserIds.Count)"
         Write-Host "API endpoint: $($normalized.BaseUrl)"
+        Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
         if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
         else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
         Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> migrate -> complete.'

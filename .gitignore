@@ -44,6 +44,7 @@ token.txt
 60_tool/maintenance/runs/
 60_tool/deploy-debug/*.local.json
 60_tool/deploy-debug/runs/
+60_tool/powershell7.local.json
 
 # ASP.NET Web Deploy generated artifacts
 *.deploy.cmd

@@ -102,6 +102,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 ## 使用方法
 
+01/02/03/16はPowerShell 7で実行します。通常のPATHに `pwsh` がない場合は、Git管理外の `60_tool/powershell7.local.json` に `{"executablePath":"C:\\path\\to\\pwsh.exe"}` を指定できます。共通bootstrapが既存の実行ファイルを直接使い、OSのPATH変更や新しいインストールは行いません。指定した実行ファイルを削除・移動した場合は参照先を更新してください。
+
 `ManagementDB` はプレイヤー識別と運営情報を長期保持するDBで、ゲームDBリセット・再構築の対象外です。`db-rebuild` とゲーム用 `db-migrate` は、接続設定が `ManagementDB` または旧 `WebSiteDB` を指している場合も処理を拒否します。管理DBのスキーマ更新は専用の非破壊migrationで行います。
 
 保護処理は両ツールのDebugビルド後に `tests/management-db-protection.integration.ps1` で検証できます。SQL Serverへ接続しません。旧WebSiteDBからの移行は `ASTRALRECORD_SQLSERVER_TEST_CONNECTION` を設定して `tests/management-db-migration.integration.ps1` で検証します。この検証はランダム名の一時DBだけを作成・削除し、実データには触れません。

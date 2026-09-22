@@ -59,7 +59,8 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 `migration.enabled=true` にして、次を設定します。
 
-- `baseUrl`: APIのHTTPS URL。ローカル試験のloopbackのみHTTPを許可します。証明書検証は無効にしません。
+- `baseUrl`: APIのHTTPS URL。ローカル試験のloopbackのみHTTPを許可します。既定では通常の証明書検証を維持します。
+- `allowPrivateApiInsecureTls`（既定false）: 閉域APIで証明書検証を省略する明示設定。true時はHTTPSのRFC1918 IPv4またはループバックIP直指定だけを許可し、DNS名・公開IP・リンクローカル・HTTPは拒否する。設定した同一origin以外への適用も拒否し、プロキシとリダイレクトを使わない。通常の証明書検証とOSの信頼ストアには影響しない。
 - `apiKeyEnvironmentVariable` / `migrationKeyEnvironmentVariable`: 共通APIキーと専用migrationキーを格納した環境変数名。
 - `apiSettingsPath`（任意）: 既存APIの `appsettings.json` の絶対パス。指定時は環境変数より優先し、共通APIキーと専用migrationキーをファイルから毎回読み取る。実値は実行記録に保存しない。
 - `serverIds`: APIへ登録される実際の `api.serverId` 一覧。全てreadyで同一世代でなければ停止します。配布用のIDと同名である必要はありません。

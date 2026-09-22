@@ -77,10 +77,13 @@ function Assert-UpdateWorkflowInputs {
 }
 
 function Invoke-UpdateWorkflowHttp {
-    param([Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body)
+    param([Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body,
+        [string] $ApiBaseUrl, [switch] $AllowPrivateApiInsecureTls)
 
     try {
         $parameters = @{ Method=$Method; Uri=$Uri; Headers=$Headers; SkipHttpErrorCheck=$true; MaximumRedirection=0; TimeoutSec=120; ErrorAction='Stop' }
+        $tlsOptions=Get-SkillTreeTlsRequestOptions -Uri $Uri -ApiBaseUrl $ApiBaseUrl -AllowPrivateApiInsecureTls:$AllowPrivateApiInsecureTls
+        foreach ($key in $tlsOptions.Keys) { $parameters[$key]=$tlsOptions[$key] }
         if ($null -ne $Body) { $parameters.ContentType='application/json'; $parameters.Body=($Body | ConvertTo-Json -Depth 40 -Compress) }
         $response = Invoke-WebRequest @parameters
         $content = $response.Content
@@ -215,7 +218,13 @@ function Invoke-UpdateWorkflow {
     )
 
     $validated = Assert-UpdateWorkflowInputs $WorkflowConfig $MigrationConfig $ConfigurationFingerprint $ServerRoots
-    if (!$HttpInvoker) { $HttpInvoker = ${function:Invoke-UpdateWorkflowHttp} }
+    if (!$HttpInvoker) {
+        $workflowTransportBaseUrl=$validated.Migration.BaseUrl
+        $workflowTransportPrivateTls=$validated.Migration.AllowPrivateApiInsecureTls
+        $HttpInvoker={param($Method,$Uri,$Headers,$Body)
+            Invoke-UpdateWorkflowHttp -Method $Method -Uri $Uri -Headers $Headers -Body $Body -ApiBaseUrl $workflowTransportBaseUrl -AllowPrivateApiInsecureTls:$workflowTransportPrivateTls
+        }
+    }
     $headers = @{ 'X-Api-Key'=$validated.ApiKey; 'X-SkillTree-Migration-Key'=$validated.MigrationKey }
     $rootLock = $null
     $runLock = $null

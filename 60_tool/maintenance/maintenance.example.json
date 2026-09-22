@@ -32,6 +32,7 @@
   "migration": {
     "enabled": false,
     "baseUrl": "https://device_server:444",
+    "allowPrivateApiInsecureTls": false,
     "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
     "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
     "apiSettingsPath": "",

@@ -46,6 +46,34 @@ function Get-SkillTreeMigrationRequiredString {
     return $Value.Trim()
 }
 
+function Test-SkillTreePrivateApiUri {
+    param([Parameter(Mandatory)][uri] $Uri)
+    if (!$Uri.IsAbsoluteUri -or $Uri.Scheme -ne 'https' -or $Uri.UserInfo) { return $false }
+    $address=$null
+    if (![Net.IPAddress]::TryParse($Uri.DnsSafeHost.Trim('[',']'),[ref]$address)) { return $false }
+    if ($address.IsIPv4MappedToIPv6) { $address=$address.MapToIPv4() }
+    if ([Net.IPAddress]::IsLoopback($address)) { return $true }
+    if ($address.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork) { return $false }
+    $bytes=$address.GetAddressBytes()
+    return $bytes[0] -eq 10 -or ($bytes[0] -eq 172 -and $bytes[1] -ge 16 -and $bytes[1] -le 31) -or
+        ($bytes[0] -eq 192 -and $bytes[1] -eq 168)
+}
+
+function Get-SkillTreeTlsRequestOptions {
+    param([Parameter(Mandatory)][string] $Uri, [string] $ApiBaseUrl, [switch] $AllowPrivateApiInsecureTls)
+    if (!$AllowPrivateApiInsecureTls) { return @{} }
+    $requestUri=$null; $baseUri=$null
+    if (![uri]::TryCreate($Uri,[UriKind]::Absolute,[ref]$requestUri) -or
+        ![uri]::TryCreate($ApiBaseUrl,[UriKind]::Absolute,[ref]$baseUri) -or
+        !(Test-SkillTreePrivateApiUri $baseUri) -or !(Test-SkillTreePrivateApiUri $requestUri) -or
+        $requestUri.GetLeftPart([UriPartial]::Authority) -cne $baseUri.GetLeftPart([UriPartial]::Authority)) {
+        throw 'TLS verification may only be skipped for the configured HTTPS private/loopback literal IP origin.'
+    }
+    # Never route unverified TLS credentials through environment/system proxies.
+    # Both callers also disable HTTP redirects; DNS names are deliberately unsupported here.
+    return @{SkipCertificateCheck=$true;NoProxy=$true}
+}
+
 function ConvertTo-SkillTreeMigrationConfig {
     param([Parameter(Mandatory)] $Config)
 
@@ -58,6 +86,10 @@ function ConvertTo-SkillTreeMigrationConfig {
     $isLoopbackHttp = $uri.Scheme -eq 'http' -and ($uri.IsLoopback -or $uri.Host -in @('localhost', '127.0.0.1', '::1'))
     if ($uri.Scheme -ne 'https' -and -not $isLoopbackHttp) { throw 'baseUrl must use HTTPS or loopback HTTP.' }
     if ($uri.UserInfo -or $uri.Query -or $uri.Fragment) { throw 'baseUrl must not contain user info, query, or fragment.' }
+    $allowPrivateTls=Get-SkillTreeMigrationValue $Config 'allowPrivateApiInsecureTls'
+    if ($null -eq $allowPrivateTls) { $allowPrivateTls=$false }
+    if ($allowPrivateTls -isnot [bool]) { throw 'allowPrivateApiInsecureTls must be boolean.' }
+    if ($allowPrivateTls -and !(Test-SkillTreePrivateApiUri $uri)) { throw 'allowPrivateApiInsecureTls requires an HTTPS private/loopback literal IP, not a DNS name or public address.' }
 
     $apiEnvironment = Get-SkillTreeMigrationRequiredString (Get-SkillTreeMigrationValue $Config 'apiKeyEnvironmentVariable') 'apiKeyEnvironmentVariable'
     $migrationEnvironment = Get-SkillTreeMigrationRequiredString (Get-SkillTreeMigrationValue $Config 'migrationKeyEnvironmentVariable') 'migrationKeyEnvironmentVariable'
@@ -99,6 +131,7 @@ function ConvertTo-SkillTreeMigrationConfig {
         Enabled = $enabled; BaseUrl = $uri.AbsoluteUri.TrimEnd('/'); ApiKeyEnvironmentVariable = $apiEnvironment
         MigrationKeyEnvironmentVariable = $migrationEnvironment; ServerIds = $serverIds; Scope = $scope; AccountIds = $accountIds
         ApiSettingsPath=$apiSettingsPath; AccountUserIds=$userIds
+        AllowPrivateApiInsecureTls=$allowPrivateTls
     }
 }
 
@@ -123,9 +156,12 @@ function Get-SkillTreeMigrationCredentials {
 }
 
 function Invoke-SkillTreeMigrationHttp {
-    param([Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body)
+    param([Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body,
+        [string] $ApiBaseUrl, [switch] $AllowPrivateApiInsecureTls)
 
     $parameters = @{ Method = $Method; Uri = $Uri; Headers = $Headers; SkipHttpErrorCheck = $true; MaximumRedirection = 0; TimeoutSec = 120; ErrorAction = 'Stop' }
+    $tlsOptions=Get-SkillTreeTlsRequestOptions -Uri $Uri -ApiBaseUrl $ApiBaseUrl -AllowPrivateApiInsecureTls:$AllowPrivateApiInsecureTls
+    foreach ($key in $tlsOptions.Keys) { $parameters[$key]=$tlsOptions[$key] }
     if ($null -ne $Body) { $parameters.ContentType = 'application/json'; $parameters.Body = ConvertTo-SkillTreeMigrationJson $Body }
     $response = Invoke-WebRequest @parameters
     if ($response.StatusCode -ne 200) { throw "HTTP request failed ($Method status $($response.StatusCode))." }
@@ -240,11 +276,18 @@ function Invoke-SkillTreeMigration {
 
     $credentials=Get-SkillTreeMigrationCredentials $normalized
     $headers = @{ 'X-Api-Key' = $credentials.ApiKey; 'X-SkillTree-Migration-Key' = $credentials.MigrationKey }
-    if (-not $HttpInvoker) { $HttpInvoker = ${function:Invoke-SkillTreeMigrationHttp} }
+    if (-not $HttpInvoker) {
+        $migrationTransportBaseUrl=$normalized.BaseUrl
+        $migrationTransportPrivateTls=$normalized.AllowPrivateApiInsecureTls
+        $HttpInvoker={param($Method,$Uri,$Headers,$Body)
+            Invoke-SkillTreeMigrationHttp -Method $Method -Uri $Uri -Headers $Headers -Body $Body -ApiBaseUrl $migrationTransportBaseUrl -AllowPrivateApiInsecureTls:$migrationTransportPrivateTls
+        }
+    }
 
     $fingerprintInput = [ordered]@{ baseUrl = $normalized.BaseUrl; apiKeyEnvironmentVariable = $normalized.ApiKeyEnvironmentVariable; migrationKeyEnvironmentVariable = $normalized.MigrationKeyEnvironmentVariable; serverIds = @($normalized.ServerIds); scope = $normalized.Scope; accountIds = @($normalized.AccountIds) }
     if (![string]::IsNullOrWhiteSpace($normalized.ApiSettingsPath)) { $fingerprintInput.apiSettingsPath=$normalized.ApiSettingsPath }
     if ($normalized.AccountUserIds.Count) { $fingerprintInput.accountUserIds=@($normalized.AccountUserIds) }
+    if ($normalized.AllowPrivateApiInsecureTls) { $fingerprintInput.allowPrivateApiInsecureTls=$true }
     $configurationFingerprint = Get-SkillTreeMigrationSha256 (ConvertTo-SkillTreeMigrationJson $fingerprintInput)
     $statePath = Join-Path $resolvedRunDirectory 'skilltree-migration-state.json'
     $resultPath = Join-Path $resolvedRunDirectory 'skilltree-migration-result.json'

@@ -52,6 +52,7 @@ try {
         Write-Host "Migration enabled: $($config.migration.enabled); scope: $($config.migration.scope)"
         if ($config.migration.enabled) {
             Write-Host "API endpoint: $($normalizedMigration.BaseUrl)"
+            Write-Host "Private-IP-only TLS verification bypass: $($normalizedMigration.AllowPrivateApiInsecureTls)"
             if ($normalizedMigration.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalizedMigration.ApiSettingsPath)" }
             else { Write-Host "Authentication source: environment variables $($normalizedMigration.ApiKeyEnvironmentVariable), $($normalizedMigration.MigrationKeyEnvironmentVariable)" }
         }
