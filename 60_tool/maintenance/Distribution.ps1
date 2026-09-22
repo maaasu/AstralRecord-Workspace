@@ -145,6 +145,21 @@ function Test-MaintenanceWorldLocal([string]$Relative) {
     return ($Relative.Replace('\','/').Split('/')[0] -in @('uid.dat','session.lock','playerdata','stats','advancements'))
 }
 
+function Get-MaintenanceSharedManifest([string]$Manifest, [switch]$World) {
+    if (!$World) { return $Manifest }
+    # Derive the shared subset from the already hashed full destination. Do not read it twice.
+    return (@($Manifest.Split("`n") | Where-Object {
+        $_ -and !(Test-MaintenanceWorldLocal (($_ -split '\|', 3)[1]))
+    }) -join "`n")
+}
+
+function Assert-MaintenanceTreeNoLinks([string]$Path) {
+    Assert-MaintenanceNoLinks $Path
+    foreach ($item in Get-ChildItem -LiteralPath $Path -Force -Recurse -ErrorAction Stop) {
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Link in artifact: $($item.FullName)" }
+    }
+}
+
 function Get-MaintenanceManifest([string]$Path, [switch]$World) {
     Write-MaintenanceDiagnostic 'manifest.begin' @{path=$Path; world=[bool]$World}
     Assert-MaintenanceNoLinks $Path
@@ -232,13 +247,21 @@ function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
             Write-Host "PREPARE [$($op.index + 1)/$($journal.operations.Count)] $($op.destination)"
             Write-MaintenanceDiagnostic 'prepare.begin' @{index=$op.index; destination=$op.destination; stage=$op.stage}
             if ($op.existed) { $op.originalManifest = Get-MaintenanceManifest $op.destination }
+            if ($op.existed -and $op.manifest -ceq (Get-MaintenanceSharedManifest $op.originalManifest -World:($op.kind -eq 'World'))) {
+                # Keep the existing artifact and its local world data in place. Recheck at apply.
+                $op.status = 'Unchanged'
+                Write-MaintenanceJson $journal $journalPath
+                Write-MaintenanceDiagnostic 'prepare.unchanged' @{index=$op.index; destination=$op.destination}
+                Write-Host "UNCHANGED [$($op.index + 1)/$($journal.operations.Count)] $($op.destination)"
+                continue
+            }
             Assert-MaintenanceNoLinks $op.stage
             New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($op.stage)) -Force | Out-Null
             Copy-MaintenanceArtifact $snapshots[$op.source].path $op.stage
             if ($op.manifest -cne (Get-MaintenanceManifest $op.stage)) { throw 'Staged artifact verification failed.' }
             if ($op.kind -eq 'World' -and $op.existed) {
-                # Enumerating the destination also rejects nested junctions before preserving local data.
-                $null = Get-MaintenanceManifest $op.destination
+                # Only link detection is needed here. Content is rehashed before the atomic swap.
+                Assert-MaintenanceTreeNoLinks $op.destination
                 foreach ($name in @('uid.dat','playerdata','stats','advancements')) {
                     $local = Join-Path $op.destination $name
                     if (Test-Path -LiteralPath $local) { Copy-MaintenanceArtifact $local (Join-Path $op.stage $name) }
@@ -252,6 +275,13 @@ function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
         Write-MaintenanceJson $journal $journalPath
         foreach ($op in $journal.operations) {
             Write-MaintenanceDiagnostic 'apply.begin' @{index=$op.index; destination=$op.destination; backup=$op.backup}
+            if ($op.status -eq 'Unchanged') {
+                if ($op.manifest -cne (Get-MaintenanceManifest $op.destination -World:($op.kind -eq 'World'))) {
+                    throw 'Unchanged destination contents changed before application.'
+                }
+                Write-MaintenanceDiagnostic 'apply.unchanged' @{index=$op.index; destination=$op.destination}
+                continue
+            }
             Assert-MaintenanceNoLinks $op.destination
             Assert-MaintenanceNoLinks $op.backup
             if ($op.manifest -cne (Get-MaintenanceManifest $op.stage -World:($op.kind -eq 'World'))) { throw 'Stage changed before application.' }

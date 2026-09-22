@@ -55,6 +55,10 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 同じRunDirectoryでは設定ファイルのSHA-256も固定します。配布後にmigrationを有効化するのではなく、最初から今回の配布・移行の設定を揃えてください。設定を変更した場合は元の内容へ戻して再試行します。
 
+配布先が既に同じ内容なら、SHA-256とファイル/ディレクトリ一覧で一致を確認し、`UNCHANGED` と表示してステージ作成・コピー・バックアップ・置換を省略します。Worldの比較からはサーバー固有の `uid.dat` / `session.lock` / `playerdata` / `stats` / `advancements` を除き、そのまま保持します。日時やサイズだけの判定ではありません。適用段階でも共有内容のSHA-256を再検査し、途中で変化したら停止します。全体の `Deployed` は変更項目の適用と変更なし項目の再検証がすべて成功した場合だけ保存します。Restoreは `Unchanged` 項目に手を加えません。
+
+変更されたWorldも、プレイヤーデータ保持前の重複した全体ハッシュ検査を、リンク/ジャンクションのメタデータ検査に置き換えています。置換直前の元データ検査・ステージ検査・配置後検査・復旧時のバックアップ検査は維持します。追加設定は不要です。配布元のスナップショット作成は従来どおり行うため、未変更項目が多い更新で特に転送量を削減できます。初回や全ワールド変更時の所要時間短縮は限定的で、実環境の時間はネットワークとデータ量に依存します。
+
 ## 世代移行設定
 
 `migration.enabled=true` にして、次を設定します。
@@ -129,6 +133,7 @@ pwsh -NoProfile -File .\60_tool\maintenance\tests\migration.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\update-workflow.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\network-distribution.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\diagnostics.tests.ps1
+pwsh -NoProfile -File .\60_tool\maintenance\tests\unchanged-distribution.tests.ps1
 ```
 
 対象外はサーバープロセス管理、Proxyの入場制御、API/Webのデプロイ、DBスキーマ変更です。
