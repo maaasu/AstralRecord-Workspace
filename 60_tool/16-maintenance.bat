@@ -6,4 +6,6 @@ if errorlevel 1 (
     exit /b 1
 )
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0maintenance\maintenance.ps1" %*
-exit /b %ERRORLEVEL%
+set "EXIT_CODE=%ERRORLEVEL%"
+if "%~1"=="" pause
+exit /b %EXIT_CODE%

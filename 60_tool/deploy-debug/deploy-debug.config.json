@@ -1,4 +1,19 @@
 {
+  "devWorkflow": {
+    "runRoot": "",
+    "startupTimeoutSeconds": 900,
+    "pollIntervalSeconds": 5,
+    "seedMasterData": true,
+    "migration": {
+      "enabled": true,
+      "baseUrl": "https://device_server:444",
+      "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
+      "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
+      "serverIds": [],
+      "scope": "ExplicitAccounts",
+      "accountIds": []
+    }
+  },
   "iis": {
     "enabled": false,
     "host": "192.168.0.88",

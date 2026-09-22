@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$PluginOnly,
+    [switch]$MasterDataOnly,
     [switch]$ReleaseManagementOnly,
     [switch]$PreflightOnly,
     [string]$ConfigPath
@@ -18,6 +19,9 @@ $script:iisResetCommand = $null
 
 if ($PluginOnly -and $ReleaseManagementOnly) {
     throw "-PluginOnly and -ReleaseManagementOnly cannot be used together."
+}
+if ($MasterDataOnly -and ($PluginOnly -or $ReleaseManagementOnly)) {
+    throw "-MasterDataOnly cannot be combined with other component-only modes."
 }
 
 if ($PreflightOnly -and -not $ReleaseManagementOnly) {
@@ -591,6 +595,11 @@ if ($PluginOnly) {
     $config.web.enabled = $false
     $config.fileDatabase.enabled = $false
 }
+if ($MasterDataOnly) {
+    $config.api.enabled = $false
+    $config.web.enabled = $false
+    $config.plugin.enabled = $false
+}
 
 if ($ReleaseManagementOnly) {
     $config.plugin.enabled = $false
@@ -607,11 +616,11 @@ if ($PreflightOnly) {
     return
 }
 
-if (-not (Test-CommandExists -Name "dotnet")) {
+if (($config.api.enabled -or $config.web.enabled) -and -not (Test-CommandExists -Name "dotnet")) {
     throw "dotnet command was not found."
 }
 
-if (-not $ReleaseManagementOnly -and -not (Test-CommandExists -Name "mvn")) {
+if ($config.plugin.enabled -and -not (Test-CommandExists -Name "mvn")) {
     throw "mvn command was not found."
 }
 

@@ -101,6 +101,35 @@ function Get-MaintenancePlan($Config) {
             $plan.Add([ordered]@{ index=$plan.Count; kind=$entry.kind; source=$source; destination=$destination; serverId=$targetId; root=$root; directory=$directory })
         }
     }
+    # Optional, already-built network JARs. Blank destinations are explicitly skipped.
+    if ($Config.ContainsKey('networkPlugins') -and $null -ne $Config.networkPlugins) {
+        $network=$Config.networkPlugins
+        foreach ($entry in $network.destinations) {
+            if ([string]::IsNullOrWhiteSpace($entry.deployDirectory)) { Write-Host "SKIP unconfigured network artifact: $($entry.artifact)"; continue }
+            if ($entry.artifact -notin @('AstralRecordLobby.jar','AstralRecordProxy.jar','AstralRecordGeyserExtension.jar')) { throw 'Unsupported network plugin artifact.' }
+            $sourceDirectory=if ([string]::IsNullOrWhiteSpace($network.sourceDirectory)) {
+                [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../network-plugin-build/output'))
+            } else { $network.sourceDirectory }
+            $sourceDirectory=Get-MaintenanceAbsolutePath $sourceDirectory
+            $source=Resolve-MaintenanceChild $sourceDirectory $entry.artifact
+            if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw "Network output JAR is missing (no build is performed): $source" }
+            $deployDirectory=Get-MaintenanceAbsolutePath $entry.deployDirectory
+            if (!(Test-Path -LiteralPath $deployDirectory -PathType Container)) { throw "Network deploy directory is missing: $deployDirectory" }
+            if ($entry.artifact -eq 'AstralRecordGeyserExtension.jar') {
+                $plugins=[IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($deployDirectory))
+                if ([IO.Path]::GetFileName($deployDirectory) -ne 'extensions' -or
+                    [IO.Path]::GetFileName([IO.Path]::GetDirectoryName($deployDirectory)) -ne 'Geyser-Velocity' -or
+                    [IO.Path]::GetFileName($plugins) -ne 'plugins') { throw 'Geyser extension destination must be plugins/Geyser-Velocity/extensions.' }
+                $root=Get-MaintenanceAbsolutePath ([IO.Path]::GetDirectoryName($plugins))
+            } else {
+                if ([IO.Path]::GetFileName($deployDirectory) -ne 'plugins') { throw 'Lobby/Proxy destination must be a plugins directory.' }
+                $root=Get-MaintenanceAbsolutePath ([IO.Path]::GetDirectoryName($deployDirectory))
+            }
+            $destination=Resolve-MaintenanceChild $root ([IO.Path]::GetRelativePath($root,(Join-Path $deployDirectory $entry.artifact)))
+            if ((Test-Path -LiteralPath $destination) -and !(Test-Path -LiteralPath $destination -PathType Leaf)) { throw 'Network destination is not a file.' }
+            $plan.Add([ordered]@{index=$plan.Count;kind='Jar';source=$source;destination=$destination;serverId='network';root=$root;directory=$false})
+        }
+    }
     foreach ($item in $plan) {
         foreach ($other in $plan) {
             if (Test-MaintenanceOverlap $item.destination $other.source) { throw 'A destination overlaps another distribution source.' }

@@ -42,6 +42,8 @@ appsettings.Local.json
 token.txt
 60_tool/maintenance/*.local.json
 60_tool/maintenance/runs/
+60_tool/deploy-debug/*.local.json
+60_tool/deploy-debug/runs/
 
 # ASP.NET Web Deploy generated artifacts
 *.deploy.cmd

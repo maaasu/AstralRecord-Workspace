@@ -11,7 +11,7 @@ try {
     Set-Content -LiteralPath (Join-Path $root 'management.json') -Value '{}' -Encoding UTF8
     Set-Content -LiteralPath (Join-Path $root 'history.json') -Value '{}' -Encoding UTF8
     Set-Content -LiteralPath (Join-Path $api 'token.txt') -Value 'test-token' -Encoding UTF8
-    @{ ApiKey=@{ Key='test-api-key' } } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $api 'appsettings.json') -Encoding UTF8
+    @{ ApiKey=@{ Key='test-api-key' }; SkillTreeRuntime=@{ Key='test-runtime-key'; MigrationKey='test-migration-key' } } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $api 'appsettings.json') -Encoding UTF8
     @{ AstralRecordApi=@{ BaseUrl='https://release-api.example.test:444'; ApiKey='test-api-key' }; ReleaseNotes=@{ SyncOnStartup=$true } } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $web 'appsettings.json') -Encoding UTF8
     @'
 @echo off

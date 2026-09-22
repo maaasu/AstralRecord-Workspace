@@ -6,9 +6,9 @@
 
 | 番号 | bat | 用途 |
 | --- | --- | --- |
-| 01 | `01-deploy-debug.bat` | API / Web / Plugin / FileDatabase のデバッグデプロイ（Plugin のテストを実行） |
-| 02 | `02-deploy-debug-plugin-only.bat` | Plugin のテストコンパイル・実行を省略してビルド、デバッグデプロイ |
-| 03 | `03-master-data-reload.bat` | Filebase 同期と MasterDataDB seed |
+| 01 | `01-deploy-debug.bat` | [Dev更新](deploy-debug/README.md)：配置→手動起動待ち→開発アカウント世代移行まで一括実行 |
+| 02 | `02-deploy-debug-plugin-only.bat` | 01のPlugin限定ショートカット（従来どおりテスト省略） |
+| 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動待ち→移行） |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
 | 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
 | 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
@@ -21,7 +21,7 @@
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
 | 14 | `14-management-db-migrate.bat` | ManagementDB の明示登録済み migration を非破壊で適用・検査 |
 | 15 | `15-history-db-migrate.bat` | HistoryDB の明示登録済み migration を非破壊で適用・検査 |
-| 16 | `16-maintenance.bat` | DevのJAR/配置/Filebase、Buildのワールド配布と起動後のスキルツリー世代移行（[設定・手順](maintenance/README.md)） |
+| 16 | `16-maintenance.bat` | [本番メンテナンス](maintenance/README.md)：配布→手動起動待ち→対象アカウント世代移行まで一括実行 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -151,7 +151,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tes
 
 共有タグカタログを変更した後は`08-generate-tag-types.bat`を実行します。生成漏れと全filebaseの未定義・用途違いタグだけを検査する場合は`08-generate-tag-types.bat -Check`を使用できます。
 
-Master data reload の実行前には `ASTRALRECORD_API_KEY` を設定してください。
+日常の入口は01（Dev更新）、16（本番メンテナンス）、05（エディタ）です。02/03は01へのショートカット、その他は専用開発・管理操作として扱います。サーバー停止・起動は手動のまま、起動案内後の待機と世代移行をバッチが継続します。詳細は各手順を参照してください。
+
+03も01と同じ `deploy-debug.config.json` / `deploy-debug.local.json` を使用します。初回のDevアカウント・接続設定は [Dev更新手順](deploy-debug/README.md) を参照してください。以下は旧 `master-data-reload.ps1` を直接使う詳細操作の設定であり、03の設定ではありません。
+
+旧Master data reloadスクリプトの実行前には `ASTRALRECORD_API_KEY` を設定してください。
 
 API key は `master-data-reload/master-data-reload.config.json` の `api.apiKey` に設定できます。`apiKey` が空の場合は、`api.apiKeyEnvironmentVariable` で指定した環境変数を使用します。
 
@@ -167,7 +171,7 @@ API key は `master-data-reload/master-data-reload.config.json` の `api.apiKey`
 
 ```powershell
 $env:ASTRALRECORD_API_KEY = 'your-api-key'
-E:\AstralRecord-Workspace\60_tool\03-master-data-reload.bat
+powershell -NoProfile -File E:\AstralRecord-Workspace\60_tool\master-data-reload\master-data-reload.ps1
 ```
 
 DB 再構築で確認を省略する場合は次のように実行します。

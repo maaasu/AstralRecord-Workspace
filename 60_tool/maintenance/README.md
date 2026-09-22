@@ -1,6 +1,6 @@
 # メンテナンス配布とスキルツリー世代移行
 
-`../16-maintenance.bat` が共通入口です。PowerShell 7 (`pwsh`) が必要です。既定は書込みもAPI通信も行わない `Plan` です。停止・起動と入場制御は既存のサーバー管理方法で行い、配布と起動後の移行を同じ実行記録ディレクトリでつなぎます。このツール自体はサーバーを停止・起動しません。
+`../16-maintenance.bat` が本番更新の入口です。PowerShell 7 (`pwsh`) が必要です。既定の `Workflow` は配布・seed・手動起動の案内と待機・世代移行まで一度の実行で進めます。停止・起動と入場制限の解除は運用者が行います。変更なしで確認する場合だけ `-Phase Plan` を使用します。
 
 ## 初回設定
 
@@ -25,26 +25,27 @@
 
 Worldは `level.dat` のある実ワールドだけを指定します。Buildを正本とするワールドだけを列挙してください。配布先の地形・建築・エンティティはBuildの内容に置換されます。`uid.dat` と `playerdata` / `stats` / `advancements` は配布先のものを保持し、Buildからはコピーしません。`session.lock` はコピーせず、起動時に生成させます。新しい配布先はワールドUUIDも新規生成させます。一時ダンジョンなどは対象にしません。
 
-FilebaseはAPIが参照する配置先の同期・Seederとは別です。必要な場合はAPI側も同じリリースのFilebaseを配布し、既存のseed手順を実行してからPlugin起動/マスタ反映・世代確認へ進んでください。共有APIをDevとChannelで使う場合、APIのマスタ更新自体も影響を共有します。Channelをメンテナンスまで固定するには、その `masterData.autoReload.enabled` とFilebase/APIの分離方針も合わせて設定します。このツールは各serverの設定を書き換えません。
+Filebase配布は各serverのローカル配置が対象です。APIが別の共有Filebaseを参照する場合は、その配置先も同じリリースに揃えてください。Workflowは `seedMasterData=true` なら配置後にAPIのseedも実行します。共有APIをDevとChannelで使う場合、APIのマスタ更新自体も影響を共有します。Channelをメンテナンスまで固定するには、その `masterData.autoReload.enabled` とFilebase/APIの分離方針も合わせて設定します。このツールは各serverの設定を書き換えません。
 
 ## メンテナンス運用
 
-以下はワークスペース直下からの例です。`E:\AstralRecord-Maintenance\release-20260922` は実行ごとに変えるローカル記録先の例で、全サーバールートから独立させます。
+1. 入場制限をかけ、保存完了後に対象チャンネルを停止します。コピー元のDev/Build、更新対象のLobby/Proxyも必要に応じ停止し、自動ビルド配置などの書込みを止めます。
+2. `16-maintenance.bat` を一度実行し、停止・入場制限の確認に応答します。
+3. 設定した配布とseedが完了すると、バッチが起動案内を表示して自動待機します。
+4. サーバーを起動します。入場制限は維持します。
+5. 対象チャンネルが新しい起動sessionでreadyかつ同一世代になったことを確認し、バッチが対象アカウントを移行します。
+6. バッチの完了表示後に接続制限を解除します。Lobby/Proxy自体の起動確認は管理画面で行ってください。
 
 ```powershell
-# 1. 設定と対象を表示（変更なし）
+# 任意の確認（変更なし）
 .\60_tool\16-maintenance.bat -Phase Plan
-
-# 2. 入場停止、全員退出と保存完了、関係サーバー停止後に実行
-# Dev自動ビルドの配置処理や自動再起動も一時停止する
-.\60_tool\16-maintenance.bat -Phase Deploy -ServersStopped -RunDirectory E:\AstralRecord-Maintenance\release-20260922
-
-# 3. APIマスタを必要に応じ反映し、サーバーを起動。入場停止は維持する
-# キーは環境変数に安全に設定しておく。設定JSONやコマンド例に実値を保存しない
-.\60_tool\16-maintenance.bat -Phase MigratePreview -AdmissionClosed -RunDirectory E:\AstralRecord-Maintenance\release-20260922
-.\60_tool\16-maintenance.bat -Phase MigrateCommit -AdmissionClosed -RunDirectory E:\AstralRecord-Maintenance\release-20260922
-# 4. 全対象成功を確認して入場再開
+# 通常の実行
+.\60_tool\16-maintenance.bat
 ```
+
+`workflow.runRoot` が空なら設定JSONと同じ場所の `runs` へ実行記録を自動作成します。`startupTimeoutSeconds` / `pollIntervalSeconds` は起動待ち時間と確認間隔、`seedMasterData` は配布後のAPI diff seedです。起動案内はseed成功後に表示します。共有API側のFilebaseが今回のリリースと一致していることが前提です。起動確認対象は `migration.serverIds` なので、今回更新する全チャンネルの実server IDを列挙してください。
+
+配置完了後の失敗は同じバッチで続きから再開します。設定・対象や移行途中の起動sessionを変更しないでください。配置途中の失敗は自動再配布せず、ログとbackupを確認して下記Restoreで復旧します。既定では復旧後も古い未完了記録を上書きしないため、復旧確認後に `active-run.json` を別名へ退避して新しい実行を開始してください。
 
 `-ServersStopped` / `-AdmissionClosed` は運用者による確認宣言です。プロセス停止や入場制御の自動検知ではありません。全員オフラインでもワールドは書込みされるため、配布時はサーバーを停止してください。JARを読むDevも、配置ファイルを書き込むPluginも配布元の一貫性確保の対象です。
 
@@ -72,7 +73,9 @@ FilebaseはAPIが参照する配置先の同期・Seederとは別です。必要
 
 ## Devだけを更新する場合
 
-別の `dev.local.json` を用意し、配布を全て無効、`migration.serverIds` をDevだけ、`scope=ExplicitAccounts` として開発用アカウントUUIDを列挙します。Devユーザーを退出させて保存完了を確認し、`/masterdata reload` 後に実行します。
+通常は [01のDev更新](../deploy-debug/README.md) を使用してください。Devを停止し、01を実行し、起動案内後にDevを起動すると、開発用アカウントの移行まで完了します。毎回16や移行用JSONを選び直す必要はありません。
+
+移行だけを行う詳細操作では、別の `dev.local.json` を用意し、配布を全て無効、`migration.serverIds` をDevだけ、`scope=ExplicitAccounts` として開発用アカウントUUIDを列挙できます。Devユーザーを退出させて保存完了と新世代のロードを確認します。
 
 ```powershell
 .\60_tool\16-maintenance.bat -ConfigPath E:\AstralRecord-Workspace\60_tool\maintenance\dev.local.json -Phase MigrateCommit -AdmissionClosed -RunDirectory E:\AstralRecord-Maintenance\dev-20260922-01
@@ -82,13 +85,29 @@ FilebaseはAPIが参照する配置先の同期・Seederとは別です。必要
 
 ## 復旧と記録
 
-世代COMMIT開始前であれば、関係サーバーを再び停止してファイルを戻せます。
+世代COMMIT開始前であれば、実行中の待機バッチを終了し、関係サーバーを再び停止してファイルを戻せます。起動待ち・移行中は同じrunの詳細操作を排他で拒否します。復元済みのrunから起動待ちや移行を再開することも拒否します。
 
 ```powershell
 .\60_tool\16-maintenance.bat -Phase Restore -ServersStopped -RunDirectory E:\AstralRecord-Maintenance\release-20260922
 ```
 
 Restoreは適用済み/途中の項目を逆順で復元し、新しい側も `displaced` として残します。COMMIT開始後は、実際にDBへ届いたか不明な場合もファイルだけのRestoreを拒否します。移行結果とDBを確認して別途復旧してください。APIのマスタ更新やDBバックアップ/復元はこのファイルRestoreの対象外です。
+
+`-Phase Deploy` / `MigratePreview` / `MigrateCommit` / `Restore` と `-RunDirectory` は詳細操作用として維持します。通常のWorkflowではRunDirectoryを指定しません。詳細操作の記録は自動Workflowと混ぜず、ログに表示された実際のrunパスを指定してください。
+
+## ネットワークプラグインの任意配布（ビルドなし）
+
+`networkPlugins.destinations[].deployDirectory` に値がある項目だけ配布します。空欄の項目はSKIPです。`networkPlugins` 自体を省略しても構いません。
+
+| artifact | 配置先ディレクトリ |
+|---|---|
+| `AstralRecordLobby.jar` | Lobbyサーバーの `plugins` |
+| `AstralRecordProxy.jar` | Proxyサーバーの `plugins` |
+| `AstralRecordGeyserExtension.jar` | Proxy等の `plugins/Geyser-Velocity/extensions` |
+
+`sourceDirectory` は空なら、このツールと同じチェックアウトの `60_tool/network-plugin-build/output` です。別の出力フォルダを使う場合だけ絶対パスで指定します。設定した配置先または出力JARがない場合は配布開始前にエラーにします。ビルド、12バッチの呼び出し、依存JARのダウンロードは行いません。Geyser本体ではなく、ネットワークビルドが生成するAstralRecordのGeyser拡張が対象です。
+
+各JARは従来の配布と同じスナップショット・バックアップ・復元対象です。他のPluginやconfigは変更しません。複数のLobby/Proxyへ配る場合は同じartifactの行を追加して配置先を指定します。起動確認APIはチャンネルのスキルツリーruntimeだけを確認するため、Lobby/Proxy/Geyserの起動成否まで自動検証するものではありません。
 
 実行記録・バックアップは自動削除しません。設定や移行要求のファイルは信頼できる運用者だけが変更できる場所で保管してください。運用確認後の保持期間・削除は別途管理します。本バッチ作成時のテストは一時fixtureとmock APIだけで行い、本番配布・世代移行は行いません。
 
@@ -98,6 +117,8 @@ Restoreは適用済み/途中の項目を逆順で復元し、新しい側も `d
 pwsh -NoProfile -File .\60_tool\maintenance\tests\distribution.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\entry.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\migration.tests.ps1
+pwsh -NoProfile -File .\60_tool\maintenance\tests\update-workflow.tests.ps1
+pwsh -NoProfile -File .\60_tool\maintenance\tests\network-distribution.tests.ps1
 ```
 
 対象外はサーバープロセス管理、Proxyの入場制御、API/Webのデプロイ、DBスキーマ変更です。

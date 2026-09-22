@@ -1,8 +1,8 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Plan','Deploy','MigratePreview','MigrateCommit','Restore')]
-    [string]$Phase = 'Plan',
+    [ValidateSet('Workflow','Plan','Deploy','MigratePreview','MigrateCommit','Restore')]
+    [string]$Phase = 'Workflow',
     [string]$ConfigPath = (Join-Path $PSScriptRoot 'maintenance.local.json'),
     [string]$RunDirectory,
     [switch]$ServersStopped,
@@ -20,6 +20,30 @@ try {
     if ($config.migration.enabled) {
         . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
         $null = ConvertTo-SkillTreeMigrationConfig $config.migration
+    }
+    if ($Phase -eq 'Workflow') {
+        if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable migration before using the guided maintenance workflow.' }
+        . (Join-Path $PSScriptRoot 'UpdateWorkflow.ps1')
+        $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
+        $workflow=$config.workflow
+        if (!$workflow.runRoot) { $workflow.runRoot=Join-Path ([IO.Path]::GetDirectoryName($ConfigPath)) 'runs' }
+        $workflow.runRoot=Get-MaintenanceAbsolutePath $workflow.runRoot
+        if ($RunDirectory) { throw 'Workflow manages its own run directory. Use explicit phases only for advanced recovery.' }
+        $plan=@(Get-MaintenancePlan $config)
+        $roots=@($config.servers | Where-Object enabled | ForEach-Object { Get-MaintenanceAbsolutePath $_.rootPath })
+        $roots+=@($plan | ForEach-Object { $_.root; if ($_.directory) { $_.source } else { [IO.Path]::GetDirectoryName($_.source) } })
+        $fingerprint=Get-SkillTreeMigrationSha256 ((Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash + '|Channels')
+        $entryScript=$PSCommandPath
+        $pwsh=(Get-Process -Id $PID).Path
+        $deployAction={
+            param($RunDirectory)
+            & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -ServersStopped 2>&1 |
+                Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Distribution failed. Keep servers stopped and inspect $RunDirectory. Use Restore before retrying an incomplete deployment." }
+        }
+        Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
+            -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels'
+        exit 0
     }
     if ($Phase -eq 'Plan') {
         $plan = @(Get-MaintenancePlan $config)
@@ -70,7 +94,7 @@ try {
     switch ($Phase) {
         Deploy {
             Invoke-MaintenanceDeploy $config $RunDirectory
-            Write-Host 'Distribution complete. Keep admission closed, start servers, seed API master data if required, then run MigratePreview/MigrateCommit.'
+            Write-Host 'Distribution complete. Keep admission closed. Finish API master updates before startup and migration.'
         }
         Restore {
             Restore-MaintenanceDeployment $RunDirectory

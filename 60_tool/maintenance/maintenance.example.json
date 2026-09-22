@@ -1,5 +1,11 @@
 {
   "schemaVersion": 1,
+  "workflow": {
+    "runRoot": "",
+    "startupTimeoutSeconds": 900,
+    "pollIntervalSeconds": 5,
+    "seedMasterData": true
+  },
   "servers": [
     { "id": "dev", "enabled": false, "rootPath": "" },
     { "id": "build", "enabled": false, "rootPath": "" },
@@ -15,6 +21,14 @@
     { "enabled": false, "kind": "Filebase", "source": "dev", "relativePath": "filebase", "targets": ["build", "channel1", "channel2"] },
     { "enabled": false, "kind": "World", "source": "build", "relativePath": "plugins/AstralRecord/worlds/hub/skill_tree", "targets": ["dev", "channel1", "channel2"] }
   ],
+  "networkPlugins": {
+    "sourceDirectory": "",
+    "destinations": [
+      { "artifact": "AstralRecordLobby.jar", "deployDirectory": "" },
+      { "artifact": "AstralRecordProxy.jar", "deployDirectory": "" },
+      { "artifact": "AstralRecordGeyserExtension.jar", "deployDirectory": "" }
+    ]
+  },
   "migration": {
     "enabled": false,
     "baseUrl": "https://device_server:444",

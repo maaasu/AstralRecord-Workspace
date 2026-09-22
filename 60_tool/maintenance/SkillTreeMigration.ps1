@@ -192,6 +192,7 @@ function Invoke-SkillTreeMigration {
         [Parameter(Mandatory)] $Config,
         [Parameter(Mandatory)][string] $RunDirectory,
         [switch] $Commit,
+        [object[]] $ExpectedRuntimes,
         [scriptblock] $HttpInvoker
     )
 
@@ -223,6 +224,16 @@ function Invoke-SkillTreeMigration {
         $runtimes += Assert-SkillTreeMigrationRuntime $runtime $serverId
     }
     if (@($runtimes.DefinitionGenerationId | Select-Object -Unique).Count -ne 1) { throw 'All configured servers must be ready on the same generation.' }
+    if ($PSBoundParameters.ContainsKey('ExpectedRuntimes')) {
+        if (@($ExpectedRuntimes).Count -ne $runtimes.Count) { throw 'Startup runtime set changed before migration.' }
+        foreach ($runtime in $runtimes) {
+            $expected=@($ExpectedRuntimes | Where-Object { (Get-SkillTreeMigrationValue $_ 'serverId') -ceq $runtime.ServerId })
+            if ($expected.Count -ne 1 -or (Get-SkillTreeMigrationValue $expected[0] 'serverSessionId') -ne $runtime.ServerSessionId -or
+                (Get-SkillTreeMigrationValue $expected[0] 'definitionGenerationId') -ne $runtime.DefinitionGenerationId) {
+                throw 'Startup runtime session or generation changed before migration.'
+            }
+        }
+    }
     $targetRuntime = $runtimes[0]
     if ($state) {
         foreach ($savedRuntime in @($state.Runtimes)) {
