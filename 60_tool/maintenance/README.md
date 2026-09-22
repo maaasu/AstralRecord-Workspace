@@ -88,6 +88,12 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 ## 復旧と記録
 
+実行フォルダーには `diagnostics-<役割>-<PID>-<一意ID>.jsonl` を自動保存します（追加設定不要）。Workflow・Entry・Deployのログは分かれており、再実行しても過去ログを上書きしません。親の `child.launch` / `child.exit` と子のPIDを、時刻と同じ実行フォルダーで照合してください。`distribution.log` は従来の画面出力を追記保存します。
+
+診断ログはUTC時刻、PID、処理段階、配布元/先、項目番号、コピー・ファイルごとのSHA-256検査の開始/完了、状態保存、子プロセス終了コードを記録します。例外は型・内部例外の型・HResult・カテゴリ・スクリプト行/列・スタックを記録します。秘密情報を避けるため、例外メッセージ全文、実行行本文、設定内容、環境変数、HTTPのヘッダー/本文は保存しません。パスは記録されるため、ログは運用者だけが読める場所で保管してください。
+
+各イベントをその場でファイルへ追記して閉じるため、画面を閉じた場合も直前までの処理を追えます。ただし強制終了・OS停止・電源断では終了イベントや原因そのものを記録できない場合があります。開始に対応する完了がない処理とWindowsイベントログを照合してください。ログ書込み失敗は警告し、配布のトランザクション状態は変更しません。ログは実行フォルダー確定後から保存され、設定読込みやそれ以前の入力検証エラーは画面出力を確認してください。過去の中断原因を遡って復元する機能や未完了状態の解除機能ではありません。
+
 世代COMMIT開始前であれば、実行中の待機バッチを終了し、関係サーバーを再び停止してファイルを戻せます。起動待ち・移行中は同じrunの詳細操作を排他で拒否します。復元済みのrunから起動待ちや移行を再開することも拒否します。
 
 ```powershell
@@ -122,6 +128,7 @@ pwsh -NoProfile -File .\60_tool\maintenance\tests\entry.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\migration.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\update-workflow.tests.ps1
 pwsh -NoProfile -File .\60_tool\maintenance\tests\network-distribution.tests.ps1
+pwsh -NoProfile -File .\60_tool\maintenance\tests\diagnostics.tests.ps1
 ```
 
 対象外はサーバープロセス管理、Proxyの入場制御、API/Webのデプロイ、DBスキーマ変更です。

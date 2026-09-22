@@ -1,5 +1,6 @@
 # PowerShell 7. All paths are literal; deployment replaces only configured leaf artifacts.
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Diagnostics.ps1')
 
 function Write-MaintenanceJson($Value, [string]$Path) {
     $temporary = "$Path.tmp"
@@ -145,6 +146,7 @@ function Test-MaintenanceWorldLocal([string]$Relative) {
 }
 
 function Get-MaintenanceManifest([string]$Path, [switch]$World) {
+    Write-MaintenanceDiagnostic 'manifest.begin' @{path=$Path; world=[bool]$World}
     Assert-MaintenanceNoLinks $Path
     $result = [Collections.Generic.List[string]]::new()
     if (!(Test-Path -LiteralPath $Path)) { throw "Artifact disappeared: $Path" }
@@ -155,23 +157,32 @@ function Get-MaintenanceManifest([string]$Path, [switch]$World) {
         $relative = if ($isDirectory) { [IO.Path]::GetRelativePath($Path,$item.FullName) } else { '.' }
         if ($World -and (Test-MaintenanceWorldLocal $relative)) { continue }
         if ($item.PSIsContainer) { $result.Add("D|$relative") }
-        else { $result.Add("F|$relative|$($item.Length)|$((Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash)") }
+        else {
+            Write-MaintenanceDiagnostic 'hash.begin' @{path=$item.FullName; bytes=$item.Length}
+            $result.Add("F|$relative|$($item.Length)|$((Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash)")
+            Write-MaintenanceDiagnostic 'hash.end' @{path=$item.FullName}
+        }
     }
+    Write-MaintenanceDiagnostic 'manifest.end' @{path=$Path; entries=$result.Count}
     return ($result | Sort-Object) -join "`n"
 }
 
 function Copy-MaintenanceArtifact([string]$Source, [string]$Destination, [switch]$World) {
+    Write-MaintenanceDiagnostic 'copy.begin' @{source=$Source; destination=$Destination; world=[bool]$World}
     Assert-MaintenanceNoLinks $Source
     Assert-MaintenanceNoLinks $Destination
     if ((Get-Item -LiteralPath $Source).PSIsContainer) {
         New-Item -ItemType Directory -Path $Destination -Force | Out-Null
         foreach ($child in Get-ChildItem -LiteralPath $Source -Force) {
             if ($World -and (Test-MaintenanceWorldLocal $child.Name)) { continue }
+            Write-MaintenanceDiagnostic 'copy.entry.begin' @{source=$child.FullName; destination=(Join-Path $Destination $child.Name)}
             Copy-Item -LiteralPath $child.FullName -Destination (Join-Path $Destination $child.Name) -Recurse -Force
+            Write-MaintenanceDiagnostic 'copy.entry.end' @{source=$child.FullName}
         }
     } else {
         Copy-Item -LiteralPath $Source -Destination $Destination
     }
+    Write-MaintenanceDiagnostic 'copy.end' @{source=$Source; destination=$Destination}
 }
 
 function Assert-MaintenanceRunOutsideServers([string]$RunDirectory, $Plan) {
@@ -182,6 +193,8 @@ function Assert-MaintenanceRunOutsideServers([string]$RunDirectory, $Plan) {
 }
 
 function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
+    $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $RunDirectory 'Deploy'
+    Write-MaintenanceDiagnostic 'deploy.begin' @{role='Deploy'; powershell=$PSVersionTable.PSVersion.ToString()}
     $plan = @(Get-MaintenancePlan $Config)
     if (!$plan.Count) { throw 'No enabled distribution targets.' }
     Assert-MaintenanceRunOutsideServers $RunDirectory $plan
@@ -203,16 +216,21 @@ function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
         $snapshots = @{}
         foreach ($op in $journal.operations) {
             if (!$snapshots.ContainsKey($op.source)) {
+                Write-Host "CAPTURE [$($op.index + 1)/$($journal.operations.Count)] $($op.source)"
+                Write-MaintenanceDiagnostic 'capture.begin' @{index=$op.index; kind=$op.kind; source=$op.source}
                 $snapshot = Join-Path $RunDirectory "source-$($op.index)"
                 $before = Get-MaintenanceManifest $op.source -World:($op.kind -eq 'World')
                 Copy-MaintenanceArtifact $op.source $snapshot -World:($op.kind -eq 'World')
                 $after = Get-MaintenanceManifest $op.source -World:($op.kind -eq 'World')
                 if ($before -cne $after -or $before -cne (Get-MaintenanceManifest $snapshot)) { throw 'Source changed while capturing release; retry after stopping its writer.' }
                 $snapshots[$op.source] = @{ path=$snapshot; manifest=$before }
+                Write-MaintenanceDiagnostic 'capture.end' @{index=$op.index; source=$op.source}
             }
             $op.manifest = $snapshots[$op.source].manifest
         }
         foreach ($op in $journal.operations) {
+            Write-Host "PREPARE [$($op.index + 1)/$($journal.operations.Count)] $($op.destination)"
+            Write-MaintenanceDiagnostic 'prepare.begin' @{index=$op.index; destination=$op.destination; stage=$op.stage}
             if ($op.existed) { $op.originalManifest = Get-MaintenanceManifest $op.destination }
             Assert-MaintenanceNoLinks $op.stage
             New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($op.stage)) -Force | Out-Null
@@ -228,10 +246,12 @@ function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
             }
             $op.status = 'Prepared'
             Write-MaintenanceJson $journal $journalPath
+            Write-MaintenanceDiagnostic 'prepare.end' @{index=$op.index}
         }
         $journal.status = 'Applying'
         Write-MaintenanceJson $journal $journalPath
         foreach ($op in $journal.operations) {
+            Write-MaintenanceDiagnostic 'apply.begin' @{index=$op.index; destination=$op.destination; backup=$op.backup}
             Assert-MaintenanceNoLinks $op.destination
             Assert-MaintenanceNoLinks $op.backup
             if ($op.manifest -cne (Get-MaintenanceManifest $op.stage -World:($op.kind -eq 'World'))) { throw 'Stage changed before application.' }
@@ -239,20 +259,29 @@ function Invoke-MaintenanceDeploy($Config, [string]$RunDirectory) {
             if ($op.existed -and $op.originalManifest -cne (Get-MaintenanceManifest $op.destination)) { throw 'Destination contents changed after preflight.' }
             $op.status = 'Applying'
             Write-MaintenanceJson $journal $journalPath
-            if ($op.existed) { Move-Item -LiteralPath $op.destination -Destination $op.backup }
+            if ($op.existed) {
+                Write-MaintenanceDiagnostic 'backup.begin' @{index=$op.index}
+                Move-Item -LiteralPath $op.destination -Destination $op.backup
+                Write-MaintenanceDiagnostic 'backup.end' @{index=$op.index}
+            }
             New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($op.destination)) -Force | Out-Null
             Move-Item -LiteralPath $op.stage -Destination $op.destination
             if ($op.manifest -cne (Get-MaintenanceManifest $op.destination -World:($op.kind -eq 'World'))) { throw 'Deployed artifact verification failed.' }
             $op.status = 'Applied'
             Write-MaintenanceJson $journal $journalPath
             Write-Host "APPLIED $($op.destination)"
+            Write-MaintenanceDiagnostic 'apply.end' @{index=$op.index}
         }
         $journal.status = 'Deployed'
         Write-MaintenanceJson $journal $journalPath
+        Write-MaintenanceDiagnostic 'deploy.completed'
     } catch {
+        Write-MaintenanceDiagnostic 'deploy.failed' -Failure $_
         $journal.status = 'Failed'
         Write-MaintenanceJson $journal $journalPath
         throw
+    } finally {
+        Write-MaintenanceDiagnostic 'deploy.finally' @{status=$journal.status}
     }
 }
 

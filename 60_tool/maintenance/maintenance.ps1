@@ -12,6 +12,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Distribution.ps1')
 $locks = [Collections.Generic.List[IDisposable]]::new()
+$maintenanceDiagnosticFile = $null
 try {
     if (!(Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { throw 'Create maintenance.local.json from maintenance.example.json and configure paths first.' }
     $config = Get-Content -Raw -Encoding utf8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
@@ -37,8 +38,10 @@ try {
         $pwsh=(Get-Process -Id $PID).Path
         $deployAction={
             param($RunDirectory)
+            Write-MaintenanceDiagnostic 'child.launch' @{phase='Deploy'}
             & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -ServersStopped 2>&1 |
-                Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') | Out-Host
+                Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') -Append | Out-Host
+            Write-MaintenanceDiagnostic 'child.exit' @{exitCode=$LASTEXITCODE}
             if ($LASTEXITCODE -ne 0) { throw "Distribution failed. Keep servers stopped and inspect $RunDirectory. Use Restore before retrying an incomplete deployment." }
         }
         Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
@@ -73,6 +76,8 @@ try {
     if ($Phase -eq 'Restore' -and !(Test-Path -LiteralPath $RunDirectory -PathType Container)) { throw 'Restore requires an existing run.' }
     New-Item -ItemType Directory -Path $RunDirectory -Force | Out-Null
     $locks.Add([IO.File]::Open((Join-Path $RunDirectory 'run.lock'), 'OpenOrCreate', 'ReadWrite', 'None'))
+    $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $RunDirectory 'Entry'
+    Write-MaintenanceDiagnostic 'entry.begin' @{phase=$Phase; powershell=$PSVersionTable.PSVersion.ToString()}
     $configDigest = (Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
     $configRecordPath = Join-Path $RunDirectory 'config-digest.json'
     if (Test-Path -LiteralPath $configRecordPath) {
@@ -95,6 +100,7 @@ try {
             $lockPath = Resolve-MaintenanceChild $root '.astral-maintenance/distribution.lock'
             New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($lockPath)) -Force | Out-Null
             $locks.Add([IO.File]::Open($lockPath, 'OpenOrCreate', 'ReadWrite', 'None'))
+            Write-MaintenanceDiagnostic 'server.lock.acquired' @{root=$root}
         }
     }
     switch ($Phase) {
@@ -121,10 +127,13 @@ try {
         }
     }
     Write-Host "Run records: $RunDirectory"
+    Write-MaintenanceDiagnostic 'entry.completed' @{phase=$Phase}
 } catch {
+    Write-MaintenanceDiagnostic 'entry.failed' -Failure $_
     # Do not print exception bodies from HTTP calls; migration credentials may be present there.
     Write-Error $_.Exception.Message -ErrorAction Continue
     exit 1
 } finally {
+    Write-MaintenanceDiagnostic 'entry.finally' @{phase=$Phase}
     foreach ($lock in $locks) { $lock.Dispose() }
 }

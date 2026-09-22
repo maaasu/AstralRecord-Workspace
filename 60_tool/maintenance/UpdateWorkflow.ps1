@@ -17,6 +17,7 @@ function Get-UpdateWorkflowValue {
 function Save-UpdateWorkflowJson {
     param([Parameter(Mandatory)] $Value, [Parameter(Mandatory)][string] $Path)
     Write-MaintenanceJson $Value $Path
+    Write-MaintenanceDiagnostic 'state.saved' @{file=[IO.Path]::GetFileName($Path); status=(Get-UpdateWorkflowValue $Value 'status')}
 }
 
 function Get-UpdateWorkflowRunDirectory {
@@ -162,6 +163,7 @@ function Wait-UpdateWorkflowRuntimes {
         $runtimes = @(); $usable = $true
         foreach ($serverId in $Migration.ServerIds) {
             $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers
+            Write-MaintenanceDiagnostic 'startup.poll' @{server=$serverId; ready=($null -ne $runtime -and $runtime.Ready)}
             if ($null -eq $runtime -or !$runtime.Ready) { $usable=$false; break }
             if ($BaselineSessions[$serverId] -and $runtime.ServerSessionId -eq $BaselineSessions[$serverId]) { $usable=$false; break }
             $runtimes += $runtime
@@ -217,6 +219,7 @@ function Invoke-UpdateWorkflow {
         [scriptblock] $SleepAction
     )
 
+    $maintenanceDiagnosticFile = $null
     $validated = Assert-UpdateWorkflowInputs $WorkflowConfig $MigrationConfig $ConfigurationFingerprint $ServerRoots
     if (!$HttpInvoker) {
         $workflowTransportBaseUrl=$validated.Migration.BaseUrl
@@ -244,6 +247,8 @@ function Invoke-UpdateWorkflow {
             Save-UpdateWorkflowJson $active $activePath
         }
         Write-Host "Run records: $runDirectory"
+        $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $runDirectory 'Workflow'
+        Write-MaintenanceDiagnostic 'workflow.begin' @{label=$Label; powershell=$PSVersionTable.PSVersion.ToString()}
         $statePath = Join-Path $runDirectory 'workflow-state.json'
         $state = if (Test-Path -LiteralPath $statePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable } else { $null }
         if ($state -and ($state.schemaVersion -ne 1 -or $state.configurationFingerprint -ne $ConfigurationFingerprint -or $state.label -cne $Label)) { throw 'Configuration or workflow label changed within this run.' }
@@ -263,6 +268,7 @@ function Invoke-UpdateWorkflow {
             return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; MigrationResult=(Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $runDirectory 'skilltree-migration-result.json') | ConvertFrom-Json -Depth 40) }
         }
         if ($state.status -in @('Deploying','DeploymentFailed')) {
+            Write-MaintenanceDiagnostic 'deployment.evidence.check' @{status=$state.status}
             if (!(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) { throw 'Deployment was interrupted or failed without verified completion. Recover it before resuming; this workflow will not redeploy automatically.' }
             $state.status='WaitingForStartup'; Save-UpdateWorkflowJson $state $statePath
         }
@@ -273,8 +279,15 @@ function Invoke-UpdateWorkflow {
                 if ($answer -cne 'DEPLOY') { throw 'Deployment was not confirmed.' }
             }
             $state.status='Deploying'; Save-UpdateWorkflowJson $state $statePath
-            try { & $DeployAction $runDirectory }
-            catch { $state.status='DeploymentFailed'; Save-UpdateWorkflowJson $state $statePath; throw 'Deployment action failed. Resolve the deployment before retrying.' }
+            try {
+                Write-MaintenanceDiagnostic 'deployment.action.begin'
+                & $DeployAction $runDirectory
+                Write-MaintenanceDiagnostic 'deployment.action.end'
+            }
+            catch {
+                Write-MaintenanceDiagnostic 'deployment.action.failed' -Failure $_
+                $state.status='DeploymentFailed'; Save-UpdateWorkflowJson $state $statePath; throw 'Deployment action failed. Resolve the deployment before retrying.'
+            }
             $state.status='WaitingForStartup'; $state.deployedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
         }
         # Child Deploy owns run.lock while copying. Acquire it only after that child exits,
@@ -292,13 +305,17 @@ function Invoke-UpdateWorkflow {
         }
         if ($state.status -eq 'WaitingForStartup') {
             if ($WorkflowConfig.seedMasterData -and $state.seedStatus -ne 'SUCCEEDED') {
+                Write-MaintenanceDiagnostic 'seed.begin'
                 $seed = Invoke-UpdateWorkflowRequest $HttpInvoker 'POST' "$($validated.Migration.BaseUrl)/api/master-data/seed?mode=diff" @{ 'X-Api-Key'=$validated.ApiKey } $null
                 if ($seed.StatusCode -ne 200 -or (Get-UpdateWorkflowValue $seed.Body 'status') -cne 'SUCCEEDED') { throw 'Master data seed did not succeed; startup waiting and migration are stopped.' }
                 $state.seedStatus='SUCCEEDED'; $state.seededAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
+                Write-MaintenanceDiagnostic 'seed.end'
             }
             Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
+            Write-MaintenanceDiagnostic 'startup.wait.begin'
             $runtimes = Wait-UpdateWorkflowRuntimes $validated.Migration $state.baselineSessions $HttpInvoker $headers $WorkflowConfig.startupTimeoutSeconds $WorkflowConfig.pollIntervalSeconds $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='ReadyForMigration'; Save-UpdateWorkflowJson $state $statePath
+            Write-MaintenanceDiagnostic 'startup.wait.end'
         }
         if ($state.status -eq 'ReadyForMigration') {
             $marker = Join-Path $runDirectory 'migration-commit-started.json'
@@ -317,8 +334,15 @@ function Invoke-UpdateWorkflow {
                 if ($response.StatusCode -ne 200) { throw 'Migration API returned an unsuccessful status.' }
                 return $response.Body
             }
-            try { $migrationResult = Invoke-SkillTreeMigration -Config $MigrationConfig -RunDirectory $runDirectory -Commit -ExpectedRuntimes $expectedRuntimes -HttpInvoker $migrationTransport }
-            catch { throw 'Skill tree migration did not complete. The active run and persisted operation IDs were retained for a same-run retry.' }
+            try {
+                Write-MaintenanceDiagnostic 'migration.begin'
+                $migrationResult = Invoke-SkillTreeMigration -Config $MigrationConfig -RunDirectory $runDirectory -Commit -ExpectedRuntimes $expectedRuntimes -HttpInvoker $migrationTransport
+                Write-MaintenanceDiagnostic 'migration.end'
+            }
+            catch {
+                Write-MaintenanceDiagnostic 'migration.failed' -Failure $_
+                throw 'Skill tree migration did not complete. The active run and persisted operation IDs were retained for a same-run retry.'
+            }
             if ($migrationResult.Status -cne 'APPLIED') { throw 'Skill tree migration did not report APPLIED.' }
             $null=Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers
             $state.status='Completed'; $state.completedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
@@ -327,7 +351,11 @@ function Invoke-UpdateWorkflow {
             return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; MigrationResult=$migrationResult }
         }
         throw "Unsupported workflow status '$($state.status)'."
+    } catch {
+        Write-MaintenanceDiagnostic 'workflow.failed' -Failure $_
+        throw
     } finally {
+        Write-MaintenanceDiagnostic 'workflow.finally'
         if ($runLock) { $runLock.Dispose() }
         if ($rootLock) { $rootLock.Dispose() }
     }
