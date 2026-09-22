@@ -545,6 +545,7 @@ public final class AstralRecord extends JavaPlugin {
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
     private MasterDataAutoReloadService masterDataAutoReloadService;
 
+    /** サービスを生成します。イベント登録と定期処理の開始は有効化後のonEnableで行います。 */
     @Override
     public void onLoad() {
         instance = this;
@@ -554,7 +555,6 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         invulnerabilityVisualService = new InvulnerabilityVisualService(this);
-        getServer().getPluginManager().registerEvents(invulnerabilityVisualService, this);
         mobService = new MobService(this, new MobRepository());
         mobService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
@@ -1988,9 +1988,11 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * イベントやコマンドなどの機能を登録します。
+     * onEnableから、Pluginが有効な状態でイベントやコマンドなどの機能を登録します。
      */
     private void registerPluginFeatures() {
+        // onLoadではまだPluginが無効のため、リスナー登録はonEnableの登録境界で行う。
+        getServer().getPluginManager().registerEvents(invulnerabilityVisualService, this);
         eventManager.registerHandler(
             commandRegister.getAccountCloneCommand(),
             getServer().getPluginManager()
