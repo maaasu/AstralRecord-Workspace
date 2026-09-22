@@ -325,9 +325,21 @@ public final class SkillBindSession {
         }
     }
 
+    /**
+     * 保存済みプリセットで現在の編集状態を置き換えます。
+     *
+     * <p>保存結果の反映で一覧を再描画しても、現在の設定枠の横スクロール位置は維持します。
+     * プリセット自体を切り替える場合の初期化は {@link #loadPreset(int)} が担当します。</p>
+     *
+     * @param savedPreset 保存済みのプリセット
+     */
     public void replaceSelectedPreset(@NotNull SkillBindPreset savedPreset) {
+        int previousPassiveSlotOffset = passiveSlotOffset;
+        int previousActiveSlotOffset = activeSlotOffset;
         presets.set(savedPreset.getPresetIndex() - 1, savedPreset);
         loadPreset(savedPreset.getPresetIndex());
+        passiveSlotOffset = previousPassiveSlotOffset;
+        activeSlotOffset = previousActiveSlotOffset;
     }
 
     private int findNextFreeSlot(@NotNull List<String> slots) {

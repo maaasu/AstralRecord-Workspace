@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Locale;
@@ -96,5 +97,46 @@ class SkillBindSessionTest {
         session.selectBindSlot(SkillBindType.PASSIVE, 1);
         assertFalse(session.assignSelectedOrNextSlot(
             "unrequired-passive", SkillKind.PASSIVE, 5, false));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
+     * 検証契約: 設定枠を横スクロールした状態で保存済みプリセットを反映しても、パッシブ枠と発動枠のスクロール位置を保持する。
+     */
+    @Test
+    void preservesBindSlotScrollOffsetsWhenReplacingSavedPreset() {
+        UUID accountId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(new ArrayList<>(List.of(new SkillBindPreset(
+            null,
+            accountId,
+            1,
+            List.of(),
+            null,
+            List.of(),
+            true,
+            true,
+            1
+        ))));
+
+        session.movePassiveSlotOffset(2, 7);
+        session.moveActiveSlotOffset(3, 7);
+
+        session.replaceSelectedPreset(new SkillBindPreset(
+            UUID.randomUUID(),
+            accountId,
+            1,
+            List.of("active-1"),
+            "left-click",
+            List.of("passive-1"),
+            true,
+            true,
+            2
+        ));
+
+        assertEquals(2, session.passiveSlotOffset());
+        assertEquals(3, session.activeSlotOffset());
+        assertEquals("active-1", session.activeDraft().get(0));
+        assertEquals("passive-1", session.passiveDraft().get(0));
     }
 }
