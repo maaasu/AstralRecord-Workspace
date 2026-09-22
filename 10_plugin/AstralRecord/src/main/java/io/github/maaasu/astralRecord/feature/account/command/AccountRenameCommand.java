@@ -25,7 +25,7 @@ import java.util.concurrent.CompletionException;
 
 /** /account rename の実行を扱います。 */
 public final class AccountRenameCommand extends AstCommand {
-    private static final String ACCOUNT_NAME_PATTERN = "[A-Za-z0-9]{3,50}";
+    private static final String ACCOUNT_NAME_PATTERN = "[A-Za-z0-9_]{3,50}";
     private final Set<UUID> pendingAccountIds = ConcurrentHashMap.newKeySet();
 
     public AccountRenameCommand() {
@@ -106,7 +106,7 @@ public final class AccountRenameCommand extends AstCommand {
      * 管理コマンドで受理するアカウント名かを判定します。
      *
      * @param accountName 検証対象の名前
-     * @return ASCII英数字3〜50文字の場合は {@code true}
+     * @return ASCII英数字またはアンダースコアの3〜50文字の場合は {@code true}
      */
     static boolean isValidAccountName(@NotNull String accountName) {
         return accountName.matches(ACCOUNT_NAME_PATTERN);

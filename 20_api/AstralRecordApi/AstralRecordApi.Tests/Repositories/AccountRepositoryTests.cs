@@ -188,7 +188,7 @@ public class AccountRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
-    /// 検証契約: 自動作成名は大小文字を区別せず重複を避け、連番の空き名を返す。
+    /// 検証契約: 自動作成名は ASCII 英数字とアンダースコアを保持し、大小文字を区別せず重複を避け、連番の空き名を返す。
     /// </summary>
     [Fact]
     public async Task CreateAsync_GeneratesCaseInsensitiveUniqueNamesWithIncrementingSuffix()
@@ -225,25 +225,25 @@ public class AccountRepositoryTests
 
         var first = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[0], AccountName = "Alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[0],
+            UserId = userIds[0], AccountName = "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[0],
         });
         var second = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[1], AccountName = "alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[1],
+            UserId = userIds[1], AccountName = "alice_test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[1],
         });
         var third = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[2], AccountName = "Alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[2],
+            UserId = userIds[2], AccountName = "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[2],
         });
 
-        Assert.Equal("Alice", first.AccountName);
-        Assert.Equal("alice1", second.AccountName);
-        Assert.Equal("Alice2", third.AccountName);
+        Assert.Equal("Alice_Test", first.AccountName);
+        Assert.Equal("alice_test1", second.AccountName);
+        Assert.Equal("Alice_Test2", third.AccountName);
     }
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.03-更新系.md
-    /// 検証契約: 手動変更名は ASCII 英数字3文字以上を受理し、既存名との大小無視重複は拒否する。
+    /// 検証契約: 手動変更名は ASCII 英数字またはアンダースコアを含む3〜50文字を受理し、許可外文字と既存名との大小無視重複は拒否する。
     /// </summary>
     [Fact]
     public async Task UpdateAsync_RejectsInvalidOrDuplicateManualAccountName()
@@ -263,9 +263,9 @@ public class AccountRepositoryTests
             await setupContext.Database.EnsureCreatedAsync();
             setupContext.Users.Add(CreateUser(userId, firstAccountId, now));
             var firstAccount = CreateAccount(firstAccountId, userId, 0, true, now);
-            firstAccount.AccountName = "Alice";
+            firstAccount.AccountName = "Alice_Name";
             var secondAccount = CreateAccount(secondAccountId, userId, 1, false, now);
-            secondAccount.AccountName = "Bob";
+            secondAccount.AccountName = "Bob_Name";
             setupContext.Accounts.AddRange(
                 firstAccount,
                 secondAccount);
@@ -277,16 +277,18 @@ public class AccountRepositoryTests
 
         await Assert.ThrowsAsync<AccountNameConflictException>(() => repository.UpdateAsync(
             secondAccountId,
-            new AccountUpdateRequest { AccountName = "alice", UpdatedBy = userId }));
+            new AccountUpdateRequest { AccountName = "alice_name", UpdatedBy = userId }));
         var renamed = await repository.UpdateAsync(
             secondAccountId,
-            new AccountUpdateRequest { AccountName = "Bob2", UpdatedBy = userId });
-        Assert.Equal("Bob2", renamed!.AccountName);
+            new AccountUpdateRequest { AccountName = "Bob_2", UpdatedBy = userId });
+        Assert.Equal("Bob_2", renamed!.AccountName);
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.UpdateAsync(
+            secondAccountId, new AccountUpdateRequest { AccountName = "Bob-2", UpdatedBy = userId }));
         await Assert.ThrowsAsync<ArgumentException>(() => repository.UpdateAsync(
             secondAccountId, new AccountUpdateRequest { AccountName = "Bo", UpdatedBy = userId }));
 
         var unchanged = await dbContext.Accounts.SingleAsync(account => account.Uuid == secondAccountId);
-        Assert.Equal("Bob2", unchanged.AccountName);
+        Assert.Equal("Bob_2", unchanged.AccountName);
     }
 
     [Fact]
@@ -692,7 +694,7 @@ public class AccountRepositoryTests
                 CreatedBy = targetUserId, UpdatedBy = targetUserId,
             });
             var source = CreateAccount(sourceAccountId, sourceUserId, 3, true, now);
-            source.AccountName = "Source1";
+            source.AccountName = "Source_1";
             source.Level = 12;
             source.TotalExperience = 3456;
             source.ClassProgresses.Add(new AccountClassProgressEntity
@@ -763,7 +765,7 @@ public class AccountRepositoryTests
         Assert.Equal(targetUserId, cloned.Account.UserId);
         Assert.Equal(0, cloned.Account.SlotIndex);
         Assert.Equal(12, cloned.Account.Level);
-        Assert.Equal("Source11", cloned.Account.AccountName);
+        Assert.Equal("Source_11", cloned.Account.AccountName);
         Assert.Equal(0, cloned.Account.Mode);
         Assert.Equal(cloned.Account.Uuid, (await dbContext.Users.SingleAsync(row => row.Uuid == targetUserId)).AccountId);
         var cloneInventory = await dbContext.Inventories.SingleAsync(row => row.AccountId == cloned.Account.Uuid);

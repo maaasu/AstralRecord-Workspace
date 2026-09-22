@@ -836,8 +836,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             || accountName.Any(character =>
                 !((character >= 'A' && character <= 'Z')
                     || (character >= 'a' && character <= 'z')
-                    || (character >= '0' && character <= '9'))))
-            throw new ArgumentException("Account name must contain only ASCII letters or digits and be 3-50 characters long.");
+                    || (character >= '0' && character <= '9')
+                    || character == '_')))
+            throw new ArgumentException("Account name must contain only ASCII letters, digits, or underscore and be 3-50 characters long.");
     }
 
     private static string NormalizeGeneratedAccountName(string requestedName)
@@ -845,7 +846,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         var characters = (requestedName ?? string.Empty)
             .Where(character => (character >= 'A' && character <= 'Z')
                 || (character >= 'a' && character <= 'z')
-                || (character >= '0' && character <= '9'))
+                || (character >= '0' && character <= '9')
+                || character == '_')
             .Take(AccountNameMaxLength)
             .ToArray();
         var normalized = new string(characters);
