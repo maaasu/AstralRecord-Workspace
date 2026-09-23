@@ -2,9 +2,9 @@
 #   motif: "風術 / 空中回避"
 #   progression: 3
 schemaVersion: 1
-id: hunter_air_shift
+id: archer_air_shift
 type: SKILL
-implementationId: hunter_air_shift
+implementationId: archer_air_shift
 name: "&bエアーシフト"
 description: "&7空中で風を蹴り、自在に身をかわす機動パッシブ。"
 icon: WIND_CHARGE

@@ -49,10 +49,10 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-exept-stamp` | `skill` / `swordsman_exept_stamp` | `&6エクゼプトスタンプ` | `ANVIL` | `offense`, `status` |
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
-| `skill-sharpshooter-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-sharpshooter-heal-arrow-alpha` | `skill` / `archer_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-spreading-ambition` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
 | `skill-sharpshooter-phantom-shot` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
-| `skill-phantom-archer-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-phantom-archer-heal-arrow-alpha` | `skill` / `archer_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-phantom-archer-phantom-shot` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
 | `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
@@ -341,7 +341,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
-| `skill-phantom-archer-heal-arrow-alpha` | `2256` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-phantom-archer-heal-arrow-alpha` | `2256` | `skill` / `archer_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-phantom-archer-phantom-shot` | `2259` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 
 ### 共通パッケージ
@@ -408,7 +408,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `skill-sharpshooter-inheritance-mastery` | `2240` | `skill` / `sharpshooter_inheritance_mastery` | `&a継承の心得` | `SPECTRAL_ARROW` | `offense`, `wind` |
 | `skill-sharpshooter-fire-arrow` | `2241` | `skill` / `sharpshooter_fire_arrow` | `&6ファイアアロー` | `FIRE_CORAL` | `offense`, `fire`, `burning` |
 | `skill-sharpshooter-ice-arrow` | `2242` | `skill` / `sharpshooter_ice_arrow` | `&bアイスアロー` | `LIGHT_BLUE_DYE` | `offense`, `ice`, `frozen` |
-| `skill-sharpshooter-heal-arrow-alpha` | `2255` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-sharpshooter-heal-arrow-alpha` | `2255` | `skill` / `archer_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-spreading-ambition` | `2257` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
 | `skill-sharpshooter-phantom-shot` | `2258` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 

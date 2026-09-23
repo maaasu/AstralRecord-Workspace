@@ -12,12 +12,12 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 
 /** 最大HPに応じて回復し、発動者へ短時間の回復強化を付与するヒールアローαです。 */
-public final class HunterHealArrowAlphaExecutor extends HunterHealArrowExecutor {
+public final class ArcherHealArrowAlphaExecutor extends HunterHealArrowExecutor {
 
-    public static final String ID = "hunter_heal_arrow_alpha";
+    public static final String ID = "archer_heal_arrow_alpha";
 
     /** 共有発動サービスで初期化します。 */
-    public HunterHealArrowAlphaExecutor(@NotNull ActiveSkillServices services) {
+    public ArcherHealArrowAlphaExecutor(@NotNull ActiveSkillServices services) {
         super(ID, services);
     }
 

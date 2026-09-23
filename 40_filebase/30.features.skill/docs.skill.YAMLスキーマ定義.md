@@ -107,7 +107,7 @@
 ## 職業発動スキルの定義方針
 
 - プレイヤー向け職業発動スキルは、`id` と `implementationId` を同じ値にします。
-- ID は `swordsman_` / `hunter_` / `mage_` の職業 prefix と lowercase snake_case を組み合わせます。
+- ID は職業または共有職系の prefix と lowercase snake_case を組み合わせます。職業 prefix は `swordsman_` / `hunter_` / `mage_` などを使い、シャープシューターとファントムアーチャーの共用スキルには `archer_` を使います。
 - `gem` オブジェクトと空でない `gem.rarity` は必須です。`gem.icon` 未指定時はスキルの `icon`、さらに未指定なら通常アイコンを使用します。
 - 当たり判定、攻撃種別、倍率、状態異常、演出の詳細は `implementationId` に対応する Plugin 実装が解釈しますが、プレイヤーへ表示する値とレベル・シジルで変動する値は `params` を実装と説明文の共通正本にします。
 - `description` / `lore` の可変値は固定数値を直接記載せず、プレースホルダーで参照します。Executor側も同じ `params` を参照し、表示と実際の効果を一致させます。

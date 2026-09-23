@@ -16,3 +16,5 @@
 | `is_deleted` | BIT | × | 0 | 論理削除 |
 
 `skill_id` は外部キーにせず、MasterDataDB の skill マスタと API で照合する。スキル削除時は API の整合処理で対象個体とバインドを除去する。
+
+スキルIDを改名するときは、ゲームサーバーを停止したメンテナンス中に、`account_learned_skill.skill_id` と旧形式プリセットの生のskill IDを新IDへ移行する。移行後、新IDのスキルマスタをMasterDataDBへseedし、APIの習得スキル整合処理を再開する前に両方を完了する。間に整合処理が走ると旧IDまたは未seedの新IDを持つ習得個体が削除される。習得個体IDは維持されるため、`learned_skill_id` を参照するバインドとシジルはそのまま保持できる。今回の弓職共用スキルID変更には `migrations/20260923_rename_archer_shared_skill_ids.sql` を使う。

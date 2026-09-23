@@ -620,6 +620,117 @@
           "CK_skilltree_operation_changes_json"
         ]
       }
+    },
+    {
+      "id": "20260923_rename_archer_shared_skill_ids",
+      "fileName": "20260923_rename_archer_shared_skill_ids.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account_learned_skill",
+        "primaryKey": "PK_account_learned_skill",
+        "columns": [
+          {
+            "name": "skill_id",
+            "sqlType": "nvarchar",
+            "maxLengthBytes": 256,
+            "isNullable": false
+          },
+          {
+            "name": "version",
+            "sqlType": "int",
+            "maxLengthBytes": 4,
+            "isNullable": false
+          },
+          {
+            "name": "updated_at",
+            "sqlType": "datetime2",
+            "precision": 23,
+            "scale": 3,
+            "isNullable": false
+          },
+          {
+            "name": "updated_by",
+            "sqlType": "uniqueidentifier",
+            "maxLengthBytes": 16,
+            "isNullable": false
+          },
+          {
+            "name": "is_deleted",
+            "sqlType": "bit",
+            "maxLengthBytes": 1,
+            "isNullable": false
+          }
+        ],
+        "checkConstraints": [
+          "CK_account_learned_skill_skill_id_not_blank",
+          "CK_account_learned_skill_version"
+        ],
+        "indexes": []
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "skill_bind_preset",
+          "primaryKey": "PK_skill_bind_preset",
+          "columns": [
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "active_skill_slots_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "left_click_skill_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 256,
+              "isNullable": true
+            },
+            {
+              "name": "passive_skill_slots_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "version",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": false
+            },
+            {
+              "name": "updated_at",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "updated_by",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "is_deleted",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_skill_bind_preset_active_slots_json",
+            "CK_skill_bind_preset_passive_slots_json",
+            "CK_skill_bind_preset_version"
+          ],
+          "indexes": []
+        }
+      ]
     }
   ]
 }

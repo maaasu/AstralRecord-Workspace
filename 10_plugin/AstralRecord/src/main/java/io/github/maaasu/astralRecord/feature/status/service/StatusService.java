@@ -74,7 +74,7 @@ public class StatusService {
     private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 1.0D;
     private static final double AGILITY_EVASION_PER_POINT = 0.1D;
     private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
-    private static final String HEAL_ARROW_ALPHA_BUFF_ID = "hunter_heal_arrow_alpha";
+    private static final String HEAL_ARROW_ALPHA_BUFF_ID = "archer_heal_arrow_alpha";
     private static final double HEAL_ARROW_ALPHA_FOLLOW_UP_RATIO = 0.20D;
     /** プレイヤーシールドの既定再充填開始待機秒数です。 */
     public static final double PLAYER_SHIELD_RECHARGE_SECONDS = 30.0D;

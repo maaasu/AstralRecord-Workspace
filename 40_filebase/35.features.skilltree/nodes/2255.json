@@ -12,7 +12,7 @@
   "effects": [
     {
       "type": "skill",
-      "skillId": "hunter_heal_arrow_alpha"
+      "skillId": "archer_heal_arrow_alpha"
     }
   ],
   "unlockCondition": {

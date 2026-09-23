@@ -231,7 +231,7 @@ import io.github.maaasu.astralRecord.feature.skill.event.SpellStepSkillEventHand
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.HunterAirShiftSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
@@ -1666,7 +1666,7 @@ public final class AstralRecord extends JavaPlugin {
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
-        skillService.registerExecutor(new HunterAirShiftSkillExecutor(airShiftSkillRuntimeService));
+        skillService.registerExecutor(new ArcherAirShiftSkillExecutor(airShiftSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());

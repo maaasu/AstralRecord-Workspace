@@ -12,9 +12,9 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import org.jetbrains.annotations.NotNull;
 
-/** implementationId {@code hunter_air_shift} のハンター上位職共用エアーシフトです。 */
-public final class HunterAirShiftSkillExecutor implements SkillExecutor {
-    public static final String ID = "hunter_air_shift";
+/** implementationId {@code archer_air_shift} のシャープシューターとファントムアーチャー共用エアーシフトです。 */
+public final class ArcherAirShiftSkillExecutor implements SkillExecutor {
+    public static final String ID = "archer_air_shift";
 
     private final AirShiftSkillRuntimeService runtimeService;
 
@@ -23,7 +23,7 @@ public final class HunterAirShiftSkillExecutor implements SkillExecutor {
      *
      * @param runtimeService エアーシフト状態サービス
      */
-    public HunterAirShiftSkillExecutor(@NotNull AirShiftSkillRuntimeService runtimeService) {
+    public ArcherAirShiftSkillExecutor(@NotNull AirShiftSkillRuntimeService runtimeService) {
         this.runtimeService = runtimeService;
     }
 
