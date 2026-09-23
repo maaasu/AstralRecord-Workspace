@@ -33,7 +33,7 @@ passive:
 params:
   radius: 1.0
   durationTicks: 60
-  manaRecoveryRatio: 0.10
+  manaRecoveryRatio: 0.03
 tags:
   - passive
   - magic

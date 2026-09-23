@@ -16,9 +16,17 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +45,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
     private static final double MOVEMENT_EPSILON = 1.0E-7D;
     private static final int MAX_REFLECTIONS_PER_TICK = 4;
     private static final int PARTICLE_INTERVAL_TICKS = 2;
+    private static final float DISPLAY_SCALE = 0.28F;
     private final Map<UUID, SparkRuntime> runtimes = new HashMap<>();
 
     /**
@@ -85,7 +94,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         SkillParamReader params = context.params();
         double damageRatio = params.getDouble("damageRatio", 1.15D);
         int projectileCount = params.getInt("projectileCount", 1);
-        int durationTicks = params.getInt("durationTicks", 40);
+        int durationTicks = params.getInt("durationTicks", 30);
         double speedPerTick = params.getDouble("projectileSpeedPerSecond", 12.0D) / 20.0D;
         double hitRadius = params.getDouble("projectileHitRadius", 0.35D);
         double bounceSpeed = Math.sqrt(
@@ -95,7 +104,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         double spreadAngle = params.getDouble("spreadAngle", 30.0D);
         ActiveSkillCondition shocked = new ActiveSkillCondition(
                 ConditionType.SHOCKED,
-                params.getDouble("shockChance", 25.0D),
+                params.getDouble("shockChance", 12.0D),
                 params.getInt("shockDurationTicks", 100),
                 1.0D
         );
@@ -107,6 +116,14 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         forward.normalize();
         Location origin = context.eyeLocation().add(forward.clone().multiply(0.35D));
         List<SparkState> sparks = spreadStates(origin, forward, projectileCount, spreadAngle);
+        try {
+            for (SparkState spark : sparks) {
+                spark.spawnDisplay();
+            }
+        } catch (RuntimeException exception) {
+            sparks.forEach(SparkState::destroyDisplay);
+            throw exception;
+        }
         SparkCast cast = new SparkCast(
                 context.attacker(), origin, sparks, durationTicks, speedPerTick,
                 hitRadius, bounceSpeed, damageRatio, shocked
@@ -129,12 +146,15 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                     casterId, created.scope, 0L, 1L, Integer.MAX_VALUE,
                     tick -> advanceRuntime(created),
                     () -> {
+                        created.casts.forEach(SparkCast::destroyDisplays);
+                        created.pendingCasts.forEach(SparkCast::destroyDisplays);
                         created.casts.clear();
                         created.pendingCasts.clear();
                         runtimes.remove(casterId, created);
                     }
             );
         } catch (RuntimeException exception) {
+            created.casts.forEach(SparkCast::destroyDisplays);
             runtimes.remove(casterId, created);
             throw exception;
         }
@@ -151,8 +171,14 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
             runtime.services.tasks().cancel(runtime.casterId, runtime.scope);
             return;
         }
-        runtime.casts.removeIf(cast -> cast.origin.getWorld() != runtime.player.getWorld()
-                || cast.sparks.isEmpty() || cast.elapsedTicks >= cast.durationTicks);
+        runtime.casts.removeIf(cast -> {
+            boolean expired = cast.origin.getWorld() != runtime.player.getWorld()
+                    || cast.sparks.isEmpty() || cast.elapsedTicks >= cast.durationTicks;
+            if (expired) {
+                cast.destroyDisplays();
+            }
+            return expired;
+        });
         if (runtime.casts.isEmpty()) {
             runtime.services.tasks().cancel(runtime.casterId, runtime.scope);
             return;
@@ -167,13 +193,18 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                 for (Iterator<SparkState> sparkIterator = cast.sparks.iterator(); sparkIterator.hasNext(); ) {
                     SparkState spark = sparkIterator.next();
                     if (advanceSpark(runtime, snapshot, cast, spark)) {
+                        spark.destroyDisplay();
                         sparkIterator.remove();
-                    } else if (cast.elapsedTicks % PARTICLE_INTERVAL_TICKS == 0) {
-                        visible.add(spark.location.clone());
+                    } else {
+                        spark.updateDisplay();
+                        if (cast.elapsedTicks % PARTICLE_INTERVAL_TICKS == 0) {
+                            visible.add(spark.location.clone());
+                        }
                     }
                 }
                 cast.elapsedTicks++;
                 if (cast.sparks.isEmpty() || cast.elapsedTicks >= cast.durationTicks) {
+                    cast.destroyDisplays();
                     castIterator.remove();
                 }
             }
@@ -383,6 +414,11 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
             this.damageRatio = damageRatio;
             this.shocked = shocked;
         }
+
+        /** 命中・期限切れ・中断時に残存する雷弾の表示をすべて破棄します。 */
+        private void destroyDisplays() {
+            sparks.forEach(SparkState::destroyDisplay);
+        }
     }
 
     /** 発動ごと、弾ごとに独立した位置と速度を保持します。 */
@@ -390,6 +426,8 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         private Location location;
         private final Vector horizontal;
         private double verticalSpeed = INITIAL_DOWNWARD_SPEED;
+        @Nullable
+        private BlockDisplay display;
 
         /**
          * 発生地点と散開方向から雷弾を初期化します。
@@ -400,6 +438,51 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         private SparkState(@NotNull Location location, @NotNull Vector horizontal) {
             this.location = location;
             this.horizontal = horizontal.normalize();
+        }
+
+        /** 雷弾の位置へ小型アメジストブロックの表示Entityを生成します。 */
+        private void spawnDisplay() {
+            World world = location.getWorld();
+            if (world == null) {
+                throw new IllegalStateException("イミュレートスパークの表示worldがありません");
+            }
+            display = world.spawn(location, BlockDisplay.class, entity -> {
+                entity.setBlock(Material.AMETHYST_BLOCK.createBlockData());
+                entity.setBillboard(Display.Billboard.FIXED);
+                entity.setGravity(false);
+                entity.setInvulnerable(true);
+                entity.setPersistent(false);
+                entity.setSilent(true);
+                entity.setShadowRadius(0.0F);
+                entity.setShadowStrength(0.0F);
+                entity.setTeleportDuration(1);
+                entity.setInterpolationDuration(1);
+                entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setViewRange(32.0F);
+                entity.setTransformation(new Transformation(
+                        new Vector3f(-DISPLAY_SCALE / 2.0F, -DISPLAY_SCALE / 2.0F, -DISPLAY_SCALE / 2.0F),
+                        new Quaternionf(),
+                        new Vector3f(DISPLAY_SCALE, DISPLAY_SCALE, DISPLAY_SCALE),
+                        new Quaternionf()
+                ));
+            });
+        }
+
+        /** 生存中の表示Entityを次の雷弾位置へ追従させます。 */
+        private void updateDisplay() {
+            if (display != null && display.isValid()) {
+                display.teleport(location);
+            }
+        }
+
+        /** 表示Entityを一度だけ破棄し、参照を解放します。 */
+        private void destroyDisplay() {
+            if (display != null) {
+                if (display.isValid()) {
+                    display.remove();
+                }
+                display = null;
+            }
         }
     }
 }

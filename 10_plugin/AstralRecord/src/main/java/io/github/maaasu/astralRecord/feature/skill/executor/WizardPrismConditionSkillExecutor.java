@@ -55,8 +55,8 @@ public final class WizardPrismConditionSkillExecutor implements SkillExecutor {
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         if (Double.compare(params.getDouble("radius", Double.NaN), 1.0D) != 0
                 || params.getInt("durationTicks", 0) != 60
-                || Double.compare(params.getDouble("manaRecoveryRatio", Double.NaN), 0.10D) != 0) {
-            throw new SkillParameterException("params", "半径1m、持続60tick、最大MP回復率0.10を指定してください");
+                || Double.compare(params.getDouble("manaRecoveryRatio", Double.NaN), 0.03D) != 0) {
+            throw new SkillParameterException("params", "半径1m、持続60tick、最大MP回復率0.03を指定してください");
         }
         for (int level = 2; level <= 3; level++) {
             int expectedLevel = level;
