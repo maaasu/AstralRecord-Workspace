@@ -82,7 +82,8 @@ public final class PassiveSkillService {
         int bonus = (int) Math.floor(
             Math.max(0.0D, slotStatus)
         );
-        return Math.min(MAX_PASSIVE_SLOT_COUNT, BASE_PASSIVE_SLOT_COUNT + bonus);
+        int statusDrivenSlots = Math.min(MAX_PASSIVE_SLOT_COUNT, BASE_PASSIVE_SLOT_COUNT + bonus);
+        return presetService.passiveSkillSlotCount(player.getAccount().getUuid(), statusDrivenSlots);
     }
 
     public void start() {

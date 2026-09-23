@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
@@ -26,6 +27,7 @@ import java.util.function.Consumer;
  */
 public final class SkillBindPresetService {
     private static final int PRESET_COUNT = SkillBindPreset.PRESET_COUNT;
+    private static final int DEFAULT_UNLOCKED_PRESET_COUNT = 3;
 
     private final Plugin plugin;
     private final SkillBindPresetRepository repository;
@@ -52,14 +54,68 @@ public final class SkillBindPresetService {
     }
 
     /**
-     * アカウントのプリセット一覧を取得します。
+     * アカウントのプリセット一覧を取得し、所持する解放トークンを表示上の解放状態へ反映します。
+     * トークン由来の解放状態はAPI保存用キャッシュへ書き戻しません。
      *
      * @param accountId アカウント ID
-     * @return 1 から {@link SkillBindPreset#PRESET_COUNT} までのプリセット一覧
+     * @return 1 から {@link SkillBindPreset#PRESET_COUNT} までの実効解放状態を含むプリセット一覧
      */
     public @NotNull List<SkillBindPreset> getPresets(@NotNull UUID accountId) {
+        List<SkillBindPreset> presets = rawPresets(accountId);
+        long remainingUnlocks = Math.min(
+            PRESET_COUNT - DEFAULT_UNLOCKED_PRESET_COUNT,
+            ownedCurrencyAmount(accountId, ItemService.SKILL_PRESET_UNLOCK_TOKEN_ITEM_ID)
+        );
+        if (remainingUnlocks <= 0L) {
+            return presets;
+        }
+        List<SkillBindPreset> unlocked = new ArrayList<>(presets.size());
+        for (SkillBindPreset preset : presets) {
+            if (!preset.isUnlocked() && remainingUnlocks > 0L) {
+                unlocked.add(preset.withUnlocked(true));
+                remainingUnlocks--;
+            } else {
+                unlocked.add(preset);
+            }
+        }
+        return unlocked;
+    }
+
+    /**
+     * 所持するアクティブ枠解放トークンを、初期9枠へ加算して上限適用した枠数を返します。
+     *
+     * @param accountId 対象アカウントID
+     * @return 現在利用できる発動スキル枠数
+     */
+    public int activeSkillSlotCount(@NotNull UUID accountId) {
+        long unlockTokens = ownedCurrencyAmount(accountId, ItemService.ACTIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID);
+        return (int) Math.min(
+            SkillBindPreset.ACTIVE_SLOT_COUNT,
+            SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT + unlockTokens
+        );
+    }
+
+    /**
+     * 基礎・ステータス由来のパッシブ枠数へ所持トークンを加え、最大12枠へ制限します。
+     *
+     * @param accountId 対象アカウントID
+     * @param baseSlotCount トークン加算前に利用可能なパッシブ枠数
+     * @return 現在利用できるパッシブ枠数
+     */
+    public int passiveSkillSlotCount(@NotNull UUID accountId, int baseSlotCount) {
+        long unlockTokens = ownedCurrencyAmount(accountId, ItemService.PASSIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID);
+        int normalizedBase = Math.max(0, Math.min(SkillBindPreset.PASSIVE_SLOT_COUNT, baseSlotCount));
+        return (int) Math.min(SkillBindPreset.PASSIVE_SLOT_COUNT, normalizedBase + unlockTokens);
+    }
+
+    private @NotNull List<SkillBindPreset> rawPresets(@NotNull UUID accountId) {
         List<SkillBindPreset> cached = presetsByAccount.get(accountId);
         return cached == null ? fallbackPresets(accountId) : new ArrayList<>(cached);
+    }
+
+    private long ownedCurrencyAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        InventoryService inventoryService = localStatePersistence;
+        return inventoryService == null ? 0L : inventoryService.getCurrencyAmount(accountId, itemId);
     }
 
     public boolean hasLoadedPresets(@NotNull UUID accountId) {
@@ -225,7 +281,7 @@ public final class SkillBindPresetService {
         SkillBindPreset[] saved = new SkillBindPreset[1];
         try {
             mutateLocal(accountId, () -> {
-                SkillBindPreset existing = getPresets(accountId).get(normalizedPresetIndex - 1);
+                SkillBindPreset existing = rawPresets(accountId).get(normalizedPresetIndex - 1);
                 SkillBindPreset local = new SkillBindPreset(existing.getPresetId(), accountId,
                     normalizedPresetIndex, activeSnapshot, leftClickSnapshot, passiveSnapshot,
                     existing.isUnlocked(), false, existing.getVersion() + 1,
@@ -285,7 +341,7 @@ public final class SkillBindPresetService {
         JsonArray presets = new JsonArray();
         java.util.Set<Integer> capturedPresetIndexes = new java.util.LinkedHashSet<>();
         Map<Integer, Integer> capturedVersions = new java.util.LinkedHashMap<>();
-        for (SkillBindPreset preset : getPresets(accountId)) {
+        for (SkillBindPreset preset : rawPresets(accountId)) {
             capturedPresetIndexes.add(preset.getPresetIndex());
             capturedVersions.put(preset.getPresetIndex(), preset.getVersion());
             JsonObject value = new JsonObject();
@@ -358,7 +414,7 @@ public final class SkillBindPresetService {
                 throw new IllegalStateException("skillBindPresets acknowledgement IDs do not match the snapshot");
             }
             persistedPresetVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>()).putAll(received);
-            List<SkillBindPreset> current = getPresets(accountId);
+            List<SkillBindPreset> current = rawPresets(accountId);
             presetsByAccount.put(accountId, current.stream().map(preset -> new SkillBindPreset(
                 preset.getPresetId(), accountId, preset.getPresetIndex(), preset.getActiveSkillSlots(),
                 preset.getLeftClickSkillId(), preset.getPassiveSkillSlots(), preset.isUnlocked(), preset.isSaved(),

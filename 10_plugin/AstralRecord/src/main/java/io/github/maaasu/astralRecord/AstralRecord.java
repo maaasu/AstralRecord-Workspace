@@ -1547,6 +1547,10 @@ public final class AstralRecord extends JavaPlugin {
             if (marketService != null) {
                 marketService.clearCache();
             }
+            if (ItemService.PASSIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID.equals(entryId)
+                && passiveSkillService != null) {
+                passiveSkillService.markDirty(player);
+            }
         });
         itemAdminGuiEventHandler = new ItemAdminGuiEventHandler(
             new ItemAdminGuiView(this, itemStackFactory),

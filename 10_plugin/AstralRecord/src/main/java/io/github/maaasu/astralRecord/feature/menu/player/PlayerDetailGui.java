@@ -724,7 +724,9 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             preset.getActiveSkillSlots(),
             entries,
             permittedDefinitions,
-            SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+            skillBindPresetService == null
+                ? SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+                : skillBindPresetService.activeSkillSlotCount(target.getAccount().getUuid())
         );
         inventory.setItem(BIND_PASSIVE_PREVIOUS_SLOT, bindScrollItem("パッシブを左へ", passiveOffset > 0));
         inventory.setItem(BIND_PASSIVE_NEXT_SLOT, bindScrollItem(

@@ -18,9 +18,9 @@ public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
     private static final String ACTION_SLOT_KEY = "actionSlot";
     private static final String WEAPON_SLOT_KEY = "weaponHotbarSlot";
 
-    /** @return 初期開放済みのアクティブ枠と有効な武器枠が設定済みならtrue */
+    /** @return 永続化範囲内のアクティブ枠と有効な武器枠が設定済みならtrue */
     public boolean isComplete() {
-        return actionSlotIndex >= 0 && actionSlotIndex < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+        return actionSlotIndex >= 0 && actionSlotIndex < ACTION_SLOT_COUNT
             && weaponHotbarSlot >= 0 && weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT;
     }
 
@@ -52,7 +52,7 @@ public record CastDiskSettings(int actionSlotIndex, int weaponHotbarSlot) {
             root = new JsonObject();
         }
         JsonObject disk = new JsonObject();
-        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
+        if (settings.actionSlotIndex >= 0 && settings.actionSlotIndex < ACTION_SLOT_COUNT) {
             disk.addProperty(ACTION_SLOT_KEY, settings.actionSlotIndex);
         }
         if (settings.weaponHotbarSlot >= 0 && settings.weaponHotbarSlot < WEAPON_HOTBAR_SLOT_COUNT) {

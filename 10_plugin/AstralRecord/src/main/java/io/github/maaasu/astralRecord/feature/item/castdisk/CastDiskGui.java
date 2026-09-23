@@ -50,9 +50,15 @@ public final class CastDiskGui {
             inventory.setItem(slot, item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
         }
         List<String> actionSlots = activeSlots(player);
+        var astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
+        int enabledActionSlots = astPlayer == null
+            ? SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+            : presetService.activeSkillSlotCount(astPlayer.getAccount().getUuid());
         for (int index = 0; index < CastDiskSettings.ACTION_SLOT_COUNT; index++) {
             String skillId = index < actionSlots.size() ? actionSlots.get(index) : null;
-            inventory.setItem(ACTION_SLOT_START + index, actionItem(player, index, skillId, settings.actionSlotIndex() == index));
+            inventory.setItem(ACTION_SLOT_START + index, actionItem(
+                player, index, skillId, settings.actionSlotIndex() == index, index < enabledActionSlots
+            ));
         }
         inventory.setItem(13, item(Material.COMPARATOR, "設定内容", List.of(
             Component.text(settings.actionSlotIndex() < 0 ? "スキル枠: 未設定" : "スキル枠: " + (settings.actionSlotIndex() + 1), NamedTextColor.YELLOW),
@@ -74,8 +80,14 @@ public final class CastDiskGui {
             .findFirst().map(SkillBindPreset::getActiveSkillSlots).orElse(List.of());
     }
 
-    private @NotNull ItemStack actionItem(@NotNull Player player, int index, String skillId, boolean selected) {
-        if (index >= SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
+    private @NotNull ItemStack actionItem(
+        @NotNull Player player,
+        int index,
+        String skillId,
+        boolean selected,
+        boolean enabled
+    ) {
+        if (!enabled) {
             return item(Material.GRAY_DYE, "アクション枠 " + (index + 1) + "（未開放）",
                 List.of(Component.text("現在は使用できません", NamedTextColor.GRAY)));
         }

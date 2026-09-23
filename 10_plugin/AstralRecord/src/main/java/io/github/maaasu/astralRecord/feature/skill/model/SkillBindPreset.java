@@ -138,6 +138,19 @@ public final class SkillBindPreset {
         return unlocked;
     }
 
+    /**
+     * 解放状態だけを差し替えたプリセット表示用コピーを返します。
+     *
+     * @param unlocked 表示上の解放状態
+     * @return 他のプリセット情報を保持したコピー
+     */
+    public @NotNull SkillBindPreset withUnlocked(boolean unlocked) {
+        return new SkillBindPreset(
+            presetId, accountId, presetIndex, activeSkillSlots, leftClickSkillId,
+            passiveSkillSlots, unlocked, saved, version, selected
+        );
+    }
+
     public boolean isSaved() {
         return saved;
     }

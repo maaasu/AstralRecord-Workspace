@@ -1171,7 +1171,7 @@ public final class SkillBindGui {
             session.passiveDraft(), session, entries, permittedSkillDefinitions, "パッシブ");
         renderScrolledBindSlots(inventory, PLAYER_INVENTORY_ACTIVE_PREVIOUS_SLOT,
             PLAYER_INVENTORY_ACTIVE_SLOT_START, PLAYER_INVENTORY_ACTIVE_NEXT_SLOT, SkillBindType.ACTIVE,
-            session.activeSlotOffset(), SkillBindPreset.ACTIVE_SLOT_COUNT, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT,
+            session.activeSlotOffset(), SkillBindPreset.ACTIVE_SLOT_COUNT, session.activeSlotCount(),
             session.activeDraft(), session, entries, permittedSkillDefinitions, "アクション");
     }
 
