@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleSupplier;
 import java.util.random.RandomGenerator;
 
 /**
@@ -27,7 +28,7 @@ public class LootRollService {
      * @return 選択順を維持した抽選結果
      */
     public @NotNull List<LootRollResult> roll(@NotNull LootModel lootModel) {
-        return roll(lootModel, 100.0D, ThreadLocalRandom.current());
+        return roll(lootModel, () -> 100.0D, ThreadLocalRandom.current());
     }
 
     /**
@@ -41,18 +42,41 @@ public class LootRollService {
         @NotNull LootModel lootModel,
         double dropRatePercent
     ) {
-        return roll(lootModel, dropRatePercent, ThreadLocalRandom.current());
+        return roll(lootModel, () -> dropRatePercent, ThreadLocalRandom.current());
+    }
+
+    /**
+     * content ごとの独立確率判定でドロップ増加率を解決してルートテーブルを抽選します。
+     *
+     * @param lootModel 参照解決済みルートテーブル
+     * @param dropRatePercentResolver 各 content 判定で用いるドロップ増加率（%）の解決処理
+     * @return 選択順を維持した抽選結果
+     */
+    public @NotNull List<LootRollResult> roll(
+        @NotNull LootModel lootModel,
+        @NotNull DoubleSupplier dropRatePercentResolver
+    ) {
+        return roll(lootModel, dropRatePercentResolver, ThreadLocalRandom.current());
     }
 
     @NotNull
     List<LootRollResult> roll(@NotNull LootModel lootModel, @NotNull RandomGenerator random) {
-        return roll(lootModel, 100.0D, random);
+        return roll(lootModel, () -> 100.0D, random);
     }
 
     @NotNull
     List<LootRollResult> roll(
         @NotNull LootModel lootModel,
         double dropRatePercent,
+        @NotNull RandomGenerator random
+    ) {
+        return roll(lootModel, () -> dropRatePercent, random);
+    }
+
+    @NotNull
+    List<LootRollResult> roll(
+        @NotNull LootModel lootModel,
+        @NotNull DoubleSupplier dropRatePercentResolver,
         @NotNull RandomGenerator random
     ) {
         List<LootRollResult> rewards = new ArrayList<>();
@@ -70,7 +94,10 @@ public class LootRollService {
                 List<LootContent> successfulContents = new ArrayList<>();
                 for (LootContent content : pool.getContents()) {
                     double configuredRate = clampRate(content.getRate());
-                    double effectiveRate = calculateEffectiveRate(configuredRate, dropRatePercent);
+                    double effectiveRate = calculateEffectiveRate(
+                        configuredRate,
+                        dropRatePercentResolver.getAsDouble()
+                    );
                     if (effectiveRate >= 100.0D
                         || (effectiveRate > 0.0D && random.nextDouble(100.0D) < effectiveRate)) {
                         successfulContents.add(content);

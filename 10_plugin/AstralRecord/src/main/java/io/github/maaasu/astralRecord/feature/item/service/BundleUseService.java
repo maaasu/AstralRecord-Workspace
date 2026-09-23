@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRateCalculator;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -384,11 +385,11 @@ public class BundleUseService {
     ) {
         Map<String, Integer> rewards = new LinkedHashMap<>();
         if (lootModel != null) {
-            double dropRatePercent = StatusRateCalculator.resolveRatePercent(
-                player.getStatusSnapshot(),
-                StatusType.DROP_RATE_INCREASE
-            );
-            for (LootRollResult reward : lootRollService.roll(lootModel, dropRatePercent)) {
+            StatusSnapshot snapshot = player.getStatusSnapshot();
+            for (LootRollResult reward : lootRollService.roll(
+                lootModel,
+                () -> StatusRateCalculator.resolveRatePercent(snapshot, StatusType.DROP_RATE_INCREASE)
+            )) {
                 rewards.merge(reward.getItemId(), reward.getAmount(), Integer::sum);
             }
         }

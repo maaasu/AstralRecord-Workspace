@@ -115,6 +115,33 @@ class LootRollServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
      * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: 範囲のDROP_RATE_INCREASEを各contentの独立確率判定ごとに再ロールする。
+     */
+    @Test
+    void rollResolvesDropRateSeparatelyForEachContentChance() {
+        LootModel loot = fixedLoot(
+            2,
+            List.of(
+                new LootContent("boosted", 1, 1, 20.0D),
+                new LootContent("base_rate", 1, 1, 20.0D)
+            )
+        );
+        Deque<Double> dropRateSamples = new ArrayDeque<>(List.of(200.0D, 100.0D));
+
+        List<LootRollResult> results = new LootRollService().roll(
+            loot,
+            dropRateSamples::removeFirst,
+            new ScriptedRandom(List.of(), List.of(39.9D, 39.9D))
+        );
+
+        assertEquals(1, results.size());
+        assertEquals("boosted", results.getFirst().getItemId());
+        assertTrue(dropRateSamples.isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
      * 検証契約: roll/pick回数を閉区間から抽選し常に上限値を使わない。
      */
     @Test

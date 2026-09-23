@@ -94,13 +94,13 @@ public class MobDropService {
         ThreadLocalRandom rng = ThreadLocalRandom.current();
         StatusSnapshot snapshot = killer == null ? null : killer.getStatusSnapshot();
         double luck = killer == null ? 0.0D : resolveLuck(killer);
-        double dropRatePercent = StatusRateCalculator.resolveRatePercent(
-                snapshot,
-                StatusType.DROP_RATE_INCREASE
-        );
 
         List<MobDropResultItem> items = new ArrayList<>();
         for (MobDropItem item : drops.items()) {
+            double dropRatePercent = StatusRateCalculator.resolveRatePercent(
+                    snapshot,
+                    StatusType.DROP_RATE_INCREASE
+            );
             double effectiveRate = calculateEffectiveRate(
                     item.rate(), luck, item.luckAffected(), dropRatePercent);
             if (rng.nextDouble(0.0, 100.0) >= effectiveRate) continue;
@@ -110,7 +110,7 @@ public class MobDropService {
 
             items.add(new MobDropResultItem(item.itemId(), amount, item.rate()));
         }
-        appendLootTableDrops(items, drops.lootTable(), dropRatePercent);
+        appendLootTableDrops(items, drops.lootTable(), snapshot);
 
         int money = 0;
         MobMoneyDrop moneyConfig = drops.money();
@@ -126,7 +126,7 @@ public class MobDropService {
     private void appendLootTableDrops(
         @NotNull List<MobDropResultItem> items,
         @Nullable String lootTableId,
-        double dropRatePercent
+        @Nullable StatusSnapshot snapshot
     ) {
         if (lootService == null || lootTableId == null || lootTableId.isBlank()) {
             return;
@@ -135,7 +135,10 @@ public class MobDropService {
         if (lootModel == null) {
             return;
         }
-        for (LootRollResult reward : lootRollService.roll(lootModel, dropRatePercent)) {
+        for (LootRollResult reward : lootRollService.roll(
+                lootModel,
+                () -> StatusRateCalculator.resolveRatePercent(snapshot, StatusType.DROP_RATE_INCREASE)
+        )) {
             items.add(new MobDropResultItem(
                 reward.getItemId(),
                 reward.getAmount(),
