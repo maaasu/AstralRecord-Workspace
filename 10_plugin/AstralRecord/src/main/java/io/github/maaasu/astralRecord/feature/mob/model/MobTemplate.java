@@ -37,6 +37,7 @@ import java.util.Objects;
  * @param drops         ドロップ設定（NPC では {@code null}）
  * @param challenge     ボス挑戦設定（BOSS 以外では {@code null}）
  * @param levelProfiles 同一マスタ内のレベル別プロファイル
+ * @param commonDisplayName レベルプロファイルを適用しない共通表示名
  */
 public record MobTemplate(
         int schemaVersion,
@@ -65,8 +66,60 @@ public record MobTemplate(
         @Nullable MobDropConfig drops,
         @Nullable BossChallengeConfig challenge,
         @NotNull List<MobLevelProfile> levelProfiles,
-        @Nullable String iconTexture
+        @Nullable String iconTexture,
+        @NotNull String commonDisplayName
 ) {
+
+    /**
+     * 共通表示名を導入する前の canonical constructor 互換。
+     *
+     * @param schemaVersion スキーマバージョン
+     * @param id テンプレート ID
+     * @param category Mob カテゴリ
+     * @param displayName 表示名
+     * @param title 称号
+     * @param level レベル
+     * @param entityType Bukkit EntityType
+     * @param requestedEntityType 要求 EntityType 名
+     * @param blockMaterial block display の Material
+     * @param nameVisible ネームタグ可視性
+     * @param icon アイコン Material 名
+     * @param lore 説明文
+     * @param tags タグ
+     * @param skin スキン
+     * @param variant 外見差分
+     * @param equipment 装備
+     * @param baseStats 基礎ステータス
+     * @param shield シールド
+     * @param idle 待機設定
+     * @param damageImmune ダメージ無効
+     * @param interactions NPC interaction
+     * @param targeting ターゲット設定
+     * @param combat 戦闘設定
+     * @param drops ドロップ設定
+     * @param challenge ボス挑戦設定
+     * @param levelProfiles レベルプロファイル
+     * @param iconTexture アイコンテクスチャ
+     */
+    public MobTemplate(
+            int schemaVersion, @NotNull String id, @NotNull MobCategory category,
+            @NotNull String displayName, @Nullable String title, int level,
+            @NotNull EntityType entityType, @Nullable String requestedEntityType,
+            @Nullable Material blockMaterial, boolean nameVisible, @Nullable String icon,
+            @NotNull List<String> lore, @NotNull List<String> tags, @Nullable MobSkin skin,
+            @NotNull MobVariantConfig variant, @NotNull MobEquipmentConfig equipment,
+            @NotNull List<MobBaseStat> baseStats, @NotNull MobShieldConfig shield,
+            @NotNull MobIdleConfig idle, boolean damageImmune,
+            @NotNull MobInteractionsConfig interactions, @Nullable MobTargetingConfig targeting,
+            @Nullable MobCombatConfig combat, @Nullable MobDropConfig drops,
+            @Nullable BossChallengeConfig challenge, @NotNull List<MobLevelProfile> levelProfiles,
+            @Nullable String iconTexture
+    ) {
+        this(schemaVersion, id, category, displayName, title, level, entityType, requestedEntityType,
+                blockMaterial, nameVisible, icon, lore, tags, skin, variant, equipment, baseStats, shield,
+                idle, damageImmune, interactions, targeting, combat, drops, challenge, levelProfiles,
+                iconTexture, displayName);
+    }
 
     /** iconTexture 導入前の完全コンストラクタ互換。 */
     public MobTemplate(
@@ -262,6 +315,9 @@ public record MobTemplate(
                 .sorted(Comparator.comparingInt(MobLevelProfile::level))
                 .toList();
         iconTexture = iconTexture == null || iconTexture.isBlank() ? null : iconTexture.trim();
+        commonDisplayName = commonDisplayName == null || commonDisplayName.isBlank()
+                ? displayName
+                : commonDisplayName;
     }
 
     /**
@@ -312,21 +368,21 @@ public record MobTemplate(
     /** プロファイル一覧を付与したテンプレートを返します。 */
     public @NotNull MobTemplate withLevelProfiles(@NotNull List<MobLevelProfile> profiles) {
         return new MobTemplate(
-                schemaVersion, id, category, displayName, title, level, entityType,
-                requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
-                variant, equipment, baseStats, shield, idle, damageImmune, interactions,
-                targeting, combat, drops, challenge, profiles, iconTexture
+            schemaVersion, id, category, displayName, title, level, entityType,
+            requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
+            variant, equipment, baseStats, shield, idle, damageImmune, interactions,
+            targeting, combat, drops, challenge, profiles, iconTexture, commonDisplayName
         );
     }
 
     private @NotNull MobTemplate withProfile(@NotNull MobLevelProfile profile) {
         return new MobTemplate(
-                schemaVersion, id, category, profile.displayName(), profile.title(), profile.level(),
-                entityType, requestedEntityType, blockMaterial, profile.nameVisible(), profile.icon(),
-                profile.lore(), profile.tags(), profile.skin(), profile.variant(), profile.equipment(),
-                profile.baseStats(), profile.shield(), profile.idle(), profile.damageImmune(),
-                profile.interactions(), profile.targeting(), profile.combat(), profile.drops(),
-                profile.challenge(), levelProfiles, profile.iconTexture()
+            schemaVersion, id, category, profile.displayName(), profile.title(), profile.level(),
+            entityType, requestedEntityType, blockMaterial, profile.nameVisible(), profile.icon(),
+            profile.lore(), profile.tags(), profile.skin(), profile.variant(), profile.equipment(),
+            profile.baseStats(), profile.shield(), profile.idle(), profile.damageImmune(),
+            profile.interactions(), profile.targeting(), profile.combat(), profile.drops(),
+            profile.challenge(), levelProfiles, profile.iconTexture(), commonDisplayName
         );
     }
 }

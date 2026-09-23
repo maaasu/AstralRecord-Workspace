@@ -88,6 +88,10 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                 handleMobDetailClick(player, topInventory, event.getRawSlot());
                 return;
             }
+            if (screen == AdventureRecordGui.Screen.MOB_LEVEL_SELECT) {
+                handleMobLevelSelectClick(player, topInventory, event.getRawSlot());
+                return;
+            }
             if (screen == AdventureRecordGui.Screen.MOB_STATUS_DETAIL) {
                 handleMobStatusDetailClick(player, topInventory, event.getRawSlot());
                 return;
@@ -194,10 +198,55 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             return;
         }
         AdventureRecordService.Entry entry = gui.getMobEntry(inventory);
+        int selectedLevel = gui.getSelectedMobLevel(inventory);
+        if (entry != null && rawSlot == AdventureRecordGui.MOB_LEVEL_SELECTOR_SLOT) {
+            GuiSound.SELECT.play(player);
+            gui.openMobLevelSelection(player, entry, selectedLevel, 0);
+            return;
+        }
         StatusType.Category category = gui.getMobStatusCategoryAtSlot(rawSlot);
         if (entry != null && category != null) {
             GuiSound.SELECT.play(player);
-            gui.openMobStatusDetail(player, entry, category, 0);
+            gui.openMobStatusDetail(player, entry, category, selectedLevel, 0);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    /** Mob レベル選択 GUI のページ移動とレベル確定を処理します。 */
+    private void handleMobLevelSelectClick(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        int rawSlot
+    ) {
+        if (rawSlot == PagedGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        AdventureRecordService.Entry entry = gui.getMobEntry(inventory);
+        if (entry == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int pageIndex = gui.getPageIndex(inventory);
+        int levelCount = entry.template().levelProfiles().isEmpty()
+            ? 1
+            : entry.template().levelProfiles().size();
+        if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
+            GuiSound.PAGE.play(player);
+            gui.openMobLevelSelection(player, entry, gui.getSelectedMobLevel(inventory), pageIndex - 1);
+            return;
+        }
+        if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, levelCount)) {
+            GuiSound.PAGE.play(player);
+            gui.openMobLevelSelection(player, entry, gui.getSelectedMobLevel(inventory), pageIndex + 1);
+            return;
+        }
+        Integer selectedLevel = gui.getMobLevelAtSlot(inventory, rawSlot);
+        if (selectedLevel != null) {
+            GuiSound.SELECT.play(player);
+            gui.openMobDetail(player, entry, selectedLevel);
             return;
         }
         GuiSound.DENY.play(player);
@@ -220,15 +269,16 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             return;
         }
         int pageIndex = gui.getPageIndex(inventory);
+        int selectedLevel = gui.getSelectedMobLevel(inventory);
         int itemCount = gui.getMobStatusDetailItemCount(inventory);
         if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
             GuiSound.PAGE.play(player);
-            gui.openMobStatusDetail(player, entry, category, pageIndex - 1);
+            gui.openMobStatusDetail(player, entry, category, selectedLevel, pageIndex - 1);
             return;
         }
         if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, itemCount)) {
             GuiSound.PAGE.play(player);
-            gui.openMobStatusDetail(player, entry, category, pageIndex + 1);
+            gui.openMobStatusDetail(player, entry, category, selectedLevel, pageIndex + 1);
             return;
         }
         GuiSound.DENY.play(player);

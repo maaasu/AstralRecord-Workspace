@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
+import io.github.maaasu.astralRecord.feature.mob.model.MobLevelProfile;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -39,6 +40,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,6 +61,7 @@ public class AdventureRecordGui {
     public static final int MOB_ELEMENT_SLOT = 14;
     public static final int MOB_CONDITION_SLOT = 15;
     public static final int MOB_UTILITY_SLOT = 16;
+    public static final int MOB_LEVEL_SELECTOR_SLOT = 40;
     public static final int[] SEARCH_ITEM_SLOTS = {
         10, 11, 12, 13, 14, 15, 16,
         19, 20, 21, 22, 23, 24, 25,
@@ -116,6 +119,7 @@ public class AdventureRecordGui {
                 List.copyOf(entries),
                 superMode,
                 null,
+                0,
                 null
             ),
             SIZE,
@@ -134,7 +138,7 @@ public class AdventureRecordGui {
      */
     public void openFilter(@NotNull Player player, @NotNull AdventureRecordListType selectedType) {
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.FILTER, selectedType, 0, Set.of(), List.of(), false, null, null),
+            new Holder(Screen.FILTER, selectedType, 0, Set.of(), List.of(), false, null, 0, null),
             SIZE,
             Component.text("冒険記録のカテゴリ", NamedTextColor.AQUA)
         );
@@ -163,7 +167,7 @@ public class AdventureRecordGui {
      */
     public void openSearch(@NotNull Player player, @NotNull List<ItemStack> selectedItems) {
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.SEARCH, null, 0, selectedItemIds(selectedItems), List.of(), false, null, null),
+            new Holder(Screen.SEARCH, null, 0, selectedItemIds(selectedItems), List.of(), false, null, 0, null),
             SIZE,
             Component.text("アイテムを指定してモブを検索", NamedTextColor.AQUA)
         );
@@ -185,8 +189,8 @@ public class AdventureRecordGui {
     /**
      * 選択した Mob の情報 GUI を開きます。
      *
-     * <p>ステータスはワールド上の個体ではなく、冒険記録 entry が保持する
-     * {@link MobTemplate} の基礎値を表示します。</p>
+     * <p>ステータスとドロップはワールド上の個体ではなく、冒険記録 entry が保持する
+     * {@link MobTemplate} の最低レベルの実効値を表示します。</p>
      *
      * @param player 表示対象プレイヤー
      * @param entry 選択された冒険記録 entry
@@ -195,13 +199,57 @@ public class AdventureRecordGui {
         @NotNull Player player,
         @NotNull AdventureRecordService.Entry entry
     ) {
-        MobTemplate template = entry.template();
+        openMobDetail(player, entry, defaultMobLevel(entry));
+    }
+
+    /**
+     * 指定レベルの Mob 情報 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param entry 選択された冒険記録 entry
+     * @param selectedLevel 表示するレベル。未登録値は最低レベルへ正規化される
+     */
+    public void openMobDetail(
+        @NotNull Player player,
+        @NotNull AdventureRecordService.Entry entry,
+        int selectedLevel
+    ) {
+        MobTemplate template = resolveMobTemplate(entry, selectedLevel);
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.MOB_DETAIL, null, 0, Set.of(), List.of(), false, entry, null),
+            new Holder(Screen.MOB_DETAIL, null, 0, Set.of(), List.of(), false, entry, template.level(), null),
             SIZE,
             Component.text("モブ情報: " + mobDisplayName(template), NamedTextColor.GOLD)
         );
-        renderMobDetail(inventory, entry);
+        renderMobDetail(inventory, entry, template.level());
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * Mob のレベル選択 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param entry 選択された冒険記録 entry
+     * @param selectedLevel 現在選択中のレベル
+     * @param pageIndex 0 始まりページ
+     */
+    public void openMobLevelSelection(
+        @NotNull Player player,
+        @NotNull AdventureRecordService.Entry entry,
+        int selectedLevel,
+        int pageIndex
+    ) {
+        List<Integer> levels = mobLevels(entry);
+        int normalizedLevel = normalizeMobLevel(entry, selectedLevel);
+        int normalizedPage = pagedGuiView.normalizePage(pageIndex, levels.size());
+        Inventory inventory = Bukkit.createInventory(
+            new Holder(Screen.MOB_LEVEL_SELECT, null, normalizedPage, Set.of(), List.of(), false, entry, normalizedLevel, null),
+            PagedGuiView.SIZE,
+            Component.text("レベルを選択: " + mobDisplayName(resolveMobTemplate(entry, normalizedLevel)), NamedTextColor.GOLD)
+        );
+        List<ItemStack> items = levels.stream()
+            .map(level -> mobLevelItem(level, level == normalizedLevel))
+            .toList();
+        pagedGuiView.render(inventory, items, normalizedPage);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -211,22 +259,25 @@ public class AdventureRecordGui {
      * @param player 表示対象プレイヤー
      * @param entry 表示する冒険記録 entry
      * @param category 表示するステータスカテゴリ
+     * @param selectedLevel 表示するレベル。未登録値は最低レベルへ正規化される
      * @param pageIndex 0 始まりページ
      */
     public void openMobStatusDetail(
         @NotNull Player player,
         @NotNull AdventureRecordService.Entry entry,
         @NotNull StatusType.Category category,
+        int selectedLevel,
         int pageIndex
     ) {
-        Map<StatusType, Double> values = mobStatusValues(entry.template());
+        MobTemplate template = resolveMobTemplate(entry, selectedLevel);
+        Map<StatusType, Double> values = mobStatusValues(template);
         List<StatusType> statuses = statusesInCategory(category, values);
         int normalizedPage = pagedGuiView.normalizePage(pageIndex, statuses.size());
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.MOB_STATUS_DETAIL, null, normalizedPage, Set.of(), List.of(), false, entry, category),
+            new Holder(Screen.MOB_STATUS_DETAIL, null, normalizedPage, Set.of(), List.of(), false, entry, template.level(), category),
             PagedGuiView.SIZE,
             Component.text(
-                "モブステータス: " + mobDisplayName(entry.template()) + " / " + category.getDisplayName(),
+                "モブステータス: " + mobDisplayName(template) + " / " + category.getDisplayName(),
                 NamedTextColor.GOLD
             )
         );
@@ -307,10 +358,25 @@ public class AdventureRecordGui {
      */
     public @Nullable AdventureRecordService.Entry getMobEntry(@Nullable Inventory inventory) {
         if (inventory != null && inventory.getHolder() instanceof Holder holder
-            && (holder.screen() == Screen.MOB_DETAIL || holder.screen() == Screen.MOB_STATUS_DETAIL)) {
+            && (holder.screen() == Screen.MOB_DETAIL || holder.screen() == Screen.MOB_LEVEL_SELECT
+            || holder.screen() == Screen.MOB_STATUS_DETAIL)) {
             return holder.mobEntry();
         }
         return null;
+    }
+
+    /**
+     * Mob 詳細系 GUI が保持する選択レベルを返します。
+     *
+     * @param inventory 判定対象の GUI
+     * @return 選択レベル。対象外の場合は 0
+     */
+    public int getSelectedMobLevel(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof Holder holder
+            && holder.mobEntry() != null) {
+            return holder.selectedMobLevel();
+        }
+        return 0;
     }
 
     /**
@@ -347,6 +413,24 @@ public class AdventureRecordGui {
     }
 
     /**
+     * レベル選択 GUI のクリック位置に対応する Mob レベルを返します。
+     *
+     * @param inventory 判定対象のレベル選択 GUI
+     * @param rawSlot クリックされた raw slot
+     * @return 選択可能な Mob レベル。対象外の場合は null
+     */
+    public @Nullable Integer getMobLevelAtSlot(@Nullable Inventory inventory, int rawSlot) {
+        if (inventory == null || rawSlot < 0 || rawSlot >= PagedGuiView.CONTENT_SLOT_COUNT
+            || !(inventory.getHolder() instanceof Holder holder)
+            || holder.screen() != Screen.MOB_LEVEL_SELECT || holder.mobEntry() == null) {
+            return null;
+        }
+        int levelIndex = holder.pageIndex() * PagedGuiView.CONTENT_SLOT_COUNT + rawSlot;
+        List<Integer> levels = mobLevels(holder.mobEntry());
+        return levelIndex >= 0 && levelIndex < levels.size() ? levels.get(levelIndex) : null;
+    }
+
+    /**
      * Mob ステータス詳細 GUI の表示項目数を返します。
      *
      * @param inventory 判定対象のステータス詳細 GUI
@@ -360,7 +444,7 @@ public class AdventureRecordGui {
         }
         return statusesInCategory(
             holder.statusCategory(),
-            mobStatusValues(holder.mobEntry().template())
+            mobStatusValues(resolveMobTemplate(holder.mobEntry(), holder.selectedMobLevel()))
         ).size();
     }
 
@@ -432,7 +516,6 @@ public class AdventureRecordGui {
         MobTemplate template = entry.template();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("種類: " + categoryLabel(template.category()), NamedTextColor.AQUA));
-        lore.add(Component.text("レベル: " + template.level(), NamedTextColor.YELLOW));
         if (superMode) {
             lore.add(Component.text("管理ID: " + template.id(), NamedTextColor.DARK_GRAY));
             lore.add(Component.text(entry.defeated() ? "討伐済み" : "未討伐", entry.defeated() ? NamedTextColor.GREEN : NamedTextColor.RED));
@@ -451,7 +534,7 @@ public class AdventureRecordGui {
         }
         appendDrops(lore, template.drops());
         ItemStack itemStack = createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
-            mobDisplayName(template),
+            mobListDisplayName(template),
             NamedTextColor.WHITE
         ), lore);
         io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
@@ -460,12 +543,14 @@ public class AdventureRecordGui {
 
     private void renderMobDetail(
         @NotNull Inventory inventory,
-        @NotNull AdventureRecordService.Entry entry
+        @NotNull AdventureRecordService.Entry entry,
+        int selectedLevel
     ) {
         fill(inventory);
         inventory.setItem(PagedGuiView.BACK_SLOT, backItem());
-        inventory.setItem(MOB_HEAD_SLOT, mobProfileItem(entry));
-        Map<StatusType, Double> values = mobStatusValues(entry.template());
+        inventory.setItem(MOB_HEAD_SLOT, mobProfileItem(entry, selectedLevel));
+        inventory.setItem(MOB_LEVEL_SELECTOR_SLOT, mobLevelSelectorItem(entry, selectedLevel));
+        Map<StatusType, Double> values = mobStatusValues(resolveMobTemplate(entry, selectedLevel));
         inventory.setItem(MOB_RESOURCE_SLOT, mobCategoryItem(
             Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, values
         ));
@@ -489,11 +574,11 @@ public class AdventureRecordGui {
         ));
     }
 
-    private @NotNull ItemStack mobProfileItem(@NotNull AdventureRecordService.Entry entry) {
-        MobTemplate template = entry.template();
+    private @NotNull ItemStack mobProfileItem(@NotNull AdventureRecordService.Entry entry, int selectedLevel) {
+        MobTemplate template = resolveMobTemplate(entry, selectedLevel);
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("種類: " + categoryLabel(template.category()), NamedTextColor.AQUA));
-        lore.add(Component.text("レベル: " + template.level(), NamedTextColor.YELLOW));
+        lore.add(Component.text("現在のレベル: " + template.level(), NamedTextColor.YELLOW));
         if (template.title() != null && !template.title().isBlank()) {
             lore.add(Component.text(
                 "称号: " + ColorCodeUtil.toPlainText(template.title(), "未登録の称号"),
@@ -516,7 +601,9 @@ public class AdventureRecordGui {
             template.lore().stream().limit(4)
                 .map(line -> ColorCodeUtil.toPlainText(line, line))
                 .forEach(line -> lore.add(Component.text("- " + line, NamedTextColor.WHITE)));
+            lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
         }
+        appendDrops(lore, template.drops());
         ItemStack itemStack = createItem(
             resolveMaterial(template.icon(), Material.ZOMBIE_HEAD),
             Component.text(mobDisplayName(template), NamedTextColor.WHITE),
@@ -524,6 +611,56 @@ public class AdventureRecordGui {
         );
         io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
         return itemStack;
+    }
+
+    /** 選択済みレベルと遷移先を表示する操作アイテムを作成します。 */
+    private @NotNull ItemStack mobLevelSelectorItem(
+        @NotNull AdventureRecordService.Entry entry,
+        int selectedLevel
+    ) {
+        List<Integer> levels = mobLevels(entry);
+        return createItem(
+            Material.EXPERIENCE_BOTTLE,
+            Component.text("レベルを選択", NamedTextColor.AQUA),
+            List.of(
+                Component.text("現在: Lv. " + normalizeMobLevel(entry, selectedLevel), NamedTextColor.YELLOW),
+                Component.text("選択可能: " + levels.stream().map(level -> "Lv. " + level).collect(java.util.stream.Collectors.joining(", ")), NamedTextColor.GRAY),
+                Component.text("クリックでレベル別の情報を表示", NamedTextColor.WHITE)
+            )
+        );
+    }
+
+    /** レベル選択画面に表示するレベル項目を作成します。 */
+    private @NotNull ItemStack mobLevelItem(int level, boolean selected) {
+        return createItem(
+            selected ? Material.LIME_DYE : Material.YELLOW_DYE,
+            Component.text("Lv. " + level, selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW),
+            List.of(Component.text(selected ? "現在選択中" : "クリックでこのレベルを表示", selected ? NamedTextColor.GREEN : NamedTextColor.GRAY))
+        );
+    }
+
+    /** entry が持つ有効 Mob テンプレートを選択レベルへ解決します。 */
+    private @NotNull MobTemplate resolveMobTemplate(@NotNull AdventureRecordService.Entry entry, int selectedLevel) {
+        return entry.template().resolveLevel(selectedLevel);
+    }
+
+    /** entry のレベル候補を昇順で返します。 */
+    private @NotNull List<Integer> mobLevels(@NotNull AdventureRecordService.Entry entry) {
+        List<MobLevelProfile> profiles = entry.template().levelProfiles();
+        if (profiles.isEmpty()) {
+            return List.of(entry.template().level());
+        }
+        return profiles.stream().map(MobLevelProfile::level).sorted(Comparator.naturalOrder()).toList();
+    }
+
+    /** 未指定または未登録のレベルを最低レベルへ正規化します。 */
+    private int normalizeMobLevel(@NotNull AdventureRecordService.Entry entry, int selectedLevel) {
+        return mobLevels(entry).contains(selectedLevel) ? selectedLevel : defaultMobLevel(entry);
+    }
+
+    /** entry の最低レベルを返します。 */
+    private int defaultMobLevel(@NotNull AdventureRecordService.Entry entry) {
+        return mobLevels(entry).getFirst();
     }
 
     private @NotNull ItemStack mobCategoryItem(
@@ -611,6 +748,11 @@ public class AdventureRecordGui {
 
     private @NotNull String mobDisplayName(@NotNull MobTemplate template) {
         return ColorCodeUtil.toPlainText(template.displayName(), "未登録のモブ");
+    }
+
+    /** 冒険記録一覧用に、レベルプロファイルを適用しない共通名を返します。 */
+    private @NotNull String mobListDisplayName(@NotNull MobTemplate template) {
+        return ColorCodeUtil.toPlainText(template.commonDisplayName(), "未登録のモブ");
     }
 
     private void renderListControls(
@@ -792,6 +934,7 @@ public class AdventureRecordGui {
     public enum Screen {
         MOB_LIST,
         MOB_DETAIL,
+        MOB_LEVEL_SELECT,
         MOB_STATUS_DETAIL,
         SEARCH,
         FILTER
@@ -805,6 +948,7 @@ public class AdventureRecordGui {
         @NotNull List<AdventureRecordService.Entry> entries,
         boolean superMode,
         @Nullable AdventureRecordService.Entry mobEntry,
+        int selectedMobLevel,
         @Nullable StatusType.Category statusCategory
     ) implements HotbarShortcutGuiHolder {
         @Override
@@ -816,12 +960,16 @@ public class AdventureRecordGui {
         public @NotNull String getNavigationId() {
             if (screen == Screen.MOB_DETAIL) {
                 String mobId = mobEntry == null ? "" : mobEntry.template().id();
-                return "adventure-record:mob-detail:" + mobId;
+                return "adventure-record:mob-detail:" + mobId + ":" + selectedMobLevel;
+            }
+            if (screen == Screen.MOB_LEVEL_SELECT) {
+                String mobId = mobEntry == null ? "" : mobEntry.template().id();
+                return "adventure-record:mob-level-select:" + mobId;
             }
             if (screen == Screen.MOB_STATUS_DETAIL) {
                 String mobId = mobEntry == null ? "" : mobEntry.template().id();
                 String category = statusCategory == null ? "" : ":" + statusCategory.name();
-                return "adventure-record:mob-status-detail:" + mobId + category;
+                return "adventure-record:mob-status-detail:" + mobId + ":" + selectedMobLevel + category;
             }
             if (screen == Screen.FILTER || (screen == Screen.MOB_LIST && listType != AdventureRecordListType.SEARCH)) {
                 return "adventure-record:mob-list";
