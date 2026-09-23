@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardSelfHealExecutor;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -36,7 +37,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
-     * @return 33個の executor
+     * @return 34個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -47,12 +48,13 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(33);
+        List<SkillExecutor> executors = new ArrayList<>(34);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.add(new WizardMeteorExecutor(services));
+        executors.add(new WizardSelfHealExecutor(services));
         executors.addAll(PaladinSkillExecutorCatalog.create(
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));

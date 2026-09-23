@@ -1,0 +1,33 @@
+# design:
+#   motif: "魔術 / 自己治癒"
+#   progression: 2
+schemaVersion: 1
+id: wizard_self_heal
+type: SKILL
+implementationId: wizard_self_heal
+name: "&dセルフヒール"
+description: "&7自身の傷を癒す回復魔法。"
+icon: APPLE
+lore:
+  - "&7自身の最大HPの{skill.healPercent}%を回復する。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 33
+castTimeTicks: 4
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { healPercent: 5 } }
+  - { level: 3, paramDeltas: { healPercent: 5 } }
+  - { level: 4, paramDeltas: { healPercent: 5 } }
+  - { level: 5, paramDeltas: { healPercent: 5 } }
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: block.beacon.power_select
+params:
+  healPercent: 25
+tags:
+  - active
+  - magic
+  - support

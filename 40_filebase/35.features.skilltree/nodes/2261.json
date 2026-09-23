@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2261",
+  "name": "&dセルフヒール",
+  "icon": "APPLE",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_self_heal"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}
