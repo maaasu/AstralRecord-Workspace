@@ -133,8 +133,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5848);
             return false;
         }
-        int presetIndex = presetService.selectedPresetIndex(astPlayer.getAccount().getUuid());
-        SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), presetIndex);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        int presetIndex = presetService.selectedPresetIndex(accountId);
+        SkillBindSession session = new SkillBindSession(
+            presetService.getPresets(accountId), presetIndex, presetService.activeSkillSlotCount(accountId)
+        );
         if (!session.selectedPreset().isUnlocked()) session.loadPreset(1);
         presetService.selectPreset(astPlayer.getAccount().getUuid(), session.selectedPresetIndex());
         // 合成画面からコマンド等で開き直す場合も、表示予約していた素材を先に GUI へ復元する。
@@ -673,7 +676,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         return selected == SkillBindType.PASSIVE
             ? session.selectedBindSlotIndex() < passiveSkillService.activePassiveSlotCount(player)
-            : session.selectedBindSlotIndex() < SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT;
+            : session.selectedBindSlotIndex() < session.activeSlotCount();
     }
 
     /** 既存の超過バインド維持と解除だけを許可し、新規設定・置換を元へ戻します。 */
@@ -941,7 +944,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             && slot < SkillBindGui.PLAYER_INVENTORY_ACTIVE_SLOT_START + SkillBindGui.PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT) {
             handleBindSlotClick(player, session, SkillBindType.ACTIVE,
                 session.activeSlotOffset() + slot - SkillBindGui.PLAYER_INVENTORY_ACTIVE_SLOT_START,
-                page, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
+                page, session.activeSlotCount());
             return;
         }
         GuiSound.DENY.play(player);

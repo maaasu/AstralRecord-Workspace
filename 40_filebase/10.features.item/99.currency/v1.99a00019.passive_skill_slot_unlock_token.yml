@@ -1,0 +1,19 @@
+# design:
+#   motif: "技能 / パッシブ枠拡張許可証"
+#   progression: 0
+schemaVersion: 1
+id: 99a00019
+category: currency
+name: "&9パッシブスロット解放トークン"
+icon: LAPIS_BLOCK
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7所持数1個につき、パッシブスロットを1枠解放します。"
+  - "&e最大12枠まで効果を発揮します。"
+unTradeable: true
+unSellable: true
+currency:
+  type: PASSIVE_SKILL_SLOT_UNLOCK
+  group: skill_capacity

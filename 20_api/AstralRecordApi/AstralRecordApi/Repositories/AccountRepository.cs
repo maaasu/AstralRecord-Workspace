@@ -327,6 +327,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 WHERE [uuid] = {sourceUuid}
                    OR ([user_id] = {targetUserId} AND [slot_index] = {targetSlotIndex} AND [is_deleted] = 0)
                 ORDER BY [uuid]
+                OFFSET 0 ROWS
                 """)
             : dbContext.Accounts.Where(account => account.Uuid == sourceUuid
                 || (account.UserId == targetUserId && account.SlotIndex == targetSlotIndex && !account.IsDeleted));

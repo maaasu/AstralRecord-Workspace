@@ -11,6 +11,7 @@ import java.util.List;
  */
 public final class SkillBindSession {
     private final List<SkillBindPreset> presets;
+    private final int activeSlotCount;
     private int selectedPresetIndex;
     private List<String> activeDraft;
     private String leftClickDraft;
@@ -25,11 +26,27 @@ public final class SkillBindSession {
     private @Nullable String processingSkillId;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
-        this(presets, 1);
+        this(presets, 1, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
     }
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets, int initialPresetIndex) {
+        this(presets, initialPresetIndex, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
+    }
+
+    /**
+     * 現在利用できる発動枠数を持つスキルバインド編集セッションを生成します。
+     *
+     * @param presets 編集対象のプリセット
+     * @param initialPresetIndex 初期選択プリセット番号
+     * @param activeSlotCount 現在利用できる発動枠数
+     */
+    public SkillBindSession(
+        @NotNull List<SkillBindPreset> presets,
+        int initialPresetIndex,
+        int activeSlotCount
+    ) {
         this.presets = presets;
+        this.activeSlotCount = Math.max(0, Math.min(activeSlotCount, SkillBindPreset.ACTIVE_SLOT_COUNT));
         int safePresetIndex = Math.max(1, Math.min(initialPresetIndex, presets.size()));
         this.selectedPresetIndex = safePresetIndex;
         loadPreset(safePresetIndex);
@@ -41,6 +58,11 @@ public final class SkillBindSession {
 
     public int selectedPresetIndex() {
         return selectedPresetIndex;
+    }
+
+    /** 現在利用できる発動枠数を返します。 */
+    public int activeSlotCount() {
+        return activeSlotCount;
     }
 
     /**
@@ -212,7 +234,7 @@ public final class SkillBindSession {
             targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
             targetIndex = targetType == SkillBindType.PASSIVE
                 ? findNextFreeSlot(passiveDraft, availablePassiveSlotCount)
-                : findNextFreeSlot(activeDraft, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
+                : findNextFreeSlot(activeDraft, activeSlotCount);
             if (targetIndex < 0 && targetType == SkillBindType.ACTIVE && isLeftClickUnassigned()) {
                 targetType = SkillBindType.LEFT_CLICK;
                 targetIndex = 0;
@@ -225,7 +247,7 @@ public final class SkillBindSession {
             return false;
         }
         if (targetType == SkillBindType.ACTIVE
-            && targetIndex >= Math.max(0, Math.min(SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT, activeDraft.size()))) {
+            && targetIndex >= Math.max(0, Math.min(activeSlotCount, activeDraft.size()))) {
             return false;
         }
         if (targetType == SkillBindType.PASSIVE

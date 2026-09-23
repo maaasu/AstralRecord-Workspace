@@ -6,12 +6,15 @@ import io.github.maaasu.astralRecord.feature.account.repository.AccountManagemen
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -70,9 +73,25 @@ public final class AccountUuidCommand extends AstCommand {
         }));
     }
 
-    /** UUIDを名称・スロットとともに表示します。 */
-    private void display(CommandSender sender, AccountModel account) {
+    /**
+     * UUIDを名称・スロットとともに表示します。
+     * プレイヤーにはUUID部分だけをクリックでコピーできるComponentとして送信します。
+     *
+     * @param sender 出力先
+     * @param account 表示対象アカウント
+     */
+    private void display(@NotNull CommandSender sender, @NotNull AccountModel account) {
+        String uuid = account.getUuid().toString();
+        if (sender instanceof Player player) {
+            Component copyableUuid = Component.text(uuid)
+                .clickEvent(ClickEvent.copyToClipboard(uuid));
+            Component message = PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_7420.getId(),
+                    account.getAccountName(), account.getSlotIndex(), uuid)
+                .replaceText(builder -> builder.matchLiteral(uuid).replacement(copyableUuid));
+            PlayerMessageService.getInstance().sendComponent(player, message);
+            return;
+        }
         sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_7420.getId(),
-            account.getAccountName(), account.getSlotIndex(), account.getUuid()));
+            account.getAccountName(), account.getSlotIndex(), uuid));
     }
 }

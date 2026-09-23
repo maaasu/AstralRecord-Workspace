@@ -115,7 +115,8 @@ public final class CastDiskUseService {
         CurrentDisk disk = findCurrentDisk(player);
         if (disk == null || !isSkillDisk(disk.model())) return;
         CastDiskSettings settings = CastDiskSettings.read(disk.metadataJson());
-        if (!settings.isComplete()) {
+        if (!settings.isComplete()
+            || settings.actionSlotIndex() >= actionRingService.activeSkillSlotCount(player)) {
             openConfiguration(player, disk);
             return;
         }
@@ -154,7 +155,7 @@ public final class CastDiskUseService {
         CastDiskSettings updated;
         if (rawSlot >= CastDiskGui.ACTION_SLOT_START
             && rawSlot < CastDiskGui.ACTION_SLOT_START + CastDiskSettings.ACTION_SLOT_COUNT) {
-            if (rawSlot - CastDiskGui.ACTION_SLOT_START >= io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT) {
+            if (rawSlot - CastDiskGui.ACTION_SLOT_START >= actionRingService.activeSkillSlotCount(astPlayer)) {
                 GuiSound.DENY.play(player);
                 return;
             }

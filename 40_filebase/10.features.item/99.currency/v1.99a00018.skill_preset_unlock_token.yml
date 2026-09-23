@@ -1,0 +1,19 @@
+# design:
+#   motif: "技能 / プリセット拡張許可証"
+#   progression: 0
+schemaVersion: 1
+id: 99a00018
+category: currency
+name: "&bスキルプリセット解放トークン"
+icon: LIGHT_BLUE_DYE
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7所持数1個につき、スキルプリセットを1つ解放します。"
+  - "&e最大6個分まで効果を発揮します。"
+unTradeable: true
+unSellable: true
+currency:
+  type: SKILL_PRESET_UNLOCK
+  group: skill_capacity

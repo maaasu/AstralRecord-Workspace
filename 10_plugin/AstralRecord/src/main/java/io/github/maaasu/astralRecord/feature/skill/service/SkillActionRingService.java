@@ -607,6 +607,16 @@ public final class SkillActionRingService {
     }
 
     /**
+     * 対象アカウントが現在利用できる発動スキル枠数を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 所持する拡張トークンを反映した発動枠数
+     */
+    public int activeSkillSlotCount(@NotNull AstPlayer astPlayer) {
+        return presetService.activeSkillSlotCount(astPlayer.getAccount().getUuid());
+    }
+
+    /**
      * 指定したアクションスロットを武器で発動し、実際のスキル実行完了時に結果を通知します。
      * 詠唱時間がある場合、戻り値は詠唱開始の結果であり、完了通知は後から呼び出されます。
      *
@@ -622,7 +632,7 @@ public final class SkillActionRingService {
         int weaponHotbarSlot,
         @Nullable Consumer<SkillCastResult> completionListener
     ) {
-        if (actionSlotIndex < 0 || actionSlotIndex >= SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT
+        if (actionSlotIndex < 0 || actionSlotIndex >= activeSkillSlotCount(astPlayer)
             || weaponHotbarSlot < 0 || weaponHotbarSlot > 8) {
             return false;
         }
