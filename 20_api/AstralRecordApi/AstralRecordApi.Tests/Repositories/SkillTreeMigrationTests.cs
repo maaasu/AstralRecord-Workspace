@@ -1,5 +1,8 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
+using AstralRecordApi.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -10,6 +13,46 @@ public sealed class SkillTreeMigrationTests
     private const string AdditiveCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"gain","pointType":"PASSIVE_POINT","pointCost":2,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"bonus","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"gain"},{"nodeId":"bonus"}],"edges":["root->gain","gain->bonus"],"classes":{}}""";
     private const string ClassSourceCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"class","pointType":"CLASS_POINT","pointCost":2,"unlockCondition":{"classId":"adventurer","playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"class"}],"edges":["root->class"],"classes":{"adventurer":{"classId":"adventurer"}}}""";
     private const string ClassTargetCanonical = """{"rootNodeId":"root","nodes":[{"nodeId":"root","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}},{"nodeId":"class","pointType":"CLASS_POINT","pointCost":2,"unlockCondition":{"classId":"adventurer","playerLevel":0}},{"nodeId":"bonus","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}],"positions":[{"nodeId":"root"},{"nodeId":"class"},{"nodeId":"bonus"}],"edges":["root->class","class->bonus"],"classes":{"adventurer":{"classId":"adventurer"}}}""";
+
+    [Theory]
+    [InlineData("displayName", true)]
+    [InlineData("usableSkills", true)]
+    [InlineData("unrelatedClass", true)]
+    [InlineData("classId", false)]
+    [InlineData("playerLevel", false)]
+    [InlineData("unknownCondition", false)]
+    [InlineData("removedConsumedClass", false)]
+    [InlineData("pointCost", false)]
+    [InlineData("disconnected", false)]
+    public void MigrationComparesProgressContractsRatherThanDisplayOrWholeClassDefinitions(string change, bool allowed)
+    {
+        var source = JsonNode.Parse(ClassSourceCanonical)!;
+        source["nodes"]![1]!["unlockCondition"]!["classDisplayName"] = "Before";
+        var target = source.DeepClone();
+        var condition = target["nodes"]![1]!["unlockCondition"]!;
+        switch (change)
+        {
+            case "displayName": condition["classDisplayName"] = "After"; break;
+            case "usableSkills": target["classes"]!["adventurer"]!["usableSkills"] = JsonNode.Parse("[\"new-skill\"]"); break;
+            case "unrelatedClass": target["classes"]!["other"] = new JsonObject { ["name"] = "Other" }; break;
+            case "classId": condition["classId"] = "other"; break;
+            case "playerLevel": condition["playerLevel"] = 5; break;
+            case "unknownCondition": condition["futureRequirement"] = true; break;
+            case "removedConsumedClass": target["classes"] = new JsonObject(); break;
+            case "pointCost": target["nodes"]![1]!["pointCost"] = 3; break;
+            case "disconnected": target["edges"] = new JsonArray(); break;
+            default: throw new ArgumentOutOfRangeException(nameof(change));
+        }
+        AccountSkillTreeUnlockedNodeEntity[] unlocked =
+        [
+            new() { NodeId = "root" },
+            new() { NodeId = "class", ConsumedClassId = "adventurer" },
+        ];
+        var refunds = SkillTreeOperationRepository.ValidateRetirementMigration(
+            source.ToJsonString(), target.ToJsonString(), unlocked, []);
+        if (allowed) Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<SkillTreeMigrationRefund>>(refunds));
+        else Assert.Null(refunds);
+    }
 
     [Theory]
     [InlineData(false)]

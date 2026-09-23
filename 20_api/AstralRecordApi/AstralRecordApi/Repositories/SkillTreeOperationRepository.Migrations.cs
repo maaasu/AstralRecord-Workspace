@@ -101,7 +101,10 @@ public sealed partial class SkillTreeOperationRepository
         return Hash(JsonSerializer.Serialize(new { accountId, request = legacyRequest }));
     }
 
-    /// <summary>再課金しない保持・明示除去だけを検証する。ノード追加とCP付替えは許可しない。</summary>
+    /// <summary>
+    /// 再課金しない保持・明示除去だけを検証する。ノード追加とCP付替えは許可しない。
+    /// 職業は消費元IDの存続を検証し、表示・能力・使用可能スキル等の定義全体は比較しない。
+    /// </summary>
     internal static IReadOnlyList<SkillTreeMigrationRefund>? ValidateRetirementMigration(string sourceJson, string targetJson,
         IEnumerable<AccountSkillTreeUnlockedNodeEntity> unlocked, IReadOnlyList<string> removedIds,
         IReadOnlyDictionary<string, string>? consumedClassAssignments = null)
@@ -142,12 +145,13 @@ public sealed partial class SkillTreeOperationRepository
                 }
                 if (!newNodes.TryGetValue(row.NodeId, out var target) || !positions.Contains(row.NodeId)
                     || target.GetProperty("pointType").GetString() != kind || target.GetProperty("pointCost").GetInt32() != cost
-                    || !JsonElement.DeepEquals(oldNode.GetProperty("unlockCondition"), target.GetProperty("unlockCondition"))) return null;
+                    || !MigrationUnlockConditionsMatch(oldNode.GetProperty("unlockCondition"), target.GetProperty("unlockCondition"))) return null;
                 if (kind == "CLASS_POINT" && cost > 0)
                 {
                     if (consumedClassId is null || !newRoot.TryGetProperty("classes", out var classes)
                         || !classes.TryGetProperty(consumedClassId, out _)) return null;
-                    if (oldRoot.TryGetProperty("classes", out var oldClasses) && !JsonElement.DeepEquals(oldClasses, classes)) return null;
+                    // 保存済みCP消費はノードのコストと消費元IDで決まる。
+                    // 無関係な職業や使用可能スキル・表示・能力の変更で保持移行を拒否しない。
                     var fixedSource = target.GetProperty("unlockCondition").GetProperty("classId");
                     if (fixedSource.ValueKind == JsonValueKind.String && fixedSource.GetString() != consumedClassId) return null;
                 }
@@ -173,5 +177,22 @@ public sealed partial class SkillTreeOperationRepository
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException)
         { return null; }
+    }
+
+    /// <summary>
+    /// 解放条件の表示名だけを比較対象から除く。職業ID・必要レベルと未知の条件項目は維持比較し、
+    /// 将来追加された条件を表示用項目とみなして無条件に許容しない。
+    /// </summary>
+    private static bool MigrationUnlockConditionsMatch(JsonElement source, JsonElement target)
+    {
+        if (source.ValueKind != JsonValueKind.Object || target.ValueKind != JsonValueKind.Object) return false;
+        var oldConditions = source.EnumerateObject()
+            .Where(property => property.Name != "classDisplayName")
+            .ToDictionary(property => property.Name, property => property.Value, StringComparer.Ordinal);
+        var newConditions = target.EnumerateObject()
+            .Where(property => property.Name != "classDisplayName")
+            .ToDictionary(property => property.Name, property => property.Value, StringComparer.Ordinal);
+        return oldConditions.Count == newConditions.Count && oldConditions.All(property =>
+            newConditions.TryGetValue(property.Key, out var value) && JsonElement.DeepEquals(property.Value, value));
     }
 }
