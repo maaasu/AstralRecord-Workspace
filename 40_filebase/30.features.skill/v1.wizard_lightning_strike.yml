@@ -32,7 +32,6 @@ tags:
   - passive
   - magic
   - lightning
-  - shocked
 # behavior:
 #   trigger: "自身の攻撃によるSHOCKEDの新規付与・再付与成功時に、付与対象が自身から半径30m以内ならMPを消費して発動する。"
 #   impact: "対象1体へMAGIC/LIGHTNINGの基礎倍率150%を1回適用する。落雷は見た目と音だけで、バニラの追加ダメージや火災は発生しない。"
