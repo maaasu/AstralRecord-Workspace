@@ -1,0 +1,40 @@
+# design:
+#   motif: "プリズム / 状態異常の魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: wizard_prism_condition
+type: SKILL
+implementationId: wizard_prism_condition
+name: "&dプリズムコンディション"
+description: "&7状態異常を魔力の回復へ変えるパッシブ。"
+icon: MAGENTA_CARPET
+lore:
+  - "&7自身の攻撃で状態異常を付与・更新すると、その場所に半径{skill.radius}mの魔法陣を作る。"
+  - "&7魔法陣は{skill.durationTicks:seconds}秒間表示される。"
+  - "&7範囲内のプレイヤー1人のMPを最大MPの{skill.manaRecoveryRatio:percent}%回復する。"
+  - "&7MPが実際に回復したとき魔法陣は消滅する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 3
+levels:
+  - level: 2
+    paramDeltas: { radius: 1.0, durationTicks: 60.0 }
+  - level: 3
+    paramDeltas: { radius: 1.0, durationTicks: 60.0 }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: []
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+passive:
+  bindRequired: true
+params:
+  radius: 1.0
+  durationTicks: 60
+  manaRecoveryRatio: 0.10
+tags:
+  - passive
+  - magic
+  - support

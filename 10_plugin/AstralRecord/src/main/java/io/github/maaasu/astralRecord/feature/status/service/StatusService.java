@@ -881,6 +881,26 @@ public class StatusService {
     }
 
     /**
+     * 支援力を加えず指定量だけMPを回復します。回復阻害と最大MPによる上限は適用します。
+     *
+     * @param player 回復対象プレイヤー
+     * @param amount 固定の回復要求量
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot recoverFixedMp(@NotNull AstPlayer player, double amount) {
+        StatusSnapshot snapshot = getStatus(player);
+        if (!(amount > 0.0D) || !Double.isFinite(amount) || isHealingBlocked(player)) {
+            return snapshot;
+        }
+        StatusSnapshot updated = snapshot.withCurrentValues(
+            snapshot.getCurrentHp(),
+            snapshot.getCurrentMp() + amount
+        );
+        player.setStatusSnapshot(updated);
+        return updated;
+    }
+
+    /**
      * 現在エネルギーを減少させます。
      *
      * @param player 対象プレイヤー

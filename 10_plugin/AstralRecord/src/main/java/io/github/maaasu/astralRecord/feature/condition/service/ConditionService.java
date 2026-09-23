@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 /** プレイヤーと Mob の状態異常をメモリ上で管理します。 */
 public final class ConditionService {
@@ -38,6 +39,7 @@ public final class ConditionService {
     private final ConditionDisplayService displayService;
     private final PlayerDeathService playerDeathService;
     private StatusService statusService;
+    private Consumer<ConditionApplyRequest> appliedListener;
 
     public ConditionService(
             @NotNull ConditionDisplayService displayService,
@@ -50,6 +52,16 @@ public final class ConditionService {
     /** 状態異常による移動速度補正を StatusService に反映できるよう関連付けます。 */
     public void setStatusService(@Nullable StatusService statusService) {
         this.statusService = statusService;
+    }
+
+    /**
+     * 成功した状態異常の付与・更新を通知する処理を設定します。
+     * Listenerには付与成功後の要求だけを同期的に渡し、{@code null} で通知を解除します。
+     *
+     * @param appliedListener 付与成功時の通知先。解除するときは {@code null}
+     */
+    public void setAppliedListener(@Nullable Consumer<ConditionApplyRequest> appliedListener) {
+        this.appliedListener = appliedListener;
     }
 
     /**
@@ -84,6 +96,9 @@ public final class ConditionService {
 
         refreshConditionDependentStatus(request.target());
         displayService.showApplied(next, getActiveConditions(request.target()));
+        if (appliedListener != null) {
+            appliedListener.accept(request);
+        }
         return existing == null ? ConditionApplyResult.applied(next) : ConditionApplyResult.updated(next);
     }
 

@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2264",
+  "name": "&dプリズムコンディション",
+  "icon": "MAGENTA_CARPET",
+  "tags": ["resource", "mana", "astral"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_prism_condition"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

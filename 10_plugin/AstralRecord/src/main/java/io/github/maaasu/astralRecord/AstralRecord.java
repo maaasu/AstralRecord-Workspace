@@ -234,6 +234,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldR
 import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
@@ -257,6 +258,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolySmiteRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.WizardPrismConditionRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
@@ -468,6 +470,7 @@ public final class AstralRecord extends JavaPlugin {
     private AirShiftSkillRuntimeService airShiftSkillRuntimeService;
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
+    private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
     private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
@@ -893,6 +896,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (arcaneFlowSkillRuntimeService != null) {
             arcaneFlowSkillRuntimeService.clearAll();
+        }
+        if (wizardPrismConditionRuntimeService != null) {
+            wizardPrismConditionRuntimeService.clearAll();
         }
         if (bastionStrikeSkillRuntimeService != null) {
             bastionStrikeSkillRuntimeService.clearAll();
@@ -1652,6 +1658,11 @@ public final class AstralRecord extends JavaPlugin {
             guideService
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
+        wizardPrismConditionRuntimeService = new WizardPrismConditionRuntimeService(
+            this, statusService, particleDisplayService
+        );
+        conditionService.setAppliedListener(wizardPrismConditionRuntimeService::onConditionApplied);
+        skillService.registerExecutor(new WizardPrismConditionSkillExecutor(wizardPrismConditionRuntimeService));
         normalAttackDegradationService = new NormalAttackDegradationService(statusService);
         paladinHolySmiteRuntimeService = new PaladinHolySmiteRuntimeService();
         paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(
@@ -2135,6 +2146,7 @@ public final class AstralRecord extends JavaPlugin {
                 justDodgeSkillRuntimeService.clearPlayer(playerId);
                 spellStepSkillRuntimeService.clearPlayer(playerId);
                 arcaneFlowSkillRuntimeService.clearPlayer(playerId);
+                wizardPrismConditionRuntimeService.clearPlayer(playerId);
                 bastionStrikeSkillRuntimeService.clearPlayer(playerId);
                 paladinHolyFieldRuntimeService.end(playerId);
                 normalAttackDegradationService.clearPlayer(playerId);
