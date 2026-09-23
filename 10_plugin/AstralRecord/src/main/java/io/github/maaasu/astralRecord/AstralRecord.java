@@ -2126,22 +2126,26 @@ public final class AstralRecord extends JavaPlugin {
         });
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
-            passiveSkillService.onPlayerQuit(player);
-            activeSkillLifecycleService.clearAll(playerId);
-            meditationSkillRuntimeService.interrupt(playerId);
-            justDodgeSkillRuntimeService.clearPlayer(playerId);
-            airShiftSkillRuntimeService.clearPlayer(playerId);
-            spellStepSkillRuntimeService.clearPlayer(playerId);
-            arcaneFlowSkillRuntimeService.clearPlayer(playerId);
-            bastionStrikeSkillRuntimeService.clearPlayer(playerId);
-            paladinHolyFieldRuntimeService.end(playerId);
-            normalAttackDegradationService.clearPlayer(playerId);
-            conditionService.clearAll(AstEntity.player(player));
-            skillActionRingHoldService.cancel(player.getBukkit());
-            skillActionRingService.close(player.getBukkit());
-            skillTreeService.restorePlayerVisibility(player.getBukkit());
-            skillTreeService.clearPlayerPresentation(player.getBukkit());
-            statusService.clearShieldRuntimeState(player);
+            try {
+                passiveSkillService.onPlayerQuit(player);
+                activeSkillLifecycleService.clearAll(playerId);
+                meditationSkillRuntimeService.interrupt(playerId);
+                justDodgeSkillRuntimeService.clearPlayer(playerId);
+                spellStepSkillRuntimeService.clearPlayer(playerId);
+                arcaneFlowSkillRuntimeService.clearPlayer(playerId);
+                bastionStrikeSkillRuntimeService.clearPlayer(playerId);
+                paladinHolyFieldRuntimeService.end(playerId);
+                normalAttackDegradationService.clearPlayer(playerId);
+                conditionService.clearAll(AstEntity.player(player));
+                skillActionRingHoldService.cancel(player.getBukkit());
+                skillActionRingService.close(player.getBukkit());
+                skillTreeService.restorePlayerVisibility(player.getBukkit());
+                skillTreeService.clearPlayerPresentation(player.getBukkit());
+                statusService.clearShieldRuntimeState(player);
+            } finally {
+                // 先行する解除処理が失敗しても、UUID 単位のエアシフト設定は必ず破棄する。
+                airShiftSkillRuntimeService.clearPlayer(playerId);
+            }
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
