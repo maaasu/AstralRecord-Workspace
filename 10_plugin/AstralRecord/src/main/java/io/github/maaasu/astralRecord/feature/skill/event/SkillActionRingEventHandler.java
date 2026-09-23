@@ -67,12 +67,14 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
             && (context.family() == InputFamily.HOTBAR_SLOT
                 || context.family() == InputFamily.RIGHT_CLICK
                 || context.family() == InputFamily.LEFT_CLICK)) {
-            return List.of(candidate(
+            return List.of(new PlayerInputCandidate(
                 "skill-action-ring-hold-guard",
+                InteractionTier.EXCLUSIVE_CONTEXT,
+                0.0D,
                 InteractionCandidateOrder.OPEN_ACTION_RING,
-                contextPlayer,
-                () -> {
-                }
+                contextPlayer.getUniqueId().toString(),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> actionRingHoldService.cancelAndClose(contextPlayer)
             ));
         }
         if (context.family() == InputFamily.HOTBAR_SLOT) {
@@ -82,6 +84,9 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
                     InteractionCandidateOrder.OPEN_ACTION_RING,
                     contextPlayer,
                     () -> {
+                        if (actionRingService.isWaitingForCast(contextPlayer)) {
+                            actionRingService.close(contextPlayer);
+                        }
                     }
                 ))
                 : List.of();

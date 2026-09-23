@@ -143,6 +143,17 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
     }
 
     /**
+     * 長押し待機を先に破棄してからリングを閉じます。
+     * リング側の表示 session が既に消えていても解除待機を残しません。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void cancelAndClose(@NotNull Player player) {
+        cancel(player);
+        actionRingService.close(player);
+    }
+
+    /**
      * ProtocolLib listener と全解除待機を停止します。
      */
     public void stop() {
@@ -156,7 +167,7 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
             return;
         }
         event.setCancelled(true);
-        actionRingService.close(event.getPlayer());
+        cancelAndClose(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -165,7 +176,7 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
             return;
         }
         event.setCancelled(true);
-        actionRingService.close(event.getPlayer());
+        cancelAndClose(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -174,33 +185,33 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
             return;
         }
         event.setCancelled(true);
-        actionRingService.close(event.getPlayer());
+        cancelAndClose(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
         if (event.getPlayer() instanceof Player player && isHolding(player)) {
-            actionRingService.close(player);
+            cancelAndClose(player);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         if (isHolding(event.getPlayer())) {
-            actionRingService.close(event.getPlayer());
+            cancelAndClose(event.getPlayer());
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
         if (isHolding(event.getEntity())) {
-            actionRingService.close(event.getEntity());
+            cancelAndClose(event.getEntity());
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        actionRingService.close(event.getPlayer());
+        cancelAndClose(event.getPlayer());
     }
 
     private void registerReleaseListener() {
