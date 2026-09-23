@@ -6,7 +6,7 @@ id: sharpshooter_ice_arrow_inheritance
 type: BUFF
 name: "&b継承バフ氷属性Ⅰ"
 lore:
-  - "&7次の通常攻撃へ氷属性を継承する。"
+  - "&7残り時間中の通常攻撃へ氷属性を継承する。"
 durationTicks: 2980
 resetOnChallenge: true
 isDebuff: false

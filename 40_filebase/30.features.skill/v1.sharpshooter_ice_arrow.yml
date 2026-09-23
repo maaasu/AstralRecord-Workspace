@@ -17,7 +17,7 @@ conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
       - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7次の通常攻撃へ氷属性ダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で凍結させる。"
+      - "&7バフ残り時間中の通常攻撃へ氷属性ダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で凍結させる。"
       - "&7継承効果の発動時に追加リソースは消費しない。"
 cooldownTicks: 100
 resourceType: MANA
@@ -76,7 +76,7 @@ levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 #   projectile: "視線方向へ射程16mを毎tick1.6mで直進する非貫通の仮想矢。重力は受けず、最初のMobまたは地形で消滅する。"
 #   hitbox: "projectileHitRadius 0.6mのswept capsuleで判定し、最初のMob 1体へ命中する。"
 #   damage: "RANGED/ICE。基礎倍率は105%+10%×skill levelで、Lv.1は115%、Lv.10は205%。"
-#   inheritance: "継承の心得が有効なら149秒の氷属性Iバフを付与する。次の通常攻撃はICE_DAMAGE_INCREASEを基礎ダメージへ加算し、50%で凍結を付与する。"
+#   inheritance: "継承の心得が有効なら149秒の氷属性Iバフを付与する。通常攻撃の着弾ごとに30秒を消費し、残り時間中はICE_DAMAGE_INCREASEを基礎ダメージへ加算して50%で凍結を付与する。"
 params:
   inheritanceMasteryName: "継承の心得"
   inheritanceBuffName: "継承バフ氷属性Ⅰ"
