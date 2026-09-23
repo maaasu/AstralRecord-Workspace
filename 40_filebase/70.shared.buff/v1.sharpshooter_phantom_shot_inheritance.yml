@@ -1,0 +1,14 @@
+# design:
+#   motif: "幻影 / 連撃継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_phantom_shot_inheritance
+type: BUFF
+name: "&5継承バフ連撃Ⅰ"
+lore:
+  - "&7通常攻撃時に5ティック間隔で通常攻撃を2回追加する。"
+  - "&7通常攻撃1回につき残り時間を30秒消費する。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

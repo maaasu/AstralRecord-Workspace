@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -15,10 +16,12 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +36,9 @@ public final class InheritanceBuffService {
     private final SkillService skillService;
     private final PassiveSkillService passiveSkillService;
     private final StatusService statusService;
+    private final SkillTaskService taskService;
     private final Map<UUID, Map<String, Inheritance>> active = new HashMap<>();
+    private final ThreadLocal<Boolean> bonusAttackInProgress = ThreadLocal.withInitial(() -> false);
 
     /**
      * メインスレッドで利用する継承サービスを構築します。
@@ -44,9 +49,35 @@ public final class InheritanceBuffService {
     public InheritanceBuffService(@NotNull SkillService skillService,
                                   @NotNull PassiveSkillService passiveSkillService,
                                   @NotNull StatusService statusService) {
+        this(skillService, passiveSkillService, statusService, null);
+    }
+
+    /**
+     * 継承通常攻撃の追撃を含むサービスを構築します。
+     * @param skillService スキル実行と定義
+     * @param passiveSkillService 継承の心得の有効判定
+     * @param statusService バフの付与・消費
+     * @param taskService 追撃を5ティックごとに実行するタスクサービス
+     */
+    public InheritanceBuffService(@NotNull SkillService skillService,
+                                  @NotNull PassiveSkillService passiveSkillService,
+                                  @NotNull StatusService statusService,
+                                  @Nullable SkillTaskService taskService) {
         this.skillService = skillService;
         this.passiveSkillService = passiveSkillService;
         this.statusService = statusService;
+        this.taskService = taskService;
+    }
+
+    /**
+     * 発動者が現在継承バフを一つ以上保持しているかを返します。
+     * @param player 判定対象
+     * @return 継承バフが有効期間内ならtrue
+     */
+    public boolean hasActiveInheritanceBuff(@NotNull AstPlayer player) {
+        Map<String, Inheritance> current = active.get(player.getBukkit().getUniqueId());
+        return current != null && current.values().stream()
+                .anyMatch(value -> statusService.getActiveBuffs(player).contains(value.buff()));
     }
 
     /**
@@ -120,6 +151,10 @@ public final class InheritanceBuffService {
             long ticks = ((Number) entry.get("durationConsumptionTicks")).longValue();
             boolean consumeSourceSkillResources = !(entry.get("consumeSourceSkillResources") instanceof Boolean value)
                     || value;
+            int extraCount = entry.get("normalAttackExtraCount") instanceof Number count
+                    ? count.intValue() : 0;
+            int extraIntervalTicks = entry.get("normalAttackExtraIntervalTicks") instanceof Number interval
+                    ? interval.intValue() : 0;
             statusService.applyBuff(player, buffId);
             ActiveBuff buff = statusService.getActiveBuffs(player).stream()
                     .filter(value -> value.getType().getId().equals(buffId)).findFirst().orElse(null);
@@ -132,6 +167,8 @@ public final class InheritanceBuffService {
                     damageMultiplier,
                     order,
                     consumeSourceSkillResources,
+                    extraCount,
+                    extraIntervalTicks,
                     condition,
                     element,
                     effect
@@ -152,6 +189,7 @@ public final class InheritanceBuffService {
     /**
      * 通常攻撃開始時に有効だった継承だけを、その攻撃の最初の着弾で発動するcallbackを返します。
      * 空振り、期限切れ、挑戦時解除、パッシブ無効化、リソース不足では消費しません。
+     * 連撃で追加した通常攻撃は発射時の継承効果だけを参照し、追撃の再予約と追加消費を行いません。
      * @param attack 通常攻撃context
      * @return 着弾位置を受け取る、一攻撃一回のcallback
      */
@@ -166,12 +204,27 @@ public final class InheritanceBuffService {
                 .filter(value -> statusService.getActiveBuffs(caster.player()).contains(value.buff()))
                 .sorted(Comparator.comparingInt(Inheritance::order))
                 .toList();
-        return new PreparedAttack(caster.player(), captured, impact -> {
+        if (bonusAttackInProgress.get()) {
+            return new PreparedAttack(caster.player(), captured, ignored -> { }, statusService, this::isActive);
+        }
+        List<Inheritance> onImpact = new ArrayList<>();
+        for (Inheritance inherited : captured) {
+            if (inherited.extraCount() == 0) {
+                onImpact.add(inherited);
+                continue;
+            }
+            if (taskService != null
+                    && statusService.consumeBuffDuration(caster.player(), inherited.buff(), inherited.ticks())) {
+                refreshBuffReference(caster.player(), inherited);
+                scheduleExtraNormalAttacks(caster, attack, inherited);
+            }
+        }
+        return new PreparedAttack(caster.player(), onImpact, impact -> {
             AstPlayer player = caster.player();
             if (!player.getBukkit().isOnline() || player.getBukkit().isDead()
                     || player.getStatusSnapshot().getCurrentHp() <= 0.0D
                     || player.getBukkit().getWorld() != impact.location().getWorld() || !isActive(player)) return;
-            for (Inheritance inherited : captured) {
+            for (Inheritance inherited : onImpact) {
                 if (!statusService.getActiveBuffs(player).contains(inherited.buff())
                         || !inherited.condition().test(impact)) continue;
                 boolean consumed = inherited.consumeSourceSkillResources()
@@ -185,10 +238,7 @@ public final class InheritanceBuffService {
                         )
                         : statusService.consumeBuffDuration(player, inherited.buff(), inherited.ticks());
                 if (consumed) {
-                    ActiveBuff remaining = statusService.getActiveBuffs(player).stream()
-                            .filter(buff -> buff.getType().getId().equals(inherited.buff().getType().getId()))
-                            .findFirst().orElse(null);
-                    if (remaining != null) inherited.buff = remaining;
+                    refreshBuffReference(player, inherited);
                     inherited.effect().apply(
                             new InheritanceImpact(
                                     impact.location().clone(), impact.target(), impact.damageResult()
@@ -198,6 +248,42 @@ public final class InheritanceBuffService {
                 }
             }
         }, statusService, this::isActive);
+    }
+
+    /** 継承バフの時間消費で差し替わった個体を追跡し直します。 */
+    private void refreshBuffReference(@NotNull AstPlayer player, @NotNull Inheritance inherited) {
+        ActiveBuff remaining = statusService.getActiveBuffs(player).stream()
+                .filter(buff -> buff.getType().getId().equals(inherited.buff().getType().getId()))
+                .findFirst().orElse(null);
+        if (remaining != null) inherited.buff = remaining;
+    }
+
+    /**
+     * 元の通常攻撃から5・10ティック後に同じ武器攻撃を追加します。
+     * 武器の共有CD、通常攻撃列化、試行通知を通さず、AUTO_ATTACK executorだけを使用します。
+     */
+    private void scheduleExtraNormalAttacks(@NotNull PlayerSkillCaster caster,
+                                            @NotNull SkillCastContext attack,
+                                            @NotNull Inheritance inherited) {
+        World world = caster.player().getBukkit().getWorld();
+        String skillId = attack.skill().getId();
+        for (int index = 1; index <= inherited.extraCount(); index++) {
+            long delay = (long) index * inherited.extraIntervalTicks();
+            taskService.later(caster.casterId(), "inheritance-extra:" + UUID.randomUUID(), delay, () -> {
+                var player = caster.player().getBukkit();
+                if (!player.isOnline() || player.isDead() || player.getWorld() != world) {
+                    return;
+                }
+                boolean previous = bonusAttackInProgress.get();
+                bonusAttackInProgress.set(true);
+                try {
+                    skillService.castSkill(caster, skillId, SkillCastTrigger.AUTO_ATTACK,
+                            player.getEyeLocation(), null, List.of());
+                } finally {
+                    bonusAttackInProgress.set(previous);
+                }
+            });
+        }
     }
 
     /** 使用許可・習得・バインドを含むパッシブ有効条件を評価します。 */
@@ -219,6 +305,8 @@ public final class InheritanceBuffService {
         private final double damageMultiplier;
         private final int order;
         private final boolean consumeSourceSkillResources;
+        private final int extraCount;
+        private final int extraIntervalTicks;
         private final Predicate<InheritanceImpact> condition;
         private final DamageElement element;
         private final InheritanceEffect effect;
@@ -230,6 +318,8 @@ public final class InheritanceBuffService {
                 double damageMultiplier,
                 int order,
                 boolean consumeSourceSkillResources,
+                int extraCount,
+                int extraIntervalTicks,
                 Predicate<InheritanceImpact> condition,
                 DamageElement element,
                 InheritanceEffect effect
@@ -240,6 +330,8 @@ public final class InheritanceBuffService {
             this.damageMultiplier = damageMultiplier;
             this.order = order;
             this.consumeSourceSkillResources = consumeSourceSkillResources;
+            this.extraCount = extraCount;
+            this.extraIntervalTicks = extraIntervalTicks;
             this.condition = condition;
             this.element = element;
             this.effect = effect;
@@ -251,6 +343,8 @@ public final class InheritanceBuffService {
         private double damageMultiplier() { return damageMultiplier; }
         private int order() { return order; }
         private boolean consumeSourceSkillResources() { return consumeSourceSkillResources; }
+        private int extraCount() { return extraCount; }
+        private int extraIntervalTicks() { return extraIntervalTicks; }
         private Predicate<InheritanceImpact> condition() { return condition; }
         private DamageElement element() { return element; }
         private InheritanceEffect effect() { return effect; }

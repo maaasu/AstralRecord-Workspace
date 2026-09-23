@@ -21,7 +21,8 @@ public final class SharpshooterSkillExecutorCatalog {
         return List.of(
                 new SharpshooterFireArrowExecutor(services),
                 new SharpshooterIceArrowExecutor(services),
-                new SharpshooterSpreadingAmbitionExecutor(services)
+                new SharpshooterSpreadingAmbitionExecutor(services),
+                new SharpshooterPhantomShotExecutor(services)
         );
     }
 }

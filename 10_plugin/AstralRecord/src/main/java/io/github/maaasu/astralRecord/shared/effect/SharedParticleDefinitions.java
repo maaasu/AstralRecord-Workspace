@@ -699,6 +699,26 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("sharpshooter_spreading_ambition_ring", Particle.DUST,
             2, 0.04D, 0.04D, 0.04D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(165, 240, 90), 1.65F));
+    public static final SharedParticleDefinition SHARPSHOOTER_PHANTOM_SHOT_TRAIL =
+        new SharedParticleDefinition(
+            "sharpshooter_phantom_shot_trail", Particle.SOUL,
+            7, 0.23D, 0.23D, 0.23D, 0.015D
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_PHANTOM_SHOT_IMPACT =
+        new SharedParticleDefinition(
+            "sharpshooter_phantom_shot_impact", Particle.REVERSE_PORTAL,
+            18, 0.48D, 0.48D, 0.48D, 0.04D
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_PHANTOM_SHOT_RING =
+        new SharedParticleDefinition(
+            "sharpshooter_phantom_shot_ring", Particle.SOUL_FIRE_FLAME,
+            1, 0.02D, 0.02D, 0.02D, 0.0D
+        );
+    public static final SharedParticleDefinition SHARPSHOOTER_PHANTOM_SHOT_RECOVERY =
+        new SharedParticleDefinition(
+            "sharpshooter_phantom_shot_recovery", Particle.END_ROD,
+            10, 0.28D, 0.35D, 0.28D, 0.01D
+        );
     public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
         new SharedParticleDefinition(
             "skill_hunter_trap_dust",

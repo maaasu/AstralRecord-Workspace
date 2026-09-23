@@ -57,6 +57,12 @@ params:
       durationConsumptionTicks: 600
       sourceSkillId: skill:sharpshooter_spreading_ambition
       consumeSourceSkillResources: false
+    - buffId: buff:sharpshooter_phantom_shot_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_phantom_shot
+      consumeSourceSkillResources: false
+      normalAttackExtraCount: 2
+      normalAttackExtraIntervalTicks: 5
 tags:
   - passive
   - ranged

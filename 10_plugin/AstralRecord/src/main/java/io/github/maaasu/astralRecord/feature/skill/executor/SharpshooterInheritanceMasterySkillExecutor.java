@@ -101,6 +101,21 @@ public final class SharpshooterInheritanceMasterySkillExecutor implements SkillE
                     definition.get("durationConsumptionTicks"),
                     "inheritanceBuffs[" + index + "].durationConsumptionTicks"
             );
+            Object extraCount = definition.get("normalAttackExtraCount");
+            Object extraInterval = definition.get("normalAttackExtraIntervalTicks");
+            if (extraCount != null || extraInterval != null) {
+                requirePositiveInteger(extraCount, "inheritanceBuffs[" + index + "].normalAttackExtraCount");
+                requirePositiveInteger(extraInterval,
+                        "inheritanceBuffs[" + index + "].normalAttackExtraIntervalTicks");
+                if (((Number) extraCount).intValue() > 4) {
+                    throw new SkillParameterException("inheritanceBuffs[" + index + "].normalAttackExtraCount",
+                            "追撃回数は4以下にしてください");
+                }
+                if (!Boolean.FALSE.equals(definition.get("consumeSourceSkillResources"))) {
+                    throw new SkillParameterException("inheritanceBuffs[" + index + "]",
+                            "通常攻撃追撃では元スキルのリソースを再消費しないでください");
+                }
+            }
             Object rawConsumeSourceSkillResources = definition.get("consumeSourceSkillResources");
             if (rawConsumeSourceSkillResources != null && !(rawConsumeSourceSkillResources instanceof Boolean)) {
                 throw new SkillParameterException(

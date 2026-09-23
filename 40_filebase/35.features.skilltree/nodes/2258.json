@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2258",
+  "name": "&5ファントムショット",
+  "icon": "GLOW_INK_SAC",
+  "tags": ["offense", "dark", "astral"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_phantom_shot"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

@@ -246,6 +246,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterFireArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterIceArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterPhantomShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSpreadingAmbitionExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -1809,7 +1810,7 @@ public final class AstralRecord extends JavaPlugin {
         passiveSkillService.setStatusService(statusService);
         weaponAttackSkillExecutor.setPassiveSkillService(passiveSkillService);
         var inheritanceBuffService = new InheritanceBuffService(
-            skillService, passiveSkillService, statusService);
+            skillService, passiveSkillService, statusService, activeSkillTaskService);
         weaponAttackSkillExecutor.setInheritanceBuffService(inheritanceBuffService);
         var arrowRainExecutor = skillService.registry().getExecutor(
             HunterArrowRainExecutor.ID);
@@ -1845,6 +1846,12 @@ public final class AstralRecord extends JavaPlugin {
             SharpshooterSpreadingAmbitionExecutor.ID);
         if (spreadingAmbitionExecutor instanceof SharpshooterSpreadingAmbitionExecutor spreadingAmbition) {
             spreadingAmbition.setInheritanceBuffService(inheritanceBuffService);
+        }
+        var phantomShotExecutor = skillService.registry().getExecutor(
+            SharpshooterPhantomShotExecutor.ID);
+        if (phantomShotExecutor instanceof SharpshooterPhantomShotExecutor phantomShot) {
+            phantomShot.setInheritanceBuffService(inheritanceBuffService);
+            phantomShot.setStatusService(statusService);
         }
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);

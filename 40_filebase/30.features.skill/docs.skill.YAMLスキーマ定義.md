@@ -64,6 +64,8 @@
 | `durationConsumptionTicks` | Long | 必須 | 通常攻撃1回で消費する継承バフの残り時間。1以上の整数 |
 | `sourceSkillId` | String | `resourceType` / `resourceCost` 未指定時 | `skill:` 接頭辞付きの付与元スキル参照。付与元のレベル・シジル反映済み効果と、MPを含む複合リソース消費を参照する。`consumeSourceSkillResources: false` の場合は効果の参照だけを行い、元スキルのリソースは再消費しない |
 | `consumeSourceSkillResources` | Boolean | 任意 | `sourceSkillId` 指定時、次の通常攻撃で元スキルの全消費リソースを再消費するか。既定は `true`。会心率補正や属性付与のように元スキルを再発動しない継承では `false` を指定する |
+| `normalAttackExtraCount` | Integer | 任意 | 通常攻撃を追加発生させる回数。指定時は1～4、`normalAttackExtraIntervalTicks`と`consumeSourceSkillResources: false`が必須 |
+| `normalAttackExtraIntervalTicks` | Integer | 任意 | 通常攻撃から各追撃までの間隔。1以上で、`normalAttackExtraCount`と併用する |
 | `resourceType` / `resourceCost` | String / Double | `sourceSkillId` 未指定時 | 継承効果ごとの固定追加リソース消費。両方を指定し、`sourceSkillId` と併記しない |
 
 `sourceSkillId` も固定リソース定義もない継承バフは、追加リソースを消費しません。

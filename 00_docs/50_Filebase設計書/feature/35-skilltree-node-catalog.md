@@ -51,7 +51,9 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-spreading-ambition` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
+| `skill-sharpshooter-phantom-shot` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 | `skill-phantom-archer-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-phantom-archer-phantom-shot` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
 | `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
 | `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |
@@ -335,7 +337,12 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ファントムアーチャー専門枝
 
-ファントムアーチャー用として共通24node、Shadow 48node、Specter 48nodeを定義する。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` であり、skill効果を持たない。これらの定義は現行の `starter` には未配置である。
+ファントムアーチャー用として共通24node、Shadow 48node、Specter 48nodeと、未配置のヒールアローαnode `2256`、ファントムショットnode `2259` を定義する。全120 status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` とする。これらの定義は現行の `starter` には未配置である。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `skill-phantom-archer-heal-arrow-alpha` | `2256` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-phantom-archer-phantom-shot` | `2259` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 
 ### 共通パッケージ
 
@@ -394,7 +401,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## シャープシューター専門枝
 
-シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 5個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241`、`2242`、`2255`、`2257` は使用許可だけを定義した未配置nodeとする。
+シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 6個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241`、`2242`、`2255`、`2257`、`2258` は使用許可だけを定義した未配置nodeとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -403,6 +410,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `skill-sharpshooter-ice-arrow` | `2242` | `skill` / `sharpshooter_ice_arrow` | `&bアイスアロー` | `LIGHT_BLUE_DYE` | `offense`, `ice`, `frozen` |
 | `skill-sharpshooter-heal-arrow-alpha` | `2255` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-spreading-ambition` | `2257` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
+| `skill-sharpshooter-phantom-shot` | `2258` | `skill` / `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 
 ### 共通射撃パッケージ
 

@@ -1,0 +1,82 @@
+# design:
+#   motif: "幻影 / 連撃射撃"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_phantom_shot
+type: SKILL
+implementationId: sharpshooter_phantom_shot
+name: "&5ファントムショット"
+description: "&7幻影を伴う大型の弾を三連射する。"
+icon: GLOW_INK_SAC
+lore:
+  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを3回放つ。"
+  - "&7発射間隔は{skill.shotIntervalTicks}ティックで、広い当たり判定を持つ。"
+  - "&7このスキルが2秒以内に再命中すると、最大MPとENGをそれぞれ{skill.resourceRecoveryRatio:percent}%回復する。"
+  - "&7回復効果は最大レベルでのみ有効。"
+  - "&7継承バフ保有中の発動はクールタイムが2倍になる。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&7このバフで通常攻撃すると30秒消費し、5ティック間隔で通常攻撃を2回追加する。"
+      - "&7追加攻撃は通常攻撃列化の回数に含まれない。"
+cooldownTicks: 60
+resourceType: ENERGY
+resourceCost: 20
+manaCost: 16
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.20 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.20, resourceRecoveryRatio: 0.10 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ連撃Ⅰ"
+  inheritanceDurationTicks: 2980
+  range: 16.0
+  damageRatio: 1.70
+  projectileSpeed: 1.80
+  projectileHitRadius: 1.10
+  shotIntervalTicks: 5
+  successiveHitWindowTicks: 40
+  resourceRecoveryRatio: 0.0
+tags:
+  - active
+  - ranged
+  - bow
