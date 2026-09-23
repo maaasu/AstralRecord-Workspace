@@ -353,7 +353,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 当選した通常ドロップまたはレアドロップを、表示設定が有効なオンラインプレイヤーへ通知します。
+     * 当選者には通常・レアドロップを、他のプレイヤーにはレアドロップだけを通知します。
      *
      * @param recipient ドロップ受取プレイヤー
      * @param mobCategory 撃破 Mob カテゴリ。採集など Mob 以外は {@code null}
@@ -364,6 +364,8 @@ public final class MobDropPresentationService {
         @Nullable MobCategory mobCategory,
         @NotNull List<ResolvedDropItem> items
     ) {
+        Player recipientPlayer = recipient.getBukkit();
+        UUID recipientId = recipientPlayer.getUniqueId();
         for (ResolvedDropItem item : items) {
             boolean rareDrop = mobCategory != null && isRareDrop(mobCategory, item.dropRate());
             String itemName = ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId());
@@ -383,11 +385,14 @@ public final class MobDropPresentationService {
                 if (!playerSettingService.isDropLogDisplayEnabled(viewer.getUniqueId())) {
                     continue;
                 }
+                boolean isRecipient = recipientId.equals(viewer.getUniqueId());
+                if (!isRecipient && !rareDrop) {
+                    continue;
+                }
                 if (rareDrop) {
                     PlayerMessageService.getInstance().send(
                         viewer,
                         PlayerMsgId.P_5728,
-                        recipient.getBukkit().getName(),
                         itemName,
                         item.amount(),
                         formatDropRate(item.dropRate())
@@ -396,7 +401,6 @@ public final class MobDropPresentationService {
                     PlayerMessageService.getInstance().send(
                         viewer,
                         PlayerMsgId.P_5732,
-                        recipient.getBukkit().getName(),
                         itemName,
                         item.amount()
                     );
