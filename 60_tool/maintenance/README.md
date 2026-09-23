@@ -57,6 +57,10 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 配置完了後の失敗は同じバッチで続きから再開します。設定・対象や移行途中の起動sessionを変更しないでください。配置途中の失敗は自動再配布せず、ログとbackupを確認して下記Restoreで復旧します。既定では復旧後も古い未完了記録を上書きしないため、復旧確認後に `active-run.json` を別名へ退避して新しい実行を開始してください。
 
+配置後にサーバーを再起動した場合、01/16のWorkflowは同じ定義世代でreadyになっていることを確認し、保存済み移行記録の全件がCOMMIT未送信（`CommitStatus=PENDING`かつ結果なし）の場合だけ起動sessionを引き継ぎます。設定・対象server集合・移行先世代とsnapshot・全accountの元世代/version/node baseline・元snapshotを再照合し、起動情報をもう一度確認してから、同じoperation IDで全件PREVIEWをやり直します。旧移行記録は `.before-runtime-refresh-<ID>` として保全します。詳細MigratePreview/MigrateCommitではこの自動引継ぎを有効にしません。
+
+`REQUESTED`（送信結果不明）、`APPLIED`、COMMIT拒否などが1件でもある状態から、さらに別sessionへは自動移行しません。世代変更・保存状態変更・runtime未応答・移行記録欠損も自動解除しません。先に移行記録のsessionを保存し、Workflow側は成功後に追従するため、途中中断で両記録のsessionが異なっていても、移行記録が既に採用した同じ起動sessionでは既存の再試行規則を維持します。COMMIT開始マーカーを消したり、operation IDを振り直したりはしません。
+
 `-ServersStopped` / `-AdmissionClosed` は運用者による確認宣言です。プロセス停止や入場制御の自動検知ではありません。全員オフラインでもワールドは書込みされるため、配布時はサーバーを停止してください。JARを読むDevも、配置ファイルを書き込むPluginも配布元の一貫性確保の対象です。
 
 配布時は全ソースを実行記録先へ先に固定し、SHA-256でコピー中の変更を検査します。各配布先へ準備後、旧ファイル/ディレクトリを各サーバーの `.astral-maintenance/<run ID>/<index>/backup` に移動して新しい内容へ交換します。古いJSONやregionが残らない置換方式です。全ソース・新旧ワールドを保持する空き容量が必要です。実行途中に失敗した場合は非0終了し、`deployment.json` に途中状態を残します。失敗時に入場再開してはいけません。
@@ -84,7 +88,7 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 候補は全ページを取得して固定し、削除ノードなし・消費元付替えなしの保持移行を最大100件ずつPREVIEWします。全件が成功した場合にCOMMITへ進めます。Commit単独で開始してもpreview検証を経由します。`operationId` と入力は実行記録先に保存し、通信失敗時も **同じRunDirectory** で再実行します。成功済みを維持し、確定結果不明の要求も同じoperation IDで再送します。対象・移行先世代・保存状態の競合は無条件で上書きしません。
 
-候補が0件なら変更なしで成功します。ExplicitAccountsに指定したアカウントが候補にない場合は保存状態を照会し、既に同世代、または世代NULL・空状態ならSKIP表示します。存在しないアカウントやその他の不一致はエラーです。`skilltree-migration-result.json` に成功/失敗とアカウント別の状態を残します。`REQUESTED` は結果不明であり、同じRunDirectoryのMigrateCommitで再送します。移行先の起動sessionや世代が変わった場合は自動再開せず停止するので、処理中に再起動・再リロードしないでください。
+候補が0件なら変更なしで成功します。ExplicitAccountsに指定したアカウントが候補にない場合は保存状態を照会し、既に同世代、または世代NULL・空状態ならSKIP表示します。存在しないアカウントやその他の不一致はエラーです。`skilltree-migration-result.json` に成功/失敗とアカウント別の状態を残します。`REQUESTED` は結果不明であり、同じRunDirectoryのMigrateCommitで再送します。詳細MigratePreview/MigrateCommitは起動sessionや世代が変わると停止します。01/16のWorkflowだけは上記の同一定義・COMMIT未送信条件で再起動を引き継ぎますが、処理中の再起動・再リロードは避けてください。
 
 保持ノードのコスト/条件や経路などがAPIの検証を通らない場合は移行しません。非空legacyのbaseline承認、ノード削除、CP消費元補完は自動で判断せず、既存の管理API手順で扱います。世代NULLかつ空状態は参加時の自動bindに任せます。世代付きの空状態は世代移行の対象です。
 

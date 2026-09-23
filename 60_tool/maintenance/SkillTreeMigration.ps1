@@ -263,6 +263,7 @@ function Invoke-SkillTreeMigration {
         [Parameter(Mandatory)] $Config,
         [Parameter(Mandatory)][string] $RunDirectory,
         [switch] $Commit,
+        [switch] $AllowRuntimeSessionRefresh,
         [object[]] $ExpectedRuntimes,
         [scriptblock] $HttpInvoker
     )
@@ -312,14 +313,25 @@ function Invoke-SkillTreeMigration {
         }
     }
     $targetRuntime = $runtimes[0]
+    $refreshRuntimeSession = $false
     if ($state) {
+        if (@($state.Runtimes).Count -ne $runtimes.Count -or
+            !(Test-SkillTreeMigrationStringSet @($state.Runtimes | ForEach-Object ServerId) @($runtimes | ForEach-Object ServerId))) { throw 'Persisted runtime set is incomplete.' }
         foreach ($savedRuntime in @($state.Runtimes)) {
             $current = @($runtimes | Where-Object ServerId -ceq $savedRuntime.ServerId)
-            if ($current.Count -ne 1 -or $current[0].ServerSessionId -ne $savedRuntime.ServerSessionId -or $current[0].DefinitionGenerationId -ne $savedRuntime.DefinitionGenerationId) {
-                throw 'Runtime session or generation changed for this run. Resume is unsafe.'
+            if ($current.Count -ne 1 -or $current[0].DefinitionGenerationId -ne $savedRuntime.DefinitionGenerationId) {
+                throw 'Runtime server set or definition generation changed for this run. Resume is unsafe.'
             }
+            if ($current[0].ServerSessionId -ne $savedRuntime.ServerSessionId) { $refreshRuntimeSession = $true }
         }
         if ($state.TargetServerId -ne $targetRuntime.ServerId -or $state.TargetGenerationId -ne $targetRuntime.DefinitionGenerationId) { throw 'Target runtime changed for this run.' }
+        if ($refreshRuntimeSession) {
+            if (!$AllowRuntimeSessionRefresh -or @($state.Records | Where-Object { $_.CommitStatus -cne 'PENDING' -or $null -ne $_.CommitResult }).Count -gt 0) {
+                Write-Host '起動セッションが変わっています。COMMIT送信済み・結果不明・確定済みの記録は自動で引き継ぎません。'
+                throw 'Runtime session changed after a possible COMMIT or automatic session recovery is disabled.'
+            }
+            Copy-Item -LiteralPath $statePath -Destination ($statePath + '.before-runtime-refresh-' + [Guid]::NewGuid().ToString('N')) -ErrorAction Stop
+        }
     }
 
     $targetSnapshot = Invoke-SkillTreeMigrationRequest $HttpInvoker 'GET' "$($normalized.BaseUrl)/api/skilltree/runtime/definitions/$($targetRuntime.DefinitionGenerationId)" $headers $null
@@ -433,6 +445,19 @@ function Invoke-SkillTreeMigration {
         $record.PreflightStatus = 'VERIFIED'; Save-SkillTreeMigrationState $state $statePath
     }
 
+    if ($refreshRuntimeSession) {
+        # Every account and definition above was checked using read-only GETs. Require a stable
+        # second runtime observation before replacing only the session-bound preview evidence.
+        foreach ($expected in $runtimes) {
+            $response=Invoke-SkillTreeMigrationRequest $HttpInvoker 'GET' "$($normalized.BaseUrl)/api/skilltree/runtime/servers/$([Uri]::EscapeDataString($expected.ServerId))" $headers $null
+            $current=Assert-SkillTreeMigrationRuntime $response $expected.ServerId
+            if ($current.ServerSessionId -ne $expected.ServerSessionId -or $current.DefinitionGenerationId -ne $expected.DefinitionGenerationId) { throw 'Runtime changed again during session recovery.' }
+        }
+        foreach ($record in $state.Records) { $record.PreviewStatus='PENDING'; $record.PreviewResult=$null }
+        $state.Runtimes=@($runtimes)
+        Save-SkillTreeMigrationState $state $statePath
+        Write-Host '保存状態の一致を確認しました。同じoperation IDで全件の事前検証をやり直します。'
+    }
     $pendingPreview = @($state.Records | Where-Object { $_.CommitStatus -ne 'APPLIED' -and $_.PreviewStatus -ne 'PREVIEW' })
     foreach ($batch in @($pendingPreview | ForEach-Object -Begin { $buffer = @() } -Process { $buffer += $_; if ($buffer.Count -eq 100) { ,$buffer; $buffer = @() } } -End { if ($buffer.Count) { ,$buffer } })) {
         $items = @($batch | ForEach-Object { New-SkillTreeMigrationRequestItem $_ $state.TargetGenerationId })

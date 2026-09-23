@@ -184,7 +184,8 @@ function Assert-UpdateWorkflowExpectedRuntimes {
         [Parameter(Mandatory)] $Migration,
         [Parameter(Mandatory)] $ExpectedRuntimes,
         [Parameter(Mandatory)][scriptblock] $Invoker,
-        [Parameter(Mandatory)][hashtable] $Headers
+        [Parameter(Mandatory)][hashtable] $Headers,
+        [switch] $AllowRestart
     )
 
     $expected = @($ExpectedRuntimes)
@@ -194,10 +195,9 @@ function Assert-UpdateWorkflowExpectedRuntimes {
         $saved = @($expected | Where-Object { $_.ServerId -ceq $serverId })
         if ($saved.Count -ne 1) { throw 'Persisted ready runtime set is invalid.' }
         $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers
-        if ($null -eq $runtime -or !$runtime.Ready -or $runtime.ServerSessionId -ne $saved[0].ServerSessionId -or
-            $runtime.DefinitionGenerationId -ne $saved[0].DefinitionGenerationId) {
-            throw 'A server runtime changed after startup readiness was confirmed.'
-        }
+        if ($null -eq $runtime -or !$runtime.Ready) { throw "Server '$serverId' is offline, not ready, or its heartbeat expired. Keep it running and players logged out before retrying." }
+        if ($runtime.DefinitionGenerationId -ne $saved[0].DefinitionGenerationId) { throw "Server '$serverId' runtime changed: definition generation differs from the confirmed generation. Automatic resume is blocked." }
+        if (!$AllowRestart -and $runtime.ServerSessionId -ne $saved[0].ServerSessionId) { throw "Server '$serverId' restarted after startup readiness was confirmed. Runtime session changed; automatic resume is blocked at this stage." }
         $current += $runtime
     }
     if (@($current.DefinitionGenerationId | Select-Object -Unique).Count -ne 1) { throw 'Server runtime generations no longer match.' }
@@ -336,7 +336,16 @@ function Invoke-UpdateWorkflow {
         if ($state.status -eq 'Migrating') {
             # Re-read immediately before the irreversible commit path. The migration helper also
             # verifies this exact set before it enumerates candidates.
-            $expectedRuntimes = Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers
+            $expectedRuntimes = @(Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers -AllowRestart)
+            $restarted = @($expectedRuntimes | Where-Object {
+                $runtime=$_
+                @($state.deployedRuntimes | Where-Object { $_.ServerId -ceq $runtime.ServerId -and $_.ServerSessionId -eq $runtime.ServerSessionId }).Count -ne 1
+            }).Count -gt 0
+            if ($restarted) {
+                if (!(Test-Path -LiteralPath (Join-Path $runDirectory 'skilltree-migration-state.json'))) { throw 'Server restarted, but migration state is missing. Recovery requires manual inspection.' }
+                Write-Host '同一定義でのサーバー再起動を検出しました。移行未送信・保存状態の一致を確認して引き継ぎます。'
+                Write-MaintenanceDiagnostic 'runtime.restart.detected' @{runtimes=$expectedRuntimes}
+            }
             # The workflow transport exposes HTTP status (404 means offline); migration consumes JSON bodies.
             $workflowTransport=$HttpInvoker
             $migrationTransport={
@@ -347,7 +356,7 @@ function Invoke-UpdateWorkflow {
             }
             try {
                 Write-MaintenanceDiagnostic 'migration.begin'
-                $migrationResult = Invoke-SkillTreeMigration -Config $MigrationConfig -RunDirectory $runDirectory -Commit -ExpectedRuntimes $expectedRuntimes -HttpInvoker $migrationTransport
+                $migrationResult = Invoke-SkillTreeMigration -Config $MigrationConfig -RunDirectory $runDirectory -Commit -ExpectedRuntimes $expectedRuntimes -HttpInvoker $migrationTransport -AllowRuntimeSessionRefresh
                 Write-MaintenanceDiagnostic 'migration.end'
             }
             catch {
@@ -355,7 +364,11 @@ function Invoke-UpdateWorkflow {
                 throw 'Skill tree migration did not complete. The active run and persisted operation IDs were retained for a same-run retry.'
             }
             if ($migrationResult.Status -cne 'APPLIED') { throw 'Skill tree migration did not report APPLIED.' }
-            $null=Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers
+            $null=Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $expectedRuntimes $HttpInvoker $headers
+            if ($restarted) {
+                Copy-Item -LiteralPath $statePath -Destination ($statePath + '.before-runtime-refresh-' + [Guid]::NewGuid().ToString('N')) -ErrorAction Stop
+                $state.deployedRuntimes=@($expectedRuntimes)
+            }
             $state.status='Completed'; $state.completedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
             $active.status='Completed'; $active.completedAtUtc=$state.completedAtUtc; Save-UpdateWorkflowJson $active $activePath
             Write-Host "$Label update workflow completed."

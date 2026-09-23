@@ -21,7 +21,7 @@ $script:driftAfterMigration=$false
 # The integration branch supplies ExpectedRuntimes to the real migration helper. Keep this
 # workflow test isolated from its API-level tests while asserting that handoff contract.
 function Invoke-SkillTreeMigration {
-    param($Config, [string]$RunDirectory, [switch]$Commit, [object[]]$ExpectedRuntimes, [scriptblock]$HttpInvoker)
+    param($Config, [string]$RunDirectory, [switch]$Commit, [object[]]$ExpectedRuntimes, [scriptblock]$HttpInvoker, [switch]$AllowRuntimeSessionRefresh)
     $script:migrationCalls++
     $script:lastExpectedRuntimes=@($ExpectedRuntimes)
     if ($script:failMigrationOnce -and $script:migrationCalls -eq 1) { throw 'simulated migration response loss' }
