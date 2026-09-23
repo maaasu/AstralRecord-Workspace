@@ -213,6 +213,7 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.skill.active.event.ActiveSkillLifecycleEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillLifecycleService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.ElementalPrismRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementService;
@@ -1745,7 +1746,8 @@ public final class AstralRecord extends JavaPlugin {
             ),
             new SkillMovementService(conditionService),
             temporarySkillEffectService,
-            activeSkillTaskService
+            activeSkillTaskService,
+            new ElementalPrismRuntimeService()
         );
         paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(
             skillService,

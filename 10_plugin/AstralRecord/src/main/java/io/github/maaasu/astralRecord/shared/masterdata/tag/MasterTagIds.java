@@ -101,6 +101,9 @@ public final class MasterTagIds {
         /** フィールド: フィールド上の行動・効果に関係する分類。 */
         public static final String FIELD = "field";
 
+        /** プリズム: エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。 */
+        public static final String PRISM = "prism";
+
         /** ステータス: ステータス効果を持つスキルツリーノード。 */
         public static final String STATUS = "status";
 
@@ -505,6 +508,7 @@ public final class MasterTagIds {
         Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("mob", new Definition("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("field", new Definition("field", "フィールド", "フィールド上の行動・効果に関係する分類。", "ACTIVITY", List.of("SKILL"))),
+        Map.entry("prism", new Definition("prism", "プリズム", "エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("status", new Definition("status", "ステータス", "ステータス効果を持つスキルツリーノード。", "ACTIVITY", List.of("SKILLTREE_NODE"))),
         Map.entry("skilltree", new Definition("skilltree", "スキルツリー", "スキルツリー機能への導線を持つ NPC。", "ACTIVITY", List.of("MOB"))),
         Map.entry("melee", new Definition("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
@@ -512,23 +516,23 @@ public final class MasterTagIds {
         Map.entry("magic", new Definition("magic", "魔法", "魔法攻撃または魔法系統の分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
         Map.entry("mage", new Definition("mage", "魔術師", "魔術師系統に属する分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL"))),
         Map.entry("support", new Definition("support", "支援", "回復または補助を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
-        Map.entry("tank", new Definition("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("tank", new Definition("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS", "SKILL"))),
         Map.entry("dealer", new Definition("dealer", "アタッカー", "ダメージ出力を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("balanced", new Definition("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("defense", new Definition("defense", "防御", "防御能力や耐久力に関係する分類。", "COMBAT_ROLE", List.of("SKILL", "SKILLTREE_NODE"))),
-        Map.entry("offense", new Definition("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", List.of("SKILLTREE_NODE"))),
+        Map.entry("offense", new Definition("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", List.of("SKILL", "SKILLTREE_NODE"))),
         Map.entry("front", new Definition("front", "前衛", "前線で戦うクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("bow", new Definition("bow", "弓", "弓系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL"))),
         Map.entry("staff", new Definition("staff", "杖", "杖系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("sword", new Definition("sword", "剣", "剣系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS"))),
         Map.entry("fire", new Definition("fire", "炎", "炎属性または炎をモチーフとする分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE", "MOB"))),
-        Map.entry("ice", new Definition("ice", "氷", "氷属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("ice", new Definition("ice", "氷", "氷属性に関係する分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE"))),
         Map.entry("lightning", new Definition("lightning", "雷", "雷属性に関係する分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE", "MOB"))),
         Map.entry("poison", new Definition("poison", "毒", "毒属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
         Map.entry("light", new Definition("light", "光", "光属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
         Map.entry("dark", new Definition("dark", "闇", "闇属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
-        Map.entry("burning", new Definition("burning", "炎上", "炎上状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
-        Map.entry("frozen", new Definition("frozen", "凍結", "凍結状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("burning", new Definition("burning", "炎上", "炎上状態に関係する分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE"))),
+        Map.entry("frozen", new Definition("frozen", "凍結", "凍結状態に関係する分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE"))),
         Map.entry("chilled", new Definition("chilled", "冷却", "冷却状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
         Map.entry("shocked", new Definition("shocked", "感電", "感電状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
         Map.entry("poisoned", new Definition("poisoned", "毒状態", "毒状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),

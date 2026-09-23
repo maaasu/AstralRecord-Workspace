@@ -75,7 +75,8 @@ public final class MageFireballExecutor extends PlayerActiveSkillExecutor {
                                 damageRatio
                         );
                     }
-                }
+                },
+                context.services().prisms().interceptor(context, DamageElement.FIRE)
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_BLAZE_SHOOT, 1.0F, 1.05F);
         return context.success();

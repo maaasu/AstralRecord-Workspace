@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.skill.active.model.SkillBallisticPr
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileInterception;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileInterceptor;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -61,7 +63,7 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish
     ) {
-        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null, null);
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null, null, null);
     }
 
     /**
@@ -94,7 +96,8 @@ public final class SkillProjectileService {
                 onHit,
                 onFinish,
                 null,
-                candidate -> targetId.equals(candidate.id())
+                candidate -> targetId.equals(candidate.id()),
+                null
         );
     }
 
@@ -116,6 +119,29 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onEntityHit,
             @NotNull Consumer<SkillProjectileTermination> onTerminate
     ) {
+        launchWithTermination(player, origin, direction, spec, onEntityHit, onTerminate, null);
+    }
+
+    /**
+     * 仮想 projectile を発射し、Mob・地形より先にある追加の吸収対象も判定します。
+     *
+     * @param player 発動者
+     * @param origin 発射位置
+     * @param direction 発射方向
+     * @param spec projectile 仕様
+     * @param onEntityHit Mob命中時の処理
+     * @param onTerminate 最初に命中した対象または射程終了の通知
+     * @param interceptor 追加の吸収対象。nullなら通常の衝突判定だけを行う
+     */
+    public void launchWithTermination(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            @NotNull BiConsumer<AstEntity, Location> onEntityHit,
+            @NotNull Consumer<SkillProjectileTermination> onTerminate,
+            @Nullable SkillProjectileInterceptor interceptor
+    ) {
         launchInternal(
                 player,
                 origin,
@@ -126,7 +152,8 @@ public final class SkillProjectileService {
                 onEntityHit,
                 ignored -> { },
                 onTerminate,
-                null
+                null,
+                interceptor
         );
     }
 
@@ -414,7 +441,7 @@ public final class SkillProjectileService {
             player, origin, direction, spec,
             Math.max(0.0D, Math.min(1.0D, homingStrength)),
             Math.max(0.0D, homingRange),
-            onHit, onFinish, null, null
+            onHit, onFinish, null, null, null
         );
     }
 
@@ -428,7 +455,8 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish,
             Consumer<SkillProjectileTermination> onTerminate,
-            @Nullable Predicate<AstEntity> hitFilter
+            @Nullable Predicate<AstEntity> hitFilter,
+            @Nullable SkillProjectileInterceptor interceptor
     ) {
         Vector initialDirection = direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
@@ -466,6 +494,36 @@ public final class SkillProjectileService {
             Location blockImpact = targetingService.blockImpact(current[0], currentDirection[0], stepDistance);
             Location next = targetingService.clippedEnd(current[0], currentDirection[0], stepDistance);
             double actualDistance = current[0].distance(next);
+            if (interceptor != null) {
+                double interceptionRange = blockImpact == null
+                        ? stepDistance
+                        : Math.nextDown(current[0].distance(blockImpact));
+                SkillProjectileInterception interception = interceptor.firstHit(
+                        current[0], currentDirection[0], interceptionRange, spec.hitRadius()
+                );
+                if (interception != null && interception.location().getWorld() == current[0].getWorld()) {
+                    double interceptionDistance = current[0].distance(interception.location());
+                    if (interceptionDistance <= interceptionRange
+                            && targetingService.lineTargetHits(
+                                    player,
+                                    current[0],
+                                    currentDirection[0],
+                                    interceptionDistance,
+                                    spec.hitRadius(),
+                                    1,
+                                    false
+                            ).isEmpty()) {
+                        effectService.line(current[0], interception.location(), 0.45D, spec.trail());
+                        finish(
+                                player.getUniqueId(), scope, interception.location(),
+                                SkillProjectileTermination.Type.INTERCEPTED, interception.location(),
+                                onFinish, onTerminate, finished
+                        );
+                        interception.onHit().run();
+                        return;
+                    }
+                }
+            }
             effectService.line(current[0], next, 0.45D, spec.trail());
 
             List<AstEntity> candidates = blockImpact == null

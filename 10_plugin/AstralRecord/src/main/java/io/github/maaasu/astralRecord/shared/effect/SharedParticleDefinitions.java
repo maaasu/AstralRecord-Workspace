@@ -898,6 +898,15 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_PORTAL =
         new SharedParticleDefinition("skill_mage_portal", Particle.PORTAL, 5, 0.14D, 0.22D, 0.14D, 0.05D);
+    public static final SharedParticleDefinition WIZARD_PRISM_CORE_DUST =
+        new SharedParticleDefinition("wizard_prism_core_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(187, 125, 255), 1.1F));
+    public static final SharedParticleDefinition WIZARD_PRISM_FIRE_DUST =
+        new SharedParticleDefinition("wizard_prism_fire_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 135, 54), 1.1F));
+    public static final SharedParticleDefinition WIZARD_PRISM_ICE_DUST =
+        new SharedParticleDefinition("wizard_prism_ice_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(107, 217, 255), 1.1F));
     public static final SharedParticleDefinition CLASS_LEVEL_UP_DUST =
         new SharedParticleDefinition(
             "class_level_up_dust",

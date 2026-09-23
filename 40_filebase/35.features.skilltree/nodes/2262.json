@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2262",
+  "name": "&dエレメンタルプリズム",
+  "icon": "END_CRYSTAL",
+  "tags": [
+    "offense",
+    "element",
+    "fire",
+    "ice",
+    "lightning"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_elemental_prism"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

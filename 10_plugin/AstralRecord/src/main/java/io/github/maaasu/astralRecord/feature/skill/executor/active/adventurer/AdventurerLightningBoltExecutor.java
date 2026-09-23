@@ -81,7 +81,7 @@ public final class AdventurerLightningBoltExecutor extends PlayerActiveSkillExec
                 context.eyeLocation(),
                 SharedParticleDefinitions.SKILL_MAGE_LIGHTNING
         );
-        context.services().projectiles().launch(
+        context.services().projectiles().launchWithTermination(
                 context.player(),
                 context.eyeLocation(),
                 context.direction(),
@@ -96,7 +96,8 @@ public final class AdventurerLightningBoltExecutor extends PlayerActiveSkillExec
                         chainDamageRatio,
                         maxChainTargets
                 ),
-                ignored -> { }
+                ignored -> { },
+                context.services().prisms().interceptor(context, DamageElement.LIGHTNING)
         );
         return context.success();
     }

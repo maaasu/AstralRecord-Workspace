@@ -193,6 +193,11 @@ tags:
     description: フィールド上の行動・効果に関係する分類。
     category: ACTIVITY
     appliesTo: [SKILL]
+  - id: prism
+    displayName: プリズム
+    description: エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。
+    category: ACTIVITY
+    appliesTo: [SKILL]
   - id: status
     displayName: ステータス
     description: ステータス効果を持つスキルツリーノード。
@@ -233,7 +238,7 @@ tags:
     displayName: タンク
     description: 防御と敵対維持を主とするクラスロール。
     category: COMBAT_ROLE
-    appliesTo: [CLASS]
+    appliesTo: [CLASS, SKILL]
   - id: dealer
     displayName: アタッカー
     description: ダメージ出力を主とするクラスロール。
@@ -253,7 +258,7 @@ tags:
     displayName: 攻撃
     description: 攻撃能力に関係する分類。
     category: COMBAT_ROLE
-    appliesTo: [SKILLTREE_NODE]
+    appliesTo: [SKILL, SKILLTREE_NODE]
   - id: front
     displayName: 前衛
     description: 前線で戦うクラスロール。
@@ -284,7 +289,7 @@ tags:
     displayName: 氷
     description: 氷属性に関係する分類。
     category: ELEMENT
-    appliesTo: [SKILLTREE_NODE]
+    appliesTo: [SKILL, SKILLTREE_NODE]
   - id: lightning
     displayName: 雷
     description: 雷属性に関係する分類。
@@ -309,12 +314,12 @@ tags:
     displayName: 炎上
     description: 炎上状態に関係する分類。
     category: ELEMENT
-    appliesTo: [SKILLTREE_NODE]
+    appliesTo: [SKILL, SKILLTREE_NODE]
   - id: frozen
     displayName: 凍結
     description: 凍結状態に関係する分類。
     category: ELEMENT
-    appliesTo: [SKILLTREE_NODE]
+    appliesTo: [SKILL, SKILLTREE_NODE]
   - id: chilled
     displayName: 冷却
     description: 冷却状態に関係する分類。

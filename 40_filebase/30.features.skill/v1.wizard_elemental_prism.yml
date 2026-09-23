@@ -1,0 +1,72 @@
+# design:
+#   motif: "元素魔術 / 光学プリズム"
+#   progression: 2
+schemaVersion: 1
+id: wizard_elemental_prism
+type: SKILL
+implementationId: wizard_elemental_prism
+name: "&dエレメンタルプリズム"
+description: "&7三属性の攻撃魔法を吸収し、周囲へ屈折した魔力を放つ。"
+icon: END_CRYSTAL
+lore:
+  - "&7目線の{skill.placementRange}m先の地表へプリズムを設置する。持続{skill.durationTicks:seconds}秒。"
+  - "&7自分のプリズムへタグ「プリズム」の無・炎・氷・雷魔法を当てると、その魔法を吸収して追撃する。"
+  - "&7半径{skill.radius}mの敵を最大{skill.maxTargets}体選び、{skill.projectileCount}発の追撃を放つ。"
+  - "&7追撃1発につき魔法攻撃力{skill.effectiveDamageRatio:percent}%の対応属性ダメージ。"
+  - "&7敵が1体なら全弾がその敵を狙う。再設置すると前のプリズムは消える。"
+cooldownTicks: 20
+resourceType: MANA
+resourceCost: 19
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
+  - { level: 3, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
+  - { level: 4, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
+  - { level: 5, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00012
+  - 70a00013
+  - 70a00014
+  - 70a00015
+  - 70a00016
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags:
+  - active
+  - magic
+  - mage
+params:
+  placementRange: 3.0
+  radius: 6.0
+  damageRatio: 0.60
+  maxTargets: 5
+  projectileCount: 5
+  durationTicks: 7200
+  projectileSpeed: 1.5

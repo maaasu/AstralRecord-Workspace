@@ -66,6 +66,7 @@ tags:
   - magic
   - adventurer
   - lightning
+  - prism
 # behavior:
 #   projectile: "視線方向へ射程14m、速度2.8m/tick、当たり半径0.45mの非貫通雷撃を放ち、最初のMob 1体へ命中する。Blockまたは最大射程で追加効果は発生しない。"
 #   primary: "最初の命中対象へMAGIC/LIGHTNINGの主倍率を1回だけ適用する。主対象が感電中である必要はない。"

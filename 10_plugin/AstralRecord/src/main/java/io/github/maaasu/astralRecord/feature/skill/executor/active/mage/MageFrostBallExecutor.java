@@ -95,7 +95,8 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
                                 frozen
                         );
                     }
-                }
+                },
+                context.services().prisms().interceptor(context, DamageElement.ICE)
         );
         return context.success();
     }

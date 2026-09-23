@@ -81,7 +81,7 @@ class InheritanceBuffServiceTest {
         when(bukkitPlayer.isDead()).thenReturn(false);
         when(bukkitPlayer.getWorld()).thenReturn(world);
         ActiveSkillServices activeServices = new ActiveSkillServices(
-                null, null, null, null, null, null, taskService
+                null, null, null, null, null, null, taskService, null
         );
         when(activeBuff.getType()).thenReturn(buffType);
         when(buffType.getId()).thenReturn(buffId);

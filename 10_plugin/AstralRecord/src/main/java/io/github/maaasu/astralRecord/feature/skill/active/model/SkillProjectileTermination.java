@@ -22,6 +22,8 @@ public record SkillProjectileTermination(
         ENTITY,
         /** 地形ブロックへ衝突したため終了しました。 */
         BLOCK,
+        /** Mobと地形以外の対象へ吸収されたため終了しました。 */
+        INTERCEPTED,
         /** 最大射程へ到達し、何にも衝突せず終了しました。 */
         RANGE
     }

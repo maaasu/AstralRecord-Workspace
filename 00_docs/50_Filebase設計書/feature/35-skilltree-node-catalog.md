@@ -161,12 +161,13 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ウィザード専門枝
 
-ウィザードの配置領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全配置nodeは1CPで、`unlockCondition.classId: wizard`を持つ。メテオの使用許可node `2260` とセルフヒールの使用許可node `2261` は同じ条件で定義するが、現行の構造には配置しない。
+ウィザードの配置領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全配置nodeは1CPで、`unlockCondition.classId: wizard`を持つ。メテオの使用許可node `2260`、セルフヒールの使用許可node `2261`、エレメンタルプリズムの使用許可node `2262` は同じ条件で定義するが、現行の構造には配置しない。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
 | `skill-wizard-meteor` | `2260` | `skill` / `wizard_meteor` | `&cメテオ` | `GILDED_BLACKSTONE` | `offense`, `fire`, `ember` |
 | `skill-wizard-self-heal` | `2261` | `skill` / `wizard_self_heal` | `&dセルフヒール` | `APPLE` | `defense` |
+| `skill-wizard-elemental-prism` | `2262` | `skill` / `wizard_elemental_prism` | `&dエレメンタルプリズム` | `END_CRYSTAL` | `offense`, `element`, `fire`, `ice`, `lightning` |
 
 ### 共通魔導パッケージ
 

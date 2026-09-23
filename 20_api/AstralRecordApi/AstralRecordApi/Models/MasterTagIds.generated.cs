@@ -70,6 +70,8 @@ public static class MasterTagIds
         public const string MOB = "mob";
         /// <summary>フィールド。</summary>
         public const string FIELD = "field";
+        /// <summary>プリズム。</summary>
+        public const string PRISM = "prism";
         /// <summary>ステータス。</summary>
         public const string STATUS = "status";
         /// <summary>スキルツリー。</summary>
@@ -358,6 +360,7 @@ public static class MasterTags
                 ["passive"] = new("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", ["SKILL"]),
                 ["mob"] = new("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", ["SKILL"]),
                 ["field"] = new("field", "フィールド", "フィールド上の行動・効果に関係する分類。", "ACTIVITY", ["SKILL"]),
+                ["prism"] = new("prism", "プリズム", "エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。", "ACTIVITY", ["SKILL"]),
                 ["status"] = new("status", "ステータス", "ステータス効果を持つスキルツリーノード。", "ACTIVITY", ["SKILLTREE_NODE"]),
                 ["skilltree"] = new("skilltree", "スキルツリー", "スキルツリー機能への導線を持つ NPC。", "ACTIVITY", ["MOB"]),
                 ["melee"] = new("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
@@ -365,23 +368,23 @@ public static class MasterTags
                 ["magic"] = new("magic", "魔法", "魔法攻撃または魔法系統の分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
                 ["mage"] = new("mage", "魔術師", "魔術師系統に属する分類。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
                 ["support"] = new("support", "支援", "回復または補助を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
-                ["tank"] = new("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", ["CLASS"]),
+                ["tank"] = new("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
                 ["dealer"] = new("dealer", "アタッカー", "ダメージ出力を主とするクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["balanced"] = new("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", ["CLASS"]),
                 ["defense"] = new("defense", "防御", "防御能力や耐久力に関係する分類。", "COMBAT_ROLE", ["SKILL", "SKILLTREE_NODE"]),
-                ["offense"] = new("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", ["SKILLTREE_NODE"]),
+                ["offense"] = new("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", ["SKILL", "SKILLTREE_NODE"]),
                 ["front"] = new("front", "前衛", "前線で戦うクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["bow"] = new("bow", "弓", "弓系統に関係する分類。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
                 ["staff"] = new("staff", "杖", "杖系統に関係する分類。", "COMBAT_ROLE", ["CLASS"]),
                 ["sword"] = new("sword", "剣", "剣系統に関係する分類。", "COMBAT_ROLE", ["CLASS"]),
                 ["fire"] = new("fire", "炎", "炎属性または炎をモチーフとする分類。", "ELEMENT", ["SKILL", "SKILLTREE_NODE", "MOB"]),
-                ["ice"] = new("ice", "氷", "氷属性に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
+                ["ice"] = new("ice", "氷", "氷属性に関係する分類。", "ELEMENT", ["SKILL", "SKILLTREE_NODE"]),
                 ["lightning"] = new("lightning", "雷", "雷属性に関係する分類。", "ELEMENT", ["SKILL", "SKILLTREE_NODE", "MOB"]),
                 ["poison"] = new("poison", "毒", "毒属性に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
                 ["light"] = new("light", "光", "光属性に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
                 ["dark"] = new("dark", "闇", "闇属性に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
-                ["burning"] = new("burning", "炎上", "炎上状態に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
-                ["frozen"] = new("frozen", "凍結", "凍結状態に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
+                ["burning"] = new("burning", "炎上", "炎上状態に関係する分類。", "ELEMENT", ["SKILL", "SKILLTREE_NODE"]),
+                ["frozen"] = new("frozen", "凍結", "凍結状態に関係する分類。", "ELEMENT", ["SKILL", "SKILLTREE_NODE"]),
                 ["chilled"] = new("chilled", "冷却", "冷却状態に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
                 ["shocked"] = new("shocked", "感電", "感電状態に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
                 ["poisoned"] = new("poisoned", "毒状態", "毒状態に関係する分類。", "ELEMENT", ["SKILLTREE_NODE"]),
