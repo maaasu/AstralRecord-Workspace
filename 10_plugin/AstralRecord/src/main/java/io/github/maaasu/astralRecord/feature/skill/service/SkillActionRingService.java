@@ -249,6 +249,17 @@ public final class SkillActionRingService {
     }
 
     /**
+     * プレイヤーが選択確定後の発動待ちかを返します。
+     *
+     * @param player 対象プレイヤー
+     * @return 発動待ちのリング session がある場合は {@code true}
+     */
+    public boolean isWaitingForCast(@NotNull Player player) {
+        RingSession session = sessions.get(player.getUniqueId());
+        return session != null && session.hasConfirmedSelection();
+    }
+
+    /**
      * 表示中のアクションリングを開いた時点で選択していた hotbar slot を返します。
      *
      * <p>アクションリング表示中は hotbar slot の変更入力をガードするため、
