@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordproxy;
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.EventTask;
@@ -329,6 +330,20 @@ public final class AstralRecordProxyPlugin {
         tabDisplayCache.remove(playerId);
         tabDisplayCache.values().forEach(cache -> cache.remove(playerId));
         removeTabEntryFromAllViewers(proxy.getAllPlayers(), playerId);
+    }
+
+    /** Velocityへ届いたプレイヤー起点コマンドをbackendへの転送前に監視表示する。 */
+    @Subscribe
+    public void onCommandExecute(CommandExecuteEvent event) {
+        if (!(event.getCommandSource() instanceof Player player)
+            || event.getInvocationInfo().source() != CommandExecuteEvent.Source.PLAYER
+            || event.getCommand().isBlank()) {
+            return;
+        }
+        String sourceServerId = player.getCurrentServer()
+            .map(server -> server.getServerInfo().getName())
+            .orElse("proxy");
+        broadcastCommandMonitor(sourceServerId, player, "/" + event.getCommand());
     }
 
     @Subscribe
@@ -759,6 +774,26 @@ public final class AstralRecordProxyPlugin {
             .append(chatBodyComponent(chat.original(), chat.converted()));
         Component completedMessage = message;
         proxy.getAllPlayers().forEach(player -> player.sendMessage(completedMessage));
+    }
+
+    /** Proxy最高権限UUIDに一致するプレイヤーだけへコマンド監視を配信し、入力者本人を除外する。 */
+    void broadcastCommandMonitor(String sourceServerId, Player sender, String command) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
+        UUID senderId = sender.getUniqueId();
+        PlayerMetadata senderMetadata = metadata.get(senderId);
+        String senderName = senderMetadata != null
+            && senderMetadata.serverId().equalsIgnoreCase(sourceServerId)
+            ? senderMetadata.displayName()
+            : sender.getUsername();
+        Component message = Component.text(
+                "[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY)
+            .append(Component.text("[コマンド] " + senderName + ": ", NamedTextColor.YELLOW))
+            .append(Component.text(command, NamedTextColor.WHITE));
+        proxy.getAllPlayers().stream()
+            .filter(player -> settings.isServerAuthority(player.getUniqueId()))
+            .filter(player -> !player.getUniqueId().equals(senderId))
+            .forEach(player -> player.sendMessage(message));
     }
 
     /** Proxy最高権限UUIDに一致するプレイヤーだけへプライベートチャット監視を配信する。 */
