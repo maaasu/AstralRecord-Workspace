@@ -229,15 +229,16 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: ADMINアカウントはchannel・クラス・レベル・AFKを省略してアカウント名だけ表示する。
+     * 検証契約: ADMINアカウントはchannelとアカウント名を表示し、クラス・レベル・AFKを省略する。
      */
     @Test
-    void rendersOnlyAccountNameForAdminAccountMode() {
+    void rendersChannelAndAccountNameForAdminAccountMode() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-admin", "rpg-1", "rpg", "admin#1", 100, "§c§lADM", true, 0, true, true);
 
-        assertEquals(Component.text("admin", NamedTextColor.WHITE)
-                .append(Component.text("#1", NamedTextColor.GRAY)),
+        assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
+                .append(Component.text("admin", NamedTextColor.WHITE)
+                    .append(Component.text("#1", NamedTextColor.GRAY))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 

@@ -1033,10 +1033,10 @@ public final class AstralRecordProxyPlugin {
 
     /** ProxyのTabエントリへ適用するRPG側準拠の表示名を生成する。 */
     static Component tabDisplayName(PlayerMetadata value) {
-        if (value.accountNameOnly()) {
-            return accountDisplayName(value);
-        }
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
+        if (value.accountNameOnly()) {
+            return prefix.append(accountDisplayName(value));
+        }
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
         }
