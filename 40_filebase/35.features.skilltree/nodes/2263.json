@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2263",
+  "name": "&dエレメンタルボール",
+  "icon": "WHITE_GLAZED_TERRACOTTA",
+  "tags": ["offense", "element"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_elemental_ball"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

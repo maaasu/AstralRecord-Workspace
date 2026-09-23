@@ -885,6 +885,30 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
         new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_TRAIL =
+        new SharedParticleDefinition(
+            "wizard_elemental_ball_trail", Particle.DUST_COLOR_TRANSITION,
+            10, 0.17D, 0.17D, 0.17D, 0.0D,
+            new Particle.DustTransition(Color.fromRGB(255, 120, 55), Color.fromRGB(105, 205, 255), 1.45F)
+        );
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_IMPACT =
+        new SharedParticleDefinition(
+            "wizard_elemental_ball_impact", Particle.DUST_COLOR_TRANSITION,
+            18, 0.35D, 0.35D, 0.35D, 0.025D,
+            new Particle.DustTransition(Color.fromRGB(255, 215, 95), Color.fromRGB(180, 105, 255), 1.65F)
+        );
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_FLAME =
+        new SharedParticleDefinition("wizard_elemental_ball_flame", Particle.FLAME, 8, 0.25D, 0.25D, 0.25D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_FROST =
+        new SharedParticleDefinition("wizard_elemental_ball_frost", Particle.SNOWFLAKE, 8, 0.25D, 0.25D, 0.25D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_SPARK =
+        new SharedParticleDefinition("wizard_elemental_ball_spark", Particle.ELECTRIC_SPARK, 8, 0.25D, 0.25D, 0.25D, 0.03D);
+    public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_RING =
+        new SharedParticleDefinition(
+            "wizard_elemental_ball_ring", Particle.DUST,
+            1, 0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(245, 235, 255), 1.05F)
+        );
     public static final SharedParticleDefinition SKILL_MAGE_ARCANE_DUST =
         new SharedParticleDefinition(
             "skill_mage_arcane_dust",

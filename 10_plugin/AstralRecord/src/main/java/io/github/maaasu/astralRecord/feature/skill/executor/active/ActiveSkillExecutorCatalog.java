@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.Swo
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardSelfHealExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalPrismExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalBallExecutor;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -38,7 +39,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
-     * @return 38個の executor
+     * @return 39個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -49,7 +50,7 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(38);
+        List<SkillExecutor> executors = new ArrayList<>(39);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
@@ -57,6 +58,7 @@ public final class ActiveSkillExecutorCatalog {
         executors.add(new WizardMeteorExecutor(services));
         executors.add(new WizardSelfHealExecutor(services));
         executors.add(new WizardElementalPrismExecutor(services));
+        executors.add(new WizardElementalBallExecutor(services));
         executors.addAll(PaladinSkillExecutorCatalog.create(
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));
