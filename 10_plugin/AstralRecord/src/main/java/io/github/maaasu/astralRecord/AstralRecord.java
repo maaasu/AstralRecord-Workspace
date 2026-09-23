@@ -1776,7 +1776,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         activeSkillCombatService.setSkillHitListener(paladinDivineChaserRuntimeService::onSkillHit);
         wizardLightningStrikeRuntimeService = new WizardLightningStrikeRuntimeService(
-            skillService, activeSkillCombatService, statusService
+            skillService, activeSkillCombatService, activeSkillServices.effects(), statusService
         );
         conditionService.addAppliedListener(wizardLightningStrikeRuntimeService::onConditionApplied);
         bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(

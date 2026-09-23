@@ -885,6 +885,8 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
         new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_EMULATE_SPARK =
+        new SharedParticleDefinition("wizard_emulate_spark", Particle.SCULK_CHARGE_POP, 2, 0.08D, 0.08D, 0.08D, 0.0D);
     public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_TRAIL =
         new SharedParticleDefinition(
             "wizard_elemental_ball_trail", Particle.DUST_COLOR_TRANSITION,

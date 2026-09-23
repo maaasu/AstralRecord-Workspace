@@ -86,13 +86,13 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         double damageRatio = params.getDouble("damageRatio", 1.15D);
         int projectileCount = params.getInt("projectileCount", 1);
         int durationTicks = params.getInt("durationTicks", 40);
-        double speedPerTick = params.getDouble("projectileSpeedPerSecond", 4.0D) / 20.0D;
+        double speedPerTick = params.getDouble("projectileSpeedPerSecond", 12.0D) / 20.0D;
         double hitRadius = params.getDouble("projectileHitRadius", 0.35D);
         double bounceSpeed = Math.sqrt(
                 2.0D * GRAVITY_PER_TICK_SQUARED
                         * (params.getDouble("bounceHeight", 1.3D) - SURFACE_OFFSET)
         );
-        double spreadAngle = params.getDouble("spreadAngle", 20.0D);
+        double spreadAngle = params.getDouble("spreadAngle", 30.0D);
         ActiveSkillCondition shocked = new ActiveSkillCondition(
                 ConditionType.SHOCKED,
                 params.getDouble("shockChance", 25.0D),
@@ -184,7 +184,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                 runtime.pendingCasts.clear();
             }
         }
-        runtime.services.effects().pointsNearViewers(visible, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
+        runtime.services.effects().pointsNearViewers(visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK);
         if (runtime.casts.isEmpty()) {
             runtime.services.tasks().cancel(runtime.casterId, runtime.scope);
         }
@@ -234,7 +234,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                         cast.damageRatio, cast.shocked
                 );
                 runtime.services.effects().point(
-                        targetHit.location(), SharedParticleDefinitions.CONDITION_SHOCKED_SPARK
+                        targetHit.location(), SharedParticleDefinitions.WIZARD_EMULATE_SPARK
                 );
                 return true;
             }

@@ -64,22 +64,22 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 onCast:
-  sound: entity.lightning_bolt.impact
+  sound: entity.evoker.cast_spell
 tags:
   - active
   - magic
   - lightning
 # behavior:
-#   flight: "視点の水平前方へ全角20度で1/3/5/7/9個を散開する。各弾は水平4m/sで進み、発生直後は地面へ下降する。地面への衝突では面から1.3mの高さへ跳ね、壁では進行方向を鏡面反射する。"
+#   flight: "視点の水平前方へ全角30度で1/3/5/7/9個を散開する。各弾は水平12m/sで進み、発生直後は地面へ下降する。地面への衝突では面から1.3mの高さへ跳ね、壁では進行方向を鏡面反射する。雷弾の粒子はSCULK_CHARGE_POP。"
 #   hit: "弾ごとに最初に接触した管理対象MobへMAGIC/LIGHTNINGの(105+10×Lv)%を与えて消滅する。別弾なら同じMobへ同時に命中でき、直撃が成立した弾ごとに25%でSHOCKEDを100tick付与する。"
 #   lifecycle: "各弾の寿命は40×Lv tick。地形との反射では消えない。PvP、NPC、別world、死亡Mobは対象外。"
 params:
   damageRatio: 1.15
   projectileCount: 1
-  projectileSpeedPerSecond: 4.0
+  projectileSpeedPerSecond: 12.0
   projectileHitRadius: 0.35
   bounceHeight: 1.3
-  spreadAngle: 20.0
+  spreadAngle: 30.0
   durationTicks: 40
   shockChance: 25.0
   shockDurationTicks: 100

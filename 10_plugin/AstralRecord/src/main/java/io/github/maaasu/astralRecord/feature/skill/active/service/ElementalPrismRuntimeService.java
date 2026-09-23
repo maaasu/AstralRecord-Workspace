@@ -165,6 +165,13 @@ public final class ElementalPrismRuntimeService {
         return distance < maxDistance ? distance : Double.NaN;
     }
 
+    /**
+     * 魔法を吸収し、選んだ追撃対象へ1tick間隔で各弾を発射します。
+     *
+     * @param context 吸収された攻撃魔法の発動情報
+     * @param state 吸収時に有効なプリズム
+     * @param element 吸収された魔法の属性
+     */
     private void refract(
             @NotNull PlayerActiveSkillContext context,
             @NotNull PrismState state,
@@ -187,25 +194,31 @@ public final class ElementalPrismRuntimeService {
         Collections.shuffle(candidates);
         List<AstEntity> targets = candidates.subList(0, Math.min(state.maxTargets, candidates.size()));
         AstEntity attacker = context.attacker();
-        Location previousLightningHit = origin;
+        Location[] previousLightningHit = {origin};
         for (int index = 0; index < state.projectileCount; index++) {
             AstEntity target = targets.get(ThreadLocalRandom.current().nextInt(targets.size()));
-            Location targetCenter = target.location().add(0.0D, 1.0D, 0.0D);
-            if (element == DamageElement.LIGHTNING) {
-                Location from = previousLightningHit.distanceSquared(targetCenter) < 0.01D
-                        ? origin : previousLightningHit;
-                services.effects().line(from, targetCenter, 0.25D, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
-                services.effects().point(targetCenter, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
-                services.combat().hit(
-                        state.skill, attacker, target, AttackType.MAGIC, element, state.damageRatio
-                );
-                previousLightningHit = targetCenter;
-            } else {
-                launchBolt(context, state, attacker, target, origin, targetCenter, element);
-            }
-        }
-        if (element == DamageElement.LIGHTNING) {
-            services.effects().sound(origin, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.65F, 1.55F);
+            boolean lastProjectile = index == state.projectileCount - 1;
+            services.tasks().later(ownerId, "wizard-prism-volley:" + UUID.randomUUID(), index + 1L, () -> {
+                if (!context.player().isOnline() || target.location().getWorld() != origin.getWorld()) {
+                    return;
+                }
+                Location targetCenter = target.location().add(0.0D, 1.0D, 0.0D);
+                if (element == DamageElement.LIGHTNING) {
+                    Location from = previousLightningHit[0].distanceSquared(targetCenter) < 0.01D
+                            ? origin : previousLightningHit[0];
+                    services.effects().line(from, targetCenter, 0.25D, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
+                    services.effects().point(targetCenter, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
+                    services.combat().hit(
+                            state.skill, attacker, target, AttackType.MAGIC, element, state.damageRatio
+                    );
+                    previousLightningHit[0] = targetCenter;
+                    if (lastProjectile) {
+                        services.effects().sound(origin, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.65F, 1.55F);
+                    }
+                } else {
+                    launchBolt(context, state, attacker, target, origin, targetCenter, element);
+                }
+            });
         }
     }
 

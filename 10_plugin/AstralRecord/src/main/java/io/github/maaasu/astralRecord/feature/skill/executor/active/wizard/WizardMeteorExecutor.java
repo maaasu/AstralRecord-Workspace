@@ -3,7 +3,9 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.wizard;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
@@ -59,6 +61,13 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "range");
         requirePositive(params, "radius");
         requirePositive(params, "damageRatio");
+        double burningChance = params.getDouble("burningChance", -1.0D);
+        if (!(burningChance >= 0.0D && burningChance <= 100.0D)) {
+            throw new SkillParameterException("burningChance", "メテオの燃焼確率は0～100%が必要です");
+        }
+        if (params.getInt("burningDurationTicks", 0) < 1) {
+            throw new SkillParameterException("burningDurationTicks", "メテオの燃焼時間は1tick以上が必要です");
+        }
         int delayTicks = params.getInt("impactDelayTicks", 0);
         if (delayTicks <= ARRIVAL_HOLD_TICKS || delayTicks % ANIMATION_STEP_TICKS != 0) {
             throw new SkillParameterException("impactDelayTicks", "メテオの着弾遅延は6tick以上の偶数が必要です");
@@ -74,7 +83,13 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         double damageRatio = params.getDouble("damageRatio", 6.05D);
         int delayTicks = params.getInt("impactDelayTicks", 60);
         MeteorTarget target = impactTarget(context, range);
-        summon(context.services(), context.player(), context.attacker(), target, radius, damageRatio, delayTicks, 1.0D);
+        ActiveSkillCondition burning = new ActiveSkillCondition(
+                ConditionType.BURNING,
+                params.getDouble("burningChance", 25.0D),
+                params.getInt("burningDurationTicks", 100),
+                1.0D
+        );
+        summon(context.services(), context.player(), context.attacker(), target, radius, damageRatio, delayTicks, 1.0D, burning);
         return context.success();
     }
 
@@ -93,11 +108,23 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             @NotNull Location impact
     ) {
         summon(services, caster.getBukkit(), attacker,
-                new MeteorTarget(impact.clone(), new Vector(0.0D, 1.0D, 0.0D)),
+                new MeteorTarget(impact.clone()),
                 2.5D, 1.5D, 20, 0.75D);
     }
 
-    /** 着弾地点と演出倍率を固定してメテオの時限処理を開始します。 */
+    /**
+     * 着弾地点と演出倍率を固定してメテオの時限処理を開始します。
+     *
+     * @param services 戦闘、演出、遅延処理の共有サービス
+     * @param caster 発動者
+     * @param attacker 発動時点の攻撃者
+     * @param target 固定した着弾地点
+     * @param radius 爆発範囲
+     * @param damageRatio 魔法攻撃倍率
+     * @param delayTicks 着弾までの時間
+     * @param visualScale 演出倍率
+     * @param conditions 命中時の状態異常。空なら状態異常を付与しない
+     */
     private static void summon(
             @NotNull ActiveSkillServices services,
             @NotNull Player caster,
@@ -106,7 +133,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             double radius,
             double damageRatio,
             int delayTicks,
-            double visualScale
+            double visualScale,
+            @NotNull ActiveSkillCondition... conditions
     ) {
         int flightTicks = delayTicks - ARRIVAL_HOLD_TICKS;
         Location impact = target.location();
@@ -125,7 +153,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                     elapsedTicks -> {
                         if (elapsedTicks >= delayTicks) {
                             state.destroy();
-                            detonate(services, caster, attacker, impact, radius, damageRatio, visualScale);
+                            detonate(services, caster, attacker, impact, radius, damageRatio, visualScale, conditions);
                             return;
                         }
                         if (elapsedTicks <= flightTicks && elapsedTicks % ANIMATION_STEP_TICKS == 0) {
@@ -146,20 +174,34 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
-    /** 発動時の視線とBlock衝突面から、変更されない着弾地点と魔法陣の面法線を解決します。 */
+    /**
+     * 発動時の視線とBlock衝突面から、変更されない着弾地点を解決します。
+     *
+     * @param context 発動者の視線と地形判定
+     * @param range 最大射程
+     * @return 発動時に固定した着弾地点
+     */
     private static @NotNull MeteorTarget impactTarget(@NotNull PlayerActiveSkillContext context, double range) {
         Location eye = context.eyeLocation();
         Vector direction = context.direction();
         SkillTargetingService.BlockHit blockHit = context.services().targeting().blockHit(eye, direction, range);
         return blockHit == null
-                ? new MeteorTarget(eye.add(direction.multiply(range)), new Vector(0.0D, 1.0D, 0.0D))
-                : new MeteorTarget(
-                        blockHit.location().add(blockHit.normal().multiply(0.12D)),
-                        blockHit.normal()
-                );
+                ? new MeteorTarget(eye.add(direction.multiply(range)))
+                : new MeteorTarget(blockHit.location().add(blockHit.normal().multiply(0.12D)));
     }
 
-    /** 隕石と魔法陣を消し、爆発演出と球形範囲への一撃を適用します。 */
+    /**
+     * 隕石と魔法陣を消し、爆発演出と球形範囲への一撃を適用します。
+     *
+     * @param services 戦闘、対象判定、演出の共有サービス
+     * @param caster 発動者
+     * @param attacker 発動時点の攻撃者
+     * @param impact 固定した着弾地点
+     * @param radius 爆発範囲
+     * @param damageRatio 魔法攻撃倍率
+     * @param visualScale 演出倍率
+     * @param conditions 命中時の状態異常。空なら状態異常を付与しない
+     */
     private static void detonate(
             @NotNull ActiveSkillServices services,
             @NotNull Player caster,
@@ -167,7 +209,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             @NotNull Location impact,
             double radius,
             double damageRatio,
-            double visualScale
+            double visualScale,
+            @NotNull ActiveSkillCondition... conditions
     ) {
         Location burst = impact.clone().add(0.0D, 0.45D, 0.0D);
         services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_EXPLOSION, visualScale));
@@ -176,7 +219,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         services.effects().sound(impact, Sound.ENTITY_GENERIC_EXPLODE, (float) (2.0D * visualScale), 0.72F);
         services.targeting().inSphere(caster, impact, radius, Integer.MAX_VALUE, true)
                 .forEach(target -> services.combat().hit(
-                        attacker, target, AttackType.MAGIC, DamageElement.FIRE, damageRatio
+                        attacker, target, AttackType.MAGIC, DamageElement.FIRE, damageRatio, conditions
                 ));
     }
 
@@ -202,8 +245,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
-    /** 発動地点と、魔法陣が向くBlock衝突面の外向き法線を保持します。 */
-    private record MeteorTarget(@NotNull Location location, @NotNull Vector normal) {
+    /** 発動時に固定した着弾地点を保持します。 */
+    private record MeteorTarget(@NotNull Location location) {
     }
 
     /** 発動ごとの隕石表示と、着弾位置に固定された魔法陣を管理します。 */
@@ -219,9 +262,6 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         };
 
         private final Location impact;
-        private final Vector planeNormal;
-        private final Vector planeX;
-        private final Vector planeZ;
         private final Vector sourceOffset;
         private final double visualScale;
         private final List<Location> sigilRings;
@@ -229,16 +269,10 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         private final List<BlockDisplay> displays = new ArrayList<>(DISPLAY_COUNT);
         private Location meteorCenter;
 
-        /** ランダムな方位と鉛直角を固定し、命中面に沿う魔法陣の粒子座標を準備します。 */
+        /** ランダムな方位と鉛直角を固定し、水平な魔法陣の粒子座標を準備します。 */
         private MeteorState(@NotNull MeteorTarget target, double visualScale) {
             this.impact = target.location().clone();
             this.visualScale = visualScale;
-            this.planeNormal = target.normal().clone().normalize();
-            Vector reference = Math.abs(planeNormal.getY()) > 0.9D
-                    ? new Vector(1.0D, 0.0D, 0.0D)
-                    : new Vector(0.0D, 1.0D, 0.0D);
-            this.planeX = reference.crossProduct(planeNormal).normalize();
-            this.planeZ = planeNormal.clone().crossProduct(planeX).normalize();
             double azimuth = ThreadLocalRandom.current().nextDouble(Math.PI * 2.0D);
             double tilt = Math.toRadians(ThreadLocalRandom.current().nextDouble(25.0D, 40.0D));
             double horizontalDistance = METEOR_HEIGHT * Math.tan(tilt);
@@ -354,12 +388,15 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             }
         }
 
-        /** 衝突面に沿う局所座標を実際の粒子位置へ変換します。 */
+        /**
+         * 水平な局所座標を実際の粒子位置へ変換します。
+         *
+         * @param x 着弾地点から東西方向の距離
+         * @param z 着弾地点から南北方向の距離
+         * @return 着弾地点より0.04m高い水平面の粒子位置
+         */
         private @NotNull Location sigilPoint(double x, double z) {
-            return impact.clone()
-                    .add(planeNormal.clone().multiply(0.04D))
-                    .add(planeX.clone().multiply(x))
-                    .add(planeZ.clone().multiply(z));
+            return impact.clone().add(x, 0.04D, z);
         }
     }
 }
