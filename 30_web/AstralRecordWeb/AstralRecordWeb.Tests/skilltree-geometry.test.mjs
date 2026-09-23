@@ -13,6 +13,18 @@ test('all pairwise distances and directions retain the source proportions', () =
     assert.deepEqual(source, [{ x: -9, z: 2 }, { x: -7, z: 2 }, { x: 4, z: 10 }, { x: 11, z: -8 }]);
 });
 
+test('50% spacing halves projected node distances', () => {
+    const source = [{ x: -3, z: 1 }, { x: 2, z: 1 }, { x: 7, z: 5 }];
+    const normal = projectNodes(source);
+    const compact = projectNodes(source, .5);
+    assert.equal(compact.scale, normal.scale / 2);
+    for (let i = 0; i < source.length; i++) {
+        assert.equal(compact.nodes[i].px, normal.nodes[i].px / 2);
+        assert.equal(compact.nodes[i].py, normal.nodes[i].py / 2);
+    }
+    assert.ok(graphBounds(compact.nodes).width < graphBounds(normal.nodes).width);
+});
+
 test('nearby horizontal, vertical and diagonal nodes leave room for icons and labels', () => {
     const { nodes } = projectNodes([{ x: 0, z: 0 }, { x: .5, z: 0 }, { x: .5, z: .5 }, { x: 1, z: 1 }]);
     for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {

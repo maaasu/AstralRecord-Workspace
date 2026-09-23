@@ -14,10 +14,15 @@ export function initializeViewer(viewer, viewState) {
     let tree;
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
     if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
-    const projected = projectNodes(tree.nodes);
+    const spacingInput = viewer.querySelector('[data-tree-spacing]');
+    let spacingPercent = Math.max(50, Math.min(200, Number(viewState?.spacingPercent) || 100));
+    spacingInput.value = String(spacingPercent);
+    viewer.querySelector('[data-tree-spacing-label]').textContent = `${spacingPercent}%`;
+    const projected = projectNodes(tree.nodes, spacingPercent / 100);
+    const baseScale = projected.scale / (spacingPercent / 100);
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
     if (!nodes.size) return;
-    const bounds = graphBounds(projected.nodes);
+    let bounds = graphBounds(projected.nodes);
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const svg = viewer.querySelector('.ar-tree-canvas');
     const minimap = viewer.querySelector('[data-tree-minimap]');
@@ -32,6 +37,18 @@ export function initializeViewer(viewer, viewState) {
     const root = nodes.get(tree.rootNodeId) ?? projected.nodes.find(node => node.isUnlocked) ?? projected.nodes[0];
     const minZoom = () => Math.min(.08, fitCamera(bounds, viewport.clientWidth, viewport.clientHeight).zoom);
     minimap.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+    const placeEdge = edge => {
+        const source = nodes.get(edge.source), target = nodes.get(edge.target);
+        const dx = target.px - source.px, dy = target.py - source.py, length = Math.hypot(dx, dy);
+        const inset = Math.min(52, length / 2);
+        for (const [key, value] of Object.entries({
+            x1: source.px + dx / length * inset, y1: source.py + dy / length * inset,
+            x2: target.px - dx / length * inset, y2: target.py - dy / length * inset,
+        })) edge.line.setAttribute(key, value);
+        for (const [key, value] of Object.entries({ x1: source.px, y1: source.py, x2: target.px, y2: target.py })) edge.miniLine.setAttribute(key, value);
+        edge.minX = Math.min(source.px, target.px); edge.maxX = Math.max(source.px, target.px);
+        edge.minY = Math.min(source.py, target.py); edge.maxY = Math.max(source.py, target.py);
+    };
     for (const edge of tree.edges ?? []) {
         const source = nodes.get(edge.sourceNodeId), target = nodes.get(edge.targetNodeId);
         if (!source || !target) continue;
@@ -39,18 +56,18 @@ export function initializeViewer(viewer, viewState) {
         neighbors.get(target.nodeId).push(source);
         const dx = target.px - source.px, dy = target.py - source.py, length = Math.hypot(dx, dy);
         if (!length) continue;
-        const inset = Math.min(52, length / 2);
         const line = make('line', {
-            x1: source.px + dx / length * inset, y1: source.py + dy / length * inset,
-            x2: target.px - dx / length * inset, y2: target.py - dy / length * inset,
             class: `ar-tree-edge${source.isUnlocked && target.isUnlocked ? ' is-unlocked' : ''}`,
             'vector-effect': 'non-scaling-stroke',
         });
         graph.append(line);
-        links.push({ line, source: source.nodeId, target: target.nodeId, minX: Math.min(source.px, target.px), maxX: Math.max(source.px, target.px), minY: Math.min(source.py, target.py), maxY: Math.max(source.py, target.py) });
-        minimap.append(make('line', { x1: source.px, y1: source.py, x2: target.px, y2: target.py, class: 'ar-tree-mini-edge' }));
+        const miniLine = make('line', { class: 'ar-tree-mini-edge' });
+        minimap.append(miniLine);
+        const link = { line, miniLine, source: source.nodeId, target: target.nodeId };
+        placeEdge(link);
+        links.push(link);
     }
-    const miniRadius = Math.max(bounds.width, bounds.height) / 110;
+    let miniRadius = Math.max(bounds.width, bounds.height) / 110;
     const miniNodes = new Map();
     for (const node of nodes.values()) {
         const point = make('circle', { cx: node.px, cy: node.py, r: miniRadius, class: `ar-tree-mini-node${node.isUnlocked ? ' is-unlocked' : ''}` });
@@ -174,6 +191,29 @@ export function initializeViewer(viewer, viewState) {
         g.addEventListener('focus', () => { if (g.matches(':focus-visible')) focusNode(node, camera.zoom < .4); });
         graph.append(g); groups.set(node.nodeId, g);
     }
+    spacingInput.addEventListener('input', () => {
+        const nextPercent = Number(spacingInput.value);
+        if (nextPercent === spacingPercent) return;
+        const ratio = nextPercent / spacingPercent;
+        const centerX = viewport.clientWidth / 2, centerY = viewport.clientHeight / 2;
+        camera.x = centerX - (centerX - camera.x) * ratio;
+        camera.y = centerY - (centerY - camera.y) * ratio;
+        spacingPercent = nextPercent;
+        viewer.querySelector('[data-tree-spacing-label]').textContent = `${spacingPercent}%`;
+        for (const node of nodes.values()) {
+            node.px = node.x * baseScale * spacingPercent / 100;
+            node.py = node.z * baseScale * spacingPercent / 100;
+            groups.get(node.nodeId).setAttribute('transform', `translate(${node.px},${node.py})`);
+            const point = miniNodes.get(node.nodeId);
+            point.setAttribute('cx', node.px); point.setAttribute('cy', node.py);
+        }
+        links.forEach(placeEdge);
+        bounds = graphBounds([...nodes.values()]);
+        minimap.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+        miniRadius = Math.max(bounds.width, bounds.height) / 110;
+        miniNodes.forEach(point => point.setAttribute('r', miniRadius));
+        draw();
+    });
     const zoomBy = (factor, x = viewport.clientWidth / 2, y = viewport.clientHeight / 2) => {
         camera = zoomCamera(camera, Math.max(minZoom(), Math.min(2, camera.zoom * factor)), x, y); draw();
     };
@@ -330,7 +370,7 @@ export function initializeViewer(viewer, viewState) {
     });
     observer.observe(viewport);
     viewer.dispose = () => { disposed = true; observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, selectedId, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
+    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
     showDetails(nodes.get(viewState?.selectedId) ?? root, false);
     if (viewState) { camera = { ...viewState.camera }; draw(); }
     else { focusNode(root); if (viewport.clientWidth < 760) viewer.classList.add('is-detail-hidden'); }

@@ -1,5 +1,5 @@
 // A single scale for both axes preserves every original distance ratio and direction.
-export function projectNodes(nodes) {
+export function projectNodes(nodes, spacing = 1) {
     const valid = nodes.filter(node => Number.isFinite(node.x) && Number.isFinite(node.z));
     let nearestAxisDistance = Infinity;
     for (let i = 0; i < valid.length; i++) {
@@ -10,7 +10,7 @@ export function projectNodes(nodes) {
     }
     // Keep the master's geometry and circular node art; reserve room for the expanded labels below it.
     const extent = Math.max(300, ...valid.map(node => nodeLabelLines(node).length * 20 + 170));
-    const scale = Math.max(108, extent / nearestAxisDistance);
+    const scale = Math.max(108, extent / nearestAxisDistance) * spacing;
     return { scale, nodes: valid.map(node => ({ ...node, px: node.x * scale, py: node.z * scale })) };
 }
 

@@ -39,6 +39,9 @@
 .ar-tree-controls button { padding: .55rem .65rem; min-width: 36px; color: #e0c797; border: 1px solid #d9b97c40; background: #221f2c; border-radius: 4px; font-size: .73rem; transition: background .2s, border-color .2s; }
 .ar-tree-controls button:hover { border-color: #d9b97caa; background: #443544; }
 .ar-tree-controls output { font-family: 'Cinzel', serif; font-size: .7rem; color: #c6bccf; min-width: 45px; text-align: center; }
+.ar-tree-spacing { display: inline-flex; align-items: center; gap: .35rem; color: #c6bccf; font-size: .72rem; white-space: nowrap; }
+.ar-tree-spacing input { width: 95px; accent-color: #d9b97c; }
+.ar-tree-spacing output { min-width: 38px; }
 .ar-tree-control-divider { height: 22px; width: 1px; margin: 0 .35rem; background: #d9b97c26; }
 .ar-tree-layout { display: grid; grid-template-columns: minmax(0, 1fr) 285px; border: 1px solid #d9b97c45; border-radius: 5px 16px 5px 16px; overflow: hidden; }
 .ar-tree-map-shell { position: relative; min-width: 0; }
