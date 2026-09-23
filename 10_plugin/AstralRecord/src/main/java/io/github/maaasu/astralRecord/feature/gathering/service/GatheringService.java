@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceRe
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusRateCalculator;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -478,7 +479,16 @@ public class GatheringService {
         }
         AstPlayer recipient = astPlayer;
         if (recipient != null && dropPresentationService != null) {
-            MobDropResult result = dropService.roll(instance.definition().drops(), recipient);
+            MobDropResult rolledResult = dropService.roll(instance.definition().drops(), recipient);
+            MobDropResult result = new MobDropResult(
+                rolledResult.items(),
+                StatusRateCalculator.applyRate(
+                    recipient.getStatusSnapshot(),
+                    StatusType.EXPERIENCE_GAIN_RATE,
+                    rolledResult.exp()
+                ),
+                rolledResult.money()
+            );
             applyExperienceAndSkillPoints(recipient, result);
             if (equipmentDurabilityService != null) {
                 equipmentDurabilityService.consumeOnGathering(recipient);

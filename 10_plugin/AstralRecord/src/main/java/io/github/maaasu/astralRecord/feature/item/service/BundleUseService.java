@@ -17,6 +17,8 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusRateCalculator;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -269,7 +271,8 @@ public class BundleUseService {
             return;
         }
 
-        Map<String, Integer> rewards = rollRewards(pending.bundle(), pending.lootModel());
+        Map<String, Integer> rewards = rollRewards(
+            pending.bundle(), pending.lootModel(), pending.astPlayer());
         List<ResolvedReward> resolvedRewards = new ArrayList<>();
         for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
             if (reward.getValue() <= 0) continue;
@@ -374,10 +377,18 @@ public class BundleUseService {
         pending.bossBar().setVisible(false);
     }
 
-    private @NotNull Map<String, Integer> rollRewards(@NotNull ItemBundle bundle, @Nullable LootModel lootModel) {
+    private @NotNull Map<String, Integer> rollRewards(
+        @NotNull ItemBundle bundle,
+        @Nullable LootModel lootModel,
+        @NotNull AstPlayer player
+    ) {
         Map<String, Integer> rewards = new LinkedHashMap<>();
         if (lootModel != null) {
-            for (LootRollResult reward : lootRollService.roll(lootModel)) {
+            double dropRatePercent = StatusRateCalculator.resolveRatePercent(
+                player.getStatusSnapshot(),
+                StatusType.DROP_RATE_INCREASE
+            );
+            for (LootRollResult reward : lootRollService.roll(lootModel, dropRatePercent)) {
                 rewards.merge(reward.getItemId(), reward.getAmount(), Integer::sum);
             }
         }

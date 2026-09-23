@@ -122,6 +122,16 @@ class MobDropServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: 設定確率20%へDROP_RATE_INCREASE=200%を適用すると抽選確率40%になる。
+     */
+    @Test
+    void calculateEffectiveRateAppliesDropRateIncrease() {
+        assertEquals(40.0D, MobDropService.calculateEffectiveRate(20.0D, 0.0D, false, 200.0D), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
      * 検証契約: rollが取得したLUCKをluckAffected=trueの直接dropへ適用し、falseには適用しない。
      */
     @Test

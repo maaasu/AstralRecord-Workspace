@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusRateCalculator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -64,10 +65,14 @@ public class MobDropService {
         }
         return new MobDropResult(
                 result.items(),
-                LevelDifferenceCalculator.scaleExperience(
-                        result.exp(),
-                        killer.getAccount().getLevel(),
-                        template.level()
+                StatusRateCalculator.applyRate(
+                        killer.getStatusSnapshot(),
+                        StatusType.EXPERIENCE_GAIN_RATE,
+                        LevelDifferenceCalculator.scaleExperience(
+                                result.exp(),
+                                killer.getAccount().getLevel(),
+                                template.level()
+                        )
                 ),
                 result.money()
         );
@@ -87,11 +92,17 @@ public class MobDropService {
         }
 
         ThreadLocalRandom rng = ThreadLocalRandom.current();
+        StatusSnapshot snapshot = killer == null ? null : killer.getStatusSnapshot();
         double luck = killer == null ? 0.0D : resolveLuck(killer);
+        double dropRatePercent = StatusRateCalculator.resolveRatePercent(
+                snapshot,
+                StatusType.DROP_RATE_INCREASE
+        );
 
         List<MobDropResultItem> items = new ArrayList<>();
         for (MobDropItem item : drops.items()) {
-            double effectiveRate = calculateEffectiveRate(item.rate(), luck, item.luckAffected());
+            double effectiveRate = calculateEffectiveRate(
+                    item.rate(), luck, item.luckAffected(), dropRatePercent);
             if (rng.nextDouble(0.0, 100.0) >= effectiveRate) continue;
 
             int amount = parseAmount(item.amount(), rng);
@@ -99,7 +110,7 @@ public class MobDropService {
 
             items.add(new MobDropResultItem(item.itemId(), amount, item.rate()));
         }
-        appendLootTableDrops(items, drops.lootTable());
+        appendLootTableDrops(items, drops.lootTable(), dropRatePercent);
 
         int money = 0;
         MobMoneyDrop moneyConfig = drops.money();
@@ -114,7 +125,8 @@ public class MobDropService {
 
     private void appendLootTableDrops(
         @NotNull List<MobDropResultItem> items,
-        @Nullable String lootTableId
+        @Nullable String lootTableId,
+        double dropRatePercent
     ) {
         if (lootService == null || lootTableId == null || lootTableId.isBlank()) {
             return;
@@ -123,7 +135,7 @@ public class MobDropService {
         if (lootModel == null) {
             return;
         }
-        for (LootRollResult reward : lootRollService.roll(lootModel)) {
+        for (LootRollResult reward : lootRollService.roll(lootModel, dropRatePercent)) {
             items.add(new MobDropResultItem(
                 reward.getItemId(),
                 reward.getAmount(),
@@ -156,10 +168,20 @@ public class MobDropService {
      * @return 抽選に使用する実効ドロップ確率（%）
      */
     static double calculateEffectiveRate(double rate, double luck, boolean luckAffected) {
-        double multiplier = luckAffected
+        return calculateEffectiveRate(rate, luck, luckAffected, 100.0D);
+    }
+
+    static double calculateEffectiveRate(
+        double rate,
+        double luck,
+        boolean luckAffected,
+        double dropRatePercent
+    ) {
+        double luckMultiplier = luckAffected
                 ? 1.0D + Math.max(0.0D, luck) / 100.0D
                 : 1.0D;
-        return clampRate(rate * multiplier);
+        double dropMultiplier = Math.max(0.0D, dropRatePercent) / 100.0D;
+        return clampRate(rate * luckMultiplier * dropMultiplier);
     }
 
     private static double clampRate(double rate) {

@@ -92,6 +92,29 @@ class LootRollServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
      * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: 設定率20%はDROP_RATE_INCREASE=200%により40%となり、40未満の乱数で当選する。
+     */
+    @Test
+    void rollAppliesPlayerDropRateIncreaseToConfiguredRate() {
+        LootModel loot = fixedLoot(
+            1,
+            List.of(new LootContent("doubled_rate", 1, 1, 20.0D))
+        );
+
+        List<LootRollResult> results = new LootRollService().roll(
+            loot,
+            200.0D,
+            new ScriptedRandom(List.of(), List.of(39.9D))
+        );
+
+        assertEquals(1, results.size());
+        assertEquals("doubled_rate", results.getFirst().getItemId());
+        assertEquals(20.0D, results.getFirst().getConfiguredRate());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
      * 検証契約: roll/pick回数を閉区間から抽選し常に上限値を使わない。
      */
     @Test

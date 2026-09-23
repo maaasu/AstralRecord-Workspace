@@ -1273,6 +1273,8 @@ public class StatusService {
             case MP_REGEN -> 0.5D;
             case ENERGY_REGEN -> 5.0D;
             case SUPPORT_POWER -> 0.0D;
+            case EXPERIENCE_GAIN_RATE -> 100.0D;
+            case DROP_RATE_INCREASE -> 100.0D;
             case MOVEMENT_SPEED -> 100.0D;
             case MOVEMENT_SPEED_CAP -> 0.0D;
             case COOLDOWN_REDUCTION -> 0.0D;

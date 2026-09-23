@@ -27,11 +27,34 @@ public class LootRollService {
      * @return 選択順を維持した抽選結果
      */
     public @NotNull List<LootRollResult> roll(@NotNull LootModel lootModel) {
-        return roll(lootModel, ThreadLocalRandom.current());
+        return roll(lootModel, 100.0D, ThreadLocalRandom.current());
+    }
+
+    /**
+     * プレイヤーのドロップ増加率を適用してルートテーブルを抽選します。
+     *
+     * @param lootModel 参照解決済みルートテーブル
+     * @param dropRatePercent ドロップ増加率。100%で設定率のまま、200%で設定率の2倍
+     * @return 選択順を維持した抽選結果
+     */
+    public @NotNull List<LootRollResult> roll(
+        @NotNull LootModel lootModel,
+        double dropRatePercent
+    ) {
+        return roll(lootModel, dropRatePercent, ThreadLocalRandom.current());
     }
 
     @NotNull
     List<LootRollResult> roll(@NotNull LootModel lootModel, @NotNull RandomGenerator random) {
+        return roll(lootModel, 100.0D, random);
+    }
+
+    @NotNull
+    List<LootRollResult> roll(
+        @NotNull LootModel lootModel,
+        double dropRatePercent,
+        @NotNull RandomGenerator random
+    ) {
         List<LootRollResult> rewards = new ArrayList<>();
         int rolls = rollRange(lootModel.getMinRolls(), lootModel.getMaxRolls(), random);
         for (int rollIndex = 0; rollIndex < rolls; rollIndex++) {
@@ -47,8 +70,9 @@ public class LootRollService {
                 List<LootContent> successfulContents = new ArrayList<>();
                 for (LootContent content : pool.getContents()) {
                     double configuredRate = clampRate(content.getRate());
-                    if (configuredRate >= 100.0D
-                        || (configuredRate > 0.0D && random.nextDouble(100.0D) < configuredRate)) {
+                    double effectiveRate = calculateEffectiveRate(configuredRate, dropRatePercent);
+                    if (effectiveRate >= 100.0D
+                        || (effectiveRate > 0.0D && random.nextDouble(100.0D) < effectiveRate)) {
                         successfulContents.add(content);
                     }
                 }
@@ -99,6 +123,13 @@ public class LootRollService {
         int minValue = Math.max(0, Math.min(first, second));
         int maxValue = Math.max(0, Math.max(first, second));
         return minValue == maxValue ? minValue : random.nextInt(minValue, maxValue + 1);
+    }
+
+    private double calculateEffectiveRate(double configuredRate, double dropRatePercent) {
+        double safeDropRatePercent = Double.isFinite(dropRatePercent)
+            ? Math.max(0.0D, dropRatePercent)
+            : 100.0D;
+        return clampRate(configuredRate * safeDropRatePercent / 100.0D);
     }
 
     private double clampRate(double rate) {

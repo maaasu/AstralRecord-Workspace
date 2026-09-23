@@ -35,6 +35,7 @@ import io.github.maaasu.astralRecord.feature.quest.repository.QuestDefinitionRep
 import io.github.maaasu.astralRecord.feature.quest.repository.QuestPlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusRateCalculator;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -1031,16 +1032,21 @@ public final class QuestService {
                 }
             }
 
-            if (quest.rewards().exp() > 0) {
+            int adjustedExperience = StatusRateCalculator.applyRate(
+                player.getStatusSnapshot(),
+                StatusType.EXPERIENCE_GAIN_RATE,
+                quest.rewards().exp()
+            );
+            if (adjustedExperience > 0) {
                 AccountExperienceResult result = rebirthService == null
                     ? accountService.grantExperienceCached(
-                        player.getAccount(), quest.rewards().exp(), player.getUser().getUuid())
-                    : rebirthService.grantExperience(player, quest.rewards().exp());
+                        player.getAccount(), adjustedExperience, player.getUser().getUuid())
+                    : rebirthService.grantExperience(player, adjustedExperience);
                 progressChanged = true;
                 player.setAccount(result.updatedAccount());
                 playerClassService.grantClassExperienceStateOnly(
                     player,
-                    quest.rewards().exp()
+                    adjustedExperience
                 );
             }
             return new AppliedRewards(

@@ -101,6 +101,8 @@ statuses:
   - { id: MANA_COST_REDUCTION, displayName: "MP消費軽減率", description: "スキルのMP消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: ENERGY_COST_REDUCTION, displayName: "エネルギー消費軽減率", description: "スキルのエネルギー消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SUPPORT_POWER, displayName: "支援力", description: "回復や支援系状態異常の基礎効果を高める能力。", category: UTILITY }
+  - { id: EXPERIENCE_GAIN_RATE, displayName: "EXP獲得量増加率", description: "獲得するEXP量へ適用する倍率。100%で変化せず、200%なら基礎EXPの2倍になる。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: DROP_RATE_INCREASE, displayName: "ドロップ増加率", description: "アイテムドロップ確率へ適用する倍率。100%で変化せず、200%なら確率が2倍になる。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: HEALING_INCREASE, displayName: "回復量増加", description: "自身のHP回復量を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: CONDITION_DURATION_INCREASE, displayName: "状態異常持続時間増加", description: "自身が付与する状態異常の持続時間を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_REDUCTION, displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間、再充填パッシブの待機時間、攻撃による追加時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
