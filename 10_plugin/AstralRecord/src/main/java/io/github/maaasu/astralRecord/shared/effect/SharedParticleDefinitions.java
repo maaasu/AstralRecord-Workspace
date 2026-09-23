@@ -916,12 +916,12 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition(
             "condition_poison_dust",
             Particle.DUST,
-            4,
-            0.18D,
-            0.22D,
-            0.18D,
+            8,
+            0.24D,
+            0.32D,
+            0.24D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(80, 210, 70), 0.9F)
+            new Particle.DustOptions(Color.fromRGB(100, 235, 70), 1.05F)
         );
     public static final SharedParticleDefinition CONDITION_ICE_DUST =
         new SharedParticleDefinition(
@@ -935,7 +935,7 @@ public final class SharedParticleDefinitions {
             new Particle.DustOptions(Color.fromRGB(125, 220, 255), 0.9F)
         );
     public static final SharedParticleDefinition CONDITION_SHOCKED_SPARK =
-        new SharedParticleDefinition("condition_shocked_spark", Particle.ELECTRIC_SPARK, 5, 0.24D, 0.34D, 0.24D, 0.025D);
+        new SharedParticleDefinition("condition_shocked_spark", Particle.ELECTRIC_SPARK, 10, 0.28D, 0.42D, 0.28D, 0.035D);
     public static final SharedParticleDefinition SKILL_PALADIN_HOLY_SMITE_DUST =
         new SharedParticleDefinition(
             "skill_paladin_holy_smite_dust",
