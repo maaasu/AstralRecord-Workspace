@@ -33,19 +33,27 @@ class PassiveSkillServiceTest {
      * 検証契約: 基本5枠へPASSIVE_SKILL_SLOTSを1値1枠で加え、負数を無視し保存上限に制限する。
      */
     @Test
-    void activePassiveSlotCountUsesBaseFiveAndCapsStatusBonusAtNine() {
+    void activePassiveSlotCountUsesBaseFiveAndCapsAtTwelve() {
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        StatusSnapshot snapshot = mock(StatusSnapshot.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+        when(snapshot.getMaxValue(StatusType.PASSIVE_SKILL_SLOTS)).thenReturn(-1.0D, 2.9D, 99.0D);
+        when(presetService.passiveSkillSlotCount(accountId, 5)).thenReturn(5);
+        when(presetService.passiveSkillSlotCount(accountId, 7)).thenReturn(7);
+        when(presetService.passiveSkillSlotCount(accountId, 12)).thenReturn(12);
         PassiveSkillService service = new PassiveSkillService(
             mock(AstralRecord.class),
             mock(SkillService.class),
-            mock(SkillBindPresetService.class),
+            presetService,
             mock(SkillOwnershipService.class),
             mock(SkillPermissionService.class),
             mock(LearnedSkillResolver.class)
         );
-        AstPlayer player = mock(AstPlayer.class);
-        StatusSnapshot snapshot = mock(StatusSnapshot.class);
-        when(player.getStatusSnapshot()).thenReturn(snapshot);
-        when(snapshot.getMaxValue(StatusType.PASSIVE_SKILL_SLOTS)).thenReturn(-1.0D, 2.9D, 99.0D);
 
         assertEquals(5, service.activePassiveSlotCount(player));
         assertEquals(7, service.activePassiveSlotCount(player));
@@ -109,6 +117,7 @@ class PassiveSkillServiceTest {
         when(skillService.registry()).thenReturn(registry);
         when(ownershipService.learnedSkills(player)).thenReturn(List.of(learned));
         when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
+        when(presetService.passiveSkillSlotCount(accountId, 10)).thenReturn(10);
         when(permissionService.isPermitted(player, definition.getId())).thenReturn(true);
         when(presetService.getPresets(accountId)).thenReturn(List.of(
             new SkillBindPreset(
