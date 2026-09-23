@@ -23,10 +23,10 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -62,9 +62,6 @@ public final class MobDropPresentationService {
     private static final String DROP_SOURCE = "mob_drop";
     private static final double ENEMY_RARE_DROP_MAX_RATE = 0.1D;
     private static final double BOSS_RARE_DROP_MAX_RATE = 5.0D;
-    private static final Sound RARE_DROP_SOUND = Sound.BLOCK_AMETHYST_BLOCK_BREAK;
-    private static final float RARE_DROP_SOUND_VOLUME = 1.0F;
-    private static final float RARE_DROP_SOUND_PITCH = 1.0F;
 
     private final Plugin plugin;
     private final ItemService itemService;
@@ -374,6 +371,16 @@ public final class MobDropPresentationService {
                 continue;
             }
             String itemName = ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId());
+            Player player = recipient.getBukkit();
+            Location location = player.getLocation();
+            player.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.4F, 0.55F);
+            player.playSound(location, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.2F, 0.75F);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> player.playSound(
+                location,
+                Sound.BLOCK_AMETHYST_BLOCK_RESONATE,
+                1.0F,
+                1.35F
+            ), 2L);
             for (Player viewer : plugin.getServer().getOnlinePlayers()) {
                 if (playerSettingService.isDropLogDisplayEnabled(viewer.getUniqueId())) {
                     PlayerMessageService.getInstance().send(
@@ -383,13 +390,6 @@ public final class MobDropPresentationService {
                         itemName,
                         item.amount(),
                         formatDropRate(item.dropRate())
-                    );
-                    viewer.playSound(
-                        viewer.getLocation(),
-                        RARE_DROP_SOUND,
-                        SoundCategory.PLAYERS,
-                        RARE_DROP_SOUND_VOLUME,
-                        RARE_DROP_SOUND_PITCH
                     );
                 }
             }
