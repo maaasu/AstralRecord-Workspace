@@ -20,7 +20,8 @@ public final class SharpshooterSkillExecutorCatalog {
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of(
                 new SharpshooterFireArrowExecutor(services),
-                new SharpshooterIceArrowExecutor(services)
+                new SharpshooterIceArrowExecutor(services),
+                new SharpshooterSpreadingAmbitionExecutor(services)
         );
     }
 }

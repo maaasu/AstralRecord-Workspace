@@ -53,6 +53,10 @@ params:
       durationConsumptionTicks: 600
       sourceSkillId: skill:sharpshooter_ice_arrow
       consumeSourceSkillResources: false
+    - buffId: buff:sharpshooter_spreading_ambition_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_spreading_ambition
+      consumeSourceSkillResources: false
 tags:
   - passive
   - ranged

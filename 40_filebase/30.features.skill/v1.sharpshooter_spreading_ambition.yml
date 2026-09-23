@@ -1,0 +1,81 @@
+# design:
+#   motif: "草花 / 野望の散開"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_spreading_ambition
+type: SKILL
+implementationId: sharpshooter_spreading_ambition
+name: "&a拡散する野望"
+description: "&7草花をまとった矢が散開し、着弾点を爆発させる。"
+icon: TORCHFLOWER_SEEDS
+lore:
+  - "&7前方へ{skill.pelletCount}本の矢を全角{skill.spreadAngle}度に放つ。射程{skill.range}m。"
+  - "&7各矢の直撃は間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7着弾地点の半径{skill.explosionRadius}mで周囲の最大{skill.maxExplosionTargets}体へ直撃の50%の爆発ダメージ。"
+  - "&7いずれかの状態異常がある敵への直撃・爆発ダメージは2倍。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7{skill.inheritanceMasteryName}が有効なら{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与。"
+      - "&7通常攻撃の最初の着弾でバフを{skill.inheritanceConsumptionTicks:seconds}秒消費し、5方向へ散開する。"
+      - "&7継承時に追加リソースは消費しない。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 20
+manaCost: 12
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 3
+levels:
+  - level: 2
+    paramDeltas: { pelletCount: 2 }
+  - level: 3
+    paramDeltas: { pelletCount: 2 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 2, slots: 2 }
+  - { level: 3, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  inheritanceMasteryName: "継承の心得"
+  inheritanceBuffName: "継承バフ拡散する野望"
+  inheritanceDurationTicks: 2980
+  inheritanceConsumptionTicks: 600
+  range: 24.0
+  damageRatio: 2.0
+  explosionDamageRatio: 1.0
+  explosionRadius: 3.0
+  maxExplosionTargets: 6
+  pelletCount: 1
+  spreadAngle: 20.0
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow
+# behavior:
+#   impact: "敵または地形への着弾ごとに爆発。直撃対象は範囲ダメージから除外し、同じ敵への別矢の命中は許可する。"
+#   inheritance: "継承の心得が有効なとき149秒のバフを付与。通常攻撃は5方向、最初の着弾で30秒を一度だけ消費する。"

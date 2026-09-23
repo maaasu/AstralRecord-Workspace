@@ -317,17 +317,20 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             );
             return;
         }
-        launchProjectileAttack(
-                skill,
-                attacker,
-                startLocation,
-                direction,
-                attackType,
-                readDamageComponents(skill),
-                normalAttackDamageMultiplier,
-                inheritedElements,
-                inheritanceHit
-        );
+        List<Vector> directions = inheritanceAttack != null
+                && attackType == AttackType.RANGED
+                && inheritanceAttack.hasActiveSourceSkill(
+                        io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSpreadingAmbitionExecutor.ID)
+                ? io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterFadeShotExecutor
+                        .pelletDirections(direction, 5, 20.0D)
+                : List.of(direction);
+        List<DamageComponent> damageComponents = readDamageComponents(skill);
+        for (Vector shotDirection : directions) {
+            launchProjectileAttack(
+                    skill, attacker, startLocation, shotDirection, attackType,
+                    damageComponents, normalAttackDamageMultiplier, inheritedElements, inheritanceHit
+            );
+        }
     }
 
     /** 多段・複数対象でも継承を一回だけ発動する近接攻撃を処理します。 */

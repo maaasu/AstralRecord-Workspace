@@ -50,6 +50,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
 | `skill-sharpshooter-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-sharpshooter-spreading-ambition` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
 | `skill-phantom-archer-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
 | `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
@@ -393,13 +394,15 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## シャープシューター専門枝
 
-シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 3個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` と `2242` は属性矢の使用許可を与える未配置nodeとする。
+シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 5個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241`、`2242`、`2255`、`2257` は使用許可だけを定義した未配置nodeとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
 | `skill-sharpshooter-inheritance-mastery` | `2240` | `skill` / `sharpshooter_inheritance_mastery` | `&a継承の心得` | `SPECTRAL_ARROW` | `offense`, `wind` |
 | `skill-sharpshooter-fire-arrow` | `2241` | `skill` / `sharpshooter_fire_arrow` | `&6ファイアアロー` | `FIRE_CORAL` | `offense`, `fire`, `burning` |
 | `skill-sharpshooter-ice-arrow` | `2242` | `skill` / `sharpshooter_ice_arrow` | `&bアイスアロー` | `LIGHT_BLUE_DYE` | `offense`, `ice`, `frozen` |
+| `skill-sharpshooter-heal-arrow-alpha` | `2255` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-sharpshooter-spreading-ambition` | `2257` | `skill` / `sharpshooter_spreading_ambition` | `&a拡散する野望` | `TORCHFLOWER_SEEDS` | `offense` |
 
 ### 共通射撃パッケージ
 

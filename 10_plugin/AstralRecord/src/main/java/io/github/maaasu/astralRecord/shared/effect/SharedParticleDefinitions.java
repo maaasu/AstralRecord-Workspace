@@ -676,6 +676,29 @@ public final class SharedParticleDefinitions {
             0.24D,
             0.02D
         );
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_TRAIL =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_trail", Particle.DUST,
+            7, 0.13D, 0.13D, 0.13D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(78, 205, 76), 1.35F));
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_MUZZLE =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_muzzle", Particle.COMPOSTER,
+            20, 0.3D, 0.25D, 0.3D, 0.04D);
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_IMPACT =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_impact", Particle.HAPPY_VILLAGER,
+            12, 0.3D, 0.3D, 0.3D, 0.03D);
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_BURST =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_burst", Particle.EXPLOSION,
+            3, 0.22D, 0.18D, 0.22D, 0.0D);
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_LEAVES =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_leaves", Particle.COMPOSTER,
+            36, 0.8D, 0.6D, 0.8D, 0.12D);
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_BLOCK =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_block", Particle.BLOCK,
+            28, 0.7D, 0.45D, 0.7D, 0.08D, Material.MOSS_BLOCK.createBlockData());
+    public static final SharedParticleDefinition SHARPSHOOTER_SPREADING_AMBITION_RING =
+        new SharedParticleDefinition("sharpshooter_spreading_ambition_ring", Particle.DUST,
+            2, 0.04D, 0.04D, 0.04D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(165, 240, 90), 1.65F));
     public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
         new SharedParticleDefinition(
             "skill_hunter_trap_dust",

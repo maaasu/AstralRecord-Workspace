@@ -246,6 +246,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterFireArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterIceArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSpreadingAmbitionExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -1839,6 +1840,11 @@ public final class AstralRecord extends JavaPlugin {
             SharpshooterIceArrowExecutor.ID);
         if (iceArrowExecutor instanceof SharpshooterIceArrowExecutor iceArrow) {
             iceArrow.setInheritanceBuffService(inheritanceBuffService);
+        }
+        var spreadingAmbitionExecutor = skillService.registry().getExecutor(
+            SharpshooterSpreadingAmbitionExecutor.ID);
+        if (spreadingAmbitionExecutor instanceof SharpshooterSpreadingAmbitionExecutor spreadingAmbition) {
+            spreadingAmbition.setInheritanceBuffService(inheritanceBuffService);
         }
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);

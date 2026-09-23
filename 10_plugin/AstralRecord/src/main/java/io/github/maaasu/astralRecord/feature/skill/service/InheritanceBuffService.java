@@ -314,6 +314,21 @@ public final class InheritanceBuffService {
             return Set.copyOf(elements);
         }
 
+        /**
+         * 通常攻撃開始時に指定した元スキルの継承バフが有効だったかを返します。
+         *
+         * @param sourceSkillId prefixなしの元スキルID
+         * @return 有効な継承バフがあれば true
+         */
+        public boolean hasActiveSourceSkill(@NotNull String sourceSkillId) {
+            if (player == null || statusService == null || !masteryActive.test(player)) {
+                return false;
+            }
+            return inheritances.stream().anyMatch(inheritance ->
+                    inheritance.context().source().skill().getId().equals(sourceSkillId)
+                            && statusService.getActiveBuffs(player).contains(inheritance.buff()));
+        }
+
         /** 最初の着弾だけで、各継承バフの消費と効果発動を処理します。 */
         @Override
         public void accept(@NotNull InheritanceImpact impact) {

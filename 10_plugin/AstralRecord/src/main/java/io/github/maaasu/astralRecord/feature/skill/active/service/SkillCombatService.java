@@ -397,6 +397,16 @@ public final class SkillCombatService {
                 .anyMatch(condition -> condition.type() == type);
     }
 
+    /**
+     * 対象に種類を問わず有効な状態異常があるかを返します。
+     *
+     * @param target 判定対象
+     * @return いずれかの状態異常が有効なら true
+     */
+    public boolean hasAnyCondition(@NotNull AstEntity target) {
+        return !conditionService.getActiveConditions(target).isEmpty();
+    }
+
     /** 対象 Mob を発動者へ向け、脅威値を加算します。 */
     public void provoke(@NotNull AstEntity attacker, @NotNull AstEntity target, double threat) {
         if (!attacker.isPlayer() || attacker.player() == null || !AccountModeGuard.isGameplayPlayer(attacker.player())

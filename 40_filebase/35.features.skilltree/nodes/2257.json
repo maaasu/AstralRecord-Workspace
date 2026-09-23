@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2257",
+  "name": "&a拡散する野望",
+  "icon": "TORCHFLOWER_SEEDS",
+  "tags": ["offense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "sharpshooter_spreading_ambition" }
+  ],
+  "unlockCondition": { "classId": "sharpshooter" }
+}

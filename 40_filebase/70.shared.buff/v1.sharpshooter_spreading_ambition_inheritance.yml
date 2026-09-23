@@ -1,0 +1,13 @@
+# design:
+#   motif: "草花 / 野望の継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_spreading_ambition_inheritance
+type: BUFF
+name: "&a継承バフ拡散する野望"
+lore:
+  - "&7残り時間中の通常攻撃を5方向へ散開させる。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

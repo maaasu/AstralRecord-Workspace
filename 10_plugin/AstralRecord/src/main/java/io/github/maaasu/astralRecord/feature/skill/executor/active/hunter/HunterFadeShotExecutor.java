@@ -112,7 +112,7 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
      * @param spreadAngleDegrees 両端を含む全角
      * @return 中央を含み左右対称に並ぶ単位方向ベクトル
      */
-    static @NotNull List<Vector> pelletDirections(
+    public static @NotNull List<Vector> pelletDirections(
             @NotNull Vector forward,
             int pelletCount,
             double spreadAngleDegrees
