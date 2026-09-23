@@ -22,6 +22,7 @@ import java.util.Map;
  *   <li>3 = 胴 (CHEST)</li>
  *   <li>4 = 脚 (LEGS)</li>
  *   <li>5 = 足 (FEET)</li>
+ *   <li>6 = スキルブック (SKILLBOOK)</li>
  * </ul>
  */
 final class EquipSlotLayout {
@@ -31,8 +32,9 @@ final class EquipSlotLayout {
     static final int SLOT_CHEST = 3;
     static final int SLOT_LEGS = 4;
     static final int SLOT_FEET = 5;
+    static final int SLOT_SKILLBOOK = 6;
     static final int SLOT_MIN = SLOT_HEAD;
-    static final int SLOT_MAX = SLOT_FEET;
+    static final int SLOT_MAX = SLOT_SKILLBOOK;
 
     private EquipSlotLayout() {
     }

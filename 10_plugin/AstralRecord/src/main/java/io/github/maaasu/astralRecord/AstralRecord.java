@@ -1801,7 +1801,7 @@ public final class AstralRecord extends JavaPlugin {
         inventoryPersistence.registerStateParticipant(learnedSkillService::snapshotPlayerState);
         inventoryPersistence.registerStateParticipant(skillBindPresetService::snapshotPlayerState);
         inventoryPersistence.registerStateParticipant(skillTreeService::snapshotPlayerState);
-        skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);
+        skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService, inventoryService);
         playerDetailGui.setSkillServices(
             skillService,
             skillBindPresetService,

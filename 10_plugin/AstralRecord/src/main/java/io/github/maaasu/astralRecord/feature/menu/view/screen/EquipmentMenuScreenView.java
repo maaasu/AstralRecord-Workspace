@@ -32,6 +32,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     public static final int EQUIPMENT_BACK_SLOT = BACK_SLOT;
     public static final int EQUIPMENT_MAIN_HAND_SLOT = 19;
     public static final int EQUIPMENT_HEAD_SLOT = 11;
+    public static final int EQUIPMENT_SKILLBOOK_SLOT = 10;
     public static final int EQUIPMENT_CHEST_SLOT = 20;
     public static final int EQUIPMENT_LEGS_SLOT = 29;
     public static final int EQUIPMENT_FEET_SLOT = 38;
@@ -63,17 +64,20 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
      * @param inventory 描画対象のチェストインベントリ
      * @param player 対象プレイヤー
      * @param accessories slotIndex と配列 index が一致するアクセサリスナップショット
+     * @param skillbook 装備中のスキルブック。未装備なら null
      */
     public void render(
         @NotNull Inventory inventory,
         @NotNull Player player,
-        @NotNull ItemStack[] accessories
+        @NotNull ItemStack[] accessories,
+        @Nullable ItemStack skillbook
     ) {
         fill(inventory);
         PlayerInventory playerInventory = player.getInventory();
         inventory.setItem(PLAYER_STATUS_SLOT, playerStatusItem(player));
         updateMainHandItem(inventory, playerInventory.getItemInMainHand());
         inventory.setItem(EQUIPMENT_HEAD_SLOT, itemOrPlaceholderForSlot(playerInventory.getHelmet(), EQUIPMENT_HEAD_SLOT));
+        inventory.setItem(EQUIPMENT_SKILLBOOK_SLOT, itemOrPlaceholderForSlot(skillbook, EQUIPMENT_SKILLBOOK_SLOT));
         inventory.setItem(EQUIPMENT_CHEST_SLOT, itemOrPlaceholderForSlot(playerInventory.getChestplate(), EQUIPMENT_CHEST_SLOT));
         inventory.setItem(EQUIPMENT_LEGS_SLOT, itemOrPlaceholderForSlot(playerInventory.getLeggings(), EQUIPMENT_LEGS_SLOT));
         inventory.setItem(EQUIPMENT_FEET_SLOT, itemOrPlaceholderForSlot(playerInventory.getBoots(), EQUIPMENT_FEET_SLOT));
@@ -114,6 +118,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     public @Nullable EquipmentType getEquipmentTypeAtSlot(int rawSlot) {
         return switch (rawSlot) {
             case EQUIPMENT_HEAD_SLOT -> EquipmentType.HEAD;
+            case EQUIPMENT_SKILLBOOK_SLOT -> EquipmentType.SKILLBOOK;
             case EQUIPMENT_CHEST_SLOT -> EquipmentType.CHEST;
             case EQUIPMENT_LEGS_SLOT -> EquipmentType.LEGS;
             case EQUIPMENT_FEET_SLOT -> EquipmentType.FEET;
@@ -162,6 +167,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     public int getSlotForEquipmentType(@NotNull EquipmentType equipmentType) {
         return switch (equipmentType) {
             case HEAD -> EQUIPMENT_HEAD_SLOT;
+            case SKILLBOOK -> EQUIPMENT_SKILLBOOK_SLOT;
             case CHEST -> EQUIPMENT_CHEST_SLOT;
             case LEGS -> EQUIPMENT_LEGS_SLOT;
             case FEET -> EQUIPMENT_FEET_SLOT;
@@ -221,6 +227,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     public @Nullable ItemStack createPlaceholderForSlot(int slot) {
         return switch (slot) {
             case EQUIPMENT_HEAD_SLOT -> equipmentPlaceholder(Material.LEATHER_HELMET, "頭", "頭防具スロット");
+            case EQUIPMENT_SKILLBOOK_SLOT -> equipmentPlaceholder(Material.BOOK, "スキルブック", "スキルブックスロット");
             case EQUIPMENT_CHEST_SLOT -> equipmentPlaceholder(Material.LEATHER_CHESTPLATE, "胴", "胴防具スロット");
             case EQUIPMENT_LEGS_SLOT -> equipmentPlaceholder(Material.LEATHER_LEGGINGS, "脚", "脚防具スロット");
             case EQUIPMENT_FEET_SLOT -> equipmentPlaceholder(Material.LEATHER_BOOTS, "足", "足防具スロット");

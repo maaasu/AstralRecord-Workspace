@@ -223,6 +223,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 player,
                 targetPlayer,
                 inventoryService.getAccessorySnapshotItems(target),
+                inventoryService.getSkillbookSnapshotItem(target),
                 !player.getUniqueId().equals(targetPlayer.getUniqueId())
             );
             return;

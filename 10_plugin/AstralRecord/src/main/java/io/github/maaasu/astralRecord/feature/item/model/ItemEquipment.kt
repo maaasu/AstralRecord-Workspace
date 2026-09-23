@@ -7,7 +7,7 @@ import kotlin.math.nextUp
 /**
  * equipment カテゴリ拡張定義。
  */
-data class ItemEquipment(
+data class ItemEquipment @JvmOverloads constructor(
     val slot: ItemEquipmentSlot?,
     val handType: ItemEquipmentHandType = ItemEquipmentHandType.ONE,
     /** 採集ツール種別など equipment master が定義する用途タグ。 */
@@ -26,6 +26,8 @@ data class ItemEquipment(
     val rune: ItemEquipmentRuneDef? = null,
     /** 状態変化定義リスト */
     val transcendence: List<ItemEquipmentTranscendence> = emptyList(),
+    /** 装備中に使用を許可するスキル参照。 */
+    val usableSkills: List<String> = emptyList(),
 ) {
     /**
      * 装備インスタンスのステータスロールに対応するマスタ定義を返します。
@@ -54,6 +56,7 @@ enum class ItemEquipmentSlot(val displayName: String) {
     LEGS("脚"),
     FEET("足"),
     ACCESSORY("アクセサリ"),
+    SKILLBOOK("スキルブック"),
     TOOL("道具"),
     UNKNOWN("不明"),
     ;

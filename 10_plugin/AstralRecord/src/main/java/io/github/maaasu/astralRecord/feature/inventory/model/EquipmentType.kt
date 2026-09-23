@@ -11,9 +11,16 @@ enum class EquipmentType {
     LEGS,
     FEET,
     OFF_HAND,
+    SKILLBOOK,
     UNSUPPORTED,
     ;
 
+    /**
+     * Bukkit に対応する装備欄へ反映します。スキルブックは専用 GUI 枠のため Bukkit へ反映しません。
+     *
+     * @param inventory 対象のプレイヤーインベントリ
+     * @param itemStack 装備アイテム。解除時は null
+     */
     fun applyTo(inventory: PlayerInventory, itemStack: ItemStack?) {
         when (this) {
             MAIN_HAND -> inventory.setItemInMainHand(itemStack)
@@ -22,11 +29,13 @@ enum class EquipmentType {
             LEGS -> inventory.leggings = itemStack
             FEET -> inventory.boots = itemStack
             OFF_HAND -> inventory.setItemInOffHand(itemStack)
+            SKILLBOOK -> Unit
             UNSUPPORTED -> Unit
         }
     }
 
     companion object {
+        /** マスタの装備枠を GUI の装備種別へ変換します。 */
         @JvmStatic
         fun fromItemEquipmentSlot(slot: ItemEquipmentSlot?): EquipmentType =
             when (slot) {
@@ -37,12 +46,13 @@ enum class EquipmentType {
                 ItemEquipmentSlot.LEGS -> LEGS
                 ItemEquipmentSlot.FEET -> FEET
                 ItemEquipmentSlot.ACCESSORY -> UNSUPPORTED
+                ItemEquipmentSlot.SKILLBOOK -> SKILLBOOK
                 else -> UNSUPPORTED
             }
 
         /**
          * EQUIP_SLOT インベントリの slot_index から EquipmentType へ変換します。
-         * 1=メインハンド, 2=頭, 3=胴, 4=脚, 5=足
+         * 1=メインハンド, 2=頭, 3=胴, 4=脚, 5=足, 6=スキルブック
          */
         @JvmStatic
         fun fromEquipSlotIndex(slotIndex: Int): EquipmentType =
@@ -52,6 +62,7 @@ enum class EquipmentType {
                 3 -> CHEST
                 4 -> LEGS
                 5 -> FEET
+                6 -> SKILLBOOK
                 else -> UNSUPPORTED
             }
 

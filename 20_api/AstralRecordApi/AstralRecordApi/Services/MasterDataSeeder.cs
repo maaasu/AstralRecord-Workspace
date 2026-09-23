@@ -662,6 +662,34 @@ public class MasterDataSeeder(
                 throw new InvalidOperationException($"cooldownIdは未指定または空でない文字列です: {entry.SourceFilePath}");
         }
 
+        foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "item")
+            && KeyComparer.Equals(entry.Category, "equipment")))
+        {
+            var item = MasterDataPayloadJson.Deserialize<ItemResponse>(entry.PayloadJson)
+                ?? throw new InvalidOperationException($"equipmentの解析に失敗しました: {entry.SourceFilePath}");
+            var equipment = item.Equipment
+                ?? throw new InvalidOperationException($"equipment定義がありません: {entry.SourceFilePath}");
+            if (KeyComparer.Equals(equipment.Slot, "SKILLBOOK") && equipment.UsableSkills.Count == 0)
+                throw new InvalidOperationException($"SKILLBOOKにはusableSkillsが必要です: {entry.SourceFilePath}");
+            if (!KeyComparer.Equals(equipment.Slot, "SKILLBOOK") && equipment.UsableSkills.Count > 0)
+                throw new InvalidOperationException($"usableSkillsはSKILLBOOK専用です: {entry.SourceFilePath}");
+            if (KeyComparer.Equals(equipment.Slot, "SKILLBOOK") && equipment.Enchant is not null)
+                throw new InvalidOperationException($"SKILLBOOKにはenchantを指定できません: {entry.SourceFilePath}");
+            var normalized = equipment.UsableSkills.Select(reference =>
+                reference?.Trim().StartsWith("skill:", StringComparison.OrdinalIgnoreCase) == true
+                    ? reference.Trim()["skill:".Length..]
+                    : reference?.Trim() ?? string.Empty).ToArray();
+            if (normalized.Any(string.IsNullOrWhiteSpace)
+                || normalized.Distinct(KeyComparer).Count() != normalized.Length
+                || equipment.UsableSkills.Any(reference =>
+                    reference?.Trim().StartsWith("skill:", StringComparison.OrdinalIgnoreCase) != true))
+                throw new InvalidOperationException($"equipment.usableSkillsには重複のないskill:参照を指定してください: {entry.SourceFilePath}");
+            var unknownSkills = normalized.Where(id => !skillIds.Contains(id)).ToArray();
+            if (unknownSkills.Length > 0)
+                throw new InvalidOperationException(
+                    $"equipment.usableSkillsに未定義スキルがあります ({string.Join(", ", unknownSkills)}): {entry.SourceFilePath}");
+        }
+
         foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "class")))
         {
             var classMaster = MasterDataPayloadJson.Deserialize<ClassResponse>(entry.PayloadJson)

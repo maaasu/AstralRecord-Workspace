@@ -17,6 +17,7 @@
 | `equipment[].requiredClasses[]`                           | List<Object>  | ×  | -     | 装備可能な現在クラスと必要クラスレベルのリスト（任意）。未指定時は全クラス装備可。                                                                                                  |
 | `equipment[].requiredClasses[].classId`                   | String        | ○  | -     | 装備可能なクラス ID。プレイヤーが現在選択しているクラスと一致する必要がある。                                                                                                  |
 | `equipment[].requiredClasses[].level`                     | Integer       | ×  | 1     | 対象クラスに必要なクラスレベル。                                                                                                                               |
+| `equipment[].usableSkills[]`                              | List<String>  | ×  | []    | `slot: SKILLBOOK` 専用。装備中に使用を許可するスキルの `skill:<id>` 参照。SKILLBOOK では1件以上必須、空値・重複・未定義参照は不可。 |
 | `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/docs.set_effect.YAMLスキーマ定義.md` を参照。                                                  |
 | `equipment[].stats[]`                                     | List          | ×  | -     | 装備中に適用される基礎ステータス補正のリスト（後述）。                                                                                                                    |
 | `equipment[].stats[].status`                              | String        | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `MOVEMENT_SPEED`。                                                                              |
@@ -63,7 +64,10 @@
 - `LEGS`
 - `FEET`
 - `ACCESSORY`
+- `SKILLBOOK`
 - `TOOL`
+
+`SKILLBOOK` は装備 GUI の頭防具左（slot 10）に1個装備できます。`usableSkills` に複数の `skill:<id>` を指定でき、装備中だけ使用許可に加わります。スキルの習得状態とバインド条件は別に判定されます。スキルブックに `enchant` は指定しません。
 
 `SUBWEAPON` は表示名「補助装備」の装備種別で、オフハンドにだけ装備できます。補助装備ではない武器・道具・通常アイテムをオフハンドへ割り当てることはできません。
 

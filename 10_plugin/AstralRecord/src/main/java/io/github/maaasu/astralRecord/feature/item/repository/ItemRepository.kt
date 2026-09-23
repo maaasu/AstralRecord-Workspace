@@ -435,6 +435,7 @@ class ItemRepository {
             tag = parseStringOrNull(equipmentObj, "tag"),
             requiredLevel = equipmentObj.get("requiredLevel")?.asInt ?: 0,
             requiredClasses = parseEquipmentClassRequirements(equipmentObj.getAsJsonArray("requiredClasses")),
+            usableSkills = parseStringList(equipmentObj.getAsJsonArray("usableSkills")),
             setId = parseStringOrNull(equipmentObj, "setId"),
             stats = stats,
             durability = durability,

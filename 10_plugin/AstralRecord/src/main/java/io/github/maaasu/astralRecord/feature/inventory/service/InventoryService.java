@@ -104,6 +104,7 @@ public class InventoryService {
     private static final String SLOT_TYPE_CHEST = "CHEST";
     private static final String SLOT_TYPE_LEGS = "LEGS";
     private static final String SLOT_TYPE_FEET = "FEET";
+    private static final String SLOT_TYPE_SKILLBOOK = "SKILLBOOK";
     private static final String SLOT_TYPE_ACCESSORY = "ACCESSORY";
     private static final String STORAGE_ACQUIRED_AT_KEY = "acquiredAt";
     private static final String TOOL_SNAPSHOT_ADMIN_KEY = "admin";
@@ -5123,17 +5124,30 @@ public class InventoryService {
             inventory.getChestplate(),
             inventory.getLeggings(),
             inventory.getBoots(),
-            accessories
+            accessories,
+            getSkillbookInstanceId(astPlayer)
         );
     }
 
+    /**
+     * Bukkit 装備欄と専用 GUI 枠をアクティブなロードアウトへ反映します。
+     *
+     * @param state 更新対象のローカル状態
+     * @param head 頭装備
+     * @param chest 胴装備
+     * @param legs 脚装備
+     * @param feet 足装備
+     * @param accessories アクセサリ一覧
+     * @param skillbookInstanceId スキルブック個体 ID。未装備なら null
+     */
     private void applyLoadoutDiff(
         @NotNull PlayerInventoryState state,
         @Nullable ItemStack head,
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @NotNull ItemStack[] accessories
+        @NotNull ItemStack[] accessories,
+        @Nullable UUID skillbookInstanceId
     ) {
         if (ensureActiveEquipmentLoadout(state.getAccountId()) == null) {
             return;
@@ -5143,6 +5157,8 @@ public class InventoryService {
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_CHEST, 0, readEquipmentInstanceId(chest), actor);
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_LEGS, 0, readEquipmentInstanceId(legs), actor);
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_FEET, 0, readEquipmentInstanceId(feet), actor);
+        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_SKILLBOOK, 0,
+            skillbookInstanceId, actor);
         for (int slotIndex = AccessorySlotLayout.SLOT_MIN; slotIndex <= AccessorySlotLayout.SLOT_MAX; slotIndex++) {
             ItemStack itemStack = accessories.length > slotIndex ? accessories[slotIndex] : null;
             state.upsertActiveLoadoutSlot(
@@ -5164,6 +5180,7 @@ public class InventoryService {
      * @param legs 脚装備
      * @param feet 足装備
      * @param accessories slotIndex と配列 index が一致するオフハンド・アクセサリ一覧
+     * @param skillbook スキルブック。未装備なら null
      * @return 装備状態が変更された場合 true
      */
     public boolean saveEquipmentGui(
@@ -5172,14 +5189,15 @@ public class InventoryService {
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @NotNull ItemStack[] accessories
+        @NotNull ItemStack[] accessories,
+        @Nullable ItemStack skillbook
     ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return false;
         }
         PlayerInventory bukkitInventory = astPlayer.getBukkit().getInventory();
-        if (!hasEquipmentGuiChanges(astPlayer, bukkitInventory, head, chest, legs, feet, accessories)) {
+        if (!hasEquipmentGuiChanges(astPlayer, bukkitInventory, head, chest, legs, feet, accessories, skillbook)) {
             return false;
         }
         bukkitInventory.setHelmet(itemOrAir(head));
@@ -5193,17 +5211,31 @@ public class InventoryService {
         equipSnapshot[EquipSlotLayout.SLOT_CHEST] = itemOrAir(chest);
         equipSnapshot[EquipSlotLayout.SLOT_LEGS] = itemOrAir(legs);
         equipSnapshot[EquipSlotLayout.SLOT_FEET] = itemOrAir(feet);
+        equipSnapshot[EquipSlotLayout.SLOT_SKILLBOOK] = itemOrAir(skillbook);
         InventoryModel equipInventory = ensureInventory(state, InventoryType.EQUIP_SLOT,
             EquipSlotLayout.SLOT_MAX, state.getAccountId(), DEFAULT_PROFILE);
         state.updateInventoryMetadata(equipInventory.getInventoryId(),
             snapshotCodec.encode(equipSnapshot), state.getAccountId());
 
-        applyLoadoutDiff(state, head, chest, legs, feet, accessories);
+        applyLoadoutDiff(state, head, chest, legs, feet, accessories, readEquipmentInstanceId(skillbook));
 
         astPlayer.getBukkit().updateInventory();
         return true;
     }
 
+    /**
+     * GUI と現在の装備状態の差分を判定します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param bukkitInventory Bukkit の装備欄
+     * @param head 頭装備
+     * @param chest 胴装備
+     * @param legs 脚装備
+     * @param feet 足装備
+     * @param accessories アクセサリ一覧
+     * @param skillbook スキルブック
+     * @return 装備状態に差分がある場合 true
+     */
     private boolean hasEquipmentGuiChanges(
         @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventory bukkitInventory,
@@ -5211,12 +5243,14 @@ public class InventoryService {
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @NotNull ItemStack[] accessories
+        @NotNull ItemStack[] accessories,
+        @Nullable ItemStack skillbook
     ) {
         if (!isSameEquipmentItem(head, bukkitInventory.getHelmet())
             || !isSameEquipmentItem(chest, bukkitInventory.getChestplate())
             || !isSameEquipmentItem(legs, bukkitInventory.getLeggings())
             || !isSameEquipmentItem(feet, bukkitInventory.getBoots())
+            || !isSameEquipmentItem(skillbook, getSkillbookSnapshotItem(astPlayer))
             || !isSameEquipmentItem(
                 accessoryAt(accessories, AccessorySlotLayout.SLOT_OFF_HAND),
                 bukkitInventory.getItemInOffHand()
@@ -6592,6 +6626,77 @@ public class InventoryService {
         syncCurrentEquipmentState(astPlayer);
     }
 
+    /**
+     * アクティブなロードアウトのスキルブックを表示用 ItemStack として返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 装備中のスキルブック。未装備または解決不能なら null
+     */
+    public @Nullable ItemStack getSkillbookSnapshotItem(@NotNull AstPlayer astPlayer) {
+        EquipmentLoadoutSlotModel slot = getSkillbookLoadoutSlot(astPlayer);
+        if (slot == null) {
+            return null;
+        }
+        return itemStackResolver.resolveForEquippedDisplay(toInventoryEntry(slot),
+            astPlayer.getAccount().getUuid(), equippedSetCounts(astPlayer.getAccount().getUuid()));
+    }
+
+    /**
+     * 装備中のスキルブックのマスタが指定する使用許可を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return スキル参照一覧。未装備またはマスタ解決不能なら空
+     */
+    public @NotNull List<String> getEquippedSkillbookUsableSkills(@NotNull AstPlayer astPlayer) {
+        EquipmentLoadoutSlotModel slot = getSkillbookLoadoutSlot(astPlayer);
+        if (slot == null) {
+            return List.of();
+        }
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(
+            slot.getEquipmentInstanceId().toString());
+        if (instance == null) {
+            return List.of();
+        }
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        if (model == null || model.getEquipment() == null
+            || model.getEquipment().getSlot() != ItemEquipmentSlot.SKILLBOOK
+            || !EquipmentRequirementService.check(astPlayer, model.getEquipment()).allowed()) {
+            return List.of();
+        }
+        return model.getEquipment().getUsableSkills();
+    }
+
+    /**
+     * アクティブなスキルブックスロットをローカル状態から取得します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 有効なスロット。未装備なら null
+     */
+    private @Nullable EquipmentLoadoutSlotModel getSkillbookLoadoutSlot(@NotNull AstPlayer astPlayer) {
+        EquipmentLoadoutModel loadout = getActiveEquipmentLoadout(astPlayer.getAccount().getUuid());
+        if (loadout == null) {
+            return null;
+        }
+        for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
+            if (!slot.isDeleted() && SLOT_TYPE_SKILLBOOK.equalsIgnoreCase(slot.getSlotType())
+                && slot.getSlotIndex() == 0 && slot.getEquipmentInstanceId() != null) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 描画用 ItemStack を生成せず現在のスキルブック個体 ID を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 装備中の個体 ID。未装備なら null
+     */
+    private @Nullable UUID getSkillbookInstanceId(@NotNull AstPlayer astPlayer) {
+        EquipmentLoadoutSlotModel slot = getSkillbookLoadoutSlot(astPlayer);
+        return slot == null ? null : slot.getEquipmentInstanceId();
+    }
+
     public @Nullable ItemStack getAccessorySnapshotItem(@NotNull AstPlayer astPlayer, int slotIndex) {
         if (!AccessorySlotLayout.isManagedSlot(slotIndex)) {
             return null;
@@ -7452,6 +7557,7 @@ public class InventoryService {
             case LEGS -> inventory.getLeggings();
             case FEET -> inventory.getBoots();
             case OFF_HAND -> actualEquipmentItem(inventory.getItemInOffHand());
+            case SKILLBOOK -> null;
             case UNSUPPORTED -> null;
         };
     }

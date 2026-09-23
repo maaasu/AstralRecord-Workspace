@@ -65,6 +65,7 @@ public class MenuView {
     public static final int EQUIPMENT_BACK_SLOT = EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT;
     public static final int EQUIPMENT_MAIN_HAND_SLOT = EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
+    public static final int EQUIPMENT_SKILLBOOK_SLOT = EquipmentMenuScreenView.EQUIPMENT_SKILLBOOK_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
     public static final int EQUIPMENT_FEET_SLOT = EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT;
@@ -162,11 +163,23 @@ public class MenuView {
     }
 
     public void openEquipmentGui(@NotNull Player player) {
-        openEquipmentGui(player, player, new ItemStack[0], false);
+        openEquipmentGui(player, player, new ItemStack[0], null, false);
     }
 
     public void openEquipmentGui(@NotNull Player player, @NotNull ItemStack[] accessories) {
-        openEquipmentGui(player, player, accessories, false);
+        openEquipmentGui(player, player, accessories, null, false);
+    }
+
+    /**
+     * プレイヤー自身の装備画面をスキルブックを含めて表示します。
+     *
+     * @param player 表示対象のプレイヤー
+     * @param accessories アクセサリ一覧
+     * @param skillbook 装備中のスキルブック。未装備なら null
+     */
+    public void openEquipmentGui(@NotNull Player player, @NotNull ItemStack[] accessories,
+                                 @Nullable ItemStack skillbook) {
+        openEquipmentGui(player, player, accessories, skillbook, false);
     }
 
     /**
@@ -175,12 +188,14 @@ public class MenuView {
      * @param viewer GUI を表示するプレイヤー
      * @param target 装備を表示する対象プレイヤー
      * @param accessories 対象プレイヤーのアクセサリスナップショット
+     * @param skillbook 対象プレイヤーのスキルブック
      * @param readOnly 対象が閲覧者以外の場合など、装備操作を禁止する場合は true
      */
     public void openEquipmentGui(
         @NotNull Player viewer,
         @NotNull Player target,
         @NotNull ItemStack[] accessories,
+        @Nullable ItemStack skillbook,
         boolean readOnly
     ) {
         boolean effectiveReadOnly = readOnly
@@ -200,7 +215,7 @@ public class MenuView {
                     .append(targetAccountDisplay(target, NamedTextColor.GOLD))
                 : EQUIPMENT_TITLE
         );
-        equipmentMenuScreenView.render(inventory, target, accessories);
+        equipmentMenuScreenView.render(inventory, target, accessories, skillbook);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 

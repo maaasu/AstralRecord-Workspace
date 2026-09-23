@@ -181,7 +181,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             event.setCancelled(true);
             return;
         }
-        if (isEquipmentMenu(topInventory) && menuView.isEquipmentReadOnly(topInventory)) {
+        // 装備 GUI の配置はクリック経路で種類・装備条件・所有状態を検証する。
+        // ドラッグでその経路を迂回させない。
+        if (isEquipmentMenu(topInventory)
+            && event.getRawSlots().stream().anyMatch(slot -> slot < topInventory.getSize())) {
             event.setCancelled(true);
             return;
         }
@@ -475,7 +478,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_CHEST_SLOT),
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_LEGS_SLOT),
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_FEET_SLOT),
-            accessories
+            accessories,
+            menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_SKILLBOOK_SLOT)
         );
         if (changed) {
             refreshStatusAfterEquipmentChange(astPlayer);
@@ -620,7 +624,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                     player,
                     () -> menuView.openEquipmentGui(
                         player,
-                        inventoryService.getAccessorySnapshotItems(astPlayer)
+                        inventoryService.getAccessorySnapshotItems(astPlayer),
+                        inventoryService.getSkillbookSnapshotItem(astPlayer)
                     )
                 );
             }
