@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /** 重力の影響を強く受け、Mobを貫通して命中地点ごとに回復エリアを作るハンターの矢です。 */
-public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
+public class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "hunter_heal_arrow";
     private static final double GRAVITY_PER_TICK = 0.14D;
@@ -39,16 +39,34 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
 
     /** 共有発動スキルサービスで初期化します。 */
     public HunterHealArrowExecutor(@NotNull ActiveSkillServices services) {
-        super(ID, services);
+        this(ID, services);
+    }
+
+    /**
+     * 同じ飛翔体と回復エリアを使用する派生スキルを初期化します。
+     * @param implementationId スキルと一致する実装ID
+     * @param services 共有発動サービス
+     */
+    protected HunterHealArrowExecutor(@NotNull String implementationId, @NotNull ActiveSkillServices services) {
+        super(implementationId, services);
     }
 
     /** {@inheritDoc} */
     @Override
     public void validateParams(@NotNull SkillDefinition skill) {
+        validateSharedParams(skill);
+        requirePositive(new SkillParamReader(skill.getId(), skill.getParams()), "healAmount");
+    }
+
+    /**
+     * 回復矢に共通する弾道と攻撃のパラメータを検証します。
+     * @param skill 検証対象のスキル
+     * @throws SkillParameterException 必須値が無効な場合
+     */
+    protected final void validateSharedParams(@NotNull SkillDefinition skill) {
         super.validateParams(skill);
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         requirePositive(params, "radius");
-        requirePositive(params, "healAmount");
         requirePositive(params, "damageRatio");
         requirePositive(params, "projectileSpeed");
         requirePositive(params, "projectileHitRadius");
@@ -112,7 +130,6 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
         }
         Location areaCenter = center.clone();
         double radius = params.getDouble("radius", 2.0D);
-        double healAmount = params.getDouble("healAmount", 12.0D);
         int durationTicks = params.getInt("areaDurationTicks", 60);
         Set<UUID> healedPlayers = new HashSet<>();
         context.services().effects().point(areaCenter, SharedParticleDefinitions.HUNTER_HEAL_ARROW_IMPACT);
@@ -126,11 +143,11 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
         Player player = context.player();
         context.services().tasks().repeat(
                 player.getUniqueId(),
-                ID + ":area:" + UUID.randomUUID(),
+                context.source().skill().getId() + ":area:" + UUID.randomUUID(),
                 0L,
                 1L,
                 durationTicks,
-                tick -> tickHealingArea(context, areaCenter, radius, healAmount, healedPlayers, tick)
+                tick -> tickHealingArea(context, areaCenter, radius, params, healedPlayers, tick)
         );
     }
 
@@ -138,7 +155,7 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
             @NotNull PlayerActiveSkillContext context,
             @NotNull Location center,
             double radius,
-            double healAmount,
+            @NotNull SkillParamReader params,
             @NotNull Set<UUID> healedPlayers,
             int tick
     ) {
@@ -150,16 +167,16 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
                 SharedParticleDefinitions.HUNTER_HEAL_ARROW_AREA
             );
         }
-        HealthRecoveryContext recoveryContext = HealthRecoveryContext.by(
-                context.caster().player(),
-                SkillPresentationUtil.plainName(context.source().skill(), "スキル")
-        );
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, radius)) {
             UUID targetId = target.getBukkit().getUniqueId();
             if (!healedPlayers.add(targetId)) {
                 continue;
             }
-            double recovered = context.services().combat().recoverHp(target, healAmount, recoveryContext);
+            double recovered = context.services().combat().recoverHp(
+                    target,
+                    resolveHealAmount(target, params),
+                    recoveryContext(context, target)
+            );
             if (recovered > 0.0D) {
                 context.services().effects().point(
                         target.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D),
@@ -169,7 +186,33 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
-    private static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {
+    /**
+     * 回復対象に対する基礎回復量を返します。
+     * @param target 回復対象
+     * @param params 解決済みスキル値
+     * @return HP回復の要求量
+     */
+    protected double resolveHealAmount(@NotNull AstPlayer target, @NotNull SkillParamReader params) {
+        return params.getDouble("healAmount", 12.0D);
+    }
+
+    /**
+     * 回復元を表すコンテキストを返します。
+     * @param context 発動コンテキスト
+     * @param target 回復対象
+     * @return 回復元情報
+     */
+    protected @NotNull HealthRecoveryContext recoveryContext(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull AstPlayer target
+    ) {
+        return HealthRecoveryContext.by(
+                context.caster().player(),
+                SkillPresentationUtil.plainName(context.source().skill(), "スキル")
+        );
+    }
+
+    protected static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {
         double value = params.getDouble(key, Double.NaN);
         if (!Double.isFinite(value) || value <= 0.0D) {
             throw new SkillParameterException(key, "ヒールアローの params[" + key + "] は正数が必要です");

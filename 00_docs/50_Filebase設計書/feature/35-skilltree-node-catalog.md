@@ -49,6 +49,8 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-exept-stamp` | `skill` / `swordsman_exept_stamp` | `&6エクゼプトスタンプ` | `ANVIL` | `offense`, `status` |
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
+| `skill-sharpshooter-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
+| `skill-phantom-archer-heal-arrow-alpha` | `skill` / `hunter_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
 | `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
 | `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |

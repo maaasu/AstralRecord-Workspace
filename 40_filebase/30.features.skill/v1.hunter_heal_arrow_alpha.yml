@@ -1,0 +1,81 @@
+# design:
+#   motif: "弓術 / 癒しの矢"
+#   progression: 2
+schemaVersion: 1
+id: hunter_heal_arrow_alpha
+type: SKILL
+implementationId: hunter_heal_arrow_alpha
+name: "&aヒールアローα"
+description: "&7敵を貫通し、着弾地点で味方を癒す強化された矢。"
+icon: GLOW_BERRIES
+lore:
+  - "&7半径{skill.radius}mの回復エリアを{skill.areaDurationTicks:seconds}秒展開し、入ったプレイヤーを最大HPの{skill.healPercent}%回復する。"
+  - "&7各プレイヤーへの回復は1エリアにつき1回。敵に命中すると間接攻撃力{skill.damageRatio:percent}%の無属性ダメージを与える。"
+  - "&7発動者は3秒間ヒールアローαを得て、受ける回復量が1%増加する。"
+  - "&7重力の影響を強く受け、敵を貫通し、命中地点とブロックへの着弾地点にエリアを作成する。"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 28
+manaCost: 12
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - level: 2
+    paramDeltas: { healPercent: 3.5 }
+  - level: 3
+    paramDeltas: { healPercent: 3.5 }
+  - level: 4
+    paramDeltas: { healPercent: 3.5 }
+  - level: 5
+    paramDeltas: { healPercent: 3.5 }
+  - level: 6
+    paramDeltas: { healPercent: 3.5 }
+  - level: 7
+    paramDeltas: { healPercent: 3.5 }
+  - level: 8
+    paramDeltas: { healPercent: 3.5 }
+  - level: 9
+    paramDeltas: { healPercent: 3.5 }
+  - level: 10
+    paramDeltas: { healPercent: 3.5 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: entity.arrow.shoot
+params:
+  radius: 2.0
+  healPercent: 3.5
+  damageRatio: 0.36
+  projectileSpeed: 1.25
+  projectileHitRadius: 0.45
+  areaDurationTicks: 60
+tags:
+  - active
+  - ranged
+  - bow

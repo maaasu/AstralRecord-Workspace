@@ -1,0 +1,16 @@
+# design:
+#   motif: "弓術 / 癒しの矢"
+#   progression: 2
+schemaVersion: 1
+id: hunter_heal_arrow_alpha
+type: BUFF
+name: "&aヒールアローα"
+lore:
+  - "&7受けるHP回復量が1%増加する。"
+durationTicks: 60
+isDebuff: false
+resetOnChallenge: true
+modifiers:
+  - status: HEALING_INCREASE
+    type: FLAT
+    value: 1.0

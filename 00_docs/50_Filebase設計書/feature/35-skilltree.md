@@ -75,7 +75,7 @@ Holyのskill nodeは1か所へ集約しない。パラディンシールド `152
 
 ## ファントムアーチャー専門枝
 
-ファントムアーチャー用には、`2000`〜`2119` のstatus node 120個を定義済みとする。全nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` とし、skill効果は持たせない。ただし、現行の `starter` にはこれらのnode、座標、edgeを配置しない。配置設計を確定するまでは未配置として扱う。
+ファントムアーチャー用には、`2000`〜`2119` のstatus node 120個と、ヒールアローαを解放するskill node `2256` を定義済みとする。全nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer` とする。現行の `starter` にはこれらのnode、座標、edgeを配置しない。配置設計を確定するまでは未配置として扱う。
 
 | 系統 | status node | 全取得CP | 役割 |
 |:--|:--|--:|:--|
@@ -116,7 +116,7 @@ Shadowはマークを付与してからまとめて攻撃する将来skillを想
 
 ## シャープシューター専門枝
 
-シャープシューター用には、`2120`〜`2239` の配置済みstatus node 120個、`2243`〜`2254` の未配置status node 12個、`2240`〜`2242` のskill node 3個を定義する。すべて `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。skill node `2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` のファイアアローと `2242` のアイスアローは定義のみとし、構造JSONへは配置しない。
+シャープシューター用には、`2120`〜`2239` の配置済みstatus node 120個、`2243`〜`2254` の未配置status node 12個、`2240`〜`2242` と `2255` のskill node 4個を定義する。すべて `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。skill node `2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241` のファイアアロー、`2242` のアイスアロー、`2255` のヒールアローαは定義のみとし、構造JSONへは配置しない。
 
 | 系統 | status node | skill node | 全取得CP | 役割 |
 |:--|:--|:--|--:|:--|
@@ -127,7 +127,7 @@ Shadowはマークを付与してからまとめて攻撃する将来skillを想
 | 継承 | なし | `2240` | 1 | 継承バフを通常攻撃へ反映するパッシブの使用許可 |
 | 属性矢 | なし | `2241`, `2242` | 2 | 火・氷属性の直線矢と対応する継承バフの使用許可。現行構造では未配置 |
 
-現行構造に配置済みの全statusは120CPで、配置済みskill node `2240` を含む全取得は121CPとなる。共通射撃を含むSniperまたはRapidの全取得は72CPで、継承の心得を含める場合は73CPとなる。未配置の `2241`〜`2254` は取得CP計算へ含めない。Lv80の79CPでは一方の完成形と他系統7CP、Lv100の99CPでは一方の完成形と他系統27CPまで取得できるが、両系統の全取得はできない。未配置の属性矢強化は、アイスアロー用に弱5nodeと強1node、ファイアーアロー用に弱5nodeと強1nodeを用意する。弱nodeは対応する属性ダメージ `FLAT +2` と `SKILL_DAMAGE_INCREASE FLAT +1.5`、強nodeは属性ダメージ `FLAT +8`、属性貫通 `FLAT +6`、`SKILL_DAMAGE_INCREASE FLAT +5` を与える。skill nodeはstatus nodeへ効果を混載せず、配置時は関連する円弧から独立leafとする。
+現行構造に配置済みの全statusは120CPで、配置済みskill node `2240` を含む全取得は121CPとなる。共通射撃を含むSniperまたはRapidの全取得は72CPで、継承の心得を含める場合は73CPとなる。未配置の `2241`〜`2255` は取得CP計算へ含めない。Lv80の79CPでは一方の完成形と他系統7CP、Lv100の99CPでは一方の完成形と他系統27CPまで取得できるが、両系統の全取得はできない。未配置の属性矢強化は、アイスアロー用に弱5nodeと強1node、ファイアーアロー用に弱5nodeと強1nodeを用意する。弱nodeは対応する属性ダメージ `FLAT +2` と `SKILL_DAMAGE_INCREASE FLAT +1.5`、強nodeは属性ダメージ `FLAT +8`、属性貫通 `FLAT +6`、`SKILL_DAMAGE_INCREASE FLAT +5` を与える。skill nodeはstatus nodeへ効果を混載せず、配置時は関連する円弧から独立leafとする。
 
 `2241`〜`2254` は定義のみとし、現行の `starter` にはnode、座標、edgeを追加しない。これらを配置する場合は、SniperとRapidのどちらの進行へ組み込むかを先に確定し、全取得CPとLv80 / Lv100の選択幅を再計算する。
 
@@ -198,7 +198,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域、ソードマスターの共通剣技・剣聖・剣舞領域、シャープシューターの共通射撃・Sniper・Rapid領域および継承の心得skill解放を定義します。現行は748node・756edgeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。ファントムアーチャーのnode定義120個と、シャープシューターの属性矢node `2241` / `2242` は存在しますが、現行の `starter` には含めません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門枝・skill解放、パラディンの共通防御・Holy・Guardian領域および各固有skill解放、ウィザードの共通魔導・エレメンタル・アーケイン領域、ソードマスターの共通剣技・剣聖・剣舞領域、シャープシューターの共通射撃・Sniper・Rapid領域および継承の心得skill解放を定義します。現行は748node・756edgeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。ファントムアーチャーのstatus node 120個とskill node `2256`、シャープシューターの属性矢node `2241` / `2242` とヒールアローαnode `2255` は存在しますが、現行の `starter` には含めません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -246,9 +246,9 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` と、Guard系入口 `paladin_guard_convert` の1CP node `1529` を別方向へ分岐します。`1529`から盾攻撃側の`paladin_shield_bash` `1530`→`paladin_shield_impact` `1531`、防衛制御側の`paladin_fortress` `1532`→`paladin_guardian_protect` `1533` / `paladin_guardian_chain` `1534`へ接続し、Holy skillとは反対の西側へ配置します。Holy側の既存配置は維持し、skill nodeはstatus nodeへ混載しません。
 - ウィザードはメイジ領域の4終端から、四象限に分けた4本の開いた主円弧へ接続します。共通魔導24node、エレメンタル48node、アーケイン48nodeという能力区分を維持しつつ、内部を4成分の木構造として全外周へ分散します。エレメンタルは火・氷・雷のダメージと貫通を同率で伸ばし、アーケインは最大MP、魔法攻撃力、知力、スキルダメージ、魔法防御貫通、詠唱短縮を伸ばします。120nodeはすべてstatus nodeとし、skill使用許可を混載しません。
-- ファントムアーチャーのstatus node 120個は定義済みですが、現行の `starter` にはnode、座標、edgeを配置しません。配置設計を確定するまでは未配置とし、ハンター領域からも接続しません。
+- ファントムアーチャーのstatus node 120個とヒールアローαnode `2256` は定義済みですが、現行の `starter` にはnode、座標、edgeを配置しません。配置設計を確定するまでは未配置とし、ハンター領域からも接続しません。
 - ソードマスターはソードマン領域の4終端から、四象限に分けた4本の開いた主円弧へ接続します。共通剣技24node、剣聖48node、剣舞48nodeの能力区分を維持し、内部を4成分の木構造として配置します。剣聖は単発火力、会心、貫通、見切り、クールダウン短縮を伸ばし、剣舞は攻撃速度、ENG効率、継続火力、吸収回復を伸ばします。両枝ともskill nodeを混載せず、条件付き挙動は将来のskill実装へ残します。
-- シャープシューターのstatus node 120個と継承の心得のskill node `2240` は定義済みで、現行の `starter` に配置します。`2240` は共通射撃node `2120` から独立leafとして接続し、ハンター領域からは接続しません。ファイアアローnode `2241` とアイスアローnode `2242` は定義済みですが、現行の `starter` には配置しません。
+- シャープシューターのstatus node 120個と継承の心得のskill node `2240` は定義済みで、現行の `starter` に配置します。`2240` は共通射撃node `2120` から独立leafとして接続し、ハンター領域からは接続しません。ファイアアローnode `2241`、アイスアローnode `2242`、ヒールアローαnode `2255` は定義済みですが、現行の `starter` には配置しません。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

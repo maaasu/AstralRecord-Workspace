@@ -24,6 +24,7 @@ public final class HunterSkillExecutorCatalog {
                 new HunterArrowRainExecutor(services),
                 new HunterCrashArrowExecutor(services),
                 new HunterHealArrowExecutor(services),
+                new HunterHealArrowAlphaExecutor(services),
                 new HunterBuildUpExecutor(services)
         );
     }

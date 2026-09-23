@@ -9,10 +9,12 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param healer 回復を行ったプレイヤー。自己回復またはプレイヤー以外の回復では {@code null}
  * @param sourceName 回復手段のプレイヤー向け表示名
+ * @param followUpBonusAllowed 回復を受けたときの追撃回復効果を適用してよい場合 true
  */
 public record HealthRecoveryContext(
         @Nullable AstPlayer healer,
-        @NotNull String sourceName
+        @NotNull String sourceName,
+        boolean followUpBonusAllowed
 ) {
 
     /**
@@ -22,7 +24,7 @@ public record HealthRecoveryContext(
      * @return 自己回復コンテキスト
      */
     public static @NotNull HealthRecoveryContext self(@NotNull String sourceName) {
-        return new HealthRecoveryContext(null, sourceName);
+        return new HealthRecoveryContext(null, sourceName, true);
     }
 
     /**
@@ -36,7 +38,15 @@ public record HealthRecoveryContext(
             @NotNull AstPlayer healer,
             @NotNull String sourceName
     ) {
-        return new HealthRecoveryContext(healer, sourceName);
+        return new HealthRecoveryContext(healer, sourceName, true);
+    }
+
+    /**
+     * 発動元スキル自身の回復など、追撃回復を適用しないコンテキストを返します。
+     * @return 追撃回復を抑止したコンテキスト
+     */
+    public @NotNull HealthRecoveryContext withoutFollowUpBonus() {
+        return new HealthRecoveryContext(healer, sourceName, false);
     }
 
     public HealthRecoveryContext {
