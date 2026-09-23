@@ -233,6 +233,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDod
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.passive.mage.MageBlinkSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
@@ -272,6 +273,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArcaneFlowSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
@@ -472,6 +474,7 @@ public final class AstralRecord extends JavaPlugin {
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private AirShiftSkillRuntimeService airShiftSkillRuntimeService;
+    private MageBlinkSkillRuntimeService mageBlinkSkillRuntimeService;
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
     private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
@@ -1767,6 +1770,7 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillTaskService,
             new ElementalPrismRuntimeService()
         );
+        skillService.registerExecutor(new MageBlinkSkillExecutor(activeSkillServices.movement()));
         paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(
             skillService,
             activeSkillServices.combat(),
@@ -1832,6 +1836,12 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillResolver
         );
         passiveSkillService.setStatusService(statusService);
+        mageBlinkSkillRuntimeService = new MageBlinkSkillRuntimeService(
+            skillService,
+            passiveSkillService,
+            skillBindPresetService,
+            skillOwnershipService
+        );
         var wizardBurnMeteorStrikeRuntimeService = new WizardBurnMeteorStrikeRuntimeService(
             skillService, passiveSkillService, statusService, activeSkillServices);
         conditionService.addAppliedListener(wizardBurnMeteorStrikeRuntimeService::onConditionApplied);
@@ -2465,7 +2475,8 @@ public final class AstralRecord extends JavaPlugin {
         var playerSneakEventHandler = new PlayerSneakEventHandler(
             airActionService,
             dodgeService,
-            airShiftSkillRuntimeService
+            airShiftSkillRuntimeService,
+            mageBlinkSkillRuntimeService
         );
         var castDiskInteractionEventHandler = new CastDiskInteractionEventHandler(castDiskUseService);
         eventManager.registerHandler(castDiskInteractionEventHandler, getServer().getPluginManager());

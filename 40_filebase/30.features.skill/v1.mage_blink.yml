@@ -1,0 +1,35 @@
+# design:
+#   motif: "魔術 / 空間転移"
+#   progression: 2
+schemaVersion: 1
+id: mage_blink
+type: SKILL
+implementationId: mage_blink
+name: "&dブリンク"
+description: "&7視線の先へ瞬間移動する空間魔法。"
+icon: CHORUS_FRUIT
+lore:
+  - "&7空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある着地可能な地上へ瞬間移動する。"
+  - "&7視線先のブロック手前を優先し、足場と2ブロック分の空間を確保する。"
+  - "&7テレポート後も発動前の向き（Yaw / Pitch）を保つ。"
+  - "&7発動時にMP20・ENG20を消費する。"
+  - "&7バインド必須。クールダウンはなく、着地すると再使用できる。"
+cooldownTicks: 0
+resourceType: ENERGY
+resourceCost: 20
+manaCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: true
+onCast:
+  sound: entity.enderman.teleport
+params:
+  maxDistance: 10.0
+tags:
+  - passive

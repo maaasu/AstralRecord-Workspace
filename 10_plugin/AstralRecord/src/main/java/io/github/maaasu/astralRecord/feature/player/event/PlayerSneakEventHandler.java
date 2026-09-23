@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
@@ -29,15 +30,18 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
     private final AirActionService airActionService;
     private final DodgeService dodgeService;
     private final AirShiftSkillRuntimeService airShiftSkillRuntimeService;
+    private final MageBlinkSkillRuntimeService mageBlinkSkillRuntimeService;
 
     public PlayerSneakEventHandler(
         AirActionService airActionService,
         DodgeService dodgeService,
-        AirShiftSkillRuntimeService airShiftSkillRuntimeService
+        AirShiftSkillRuntimeService airShiftSkillRuntimeService,
+        MageBlinkSkillRuntimeService mageBlinkSkillRuntimeService
     ) {
         this.airActionService = airActionService;
         this.dodgeService = dodgeService;
         this.airShiftSkillRuntimeService = airShiftSkillRuntimeService;
+        this.mageBlinkSkillRuntimeService = mageBlinkSkillRuntimeService;
     }
 
     @Override
@@ -70,6 +74,9 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
 
     private void handleSneak(@NotNull AstPlayer astPlayer, boolean sneaking) {
         if (sneaking) {
+            if (mageBlinkSkillRuntimeService.tryTrigger(astPlayer)) {
+                return;
+            }
             if (airShiftSkillRuntimeService.tryTrigger(astPlayer)) {
                 return;
             }

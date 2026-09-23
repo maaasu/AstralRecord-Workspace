@@ -3,11 +3,14 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -112,6 +115,46 @@ public final class SkillMovementService {
         return move(player, mover, facingDirection(player), maxDistance);
     }
 
+    /**
+     * 視点方向へ最大距離まで進み、経路が遮られる前の地上へ安全に瞬間移動します。
+     * 候補は遠い位置から調べ、足場または頭上の空間がない場合は手前へ戻ります。
+     *
+     * @param player 移動するプレイヤー
+     * @param mover 移動可否を確認する主体
+     * @param maxDistance 探索する最大距離
+     * @return テレポート前後の座標と移動結果
+     */
+    public @NotNull MovementResult blinkGrounded(
+            @NotNull Player player,
+            @NotNull AstEntity mover,
+            double maxDistance
+    ) {
+        Location start = player.getLocation().clone();
+        if (!conditionService.canMove(mover)) {
+            return new MovementResult(start, start.clone(), false);
+        }
+        Vector direction = player.getEyeLocation().getDirection();
+        if (!isFinite(direction) || direction.lengthSquared() <= 1.0E-8D) {
+            return new MovementResult(start, start.clone(), false);
+        }
+        direction.normalize();
+        Location destination = findGroundedDestination(
+                player,
+                start,
+                direction,
+                Math.min(10.0D, maxDistance)
+        );
+        if (destination.distanceSquared(start) <= 1.0E-6D) {
+            return new MovementResult(start, start.clone(), false);
+        }
+        boolean moved = PlayerTeleportService.teleport(
+                player,
+                destination,
+                PlayerTeleportEvent.TeleportCause.PLUGIN
+        );
+        return new MovementResult(start, moved ? player.getLocation().clone() : start.clone(), moved);
+    }
+
     private @NotNull MovementResult move(
             @NotNull Player player,
             @NotNull AstEntity mover,
@@ -155,6 +198,271 @@ public final class SkillMovementService {
             }
         }
         return start.clone();
+    }
+
+    private @NotNull Location findGroundedDestination(
+            @NotNull Player player,
+            @NotNull Location start,
+            @NotNull Vector direction,
+            double maxDistance
+    ) {
+        World world = start.getWorld();
+        if (world == null || maxDistance <= 0.0D) {
+            return start.clone();
+        }
+        double pathLimit = loadedPathDistance(player, start, direction, maxDistance);
+        if (pathLimit < SEARCH_STEP) {
+            return start.clone();
+        }
+        double bodyCollisionDistance = firstBodyCollisionDistance(
+                player,
+                start,
+                direction,
+                pathLimit
+        );
+        if (Double.isFinite(bodyCollisionDistance)) {
+            pathLimit = Math.min(pathLimit, Math.max(0.0D, bodyCollisionDistance - 0.05D));
+        }
+        Location eye = player.getEyeLocation();
+        RayTraceResult sightHit = world.rayTraceBlocks(
+                eye,
+                direction,
+                pathLimit,
+                FluidCollisionMode.NEVER,
+                true
+        );
+        if (sightHit != null) {
+            double hitDistance = eye.toVector().distance(sightHit.getHitPosition());
+            pathLimit = Math.min(pathLimit, Math.max(0.0D, hitDistance - 0.05D));
+        }
+        for (double distance = pathLimit; distance >= SEARCH_STEP; distance -= SEARCH_STEP) {
+            Location target = start.clone().add(direction.clone().multiply(distance));
+            for (int yOffset : new int[]{0, 1, -1}) {
+                Location candidate = target.clone().add(0.0D, yOffset, 0.0D);
+                if (!world.isChunkLoaded(candidate.getBlockX() >> 4, candidate.getBlockZ() >> 4)) {
+                    continue;
+                }
+                Block floor = world.getBlockAt(
+                        candidate.getBlockX(),
+                        candidate.getBlockY() - 1,
+                        candidate.getBlockZ()
+                );
+                if (floor.isPassable()) {
+                    continue;
+                }
+                Location surfaceProbe = new Location(
+                        world,
+                        candidate.getX(),
+                        floor.getY() + 2.0D,
+                        candidate.getZ()
+                );
+                RayTraceResult surfaceHit = floor.rayTrace(
+                        surfaceProbe,
+                        new Vector(0.0D, -1.0D, 0.0D),
+                        2.0D,
+                        FluidCollisionMode.NEVER
+                );
+                if (surfaceHit == null) {
+                    continue;
+                }
+                candidate.setY(surfaceHit.getHitPosition().getY());
+                if (isBlinkBodyClear(player, candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return start.clone();
+    }
+
+    private double loadedPathDistance(
+            @NotNull Player player,
+            @NotNull Location start,
+            @NotNull Vector direction,
+            double maxDistance
+    ) {
+        double furthestLoaded = 0.0D;
+        for (double distance = Math.min(SEARCH_STEP, maxDistance);
+             distance <= maxDistance + 1.0E-8D;
+             distance = Math.min(maxDistance, distance + SEARCH_STEP)) {
+            Location sample = start.clone().add(direction.clone().multiply(distance));
+            BoundingBox body = player.getBoundingBox().clone();
+            body.shift(
+                    sample.getX() - start.getX(),
+                    sample.getY() - start.getY(),
+                    sample.getZ() - start.getZ()
+            );
+            boolean loaded = true;
+            for (int blockX = (int) Math.floor(body.getMinX());
+                 blockX <= (int) Math.floor(body.getMaxX()) && loaded;
+                 blockX++) {
+                for (int blockZ = (int) Math.floor(body.getMinZ());
+                     blockZ <= (int) Math.floor(body.getMaxZ());
+                     blockZ++) {
+                    if (!worldLoaded(sample, blockX, blockZ)) {
+                        loaded = false;
+                        break;
+                    }
+                }
+            }
+            if (!loaded) {
+                break;
+            }
+            furthestLoaded = distance;
+            if (distance >= maxDistance) {
+                break;
+            }
+        }
+        return furthestLoaded;
+    }
+
+    private boolean worldLoaded(@NotNull Location location, int blockX, int blockZ) {
+        World world = location.getWorld();
+        return world != null && world.isChunkLoaded(blockX >> 4, blockZ >> 4);
+    }
+
+    private double firstBodyCollisionDistance(
+            @NotNull Player player,
+            @NotNull Location start,
+            @NotNull Vector direction,
+            double maxDistance
+    ) {
+        World world = start.getWorld();
+        if (world == null || maxDistance <= 0.0D) {
+            return Double.POSITIVE_INFINITY;
+        }
+
+        BoundingBox body = player.getBoundingBox();
+        double minOffsetX = body.getMinX() - start.getX();
+        double maxOffsetX = body.getMaxX() - start.getX();
+        double minOffsetY = body.getMinY() - start.getY();
+        double maxOffsetY = body.getMaxY() - start.getY();
+        double minOffsetZ = body.getMinZ() - start.getZ();
+        double maxOffsetZ = body.getMaxZ() - start.getZ();
+        BoundingBox endBody = body.clone();
+        endBody.shift(direction.clone().multiply(maxDistance));
+        BoundingBox sweepBounds = new BoundingBox(
+                Math.min(body.getMinX(), endBody.getMinX()),
+                Math.min(body.getMinY(), endBody.getMinY()),
+                Math.min(body.getMinZ(), endBody.getMinZ()),
+                Math.max(body.getMaxX(), endBody.getMaxX()),
+                Math.max(body.getMaxY(), endBody.getMaxY()),
+                Math.max(body.getMaxZ(), endBody.getMaxZ())
+        );
+
+        double nearestCollision = Double.POSITIVE_INFINITY;
+        for (int blockX = (int) Math.floor(sweepBounds.getMinX());
+             blockX <= (int) Math.floor(sweepBounds.getMaxX());
+             blockX++) {
+            for (int blockY = (int) Math.floor(sweepBounds.getMinY());
+                 blockY <= (int) Math.floor(sweepBounds.getMaxY());
+                 blockY++) {
+                for (int blockZ = (int) Math.floor(sweepBounds.getMinZ());
+                     blockZ <= (int) Math.floor(sweepBounds.getMaxZ());
+                     blockZ++) {
+                    if (!world.isChunkLoaded(blockX >> 4, blockZ >> 4)) {
+                        continue;
+                    }
+                    Block block = world.getBlockAt(blockX, blockY, blockZ);
+                    for (BoundingBox shapeBox : block.getBlockData()
+                            .getCollisionShape(block.getLocation())
+                            .getBoundingBoxes()) {
+                        BoundingBox expandedShape = new BoundingBox(
+                                shapeBox.getMinX() - maxOffsetX,
+                                shapeBox.getMinY() - maxOffsetY,
+                                shapeBox.getMinZ() - maxOffsetZ,
+                                shapeBox.getMaxX() - minOffsetX,
+                                shapeBox.getMaxY() - minOffsetY,
+                                shapeBox.getMaxZ() - minOffsetZ
+                        );
+                        double collisionDistance = rayIntersectionDistance(
+                                start,
+                                direction,
+                                expandedShape,
+                                maxDistance
+                        );
+                        nearestCollision = Math.min(nearestCollision, collisionDistance);
+                    }
+                }
+            }
+        }
+        return nearestCollision;
+    }
+
+    private static double rayIntersectionDistance(
+            @NotNull Location start,
+            @NotNull Vector direction,
+            @NotNull BoundingBox box,
+            double maxDistance
+    ) {
+        double entryDistance = 0.0D;
+        double exitDistance = maxDistance;
+        double[] origin = {start.getX(), start.getY(), start.getZ()};
+        double[] directionComponents = {direction.getX(), direction.getY(), direction.getZ()};
+        double[] min = {box.getMinX(), box.getMinY(), box.getMinZ()};
+        double[] max = {box.getMaxX(), box.getMaxY(), box.getMaxZ()};
+
+        for (int axis = 0; axis < origin.length; axis++) {
+            double component = directionComponents[axis];
+            if (Math.abs(component) <= 1.0E-8D) {
+                if (origin[axis] <= min[axis] + 1.0E-8D
+                        || origin[axis] >= max[axis] - 1.0E-8D) {
+                    return Double.POSITIVE_INFINITY;
+                }
+                continue;
+            }
+
+            double first = (min[axis] - origin[axis]) / component;
+            double second = (max[axis] - origin[axis]) / component;
+            if (first > second) {
+                double swap = first;
+                first = second;
+                second = swap;
+            }
+            entryDistance = Math.max(entryDistance, first);
+            exitDistance = Math.min(exitDistance, second);
+            if (entryDistance >= exitDistance) {
+                return Double.POSITIVE_INFINITY;
+            }
+        }
+
+        return exitDistance <= 1.0E-8D || entryDistance > maxDistance
+                ? Double.POSITIVE_INFINITY
+                : Math.max(0.0D, entryDistance);
+    }
+
+    private boolean isBlinkBodyClear(@NotNull Player player, @NotNull Location destination) {
+        World world = destination.getWorld();
+        if (world == null) {
+            return false;
+        }
+        Location start = player.getLocation();
+        BoundingBox body = player.getBoundingBox().clone();
+        body.shift(
+                destination.getX() - start.getX(),
+                destination.getY() - start.getY(),
+                destination.getZ() - start.getZ()
+        );
+
+        int minBlockX = (int) Math.floor(body.getMinX());
+        int maxBlockX = (int) Math.floor(body.getMaxX());
+        int minBlockY = (int) Math.floor(body.getMinY());
+        int maxBlockY = (int) Math.floor(body.getMaxY());
+        int minBlockZ = (int) Math.floor(body.getMinZ());
+        int maxBlockZ = (int) Math.floor(body.getMaxZ());
+        for (int blockX = minBlockX; blockX <= maxBlockX; blockX++) {
+            for (int blockY = minBlockY; blockY <= maxBlockY; blockY++) {
+                for (int blockZ = minBlockZ; blockZ <= maxBlockZ; blockZ++) {
+                    if (!world.isChunkLoaded(blockX >> 4, blockZ >> 4)) {
+                        return false;
+                    }
+                    Block block = world.getBlockAt(blockX, blockY, blockZ);
+                    if (block.getBlockData().getCollisionShape(block.getLocation()).overlaps(body)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private boolean isSafe(@NotNull Location location) {
