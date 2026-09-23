@@ -161,7 +161,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ウィザード専門枝
 
-ウィザードの配置領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全配置nodeは1CPで、`unlockCondition.classId: wizard`を持つ。メテオの使用許可node `2260`、セルフヒールの使用許可node `2261`、エレメンタルプリズムの使用許可node `2262`、エレメンタルボールの使用許可node `2263`、プリズムコンディションの使用許可node `2264`、バーンメテオストライクの使用許可node `2265`、イミュレートスパークの使用許可node `2266` は同じ条件で定義するが、現行の構造には配置しない。
+ウィザードの配置領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全配置nodeは1CPで、`unlockCondition.classId: wizard`を持つ。メテオの使用許可node `2260`、セルフヒールの使用許可node `2261`、エレメンタルプリズムの使用許可node `2262`、エレメンタルボールの使用許可node `2263`、プリズムコンディションの使用許可node `2264`、バーンメテオストライクの使用許可node `2265`、イミュレートスパークの使用許可node `2266`、ライトニングストライクの使用許可node `2267` は同じ条件で定義するが、現行の構造には配置しない。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -172,6 +172,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `skill-wizard-prism-condition` | `2264` | `skill` / `wizard_prism_condition` | `&dプリズムコンディション` | `MAGENTA_CARPET` | `resource`, `mana`, `astral` |
 | `skill-wizard-burn-meteor-strike` | `2265` | `skill` / `wizard_burn_meteor_strike` | `&cバーンメテオストライク` | `MAGMA_BLOCK` | `offense`, `fire`, `ember` |
 | `skill-wizard-emulate-spark` | `2266` | `skill` / `wizard_emulate_spark` | `&eイミュレートスパーク` | `WHEAT` | `offense`, `lightning`, `shocked` |
+| `skill-wizard-lightning-strike` | `2267` | `skill` / `wizard_lightning_strike` | `&eライトニングストライク` | `YELLOW_CANDLE` | `offense`, `lightning`, `shocked` |
 
 ### 共通魔導パッケージ
 

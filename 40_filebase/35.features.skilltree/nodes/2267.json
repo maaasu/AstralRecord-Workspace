@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2267",
+  "name": "&eライトニングストライク",
+  "icon": "YELLOW_CANDLE",
+  "tags": [
+    "offense",
+    "lightning",
+    "shocked"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_lightning_strike"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

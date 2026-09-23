@@ -242,6 +242,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDivineChaserS
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinGuardConvertSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SharpshooterInheritanceMasterySkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardLightningStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerQuickShotExecutor;
@@ -260,6 +261,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.WizardPrismConditionRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.passive.wizard.WizardLightningStrikeRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
@@ -475,6 +477,7 @@ public final class AstralRecord extends JavaPlugin {
     private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
+    private WizardLightningStrikeRuntimeService wizardLightningStrikeRuntimeService;
     private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private PaladinHolySmiteRuntimeService paladinHolySmiteRuntimeService;
     private SkillTreeService skillTreeService;
@@ -1689,6 +1692,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
         skillService.registerExecutor(new PaladinGuardConvertSkillExecutor(paladinGuardRuntimeService));
         skillService.registerExecutor(new SharpshooterInheritanceMasterySkillExecutor());
+        skillService.registerExecutor(new WizardLightningStrikeSkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(
             particleDisplayService,
             damageService,
@@ -1771,6 +1775,10 @@ public final class AstralRecord extends JavaPlugin {
             statusService
         );
         activeSkillCombatService.setSkillHitListener(paladinDivineChaserRuntimeService::onSkillHit);
+        wizardLightningStrikeRuntimeService = new WizardLightningStrikeRuntimeService(
+            skillService, activeSkillCombatService, statusService
+        );
+        conditionService.addAppliedListener(wizardLightningStrikeRuntimeService::onConditionApplied);
         bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(
             skillService,
             activeSkillServices.targeting(),
@@ -1873,6 +1881,7 @@ public final class AstralRecord extends JavaPlugin {
             phantomShot.setStatusService(statusService);
         }
         paladinDivineChaserRuntimeService.setPassiveSkillService(passiveSkillService);
+        wizardLightningStrikeRuntimeService.setPassiveSkillService(passiveSkillService);
         statusService.setPassiveSkillService(passiveSkillService);
         damageService.setPassiveSkillService(passiveSkillService);
         SkillSigilOrbService skillSigilOrbService = new SkillSigilOrbService(

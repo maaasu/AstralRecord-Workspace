@@ -1,0 +1,38 @@
+# design:
+#   motif: "落雷 / 感電への追撃"
+#   progression: 2
+schemaVersion: 1
+id: wizard_lightning_strike
+type: SKILL
+implementationId: wizard_lightning_strike
+name: "&eライトニングストライク"
+description: "&7感電した敵へ雷を呼ぶパッシブ。"
+icon: YELLOW_CANDLE
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7自身から{skill.range}m以内で自身の攻撃が感電を付与・更新した敵に落雷。"
+  - "&7対象1体へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
+  - "&7MP不足時は落雷しない。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 28
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 30 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 30 }]
+passive:
+  bindRequired: true
+params:
+  range: 30.0
+  damageRatio: 1.5
+tags:
+  - passive
+  - magic
+  - lightning
+  - shocked
+# behavior:
+#   trigger: "自身の攻撃によるSHOCKEDの新規付与・再付与成功時に、付与対象が自身から半径30m以内ならMPを消費して発動する。"
+#   impact: "対象1体へMAGIC/LIGHTNINGの基礎倍率150%を1回適用する。落雷は見た目と音だけで、バニラの追加ダメージや火災は発生しない。"
