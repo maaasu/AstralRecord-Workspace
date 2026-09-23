@@ -129,7 +129,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * Mob 以外の共通 drops 利用元について、結果表示と報酬付与を行います。
+     * Mob 以外の共通 drops 利用元について、結果表示、通常ドロップ通知、報酬付与を行います。
      *
      * @param recipient 受取プレイヤー
      * @param deathLocation ドロップ発生位置
@@ -146,7 +146,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * Mob のカテゴリを考慮し、結果表示、報酬付与、レアドロップ通知を行います。
+     * Mob のカテゴリを考慮し、結果表示、通常ドロップ通知、報酬付与、条件を満たすレアドロップ通知とサウンド再生を行います。
      *
      * @param recipient 受取プレイヤー
      * @param deathLocation Mob の死亡位置
@@ -165,7 +165,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 任意のドロップ取得元について、結果表示と報酬付与を行います。
+     * 任意のドロップ取得元について、結果表示、通常ドロップ通知、報酬付与を行います。
      *
      * @param recipient 受取プレイヤー
      * @param deathLocation ドロップ発生位置
@@ -184,14 +184,14 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 結果表示、任意のレア通知、付与用アイテム展開と回収処理をまとめて実行します。
+     * 結果表示、通常・レアドロップ通知、付与用アイテム展開と回収処理をまとめて実行します。
      *
      * @param recipient 受取プレイヤー
      * @param deathLocation ドロップ発生位置
      * @param sourceName 取得元表示名
      * @param result 抽選結果
      * @param dropSource インベントリ履歴用取得元
-     * @param mobCategory レア判定対象の Mob カテゴリ。Mob 以外は {@code null}
+     * @param mobCategory レア判定対象の Mob カテゴリ。Mob 以外は {@code null} で全当選アイテムを通常ドロップ通知
      */
     private void presentAndGrant(
         @NotNull AstPlayer recipient,
@@ -211,9 +211,7 @@ public final class MobDropPresentationService {
         }
         List<ResolvedDropItem> resolvedItems = resolveItems(result);
         spawnResultText(player, deathLocation, sourceName, result, resolvedItems);
-        if (mobCategory != null) {
-            announceRareDrops(recipient, mobCategory, resolvedItems);
-        }
+        announceDropLogs(recipient, mobCategory, resolvedItems);
         List<ResolvedDropItem> grantItems = expandInstanceItems(resolvedItems);
         for (int index = 0; index < grantItems.size(); index++) {
             ResolvedDropItem item = grantItems.get(index);
@@ -355,34 +353,37 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 当選したレアドロップを、表示設定が有効なオンラインプレイヤーへ通知します。
+     * 当選した通常ドロップまたはレアドロップを、表示設定が有効なオンラインプレイヤーへ通知します。
      *
      * @param recipient ドロップ受取プレイヤー
-     * @param mobCategory 撃破 Mob カテゴリ
+     * @param mobCategory 撃破 Mob カテゴリ。採集など Mob 以外は {@code null}
      * @param items 解決済み当選アイテム
      */
-    private void announceRareDrops(
+    private void announceDropLogs(
         @NotNull AstPlayer recipient,
-        @NotNull MobCategory mobCategory,
+        @Nullable MobCategory mobCategory,
         @NotNull List<ResolvedDropItem> items
     ) {
         for (ResolvedDropItem item : items) {
-            if (!isRareDrop(mobCategory, item.dropRate())) {
-                continue;
-            }
+            boolean rareDrop = mobCategory != null && isRareDrop(mobCategory, item.dropRate());
             String itemName = ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId());
-            Player player = recipient.getBukkit();
-            Location location = player.getLocation();
-            player.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.4F, 0.55F);
-            player.playSound(location, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.2F, 0.75F);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> player.playSound(
-                location,
-                Sound.BLOCK_AMETHYST_BLOCK_RESONATE,
-                1.0F,
-                1.35F
-            ), 2L);
+            if (rareDrop) {
+                Player player = recipient.getBukkit();
+                Location location = player.getLocation();
+                player.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.4F, 0.55F);
+                player.playSound(location, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.2F, 0.75F);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> player.playSound(
+                    location,
+                    Sound.BLOCK_AMETHYST_BLOCK_RESONATE,
+                    1.0F,
+                    1.35F
+                ), 2L);
+            }
             for (Player viewer : plugin.getServer().getOnlinePlayers()) {
-                if (playerSettingService.isDropLogDisplayEnabled(viewer.getUniqueId())) {
+                if (!playerSettingService.isDropLogDisplayEnabled(viewer.getUniqueId())) {
+                    continue;
+                }
+                if (rareDrop) {
                     PlayerMessageService.getInstance().send(
                         viewer,
                         PlayerMsgId.P_5728,
@@ -390,6 +391,14 @@ public final class MobDropPresentationService {
                         itemName,
                         item.amount(),
                         formatDropRate(item.dropRate())
+                    );
+                } else {
+                    PlayerMessageService.getInstance().send(
+                        viewer,
+                        PlayerMsgId.P_5732,
+                        recipient.getBukkit().getName(),
+                        itemName,
+                        item.amount()
                     );
                 }
             }

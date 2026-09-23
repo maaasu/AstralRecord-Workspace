@@ -15,7 +15,7 @@ public enum PlayerSettingKey {
     DAMAGE_LOG_DISPLAY("DAMAGE_LOG_DISPLAY", "ダメージ数値表示", true),
     DAMAGE_LOG_MESSAGE("DAMAGE_LOG_MESSAGE", "ダメージ詳細メッセージ", false),
     PARTICLE_DENSITY("PARTICLE_DENSITY", "パーティクル密度", ParticleDensity.NORMAL),
-    DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "レアドロップログ表示", true),
+    DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "ドロップログ表示", true),
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
     TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true),
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),

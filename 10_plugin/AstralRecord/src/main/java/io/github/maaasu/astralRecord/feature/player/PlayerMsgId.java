@@ -834,6 +834,8 @@ public enum PlayerMsgId {
     P_5730(5730),
     /** 装備ドロップの重要保存に失敗した。 */
     P_5731(5731),
+    /** 通常ドロップ全体通知。 */
+    P_5732(5732),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779
