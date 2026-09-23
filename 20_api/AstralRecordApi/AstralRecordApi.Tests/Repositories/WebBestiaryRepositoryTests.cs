@@ -35,8 +35,10 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal(3, list.TotalDefeats);
         Assert.Equal(2, list.Accounts.Count);
         Assert.Equal(5, Assert.Single(list.Mobs).Level);
+        Assert.Equal("テストモブ", list.Mobs[0].Name);
         Assert.NotNull(detail);
         Assert.Equal(5, detail.Mob.Level);
+        Assert.Equal([5, 8], detail.Mob.Levels.Select(level => level.Level));
         Assert.Equal("ZOMBIE", detail.Mob.EntityType);
         Assert.Equal("最大HP", Assert.Single(detail.Mob.BaseStats).DisplayName);
         Assert.Equal("1200", detail.Mob.BaseStats[0].DisplayValue);
@@ -48,6 +50,13 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal(2, detail.Mob.Drops.Money.Min);
         Assert.Equal(4, detail.Mob.Drops.Money.Max);
         Assert.True(detail.Mob.Drops.HasAdditionalDrops);
+        var levelEight = detail.Mob.Levels[1];
+        Assert.Equal("テストモブ Lv.8", levelEight.Name);
+        Assert.Equal("1800", Assert.Single(levelEight.BaseStats).DisplayValue);
+        Assert.Equal(30, levelEight.Drops.Exp);
+        Assert.NotNull(levelEight.Drops.Money);
+        Assert.Equal(8, levelEight.Drops.Money.Max);
+        Assert.Equal("visible_item", Assert.Single(levelEight.Drops.Items).ItemId);
         Assert.Null(forged);
         Assert.Null(unrecorded);
     }
@@ -131,7 +140,7 @@ public sealed class WebBestiaryRepositoryTests
         public async Task AddMobAsync(string itemReferenceJson)
         {
             var now = DateTime.UtcNow;
-            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "mob.enemy", MasterId = "test_mob", SchemaVersion = 1, SourceFilePath = "test.yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = """{"schemaVersion":1,"id":"test_mob","type":"MOB","category":"ENEMY","name":"&aテストモブ","level":1,"entityType":"ZOMBIE","baseStats":[{"status":"MAX_HEALTH","value":100}],"drops":{"exp":10,"money":{"min":2,"max":4},"items":[{"itemId":"visible_item","rate":50,"amount":"1","hidden":false},{"itemId":"secret_item","rate":1,"amount":"1","hidden":true}],"lootTable":"secret_table"},"levels":[{"level":5,"entityType":"CREEPER","baseStats":[{"status":"MAX_HEALTH","value":1200}],"drops":{"exp":20}}]}""" });
+            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "mob.enemy", MasterId = "test_mob", SchemaVersion = 1, SourceFilePath = "test.yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = """{"schemaVersion":1,"id":"test_mob","type":"MOB","category":"ENEMY","name":"&aテストモブ","level":1,"entityType":"ZOMBIE","baseStats":[{"status":"MAX_HEALTH","value":100}],"drops":{"exp":10,"money":{"min":2,"max":4},"items":[{"itemId":"visible_item","rate":50,"amount":"1","hidden":false},{"itemId":"secret_item","rate":1,"amount":"1","hidden":true}],"lootTable":"secret_table"},"levels":[{"level":5,"entityType":"CREEPER","baseStats":[{"status":"MAX_HEALTH","value":1200}],"drops":{"exp":20}},{"level":8,"name":"&bテストモブ Lv.8","baseStats":[{"status":"MAX_HEALTH","value":1800}],"drops":{"exp":30,"money":{"max":8}}}]}""" });
             var mob = Master.ChangeTracker.Entries<MasterDataEntryEntity>().Single(entry => entry.Entity.MasterType == "mob.enemy").Entity;
             mob.PayloadJson = mob.PayloadJson.Replace("\"visible_item\"", itemReferenceJson, StringComparison.Ordinal);
             await Master.SaveChangesAsync();

@@ -23,7 +23,7 @@
                 <input type="hidden" name="accountId" value="@record.AccountId" />
                 <div><label for="mob-query">モブ名</label><input id="mob-query" name="query" value="@Model.Query" maxlength="100" type="search" placeholder="名前で探す…" /></div>
                 <div><label for="mob-category">分類</label><select id="mob-category" asp-for="Category"><option value="">すべて</option><option value="ENEMY">通常モブ</option><option value="BOSS">ボス</option></select></div>
-                <div><label for="mob-sort">並び順</label><select id="mob-sort" asp-for="Sort"><option value="recent">最近討伐した順</option><option value="count">討伐数の多い順</option><option value="level">標準レベル順</option><option value="name">名前順</option></select></div>
+                <div><label for="mob-sort">並び順</label><select id="mob-sort" asp-for="Sort"><option value="recent">最近討伐した順</option><option value="count">討伐数の多い順</option><option value="name">名前順</option></select></div>
                 <button type="submit" class="btn ar-btn-primary">絞り込む</button>
             </form>
             @if (record.Mobs.Count == 0) { <div class="ar-empty"><h2>冒険の記録は、ここから。</h2><p>まだ討伐したモブの記録はありません。ゲーム内でモブを討伐すると図鑑に追加されます。</p></div> }
@@ -35,7 +35,7 @@
                 @foreach (var mob in Model.Mobs)
                 {
                     <a class="ar-mob-card" asp-page="Detail" asp-route-mobId="@mob.MobId" asp-route-accountId="@record.AccountId">
-                        <div class="ar-mob-card-top"><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span><span>Lv. @mob.Level</span></div>
+                        <div class="ar-mob-card-top"><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span></div>
                         <div class="ar-mob-thumbnail" data-mob-thumbnail data-entity-type="@mob.EntityType" data-mob-name="@mob.Name"><span data-mob-visual-fallback>@mob.EntityType</span></div>
                         <h2>@mob.Name</h2><div class="ar-mob-card-footer"><span>討伐数 <strong>@mob.DefeatCount.ToString("N0")</strong></span><span aria-hidden="true">↗</span></div>
                     </a>

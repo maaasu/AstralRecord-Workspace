@@ -50,9 +50,25 @@ public sealed class WebBestiaryMobDetailResponse
     public MobVariantResponse? Variant { get; init; }
     public required IReadOnlyList<WebBestiaryStatusResponse> BaseStats { get; init; }
     public required WebBestiaryDropsResponse Drops { get; init; }
+    /// <summary>同一 Mob 定義内で選択できる、レベルごとの実効表示情報です。昇順で返します。</summary>
+    public required IReadOnlyList<WebBestiaryMobLevelResponse> Levels { get; init; }
     public required long DefeatCount { get; init; }
     public required DateTime FirstDefeatedAt { get; init; }
     public required DateTime LastDefeatedAt { get; init; }
+}
+
+/// <summary>共通 Mob 定義へレベルプロファイルを適用した表示情報です。</summary>
+public sealed class WebBestiaryMobLevelResponse
+{
+    public required int Level { get; init; }
+    public required string Name { get; init; }
+    public string? Title { get; init; }
+    public string? Icon { get; init; }
+    public string? IconTexture { get; init; }
+    public IReadOnlyList<string> Lore { get; init; } = [];
+    public MobVariantResponse? Variant { get; init; }
+    public required IReadOnlyList<WebBestiaryStatusResponse> BaseStats { get; init; }
+    public required WebBestiaryDropsResponse Drops { get; init; }
 }
 
 public sealed class WebBestiaryStatusResponse

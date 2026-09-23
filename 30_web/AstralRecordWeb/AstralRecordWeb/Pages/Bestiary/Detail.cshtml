@@ -9,36 +9,50 @@
     @if (Model.Record is { } record)
     {
         var mob = record.Mob;
-        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">BESTIARY · @record.AccountName の記録</p><h1>@mob.Name</h1><p class="ar-portal-sub">@mob.Title</p></div><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category) · Lv. @mob.Level</span></header>
+        var levels = mob.Levels.Count > 0
+            ? mob.Levels.OrderBy(level => level.Level).ToList()
+            : [new WebBestiaryMobLevelResponse { Level = mob.Level, Name = mob.Name, Title = mob.Title, Icon = null, IconTexture = null, Lore = mob.Lore, BaseStats = mob.BaseStats, Drops = mob.Drops }];
+        var selected = levels[0];
+        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">BESTIARY · @record.AccountName の記録</p><h1 data-bestiary-level-name>@selected.Name</h1><p class="ar-portal-sub" data-bestiary-level-title hidden="@(string.IsNullOrWhiteSpace(selected.Title) ? "hidden" : null)">@selected.Title</p></div><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)@if (levels.Count > 1) { <label class="ar-bestiary-level-picker" for="bestiary-level"><span class="visually-hidden">表示するレベル</span><select id="bestiary-level" data-bestiary-level-selector>@foreach (var level in levels) { <option value="@level.Level">Lv. @level.Level</option> }</select></label> }</span></header>
+        @foreach (var level in levels)
+        {
+            <template data-bestiary-level-header data-level="@level.Level"><span data-bestiary-level-template-name>@level.Name</span><span data-bestiary-level-template-title>@level.Title</span></template>
+            <template data-bestiary-level-lore-template data-level="@level.Level">@foreach (var line in level.Lore) { <p class="ar-mob-lore">@line</p> }</template>
+        }
         <div class="ar-mob-dossier">
             <div class="ar-mob-stage"><div data-mob-viewer data-entity-type="@mob.EntityType" data-mob-name="@mob.Name"><span data-mob-visual-fallback>@mob.EntityType</span></div><p>バニラの外観イメージ · 装備や個体差はゲーム内と異なる場合があります。</p></div>
             <div class="ar-mob-description"><p class="ar-portal-eyebrow">ENCOUNTER RECORD</p><h2>あなたの討伐記録</h2><p class="ar-mob-defeats">@record.DefeatCount.ToString("N0") <span>体討伐</span></p>
                 <dl class="ar-mob-dates"><div><dt>初討伐</dt><dd>@BestiaryDisplay.Date(record.FirstDefeatedAt)</dd></div><div><dt>最終討伐</dt><dd>@BestiaryDisplay.Date(record.LastDefeatedAt)</dd></div></dl><p class="ar-bestiary-note">日時は日本時間です。この記録はあなたにだけ表示されています。</p>
-                @foreach (var line in mob.Lore) { <p class="ar-mob-lore">@line</p> }
+                <div data-bestiary-level-lore>@foreach (var line in selected.Lore) { <p class="ar-mob-lore">@line</p> }</div>
             </div>
         </div>
-        <p class="ar-bestiary-note">以下は標準レベル（Lv. @mob.Level）の情報です。出現レベルや戦闘時の補正により、実際の能力値・獲得報酬は異なります。</p>
-        <section class="ar-panel"><h2>ステータス</h2>
-            @if (mob.BaseStats.Count == 0) { <p class="ar-portal-sub">表示できるステータスはありません。</p> }
-            else { <dl class="ar-mob-stats">@foreach (var stat in mob.BaseStats) { <div><dt>@(string.IsNullOrEmpty(stat.DisplayName) ? stat.Status : stat.DisplayName)</dt><dd>@(string.IsNullOrEmpty(stat.DisplayValue) ? stat.Value.ToString("N2") : stat.DisplayValue)</dd></div> }</dl> }
-        </section>
-        <section class="ar-panel"><h2>獲得報酬</h2>
-            @if (mob.Drops is { } drops)
-            {
-                <div class="ar-mob-rewards"><div><span>基礎経験値</span><strong>@drops.Exp.ToString("N0") <small>EXP</small></strong></div>@if (drops.Money is { } money) { <div><span>通貨</span><strong>@money.Min.ToString("N0") ～ @money.Max.ToString("N0") <small>Gold</small></strong></div> }</div>
-                <h3 class="ar-drop-heading">ドロップアイテム</h3>
-                @if (drops.Items.Count == 0) { <p class="ar-portal-sub">公開されている直接ドロップはありません。</p> }
-                else
-                {
-                    <div class="ar-drop-table-wrap"><table class="ar-drop-table"><thead><tr><th scope="col">アイテム</th><th scope="col">数量</th><th scope="col">基礎確率</th><th scope="col">幸運補正</th></tr></thead><tbody>
-                    @foreach (var item in drops.Items) { <tr><th scope="row">@(string.IsNullOrWhiteSpace(item.Name) ? item.ItemId : item.Name)</th><td>@item.Amount</td><td>@item.Rate.ToString("0.##")%</td><td>@(item.LuckAffected ? "対象" : "対象外")</td></tr> }
-                    </tbody></table></div>
-                }
-                @if (drops.HasAdditionalDrops) { <p class="ar-bestiary-note">このほかに追加抽選によるドロップがあります。</p> }
-                <p class="ar-bestiary-note">ゲーム内の冒険記録で公開されているドロップのみ表示しています。確率は補正前の値です。</p>
-            }
-            else { <p class="ar-portal-sub">表示できる報酬情報はありません。</p> }
-        </section>
+        @foreach (var level in levels)
+        {
+            <div data-bestiary-level-panel data-level="@level.Level" hidden="@(level.Level == selected.Level ? null : "hidden")">
+                <p class="ar-bestiary-note">以下は選択中のレベル（Lv. @level.Level）の情報です。出現レベルや戦闘時の補正により、実際の能力値・獲得報酬は異なります。</p>
+                <section class="ar-panel"><h2>ステータス</h2>
+                    @if (level.BaseStats.Count == 0) { <p class="ar-portal-sub">表示できるステータスはありません。</p> }
+                    else { <dl class="ar-mob-stats">@foreach (var stat in level.BaseStats) { <div><dt>@(string.IsNullOrEmpty(stat.DisplayName) ? stat.Status : stat.DisplayName)</dt><dd>@(string.IsNullOrEmpty(stat.DisplayValue) ? stat.Value.ToString("N2") : stat.DisplayValue)</dd></div> }</dl> }
+                </section>
+                <section class="ar-panel"><h2>獲得報酬</h2>
+                    @if (level.Drops is { } drops)
+                    {
+                        <div class="ar-mob-rewards"><div><span>基礎経験値</span><strong>@drops.Exp.ToString("N0") <small>EXP</small></strong></div>@if (drops.Money is { } money) { <div><span>通貨</span><strong>@money.Min.ToString("N0") ～ @money.Max.ToString("N0") <small>Gold</small></strong></div> }</div>
+                        <h3 class="ar-drop-heading">ドロップアイテム</h3>
+                        @if (drops.Items.Count == 0) { <p class="ar-portal-sub">公開されている直接ドロップはありません。</p> }
+                        else
+                        {
+                            <div class="ar-drop-table-wrap"><table class="ar-drop-table"><thead><tr><th scope="col">アイテム</th><th scope="col">数量</th><th scope="col">基礎確率</th><th scope="col">幸運補正</th></tr></thead><tbody>
+                            @foreach (var item in drops.Items) { <tr><th scope="row">@(string.IsNullOrWhiteSpace(item.Name) ? item.ItemId : item.Name)</th><td>@item.Amount</td><td>@item.Rate.ToString("0.##")%</td><td>@(item.LuckAffected ? "対象" : "対象外")</td></tr> }
+                            </tbody></table></div>
+                        }
+                        @if (drops.HasAdditionalDrops) { <p class="ar-bestiary-note">このほかに追加抽選によるドロップがあります。</p> }
+                        <p class="ar-bestiary-note">ゲーム内の冒険記録で公開されているドロップのみ表示しています。確率は補正前の値です。</p>
+                    }
+                    else { <p class="ar-portal-sub">表示できる報酬情報はありません。</p> }
+                </section>
+            </div>
+        }
     }
 </div></section>
-@section Scripts { <script type="module" src="~/js/mob-viewer.mjs" asp-append-version="true"></script> }
+@section Scripts { <script type="module" src="~/js/mob-viewer.mjs" asp-append-version="true"></script><script type="module" src="~/js/bestiary-level-selector.mjs" asp-append-version="true"></script> }

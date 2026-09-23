@@ -29,7 +29,7 @@ public sealed class IndexModel(BestiaryApiClient bestiary) : PageModel
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var viewer)) return Challenge();
         Sort ??= "recent";
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        if (Category is not (null or "" or "ENEMY" or "BOSS") || Sort is not ("recent" or "count" or "level" or "name")) return BadRequest();
+        if (Category is not (null or "" or "ENEMY" or "BOSS") || Sort is not ("recent" or "count" or "name")) return BadRequest();
         var result = await bestiary.GetListAsync(viewer, AccountId, ct);
         if (result.Status == HttpStatusCode.NotFound) return NotFound();
         if (!result.Succeeded)
@@ -44,7 +44,6 @@ public sealed class IndexModel(BestiaryApiClient bestiary) : PageModel
         var sorted = Sort switch
         {
             "count" => filtered.OrderByDescending(mob => mob.DefeatCount),
-            "level" => filtered.OrderBy(mob => mob.Level),
             "name" => filtered.OrderBy(mob => mob.Name, StringComparer.CurrentCulture),
             _ => filtered.OrderByDescending(mob => mob.LastDefeatedAt),
         };

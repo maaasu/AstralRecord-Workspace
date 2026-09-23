@@ -31,10 +31,10 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
             Accounts = selection.Accounts.Select(MapAccount).ToList(),
             Mobs = records.Where(record => mobs.TryGetValue(record.MobId, out _)).Select(record =>
             {
-                var mob = ResolveStandardLevel(mobs[record.MobId]);
+                var mob = ResolveLevels(mobs[record.MobId])[0];
                 return new WebBestiaryMobSummaryResponse
                 {
-                    MobId = mob.Id, Category = mob.Category, Name = StripLegacyColors(mob.Name), Level = mob.Level,
+                    MobId = mob.Id, Category = mob.Category, Name = StripLegacyColors(mobs[record.MobId].Name), Level = mob.Level,
                     EntityType = mob.EntityType, Icon = mob.Icon, IconTexture = mob.IconTexture,
                     DefeatCount = record.DefeatCount, LastDefeatedAt = Utc(record.LastDefeatedAt),
                 };
@@ -54,8 +54,8 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
 
         var mob = (await LoadMobsAsync([normalizedId])).GetValueOrDefault(normalizedId);
         if (mob is null) return null;
-        var resolved = ResolveStandardLevel(mob);
-        var items = await LoadItemsAsync(resolved.Drops?.Items.Where(item => !item.Hidden).Select(item => item.ItemId) ?? []);
+        var levels = ResolveLevels(mob);
+        var items = await LoadItemsAsync(levels.SelectMany(level => level.Drops?.Items.Where(item => !item.Hidden).Select(item => item.ItemId) ?? []));
         var totalDefeats = await gameDb.AccountMobRecords.AsNoTracking()
             .Where(candidate => candidate.AccountId == selection.Current.Uuid && !candidate.IsDeleted)
             .SumAsync(candidate => (long?)candidate.DefeatCount) ?? 0L;
@@ -65,7 +65,7 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
             CurrentAccount = MapAccount(selection.Current),
             Accounts = selection.Accounts.Select(MapAccount).ToList(),
             TotalDefeats = totalDefeats,
-            Mob = MapDetail(resolved, record, items),
+            Mob = MapDetail(levels[0], levels, record, items),
         };
     }
 
@@ -114,25 +114,35 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
     };
 
     private static WebBestiaryMobDetailResponse MapDetail(
-        MobResponse mob, AccountMobRecordEntity record, IReadOnlyDictionary<string, ItemResponse> items)
+        MobResponse mob, IReadOnlyList<MobResponse> levels, AccountMobRecordEntity record, IReadOnlyDictionary<string, ItemResponse> items)
     {
-        var drops = mob.Drops;
         return new WebBestiaryMobDetailResponse
         {
             MobId = mob.Id, Category = mob.Category, Name = StripLegacyColors(mob.Name), Title = StripOrNull(mob.Title),
             Level = mob.Level, EntityType = mob.EntityType, Icon = mob.Icon, IconTexture = mob.IconTexture,
             Lore = mob.Lore.Select(StripLegacyColors).ToList(), Variant = mob.Variant,
             BaseStats = mob.BaseStats.Where(stat => StatusTypes.TryGet(stat.Status, out _)).Select(MapStatus).ToList(),
-            Drops = new WebBestiaryDropsResponse
-            {
-                Exp = drops?.Exp ?? 0,
-                Money = drops?.Money is { } money ? new WebBestiaryMoneyDropResponse { Min = money.Min, Max = money.Max } : null,
-                Items = drops?.Items.Where(item => !item.Hidden).Select(item => MapDrop(item, items)).ToList() ?? [],
-                HasAdditionalDrops = !string.IsNullOrWhiteSpace(drops?.LootTable),
-            },
+            Drops = MapDrops(mob.Drops, items),
+            Levels = levels.Select(level => MapLevel(level, items)).ToList(),
             DefeatCount = record.DefeatCount, FirstDefeatedAt = Utc(record.FirstDefeatedAt), LastDefeatedAt = Utc(record.LastDefeatedAt),
         };
     }
+
+    private static WebBestiaryMobLevelResponse MapLevel(MobResponse mob, IReadOnlyDictionary<string, ItemResponse> items) => new()
+    {
+        Level = mob.Level, Name = StripLegacyColors(mob.Name), Title = StripOrNull(mob.Title),
+        Icon = mob.Icon, IconTexture = mob.IconTexture, Lore = mob.Lore.Select(StripLegacyColors).ToList(),
+        Variant = mob.Variant, BaseStats = mob.BaseStats.Where(stat => StatusTypes.TryGet(stat.Status, out _)).Select(MapStatus).ToList(),
+        Drops = MapDrops(mob.Drops, items),
+    };
+
+    private static WebBestiaryDropsResponse MapDrops(MobDropsResponse? drops, IReadOnlyDictionary<string, ItemResponse> items) => new()
+    {
+        Exp = drops?.Exp ?? 0,
+        Money = drops?.Money is { } money ? new WebBestiaryMoneyDropResponse { Min = money.Min, Max = money.Max } : null,
+        Items = drops?.Items.Where(item => !item.Hidden).Select(item => MapDrop(item, items)).ToList() ?? [],
+        HasAdditionalDrops = !string.IsNullOrWhiteSpace(drops?.LootTable),
+    };
 
     private static WebBestiaryStatusResponse MapStatus(MobBaseStatResponse stat)
     {
@@ -166,19 +176,26 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
             ? reference[prefix.Length..].Trim() : reference;
     }
 
-    /// <summary>Plugin の未指定レベル解決と同じく、levels の最小有効 level を共通定義へ上書きします。</summary>
-    private static MobResponse ResolveStandardLevel(MobResponse mob)
+    /// <summary>有効な各レベルプロファイルを共通定義へ上書きし、最小レベル順で返します。</summary>
+    private static IReadOnlyList<MobResponse> ResolveLevels(MobResponse mob)
     {
-        var profile = mob.Levels.Where(element => element.ValueKind == JsonValueKind.Object)
+        var profiles = mob.Levels.Where(element => element.ValueKind == JsonValueKind.Object)
             .Select(element => new { Element = element, Level = ReadPositiveInt(element, "level") })
-            .Where(candidate => candidate.Level.HasValue).OrderBy(candidate => candidate.Level!.Value).FirstOrDefault();
-        if (profile is null) return mob;
-        var node = profile.Element;
+            .Where(candidate => candidate.Level.HasValue)
+            .GroupBy(candidate => candidate.Level!.Value)
+            .Select(group => group.First())
+            .OrderBy(candidate => candidate.Level!.Value)
+            .ToList();
+        return profiles.Count == 0 ? [mob] : profiles.Select(profile => ResolveLevelProfile(mob, profile.Element, profile.Level!.Value)).ToList();
+    }
+
+    private static MobResponse ResolveLevelProfile(MobResponse mob, JsonElement node, int level)
+    {
         return new MobResponse
         {
             SchemaVersion = mob.SchemaVersion, Id = mob.Id, Type = mob.Type, Category = mob.Category,
             Name = ReadString(node, "name") ?? mob.Name, Title = ReadString(node, "title") ?? mob.Title,
-            Level = profile.Level!.Value, EntityType = mob.EntityType,
+            Level = level, EntityType = mob.EntityType,
             NameVisible = ReadBool(node, "nameVisible") ?? mob.NameVisible,
             DamageImmune = mob.DamageImmune, Icon = ReadString(node, "icon") ?? mob.Icon,
             IconTexture = ReadString(node, "iconTexture") ?? mob.IconTexture,

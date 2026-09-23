@@ -53,6 +53,19 @@ public sealed class WebBestiaryMobResponse
     public IReadOnlyList<string> Lore { get; init; } = [];
     public IReadOnlyList<WebBestiaryStatResponse> BaseStats { get; init; } = [];
     public WebBestiaryDropsResponse? Drops { get; init; }
+    public IReadOnlyList<WebBestiaryMobLevelResponse> Levels { get; init; } = [];
+}
+
+public sealed class WebBestiaryMobLevelResponse
+{
+    public int Level { get; init; }
+    public string Name { get; init; } = "";
+    public string? Title { get; init; }
+    public string? Icon { get; init; }
+    public string? IconTexture { get; init; }
+    public IReadOnlyList<string> Lore { get; init; } = [];
+    public IReadOnlyList<WebBestiaryStatResponse> BaseStats { get; init; } = [];
+    public WebBestiaryDropsResponse? Drops { get; init; }
 }
 
 public sealed class WebBestiaryStatResponse
