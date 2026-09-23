@@ -55,7 +55,7 @@ allowedSigilIds:
   - 70a00024
   - 70a00025
   - 70a00026
-levelUpRequiredItems: [{ itemId: 10a00019, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 onCast:
   sound: block.amethyst_block.chime
 tags:

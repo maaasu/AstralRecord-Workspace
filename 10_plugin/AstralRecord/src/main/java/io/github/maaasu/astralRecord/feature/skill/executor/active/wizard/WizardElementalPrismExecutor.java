@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.skill.executor.active.mage;
+package io.github.maaasu.astralRecord.feature.skill.executor.active.wizard;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
