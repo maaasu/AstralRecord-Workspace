@@ -252,6 +252,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSpreadingAmbitionExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardBurnMeteorStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
@@ -280,6 +281,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarS
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.WizardBurnMeteorStrikeRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
 import io.github.maaasu.astralRecord.feature.skill.service.SpellStepSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
@@ -1682,6 +1684,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
+        skillService.registerExecutor(new WizardBurnMeteorStrikeSkillExecutor());
         skillService.registerExecutor(new PaladinDivineChaserSkillExecutor());
         skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
         skillService.registerExecutor(new PaladinGuardConvertSkillExecutor(paladinGuardRuntimeService));
@@ -1821,6 +1824,9 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillResolver
         );
         passiveSkillService.setStatusService(statusService);
+        var wizardBurnMeteorStrikeRuntimeService = new WizardBurnMeteorStrikeRuntimeService(
+            skillService, passiveSkillService, statusService, activeSkillServices);
+        conditionService.addAppliedListener(wizardBurnMeteorStrikeRuntimeService::onConditionApplied);
         weaponAttackSkillExecutor.setPassiveSkillService(passiveSkillService);
         var inheritanceBuffService = new InheritanceBuffService(
             skillService, passiveSkillService, statusService, activeSkillTaskService);

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -40,6 +41,7 @@ public final class ConditionService {
     private final PlayerDeathService playerDeathService;
     private StatusService statusService;
     private Consumer<ConditionApplyRequest> appliedListener;
+    private final List<Consumer<ConditionApplyRequest>> additionalAppliedListeners = new CopyOnWriteArrayList<>();
 
     public ConditionService(
             @NotNull ConditionDisplayService displayService,
@@ -55,13 +57,22 @@ public final class ConditionService {
     }
 
     /**
-     * 成功した状態異常の付与・更新を通知する処理を設定します。
-     * Listenerには付与成功後の要求だけを同期的に渡し、{@code null} で通知を解除します。
+     * 成功した状態異常の付与・更新を通知する主処理を設定します。
+     * Listenerには付与成功後の要求だけを同期的に渡し、{@code null} で主通知を解除します。
      *
      * @param appliedListener 付与成功時の通知先。解除するときは {@code null}
      */
     public void setAppliedListener(@Nullable Consumer<ConditionApplyRequest> appliedListener) {
         this.appliedListener = appliedListener;
+    }
+
+    /**
+     * 他の成功通知先を保持したまま、付与・更新成功時の通知先を追加します。
+     *
+     * @param listener 保存完了後に同期実行する通知先
+     */
+    public void addAppliedListener(@NotNull Consumer<ConditionApplyRequest> listener) {
+        additionalAppliedListeners.add(listener);
     }
 
     /**
@@ -99,6 +110,7 @@ public final class ConditionService {
         if (appliedListener != null) {
             appliedListener.accept(request);
         }
+        additionalAppliedListeners.forEach(listener -> listener.accept(request));
         return existing == null ? ConditionApplyResult.applied(next) : ConditionApplyResult.updated(next);
     }
 

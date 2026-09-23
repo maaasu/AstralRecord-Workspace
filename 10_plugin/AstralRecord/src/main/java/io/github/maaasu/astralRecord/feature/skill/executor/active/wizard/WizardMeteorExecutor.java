@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.wizard;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -18,6 +20,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -70,17 +73,50 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         double radius = params.getDouble("radius", 5.0D);
         double damageRatio = params.getDouble("damageRatio", 6.05D);
         int delayTicks = params.getInt("impactDelayTicks", 60);
-        int flightTicks = delayTicks - ARRIVAL_HOLD_TICKS;
         MeteorTarget target = impactTarget(context, range);
+        summon(context.services(), context.player(), context.attacker(), target, radius, damageRatio, delayTicks, 1.0D);
+        return context.success();
+    }
+
+    /**
+     * 炎上地点へ小型メテオを発生させます。
+     *
+     * @param services 共有戦闘・演出サービス
+     * @param caster 発動者
+     * @param attacker 発動時点の攻撃者
+     * @param impact 固定した着弾地点
+     */
+    public static void summonBurnStrike(
+            @NotNull ActiveSkillServices services,
+            @NotNull AstPlayer caster,
+            @NotNull AstEntity attacker,
+            @NotNull Location impact
+    ) {
+        summon(services, caster.getBukkit(), attacker,
+                new MeteorTarget(impact.clone(), new Vector(0.0D, 1.0D, 0.0D)),
+                2.5D, 1.5D, 20, 0.75D);
+    }
+
+    /** 着弾地点と演出倍率を固定してメテオの時限処理を開始します。 */
+    private static void summon(
+            @NotNull ActiveSkillServices services,
+            @NotNull Player caster,
+            @NotNull AstEntity attacker,
+            @NotNull MeteorTarget target,
+            double radius,
+            double damageRatio,
+            int delayTicks,
+            double visualScale
+    ) {
+        int flightTicks = delayTicks - ARRIVAL_HOLD_TICKS;
         Location impact = target.location();
-        MeteorState state = new MeteorState(target);
-        AstEntity attacker = context.attacker();
-        UUID casterId = context.player().getUniqueId();
+        MeteorState state = new MeteorState(target, visualScale);
+        UUID casterId = caster.getUniqueId();
         String scope = "wizard-meteor:" + UUID.randomUUID();
 
         try {
             state.spawnDisplays(flightTicks);
-            context.services().tasks().repeat(
+            services.tasks().repeat(
                     casterId,
                     scope,
                     0L,
@@ -89,17 +125,17 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                     elapsedTicks -> {
                         if (elapsedTicks >= delayTicks) {
                             state.destroy();
-                            detonate(context, attacker, impact, radius, damageRatio);
+                            detonate(services, caster, attacker, impact, radius, damageRatio, visualScale);
                             return;
                         }
                         if (elapsedTicks <= flightTicks && elapsedTicks % ANIMATION_STEP_TICKS == 0) {
                             state.updateDisplays(elapsedTicks, flightTicks);
                             if (elapsedTicks < flightTicks) {
-                                state.drawTrail(context.services());
+                                state.drawTrail(services);
                             }
                         }
                         if (elapsedTicks % SIGIL_STEP_TICKS == 0) {
-                            state.drawSigil(context.services());
+                            state.drawSigil(services);
                         }
                     },
                     state::destroy
@@ -108,7 +144,6 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             state.destroy();
             throw exception;
         }
-        return context.success();
     }
 
     /** 発動時の視線とBlock衝突面から、変更されない着弾地点と魔法陣の面法線を解決します。 */
@@ -126,21 +161,38 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
 
     /** 隕石と魔法陣を消し、爆発演出と球形範囲への一撃を適用します。 */
     private static void detonate(
-            @NotNull PlayerActiveSkillContext context,
+            @NotNull ActiveSkillServices services,
+            @NotNull Player caster,
             @NotNull AstEntity attacker,
             @NotNull Location impact,
             double radius,
-            double damageRatio
+            double damageRatio,
+            double visualScale
     ) {
         Location burst = impact.clone().add(0.0D, 0.45D, 0.0D);
-        context.services().effects().point(burst, SharedParticleDefinitions.WIZARD_METEOR_EXPLOSION);
-        context.services().effects().point(burst, SharedParticleDefinitions.WIZARD_METEOR_FLAME_BURST);
-        context.services().effects().point(burst, SharedParticleDefinitions.WIZARD_METEOR_SMOKE_BURST);
-        context.services().effects().sound(impact, Sound.ENTITY_GENERIC_EXPLODE, 2.0F, 0.72F);
-        context.services().targeting().inSphere(context.player(), impact, radius, Integer.MAX_VALUE, true)
-                .forEach(target -> context.services().combat().hit(
+        services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_EXPLOSION, visualScale));
+        services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_FLAME_BURST, visualScale));
+        services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_SMOKE_BURST, visualScale));
+        services.effects().sound(impact, Sound.ENTITY_GENERIC_EXPLODE, (float) (2.0D * visualScale), 0.72F);
+        services.targeting().inSphere(caster, impact, radius, Integer.MAX_VALUE, true)
+                .forEach(target -> services.combat().hit(
                         attacker, target, AttackType.MAGIC, DamageElement.FIRE, damageRatio
                 ));
+    }
+
+    /** 既存パーティクル定義の拡散範囲と密度をメテオの表示倍率へ揃えます。 */
+    private static @NotNull SharedParticleDefinition scaledParticle(
+            @NotNull SharedParticleDefinition definition,
+            double visualScale
+    ) {
+        if (visualScale == 1.0D) {
+            return definition;
+        }
+        return definition.withOffsets(
+                definition.offsetX() * visualScale,
+                definition.offsetY() * visualScale,
+                definition.offsetZ() * visualScale
+        ).withCount(Math.max(1, (int) Math.round(definition.count() * visualScale * visualScale)));
     }
 
     /** スキルマスターの正数パラメーターを検証します。 */
@@ -171,14 +223,16 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         private final Vector planeX;
         private final Vector planeZ;
         private final Vector sourceOffset;
+        private final double visualScale;
         private final List<Location> sigilRings;
         private final List<Location> sigilRunes;
         private final List<BlockDisplay> displays = new ArrayList<>(DISPLAY_COUNT);
         private Location meteorCenter;
 
         /** ランダムな方位と鉛直角を固定し、命中面に沿う魔法陣の粒子座標を準備します。 */
-        private MeteorState(@NotNull MeteorTarget target) {
+        private MeteorState(@NotNull MeteorTarget target, double visualScale) {
             this.impact = target.location().clone();
+            this.visualScale = visualScale;
             this.planeNormal = target.normal().clone().normalize();
             Vector reference = Math.abs(planeNormal.getY()) > 0.9D
                     ? new Vector(1.0D, 0.0D, 0.0D)
@@ -196,9 +250,9 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             this.meteorCenter = this.impact.clone().add(sourceOffset);
             this.sigilRings = new ArrayList<>(96);
             this.sigilRunes = new ArrayList<>(72);
-            addRing(sigilRings, 4.6D, 48);
-            addRing(sigilRings, 3.65D, 36);
-            addRing(sigilRings, 1.3D, 20);
+            addRing(sigilRings, 4.6D * visualScale, 48);
+            addRing(sigilRings, 3.65D * visualScale, 36);
+            addRing(sigilRings, 1.3D * visualScale, 20);
             addStar(sigilRunes);
         }
 
@@ -233,14 +287,14 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                     continue;
                 }
                 double orbit = index * Math.PI * 0.72D + elapsedTicks * 0.11D;
-                double distance = index == 0 ? 0.0D : 0.58D + (index % 3) * 0.22D;
+                double distance = index == 0 ? 0.0D : (0.58D + (index % 3) * 0.22D) * visualScale;
                 Location location = meteorCenter.clone().add(
                         Math.cos(orbit) * distance,
-                        index == 0 ? 0.0D : ((index % 3) - 1) * 0.44D,
+                        index == 0 ? 0.0D : ((index % 3) - 1) * 0.44D * visualScale,
                         Math.sin(orbit) * distance
                 );
                 display.teleport(location);
-                float scale = index == 0 ? 1.3F : 0.35F + (index % 3) * 0.10F;
+                float scale = (float) ((index == 0 ? 1.3F : 0.35F + (index % 3) * 0.10F) * visualScale);
                 display.setTransformation(new Transformation(
                         new Vector3f(-scale / 2.0F, -scale / 2.0F, -scale / 2.0F),
                         new Quaternionf().rotateXYZ(
@@ -262,11 +316,12 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
 
         /** 隕石の後方へ炎と煙を表示します。 */
         private void drawTrail(@NotNull ActiveSkillServices services) {
-            Vector trailingDirection = sourceOffset.clone().normalize().multiply(0.8D);
-            services.effects().point(meteorCenter, SharedParticleDefinitions.WIZARD_METEOR_TRAIL_FLAME);
+            Vector trailingDirection = sourceOffset.clone().normalize().multiply(0.8D * visualScale);
+            services.effects().point(meteorCenter,
+                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_FLAME, visualScale));
             services.effects().point(
                     meteorCenter.clone().add(trailingDirection),
-                    SharedParticleDefinitions.WIZARD_METEOR_TRAIL_SMOKE
+                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_SMOKE, visualScale)
             );
         }
 
@@ -292,8 +347,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                 for (int step = 0; step <= 10; step++) {
                     double progress = step / 10.0D;
                     points.add(sigilPoint(
-                            ((1.0D - progress) * Math.cos(fromAngle) + progress * Math.cos(toAngle)) * 2.65D,
-                            ((1.0D - progress) * Math.sin(fromAngle) + progress * Math.sin(toAngle)) * 2.65D
+                            ((1.0D - progress) * Math.cos(fromAngle) + progress * Math.cos(toAngle)) * 2.65D * visualScale,
+                            ((1.0D - progress) * Math.sin(fromAngle) + progress * Math.sin(toAngle)) * 2.65D * visualScale
                     ));
                 }
             }

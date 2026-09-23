@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2265",
+  "name": "&cバーンメテオストライク",
+  "icon": "MAGMA_BLOCK",
+  "tags": [
+    "offense",
+    "fire",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_burn_meteor_strike"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

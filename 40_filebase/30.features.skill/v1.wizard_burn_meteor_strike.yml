@@ -1,0 +1,31 @@
+# design:
+#   motif: "炎上の追撃 / 小型隕石"
+#   progression: 2
+schemaVersion: 1
+id: wizard_burn_meteor_strike
+type: SKILL
+implementationId: wizard_burn_meteor_strike
+name: "&cバーンメテオストライク"
+description: "&7炎上を引き金に隕石で追撃するパッシブ。"
+icon: MAGMA_BLOCK
+lore:
+  - "&7自身の攻撃で30m以内の対象へ炎上を付与すると、その地点へメテオを落とす。"
+  - "&7落下まで1秒。メテオの表示サイズは通常の75%。"
+  - "&7半径2.5mの敵へ魔法攻撃力150%の火属性ダメージ。"
+  - "&7MPが足りない場合は発生しない。クールタイムなし。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 28
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 30 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 30 }]
+passive:
+  bindRequired: true
+tags:
+  - passive
+  - magic
+  - fire
