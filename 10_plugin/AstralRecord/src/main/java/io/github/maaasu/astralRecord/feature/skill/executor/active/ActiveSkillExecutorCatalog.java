@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardEmulateSparkExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardSelfHealExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalPrismExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalBallExecutor;
@@ -39,7 +40,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
-     * @return 39個の executor
+     * @return 40個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -50,12 +51,13 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(39);
+        List<SkillExecutor> executors = new ArrayList<>(40);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.add(new WizardMeteorExecutor(services));
+        executors.add(new WizardEmulateSparkExecutor(services));
         executors.add(new WizardSelfHealExecutor(services));
         executors.add(new WizardElementalPrismExecutor(services));
         executors.add(new WizardElementalBallExecutor(services));

@@ -465,6 +465,46 @@ public class ParticleDisplayService {
         );
     }
 
+    /**
+     * 広く離れた複数地点の粒子を、worldのviewer走査を1回にまとめて近傍だけへ表示します。
+     *
+     * @param locations 同一worldに属する表示地点
+     * @param definition 表示する共通パーティクル定義
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition
+    ) {
+        if (locations.isEmpty()) {
+            return;
+        }
+        World world = locations.iterator().next().getWorld();
+        if (world == null) {
+            return;
+        }
+        for (Player viewer : world.getPlayers()) {
+            if (shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
+                continue;
+            }
+            int count = resolveCount(definition.count(), resolvePlayerDensityScale(viewer));
+            if (count <= 0) {
+                continue;
+            }
+            Location viewerLocation = viewer.getLocation();
+            for (Location location : locations) {
+                if (location.getWorld() != world
+                        || viewerLocation.distanceSquared(location) > DEFAULT_VIEWER_DISTANCE_SQUARED) {
+                    continue;
+                }
+                spawnForViewerResolvedCount(
+                    viewer, location, definition.particle(), count,
+                    definition.offsetX(), definition.offsetY(), definition.offsetZ(),
+                    definition.extra(), definition.data()
+                );
+            }
+        }
+    }
+
     private <T> void spawnForNearbyViewers(
         @NotNull Location center,
         @NotNull Collection<Location> locations,

@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2266",
+  "name": "&eイミュレートスパーク",
+  "icon": "WHEAT",
+  "tags": [
+    "offense",
+    "lightning",
+    "shocked"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_emulate_spark"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

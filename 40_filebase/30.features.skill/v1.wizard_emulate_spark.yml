@@ -1,0 +1,85 @@
+# design:
+#   motif: "Path of Exile 2 / Spark"
+#   progression: 2
+schemaVersion: 1
+id: wizard_emulate_spark
+type: SKILL
+implementationId: wizard_emulate_spark
+name: "&eイミュレートスパーク"
+description: "&7前方へ散開する雷弾が地面と壁で跳ね回る。"
+icon: WHEAT
+lore:
+  - "&7前方の地面へ向けて{skill.projectileCount}個の雷弾を全角{skill.spreadAngle}度に放つ。"
+  - "&7各弾は毎秒{skill.projectileSpeedPerSecond}m進み、地面で{skill.bounceHeight}m跳ねて壁で反射する。"
+  - "&7雷弾は{skill.durationTicks:seconds}秒間残り、敵に当たると消滅する。"
+  - "&7各弾の直撃は魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
+  - "&7複数弾が同じ敵へ命中でき、各弾が{skill.shockChance}%で{skill.shockDurationTicks:seconds}秒感電させる。"
+cooldownTicks: 20
+resourceType: MANA
+resourceCost: 17
+castTimeTicks: 1
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.10, durationTicks: 40 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.10, durationTicks: 40, projectileCount: 2 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.10, durationTicks: 40 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.10, durationTicks: 40, projectileCount: 2 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.10, durationTicks: 40 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.10, durationTicks: 40, projectileCount: 2 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.10, durationTicks: 40 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.10, durationTicks: 40, projectileCount: 2 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.10, durationTicks: 40 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00012
+  - 70a00013
+  - 70a00014
+  - 70a00015
+  - 70a00016
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: entity.lightning_bolt.impact
+tags:
+  - active
+  - magic
+  - lightning
+# behavior:
+#   flight: "視点の水平前方へ全角20度で1/3/5/7/9個を散開する。各弾は水平4m/sで進み、発生直後は地面へ下降する。地面への衝突では面から1.3mの高さへ跳ね、壁では進行方向を鏡面反射する。"
+#   hit: "弾ごとに最初に接触した管理対象MobへMAGIC/LIGHTNINGの(105+10×Lv)%を与えて消滅する。別弾なら同じMobへ同時に命中でき、直撃が成立した弾ごとに25%でSHOCKEDを100tick付与する。"
+#   lifecycle: "各弾の寿命は40×Lv tick。地形との反射では消えない。PvP、NPC、別world、死亡Mobは対象外。"
+params:
+  damageRatio: 1.15
+  projectileCount: 1
+  projectileSpeedPerSecond: 4.0
+  projectileHitRadius: 0.35
+  bounceHeight: 1.3
+  spreadAngle: 20.0
+  durationTicks: 40
+  shockChance: 25.0
+  shockDurationTicks: 100

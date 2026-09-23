@@ -322,8 +322,22 @@ public final class SkillTargetingService {
         }
         Vector normalizedDirection = normalized(direction);
         Vector originVector = origin.toVector();
+        Vector endVector = originVector.clone().add(normalizedDirection.clone().multiply(range));
+        double safeRadius = Math.max(0.0D, radius);
+        double minX = Math.min(originVector.getX(), endVector.getX()) - safeRadius;
+        double maxX = Math.max(originVector.getX(), endVector.getX()) + safeRadius;
+        double minY = Math.min(originVector.getY(), endVector.getY()) - safeRadius;
+        double maxY = Math.max(originVector.getY(), endVector.getY()) + safeRadius;
+        double minZ = Math.min(originVector.getZ(), endVector.getZ()) - safeRadius;
+        double maxZ = Math.max(originVector.getZ(), endVector.getZ()) + safeRadius;
         List<MobLineIntersection> nearest = new ArrayList<>(Math.min(maxTargets, snapshot.candidates.size()));
         for (LineTargetCandidate candidate : snapshot.candidates) {
+            BoundingBox bounds = candidate.bounds();
+            if (bounds.getMaxX() < minX || bounds.getMinX() > maxX
+                    || bounds.getMaxY() < minY || bounds.getMinY() > maxY
+                    || bounds.getMaxZ() < minZ || bounds.getMinZ() > maxZ) {
+                continue;
+            }
             MobInstance mob = candidate.mob();
             if (mobService.getInstance(mob.instanceId()) != mob
                     || mob.state() == MobState.DEAD
@@ -332,7 +346,7 @@ public final class SkillTargetingService {
                 continue;
             }
             double distance = lineIntersectionDistance(
-                    candidate.bounds(), originVector, normalizedDirection, range, radius
+                    bounds, originVector, normalizedDirection, range, radius
             );
             if (!Double.isFinite(distance) || (!includeRangeEnd && distance + 1.0E-6D >= range)) {
                 continue;

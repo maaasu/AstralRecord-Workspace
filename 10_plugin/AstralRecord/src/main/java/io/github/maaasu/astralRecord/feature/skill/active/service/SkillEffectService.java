@@ -47,6 +47,21 @@ public final class SkillEffectService {
         }
     }
 
+    /**
+     * 広範囲に散った点群を、地点ごとの近傍viewerだけへ一括表示します。
+     *
+     * @param locations 同一worldに属する表示地点
+     * @param definition 表示する共通パーティクル定義
+     */
+    public void pointsNearViewers(
+            @NotNull List<Location> locations,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        if (!locations.isEmpty()) {
+            particleDisplayService.spawnForNearbyViewers(locations, definition);
+        }
+    }
+
     /** 指定地点の地面ブロックを使った粉塵を表示します。 */
     public void blockDust(@NotNull Location location, @NotNull BlockData blockData) {
         var blockParticle = SharedParticleDefinitions.resolveParticle("BLOCK");
