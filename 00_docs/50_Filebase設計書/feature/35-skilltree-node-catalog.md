@@ -161,7 +161,11 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ウィザード専門枝
 
-ウィザード領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全nodeは1CPで、`unlockCondition.classId: wizard`を持つ。スキル使用許可nodeはこの領域へ置かない。
+ウィザードの配置領域は共通魔導24node、エレメンタル48node、アーケイン48nodeのstatus nodeだけで構成する。全配置nodeは1CPで、`unlockCondition.classId: wizard`を持つ。メテオの使用許可node `2260` は同じ条件で定義するが、現行の構造には配置しない。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `skill-wizard-meteor` | `2260` | `skill` / `wizard_meteor` | `&cメテオ` | `GILDED_BLACKSTONE` | `offense`, `fire`, `ember` |
 
 ### 共通魔導パッケージ
 

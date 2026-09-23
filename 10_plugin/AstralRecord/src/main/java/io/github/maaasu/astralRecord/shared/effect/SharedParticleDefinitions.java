@@ -806,6 +806,26 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_FIRE =
         new SharedParticleDefinition("skill_mage_fire", Particle.FLAME, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+    public static final SharedParticleDefinition WIZARD_METEOR_SIGIL_RING =
+        new SharedParticleDefinition(
+            "wizard_meteor_sigil_ring", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 112, 10), 1.35F)
+        );
+    public static final SharedParticleDefinition WIZARD_METEOR_SIGIL_RUNE =
+        new SharedParticleDefinition(
+            "wizard_meteor_sigil_rune", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 45, 12), 1.5F)
+        );
+    public static final SharedParticleDefinition WIZARD_METEOR_TRAIL_FLAME =
+        new SharedParticleDefinition("wizard_meteor_trail_flame", Particle.FLAME, 12, 0.48D, 0.48D, 0.48D, 0.04D);
+    public static final SharedParticleDefinition WIZARD_METEOR_TRAIL_SMOKE =
+        new SharedParticleDefinition("wizard_meteor_trail_smoke", Particle.LARGE_SMOKE, 6, 0.36D, 0.36D, 0.36D, 0.03D);
+    public static final SharedParticleDefinition WIZARD_METEOR_EXPLOSION =
+        new SharedParticleDefinition("wizard_meteor_explosion", Particle.EXPLOSION, 8, 2.1D, 1.5D, 2.1D, 0.0D);
+    public static final SharedParticleDefinition WIZARD_METEOR_FLAME_BURST =
+        new SharedParticleDefinition("wizard_meteor_flame_burst", Particle.FLAME, 72, 2.6D, 1.4D, 2.6D, 0.16D);
+    public static final SharedParticleDefinition WIZARD_METEOR_SMOKE_BURST =
+        new SharedParticleDefinition("wizard_meteor_smoke_burst", Particle.LARGE_SMOKE, 42, 2.4D, 1.5D, 2.4D, 0.10D);
     public static final SharedParticleDefinition MAGE_FIREBALL_TRAIL =
         new SharedParticleDefinition(
             "mage_fireball_trail",

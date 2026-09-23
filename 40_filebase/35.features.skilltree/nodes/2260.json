@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2260",
+  "name": "&cメテオ",
+  "icon": "GILDED_BLACKSTONE",
+  "tags": [
+    "offense",
+    "fire",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_meteor"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

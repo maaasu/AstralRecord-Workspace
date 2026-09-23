@@ -1,0 +1,76 @@
+# design:
+#   motif: "隕石魔術 / 炎の魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: wizard_meteor
+type: SKILL
+implementationId: wizard_meteor
+name: "&cメテオ"
+description: "&7炎の魔法陣へ隕石を呼び寄せる範囲魔法。"
+icon: GILDED_BLACKSTONE
+lore:
+  - "&7視点方向の{skill.range}m以内へ魔法陣を描き、{skill.impactDelayTicks:seconds}秒後に隕石を落とす。"
+  - "&7着弾地点から半径{skill.radius}mの敵へ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
+  - "&7隕石は発動ごとに異なる斜め上空から接近し、着弾時に爆発する。"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 80
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { damageRatio: 0.20 }
+  - level: 3
+    paramDeltas: { damageRatio: 0.20 }
+  - level: 4
+    paramDeltas: { damageRatio: 0.20 }
+  - level: 5
+    paramDeltas: { damageRatio: 0.20 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00012
+  - 70a00013
+  - 70a00014
+  - 70a00015
+  - 70a00016
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: block.respawn_anchor.charge
+tags:
+  - active
+  - magic
+  - fire
+# behavior:
+#   target: "詠唱完了時の視線を射程16mまでBlockへ照射し、命中面の手前を着弾地点に固定する。Blockがなければ最大射程の地点を使う。"
+#   visual: "Block命中面に沿って着弾まで赤橙の魔法陣を表示する。隕石は発動ごとに方位と鉛直からの角度を変え、斜め上空から60tickで着弾する。BlockDisplayと粒子は着弾または中断時に破棄する。"
+#   impact: "着弾時に爆発粒子を表示し、半径5mの管理対象MobへMAGIC/FIREの基礎倍率605%（Lv.5は685%）を1回与える。地形破壊、PvP、状態異常は発生しない。"
+params:
+  range: 16.0
+  radius: 5.0
+  damageRatio: 6.05
+  impactDelayTicks: 60
