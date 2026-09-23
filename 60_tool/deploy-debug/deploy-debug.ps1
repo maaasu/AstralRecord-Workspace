@@ -4,7 +4,9 @@ param(
     [switch]$MasterDataOnly,
     [switch]$ReleaseManagementOnly,
     [switch]$PreflightOnly,
-    [string]$ConfigPath
+    [string]$ConfigPath,
+    [string]$WorkflowRunDirectory,
+    [string]$WorkflowFingerprint
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,11 +29,57 @@ if ($MasterDataOnly -and ($PluginOnly -or $ReleaseManagementOnly)) {
 if ($PreflightOnly -and -not $ReleaseManagementOnly) {
     throw "-PreflightOnly requires -ReleaseManagementOnly."
 }
+if ([bool]$WorkflowRunDirectory -ne [bool]$WorkflowFingerprint -or
+    ($WorkflowRunDirectory -and ($ReleaseManagementOnly -or $PreflightOnly))) {
+    throw 'Workflow progress parameters must be supplied together for a Dev deployment.'
+}
 
 function Write-Step {
     param([string]$Message)
     Write-Host ""
     Write-Host "==> $Message" -ForegroundColor Cyan
+}
+
+function Write-DevDeploymentProgress {
+    param([string]$Stage, [string]$Status)
+    if (!$WorkflowRunDirectory) { return }
+    $path=Join-Path $WorkflowRunDirectory 'dev-deployment-progress.json'
+    $temporary="$path.tmp"
+    @{schemaVersion=1;configurationFingerprint=$WorkflowFingerprint;stage=$Stage;status=$Status;
+        buildIsolated=$script:devBuildIsolated;updatedAtUtc=[DateTime]::UtcNow.ToString('o')} |
+        ConvertTo-Json | Set-Content -LiteralPath $temporary -Encoding UTF8
+    Move-Item -LiteralPath $temporary -Destination $path -Force
+}
+
+function Test-DevBuildIsolation {
+    param($Configuration)
+    $outputs=@()
+    foreach ($name in @('api','web','plugin')) {
+        $component=$Configuration.$name
+        if ($component.enabled) {
+            foreach ($value in @($component.projectPath,$component.buildOutputPath)) {
+                if (![IO.Path]::IsPathRooted($value) -or $value.StartsWith('\\')) { return $false }
+                $full=[IO.Path]::GetFullPath($value).TrimEnd('\','/')
+                $cursor=$full
+                while ($cursor) {
+                    if ((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { return $false }
+                    $cursor=[IO.Path]::GetDirectoryName($cursor)
+                }
+                $outputs += $full
+            }
+        }
+    }
+    foreach ($name in @('api','web','plugin','fileDatabase')) {
+        $component=$Configuration.$name
+        if (!$component.enabled) { continue }
+        $destination=[IO.Path]::GetFullPath($component.deployPath).TrimEnd('\','/')
+        foreach ($output in $outputs) {
+            if ($output.Equals($destination,[StringComparison]::OrdinalIgnoreCase) -or
+                $output.StartsWith($destination+'\',[StringComparison]::OrdinalIgnoreCase) -or
+                $destination.StartsWith($output+'\',[StringComparison]::OrdinalIgnoreCase)) { return $false }
+        }
+    }
+    return $true
 }
 
 function Test-CommandExists {
@@ -631,8 +679,32 @@ if (-not (Test-CommandExists -Name "robocopy")) {
 $script:iisResetCommand = Resolve-IisResetCommand -IisConfig $config.iis
 
 $iisStopped = $false
+$progressLock=$null
+$progressStage='Build'
+$script:devBuildIsolated=if ($WorkflowRunDirectory) { Test-DevBuildIsolation $config } else { $false }
 
 try {
+    if ($WorkflowRunDirectory) {
+        if (![IO.Path]::IsPathRooted($WorkflowRunDirectory) -or !(Test-Path -LiteralPath $WorkflowRunDirectory -PathType Container) -or
+            $WorkflowFingerprint -notmatch '^[a-f0-9]{64}$') { throw 'Invalid workflow progress location or fingerprint.' }
+        $progressLock=[IO.File]::Open((Join-Path $WorkflowRunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
+        if ((Test-Path -LiteralPath (Join-Path $WorkflowRunDirectory 'dev-deployment-progress.json')) -or
+            (Test-Path -LiteralPath (Join-Path $WorkflowRunDirectory 'deploy-action-success.json'))) {
+            throw 'This run already has deployment evidence. Use the guided recovery workflow.'
+        }
+        $workflowState=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $WorkflowRunDirectory 'workflow-state.json') | ConvertFrom-Json
+        if ($workflowState.status -cne 'Deploying' -or $workflowState.label -cne 'Dev' -or $workflowState.configurationFingerprint -cne $WorkflowFingerprint) {
+            throw 'Dev workflow state does not match this deployment.'
+        }
+        $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
+        $fingerprintText=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash+'|'+$mode
+        $algorithm=[Security.Cryptography.SHA256]::Create()
+        try { $actualFingerprint=[BitConverter]::ToString($algorithm.ComputeHash([Text.Encoding]::UTF8.GetBytes($fingerprintText))).Replace('-','').ToLowerInvariant() }
+        finally { $algorithm.Dispose() }
+        if ($actualFingerprint -cne $WorkflowFingerprint) { throw 'Deployment configuration changed before the backend started.' }
+    }
+    Write-DevDeploymentProgress $progressStage 'Running'
+    try {
     if ($config.api.enabled) {
         Publish-DotNetProject -Component $config.api -Name "API"
     }
@@ -646,11 +718,13 @@ try {
     }
 
     if ($config.api.enabled) {
+        $progressStage='Database'; Write-DevDeploymentProgress $progressStage 'Running'
         Invoke-DatabaseMigrations -MigrationConfig $config.databaseMigrations
         Invoke-HistoryDatabaseMigrations -MigrationConfig $config.historyDatabaseMigrations
         Invoke-ManagementDatabaseMigrations -MigrationConfig $config.managementDatabaseMigrations
     }
 
+    $progressStage='Files'; Write-DevDeploymentProgress $progressStage 'Running'
     if ($null -ne $script:iisResetCommand -and ($config.api.enabled -or $config.web.enabled)) {
         Invoke-IisReset -ComputerName $config.iis.host -Action "stop"
         $iisStopped = $true
@@ -673,16 +747,25 @@ try {
         Deploy-FolderArtifact -Component $config.fileDatabase -Name "FileDatabase"
     }
 }
+catch {
+    Write-DevDeploymentProgress $progressStage 'Failed'
+    throw
+}
 finally {
     if ($iisStopped) {
         try {
             Invoke-IisReset -ComputerName $config.iis.host -Action "start"
         }
         catch {
+            Write-DevDeploymentProgress $progressStage 'Failed'
             Write-Error $_
             throw
         }
     }
 }
 
+Write-DevDeploymentProgress 'Completed' 'Completed'
 Write-Step "Deployment completed successfully"
+} finally {
+    if ($progressLock) { $progressLock.Dispose() }
+}

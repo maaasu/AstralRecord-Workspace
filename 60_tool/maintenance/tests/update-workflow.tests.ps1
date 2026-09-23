@@ -110,10 +110,10 @@ try {
     $f=New-WorkflowFixture; $run=New-UpdateWorkflowRunDirectory $f.Run
     Save-UpdateWorkflowJson @{schemaVersion=1;relativeRunDirectory=$run.Relative;configurationFingerprint=('c'*64);status='Created'} (Join-Path $f.Run 'active-run.json')
     Save-UpdateWorkflowJson @{schemaVersion=1;configurationFingerprint=('c'*64);label='Channels';status='WaitingForStartup';baselineSessions=@{alpha=$null};deployedRuntimes=@();seedStatus='PENDING'} (Join-Path $run.Path 'workflow-state.json')
-    Save-UpdateWorkflowJson @{version=1;status='Restored';operations=@()} (Join-Path $run.Path 'deployment.json')
+    Save-UpdateWorkflowJson @{version=1;runId=('a'*32);status='Restored';operations=@()} (Join-Path $run.Path 'deployment.json')
     $restoredRejected=$false
-    try { Invoke-UpdateWorkflow -WorkflowConfig @{runRoot=$f.Run;startupTimeoutSeconds=1;pollIntervalSeconds=1;seedMasterData=$false} -MigrationConfig (New-WorkflowMigration @('alpha')) -ConfigurationFingerprint ('c'*64) -ServerRoots @($f.Server,$f.Source) -DeployAction {throw 'must not redeploy'} -ServersStopped -AdmissionClosed -Label Channels -HttpInvoker {throw 'must not call API'} | Out-Null } catch { $restoredRejected=$_.Exception.Message -match 'possibly restored' }
-    Assert-Workflow $restoredRejected 'Restored deployment must not resume startup or migration.'
+    try { Invoke-UpdateWorkflow -WorkflowConfig @{runRoot=$f.Run;startupTimeoutSeconds=1;pollIntervalSeconds=1;seedMasterData=$false} -MigrationConfig (New-WorkflowMigration @('alpha')) -ConfigurationFingerprint ('c'*64) -ServerRoots @($f.Server,$f.Source) -DeployAction {throw 'must not redeploy'} -ServersStopped -AdmissionClosed -Label Channels -HttpInvoker {throw 'must not call API'} | Out-Null } catch { $restoredRejected=$_.Exception.Message -match '配布journalが不正' }
+    Assert-Workflow $restoredRejected 'An incomplete restored journal must not authorize a new deployment.'
     $f=New-WorkflowFixture; $run=New-UpdateWorkflowRunDirectory $f.Run
     Save-UpdateWorkflowJson @{schemaVersion=1;relativeRunDirectory=$run.Relative;configurationFingerprint=('d'*64);status='Created'} (Join-Path $f.Run 'active-run.json')
     Save-UpdateWorkflowJson @{schemaVersion=1;configurationFingerprint=('d'*64);label='Dev';status='WaitingForStartup';baselineSessions=@{alpha=$null};deployedRuntimes=@();seedStatus='PENDING'} (Join-Path $run.Path 'workflow-state.json')

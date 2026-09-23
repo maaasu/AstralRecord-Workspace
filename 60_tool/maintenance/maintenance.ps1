@@ -7,6 +7,8 @@ param(
     [string]$RunDirectory,
     [ValidateSet('Ask','Include','Skip')][string]$WorldCopy = 'Ask',
     [ValidateSet('Ask','Include','Skip')][string]$NetworkPlugins = 'Ask',
+    [ValidateSet('Auto','Restart','Restore')][string]$Recovery = 'Auto',
+    [switch]$RecoveryChecked,
     [switch]$ServersStopped,
     [switch]$AdmissionClosed
 )
@@ -17,6 +19,7 @@ Set-StrictMode -Version Latest
 $locks = [Collections.Generic.List[IDisposable]]::new()
 $maintenanceDiagnosticFile = $null
 try {
+    if (($Recovery -ne 'Auto' -or $RecoveryChecked) -and $Phase -ne 'Workflow') { throw '-Recoveryは通常Workflow専用です。詳細操作は-Phase Restoreを使用してください。' }
     if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins')) -and $Phase -notin @('Workflow','Plan','Deploy')) { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
     if (!(Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { throw 'Create maintenance.local.json from maintenance.example.json and configure paths first.' }
     $config = Get-Content -Raw -Encoding utf8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
@@ -62,8 +65,15 @@ try {
             Write-MaintenanceDiagnostic 'child.exit' @{exitCode=$LASTEXITCODE}
             if ($LASTEXITCODE -ne 0) { throw "Distribution failed. Keep servers stopped and inspect $RunDirectory. Use Restore before retrying an incomplete deployment." }
         }
+        $restoreAction={
+            param($RunDirectory)
+            & $pwsh -NoProfile -File $entryScript -Phase Restore -ConfigPath $ConfigPath -RunDirectory $RunDirectory -ServersStopped 2>&1 |
+                Tee-Object -FilePath (Join-Path $RunDirectory 'recovery-restore.log') -Append | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "ファイル復旧に失敗しました。停止を維持し $RunDirectory の記録を確認してください。" }
+        }
         Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
-            -ServerRoots $roots -DeployAction $deployAction -PrepareRunAction $prepareRunAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels'
+            -ServerRoots $roots -DeployAction $deployAction -PrepareRunAction $prepareRunAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels' `
+            -RestoreAction $restoreAction -Recovery $Recovery -RecoveryChecked:$RecoveryChecked
         exit 0
     }
     if ($Phase -eq 'Plan') {

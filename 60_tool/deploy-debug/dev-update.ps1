@@ -7,6 +7,8 @@ param(
     [switch]$ReleaseManagementOnly,
     [switch]$PreflightOnly,
     [switch]$Plan,
+    [ValidateSet('Auto','Restart','Restore')][string]$Recovery='Auto',
+    [switch]$RecoveryChecked,
     [switch]$ServersStopped,
     [switch]$AdmissionClosed
 )
@@ -20,7 +22,7 @@ try {
     $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
     $backend=Join-Path $PSScriptRoot 'deploy-debug.ps1'
     if ($ReleaseManagementOnly -or $PreflightOnly) {
-        if ($MasterDataOnly -or $Plan -or $ServersStopped -or $AdmissionClosed) { throw 'Release management uses its existing preflight/deployment workflow.' }
+        if ($MasterDataOnly -or $Plan -or $ServersStopped -or $AdmissionClosed -or $Recovery -ne 'Auto' -or $RecoveryChecked) { throw 'Release management uses its existing preflight/deployment workflow.' }
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
         if ($ReleaseManagementOnly) { $arguments+='-ReleaseManagementOnly' }
         if ($PreflightOnly) { $arguments+='-PreflightOnly' }
@@ -29,6 +31,7 @@ try {
         exit $LASTEXITCODE
     }
     if ($PluginOnly -and $MasterDataOnly) { throw 'Choose PluginOnly or MasterDataOnly, not both.' }
+    if ($Recovery -eq 'Restore') { throw 'DevのDB・ファイル自動復元には対応していません。外部状態確認後に-Recovery Restartを使用してください。' }
     . (Join-Path $PSScriptRoot '../maintenance/Distribution.ps1')
     . (Join-Path $PSScriptRoot '../maintenance/SkillTreeMigration.ps1')
     . (Join-Path $PSScriptRoot '../maintenance/UpdateWorkflow.ps1')
@@ -69,6 +72,7 @@ try {
     $deployAction={
         param($RunDirectory)
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
+        $arguments+=@('-WorkflowRunDirectory',$RunDirectory,'-WorkflowFingerprint',$fingerprint)
         if ($PluginOnly) { $arguments+='-PluginOnly' }
         if ($MasterDataOnly) { $arguments+='-MasterDataOnly' }
         $log=Join-Path $RunDirectory 'dev-deploy.log'
@@ -77,7 +81,8 @@ try {
         Write-MaintenanceJson @{ completedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'deploy-action-success.json')
     }
     Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
-        -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev'
+        -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev' `
+        -Recovery $Recovery -RecoveryChecked:$RecoveryChecked
 } catch {
     Write-Error $_.Exception.Message -ErrorAction Continue
     exit 1

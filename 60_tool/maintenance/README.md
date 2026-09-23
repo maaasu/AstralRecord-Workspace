@@ -55,7 +55,34 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 `workflow.runRoot` が空なら設定JSONと同じ場所の `runs` へ実行記録を自動作成します。`startupTimeoutSeconds` / `pollIntervalSeconds` は起動待ち時間と確認間隔、`seedMasterData` は配布後のAPI diff seedです。起動案内はseed成功後に表示します。共有API側のFilebaseが今回のリリースと一致していることが前提です。起動確認対象は `migration.serverIds` なので、今回更新する全チャンネルの実server IDを列挙してください。
 
-配置完了後の失敗は同じバッチで続きから再開します。設定・対象や移行途中の起動sessionを変更しないでください。配置途中の失敗は自動再配布せず、ログとbackupを確認して下記Restoreで復旧します。既定では復旧後も古い未完了記録を上書きしないため、復旧確認後に `active-run.json` を別名へ退避して新しい実行を開始してください。
+配置完了後の失敗は同じバッチで続きから再開します。設定・対象や移行途中の起動sessionを変更しないでください。配布失敗時は再実行時の自己復旧判定へ進みます。実行記録を直接削除・編集する必要はありません。部分配布は復旧成功前に新規実行へ進みません。
+
+### 失敗時の自己復旧
+
+01/16を再実行すると、排他ロックを取得し、前回の記録から次を判定します。
+
+| 状態 | 動作 |
+|---|---|
+| 01の新形式記録で、隔離されたBuild段階の失敗をbackendが記録済み | DB更新・外部配置前として、旧記録を保全して自動で新規実行 |
+| 16の全項目がPending/Prepared/Unchangedで退避先も未使用 | 元の配置先は未置換。準備データを残し自動で新規実行 |
+| 配置完了の証拠あり | 再配布せずseed・起動待ち・移行から再開 |
+| 16が部分配布済み | `1: バックアップから復旧して新規実行 / 2: 中止` を表示。全対象停止・入場制限の確認後に既存Restoreを実行し、成功時だけ新規実行 |
+| 16のRestore完了済み | 旧記録を保全して自動で新規実行 |
+| 01のDatabase/Files段階・Build隔離未確認・実行中のまま中断、旧形式・欠損した進行記録 | 自動でやり直さない。DB・配置先の適用状況と必要な外部復旧、前回の子プロセス終了を運用者が確認後、`1`と`RECOVERY-CHECKED`の入力で新規実行へ切替 |
+| 世代移行のmarker/state/result/対象記録あり | 記録を破棄しない。同じrunの移行再開・個別調査を行う |
+
+旧runフォルダー・ログ・バックアップ・準備データは削除しません。`active-run.json`だけを旧run内の `active-run.before-recovery-<ID>.json` へ退避し、理由を隣接JSONに保存します。新しいrunには通常の停止・入場制限確認と配布対象選択を適用します。新規実行への切替は、失敗原因の自動修正を意味しません。
+
+無人実行では、不明な状態を勝手に確認済みにしません。`-ServersStopped -AdmissionClosed`を両方指定した呼出しも、未承認の復旧については対話待ちせず、必要な引数を表示して停止します。運用者が確認済みの場合だけ、次の引数を明示します。
+
+```powershell
+# 01: DB・配置先の整合/必要な外部復旧・子プロセス終了を確認済みの場合だけ
+.\60_tool\01-deploy-debug.bat -Recovery Restart -RecoveryChecked -ServersStopped -AdmissionClosed
+# 16: 部分配布をバックアップから復元して新規実行（全対象停止が前提）
+.\60_tool\16-maintenance.bat -Recovery Restore -ServersStopped -AdmissionClosed -WorldCopy Include -NetworkPlugins Include
+```
+
+`-RecoveryChecked`は検証を自動で代行するスイッチではなく、運用者の確認宣言です。DB処理の一部はSQL確定後に履歴・スキーマ検査を行うため、失敗ログだけで未適用と判断しないでください。設定が変わった状態のファイル復元は元の設定へ戻してから行います。復旧が失敗した場合や未知のjournal形式では停止し、旧runを保持します。
 
 配置後にサーバーを再起動した場合、01/16のWorkflowは同じ定義世代でreadyになっていることを確認し、保存済み移行記録の全件がCOMMIT未送信（`CommitStatus=PENDING`かつ結果なし）の場合だけ起動sessionを引き継ぎます。設定・対象server集合・移行先世代とsnapshot・全accountの元世代/version/node baseline・元snapshotを再照合し、起動情報をもう一度確認してから、同じoperation IDで全件PREVIEWをやり直します。旧移行記録は `.before-runtime-refresh-<ID>` として保全します。詳細MigratePreview/MigrateCommitではこの自動引継ぎを有効にしません。
 

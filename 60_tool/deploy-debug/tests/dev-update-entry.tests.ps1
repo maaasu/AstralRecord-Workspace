@@ -15,11 +15,11 @@ try {
     }
     # Isolate external build and workflow transport. Test real entry routing and real file distribution.
     Write-TestFile (Join-Path $fixture 'deploy-debug/deploy-debug.ps1') @'
-param([string]$ConfigPath,[switch]$PluginOnly,[switch]$MasterDataOnly,[switch]$ReleaseManagementOnly,[switch]$PreflightOnly)
+param([string]$ConfigPath,[switch]$PluginOnly,[switch]$MasterDataOnly,[switch]$ReleaseManagementOnly,[switch]$PreflightOnly,[string]$WorkflowRunDirectory,[string]$WorkflowFingerprint)
 @{pluginOnly=[bool]$PluginOnly;masterDataOnly=[bool]$MasterDataOnly;release=[bool]$ReleaseManagementOnly;preflight=[bool]$PreflightOnly} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path $ConfigPath) 'backend-result.json')
 '@
     Write-TestFile (Join-Path $fixture 'maintenance/UpdateWorkflow.ps1') @'
-function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label) {
+function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked) {
     $run=Join-Path $WorkflowConfig.runRoot ([guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $run -Force | Out-Null
     @{label=$Label;scope=$MigrationConfig.scope;seed=$WorkflowConfig.seedMasterData;roots=$ServerRoots} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkflowConfig.runRoot 'entry-result.json')

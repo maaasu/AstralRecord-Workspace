@@ -4,6 +4,7 @@ Set-StrictMode -Version Latest
 
 . (Join-Path $PSScriptRoot 'Distribution.ps1')
 . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
+. (Join-Path $PSScriptRoot 'WorkflowRecovery.ps1')
 
 function Get-UpdateWorkflowValue {
     param([Parameter(Mandatory)] $Object, [Parameter(Mandatory)][string] $Name)
@@ -213,6 +214,9 @@ function Invoke-UpdateWorkflow {
         [Parameter(Mandatory)][string[]] $ServerRoots,
         [Parameter(Mandatory)][scriptblock] $DeployAction,
         [scriptblock] $PrepareRunAction,
+        [scriptblock] $RestoreAction,
+        [ValidateSet('Auto','Restart','Restore')][string] $Recovery = 'Auto',
+        [switch] $RecoveryChecked,
         [switch] $ServersStopped,
         [switch] $AdmissionClosed,
         [ValidateSet('Dev','Channels')][string] $Label = 'Dev',
@@ -238,15 +242,33 @@ function Invoke-UpdateWorkflow {
         $activePath = Join-Path $validated.RunRoot 'active-run.json'
         $active = if (Test-Path -LiteralPath $activePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $activePath | ConvertFrom-Json -AsHashtable } else { $null }
         if ($active -and $active.status -ne 'Completed') {
-            if ($active.configurationFingerprint -ne $ConfigurationFingerprint) { throw 'Configuration changed while an update workflow run is active.' }
             $runDirectory = Get-UpdateWorkflowRunDirectory $validated.RunRoot $active.relativeRunDirectory
             if (!(Test-Path -LiteralPath $runDirectory -PathType Container)) { throw 'The active workflow run directory is missing.' }
-            Write-Host "Resuming update: $runDirectory"
-        } else {
+            $priorPath=Join-Path $runDirectory 'workflow-state.json'
+            $prior=if (Test-Path -LiteralPath $priorPath) { Get-Content -Raw -Encoding UTF8 -LiteralPath $priorPath | ConvertFrom-Json -AsHashtable } else { $null }
+            if ($prior -and ($prior.schemaVersion -ne 1 -or $prior.label -cne $Label -or $prior.configurationFingerprint -cne $active.configurationFingerprint)) { throw 'The previous workflow state is inconsistent. Inspect its records before recovery.' }
+            $restored=$false
+            $journalPath=Join-Path $runDirectory 'deployment.json'
+            if ($Label -eq 'Channels' -and (Test-Path -LiteralPath $journalPath)) {
+                $previousJournal=Get-Content -Raw -Encoding UTF8 -LiteralPath $journalPath | ConvertFrom-Json -AsHashtable
+                $restored=$previousJournal.status -ceq 'Restored'
+            }
+            if (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto')) {
+                if ($Recovery -ne 'Auto' -or !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
+                    $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
+                        -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
+                        -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -RestoreAction $RestoreAction `
+                        -ConfigurationChanged:($active.configurationFingerprint -cne $ConfigurationFingerprint)
+                    if ($archived) { $active=$null }
+                }
+            } elseif ($Recovery -ne 'Auto') { throw 'この実行は配布失敗状態ではありません。記録を破棄せず、通常の再開を使用してください。' }
+            if ($active -and $active.configurationFingerprint -ne $ConfigurationFingerprint) { throw 'Configuration changed while an update workflow run is active.' }
+        }
+        if (!$active -or $active.status -eq 'Completed') {
             $run = New-UpdateWorkflowRunDirectory $validated.RunRoot; $runDirectory=$run.Path
             $active = [ordered]@{ schemaVersion=1; relativeRunDirectory=$run.Relative; configurationFingerprint=$ConfigurationFingerprint; status='Created'; createdAtUtc=[DateTime]::UtcNow.ToString('o') }
             Save-UpdateWorkflowJson $active $activePath
-        }
+        } else { Write-Host "Resuming update: $runDirectory" }
         Write-Host "Run records: $runDirectory"
         $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $runDirectory 'Workflow'
         Write-MaintenanceDiagnostic 'workflow.begin' @{label=$Label; powershell=$PSVersionTable.PSVersion.ToString()}
@@ -297,7 +319,16 @@ function Invoke-UpdateWorkflow {
             }
             catch {
                 Write-MaintenanceDiagnostic 'deployment.action.failed' -Failure $_
-                $state.status='DeploymentFailed'; Save-UpdateWorkflowJson $state $statePath; throw 'Deployment action failed. Resolve the deployment before retrying.'
+                $state.status='DeploymentFailed'; Save-UpdateWorkflowJson $state $statePath
+                $failedStage='Deployment'
+                try {
+                    $progressPath=Join-Path $runDirectory 'dev-deployment-progress.json'
+                    if ($Label -eq 'Dev' -and (Test-Path -LiteralPath $progressPath)) {
+                        $progress=Get-Content -Raw -Encoding UTF8 -LiteralPath $progressPath | ConvertFrom-Json -AsHashtable
+                        if ($progress.stage -in @('Build','Database','Files')) { $failedStage=$progress.stage }
+                    }
+                } catch { }
+                throw "Deployment action failed ($failedStage). 記録: $runDirectory 。原因を修正後、同じバッチを再実行すると復旧判定・メニューへ進みます。"
             }
             $state.status='WaitingForStartup'; $state.deployedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
         }
