@@ -257,6 +257,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffServic
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardBurnMeteorStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolySmiteRuntimeService;
@@ -485,6 +486,7 @@ public final class AstralRecord extends JavaPlugin {
     private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
     private WizardLightningStrikeRuntimeService wizardLightningStrikeRuntimeService;
     private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
+    private ArchmageCelestialCircleRuntimeService archmageCelestialCircleRuntimeService;
     private PaladinHolySmiteRuntimeService paladinHolySmiteRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
@@ -919,6 +921,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (paladinHolyFieldRuntimeService != null) {
             paladinHolyFieldRuntimeService.clearAll();
+        }
+        if (archmageCelestialCircleRuntimeService != null) {
+            archmageCelestialCircleRuntimeService.clearAll();
         }
         if (paladinHolySmiteRuntimeService != null) {
             paladinHolySmiteRuntimeService.clearAll();
@@ -1687,6 +1692,7 @@ public final class AstralRecord extends JavaPlugin {
         paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(
             statusService, partyService
         );
+        archmageCelestialCircleRuntimeService = new ArchmageCelestialCircleRuntimeService(statusService);
         var paladinGuardRuntimeService = new PaladinGuardRuntimeService();
         var paladinGuardianProtectRuntimeService = new PaladinGuardianProtectRuntimeService();
         skillService.setPaladinGuardRuntimeService(paladinGuardRuntimeService);
@@ -1809,6 +1815,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
         ActiveSkillExecutorCatalog.create(
             activeSkillServices,
+            archmageCelestialCircleRuntimeService,
             paladinHolyFieldRuntimeService,
             paladinHolySmiteRuntimeService,
             statusService,
@@ -2190,6 +2197,7 @@ public final class AstralRecord extends JavaPlugin {
                 wizardPrismConditionRuntimeService.clearPlayer(playerId);
                 bastionStrikeSkillRuntimeService.clearPlayer(playerId);
                 paladinHolyFieldRuntimeService.end(playerId);
+                archmageCelestialCircleRuntimeService.end(playerId);
                 normalAttackDegradationService.clearPlayer(playerId);
                 conditionService.clearAll(AstEntity.player(player));
                 skillActionRingHoldService.cancel(player.getBukkit());

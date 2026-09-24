@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2389",
+  "name": "&bセレスティアルサークル",
+  "icon": "LIGHT_BLUE_GLAZED_TERRACOTTA",
+  "tags": ["astral"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "archmage_celestial_circle" }
+  ],
+  "unlockCondition": { "classId": "archmage" }
+}

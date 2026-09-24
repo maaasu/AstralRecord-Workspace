@@ -1,0 +1,50 @@
+# design:
+#   motif: "天体 / 星環魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: archmage_celestial_circle
+type: SKILL
+implementationId: archmage_celestial_circle
+name: "&bセレスティアルサークル"
+description: "&7星の魔法陣を築き、範囲内のプレイヤーを強化する。"
+icon: LIGHT_BLUE_GLAZED_TERRACOTTA
+lore:
+  - "&7視点先の地面に半径{skill.radius}mの水平な魔法陣を2秒かけて描く。"
+  - "&7完成後は{skill.durationTicks:seconds}秒間、範囲内のプレイヤーへ同名バフを付与する。"
+  - "&7最終ダメージ倍率が{skill.finalDamageBonus}%、ライフスティールが{skill.otherBonus}%上昇。"
+  - "&7HP・MP・ENG回復力とドロップ増加率がそれぞれ{skill.otherBonus}%上昇。"
+  - "&7重複せず、再発動時は古い魔法陣を消して描き直す。"
+cooldownTicks: 200
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 3, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 4, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 5, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 6, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 7, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 8, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 9, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+  - { level: 10, paramDeltas: { effectLevel: 1, radius: 1, finalDamageBonus: 0.5, otherBonus: 1 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 15 }]
+onCast:
+  sound: block.beacon.activate
+params:
+  placementRange: 24
+  durationTicks: 600
+  effectLevel: 1
+  radius: 1
+  finalDamageBonus: 0.5
+  otherBonus: 1
+tags:
+  - active
+  - field
+  - magic
+  - support

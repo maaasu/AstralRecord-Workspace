@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
@@ -34,16 +36,18 @@ public final class ActiveSkillExecutorCatalog {
      * 実装済みのプレイヤー用 executor を職業横断で生成します。
      *
      * @param services 共有発動スキルサービス
+     * @param archmageCelestialCircleRuntimeService セレスティアルサークル実行時状態サービス
      * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
      * @param paladinHolySmiteRuntimeService ホーリースマイト聖柱実行時状態サービス
      * @param statusService 一時シールドを管理するステータスサービス
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
-     * @return 40個の executor
+     * @return 実装済みのexecutor一覧
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
+            @NotNull ArchmageCelestialCircleRuntimeService archmageCelestialCircleRuntimeService,
             @NotNull PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService,
             @NotNull PaladinHolySmiteRuntimeService paladinHolySmiteRuntimeService,
             @NotNull StatusService statusService,
@@ -51,11 +55,12 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(40);
+        List<SkillExecutor> executors = new ArrayList<>(41);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
+        executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
         executors.add(new WizardMeteorExecutor(services));
         executors.add(new WizardEmulateSparkExecutor(services));
         executors.add(new WizardSelfHealExecutor(services));

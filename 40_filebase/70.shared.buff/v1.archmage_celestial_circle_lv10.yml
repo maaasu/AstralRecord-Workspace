@@ -1,0 +1,21 @@
+# design:
+#   motif: "天体 / 星環魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: archmage_celestial_circle_lv10
+type: BUFF
+name: "&bセレスティアルサークル"
+lore:
+  - "&7最終ダメージ倍率 +5%、ライフスティール +10%。"
+  - "&7HP・MP・ENG回復力 +10%、ドロップ増加率 +10%。"
+durationTicks: 600
+isDebuff: false
+resetOnChallenge: false
+stackGroup: archmage_celestial_circle
+modifiers:
+  - { status: FINAL_DAMAGE_MULTIPLIER, type: FLAT, value: 5 }
+  - { status: LIFE_STEAL, type: FLAT, value: 10 }
+  - { status: HP_REGEN, type: SCALAR, value: 0.10 }
+  - { status: MP_REGEN, type: SCALAR, value: 0.10 }
+  - { status: ENERGY_REGEN, type: SCALAR, value: 0.10 }
+  - { status: DROP_RATE_INCREASE, type: FLAT, value: 10 }
