@@ -115,6 +115,8 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 
 候補は全ページを取得して固定し、削除ノードなし・消費元付替えなしの保持移行を最大100件ずつPREVIEWします。全件が成功した場合にCOMMITへ進めます。Commit単独で開始してもpreview検証を経由します。`operationId` と入力は実行記録先に保存し、通信失敗時も **同じRunDirectory** で再実行します。成功済みを維持し、確定結果不明の要求も同じoperation IDで再送します。対象・移行先世代・保存状態の競合は無条件で上書きしません。
 
+移行先APIが対応している場合、未適用のWebスキルツリー編集操作（`PENDING_ONLINE`、`PENDING_OFFLINE`、`CLAIMED`）はPREVIEWでは保持し、対象accountのCOMMIT成功時にAPIが同じDBトランザクションで`CANCELED`にします。バッチからユーザー本人の取消操作は不要です。offline・保存状態・定義などの検証でCOMMITが拒否されたaccountの編集操作は取消されません。この動作を使う前に、対応版APIを配置してください。
+
 候補が0件なら変更なしで成功します。ExplicitAccountsに指定したアカウントが候補にない場合は保存状態を照会し、既に同世代、または世代NULL・空状態ならSKIP表示します。存在しないアカウントやその他の不一致はエラーです。`skilltree-migration-result.json` に成功/失敗とアカウント別の状態を残します。`REQUESTED` は結果不明であり、同じRunDirectoryのMigrateCommitで再送します。詳細MigratePreview/MigrateCommitは起動sessionや世代が変わると停止します。01/16のWorkflowだけは上記の同一定義・COMMIT未送信条件で再起動を引き継ぎますが、処理中の再起動・再リロードは避けてください。
 
 保持ノードのコスト/条件や経路などがAPIの検証を通らない場合は移行しません。非空legacyのbaseline承認、ノード削除、CP消費元補完は自動で判断せず、既存の管理API手順で扱います。世代NULLかつ空状態は参加時の自動bindに任せます。世代付きの空状態は世代移行の対象です。

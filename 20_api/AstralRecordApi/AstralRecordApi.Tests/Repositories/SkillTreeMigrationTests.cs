@@ -86,6 +86,55 @@ public sealed class SkillTreeMigrationTests
         Assert.Single(await f.Db.AccountSkillTreeUnlockedNodes.ToListAsync(), x => x.NodeId == "root");
     }
 
+    [Fact]
+    public async Task MigrationCancelsPendingOfflineEditOnlyOnValidCommit()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        var pending = await f.Repository.CreateAsync(f.Account, f.Request());
+        Assert.NotNull(pending);
+        Assert.Equal(SkillTreeOperationStatuses.PendingOffline, pending.Status);
+        var targetGeneration = await RegisterAdditiveGenerationAsync(f);
+        var migrationId = Guid.NewGuid();
+        SkillTreeMigrationRequest Request(bool preview, IReadOnlyList<string> baseline) => new()
+        {
+            OperationId = migrationId,
+            ExpectedStateVersion = 1,
+            FromGenerationId = f.Generation,
+            ToGenerationId = targetGeneration,
+            LegacyBaselineNodeIds = baseline,
+            RemoveNodeIds = [],
+            PreviewOnly = preview,
+        };
+
+        var preview = await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, Request(true, ["root"]));
+        Assert.Equal("PREVIEW", preview?.Status);
+        Assert.Equal(SkillTreeOperationStatuses.PendingOffline,
+            (await f.Db.SkillTreeOperations.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal(1, (await f.Db.AccountSkillTreeStates.AsNoTracking().SingleAsync()).Version);
+
+        Assert.Null(await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, Request(false, ["wrong"])));
+        Assert.Equal(SkillTreeOperationStatuses.PendingOffline,
+            (await f.Db.SkillTreeOperations.AsNoTracking().SingleAsync()).Status);
+
+        var applied = await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, Request(false, ["root"]));
+        Assert.NotNull(applied);
+        Assert.Equal("APPLIED", applied.Status);
+        var replay = await f.Repository.MigrateAsync(f.Server, f.Boot, f.Account, Request(false, ["root"]));
+        Assert.Equal(applied.StateVersion, replay?.StateVersion);
+        f.Db.ChangeTracker.Clear();
+        var canceled = await f.Db.SkillTreeOperations.SingleAsync();
+        Assert.Equal(SkillTreeOperationStatuses.Canceled, canceled.Status);
+        Assert.Equal("スキルツリー世代移行のため未適用操作を取消しました。", canceled.Reason);
+        Assert.NotNull(canceled.CompletedAtUtc);
+        Assert.Null(canceled.LeaseTokenHash);
+        Assert.Null(canceled.LeaseExpiresAtUtc);
+        var state = await f.Db.AccountSkillTreeStates.SingleAsync();
+        Assert.Equal(targetGeneration, state.DefinitionGenerationId);
+        Assert.Equal(2, state.Version);
+        Assert.Single(await f.Db.SkillTreeMigrationOperations.ToListAsync());
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

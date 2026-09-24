@@ -30,7 +30,6 @@ public sealed partial class SkillTreeOperationRepository
         if (runtime?.DefinitionGenerationId != request.ToGenerationId || await ActiveSessionAsync(accountId) is not null
             || networkRuntimeService.GetPlayers().Any(x => x.Uuid == account.UserId)) return null;
         await ExpireAsync(accountId);
-        if (await dbContext.SkillTreeOperations.AnyAsync(x => x.AccountId == accountId && ActiveStatuses.Contains(x.Status))) return null;
         var state = await dbContext.AccountSkillTreeStates.Include(x => x.UnlockedNodes)
             .SingleOrDefaultAsync(x => x.AccountId == accountId && !x.IsDeleted);
         if (state is null || state.Version != request.ExpectedStateVersion || state.DefinitionGenerationId != request.FromGenerationId
@@ -57,6 +56,13 @@ public sealed partial class SkillTreeOperationRepository
             ConsumedClassAssignments = request.ConsumedClassAssignments,
         };
         if (request.PreviewOnly) return result;
+        var completedAtUtc = DateTime.UtcNow;
+        await dbContext.SkillTreeOperations.Where(x => x.AccountId == accountId && ActiveStatuses.Contains(x.Status))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Status, SkillTreeOperationStatuses.Canceled)
+                .SetProperty(x => x.Reason, "スキルツリー世代移行のため未適用操作を取消しました。")
+                .SetProperty(x => x.CompletedAtUtc, completedAtUtc)
+                .SetProperty(x => x.LeaseTokenHash, (string?)null)
+                .SetProperty(x => x.LeaseExpiresAtUtc, (DateTime?)null));
         foreach (var row in state.UnlockedNodes)
             if (row.ConsumedClassId is null && assignments.TryGetValue(row.NodeId, out var consumedClassId))
             {
