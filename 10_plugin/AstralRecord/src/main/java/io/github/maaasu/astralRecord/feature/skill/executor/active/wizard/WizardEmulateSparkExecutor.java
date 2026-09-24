@@ -162,7 +162,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
     }
 
     /**
-     * 発動者の全castを1tickで進め、Mob候補とviewerの走査を共有します。
+     * 発動者の全castを1tickで進め、Mob候補を共有して粒子種別ごとに表示点を近傍viewerへまとめて送信します。
      *
      * @param runtime 発動者単位の追跡状態
      */
@@ -216,6 +216,9 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
             }
         }
         runtime.services.effects().pointsNearViewers(visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK);
+        runtime.services.effects().pointsNearViewers(
+                visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK_FIREWORK
+        );
         if (runtime.casts.isEmpty()) {
             runtime.services.tasks().cancel(runtime.casterId, runtime.scope);
         }
@@ -266,6 +269,9 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                 );
                 runtime.services.effects().point(
                         targetHit.location(), SharedParticleDefinitions.WIZARD_EMULATE_SPARK
+                );
+                runtime.services.effects().point(
+                        targetHit.location(), SharedParticleDefinitions.WIZARD_EMULATE_SPARK_FIREWORK
                 );
                 return true;
             }

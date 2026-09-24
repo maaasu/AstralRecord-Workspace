@@ -905,6 +905,10 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition WIZARD_EMULATE_SPARK =
         new SharedParticleDefinition("wizard_emulate_spark", Particle.SCULK_CHARGE_POP, 2, 0.08D, 0.08D, 0.08D, 0.0D);
+    public static final SharedParticleDefinition WIZARD_EMULATE_SPARK_FIREWORK =
+        new SharedParticleDefinition(
+            "wizard_emulate_spark_firework", Particle.FIREWORK, 1, 0.0D, 0.0D, 0.0D, 0.0D
+        );
     public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_TRAIL =
         new SharedParticleDefinition(
             "wizard_elemental_ball_trail", Particle.DUST_COLOR_TRANSITION,
