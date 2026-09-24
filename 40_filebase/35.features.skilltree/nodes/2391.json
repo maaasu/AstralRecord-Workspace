@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2391",
+  "name": "&aヒールサークル",
+  "icon": "CACTUS_FLOWER",
+  "tags": [
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_heal_circle"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

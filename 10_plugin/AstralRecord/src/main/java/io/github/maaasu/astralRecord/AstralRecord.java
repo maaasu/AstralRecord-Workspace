@@ -1821,7 +1821,8 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             partyService,
             paladinGuardianProtectRuntimeService,
-            playerDeathService
+            playerDeathService,
+            skillService
         )
             .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);

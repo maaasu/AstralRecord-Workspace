@@ -31,6 +31,16 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_archmage_celestial_red", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 44, 68), 0.85F));
 
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_HEAL_CIRCLE_MINT =
+        new SharedParticleDefinition("skill_archmage_heal_circle_mint", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(150, 255, 185), 0.8F));
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_HEAL_CIRCLE_CYAN =
+        new SharedParticleDefinition("skill_archmage_heal_circle_cyan", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(130, 255, 245), 0.75F));
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_HEAL_CIRCLE_GOLD =
+        new SharedParticleDefinition("skill_archmage_heal_circle_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 215, 135), 0.85F));
+
     public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_GOLD =
         new SharedParticleDefinition("skill_archmage_phoenix_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 210, 70), 0.8F));

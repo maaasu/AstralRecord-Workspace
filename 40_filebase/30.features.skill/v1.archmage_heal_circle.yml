@@ -1,0 +1,44 @@
+# design:
+#   motif: "治癒魔術 / 四葉の魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: archmage_heal_circle
+type: SKILL
+implementationId: archmage_heal_circle
+name: "&aヒールサークル"
+description: "&7視点先の地面に触れると癒える魔法陣を展開する。"
+icon: CACTUS_FLOWER
+lore:
+  - "&7視点先{skill.range}m以内の地面に水平な半径{skill.radius}mの魔法陣を置く。"
+  - "&7最初に触れてHPが回復したプレイヤーを、最大HPの{skill.healPercent}%回復する。"
+  - "&7回復が成立すると魔法陣は消え、このスキルのクールタイムを解除する。"
+  - "&7回復が成立しなければ{skill.durationTicks:seconds}秒で消える。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 33
+castTimeTicks: 5
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 3, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 4, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 5, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 6, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 7, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 8, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 9, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+  - { level: 10, paramDeltas: { healPercent: 4, durationTicks: 20 } }
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 15 }]
+onCast:
+  sound: block.beacon.power_select
+params:
+  range: 16.0
+  radius: 3.0
+  healPercent: 14.0
+  durationTicks: 20
+tags:
+  - active
+  - magic
+  - support

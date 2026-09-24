@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.Arch
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageHealCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
@@ -21,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.Wizard
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -43,6 +45,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
+     * @param skillService 回復成立時のクールタイム解除サービス
      * @return 実装済みのexecutor一覧
      */
     public static @NotNull List<SkillExecutor> create(
@@ -53,14 +56,16 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull StatusService statusService,
             @NotNull PartyService partyService,
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
-            @NotNull PlayerDeathService playerDeathService
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull SkillService skillService
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(41);
+        List<SkillExecutor> executors = new ArrayList<>(42);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
+        executors.add(new ArchmageHealCircleExecutor(services, skillService));
         executors.add(new WizardMeteorExecutor(services));
         executors.add(new WizardEmulateSparkExecutor(services));
         executors.add(new WizardSelfHealExecutor(services));
