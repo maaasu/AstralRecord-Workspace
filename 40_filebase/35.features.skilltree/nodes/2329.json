@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2329",
+  "name": "&5侵蝕の星環",
+  "icon": "SPIDER_EYE",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "WEAKNESS_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "HEALING_INHIBITION_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

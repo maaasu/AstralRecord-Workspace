@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2310",
+  "name": "&6魔脈の極星",
+  "icon": "CONDUIT",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 25
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

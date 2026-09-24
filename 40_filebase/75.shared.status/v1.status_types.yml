@@ -46,6 +46,7 @@ statuses:
   - { id: RANGED_DEFENSE_PENETRATION_RATE, displayName: "間接防御貫通率", description: "対象の間接防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: MAGIC_DEFENSE_PENETRATION_RATE, displayName: "魔法防御貫通率", description: "対象の魔法防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: LIFE_STEAL, displayName: "ライフスティール", description: "HPへ与えたダメージの一部を自身のHPとして回復する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: NONE_DAMAGE_INCREASE, displayName: "無属性ダメージ増加", description: "無属性で与えるダメージを増加させる補正。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_DAMAGE_INCREASE, displayName: "火属性ダメージ増加", description: "火属性で与えるダメージを増加させる補正。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_RESISTANCE, displayName: "火属性耐性", description: "火属性から受けるダメージを軽減する補正。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_RESISTANCE_CAP, displayName: "火属性耐性上限値", description: "火属性耐性として計算できる上限値。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
@@ -105,6 +106,7 @@ statuses:
   - { id: DROP_RATE_INCREASE, displayName: "ドロップ増加率", description: "アイテムドロップ確率へ適用する倍率。100%で変化せず、200%なら確率が2倍になる。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: HEALING_INCREASE, displayName: "回復量増加", description: "自身のHP回復量を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: CONDITION_DURATION_INCREASE, displayName: "状態異常持続時間増加", description: "自身が付与する状態異常の持続時間を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: BUFF_DURATION_INCREASE, displayName: "バフ持続時間増加", description: "自身へ付与するバフの持続時間を割合で増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_REDUCTION, displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間、再充填パッシブの待機時間、攻撃による追加時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: MINING_SPEED, displayName: "採集速度", description: "採掘や採取などの採集行動を行う速さ。", category: UTILITY }
   - { id: CAST_DISTANCE, displayName: "キャスト距離", description: "釣り竿などの投射物を飛ばす基準距離。", category: UTILITY }

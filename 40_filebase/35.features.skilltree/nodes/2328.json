@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2328",
+  "name": "&6癒術の極星",
+  "icon": "BEACON",
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "HEALING_INCREASE",
+      "modifierType": "FLAT",
+      "value": 6
+    },
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

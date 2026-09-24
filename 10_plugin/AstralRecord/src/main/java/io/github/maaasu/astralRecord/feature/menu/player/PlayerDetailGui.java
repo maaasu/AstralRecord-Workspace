@@ -93,7 +93,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private final PagedGuiView pagedGuiView = new PagedGuiView();
     private static final Set<StatusType> ELEMENT_DAMAGE_INCREASES = EnumSet.of(
-        StatusType.FIRE_DAMAGE_INCREASE, StatusType.ICE_DAMAGE_INCREASE, StatusType.LIGHTNING_DAMAGE_INCREASE
+        StatusType.NONE_DAMAGE_INCREASE, StatusType.FIRE_DAMAGE_INCREASE,
+        StatusType.ICE_DAMAGE_INCREASE, StatusType.LIGHTNING_DAMAGE_INCREASE
     );
     private static final Set<StatusType> ELEMENT_RESISTANCES = EnumSet.of(
         StatusType.FIRE_RESISTANCE, StatusType.FIRE_RESISTANCE_CAP,

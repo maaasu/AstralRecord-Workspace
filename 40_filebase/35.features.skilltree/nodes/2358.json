@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2358",
+  "name": "&6会心魔撃の極星",
+  "icon": "END_CRYSTAL",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 8
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

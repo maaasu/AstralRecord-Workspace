@@ -1,0 +1,24 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2303",
+  "name": "&a祝福の星環",
+  "icon": "GLOW_BERRIES",
+  "tags": [
+    "status",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPPORT_POWER",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

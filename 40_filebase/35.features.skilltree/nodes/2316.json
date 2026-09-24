@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2316",
+  "name": "&6生命循環の極星",
+  "icon": "HEART_OF_THE_SEA",
+  "tags": [
+    "status",
+    "resource",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 30
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

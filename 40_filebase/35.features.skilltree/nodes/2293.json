@@ -1,0 +1,24 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2293",
+  "name": "&d永唱の星環",
+  "icon": "CLOCK",
+  "tags": [
+    "status",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "BUFF_DURATION_INCREASE",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

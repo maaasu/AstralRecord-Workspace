@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2387",
+  "name": "&d無相の星環",
+  "icon": "END_ROD",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NONE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

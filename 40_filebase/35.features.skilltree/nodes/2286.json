@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2286",
+  "name": "&6深蒼泉の極星",
+  "icon": "CONDUIT",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 35
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

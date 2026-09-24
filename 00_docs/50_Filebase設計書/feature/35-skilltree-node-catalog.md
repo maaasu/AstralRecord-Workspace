@@ -490,3 +490,52 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 - 既存能力の表示名、アイコン、タグ、コストを変更するときは、カタログの該当行と使用中の node JSON を同時に確認します。
 - 同じ能力を職業別ノードへ置く場合も、このカタログの表現を使います。プレイヤーへ提示する役割、職業条件、配置構造の違いだけを理由に別の名称・アイコン・タグを作りません。
 - このカタログは地域や座標を管理しません。地域・配置構造の方針は [[35-skilltree]]、最終座標と edge は `structures/*.json` を正本とします。
+
+## アークメイジ専門枝
+
+`2269`〜`2388` はアークメイジ専用の120 status node。各6node群は通常5nodeと強化1nodeで構成し、いずれも1CPとする。表示定義が既存nodeと同じ効果では既存の名前・アイコン・タグを再利用する。現行構造JSONへは配置しない。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|---|---|---|---|---|---|
+| `status-archmage-01-normal`（共通） | `2269`〜`2273` | SUPPORT_POWER `FLAT +2` | `&a祝祷の星環` | `GLOW_BERRIES` | `status`, `light` |
+| `status-archmage-01-notable`（共通） | `2274` | SUPPORT_POWER `FLAT +6` | `&6大祝祷の極星` | `BEACON` | `status`, `light` |
+| `status-archmage-02-normal`（共通） | `2275`〜`2279` | MAX_HEALTH `FLAT +12` | `&d命灯の星環` | `HEART_OF_THE_SEA` | `status`, `resource`, `health` |
+| `status-archmage-02-notable`（共通） | `2280` | MAX_HEALTH `FLAT +35` + HP_REGEN `FLAT +1` | `&6命灯の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `resource`, `health` |
+| `status-archmage-03-normal`（共通） | `2281`〜`2285` | MAX_MANA `FLAT +12` | `&b蒼泉の星環` | `LAPIS_LAZULI` | `status`, `resource`, `mana`, `azure` |
+| `status-archmage-03-notable`（共通） | `2286` | MAX_MANA `FLAT +35` + MP_REGEN `FLAT +1.5` | `&6深蒼泉の極星` | `CONDUIT` | `status`, `resource`, `mana`, `azure`, `astral` |
+| `status-archmage-04-normal`（共通） | `2287`〜`2291` | ENERGY_COST_REDUCTION `FLAT +4` | `&b瞬歩の星環` | `ENDER_PEARL` | `status`, `resource`, `energy`, `astral` |
+| `status-archmage-04-notable`（共通） | `2292` | ENERGY_COST_REDUCTION `FLAT +10` + MAX_ENERGY `FLAT +10` | `&6空渡りの極星` | `RECOVERY_COMPASS` | `status`, `resource`, `energy`, `astral` |
+| `status-archmage-05-normal`（支援） | `2293`〜`2297` | BUFF_DURATION_INCREASE `FLAT +5` | `&d永唱の星環` | `CLOCK` | `status`, `astral` |
+| `status-archmage-05-notable`（支援） | `2298` | BUFF_DURATION_INCREASE `FLAT +15` | `&6永唱の極星` | `BEACON` | `status`, `astral` |
+| `status-archmage-06-normal`（支援） | `2299`〜`2303` | SUPPORT_POWER `FLAT +3` | `&a祝福の星環` | `GLOW_BERRIES` | `status`, `astral` |
+| `status-archmage-06-notable`（支援） | `2304` | SUPPORT_POWER `FLAT +8` | `&6大祝福の極星` | `ENCHANTING_TABLE` | `status`, `astral` |
+| `status-archmage-07-normal`（支援） | `2305`〜`2309` | MP_REGEN `FLAT +1` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
+| `status-archmage-07-notable`（支援） | `2310` | MP_REGEN `FLAT +3` + MAX_MANA `FLAT +25` | `&6魔脈の極星` | `CONDUIT` | `status`, `resource`, `mana`, `azure` |
+| `status-archmage-08-normal`（支援） | `2311`〜`2315` | HP_REGEN `FLAT +1` | `&d旅人の回復` | `GLISTERING_MELON_SLICE` | `status`, `shared`, `core` |
+| `status-archmage-08-notable`（支援） | `2316` | HP_REGEN `FLAT +3` + MAX_HEALTH `FLAT +30` | `&6生命循環の極星` | `HEART_OF_THE_SEA` | `status`, `resource`, `health` |
+| `status-archmage-09-normal`（支援） | `2317`〜`2321` | CONDITION_DURATION_INCREASE `FLAT +3` | `&5鈍化の星環` | `FERMENTED_SPIDER_EYE` | `status`, `astral` |
+| `status-archmage-09-notable`（支援） | `2322` | CONDITION_DURATION_INCREASE `FLAT +10` | `&6長呪の極星` | `ECHO_SHARD` | `status`, `astral` |
+| `status-archmage-10-normal`（支援） | `2323`〜`2327` | HEALING_INCREASE `FLAT +2` | `&a癒術の星環` | `GHAST_TEAR` | `status`, `resource`, `health`, `astral` |
+| `status-archmage-10-notable`（支援） | `2328` | HEALING_INCREASE `FLAT +6` + SUPPORT_POWER `FLAT +3` | `&6癒術の極星` | `BEACON` | `status`, `resource`, `health`, `astral` |
+| `status-archmage-11-normal`（支援） | `2329`〜`2333` | WEAKNESS_APPLY_CHANCE `FLAT +1` + HEALING_INHIBITION_APPLY_CHANCE `FLAT +1` | `&5侵蝕の星環` | `SPIDER_EYE` | `status`, `offense`, `astral` |
+| `status-archmage-11-notable`（支援） | `2334` | WEAKNESS_APPLY_CHANCE `FLAT +5` + HEALING_INHIBITION_APPLY_CHANCE `FLAT +5` | `&6侵蝕の極星` | `ECHO_SHARD` | `status`, `offense`, `astral` |
+| `status-archmage-12-normal`（支援） | `2335`〜`2339` | BUFF_DURATION_INCREASE `FLAT +5` | `&d永唱の星環` | `CLOCK` | `status`, `astral` |
+| `status-archmage-12-notable`（支援） | `2340` | BUFF_DURATION_INCREASE `FLAT +15` | `&6永唱の極星` | `BEACON` | `status`, `astral` |
+| `status-archmage-13-normal`（攻撃） | `2341`〜`2345` | MAGIC_ATTACK `SCALAR +0.01` | `&d魔導の星環` | `AMETHYST_SHARD` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-13-notable`（攻撃） | `2346` | MAGIC_ATTACK `SCALAR +0.03` | `&6大魔導の極星` | `ENCHANTING_TABLE` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-14-normal`（攻撃） | `2347`〜`2351` | CRITICAL_RATE `FLAT +0.5` | `&d会心の星環` | `QUARTZ` | `status`, `offense` |
+| `status-archmage-14-notable`（攻撃） | `2352` | CRITICAL_RATE `FLAT +2` + CRITICAL_DAMAGE `FLAT +6` | `&6星雨の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
+| `status-archmage-15-normal`（攻撃） | `2353`〜`2357` | CRITICAL_DAMAGE `FLAT +2` | `&5会心魔撃の星環` | `FIREWORK_STAR` | `status`, `offense`, `astral` |
+| `status-archmage-15-notable`（攻撃） | `2358` | CRITICAL_DAMAGE `FLAT +8` | `&6会心魔撃の極星` | `END_CRYSTAL` | `status`, `offense`, `astral` |
+| `status-archmage-16-normal`（攻撃） | `2359`〜`2363` | NONE_DAMAGE_INCREASE `FLAT +2` | `&d無相の星環` | `END_ROD` | `status`, `offense`, `element`, `astral` |
+| `status-archmage-16-notable`（攻撃） | `2364` | NONE_DAMAGE_INCREASE `FLAT +6` | `&6無相の極星` | `ENDER_EYE` | `status`, `offense`, `element`, `astral` |
+| `status-archmage-17-normal`（攻撃） | `2365`〜`2369` | MAGIC_ATTACK `SCALAR +0.01` | `&d魔導の星環` | `AMETHYST_SHARD` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-17-notable`（攻撃） | `2370` | MAGIC_ATTACK `SCALAR +0.04` | `&6深奥魔導の極星` | `END_CRYSTAL` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-18-normal`（攻撃） | `2371`〜`2375` | CRITICAL_RATE `FLAT +0.5` | `&d会心の星環` | `QUARTZ` | `status`, `offense` |
+| `status-archmage-18-notable`（攻撃） | `2376` | CRITICAL_RATE `FLAT +2.5` | `&6星降の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
+| `status-archmage-19-normal`（攻撃） | `2377`〜`2381` | SKILL_DAMAGE_INCREASE `FLAT +1.2` | `&d魔力炸裂の星環` | `FIREWORK_STAR` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-19-notable`（攻撃） | `2382` | SKILL_DAMAGE_INCREASE `FLAT +4` | `&6魔力奔流の極星` | `BEACON` | `status`, `offense`, `mana`, `astral` |
+| `status-archmage-20-normal`（攻撃） | `2383`〜`2387` | NONE_DAMAGE_INCREASE `FLAT +2` | `&d無相の星環` | `END_ROD` | `status`, `offense`, `element`, `astral` |
+| `status-archmage-20-notable`（攻撃） | `2388` | NONE_DAMAGE_INCREASE `FLAT +6` + CRITICAL_DAMAGE `FLAT +5` | `&6星屑の極星` | `NETHER_STAR` | `status`, `offense`, `element`, `astral` |
+
+ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG消費20のブリンクは14となる。バフ持続群 `2293`〜`2298` と `2335`〜`2340` は全取得で80%増加。クリティカルと無属性ダメージは後半の攻撃群にまとめ、会心時のメテオ発動効果そのものは定義しない。

@@ -6,12 +6,16 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 class DamageCalculatorBreakdownTest {
 
@@ -67,5 +71,31 @@ class DamageCalculatorBreakdownTest {
         assertEquals(40.0D, result.breakdown().resolvedAttackPower(), 0.0001D);
         assertEquals(8.0D, result.breakdown().rawDefense(), 0.0001D);
         assertEquals(8.0D, result.breakdown().effectiveDefense(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 無属性ダメージ増加は無属性成分だけを増やし、無属性の耐性内訳を作らない。
+     */
+    @Test
+    void neutralIncreaseAffectsOnlyNeutralShare() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer player = mock(AstPlayer.class);
+        var attacker = AstEntity.player(player, DesignTestFixtures.statusSnapshot(
+                Map.of(StatusType.NONE_DAMAGE_INCREASE, 25.0D), 100.0D, 100.0D, 100.0D
+        ));
+        var victim = AstEntity.mob(DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D));
+
+        var result = calculator.calculate(new DamageContext(
+                attacker, victim, 40.0D, AttackType.MAGIC,
+                List.of(new DamageComponent(DamageElement.NONE, 0.5D),
+                        new DamageComponent(DamageElement.FIRE, 0.5D)),
+                DamageScaling.FIXED
+        ));
+
+        assertEquals(45.0D, result.finalDamage(), 0.0001D);
+        assertEquals(1, result.breakdown().elementResistances().size());
+        assertEquals(DamageElement.FIRE, result.breakdown().elementResistances().getFirst().element());
     }
 }

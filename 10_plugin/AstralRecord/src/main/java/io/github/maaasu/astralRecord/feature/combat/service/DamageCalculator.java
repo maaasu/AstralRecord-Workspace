@@ -483,7 +483,9 @@ public final class DamageCalculator {
             @NotNull DamageElement element
     ) {
         if (element == DamageElement.NONE) {
-            return new ElementCalculation(1.0D, null);
+            double increase = context.attacker() == null ? 0.0D
+                    : context.attacker().statValue(StatusType.NONE_DAMAGE_INCREASE);
+            return new ElementCalculation(Math.max(0.0D, 1.0D + increase / 100.0D), null);
         }
         double increase = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementDamageIncrease(element));

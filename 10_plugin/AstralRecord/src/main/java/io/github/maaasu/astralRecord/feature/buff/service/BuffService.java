@@ -49,9 +49,10 @@ public class BuffService {
      *
      * @param player 対象プレイヤー
      * @param buffId 付与するバフID
+     * @param durationIncreasePercent 付与前に確定したバフ持続時間増加率（%）
      * @return バフが取得できて付与できた場合 true
      */
-    public boolean apply(@NotNull AstPlayer player, @NotNull String buffId) {
+    public boolean apply(@NotNull AstPlayer player, @NotNull String buffId, double durationIncreasePercent) {
         BuffType type = getOrLoad(buffId);
         if (type == null) {
             return false;
@@ -61,10 +62,25 @@ public class BuffService {
         removeOverlapping(player, type);
 
         LocalDateTime now = LocalDateTime.now();
-        long durationSeconds = Math.max(0L, type.getDurationTicks() / 20L);
-        LocalDateTime expiresAt = now.plusSeconds(durationSeconds);
+        long durationTicks = type.isDebuff()
+            ? Math.max(0L, type.getDurationTicks())
+            : scaledDurationTicks(type.getDurationTicks(), durationIncreasePercent);
+        LocalDateTime expiresAt = now.plus(durationTicks * 50L, ChronoUnit.MILLIS);
         player.getActiveBuffs().add(new ActiveBuff(type, now, expiresAt));
         return true;
+    }
+
+    /**
+     * バフの基礎tick数へ持続時間増加率を適用し、tick単位で四捨五入します。
+     *
+     * @param baseTicks バフマスターの基礎持続tick数
+     * @param increasePercent 付与前に確定した増加率（%）。負値と非有限値は0扱い
+     * @return 0以上、int上限以下の持続tick数
+     */
+    static long scaledDurationTicks(int baseTicks, double increasePercent) {
+        double increase = Double.isFinite(increasePercent) ? Math.max(0.0D, increasePercent) : 0.0D;
+        double scaled = Math.max(0, baseTicks) * (1.0D + increase / 100.0D);
+        return Math.min(Integer.MAX_VALUE, Math.round(scaled));
     }
 
     /**

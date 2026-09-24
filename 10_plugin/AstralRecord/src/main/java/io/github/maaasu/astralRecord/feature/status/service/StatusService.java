@@ -290,7 +290,8 @@ public class StatusService {
      * @return 再計算後のステータススナップショット
      */
     public @NotNull StatusSnapshot applyBuff(@NotNull AstPlayer player, @NotNull String buffId) {
-        if (!buffService.apply(player, buffId)) {
+        double durationIncrease = getStatus(player).rollValue(StatusType.BUFF_DURATION_INCREASE);
+        if (!buffService.apply(player, buffId, durationIncrease)) {
             return getStatus(player);
         }
         return refreshStatus(player);

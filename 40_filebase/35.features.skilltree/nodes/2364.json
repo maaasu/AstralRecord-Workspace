@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2364",
+  "name": "&6無相の極星",
+  "icon": "ENDER_EYE",
+  "tags": [
+    "status",
+    "offense",
+    "element",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NONE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 6
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}
