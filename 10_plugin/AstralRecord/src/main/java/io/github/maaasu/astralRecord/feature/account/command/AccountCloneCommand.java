@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
+import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -57,7 +58,7 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
      */
     AccountCloneCommand(AccountManagementRepository repository, LongSupplier nanoTime) {
         super("accountclone", "アカウントのプレイヤーデータを複製します。",
-            "/account clone <sourceUUID|sourceName> <targetPlayer> <slot> または /account clone <sourcePlayer> <sourceName|slot> <targetPlayer> <slot>",
+            "/account clone <sourceUUID|sourceName> <targetPlayer> [slot] または /account clone <sourcePlayer> <sourceName|slot> <targetPlayer> [slot]",
             false, UserPermission.ADMIN.getValue());
         this.repository = repository;
         this.nanoTime = nanoTime;
@@ -66,23 +67,27 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
     /**
      * 複製元と複製先を照会し、既存先がある場合だけ期限付き確認を提示します。
      * @param sender 実行者
-     * @param args 複製元、複製先ユーザー、複製先スロット
+     * @param args 複製元、複製先ユーザー、任意の複製先スロット
      */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (!authorized(sender)) return;
         confirmations.remove(sender);
         confirmations.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= nanoTime.getAsLong());
-        if (args.length != 3 && args.length != 4) { sendUsage(sender); return; }
-        String slotText = args[args.length - 1];
-        if (!slotText.matches("[0-9]{1,2}")) {
+        boolean extendedWithoutSlot = args.length == 3 && !args[2].matches("[0-9]{1,2}");
+        boolean extended = args.length == 4 || extendedWithoutSlot;
+        boolean ambiguousNumericTarget = args.length == 3 && args[2].matches("[0-9]{1,2}");
+        boolean hasSlot = args.length == 4 || (args.length == 3 && !extendedWithoutSlot);
+        if (args.length != 2 && args.length != 3 && args.length != 4) { sendUsage(sender); return; }
+        String slotText = hasSlot ? args[args.length - 1] : null;
+        if (hasSlot && !slotText.matches("[0-9]{1,2}")) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7427.getId()));
             return;
         }
-        int slot = Integer.parseInt(slotText);
-        String targetName = args[args.length - 2];
-        String sourceOwner = args.length == 4 ? args[0] : null;
-        String selector = args.length == 4 ? args[1] : args[0];
+        Integer requestedSlot = hasSlot ? Integer.parseInt(slotText) : null;
+        String targetName = args[extended ? 2 : 1];
+        String sourceOwner = extended ? args[0] : null;
+        String selector = extended ? args[1] : args[0];
         if (sourceOwner == null && selector.matches("[0-9]{1,2}") && !(sender instanceof Player)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
             return;
@@ -93,18 +98,54 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
         AstralRecord plugin = AstralRecord.getInstance();
         AsyncTaskUtil.supplyAsync(plugin, () -> {
             try {
-                AccountModel source = owner == null ? repository.resolve(null, selector) : null;
-                if (source == null) source = repository.resolve(selector, owner);
-                var targetUser = plugin.getUserService().getUserByMcid(targetName);
+                String resolvedOwner = owner;
+                String resolvedSelector = selector;
+                String resolvedTargetName = targetName;
+                Integer resolvedSlot = requestedSlot;
+                AccountModel source = null;
+                UserModel targetUser = null;
+                if (ambiguousNumericTarget) {
+                    AccountModel shortFormSource = repository.resolve(null, resolvedSelector);
+                    if (shortFormSource == null) shortFormSource = repository.resolve(resolvedSelector, resolvedOwner);
+                    UserModel shortFormTarget = plugin.getUserService().getUserByMcid(resolvedTargetName);
+                    if (shortFormSource != null && shortFormTarget != null) {
+                        source = shortFormSource;
+                        targetUser = shortFormTarget;
+                    } else {
+                        AccountModel playerOwnedSource = repository.resolve(args[1], args[0]);
+                        UserModel playerOwnedTarget = plugin.getUserService().getUserByMcid(args[2]);
+                        if (playerOwnedSource == null || playerOwnedTarget == null) return null;
+                        source = playerOwnedSource;
+                        targetUser = playerOwnedTarget;
+                        resolvedOwner = args[0];
+                        resolvedSelector = args[1];
+                        resolvedTargetName = args[2];
+                        resolvedSlot = null;
+                    }
+                }
+                if (!ambiguousNumericTarget) {
+                    source = resolvedOwner == null ? repository.resolve(null, resolvedSelector) : null;
+                    if (source == null) source = repository.resolve(resolvedSelector, resolvedOwner);
+                    targetUser = plugin.getUserService().getUserByMcid(resolvedTargetName);
+                }
                 if (source == null || targetUser == null) return null;
-                AccountModel target = plugin.getAccountService().getAccounts(targetUser.getUuid()).stream()
+                var targetAccounts = plugin.getAccountService().getAccounts(targetUser.getUuid());
+                int slot = resolvedSlot == null
+                    ? firstAvailableSlot(targetAccounts.stream().map(AccountModel::getSlotIndex).toList())
+                    : resolvedSlot;
+                if (slot < 0) return new CloneRequest(source, targetUser.getUuid(), resolvedTargetName, slot, null);
+                AccountModel target = targetAccounts.stream()
                     .filter(account -> account.getSlotIndex() == slot).findFirst().orElse(null);
-                return new CloneRequest(source, targetUser.getUuid(), targetName, slot, target);
+                return new CloneRequest(source, targetUser.getUuid(), resolvedTargetName, slot, target);
             } catch (IOException exception) { throw new UncheckedIOException(exception); }
         }).whenComplete((request, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
             if (failure != null) { fail(sender, failure); return; }
             if (request == null) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7426.getId()));
+                return;
+            }
+            if (request.slot() < 0) {
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7432.getId()));
                 return;
             }
             if (request.target() != null && request.source().getUuid().equals(request.target().getUuid())) {
@@ -120,6 +161,19 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
             }
             start(sender, request);
         }));
+    }
+
+    /**
+     * 0〜99の範囲から最小の未使用スロットを選びます。
+     * @param usedSlots 複製先ユーザーが現在使用しているスロット
+     * @return 最小空きスロット。すべて使用中なら -1
+     */
+    private static int firstAvailableSlot(@NotNull List<Integer> usedSlots) {
+        Set<Integer> occupied = new HashSet<>(usedSlots);
+        for (int slot = 0; slot <= 99; slot++) {
+            if (!occupied.contains(slot)) return slot;
+        }
+        return -1;
     }
 
     /**
