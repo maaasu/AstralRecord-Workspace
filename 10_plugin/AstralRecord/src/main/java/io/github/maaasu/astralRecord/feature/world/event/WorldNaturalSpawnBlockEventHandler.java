@@ -19,6 +19,8 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.Predicate;
+
 /**
  * AstralRecord 管理ワールドで、バニラ由来の Mob 生成と残存 Mob を抑止します。
  */
@@ -27,6 +29,7 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
     private final Plugin plugin;
     private final WorldService worldService;
     private final MobService mobService;
+    private final Predicate<Entity> isActiveSummon;
 
     /**
      * ハンドラを初期化します。
@@ -34,15 +37,18 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
      * @param plugin       プラグイン本体
      * @param worldService WorldMasterData サービス
      * @param mobService   AstralRecord Mob サービス
+     * @param isActiveSummon メインスレッドで生成中・召喚中の実体を判定する関数
      */
     public WorldNaturalSpawnBlockEventHandler(
             @NotNull Plugin plugin,
             @NotNull WorldService worldService,
-            @NotNull MobService mobService
+            @NotNull MobService mobService,
+            @NotNull Predicate<Entity> isActiveSummon
     ) {
         this.plugin = plugin;
         this.worldService = worldService;
         this.mobService = mobService;
+        this.isActiveSummon = isActiveSummon;
     }
 
     @Override
@@ -67,7 +73,7 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
             return;
         }
 
-        if (isAstralRecordMob(mob)) {
+        if (isManagedMob(mob)) {
             return;
         }
 
@@ -125,7 +131,7 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
 
     private void scheduleCustomSpawnValidation(@NotNull Mob mob) {
         Bukkit.getScheduler().runTask(plugin, () -> {
-            if (mob.isValid() && !mob.isDead() && !isAstralRecordMob(mob) && isManagedWorld(mob.getWorld())) {
+            if (mob.isValid() && !mob.isDead() && !isManagedMob(mob) && isManagedWorld(mob.getWorld())) {
                 mob.remove();
             }
         });
@@ -144,13 +150,13 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
     }
 
     private void removeUnmanagedMob(@NotNull Entity entity) {
-        if (entity instanceof Mob mob && !isAstralRecordMob(mob)) {
+        if (entity instanceof Mob mob && !isManagedMob(mob)) {
             mob.remove();
         }
     }
 
-    private boolean isAstralRecordMob(@NotNull Entity entity) {
-        return mobService.entityController().readInstanceId(entity) != null;
+    private boolean isManagedMob(@NotNull Entity entity) {
+        return mobService.entityController().readInstanceId(entity) != null || isActiveSummon.test(entity);
     }
 
     private boolean isManagedWorld(@NotNull World world) {

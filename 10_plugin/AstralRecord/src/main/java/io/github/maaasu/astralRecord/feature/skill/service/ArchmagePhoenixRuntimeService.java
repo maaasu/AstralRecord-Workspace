@@ -12,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,6 +33,7 @@ public final class ArchmagePhoenixRuntimeService {
     private static final int MAX_VISUAL_POINTS = 100;
     private final ParticleDisplayService particles;
     private final Map<UUID, State> states = new HashMap<>();
+    private final Set<UUID> summonedEntityIds = new HashSet<>();
 
     /**
      * 不死鳥の実行時状態を構築します。
@@ -91,6 +93,16 @@ public final class ArchmagePhoenixRuntimeService {
     }
 
     /**
+     * このサービスが現在所有する召喚体かをメインスレッド上で判定します。
+     * ワールド追加前のspawn callbackでも登録するため、生成イベント時点から保護できます。
+     * @param entity 管理外Mob抑止が検査する実体
+     * @return 生成中または召喚中の不死鳥ならtrue。終了した実体は含みません
+     */
+    public boolean ownsSummon(@NotNull Entity entity) {
+        return summonedEntityIds.contains(entity.getUniqueId());
+    }
+
+    /**
      * 通常攻撃またはスキルの確定した敵 Mob 命中を受け取ります。
      * 未召喚時は対象が生存する場合だけ召喚し、召喚中は致死命中も最新対象へ記録します。
      * @param attacker 攻撃者。対象パッシブが有効なプレイヤーだけを処理します
@@ -147,7 +159,7 @@ public final class ArchmagePhoenixRuntimeService {
             return;
         }
         if (!state.parrot.isValid()) {
-            state.parrot = null;
+            despawn(state);
             return;
         }
         Location location = followLocation(player);
@@ -176,15 +188,28 @@ public final class ArchmagePhoenixRuntimeService {
     private void spawn(Player player, State state) {
         Location location = followLocation(player);
         if (location.getWorld() == null) return;
-        state.parrot = location.getWorld().spawn(location, Parrot.class, parrot -> {
-            parrot.setVariant(Parrot.Variant.RED);
-            parrot.setAI(false);
-            parrot.setGravity(false);
-            parrot.setSilent(true);
-            parrot.setInvulnerable(true);
-            parrot.setCollidable(false);
-            parrot.setPersistent(false);
-        });
+        try {
+            Parrot spawned = location.getWorld().spawn(
+                    location, Parrot.class, CreatureSpawnEvent.SpawnReason.CUSTOM, false, parrot -> {
+                        // イベントが発火するワールド追加より前に、所有する実体だけを登録する。
+                        state.parrot = parrot;
+                        summonedEntityIds.add(parrot.getUniqueId());
+                        parrot.setVariant(Parrot.Variant.RED);
+                        parrot.setAI(false);
+                        parrot.setGravity(false);
+                        parrot.setSilent(true);
+                        parrot.setInvulnerable(true);
+                        parrot.setCollidable(false);
+                        parrot.setPersistent(false);
+                    });
+            if (!spawned.isValid()) {
+                // 他のイベントハンドラに生成を取り消された場合、保護登録とHP表示を残さない。
+                despawn(state);
+            }
+        } catch (RuntimeException exception) {
+            despawn(state);
+            throw exception;
+        }
     }
 
     private Location followLocation(Player player) {
@@ -243,7 +268,10 @@ public final class ArchmagePhoenixRuntimeService {
     }
 
     private void despawn(State state) {
-        if (state.parrot != null) state.parrot.remove();
+        if (state.parrot != null) {
+            summonedEntityIds.remove(state.parrot.getUniqueId());
+            state.parrot.remove();
+        }
         state.parrot = null;
         state.target = null;
     }

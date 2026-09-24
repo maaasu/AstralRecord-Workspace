@@ -176,7 +176,7 @@ public class PlayerHudView {
      * @param currentGuard 現在ガード
      * @param maximumGuard 最大ガード
      * @param shieldDisplayCapacity シールド表示上限
-     * @param showPhoenix 不死鳥リソースの表示可否
+     * @param showPhoenix 不死鳥リソースの表示可否。trueでも現在値0以下なら表示しません
      * @param currentPhoenix 現在不死鳥リソース
      * @param maximumPhoenix 最大不死鳥リソース
      */
@@ -204,7 +204,8 @@ public class PlayerHudView {
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(guardActionText(showGuard, currentGuard, maximumGuard))
-            .append(showPhoenix ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
+            .append(showPhoenix && currentPhoenix > 0.0D
+                    ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
             .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
             .append(conditionActionText(activeConditions))
             .append(dpsActionText(currentDps)));
