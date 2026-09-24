@@ -96,6 +96,24 @@ public sealed class ActivityHistoryTests
         if (path == "Dungeons") Assert.Contains("0.0 m", text);
     }
 
+    [Fact]
+    public async Task EventHistory_LinksObservedAccountAndKeepsPartyUuidSecondary()
+    {
+        var api = new HistoryHandler { Admin = true, Evidence = true };
+        await using var factory = new HistoryFactory(api);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        await Login(client);
+
+        var body = await client.GetStringAsync("/Admin/History/Events");
+        var text = WebUtility.HtmlDecode(body);
+        var profileHref = Regex.Match(body, "<a[^>]*href=\"([^\"]+)\"[^>]*>&lt;script&gt;fixture&lt;/script&gt;</a>").Groups[1].Value;
+        Assert.Contains($"/players/{HistoryHandler.ActorId}", profileHref, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains($"accountId={HistoryHandler.ActorId}", profileHref, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("includePrivate=True", profileHref, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("パーティーUUID 33333333-3333-3333-3333-333333333333", text);
+        Assert.DoesNotContain("<script>fixture</script>", body);
+    }
+
     [Theory]
     [InlineData("Mobs")]
     [InlineData("Mobs?MobId=test-mob&View=deaths")]
@@ -297,7 +315,9 @@ public sealed class ActivityHistoryTests
             if (path.EndsWith("dungeons/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, totalDistanceMeters = 120.5m, bestDurationSeconds = 100.125, averageDurationSeconds = 120.5 }];
             if (path.EndsWith("bosses/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, bestDurationSeconds = 100.125, averageDurationSeconds = 120.5, totalDamageDealt = 750.5m, totalDeathCount = 2 }];
             if (path.EndsWith("bosses")) return [new { eventId = ActorId, bossId = "test-boss", bossName = "&cテストボス<script>fixture</script>", startedAt = at, clearedAt = at, durationSeconds = 100.125, participants = new[] { new { player, damageDealt = 250.5m, deathCount = 2 } } }];
-            if (path.EndsWith("events")) return [new { historyId = 42, userUuid = ActorId, eventTime = at, eventType = "PLAYER_LOGIN", source = "PLUGIN", message = "Supplier <script>fixture</script>" }];
+            if (path.EndsWith("events")) return [
+                new { historyId = 42, userUuid = ActorId, eventTime = at, eventType = "PLAYER_LOGIN", source = "PLUGIN", message = "Supplier <script>fixture</script>", player },
+                new { historyId = 43, userUuid = ActorId, eventTime = at, eventType = "PARTY_CREATED", source = "PLUGIN", message = "Party created: 33333333-3333-3333-3333-333333333333", player }];
             if (path.EndsWith("dungeons")) return [new { eventId = ActorId, dungeonId = "test-dungeon", dungeonName = "テスト迷宮", startedAt = at, clearedAt = at, durationSeconds = 100, participants = new object[] { new { player, distanceMeters = 120.5m, movementSampleCount = 25 }, new { player = other, distanceMeters = (decimal?)null, movementSampleCount = 0 }, new { player = new { userUuid = Guid.Parse("33333333-3333-3333-3333-333333333333"), accountId = Guid.Parse("33333333-3333-3333-3333-333333333333"), mcid = "Stationary", accountName = "静止" }, distanceMeters = 0m, movementSampleCount = 25 } } }];
             if (path.EndsWith("/players")) return [new { player, deathCount = 2, damageTaken = 125.5m, hitCount = 4, lastOccurredAt = at }];
             if (path.EndsWith("/kills")) return [new { eventId = ActorId, occurredAt = at, mobId = "test-mob", mobName = "&c&lテストモブ<script>fixture</script>", victim = player }];

@@ -14,6 +14,8 @@
 
 `distance_meters = NULL` は観測不足であり、`0` は移動なしを表す。`mob_player_death` にダメージ量を複製せず、ダメージ集計は `mob_damage_summary` を正本とする。
 
+`player_ip_observation` は同IP照合用の `(global_ip, observed_at DESC)` と、接続・パーティー履歴でユーザーごとの最新の代表アカウント名を得るための `(user_uuid, observed_at DESC, event_id DESC)` に索引を持つ。
+
 ダンジョンとボスの `duration_milliseconds` は `DATEDIFF_BIG(MILLISECOND, started_at, cleared_at)` による永続計算列とする。既存ダンジョン行の時間も移行時に自動算出され、旧APIからの追加行にも値が入る。管理APIはこの値をSQL Serverで並び替え・集計・ページングし、秒表示へ変換する。ボス参加者の `damage_dealt` は `DECIMAL(18,3)`、`death_count` は非負整数。両テーブルはイベント主キーと参加者の `(event_id, account_id)` 主キーを持つ。
 
-新規DBは `init.sql` で作成する。既存HistoryDBには API 配置前に `60_tool/15-history-db-migrate.bat` を実行する。同runnerは `migrations/20260921_player_activity.sql` と `migrations/20260924_boss_activity_duration.sql` を順に `ConnectionStrings:History` の `HistoryDB` へ適用し、`dbo.schema_migration` にSQL hash付きで記録する。この履歴はベストエフォートであり、書込み失敗をゲーム進行の失敗として扱わない。
+新規DBは `init.sql` で作成する。既存HistoryDBには API 配置前に `60_tool/15-history-db-migrate.bat` を実行する。同runnerは `migrations/20260921_player_activity.sql`、`migrations/20260924_boss_activity_duration.sql`、`migrations/20260925_player_activity_user_observation_index.sql` を順に `ConnectionStrings:History` の `HistoryDB` へ適用し、`dbo.schema_migration` にSQL hash付きで記録する。この履歴はベストエフォートであり、書込み失敗をゲーム進行の失敗として扱わない。

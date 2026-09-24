@@ -154,10 +154,14 @@ public sealed class PlayerActivityRepositoryTests
         var now = DateTime.UtcNow; var user = Guid.NewGuid();
         db.UserHistories.Add(new UserHistoryEntity { UserUuid = user, EventTime = now, EventType = "PLAYER_LOGIN", Source = "PLUGIN", Message = "Player login: Alice", PayloadJson = "{\"private\":true}" });
         db.UserHistories.Add(new UserHistoryEntity { UserUuid = Guid.NewGuid(), EventTime = now, EventType = "PARTY_JOINED", Source = "PLUGIN", Message = "Party joined", PayloadJson = "{}" });
+        var accountId = Guid.NewGuid();
+        db.PlayerIpObservations.Add(new PlayerIpObservationEntity { EventId = Guid.NewGuid(), ObservedAt = now, GlobalIp = "127.0.0.1", UserUuid = user, AccountId = accountId, Mcid = "Alice", AccountName = "AliceMain" });
         await db.SaveChangesAsync();
         var repository = new PlayerActivityRepository(db, TimeProvider.System);
         var result = await repository.GetEventsAsync(new PlayerActivityQuery { From = now.AddMinutes(-1), To = now.AddMinutes(1), UserUuid = user, EventType = "PLAYER_LOGIN", Query = "login" });
         var item = Assert.Single(result.Items); Assert.Equal(1, result.TotalCount); Assert.Equal("Player login: Alice", item.Message);
+        Assert.Equal(accountId, item.Player?.AccountId);
+        Assert.Equal("AliceMain", item.Player?.AccountName);
         Assert.DoesNotContain("Payload", System.Text.Json.JsonSerializer.Serialize(item));
     }
 }

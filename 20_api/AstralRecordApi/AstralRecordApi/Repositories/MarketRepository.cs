@@ -63,7 +63,7 @@ public class MarketRepository(
                 .Where(account => !account.IsDeleted && sellerAccountIds.Contains(account.Uuid))
                 .ToDictionaryAsync(
                     account => account.Uuid,
-                    account => new SellerAccountIdentity(account.AccountName, account.SlotIndex));
+                    account => new SellerAccountIdentity(account.AccountName, account.SlotIndex, account.UserId));
         var listingIds = result.Select(listing => listing.ListingId).ToArray();
         var pendingProceedsByListing = await LoadPendingProceedsByListingAsync(listingIds);
         var equipmentInstances = await LoadEquipmentInstancesAsync(result);
@@ -105,11 +105,12 @@ public class MarketRepository(
             .Distinct()
             .ToArray();
         var accountNames = accountIds.Length == 0
-            ? new Dictionary<Guid, string>()
+            ? new Dictionary<Guid, SellerAccountIdentity>()
             : await dbContext.Accounts
                 .AsNoTracking()
                 .Where(account => accountIds.Contains(account.Uuid) && !account.IsDeleted)
-                .ToDictionaryAsync(account => account.Uuid, account => account.AccountName);
+                .ToDictionaryAsync(account => account.Uuid,
+                    account => new SellerAccountIdentity(account.AccountName, account.SlotIndex, account.UserId));
 
         return new MarketTradeHistoryPageResponse
         {
@@ -117,9 +118,11 @@ public class MarketRepository(
             {
                 TransactionId = transaction.TransactionId,
                 SellerAccountId = transaction.SellerAccountId,
-                SellerAccountName = accountNames.GetValueOrDefault(transaction.SellerAccountId) ?? string.Empty,
+                SellerUserUuid = accountNames.GetValueOrDefault(transaction.SellerAccountId)?.UserId,
+                SellerAccountName = accountNames.GetValueOrDefault(transaction.SellerAccountId)?.AccountName ?? string.Empty,
                 BuyerAccountId = transaction.BuyerAccountId,
-                BuyerAccountName = accountNames.GetValueOrDefault(transaction.BuyerAccountId) ?? string.Empty,
+                BuyerUserUuid = accountNames.GetValueOrDefault(transaction.BuyerAccountId)?.UserId,
+                BuyerAccountName = accountNames.GetValueOrDefault(transaction.BuyerAccountId)?.AccountName ?? string.Empty,
                 ItemCategory = transaction.ItemCategory,
                 ItemId = transaction.ItemId,
                 InstanceType = transaction.InstanceType,
@@ -209,7 +212,8 @@ public class MarketRepository(
                     "Seller account was not found.");
             var sellerAccountIdentity = new SellerAccountIdentity(
                 sellerAccount.AccountName,
-                sellerAccount.SlotIndex);
+                sellerAccount.SlotIndex,
+                sellerAccount.UserId);
 
             var existingReceipt = await FindCreateReceiptForUpdateAsync(request.OperationId);
             if (existingReceipt is not null)
@@ -1706,9 +1710,9 @@ public class MarketRepository(
         var account = await dbContext.Accounts
             .AsNoTracking()
             .Where(account => account.Uuid == sellerAccountId && !account.IsDeleted)
-            .Select(account => new { account.AccountName, account.SlotIndex })
+            .Select(account => new { account.AccountName, account.SlotIndex, account.UserId })
             .FirstOrDefaultAsync();
-        return account is null ? null : new SellerAccountIdentity(account.AccountName, account.SlotIndex);
+        return account is null ? null : new SellerAccountIdentity(account.AccountName, account.SlotIndex, account.UserId);
     }
 
     private async Task<IReadOnlyDictionary<Guid, EquipmentInstanceResponse>> LoadEquipmentInstancesAsync(
@@ -1766,6 +1770,7 @@ public class MarketRepository(
     {
         ListingId = entity.ListingId,
         SellerAccountId = entity.SellerAccountId,
+        SellerUserUuid = sellerAccount.UserId,
         SellerAccountName = sellerAccount.AccountName,
         SellerAccountSlotIndex = sellerAccount.SlotIndex,
         BuyerAccountId = entity.BuyerAccountId,
@@ -1870,9 +1875,9 @@ public class MarketRepository(
         return replay;
     }
 
-    private sealed record SellerAccountIdentity(string AccountName, int SlotIndex)
+    private sealed record SellerAccountIdentity(string AccountName, int SlotIndex, Guid? UserId)
     {
-        public static SellerAccountIdentity Empty { get; } = new(string.Empty, -1);
+        public static SellerAccountIdentity Empty { get; } = new(string.Empty, -1, null);
     }
 
     private static MarketTransactionResponse MapTransaction(

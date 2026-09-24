@@ -34,4 +34,15 @@ public sealed class EventsModel(ActivityHistoryApiClient api) : HistoryPageModel
         "PARTY_MEMBER_KICKED" => "メンバー除外", "PARTY_LEADER_TRANSFERRED" => "リーダー移譲", "PARTY_LEADER_ASSIGNED" => "リーダー任命",
         _ => type,
     };
+
+    public static Guid? PartyUuid(UserActivityEventResponse entry)
+    {
+        if (!entry.EventType.StartsWith("PARTY_", StringComparison.Ordinal)) return null;
+        var separator = entry.Message.LastIndexOf(':');
+        return separator >= 0 && Guid.TryParse(entry.Message[(separator + 1)..].Trim(), out var partyUuid)
+            ? partyUuid : null;
+    }
+
+    public static string PartyDescription(UserActivityEventResponse entry) =>
+        entry.Message[..entry.Message.LastIndexOf(':')].Trim();
 }

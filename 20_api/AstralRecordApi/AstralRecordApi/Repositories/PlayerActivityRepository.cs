@@ -143,8 +143,23 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
         if (query.UserUuid is { } user) q = q.Where(x => x.UserUuid == user);
         if (!string.IsNullOrWhiteSpace(query.EventType)) q = q.Where(x => x.EventType == query.EventType.Trim());
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.Message.Contains(term) || x.EventType.Contains(term) || x.Source.Contains(term)); }
-        var total = await q.CountAsync(); var rows = await q.OrderByDescending(x => x.EventTime).ThenByDescending(x => x.HistoryId).Skip((page - 1) * size).Take(size).Select(x => new UserActivityEventResponse(x.HistoryId, x.UserUuid, x.EventTime, x.EventType, x.Source, x.Message)).ToArrayAsync();
-        return new PagedPlayerActivityResponse<UserActivityEventResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows };
+        var total = await q.CountAsync();
+        var rows = await q.OrderByDescending(x => x.EventTime).ThenByDescending(x => x.HistoryId)
+            .Skip((page - 1) * size).Take(size).ToArrayAsync();
+        var userIds = rows.Where(x => x.UserUuid.HasValue).Select(x => x.UserUuid!.Value).Distinct().ToArray();
+        var snapshotRows = await history.PlayerIpObservations.AsNoTracking()
+            .Where(x => userIds.Contains(x.UserUuid))
+            .GroupBy(x => x.UserUuid)
+            .Select(group => group.OrderByDescending(x => x.ObservedAt).ThenByDescending(x => x.EventId).First())
+            .ToListAsync();
+        var snapshots = snapshotRows.ToDictionary(x => x.UserUuid, Player);
+        return new PagedPlayerActivityResponse<UserActivityEventResponse>
+        {
+            Page = page, PageSize = size, TotalCount = total,
+            Items = rows.Select(x => new UserActivityEventResponse(x.HistoryId, x.UserUuid, x.EventTime,
+                x.EventType, x.Source, x.Message,
+                x.UserUuid is { } userId ? snapshots.GetValueOrDefault(userId) : null)).ToArray(),
+        };
     }
 
     public async Task<PagedPlayerActivityResponse<MobRankingResponse>> GetMobsAsync(PlayerActivityQuery query)

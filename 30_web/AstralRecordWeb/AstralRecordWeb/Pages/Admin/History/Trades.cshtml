@@ -21,7 +21,7 @@
         <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>成立日時（JST）</th><th>送り手 → 受け手</th><th>送った内容</th></tr></thead><tbody>
         @foreach (var trade in results.Items)
         {
-            <tr><td class="ar-history-value">@HistoryPageModel.Timestamp(trade.CompletedAt)<small>@trade.EventId</small></td><td><strong>@trade.Source.Mcid / @trade.Source.AccountName</strong><small>@trade.Source.AccountId</small><span aria-label="送信先">↓</span><br /><strong>@trade.Destination.Mcid / @trade.Destination.AccountName</strong><small>@trade.Destination.AccountId</small></td>
+            <tr><td class="ar-history-value">@HistoryPageModel.Timestamp(trade.CompletedAt)<small>@trade.EventId</small></td><td><strong>@trade.Source.Mcid / <a asp-page="/Players/Detail" asp-route-userUuid="@trade.Source.UserUuid" asp-route-accountId="@trade.Source.AccountId" asp-route-includePrivate="true">@trade.Source.AccountName</a></strong><small>@trade.Source.AccountId</small><span aria-label="送信先">↓</span><br /><strong>@trade.Destination.Mcid / <a asp-page="/Players/Detail" asp-route-userUuid="@trade.Destination.UserUuid" asp-route-accountId="@trade.Destination.AccountId" asp-route-includePrivate="true">@trade.Destination.AccountName</a></strong><small>@trade.Destination.AccountId</small></td>
                 <td><ul class="ar-history-transfer">@foreach (var item in trade.Items) { <li>@Html.Raw(Model.FormatItemName(item)) × @item.Quantity.ToString("N0")<small>@item.ItemId</small></li> }</ul>@if (trade.Gold > 0) { <p>@trade.Gold.ToString("N0") ゴールド</p> }</td></tr>
         }
         </tbody></table></div>

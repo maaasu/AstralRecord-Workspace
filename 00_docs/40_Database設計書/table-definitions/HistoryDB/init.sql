@@ -47,6 +47,7 @@ CREATE TABLE [dbo].[player_activity_batch] ([batch_id] UNIQUEIDENTIFIER NOT NULL
 GO
 CREATE TABLE [dbo].[player_ip_observation] ([event_id] UNIQUEIDENTIFIER NOT NULL, [observed_at] DATETIME2(3) NOT NULL, [global_ip] NVARCHAR(45) NOT NULL, [user_uuid] UNIQUEIDENTIFIER NOT NULL, [account_id] UNIQUEIDENTIFIER NOT NULL, [mcid] NVARCHAR(20) NOT NULL, [account_name] NVARCHAR(50) NOT NULL, CONSTRAINT [PK_player_ip_observation] PRIMARY KEY CLUSTERED ([event_id]));
 CREATE INDEX [IX_player_ip_observation_ip_observed] ON [dbo].[player_ip_observation] ([global_ip], [observed_at] DESC);
+CREATE INDEX [IX_player_ip_observation_user_observed] ON [dbo].[player_ip_observation] ([user_uuid], [observed_at] DESC, [event_id] DESC);
 GO
 CREATE TABLE [dbo].[player_trade_activity] ([event_id] UNIQUEIDENTIFIER NOT NULL, [completed_at] DATETIME2(3) NOT NULL, [source_user_uuid] UNIQUEIDENTIFIER NOT NULL, [source_account_id] UNIQUEIDENTIFIER NOT NULL, [source_mcid] NVARCHAR(20) NOT NULL, [source_account_name] NVARCHAR(50) NOT NULL, [destination_user_uuid] UNIQUEIDENTIFIER NOT NULL, [destination_account_id] UNIQUEIDENTIFIER NOT NULL, [destination_mcid] NVARCHAR(20) NOT NULL, [destination_account_name] NVARCHAR(50) NOT NULL, [gold] BIGINT NOT NULL, CONSTRAINT [PK_player_trade_activity] PRIMARY KEY CLUSTERED ([event_id]), CONSTRAINT [CK_player_trade_activity_gold] CHECK ([gold] >= 0));
 CREATE INDEX [IX_player_trade_activity_completed_accounts] ON [dbo].[player_trade_activity] ([completed_at] DESC, [source_account_id], [destination_account_id]);

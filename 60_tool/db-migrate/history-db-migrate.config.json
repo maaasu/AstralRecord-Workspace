@@ -183,6 +183,17 @@
           "columns": [ { "name": "duration_milliseconds", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false } ]
         }
       ]
+    },
+    {
+      "id": "20260925_player_activity_user_observation_index",
+      "fileName": "20260925_player_activity_user_observation_index.sql",
+      "expectation": {
+        "schema": "dbo", "table": "player_ip_observation", "primaryKey": "PK_player_ip_observation",
+        "indexes": [ "IX_player_ip_observation_user_observed" ],
+        "indexDefinitions": [
+          { "name": "IX_player_ip_observation_user_observed", "columns": [ "user_uuid", "observed_at", "event_id" ] }
+        ]
+      }
     }
   ]
 }

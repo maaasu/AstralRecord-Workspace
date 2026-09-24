@@ -21,7 +21,7 @@
                 <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー</th><th>代表アカウント</th><th>代表アカウントの履歴</th></tr></thead><tbody>
                 @foreach (var player in relation.Players)
                 {
-                    <tr><td>@player.Mcid<small>@player.UserUuid</small></td><td>@player.AccountName<small>@player.AccountId</small></td><td><a asp-page="Trades" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">トレード</a> ・ <a asp-page="Dungeons" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">攻略履歴</a></td></tr>
+                    <tr><td>@player.Mcid<small>@player.UserUuid</small></td><td><a asp-page="/Players/Detail" asp-route-userUuid="@player.UserUuid" asp-route-accountId="@player.AccountId" asp-route-includePrivate="true">@player.AccountName</a><small>@player.AccountId</small></td><td><a asp-page="Trades" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">トレード</a> ・ <a asp-page="Dungeons" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">攻略履歴</a></td></tr>
                 }
                 </tbody></table></div>
                 @foreach (var pair in relation.Players.Select(p => p.UserUuid).Distinct().SelectMany((id, index) => relation.Players.Select(p => p.UserUuid).Distinct().Skip(index + 1).Select(other => (id, other))))

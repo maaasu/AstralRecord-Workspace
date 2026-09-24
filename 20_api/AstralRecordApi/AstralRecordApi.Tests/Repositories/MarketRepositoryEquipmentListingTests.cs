@@ -66,11 +66,15 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal(expectedTransactionIds, all.Select(transaction => transaction.TransactionId));
         Assert.Equal(completedAt, all[0].CompletedAt);
         Assert.All(all, transaction => Assert.Equal("astral_ore", transaction.ItemId));
+        var sellerUserId = await harness.DbContext.Accounts.Where(account => account.Uuid == harness.AccountId).Select(account => account.UserId).SingleAsync();
+        var buyerUserId = await harness.DbContext.Accounts.Where(account => account.Uuid == buyer.AccountId).Select(account => account.UserId).SingleAsync();
         Assert.All(all, transaction =>
         {
             Assert.Equal(harness.AccountId, transaction.SellerAccountId);
+            Assert.Equal(sellerUserId, transaction.SellerUserUuid);
             Assert.Equal("market-test", transaction.SellerAccountName);
             Assert.Equal(buyer.AccountId, transaction.BuyerAccountId);
+            Assert.Equal(buyerUserId, transaction.BuyerUserUuid);
             Assert.Equal("market-buyer", transaction.BuyerAccountName);
         });
 
@@ -84,8 +88,10 @@ public class MarketRepositoryEquipmentListingTests
         Assert.All(afterDeletion.Items, transaction =>
         {
             Assert.Equal(harness.AccountId, transaction.SellerAccountId);
+            Assert.Null(transaction.SellerUserUuid);
             Assert.Equal(string.Empty, transaction.SellerAccountName);
             Assert.Equal(buyer.AccountId, transaction.BuyerAccountId);
+            Assert.Null(transaction.BuyerUserUuid);
             Assert.Equal(string.Empty, transaction.BuyerAccountName);
         });
     }
@@ -430,6 +436,8 @@ public class MarketRepositoryEquipmentListingTests
 
         Assert.True(created.Succeeded);
         Assert.Equal("market-test", created.Value!.SellerAccountName);
+        var sellerUserId = await harness.DbContext.Accounts.Where(account => account.Uuid == harness.AccountId).Select(account => account.UserId).SingleAsync();
+        Assert.Equal(sellerUserId, created.Value.SellerUserUuid);
 
         var listings = await harness.Repository.GetListingsAsync(new MarketListingQuery
         {
@@ -440,9 +448,11 @@ public class MarketRepositoryEquipmentListingTests
 
         var listing = Assert.Single(listings);
         Assert.Equal("market-test", listing.SellerAccountName);
+        Assert.Equal(sellerUserId, listing.SellerUserUuid);
 
         var detail = await harness.Repository.GetListingAsync(listing.ListingId);
         Assert.Equal("market-test", detail!.SellerAccountName);
+        Assert.Equal(sellerUserId, detail.SellerUserUuid);
     }
 
     [Fact]

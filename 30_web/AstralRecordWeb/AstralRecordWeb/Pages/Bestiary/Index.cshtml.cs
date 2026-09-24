@@ -19,6 +19,7 @@ public sealed class IndexModel(BestiaryApiClient bestiary) : PageModel
     [BindProperty(SupportsGet = true)] public string? Sort { get; set; }
     [BindProperty(SupportsGet = true), Range(1, 100000)] public int PageNumber { get; set; } = 1;
     public WebBestiaryListResponse? Record { get; private set; }
+    public Guid ViewerUserUuid { get; private set; }
     public IReadOnlyList<WebBestiaryMobSummaryResponse> Mobs { get; private set; } = [];
     public int MatchingCount { get; private set; }
     public int PageCount => Math.Max(1, (MatchingCount + 23) / 24);
@@ -27,6 +28,7 @@ public sealed class IndexModel(BestiaryApiClient bestiary) : PageModel
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var viewer)) return Challenge();
+        ViewerUserUuid = viewer;
         Sort ??= "recent";
         if (!ModelState.IsValid) return BadRequest(ModelState);
         if (Category is not (null or "" or "ENEMY" or "BOSS") || Sort is not ("recent" or "count" or "name")) return BadRequest();

@@ -42,7 +42,7 @@
         <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー / アカウント</th><th>倒された回数</th><th>受けたダメージ</th><th>被命中数</th><th>最後の記録（JST）</th></tr></thead><tbody>
         @foreach (var player in players.Items)
         {
-            <tr><td>@player.Player.Mcid / @player.Player.AccountName<small>@player.Player.AccountId</small></td><td>@player.DeathCount.ToString("N0") 回</td><td class="ar-history-value">@player.DamageTaken.ToString("N1")</td><td>@player.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(player.LastOccurredAt)</td></tr>
+            <tr><td>@player.Player.Mcid / <a asp-page="/Players/Detail" asp-route-userUuid="@player.Player.UserUuid" asp-route-accountId="@player.Player.AccountId" asp-route-includePrivate="true">@player.Player.AccountName</a><small>@player.Player.AccountId</small></td><td>@player.DeathCount.ToString("N0") 回</td><td class="ar-history-value">@player.DamageTaken.ToString("N1")</td><td>@player.HitCount.ToString("N0")</td><td>@HistoryPageModel.Timestamp(player.LastOccurredAt)</td></tr>
         }
         </tbody></table></div>
     }
@@ -52,7 +52,7 @@
         <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>日時（JST）</th><th>モブ</th><th>倒されたプレイヤー / アカウント</th></tr></thead><tbody>
         @foreach (var death in deaths.Items)
         {
-            <tr><td>@HistoryPageModel.Timestamp(death.OccurredAt)<small>@death.EventId</small></td><td>@Html.Raw(MobsModel.FormatMobName(death.MobName))</td><td>@death.Victim.Mcid / @death.Victim.AccountName<small>@death.Victim.AccountId</small></td></tr>
+            <tr><td>@HistoryPageModel.Timestamp(death.OccurredAt)<small>@death.EventId</small></td><td>@Html.Raw(MobsModel.FormatMobName(death.MobName))</td><td>@death.Victim.Mcid / <a asp-page="/Players/Detail" asp-route-userUuid="@death.Victim.UserUuid" asp-route-accountId="@death.Victim.AccountId" asp-route-includePrivate="true">@death.Victim.AccountName</a><small>@death.Victim.AccountId</small></td></tr>
         }
         </tbody></table></div>
     }

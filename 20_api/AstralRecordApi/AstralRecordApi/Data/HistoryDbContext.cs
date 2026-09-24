@@ -44,6 +44,8 @@ public class HistoryDbContext(DbContextOptions<HistoryDbContext> options) : DbCo
             entity.ToTable("player_ip_observation", "dbo"); entity.HasKey(x => x.EventId);
             entity.Property(x => x.EventId).HasColumnName("event_id"); entity.Property(x => x.ObservedAt).HasColumnName("observed_at"); entity.Property(x => x.GlobalIp).HasColumnName("global_ip").HasMaxLength(45);
             Player(entity); entity.HasIndex(x => new { x.GlobalIp, x.ObservedAt }).HasDatabaseName("IX_player_ip_observation_ip_observed");
+            entity.HasIndex(x => new { x.UserUuid, x.ObservedAt, x.EventId })
+                .IsDescending(false, true, true).HasDatabaseName("IX_player_ip_observation_user_observed");
         });
         modelBuilder.Entity<PlayerTradeActivityEntity>(entity =>
         {

@@ -6,6 +6,7 @@ public class MarketListingResponse
 {
     public Guid ListingId { get; init; }
     public Guid SellerAccountId { get; init; }
+    public Guid? SellerUserUuid { get; init; }
     public string SellerAccountName { get; init; } = string.Empty;
     public int? SellerAccountSlotIndex { get; init; }
     public Guid? BuyerAccountId { get; init; }
@@ -176,8 +177,10 @@ public class MarketTradeHistoryResponse
 {
     public Guid TransactionId { get; init; }
     public Guid SellerAccountId { get; init; }
+    public Guid? SellerUserUuid { get; init; }
     public string SellerAccountName { get; init; } = string.Empty;
     public Guid BuyerAccountId { get; init; }
+    public Guid? BuyerUserUuid { get; init; }
     public string BuyerAccountName { get; init; } = string.Empty;
     public string ItemCategory { get; init; } = string.Empty;
     public string ItemId { get; init; } = string.Empty;

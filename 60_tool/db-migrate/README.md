@@ -17,6 +17,6 @@ manifestの `preExistingMigrationFileNames` には、過去に適用済みでこ
 
 `20260923_rename_archer_shared_skill_ids.sql` はプレイヤーの習得スキルIDと旧形式バインド参照を移行する。ゲームサーバーを停止して入場を閉じた状態でDB migrationを適用し、Filebaseの配置とMasterDataDBのseedが完了するまでサーバーを再開しない。途中で習得スキルのAPI整合処理が走らないようにする。
 
-新しい本番SQLを追加するときは、同じ変更で対象DBのmanifestに実行順と `expectation` を登録する。未適用のSQLを `preExistingMigrationFileNames` に入れて検査だけを通してはいけない。HistoryDBの `20260921_player_activity.sql` は、プレイヤー行動履歴8表を適用し、`dbo.schema_migration` へSQL hash付きで記録する。後続の `20260924_boss_activity_duration.sql` はボス攻略・参加者の2表とダンジョン攻略時間を追加する。攻略時間は開始・終了時刻から求める永続化計算列で、過去のダンジョン記録と旧APIの書き込みにも対応する。HistoryDB migration → API → Web → Plugin の順で適用する。
+新しい本番SQLを追加するときは、同じ変更で対象DBのmanifestに実行順と `expectation` を登録する。未適用のSQLを `preExistingMigrationFileNames` に入れて検査だけを通してはいけない。HistoryDBの `20260921_player_activity.sql` は、プレイヤー行動履歴8表を適用し、`dbo.schema_migration` へSQL hash付きで記録する。後続の `20260924_boss_activity_duration.sql` はボス攻略・参加者の2表とダンジョン攻略時間を、`20260925_player_activity_user_observation_index.sql` はイベント履歴の代表アカウント名検索用索引を追加する。攻略時間は開始・終了時刻から求める永続化計算列で、過去のダンジョン記録と旧APIの書き込みにも対応する。HistoryDB migration → API → Web → Plugin の順で適用する。
 
 登録漏れ・実行対象の取り違えは `tests/db-migrate.static.ps1`、ゲームDBの初回適用・履歴付き再実行・スキーマ不一致の拒否は `tests/db-migrate.integration.ps1`、HistoryDBの初回適用・履歴付き再実行・接続先DBの拒否は `tests/history-db-migrate.integration.ps1` で確認する。統合テストはローカルSQL Serverに一意名の使い捨てDBを作り、本番DBには接続しない。

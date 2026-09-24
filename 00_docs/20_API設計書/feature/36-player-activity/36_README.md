@@ -22,7 +22,7 @@ DTO定義は `20_api/AstralRecordApi/AstralRecordApi/Models/PlayerActivityModels
 
 攻略時間は `duration_milliseconds` を正本とし、応答の `durationSeconds` / `bestDurationSeconds` / `averageDurationSeconds` は小数秒の `double` である。ダンジョンのプレイヤー別応答は従来の項目に最短・平均時間を末尾追加する。ボスの参加者には `player`, `damageDealt`, `deathCount`、プレイヤー別応答には `player`, `clearCount`, `firstClearedAt`, `lastClearedAt`, `bestDurationSeconds`, `averageDurationSeconds`, `totalDamageDealt`, `totalDeathCount` を返す。
 
-`events` は `eventType` の完全一致、`userUuid`、`query`（message/type/source の部分一致）で絞る。応答項目は `historyId`, `userUuid`, `eventTime`, `eventType`, `source`, `message` のみ。`message` は既存のログイン・パーティー記録ではMCID、パーティーID等を含むため管理者だけに公開する。
+`events` は `eventType` の完全一致、`userUuid`、`query`（message/type/source の部分一致）で絞る。応答項目は `historyId`, `userUuid`, `eventTime`, `eventType`, `source`, `message`, `player`。`player` は対象ユーザーについて最後に保存された接続観測の `userUuid`, `accountId`, `mcid`, `accountName` であり、観測がなければ null。イベント当時の使用アカウントを確定する値ではない。`payload_json` は返さない。`message` は既存のログイン・パーティー記録ではMCID、パーティーID等を含むため管理者だけに公開する。
 
 ```json
 {

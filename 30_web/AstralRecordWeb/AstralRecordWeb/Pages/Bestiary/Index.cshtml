@@ -18,7 +18,7 @@
         @if (record.AccountId is null) { <div class="ar-empty">表示するアカウントがありません。ゲーム内でアカウントを選択するか、上の一覧から選んでください。</div> }
         else
         {
-            <div class="ar-bestiary-summary"><div><span>記録中の冒険者</span><strong>@record.AccountName</strong></div><div><span>発見したモブ</span><strong>@record.Mobs.Count.ToString("N0") <small>種</small></strong></div><div><span>総討伐数</span><strong>@record.TotalDefeats.ToString("N0") <small>体</small></strong></div></div>
+            <div class="ar-bestiary-summary"><div><span>記録中の冒険者</span><strong><a asp-page="/Players/Detail" asp-route-userUuid="@Model.ViewerUserUuid" asp-route-accountId="@record.AccountId">@record.AccountName</a></strong></div><div><span>発見したモブ</span><strong>@record.Mobs.Count.ToString("N0") <small>種</small></strong></div><div><span>総討伐数</span><strong>@record.TotalDefeats.ToString("N0") <small>体</small></strong></div></div>
             <form method="get" class="ar-panel ar-filter-grid" role="search" aria-label="討伐済みモブを検索">
                 <input type="hidden" name="accountId" value="@record.AccountId" />
                 <div><label for="mob-query">モブ名</label><input id="mob-query" name="query" value="@Model.Query" maxlength="100" type="search" placeholder="名前で探す…" /></div>
