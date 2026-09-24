@@ -504,7 +504,16 @@ public class SkillService {
         @NotNull SkillDefinition skill,
         @NotNull StatusSnapshot statusSnapshot
     ) {
-        if (skill.getKind() == SkillKind.PASSIVE) {
+        return canCast(caster, skill, statusSnapshot, false);
+    }
+
+    private @NotNull SkillCastResult canCast(
+        @NotNull SkillCaster caster,
+        @NotNull SkillDefinition skill,
+        @NotNull StatusSnapshot statusSnapshot,
+        boolean allowTriggeredPassive
+    ) {
+        if (skill.getKind() == SkillKind.PASSIVE && !allowTriggeredPassive) {
             return SkillCastResult.failure(PlayerMsgId.P_5805);
         }
         AstEntity conditionTarget = toAstEntity(caster);
@@ -710,6 +719,79 @@ public class SkillService {
             caster, definition, trigger, castLocation, primaryTarget, targets, runtime, completionListener);
     }
 
+    /**
+     * 有効化済みパッシブの条件成立時効果を、習得個体の解決値と共通リソース消費を適用して実行します。
+     * この経路は詠唱を持たないパッシブ専用であり、通常のプレイヤー操作から直接呼び出しません。
+     * 呼び出し元は、対象パッシブが現在のバインド設定で有効であることを事前に確認します。
+     *
+     * @param caster 発動主体
+     * @param learnedSkillId 習得済みパッシブ個体 ID
+     * @param trigger 発動契機
+     * @param castLocation 発動位置
+     * @param primaryTarget 主対象（任意）
+     * @param targets 範囲・複数対象（変更不可）
+     * @return 発動結果
+     */
+    @NotNull SkillCastResult triggerLearnedPassiveSkill(
+        @NotNull PlayerSkillCaster caster,
+        @NotNull String learnedSkillId,
+        @NotNull SkillCastTrigger trigger,
+        @NotNull Location castLocation,
+        @Nullable LivingEntity primaryTarget,
+        @NotNull List<LivingEntity> targets
+    ) {
+        LearnedSkillInstance learned = ownershipService == null
+            ? null
+            : ownershipService.findInstance(caster.player(), learnedSkillId);
+        if (learned == null) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+            notifyIfFailed(caster, failure, learnedSkillId);
+            return failure;
+        }
+        if (permissionService != null && !permissionService.isPermitted(caster.player(), learned.getSkillId())) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5863);
+            notifyIfFailed(caster, failure, learned.getSkillId());
+            return failure;
+        }
+
+        ResolvedLearnedSkill resolved = resolveLearnedSkill(learned);
+        if (resolved == null) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5803);
+            notifyIfFailed(caster, failure, learned.getSkillId());
+            return failure;
+        }
+        LearnedCast runtime = new LearnedCast(
+            learned,
+            caster.statusSnapshot().withFlatBonuses(resolved.statusBonuses()),
+            resolved.sigilIds()
+        );
+        SkillDefinition definition = resolved.definition();
+        if (definition.getKind() != SkillKind.PASSIVE
+            || resolveCastTimeTicks(caster, definition, runtime.statusSnapshot()) > 0L) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5805);
+            notifyIfFailed(caster, failure, definition.getId());
+            return failure;
+        }
+        SkillCastResult guard = canCast(caster, definition, runtime.statusSnapshot(), true);
+        if (!guard.success()) {
+            notifyIfFailed(caster, guard, definition.getId());
+            return guard;
+        }
+
+        notifyPlayerSkillUse(caster, definition);
+        return executeSkillNow(
+            caster,
+            definition,
+            trigger,
+            castLocation,
+            primaryTarget,
+            targets,
+            runtime,
+            null,
+            true
+        );
+    }
+
     private @NotNull SkillCastResult executeSkillNow(
             @NotNull SkillCaster caster,
             @NotNull SkillDefinition definition,
@@ -743,8 +825,32 @@ public class SkillService {
             @Nullable LearnedCast runtime,
             @Nullable Consumer<SkillCastResult> completionListener
     ) {
+        return executeSkillNow(
+            caster,
+            definition,
+            trigger,
+            castLocation,
+            primaryTarget,
+            targets,
+            runtime,
+            completionListener,
+            false
+        );
+    }
+
+    private @NotNull SkillCastResult executeSkillNow(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime,
+            @Nullable Consumer<SkillCastResult> completionListener,
+            boolean allowTriggeredPassive
+    ) {
         StatusSnapshot effectiveStatus = runtime == null ? caster.statusSnapshot() : runtime.statusSnapshot();
-        SkillCastResult guard = canCast(caster, definition, effectiveStatus);
+        SkillCastResult guard = canCast(caster, definition, effectiveStatus, allowTriggeredPassive);
         if (!guard.success()) {
             notifyIfFailed(caster, guard, definition.getId());
             return notifyCompletion(completionListener, guard);

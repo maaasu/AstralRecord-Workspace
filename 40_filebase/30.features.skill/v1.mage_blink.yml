@@ -11,9 +11,6 @@ icon: CHORUS_FRUIT
 lore:
   - "&7空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある着地可能な地上へ瞬間移動する。"
   - "&7視線先のブロック手前を優先し、足場と2ブロック分の空間を確保する。"
-  - "&7テレポート後も発動前の向き（Yaw / Pitch）を保つ。"
-  - "&7発動時にMP20・ENG20を消費する。"
-  - "&7バインド必須。クールダウンはなく、着地すると再使用できる。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 20

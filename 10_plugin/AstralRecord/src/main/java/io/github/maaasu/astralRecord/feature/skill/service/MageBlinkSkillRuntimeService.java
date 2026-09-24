@@ -62,7 +62,7 @@ public final class MageBlinkSkillRuntimeService {
             return false;
         }
 
-        skillService.castLearnedSkill(
+        skillService.triggerLearnedPassiveSkill(
                 new PlayerSkillCaster(astPlayer),
                 learnedSkillId,
                 SkillCastTrigger.PLAYER_COMMAND,
