@@ -23,6 +23,7 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
     public static final String ID = "archmage_celestial_circle";
     private static final int MAX_LEVEL = 10;
     private static final int DRAW_INTERVAL_TICKS = 4;
+    private static final int COMPLETE_DRAW_INTERVAL_TICKS = 5;
     private final ArchmageCelestialCircleRuntimeService runtimeService;
 
     /**
@@ -62,12 +63,13 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
             return SkillCastResult.failure(null);
         }
         UUID casterId = context.player().getUniqueId();
+        Sigil visual = new Sigil(center, params.getInt("effectLevel", 1));
         context.services().tasks().cancel(casterId, ID);
         runtimeService.start(casterId, center, params.getInt("effectLevel", 1), params.getInt("durationTicks", 600));
         try {
             context.services().tasks().repeat(
                     casterId, ID, 0L, 1L, Integer.MAX_VALUE,
-                    tick -> advance(context, casterId, tick),
+                    tick -> advance(context, casterId, tick, visual),
                     () -> runtimeService.end(casterId)
             );
         } catch (RuntimeException exception) {
@@ -102,82 +104,50 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
      * @param context 発動者の共有表示サービス
      * @param casterId 発動者UUID
      * @param tick 実行経過tick
+     * @param visual 発動時に計算済みの水平魔法陣
      */
-    private void advance(@NotNull PlayerActiveSkillContext context, @NotNull UUID casterId, int tick) {
+    private void advance(@NotNull PlayerActiveSkillContext context, @NotNull UUID casterId,
+                         int tick, @NotNull Sigil visual) {
         if (!runtimeService.advance(casterId)) {
             context.services().tasks().cancel(casterId, ID);
             return;
         }
         ArchmageCelestialCircleRuntimeService.Snapshot snapshot = runtimeService.snapshot(casterId);
-        if (snapshot == null || tick % (snapshot.complete() ? 20 : DRAW_INTERVAL_TICKS) != 0) {
+        if (snapshot == null || tick % (snapshot.complete() ? COMPLETE_DRAW_INTERVAL_TICKS : DRAW_INTERVAL_TICKS) != 0) {
             return;
         }
-        render(context.services(), snapshot);
+        visual.draw(context.services(), snapshot.progress(), snapshot.complete());
     }
 
-    /**
-     * 添付図の同心円、八芒星、四方の星、月弧を3色の水平粒子として描きます。
-     *
-     * @param services 粒子を一括配信するサービス
-     * @param snapshot 描画時の中心、半径、構築率
-     */
-    private static void render(@NotNull ActiveSkillServices services,
-                               @NotNull ArchmageCelestialCircleRuntimeService.Snapshot snapshot) {
-        Location center = snapshot.center().add(0.0D, 0.10D, 0.0D);
-        if (center.getWorld() == null || center.getWorld().getPlayers().stream()
-                .noneMatch(player -> player.getLocation().distanceSquared(center) <= 64.0D * 64.0D)) {
-            return;
-        }
-        double radius = snapshot.level();
-        double progress = radius * 1.05D * snapshot.progress();
-        List<Location> azure = new ArrayList<>();
-        List<Location> violet = new ArrayList<>();
-        List<Location> red = new ArrayList<>();
-        ring(center, radius * 0.97D, 48, progress, azure);
-        ring(center, radius * 0.84D, 40, progress, violet);
-        ring(center, radius * 0.48D, 32, progress, violet);
-        ring(center, radius * 0.27D, 24, progress, azure);
-        for (int index = 0; index < 8; index++) {
-            double angle = index * Math.PI / 4.0D;
-            line(center, radius * 0.24D, angle, radius * 0.70D, angle, progress, azure);
-            line(center, radius * 0.70D, angle, radius * 0.79D, angle + Math.PI / 18.0D, progress, violet);
-            line(center, radius * 0.79D, angle + Math.PI / 18.0D,
-                    radius * 0.70D, angle + Math.PI / 9.0D, progress, violet);
-        }
-        for (int index = 0; index < 4; index++) {
-            double angle = index * Math.PI / 2.0D;
-            star(center, radius * 0.90D, angle, radius * 0.12D, progress, azure);
-            star(center, radius * 0.90D, angle, radius * 0.045D, progress, red);
-            crescent(center, radius * 0.57D, angle + Math.PI / 4.0D, radius * 0.09D, progress, azure);
-        }
-        star(center, 0.0D, 0.0D, radius * 0.24D, progress, azure);
-        star(center, 0.0D, 0.0D, radius * 0.065D, progress, red);
-        services.effects().points(center, azure, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_AZURE);
-        services.effects().points(center, violet, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_VIOLET);
-        services.effects().points(center, red, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_RED);
+    /** 半径に応じて円周の点を増やし、隣接点の間隔を約0.42m以下に抑えます。 */
+    private static int ringSamples(double radius, int minimum) {
+        return Math.max(minimum, (int) Math.ceil(Math.PI * 2.0D * radius / 0.42D));
     }
 
     /** 半径方向へ広がる円周の点を追加します。 */
-    private static void ring(Location center, double radius, int count, double progress, List<Location> output) {
+    private static void ring(Location center, double radius, int count, List<Location> output) {
         for (int index = 0; index < count; index++) {
             double angle = index * Math.PI * 2.0D / count;
-            point(center, radius, angle, progress, output);
+            point(center, radius, angle, output);
         }
     }
 
     /** 極座標の二点間に粒子を追加します。 */
     private static void line(Location center, double fromRadius, double fromAngle,
-                             double toRadius, double toAngle, double progress, List<Location> output) {
-        for (int index = 0; index <= 5; index++) {
-            double ratio = index / 5.0D;
+                             double toRadius, double toAngle, List<Location> output) {
+        double dx = Math.cos(toAngle) * toRadius - Math.cos(fromAngle) * fromRadius;
+        double dz = Math.sin(toAngle) * toRadius - Math.sin(fromAngle) * fromRadius;
+        int segments = Math.max(5, (int) Math.ceil(Math.hypot(dx, dz) / 0.45D));
+        for (int index = 0; index <= segments; index++) {
+            double ratio = (double) index / segments;
             point(center, fromRadius + (toRadius - fromRadius) * ratio,
-                    fromAngle + (toAngle - fromAngle) * ratio, progress, output);
+                    fromAngle + (toAngle - fromAngle) * ratio, output);
         }
     }
 
     /** 四方と中央の八芒星を追加します。 */
     private static void star(Location center, double offsetRadius, double angle, double size,
-                             double progress, List<Location> output) {
+                             List<Location> output) {
         double x = Math.cos(angle) * offsetRadius;
         double z = Math.sin(angle) * offsetRadius;
         for (int index = 0; index < 8; index++) {
@@ -189,36 +159,113 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
                 double ratio = step / 2.0D;
                 double px = x + Math.cos(a) * aRadius * (1.0D - ratio) + Math.cos(b) * bRadius * ratio;
                 double pz = z + Math.sin(a) * aRadius * (1.0D - ratio) + Math.sin(b) * bRadius * ratio;
-                cartesian(center, px, pz, progress, output);
+                cartesian(center, px, pz, output);
             }
         }
     }
 
     /** 四象限の月形の弧を追加します。 */
     private static void crescent(Location center, double offsetRadius, double angle, double size,
-                                 double progress, List<Location> output) {
+                                 List<Location> output) {
         double x = Math.cos(angle) * offsetRadius;
         double z = Math.sin(angle) * offsetRadius;
         for (int index = 0; index <= 8; index++) {
             double sweep = -Math.PI * 0.65D + index * Math.PI * 1.3D / 8.0D;
             cartesian(center, x + Math.cos(sweep) * size, z + Math.sin(sweep) * size,
-                    progress, output);
+                    output);
             cartesian(center, x + size * 0.35D + Math.cos(sweep) * size * 0.72D,
-                    z + Math.sin(sweep) * size * 0.72D, progress, output);
+                    z + Math.sin(sweep) * size * 0.72D, output);
         }
     }
 
-    /** 構築済み半径内の極座標点だけを追加します。 */
-    private static void point(Location center, double radius, double angle,
-                              double progress, List<Location> output) {
-        cartesian(center, radius * Math.cos(angle), radius * Math.sin(angle), progress, output);
+    /** 水平面の極座標点を追加します。 */
+    private static void point(Location center, double radius, double angle, List<Location> output) {
+        cartesian(center, radius * Math.cos(angle), radius * Math.sin(angle), output);
     }
 
     /** 同じY座標を維持して粒子点を追加します。 */
-    private static void cartesian(Location center, double x, double z,
-                                  double progress, List<Location> output) {
-        if (x * x + z * z <= progress * progress + 1.0E-8D) {
-            output.add(center.clone().add(x, 0.0D, z));
+    private static void cartesian(Location center, double x, double z, List<Location> output) {
+        output.add(center.clone().add(x, 0.0D, z));
+    }
+
+    /** 発動ごとに一度作った粒子座標を再利用し、完成後は点群を作り直さずに表示します。 */
+    private static final class Sigil {
+        private final Location center;
+        private final double radius;
+        private final List<Location> azure;
+        private final List<Location> violet;
+        private final List<Location> red;
+
+        /**
+         * 指定された地面の高さへ図形を固定し、半径に応じた点数を計算します。
+         *
+         * @param ground 地面上の魔法陣中心
+         * @param level 半径と同じスキルレベル
+         */
+        private Sigil(@NotNull Location ground, int level) {
+            center = ground.clone().add(0.0D, 0.10D, 0.0D);
+            radius = level;
+            List<Location> azurePoints = new ArrayList<>();
+            List<Location> violetPoints = new ArrayList<>();
+            List<Location> redPoints = new ArrayList<>();
+            ring(center, radius * 0.97D, ringSamples(radius * 0.97D, 48), azurePoints);
+            ring(center, radius * 0.84D, ringSamples(radius * 0.84D, 40), violetPoints);
+            ring(center, radius * 0.48D, ringSamples(radius * 0.48D, 32), violetPoints);
+            ring(center, radius * 0.27D, ringSamples(radius * 0.27D, 24), azurePoints);
+            for (int index = 0; index < 8; index++) {
+                double angle = index * Math.PI / 4.0D;
+                line(center, radius * 0.24D, angle, radius * 0.70D, angle, azurePoints);
+                line(center, radius * 0.70D, angle, radius * 0.79D,
+                        angle + Math.PI / 18.0D, violetPoints);
+                line(center, radius * 0.79D, angle + Math.PI / 18.0D,
+                        radius * 0.70D, angle + Math.PI / 9.0D, violetPoints);
+            }
+            for (int index = 0; index < 4; index++) {
+                double angle = index * Math.PI / 2.0D;
+                star(center, radius * 0.90D, angle, radius * 0.12D, azurePoints);
+                star(center, radius * 0.90D, angle, radius * 0.045D, redPoints);
+                crescent(center, radius * 0.57D, angle + Math.PI / 4.0D,
+                        radius * 0.09D, azurePoints);
+            }
+            star(center, 0.0D, 0.0D, radius * 0.24D, azurePoints);
+            star(center, 0.0D, 0.0D, radius * 0.065D, redPoints);
+            azure = List.copyOf(azurePoints);
+            violet = List.copyOf(violetPoints);
+            red = List.copyOf(redPoints);
+        }
+
+        /**
+         * 完成時はキャッシュ済みの全点、構築中は進行半径内の点だけを一括描画します。
+         *
+         * @param services 近傍プレイヤーへの粒子表示サービス
+         * @param progress 0から1までの構築進行率
+         * @param complete 構築が完了している場合はtrue
+         */
+        private void draw(@NotNull ActiveSkillServices services, double progress, boolean complete) {
+            if (center.getWorld() == null || center.getWorld().getPlayers().stream()
+                    .noneMatch(player -> player.getLocation().distanceSquared(center) <= 64.0D * 64.0D)) {
+                return;
+            }
+            double revealSquared = Math.pow(radius * 1.05D * progress, 2.0D);
+            services.effects().points(center, complete ? azure : visible(azure, revealSquared),
+                    SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_AZURE);
+            services.effects().points(center, complete ? violet : visible(violet, revealSquared),
+                    SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_VIOLET);
+            services.effects().points(center, complete ? red : visible(red, revealSquared),
+                    SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_RED);
+        }
+
+        /** 構築済み半径内だけのキャッシュ済み座標を返します。 */
+        private List<Location> visible(List<Location> points, double revealSquared) {
+            List<Location> result = new ArrayList<>();
+            for (Location point : points) {
+                double dx = point.getX() - center.getX();
+                double dz = point.getZ() - center.getZ();
+                if (dx * dx + dz * dz <= revealSquared + 1.0E-8D) {
+                    result.add(point);
+                }
+            }
+            return result;
         }
     }
 }
