@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.Arch
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageHealCircleExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageBindCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
@@ -23,6 +24,8 @@ import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -46,6 +49,8 @@ public final class ActiveSkillExecutorCatalog {
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
      * @param skillService 回復成立時のクールタイム解除サービス
+     * @param bindCircleRuntimeService バインドサークル拘束状態
+     * @param plugin 設置中の円の独立 task を登録するプラグイン
      * @return 実装済みのexecutor一覧
      */
     public static @NotNull List<SkillExecutor> create(
@@ -57,9 +62,11 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PartyService partyService,
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService,
-            @NotNull SkillService skillService
+            @NotNull SkillService skillService,
+            @NotNull BindCircleRuntimeService bindCircleRuntimeService,
+            @NotNull Plugin plugin
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(42);
+        List<SkillExecutor> executors = new ArrayList<>(43);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
@@ -71,6 +78,7 @@ public final class ActiveSkillExecutorCatalog {
         executors.add(new WizardSelfHealExecutor(services));
         executors.add(new WizardElementalPrismExecutor(services));
         executors.add(new WizardElementalBallExecutor(services));
+        executors.add(new ArchmageBindCircleExecutor(services, bindCircleRuntimeService, plugin));
         executors.addAll(PaladinSkillExecutorCatalog.create(
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));

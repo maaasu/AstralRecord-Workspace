@@ -848,6 +848,26 @@ public final class SharedParticleDefinitions {
             "wizard_meteor_sigil_rune", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 45, 12), 1.5F)
         );
+    public static final SharedParticleDefinition BIND_CIRCLE_LOCK =
+        new SharedParticleDefinition(
+            "bind_circle_lock", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(245, 35, 90), 1.35F)
+        );
+    public static final SharedParticleDefinition BIND_CIRCLE_RED =
+        new SharedParticleDefinition(
+            "bind_circle_red", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 18, 35), 1.55F)
+        );
+    public static final SharedParticleDefinition BIND_CIRCLE_WHITE =
+        new SharedParticleDefinition(
+            "bind_circle_white", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(245, 224, 255), 1.25F)
+        );
+    public static final SharedParticleDefinition BIND_CIRCLE_MAGENTA =
+        new SharedParticleDefinition(
+            "bind_circle_magenta", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(225, 38, 220), 1.1F)
+        );
     public static final SharedParticleDefinition WIZARD_METEOR_TRAIL_FLAME =
         new SharedParticleDefinition("wizard_meteor_trail_flame", Particle.FLAME, 12, 0.48D, 0.48D, 0.48D, 0.04D);
     public static final SharedParticleDefinition WIZARD_METEOR_TRAIL_SMOKE =

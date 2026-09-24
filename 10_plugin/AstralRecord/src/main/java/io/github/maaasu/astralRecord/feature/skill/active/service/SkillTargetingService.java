@@ -396,8 +396,32 @@ public final class SkillTargetingService {
         if (center.getWorld() != player.getWorld()) {
             return List.of();
         }
+        return inRadius(center, radius, height, maxTargets, requireLineOfSight);
+    }
+
+    /**
+     * 設置後の発動者の移動・退出に依存せず、中心World内のMobと円柱の接触を返します。
+     *
+     * @param center 固定した魔法陣の中心
+     * @param radius 水平半径
+     * @param height 上下の許容差
+     * @param maxTargets 最大対象数
+     * @param requireLineOfSight 遮蔽判定を行うか
+     * @return 中心に近い順の敵Mob
+     */
+    public @NotNull List<AstEntity> inRadius(
+            @NotNull Location center,
+            double radius,
+            double height,
+            int maxTargets,
+            boolean requireLineOfSight
+    ) {
+        World world = center.getWorld();
+        if (world == null) {
+            return List.of();
+        }
         double radiusSquared = radius * radius;
-        return targets(player, mob -> {
+        return targets(world, mob -> {
             BoundingBox bounds = targetBounds(mob);
             double nearestX = Math.clamp(center.getX(), bounds.getMinX(), bounds.getMaxX());
             double nearestZ = Math.clamp(center.getZ(), bounds.getMinZ(), bounds.getMaxZ());
@@ -732,7 +756,14 @@ public final class SkillTargetingService {
             @NotNull Player player,
             @NotNull Predicate<MobInstance> shape
     ) {
-        World world = player.getWorld();
+        return targets(player.getWorld(), shape);
+    }
+
+    /** 指定Worldの管理対象Mobを形状判定へ渡します。 */
+    private @NotNull List<MobInstance> targets(
+            @NotNull World world,
+            @NotNull Predicate<MobInstance> shape
+    ) {
         return mobService.getInstances().stream()
                 .filter(mob -> mob.state() != MobState.DEAD)
                 .filter(mob -> mob.template().category() != MobCategory.NPC)

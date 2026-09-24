@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2392",
+  "name": "&dバインドサークル",
+  "icon": "NETHER_WART_BLOCK",
+  "tags": ["magic", "control"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "archmage_bind_circle" }
+  ],
+  "unlockCondition": { "classId": "archmage" }
+}

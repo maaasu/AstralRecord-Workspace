@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -100,6 +101,7 @@ public class MobAiService {
     private final ParticleDisplayService particleDisplayService;
     private final ConditionService conditionService;
     private final MobTauntService tauntService;
+    private final BindCircleRuntimeService bindCircleRuntimeService;
 
     private BukkitTask task;
     private long internalTick;
@@ -150,7 +152,7 @@ public class MobAiService {
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService,
             @Nullable ConditionService conditionService) {
-        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, conditionService, null);
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, conditionService, null, null);
     }
 
     public MobAiService(
@@ -161,6 +163,31 @@ public class MobAiService {
             @Nullable ParticleDisplayService particleDisplayService,
             @Nullable ConditionService conditionService,
             @Nullable MobTauntService tauntService) {
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService,
+                conditionService, tauntService, null);
+    }
+
+    /**
+     * バインドサークルの拘束を通常 AI と Mob スキルに反映する実サーバー用コンストラクタです。
+     *
+     * @param mobService Mob 管理
+     * @param mobCombatService Mob 戦闘
+     * @param mobSkillService Mob スキル
+     * @param playerDeathService プレイヤー死亡状態
+     * @param particleDisplayService 粒子表示
+     * @param conditionService 状態異常
+     * @param tauntService 挑発状態
+     * @param bindCircleRuntimeService バインドサークル拘束。未設定なら拘束判定を省略
+     */
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull MobSkillService mobSkillService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable ParticleDisplayService particleDisplayService,
+            @Nullable ConditionService conditionService,
+            @Nullable MobTauntService tauntService,
+            @Nullable BindCircleRuntimeService bindCircleRuntimeService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.mobSkillService = mobSkillService;
@@ -168,6 +195,7 @@ public class MobAiService {
         this.particleDisplayService = particleDisplayService;
         this.conditionService = conditionService;
         this.tauntService = tauntService;
+        this.bindCircleRuntimeService = bindCircleRuntimeService;
     }
 
     /**
@@ -204,6 +232,14 @@ public class MobAiService {
                         continue;
                     }
                     instance.completeShieldRechargeIfReady(System.currentTimeMillis());
+                    if (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(instance.instanceId())) {
+                        mobService.stopPathfinding(instance);
+                        if (instance.state() == MobState.COMBAT
+                                && (conditionService == null || conditionService.canAttack(AstEntity.mob(instance)))) {
+                            mobCombatService.tickCombat(instance, internalTick);
+                        }
+                        continue;
+                    }
                     if (conditionService != null
                             && !conditionService.canRunAi(AstEntity.mob(instance))) {
                         mobService.stopPathfinding(instance);

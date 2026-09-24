@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -126,6 +127,7 @@ public final class BossMechanicService {
     private final DungeonService dungeonService;
     private final ConditionService conditionService;
     private final ParticleDisplayService particleDisplayService;
+    private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
     private final List<PendingMechanic> deferredPendingMechanics = new ArrayList<>();
@@ -169,6 +171,15 @@ public final class BossMechanicService {
      */
     public void setTemporarySkillEffectService(@Nullable TemporarySkillEffectService temporarySkillEffectService) {
         this.temporarySkillEffectService = temporarySkillEffectService;
+    }
+
+    /**
+     * 通常ギミック停止と必殺技時の拘束解除に使う専用状態を設定します。
+     *
+     * @param bindCircleRuntimeService バインドサークル拘束管理
+     */
+    public void setBindCircleRuntimeService(@NotNull BindCircleRuntimeService bindCircleRuntimeService) {
+        this.bindCircleRuntimeService = bindCircleRuntimeService;
     }
 
     /** ボス固有ギミックの定期処理を開始します。 */
@@ -257,7 +268,8 @@ public final class BossMechanicService {
                 )
             );
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
-            if (!conditionService.canRunAi(AstEntity.mob(boss))) {
+            if (!conditionService.canRunAi(AstEntity.mob(boss))
+                || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
                 cleanupAldaExposure(boss.instanceId(), runtime);
                 if (isPendingSunbirdFinalPhase(boss, runtime, observedPhase)) {
                     runtime.phase = observedPhase;
@@ -481,13 +493,18 @@ public final class BossMechanicService {
             PendingMechanic pending = iterator.next();
             MobInstance boss = mobService.getInstance(pending.bossInstanceId());
             Entity entity = boss == null ? null : mobService.entityController().getEntity(boss);
+            if (boss != null && pending.mechanic() == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
+                && bindCircleRuntimeService != null) {
+                bindCircleRuntimeService.releaseForUltimate(boss.instanceId());
+            }
             boolean noManagedTarget = pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
                 && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
                 && entity != null
                 && nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty();
             boolean mechanicBlocked = boss != null
                 && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
-                && !conditionService.canRunAi(AstEntity.mob(boss));
+                && (!conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId())));
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
                 || entity.getWorld() != pending.anchor().getWorld()
                 || noManagedTarget
@@ -819,6 +836,9 @@ public final class BossMechanicService {
         @NotNull MobInstance boss,
         @NotNull Location arenaCenter
     ) {
+        if (bindCircleRuntimeService != null) {
+            bindCircleRuntimeService.releaseForUltimate(boss.instanceId());
+        }
         finishBirdMeteorCharge(boss.instanceId());
         finishBirdMeteor(boss.instanceId());
         Location chargeLocation = arenaCenter.clone().add(0.0D, 5.0D, 0.0D);
@@ -840,6 +860,9 @@ public final class BossMechanicService {
         BirdMeteorChargeState state = birdMeteorChargeStates.get(boss.instanceId());
         if (state == null) {
             return;
+        }
+        if (bindCircleRuntimeService != null) {
+            bindCircleRuntimeService.releaseForUltimate(boss.instanceId());
         }
         if (clockTicks >= state.finishTick()) {
             birdMeteorChargeStates.remove(boss.instanceId());

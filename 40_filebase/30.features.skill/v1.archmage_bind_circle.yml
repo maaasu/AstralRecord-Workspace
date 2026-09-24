@@ -1,0 +1,36 @@
+# design:
+#   motif: "魔法陣 / 魔眼の拘束"
+#   progression: 2
+schemaVersion: 1
+id: archmage_bind_circle
+type: SKILL
+implementationId: archmage_bind_circle
+name: "&dバインドサークル"
+description: "&7魔眼の魔法陣に触れた敵を引き寄せ、一体を拘束する。"
+icon: NETHER_WART_BLOCK
+lore:
+  - "&7視線先の地面に半径{skill.radius}mの水平な魔法陣を設置する。"
+  - "&7敵が接すると中心へ引き寄せ、{skill.pullTicks:seconds}秒後に最も中心に近い敵一体を拘束。"
+  - "&7拘束は{skill.bindTicks:seconds}秒間。移動と通常スキルを封じる。"
+  - "&7敵が触れなければ{skill.circleLifetimeTicks:seconds}秒後に魔法陣が消える。"
+  - "&7必殺技の発動時には拘束が解ける。"
+cooldownTicks: 6000
+resourceType: MANA
+resourceCost: 100
+castTimeTicks: 5
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 30 }]
+levelUpRequiredItems: []
+params:
+  range: 16.0
+  radius: 4.0
+  pullTicks: 20
+  bindTicks: 600
+  circleLifetimeTicks: 400
+tags:
+  - active
+  - magic
+  - control

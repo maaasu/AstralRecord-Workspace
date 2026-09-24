@@ -140,6 +140,16 @@ public final class MobSkillService {
 
     /** 指定Mobの詠唱・クールダウンを破棄します。 */
     public void clearCasterState(@NotNull UUID mobInstanceId) {
+        interruptCast(mobInstanceId);
+        cooldownUntilByMob.remove(mobInstanceId);
+    }
+
+    /**
+     * 現在進行中の通常スキル詠唱だけを中断します。クールダウンは保持します。
+     *
+     * @param mobInstanceId Mob インスタンス UUID
+     */
+    public void interruptCast(@NotNull UUID mobInstanceId) {
         BukkitTask task = castingTasks.remove(mobInstanceId);
         if (task != null) {
             task.cancel();
@@ -148,7 +158,6 @@ public final class MobSkillService {
         if (instance != null) {
             instance.clearSkillCasting();
         }
-        cooldownUntilByMob.remove(mobInstanceId);
     }
 
     /** Plugin停止時に残っている全Mobスキル状態を破棄します。 */

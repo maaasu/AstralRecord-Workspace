@@ -275,6 +275,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArcaneFlowSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
@@ -446,6 +447,7 @@ public final class AstralRecord extends JavaPlugin {
     private MobAiService mobAiService;
     private MobCombatService mobCombatService;
     private MobSkillService mobSkillService;
+    private BindCircleRuntimeService bindCircleRuntimeService;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private MobTauntService mobTauntService;
     private MobProjectileService mobProjectileService;
@@ -879,6 +881,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (activeSkillTaskService != null) {
             activeSkillTaskService.stop();
+        }
+        if (bindCircleRuntimeService != null) {
+            bindCircleRuntimeService.stop();
         }
         if (temporarySkillEffectService != null) {
             temporarySkillEffectService.clearAll();
@@ -1742,10 +1747,13 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));
         mobSkillService = new MobSkillService(mobService, mobSkillRegistry);
         mobSkillService.setConditionService(conditionService);
+        bindCircleRuntimeService = new BindCircleRuntimeService(mobService, mobSkillService);
+        bossMechanicService.setBindCircleRuntimeService(bindCircleRuntimeService);
         mobTauntService = new MobTauntService();
         mobService.setDestroyListener(mobInstanceId -> {
             skillService.clearCasterState(mobInstanceId);
             mobSkillService.clearCasterState(mobInstanceId);
+            bindCircleRuntimeService.releaseForUltimate(mobInstanceId);
             mobProjectileService.clearCasterState(mobInstanceId);
             clayGuardLeapMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             mobTauntService.clearMob(mobInstanceId);
@@ -1822,7 +1830,9 @@ public final class AstralRecord extends JavaPlugin {
             partyService,
             paladinGuardianProtectRuntimeService,
             playerDeathService,
-            skillService
+            skillService,
+            bindCircleRuntimeService,
+            this
         )
             .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
@@ -2011,7 +2021,8 @@ public final class AstralRecord extends JavaPlugin {
             playerDeathService,
             particleDisplayService,
             conditionService,
-            mobTauntService
+            mobTauntService,
+            bindCircleRuntimeService
         );
         mobAiService.start();
         trainingDummyService.start();
