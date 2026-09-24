@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -22,6 +23,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -60,6 +62,7 @@ public final class MobDropPresentationService {
     private static final int MAX_RESULT_TEXT_ITEMS = 5;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final String DROP_SOURCE = "mob_drop";
+    private static final String DROP_ITEM_TOOLTIP_MARKER = "\uE000";
     private static final double ENEMY_RARE_DROP_MAX_RATE = 0.1D;
     private static final double BOSS_RARE_DROP_MAX_RATE = 5.0D;
 
@@ -390,23 +393,75 @@ public final class MobDropPresentationService {
                     continue;
                 }
                 if (rareDrop) {
-                    PlayerMessageService.getInstance().send(
-                        viewer,
-                        PlayerMsgId.P_5728,
-                        itemName,
-                        item.amount(),
-                        formatDropRate(item.dropRate())
-                    );
+                    sendDropLogMessage(viewer, recipientPlayer, item, itemName, true, !isRecipient);
+                    if (!isRecipient) {
+                        viewer.playSound(viewer.getLocation(), Sound.BLOCK_GRAVEL_PLACE, 0.8F, 0.75F);
+                    }
                 } else {
-                    PlayerMessageService.getInstance().send(
-                        viewer,
-                        PlayerMsgId.P_5732,
-                        itemName,
-                        item.amount()
-                    );
+                    sendDropLogMessage(viewer, recipientPlayer, item, itemName, false, false);
                 }
             }
         }
+    }
+
+    /**
+     * ドロップ通知を送信し、アイテム名に表示用 ItemStack の説明ホバーを付けます。
+     * レアドロップでは獲得本人に名前なしの通知を送り、他プレイヤー向けには獲得者名を含めます。
+     *
+     * @param viewer 通知の受信プレイヤー
+     * @param dropRecipient アイテムを獲得したプレイヤー
+     * @param item 通知する解決済みアイテム
+     * @param itemName 表示名とカラーコード
+     * @param rareDrop レアドロップなら {@code true}
+     * @param showDropRecipient 通知に獲得者名を含めるなら {@code true}
+     */
+    private void sendDropLogMessage(
+        @NotNull Player viewer,
+        @NotNull Player dropRecipient,
+        @NotNull ResolvedDropItem item,
+        @NotNull String itemName,
+        boolean rareDrop,
+        boolean showDropRecipient
+    ) {
+        PlayerMsgId messageId = rareDrop
+            ? showDropRecipient ? PlayerMsgId.P_5733 : PlayerMsgId.P_5728
+            : PlayerMsgId.P_5732;
+        Component message;
+        if (showDropRecipient) {
+            message = PlayerMsgResource.formatPlainComponent(
+                messageId.getId(),
+                dropRecipient.getName(),
+                DROP_ITEM_TOOLTIP_MARKER,
+                item.amount(),
+                formatDropRate(item.dropRate())
+            );
+            message = PlayerMessageService.getInstance().decorateAccountPlayerArguments(
+                message,
+                dropRecipient.getName()
+            );
+        } else if (rareDrop) {
+            message = PlayerMsgResource.formatPlainComponent(
+                messageId.getId(),
+                DROP_ITEM_TOOLTIP_MARKER,
+                item.amount(),
+                formatDropRate(item.dropRate())
+            );
+        } else {
+            message = PlayerMsgResource.formatPlainComponent(
+                messageId.getId(),
+                DROP_ITEM_TOOLTIP_MARKER,
+                item.amount()
+            );
+        }
+
+        ItemStack tooltip = itemStackFactory.createDisplay(item.model(), item.amount());
+        Component itemNameComponent = LEGACY.deserialize(
+            ColorCodeUtil.translateAlternateColorCodes(itemName)
+        ).hoverEvent(tooltip.asHoverEvent());
+        Component messageWithTooltip = message.replaceText(builder -> builder
+            .matchLiteral(DROP_ITEM_TOOLTIP_MARKER)
+            .replacement(itemNameComponent));
+        PlayerMessageService.getInstance().sendComponent(viewer, messageWithTooltip);
     }
 
     /**
