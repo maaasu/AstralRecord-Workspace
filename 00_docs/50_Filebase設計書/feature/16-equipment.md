@@ -93,6 +93,10 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 - 命中面には短命の金属格子型BlockDisplay、プレイヤーとアンカーの間にはparticle tetherを表示します。素材 `10a00057` のiconは `TRIPWIRE_HOOK` ですが、アイテム専用MaterialのためBlockDisplayには使いません。
 - 耐久は既存の装備instance耐久として管理し、generic repair orbで回復できます。
 
+## 不死鳥との共鳴のスキルブック
+
+`20a00070` は `ENCHANTED_BOOK` をアイコンに使う `SKILLBOOK` 装備です。プレイヤーLv.25以上、現在クラスが `archmage` または `arc_sage` の場合に装備でき、装備中は `skill:archmage_phoenix_resonance` の習得・使用を許可します。習得時の初級原石15個、レベルアップ時の中級原石1個、パッシブバインドはスキルの定義どおり必要です。強化・エンチャント・ステータス補正は持ちません。
+
 ## 入手方法の確認
 
 - 入手前に攻略が必要な対象と、その装備で攻略させたい対象が逆転していないこと。

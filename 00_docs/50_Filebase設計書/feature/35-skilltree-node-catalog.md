@@ -476,6 +476,14 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `status-sharpshooter-rapid-evasion-notable` | `2239` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6風翔の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
 
 
+## アークメイジのスキルノード
+
+`2268` はアークメイジ用の1CPノードとして定義し、現行の `starter` には配置しない。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `skill-archmage-phoenix-resonance` | `2268` | `skill` / `archmage_phoenix_resonance` | `&6不死鳥との共鳴` | `PARROT_SPAWN_EGG` | `fire` |
+
 ## カタログの更新規約
 
 - 新しい能力を採用したときは、対応する node JSON と同じ変更でこの表に追加します。

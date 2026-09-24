@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2268",
+  "name": "&6不死鳥との共鳴",
+  "icon": "PARROT_SPAWN_EGG",
+  "tags": [
+    "fire"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_phoenix_resonance"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

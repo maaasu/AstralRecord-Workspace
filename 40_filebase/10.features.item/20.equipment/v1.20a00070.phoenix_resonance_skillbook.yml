@@ -1,0 +1,26 @@
+# design:
+#   motif: "神話 / 不死鳥の魔導書"
+#   progression: 2
+schemaVersion: 1
+id: 20a00070
+category: equipment
+name: "&6不死鳥との共鳴のスキルブック"
+icon: ENCHANTED_BOOK
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7装備中、不死鳥との共鳴を習得・使用できる。"
+  - "&7習得にはスキルジェムの原石(初級)15個が必要。"
+  - "&7使用にはパッシブスキルのバインドが必要。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SKILLBOOK
+  requiredLevel: 25
+  requiredClasses:
+    - { classId: archmage, level: 1 }
+    - { classId: arc_sage, level: 1 }
+  usableSkills:
+    - skill:archmage_phoenix_resonance
+  stats: []

@@ -1,0 +1,41 @@
+# design:
+#   motif: "神話 / 不死鳥"
+#   progression: 2
+schemaVersion: 1
+id: archmage_phoenix_resonance
+type: SKILL
+implementationId: archmage_phoenix_resonance
+name: "&6不死鳥との共鳴"
+description: "&7不死鳥と共鳴し、戦いをともにする。"
+icon: PARROT_SPAWN_EGG
+lore:
+  - "&7敵モブとの戦闘が始まると、不死鳥が背後の空を追従する。"
+  - "&7不死鳥のHPを表すphoenixを獲得する。最大値は{skill.phoenixMax}。"
+  - "&7召喚時のphoenixは{skill.phoenixMax}になる。"
+  - "&7最後に攻撃した敵が{skill.targetRange}m以内からいなくなって{skill.despawnDelayTicks:seconds}秒後に消滅する。"
+  - "&7召喚中は敵への命中ごとに対象と消滅までの待機時間を更新する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2 }
+  - { level: 3 }
+  - { level: 4 }
+  - { level: 5 }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 15 }]
+levelUpRequiredItems: [{ itemId: 10a00028, amount: 1 }]
+passive:
+  bindRequired: true
+params:
+  phoenixMax: 500
+  targetRange: 50
+  despawnDelayTicks: 600
+tags:
+  - passive
+  - magic
+  - support
