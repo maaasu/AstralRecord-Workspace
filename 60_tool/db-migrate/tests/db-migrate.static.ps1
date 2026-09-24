@@ -30,13 +30,23 @@ if (@($registeredFiles | Sort-Object -Unique).Count -ne $registeredFiles.Count) 
 $historyConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $historyConfigPath | ConvertFrom-Json
 $historyRoot = [IO.Path]::GetFullPath((Join-Path (Split-Path $historyConfigPath) $historyConfig.migrationsRootPath))
 $historyFiles = @(Get-ChildItem -LiteralPath $historyRoot -Filter "*.sql" -File)
-if ($historyFiles.Count -ne 1 -or $historyFiles[0].Name -ne '20260921_player_activity.sql') {
-    throw "HistoryDB migration directory must contain only the reviewed player activity migration."
+$historyRegistered = @($historyConfig.migrations.fileName)
+if ($historyFiles.Count -ne $historyRegistered.Count -or
+    @($historyFiles | Where-Object { $_.Name -notin $historyRegistered }).Count -ne 0 -or
+    @($historyRegistered | Sort-Object -Unique).Count -ne $historyRegistered.Count) {
+    throw "Every HistoryDB migration must be registered exactly once for execution."
 }
 $historyMigration = @($historyConfig.migrations | Where-Object { $_.id -eq '20260921_player_activity' })
 $invalidHistoryManifest = $historyConfig.connectionStringName -ne 'History' -or $historyConfig.expectedDatabase -ne 'HistoryDB' -or $historyMigration.Count -ne 1 -or $historyMigration[0].additionalExpectations.Count -ne 7
 if ($invalidHistoryManifest) {
     throw "HistoryDB player activity migration must use the History connection and validate all activity tables."
+}
+
+$bossMigration = @($historyConfig.migrations | Where-Object { $_.id -eq '20260924_boss_activity_duration' })
+if ($bossMigration.Count -ne 1 -or $bossMigration[0].expectation.table -ne 'boss_clear_activity' -or
+    $bossMigration[0].additionalExpectations.Count -ne 2 -or
+    @($bossMigration[0].additionalExpectations | Where-Object { $_.table -eq 'dungeon_clear_activity' -and $_.columns[0].name -eq 'duration_milliseconds' }).Count -ne 1) {
+    throw "Boss migration must validate boss records, participants and dungeon durations."
 }
 
 $receiptMigration = @($config.migrations | Where-Object { $_.id -eq "20260910_market_listing_create_receipt" })

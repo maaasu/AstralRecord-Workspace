@@ -16,6 +16,8 @@ Pluginがゲーム本流と独立したキューから `POST /api/history/activi
 
 DTO定義は `20_api/AstralRecordApi/AstralRecordApi/Models/PlayerActivityModels.cs` を正本とする。
 
+ボス参加者の `damageDealt` はPluginの実効ダメージを受け取り、API保存時に小数第3位へ四捨五入（ちょうど中間は絶対値の大きい側）する。小数第4位以下があるだけでは拒否しない。負値、および丸め後に `DECIMAL(18,3)` の範囲を超える値は400とする。
+
 ダンジョンとボスの攻略履歴には、`dungeonId` / `bossId` の完全一致、参加者の `userUuid` / `accountId`、部分一致の `query` を指定できる。`sort=recent`（既定）は攻略日時の降順、`fastest` は攻略時間の昇順、`slowest` は降順。プレイヤー別集計は `sort=count`（既定）が踏破回数の降順、`fastest` が最短攻略時間の昇順、`slowest` が平均攻略時間の降順である。いずれもDBで集計・整列後にページングし、同順位は件数や日時、イベント/アカウントIDで安定化する。異なるダンジョンやボスを混ぜた順位は対象の難易度差を含むため、比較時はID絞り込みを推奨する。
 
 攻略時間は `duration_milliseconds` を正本とし、応答の `durationSeconds` / `bestDurationSeconds` / `averageDurationSeconds` は小数秒の `double` である。ダンジョンのプレイヤー別応答は従来の項目に最短・平均時間を末尾追加する。ボスの参加者には `player`, `damageDealt`, `deathCount`、プレイヤー別応答には `player`, `clearCount`, `firstClearedAt`, `lastClearedAt`, `bestDurationSeconds`, `averageDurationSeconds`, `totalDamageDealt`, `totalDeathCount` を返す。

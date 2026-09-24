@@ -1,0 +1,64 @@
+@page
+@model AstralRecordWeb.Pages.Admin.History.BossesModel
+@using AstralRecordWeb.Pages.Admin.History
+@using AstralRecordWeb.Services
+@{ ViewData["Title"] = "ボス攻略履歴"; }
+@section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>ボス攻略履歴</h1><p class="ar-portal-sub">攻略時間と参加者ごとの与ダメージ・死亡回数を確認します。</p></div></header>
+    <partial name="_HistoryNav" />
+    <form method="get" class="ar-panel ar-history-filters" aria-label="ボス攻略の検索">
+        <partial name="_HistoryFilters" model="Model" />
+        <div><label asp-for="BossId">ボスID（完全一致）</label><input asp-for="BossId" maxlength="128" placeholder="すべてのボス" /></div>
+        <div><label asp-for="View">表示</label><select asp-for="View"><option value="runs">攻略回ごとの記録</option><option value="players">プレイヤー別の攻略成績</option></select></div>
+        <div><label asp-for="Sort">並び順</label><select asp-for="Sort"><option value="recent">攻略日時が新しい順（攻略回）</option><option value="count">攻略回数が多い順（プレイヤー）</option><option value="fastest">攻略時間が短い順（プレイヤーは最速記録）</option><option value="slowest">攻略時間が長い順（プレイヤーは平均時間）</option></select></div>
+        <input type="hidden" asp-for="UserUuid" /><input type="hidden" asp-for="AccountId" />
+        <button class="btn ar-btn-primary">検索する</button>
+    </form>
+    <p class="ar-history-note">戦闘開始から討伐成立までの時間です。入場時に確定した参加者を記録し、カウントダウン中の退出者も含みます。与ダメージはHPとシールドへの実効ダメージの合計です。失敗・中断した挑戦は含みません。</p>
+    <p class="ar-history-note">ランキングは検索条件内の全攻略を並べ替えて表示します。同じボスを比較するときはボスIDで絞り込んでください。プレイヤーの最速・平均は参加した攻略回全体の時間です。同時間は攻略日時・記録ID等で表示順を固定します。記録開始前の攻略は表示できず、まとめ送信により遅延・欠落が生じる場合があります。時刻は日本時間（JST）です。</p>
+    @if (Model.AccountId is not null || Model.UserUuid is not null)
+    { <p><a asp-page="Bosses" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="@Model.View" asp-route-sort="@Model.Sort" asp-route-bossId="@Model.BossId">プレイヤーの絞り込みを解除</a></p> }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Results is { } results)
+    {
+        <p>期間内 @results.TotalCount.ToString("N0") 回の攻略</p>
+        @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        @for (var index = 0; index < results.Items.Count; index++)
+        {
+            var run = results.Items[index];
+            <article class="ar-history-card">
+                <h2>@if (Model.Sort is "fastest" or "slowest") { <span class="ar-profile-badge">@(((long)Model.PageNumber - 1) * results.PageSize + index + 1) 位</span> } @Html.Raw(MinecraftTextFormatter.ToHtml(run.BossName)) <span class="ar-profile-badge">所要時間 @HistoryPageModel.Duration(run.DurationSeconds)</span></h2>
+                <p class="ar-history-note">開始 @HistoryPageModel.Timestamp(run.StartedAt) → 攻略 @HistoryPageModel.Timestamp(run.ClearedAt) JST<br />@run.BossId ／ 記録 @run.EventId ／ @run.Participants.Count 人参加</p>
+                <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>参加プレイヤー / アカウント</th><th>与ダメージ</th><th>死亡回数</th><th>関連履歴</th></tr></thead><tbody>
+                @foreach (var participant in run.Participants)
+                {
+                    <tr><td><a asp-page="Bosses" asp-route-accountId="@participant.Player.AccountId" asp-route-bossId="@run.BossId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="players">@participant.Player.Mcid / @participant.Player.AccountName</a><small>@participant.Player.AccountId</small></td><td class="ar-history-value">@participant.DamageDealt.ToString("N1")</td><td>@participant.DeathCount.ToString("N0") 回</td><td><a asp-page="Events" asp-route-userUuid="@participant.Player.UserUuid" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">接続・パーティー</a></td></tr>
+                }
+                </tbody></table></div>
+            </article>
+        }
+    }
+    @if (Model.Players is { } players)
+    {
+        <p>@players.TotalCount.ToString("N0") アカウント</p>
+        @if (players.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>順位</th><th>プレイヤー / アカウント</th><th>攻略回数</th><th>最速時間</th><th>平均時間</th><th>与ダメージ合計</th><th>死亡回数合計</th><th>最後の攻略（JST）</th></tr></thead><tbody>
+        @for (var index = 0; index < players.Items.Count; index++)
+        {
+            var player = players.Items[index];
+            <tr><td>@(((long)Model.PageNumber - 1) * players.PageSize + index + 1)</td><td><a asp-page="Bosses" asp-route-accountId="@player.Player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-bossId="@Model.BossId">@player.Player.Mcid / @player.Player.AccountName</a><small>@player.Player.AccountId</small></td><td>@player.ClearCount.ToString("N0") 回</td><td class="ar-history-value">@HistoryPageModel.Duration(player.BestDurationSeconds)</td><td class="ar-history-value">@HistoryPageModel.Duration(player.AverageDurationSeconds)</td><td class="ar-history-value">@player.TotalDamageDealt.ToString("N1")</td><td>@player.TotalDeathCount.ToString("N0") 回</td><td>@HistoryPageModel.Timestamp(player.LastClearedAt)</td></tr>
+        }
+        </tbody></table></div>
+    }
+    @if (Model.Results is not null || Model.Players is not null)
+    {
+        var count = Model.Results?.TotalCount ?? Model.Players!.TotalCount;
+        var size = Model.Results?.PageSize ?? Model.Players!.PageSize;
+        <nav class="ar-pagination" aria-label="ボス履歴のページ">
+            @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+            <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(count / (double)size))</span>
+            @if ((long)Model.PageNumber * size < count) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+        </nav>
+    }
+</div></section>

@@ -1,0 +1,42 @@
+@page
+@model AstralRecordWeb.Pages.Admin.History.EventsModel
+@using AstralRecordWeb.Pages.Admin.History
+@{ ViewData["Title"] = "接続・パーティー履歴"; }
+@section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>接続・パーティー履歴</h1><p class="ar-portal-sub">ログイン・ログアウトとパーティーの参加・退出・招待などを時系列で確認します。</p></div></header>
+    <partial name="_HistoryNav" />
+    <form method="get" class="ar-panel ar-history-filters" aria-label="接続・パーティー履歴の検索">
+        <div><label asp-for="Query">メッセージ・イベント種別・発生元</label><input asp-for="Query" maxlength="100" placeholder="履歴の内容で検索" /></div>
+        <div><label asp-for="From">開始日（JST）</label><input asp-for="From" type="date" /></div>
+        <div><label asp-for="To">終了日（JST・当日を含む）</label><input asp-for="To" type="date" /></div>
+        <div><label asp-for="UserUuid">ユーザーUUID</label><input asp-for="UserUuid" placeholder="すべてのユーザー" /></div>
+        <div><label asp-for="EventType">イベント種別（完全一致）</label><input asp-for="EventType" maxlength="50" list="event-types" placeholder="すべてのイベント" /><datalist id="event-types"><option value="PLAYER_LOGIN">ログイン</option><option value="PLAYER_LOGOUT">ログアウト</option><option value="PARTY_CREATED">パーティー作成</option><option value="PARTY_JOINED">パーティー参加</option><option value="PARTY_LEFT">パーティー退出</option><option value="PARTY_LEFT_LOGOUT">ログアウトによる退出</option><option value="PARTY_DISBANDED">パーティー解散</option><option value="PARTY_INVITED">招待送信</option><option value="PARTY_INVITE_RECEIVED">招待受信</option><option value="PARTY_KICKED">パーティーから除外</option><option value="PARTY_MEMBER_KICKED">メンバー除外</option><option value="PARTY_LEADER_TRANSFERRED">リーダー移譲</option><option value="PARTY_LEADER_ASSIGNED">リーダー任命</option></datalist></div>
+        <button class="btn ar-btn-primary">検索する</button>
+    </form>
+    <p class="ar-history-note">時刻は日本時間（JST）。保存済みイベントを新しい順に表示します。ユーザーUUIDはキャラクター共通です。履歴の欠落があり得るため、ログインとログアウトの組から正確な滞在時間は算出しません。</p>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Results is { } results)
+    {
+        <p>@results.TotalCount.ToString("N0") 件の履歴</p>
+        @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>日時（JST）</th><th>イベント</th><th>ユーザー</th><th>内容</th><th>発生元</th></tr></thead><tbody>
+        @foreach (var entry in results.Items)
+        {
+            <tr><td>@HistoryPageModel.Timestamp(entry.EventTime)<small>記録 @entry.HistoryId</small></td><td>@EventsModel.EventLabel(entry.EventType)<small>@entry.EventType</small></td><td>
+                @if (entry.UserUuid is { } user)
+                {
+                    <a asp-page="Events" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@user</a>
+                    <small><a asp-page="Dungeons" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ダンジョン</a> ／ <a asp-page="Bosses" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ボス</a> ／ <a asp-page="Trades" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">取引</a></small>
+                }
+                else { <span>対象ユーザーなし</span> }
+            </td><td class="ar-history-message">@entry.Message</td><td>@entry.Source</td></tr>
+        }
+        </tbody></table></div>
+        <nav class="ar-pagination" aria-label="接続・パーティー履歴のページ">
+            @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
+            <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(results.TotalCount / (double)results.PageSize))</span>
+            @if ((long)Model.PageNumber * results.PageSize < results.TotalCount) { <a href="@Model.PageLink(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }
+        </nav>
+    }
+</div></section>

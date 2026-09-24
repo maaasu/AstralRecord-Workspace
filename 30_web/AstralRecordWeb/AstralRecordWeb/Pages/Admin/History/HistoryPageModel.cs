@@ -59,9 +59,10 @@ public abstract class HistoryPageModel : PageModel
     public static string Duration(double seconds)
     {
         var duration = TimeSpan.FromSeconds(Math.Clamp(seconds, 0, 315360000));
+        var secondText = (duration.Seconds + duration.Milliseconds / 1000d).ToString("0.###", CultureInfo.InvariantCulture);
         return duration.TotalHours >= 1
-            ? $"{(long)duration.TotalHours}時間 {duration.Minutes}分 {duration.Seconds}秒"
-            : $"{duration.Minutes}分 {duration.Seconds}秒";
+            ? $"{(long)duration.TotalHours}時間 {duration.Minutes}分 {secondText}秒"
+            : $"{duration.Minutes}分 {secondText}秒";
     }
 
 }

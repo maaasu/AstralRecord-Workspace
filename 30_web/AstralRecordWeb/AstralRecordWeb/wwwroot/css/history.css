@@ -12,6 +12,7 @@
 .ar-history-card { margin:1rem 0; padding:1.25rem; border:1px solid #394757; border-radius:.75rem; background:rgba(14,24,35,.8); }
 .ar-history-card h2 { font-size:1.2rem; }
 .ar-history-value { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ar-history-message { white-space:pre-wrap; overflow-wrap:anywhere; min-width:180px; }
 .ar-history-distance { display:flex; align-items:center; gap:.75rem; min-width:180px; }
 .ar-history-distance meter { width:100px; height:1rem; }
 .ar-history-note { color:#bacad9; font-size:.9rem; line-height:1.8; }

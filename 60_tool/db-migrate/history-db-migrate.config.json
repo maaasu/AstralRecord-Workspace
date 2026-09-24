@@ -142,6 +142,47 @@
           "indexDefinitions": [ { "name": "IX_mob_player_death_mob_occurred", "columns": [ "mob_id", "occurred_at" ] } ]
         }
       ]
+    },
+    {
+      "id": "20260924_boss_activity_duration",
+      "fileName": "20260924_boss_activity_duration.sql",
+      "expectation": {
+        "schema": "dbo", "table": "boss_clear_activity", "primaryKey": "PK_boss_clear_activity",
+        "columns": [
+          { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "boss_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+          { "name": "boss_name", "sqlType": "nvarchar", "maxLengthBytes": 400, "isNullable": false },
+          { "name": "started_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "cleared_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "duration_milliseconds", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false }
+        ],
+        "checkConstraints": [ "CK_boss_clear_activity_time" ],
+        "indexes": [ "IX_boss_clear_activity_cleared_boss" ],
+        "indexDefinitions": [
+          { "name": "IX_boss_clear_activity_cleared_boss", "columns": [ "cleared_at", "boss_id" ] }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo", "table": "boss_clear_participant", "primaryKey": "PK_boss_clear_participant",
+          "columns": [
+            { "name": "event_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+            { "name": "mcid", "sqlType": "nvarchar", "maxLengthBytes": 40, "isNullable": false },
+            { "name": "account_name", "sqlType": "nvarchar", "maxLengthBytes": 100, "isNullable": false },
+            { "name": "damage_dealt", "sqlType": "decimal", "precision": 18, "scale": 3, "isNullable": false },
+            { "name": "death_count", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false }
+          ],
+          "checkConstraints": [ "CK_boss_clear_participant_damage", "CK_boss_clear_participant_deaths" ],
+          "indexes": [ "IX_boss_clear_participant_account_event" ],
+          "indexDefinitions": [ { "name": "IX_boss_clear_participant_account_event", "columns": [ "account_id", "event_id" ] } ]
+        },
+        {
+          "schema": "dbo", "table": "dungeon_clear_activity", "primaryKey": "PK_dungeon_clear_activity",
+          "columns": [ { "name": "duration_milliseconds", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false } ]
+        }
+      ]
     }
   ]
 }

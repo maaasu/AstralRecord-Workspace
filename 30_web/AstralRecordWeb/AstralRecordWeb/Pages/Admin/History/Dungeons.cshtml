@@ -11,21 +11,24 @@
         <partial name="_HistoryFilters" model="Model" />
         <div><label asp-for="DungeonId">ダンジョンID</label><input asp-for="DungeonId" maxlength="128" placeholder="すべてのダンジョン" /></div>
         <div><label asp-for="View">表示</label><select asp-for="View"><option value="runs">攻略回ごとの記録</option><option value="players">プレイヤー別の攻略回数</option></select></div>
+        <div><label asp-for="Sort">並び順</label><select asp-for="Sort"><option value="recent">攻略日時が新しい順（攻略回）</option><option value="count">攻略回数が多い順（プレイヤー）</option><option value="fastest">攻略時間が短い順（プレイヤーは最速記録）</option><option value="slowest">攻略時間が長い順（プレイヤーは平均時間）</option></select></div>
         <input type="hidden" asp-for="UserUuid" /><input type="hidden" asp-for="AccountId" />
         <button class="btn ar-btn-primary">検索する</button>
     </form>
     <p class="ar-history-note">時刻は日本時間（JST）。移動距離はテレポートを除く概算です。棒は同じ攻略回の最大距離との比較で、操作量や不正を断定するものではありません。「観測なし」は0mと区別します。</p>
-    @if (Model.AccountId is not null || Model.UserUuid is not null) { <p><a asp-page="Dungeons" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="@Model.View" asp-route-dungeonId="@Model.DungeonId">プレイヤーの絞り込みを解除</a></p> }
+    <p class="ar-history-note">ランキングは検索条件内の成功した攻略を対象に、全件を並べ替えてから表示します。同じダンジョンを比較するときはダンジョンIDで絞り込んでください。プレイヤーの最速・平均は参加した攻略回全体の時間です。同時間は攻略日時・記録ID等で表示順を固定します。</p>
+    @if (Model.AccountId is not null || Model.UserUuid is not null) { <p><a asp-page="Dungeons" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-view="@Model.View" asp-route-sort="@Model.Sort" asp-route-dungeonId="@Model.DungeonId">プレイヤーの絞り込みを解除</a></p> }
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Results is { } results)
     {
         <p>期間内 @results.TotalCount.ToString("N0") 回の攻略</p>
         @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        @foreach (var run in results.Items)
+        @for (var index = 0; index < results.Items.Count; index++)
         {
+            var run = results.Items[index];
             var maxDistance = Math.Max(1m, run.Participants.Select(p => p.DistanceMeters ?? 0m).DefaultIfEmpty().Max());
             <article class="ar-history-card">
-                <h2>@run.DungeonName <span class="ar-profile-badge">所要時間 @HistoryPageModel.Duration(run.DurationSeconds)</span></h2>
+                <h2>@if (Model.Sort is "fastest" or "slowest") { <span class="ar-profile-badge">@(((long)Model.PageNumber - 1) * results.PageSize + index + 1) 位</span> } @run.DungeonName <span class="ar-profile-badge">所要時間 @HistoryPageModel.Duration(run.DurationSeconds)</span></h2>
                 <p class="ar-history-note">開始 @HistoryPageModel.Timestamp(run.StartedAt) → 攻略 @HistoryPageModel.Timestamp(run.ClearedAt) JST<br />@run.DungeonId ／ 記録 @run.EventId</p>
                 <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>参加プレイヤー</th><th>アカウント</th><th>移動距離</th><th>観測回数</th></tr></thead><tbody>
                 @foreach (var participant in run.Participants)
@@ -44,10 +47,11 @@
     {
         <p>@players.TotalCount.ToString("N0") アカウント</p>
         @if (players.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー / アカウント</th><th>攻略回数</th><th>記録済み移動距離の合計</th><th>最後の攻略（JST）</th></tr></thead><tbody>
-        @foreach (var player in players.Items)
+        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>順位</th><th>プレイヤー / アカウント</th><th>攻略回数</th><th>最速時間</th><th>平均時間</th><th>記録済み移動距離の合計</th><th>最後の攻略（JST）</th></tr></thead><tbody>
+        @for (var index = 0; index < players.Items.Count; index++)
         {
-            <tr><td><a asp-page="Dungeons" asp-route-accountId="@player.Player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-dungeonId="@Model.DungeonId">@player.Player.Mcid / @player.Player.AccountName</a><small>@player.Player.AccountId</small></td><td>@player.ClearCount.ToString("N0") 回</td><td>@(player.TotalDistanceMeters is { } meters ? $"{meters:N1} m" : "観測なし")</td><td>@HistoryPageModel.Timestamp(player.LastClearedAt)</td></tr>
+            var player = players.Items[index];
+            <tr><td>@(((long)Model.PageNumber - 1) * players.PageSize + index + 1)</td><td><a asp-page="Dungeons" asp-route-accountId="@player.Player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")" asp-route-dungeonId="@Model.DungeonId">@player.Player.Mcid / @player.Player.AccountName</a><small>@player.Player.AccountId</small></td><td>@player.ClearCount.ToString("N0") 回</td><td class="ar-history-value">@HistoryPageModel.Duration(player.BestDurationSeconds)</td><td class="ar-history-value">@HistoryPageModel.Duration(player.AverageDurationSeconds)</td><td>@(player.TotalDistanceMeters is { } meters ? $"{meters:N1} m" : "観測なし")</td><td>@HistoryPageModel.Timestamp(player.LastClearedAt)</td></tr>
         }
         </tbody></table></div>
     }

@@ -17,6 +17,8 @@ public sealed class ActivityHistoryTests
     [InlineData("SameIp")]
     [InlineData("Trades")]
     [InlineData("Dungeons")]
+    [InlineData("Bosses")]
+    [InlineData("Events")]
     [InlineData("Mobs")]
     public async Task History_RequiresCurrentAdmin_AndCannotOverrideCookieActor(string page)
     {
@@ -74,6 +76,9 @@ public sealed class ActivityHistoryTests
     [InlineData("Trades", "星の素材", "Supplier")]
     [InlineData("Dungeons", "観測なし", "120.5 m")]
     [InlineData("Dungeons?View=players", "3 回", "Supplier")]
+    [InlineData("Bosses?Sort=fastest", "1分 40.125秒", "250.5")]
+    [InlineData("Bosses?View=players&Sort=fastest", "最速時間", "2分 0.5秒")]
+    [InlineData("Events", "ログイン", "Supplier")]
     [InlineData("Mobs", "テストモブ", "125.5")]
     [InlineData("Mobs?MobId=test-mob&View=players", "Supplier", "125.5")]
     [InlineData("Mobs?MobId=test-mob&View=deaths", "テストモブ", "Supplier")]
@@ -177,6 +182,60 @@ public sealed class ActivityHistoryTests
         Assert.Contains("履歴保存時の名称を表示しています", body);
     }
 
+    [Theory]
+    [InlineData("Dungeons", "dungeonId", "test-dungeon")]
+    [InlineData("Bosses", "bossId", "test-boss")]
+    public async Task ClearRanking_PreservesFiltersAndPageOffset(string page, string idKey, string id)
+    {
+        var api = new HistoryHandler { Admin = true, Evidence = true, TotalCount = 110 };
+        await using var factory = new HistoryFactory(api);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        await Login(client);
+        var body = await client.GetStringAsync($"/Admin/History/{page}?Sort=fastest&PageNumber=2&{idKey}={id}&From=2026-09-01&To=2026-09-02&AccountId={HistoryHandler.ActorId}");
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(api.LastHistoryUri!.Query);
+        Assert.Equal("fastest", query["sort"]);
+        Assert.Equal(id, query[idKey]);
+        Assert.Equal("2", query["page"]);
+        Assert.Contains("51 位", WebUtility.HtmlDecode(body));
+        var nextHref = Regex.Matches(body, "href=\"([^\"]+)\"").Select(x => WebUtility.HtmlDecode(x.Groups[1].Value)).Single(x => x.Contains("PageNumber=3"));
+        Assert.Contains("Sort=fastest", nextHref);
+        Assert.Contains($"{idKey}={id}", nextHref);
+        Assert.Contains($"AccountId={HistoryHandler.ActorId}", nextHref);
+        var resetHref = WebUtility.HtmlDecode(Regex.Match(WebUtility.HtmlDecode(body), "href=\"([^\"]+)\">プレイヤーの絞り込みを解除").Groups[1].Value);
+        Assert.Contains("sort=fastest", resetHref);
+        Assert.DoesNotContain("accountId=", resetHref, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("Bosses")]
+    [InlineData("Events")]
+    public async Task NewHistoryPages_ReportFailuresWithoutShowingEmptySuccess(string page)
+    {
+        var api = new HistoryHandler { Admin = true, Unavailable = true };
+        await using var factory = new HistoryFactory(api);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        await Login(client);
+        var body = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/History/" + page));
+        Assert.Contains("取得できません", body);
+        Assert.DoesNotContain("条件に一致する記録はありません", body);
+    }
+
+    [Fact]
+    public async Task EventHistory_FiltersUserAndTypeAndEscapesMessage()
+    {
+        var api = new HistoryHandler { Admin = true, Evidence = true };
+        await using var factory = new HistoryFactory(api);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        await Login(client);
+        var body = await client.GetStringAsync($"/Admin/History/Events?EventType=PLAYER_LOGIN&UserUuid={HistoryHandler.ActorId}&Query=Supplier");
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(api.LastHistoryUri!.Query);
+        Assert.Equal("PLAYER_LOGIN", query["eventType"]);
+        Assert.Equal(HistoryHandler.ActorId.ToString(), query["userUuid"]);
+        Assert.Equal("Supplier", query["query"]);
+        Assert.Contains("&lt;script&gt;fixture&lt;/script&gt;", body);
+        Assert.DoesNotContain("<script>fixture</script>", body);
+    }
+
     private sealed class HistoryFactory(HistoryHandler handler) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -198,6 +257,7 @@ public sealed class ActivityHistoryTests
         public bool Unavailable { get; set; }
         public bool Evidence { get; set; }
         public bool ItemUnavailable { get; set; }
+        public int? TotalCount { get; set; }
         public int HistoryGets { get; private set; }
         public string? LastActor { get; private set; }
         public string? LastApiKey { get; private set; }
@@ -221,7 +281,7 @@ public sealed class ActivityHistoryTests
                 LastActor = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri.Query)["actor_user_uuid"];
                 LastApiKey = request.Headers.TryGetValues("X-Api-Key", out var keys) ? keys.Single() : null;
                 var items = Evidence ? EvidenceItems(path) : [];
-                result = Unavailable ? new(HttpStatusCode.ServiceUnavailable) : Json(new { page = 1, pageSize = 50, totalCount = items.Length, items });
+                result = Unavailable ? new(HttpStatusCode.ServiceUnavailable) : Json(new { page = 1, pageSize = 50, totalCount = TotalCount ?? items.Length, items });
             }
             else result = new(HttpStatusCode.NotFound);
             return Task.FromResult(result);
@@ -234,7 +294,10 @@ public sealed class ActivityHistoryTests
             var at = "2026-09-21T01:02:03Z";
             if (path.EndsWith("same-ip")) return [new { firstObservedAt = at, lastObservedAt = at, tradeCount = 3, players = new[] { player, other } }];
             if (path.EndsWith("trades")) return [new { eventId = ActorId, completedAt = at, source = player, destination = other, items = new[] { new { itemId = "test-item", itemName = "PAPER", quantity = 2 } }, gold = 50 }];
-            if (path.EndsWith("dungeons/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, totalDistanceMeters = 120.5m }];
+            if (path.EndsWith("dungeons/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, totalDistanceMeters = 120.5m, bestDurationSeconds = 100.125, averageDurationSeconds = 120.5 }];
+            if (path.EndsWith("bosses/players")) return [new { player, clearCount = 3, firstClearedAt = at, lastClearedAt = at, bestDurationSeconds = 100.125, averageDurationSeconds = 120.5, totalDamageDealt = 750.5m, totalDeathCount = 2 }];
+            if (path.EndsWith("bosses")) return [new { eventId = ActorId, bossId = "test-boss", bossName = "&cテストボス<script>fixture</script>", startedAt = at, clearedAt = at, durationSeconds = 100.125, participants = new[] { new { player, damageDealt = 250.5m, deathCount = 2 } } }];
+            if (path.EndsWith("events")) return [new { historyId = 42, userUuid = ActorId, eventTime = at, eventType = "PLAYER_LOGIN", source = "PLUGIN", message = "Supplier <script>fixture</script>" }];
             if (path.EndsWith("dungeons")) return [new { eventId = ActorId, dungeonId = "test-dungeon", dungeonName = "テスト迷宮", startedAt = at, clearedAt = at, durationSeconds = 100, participants = new object[] { new { player, distanceMeters = 120.5m, movementSampleCount = 25 }, new { player = other, distanceMeters = (decimal?)null, movementSampleCount = 0 }, new { player = new { userUuid = Guid.Parse("33333333-3333-3333-3333-333333333333"), accountId = Guid.Parse("33333333-3333-3333-3333-333333333333"), mcid = "Stationary", accountName = "静止" }, distanceMeters = 0m, movementSampleCount = 25 } } }];
             if (path.EndsWith("/players")) return [new { player, deathCount = 2, damageTaken = 125.5m, hitCount = 4, lastOccurredAt = at }];
             if (path.EndsWith("/kills")) return [new { eventId = ActorId, occurredAt = at, mobId = "test-mob", mobName = "&c&lテストモブ<script>fixture</script>", victim = player }];
