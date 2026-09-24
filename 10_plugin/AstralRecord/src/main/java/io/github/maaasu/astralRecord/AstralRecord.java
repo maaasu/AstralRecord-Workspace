@@ -2188,8 +2188,9 @@ public final class AstralRecord extends JavaPlugin {
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
             try {
+                // 他のパッシブの終了が失敗しても、次アカウントへ不死鳥状態を持ち越さない。
+                archmagePhoenixRuntimeService.clearPlayer(player);
                 passiveSkillService.onPlayerQuit(player);
-                archmagePhoenixRuntimeService.clearPlayer(playerId);
                 activeSkillLifecycleService.clearAll(playerId);
                 meditationSkillRuntimeService.interrupt(playerId);
                 justDodgeSkillRuntimeService.clearPlayer(playerId);

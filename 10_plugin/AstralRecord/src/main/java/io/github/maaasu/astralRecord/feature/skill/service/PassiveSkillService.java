@@ -108,16 +108,31 @@ public final class PassiveSkillService {
         tickingPassiveCount = 0;
     }
 
+    /**
+     * 現在のセッションのパッシブとステータスを同期します。終了済み・旧セッションは無視します。
+     * @param player メインスレッドで同期する現在のプレイヤー
+     */
     public void reconcileNow(@NotNull AstPlayer player) {
         reconcileNow(player, true);
     }
 
+    /**
+     * 現在のセッションだけを同期し、旧セッションからの呼び出しは新状態へ適用しません。
+     * @param player メインスレッドで同期する現在のプレイヤー
+     * @param refreshStatus 有効パッシブが変化したときステータスも再計算するか
+     */
     public void reconcileNow(@NotNull AstPlayer player, boolean refreshStatus) {
+        if (!isCurrentSession(player)) return;
         dirtyAccounts.remove(player.getAccount().getUuid());
         reconcile(player, refreshStatus);
     }
 
+    /**
+     * 現在のセッションを再評価待ちにします。終了済み・旧セッションは無視します。
+     * @param player 再評価するプレイヤー
+     */
     public void markDirty(@NotNull AstPlayer player) {
+        if (!isCurrentSession(player)) return;
         markDirty(player.getAccount().getUuid());
     }
 
@@ -129,20 +144,25 @@ public final class PassiveSkillService {
     /**
      * プレイヤー退出時にパッシブの実行状態を破棄します。
      * <p>
-     * 退出後の再接続で古い実行状態を再利用しないよう、次回ログイン時の明示的な再同期を許可します。
+     * 解除に伴うステータス再計算より先に旧セッションを終了し、遅延評価による再有効化を防ぎます。
+     * 次回ログイン時は新しいAstPlayerで明示的な再同期を行います。同じ旧セッションの重複終了は無視します。
      *
      * @param player 退出するプレイヤー
      */
     public void onPlayerQuit(@NotNull AstPlayer player) {
+        if (player.isPassiveSkillSessionClosed()) return;
+        player.closePassiveSkillSession();
         UUID accountId = player.getAccount().getUuid();
+        PlayerPassiveState current = activeStates.get(accountId);
+        if (current != null && current.owner != player) return;
         PlayerPassiveState state = activeStates.remove(accountId);
+        reconciledAccounts.remove(accountId);
+        dirtyAccounts.remove(accountId);
+        dirtyQueue.remove(accountId);
         if (state != null) {
             decrementTickingPassiveCount(state);
             deactivateAll(player, state);
         }
-        reconciledAccounts.remove(accountId);
-        dirtyAccounts.remove(accountId);
-        dirtyQueue.remove(accountId);
     }
 
     /** スキルツリー許可の変更後は個体一覧を再評価します。 */
@@ -155,11 +175,19 @@ public final class PassiveSkillService {
         reconcileNow(player, refreshStatus);
     }
 
+    /**
+     * 現在のセッションのパッシブ補正を返します。旧セッションは再有効化せず0を返します。
+     * @param player メインスレッドで参照するプレイヤー
+     * @param statusType 対象ステータス
+     * @param baseValue 割合補正の基準値
+     * @return 有効パッシブの補正合計。終了済み・旧セッションは0
+     */
     public double getStatusBonus(
         @NotNull AstPlayer player,
         @NotNull StatusType statusType,
         double baseValue
     ) {
+        if (!isCurrentSession(player)) return 0.0D;
         reconcileIfNeeded(player);
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
         if (state == null) return 0.0D;
@@ -183,9 +211,10 @@ public final class PassiveSkillService {
      *
      * @param player 対象プレイヤー
      * @param skillId 判定するスキル ID
-     * @return 対象スキルが現在有効なら {@code true}
+     * @return 対象スキルが現在有効なら {@code true}。終了済み・旧セッションはfalse
      */
     public boolean isPassiveSkillActive(@NotNull AstPlayer player, @NotNull String skillId) {
+        if (!isCurrentSession(player)) return false;
         reconcileIfNeeded(player);
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
         if (state == null) return false;
@@ -201,12 +230,13 @@ public final class PassiveSkillService {
      *
      * @param player 対象プレイヤー
      * @param resourceType 対象リソース
-     * @return 自然回復倍率。該当パッシブがなければ 1.0
+     * @return 自然回復倍率。該当パッシブがない場合と終了済み・旧セッションは1.0
      */
     public double getResourceRegenMultiplier(
         @NotNull AstPlayer player,
         @NotNull SkillResourceType resourceType
     ) {
+        if (!isCurrentSession(player)) return 1.0D;
         reconcileIfNeeded(player);
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
         if (state == null) return 1.0D;
@@ -268,16 +298,31 @@ public final class PassiveSkillService {
         }
     }
 
+    /** 現在の所有セッションの再評価結果だけを再利用します。 */
     private void reconcileIfNeeded(@NotNull AstPlayer player) {
+        if (!isCurrentSession(player)) return;
         UUID accountId = player.getAccount().getUuid();
-        if (reconciledAccounts.contains(accountId) && !dirtyAccounts.remove(accountId)) return;
+        PlayerPassiveState state = activeStates.get(accountId);
+        if ((state == null || state.owner == player)
+                && reconciledAccounts.contains(accountId) && !dirtyAccounts.remove(accountId)) return;
         reconcile(player, false);
     }
 
+    /** 旧所有者の実行状態を終了してから、現在のセッションの使用許可とバインドを再評価します。 */
     private void reconcile(@NotNull AstPlayer player, boolean refreshStatus) {
+        if (!isCurrentSession(player)) return;
         UUID accountId = player.getAccount().getUuid();
+        PlayerPassiveState previous = activeStates.get(accountId);
+        if (previous != null && previous.owner != player) {
+            // 同一accountへの再接続でも、旧セッションのexecutor状態を新セッションへ流用しない。
+            activeStates.remove(accountId);
+            reconciledAccounts.remove(accountId);
+            previous.owner.closePassiveSkillSession();
+            decrementTickingPassiveCount(previous);
+            deactivateAll(previous.owner, previous);
+        }
         Map<String, DesiredPassive> desired = resolveDesiredPassives(player);
-        PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState());
+        PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState(player));
         boolean changed = false;
 
         for (Map.Entry<String, ActivePassiveSkill> entry : List.copyOf(state.skillsByInstanceId.entrySet())) {
@@ -314,6 +359,11 @@ public final class PassiveSkillService {
             ));
         }
         return desired;
+    }
+
+    /** 終了しておらず、現在のオンラインキャッシュが指すセッションだけを扱います。 */
+    private boolean isCurrentSession(AstPlayer player) {
+        return !player.isPassiveSkillSessionClosed() && AstPlayerCache.get(player.getBukkit()) == player;
     }
 
     private @NotNull Set<String> resolveEnabledBoundPassiveInstanceIds(@NotNull AstPlayer player) {
@@ -383,7 +433,13 @@ public final class PassiveSkillService {
     }
 
     private static final class PlayerPassiveState {
+        private final AstPlayer owner;
         private final Map<String, ActivePassiveSkill> skillsByInstanceId = new LinkedHashMap<>();
+
+        /** パッシブの実行状態を生成時のセッションに紐付けます。 */
+        private PlayerPassiveState(AstPlayer owner) {
+            this.owner = owner;
+        }
     }
 
     private record DesiredPassive(

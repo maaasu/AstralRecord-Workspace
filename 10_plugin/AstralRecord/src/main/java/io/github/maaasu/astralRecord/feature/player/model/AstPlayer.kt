@@ -41,6 +41,15 @@ data class AstPlayer(
     var statusSnapshot: StatusSnapshot = StatusSnapshot.empty()
     val activeBuffs: MutableList<ActiveBuff> = mutableListOf()
 
+    /** 終了処理中のステータス再計算でパッシブを再有効化しないための、セッション単位の終了状態。 */
+    var isPassiveSkillSessionClosed: Boolean = false
+        private set
+
+    /** メインスレッドの退出処理でパッシブのセッションを終了する。再ログイン時は新しいAstPlayerで開始し、旧セッションは再開しない。 */
+    fun closePassiveSkillSession() {
+        isPassiveSkillSessionClosed = true
+    }
+
     /** user.mcid にドットを含む場合に Bedrock Edition として扱うセッションフラグ。 */
     var isBedrock: Boolean = BedrockPlayerDetector.isBedrockMcid(user.mcid)
         private set

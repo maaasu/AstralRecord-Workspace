@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
@@ -14,6 +15,10 @@ import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.bukkit.entity.Player;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.Map;
@@ -23,9 +28,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class PassiveSkillServiceTest {
+    private MockedStatic<AstPlayerCache> playerCache;
+
+    @BeforeEach
+    void openPlayerCache() {
+        playerCache = mockStatic(AstPlayerCache.class);
+    }
+
+    @AfterEach
+    void closePlayerCache() {
+        playerCache.close();
+    }
+
+    private void useCurrentSession(AstPlayer player) {
+        Player bukkit = mock(Player.class);
+        when(player.getBukkit()).thenReturn(bukkit);
+        playerCache.when(() -> AstPlayerCache.get(bukkit)).thenReturn(player);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -36,6 +59,7 @@ class PassiveSkillServiceTest {
     void activePassiveSlotCountUsesBaseFiveAndCapsAtTwelve() {
         UUID accountId = UUID.randomUUID();
         AstPlayer player = mock(AstPlayer.class);
+        useCurrentSession(player);
         AccountModel account = mock(AccountModel.class);
         StatusSnapshot snapshot = mock(StatusSnapshot.class);
         SkillBindPresetService presetService = mock(SkillBindPresetService.class);
@@ -70,6 +94,7 @@ class PassiveSkillServiceTest {
         UUID accountId = UUID.randomUUID();
         UUID learnedSkillId = UUID.randomUUID();
         AstPlayer player = mock(AstPlayer.class);
+        useCurrentSession(player);
         AccountModel account = mock(AccountModel.class);
         StatusSnapshot snapshot = mock(StatusSnapshot.class);
         when(player.getAccount()).thenReturn(account);
@@ -187,6 +212,7 @@ class PassiveSkillServiceTest {
             null
         );
         AstPlayer player = mock(AstPlayer.class);
+        useCurrentSession(player);
         AccountModel account = mock(AccountModel.class);
         when(player.getAccount()).thenReturn(account);
         when(account.getUuid()).thenReturn(accountId);

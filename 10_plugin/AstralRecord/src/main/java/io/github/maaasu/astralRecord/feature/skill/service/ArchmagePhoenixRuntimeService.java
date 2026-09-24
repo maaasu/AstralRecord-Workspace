@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
@@ -44,27 +45,34 @@ public final class ArchmagePhoenixRuntimeService {
     }
 
     /**
-     * 有効なバインド個体を記録し、未召喚リソースを公開します。
+     * 現在のログイン状態のバインド個体を記録し、未召喚リソースを公開します。
+     * アカウント切り替え前のAstPlayerから遅れて届いた有効化は受け付けません。
      * @param context 有効化されたパッシブ個体と解決済みパラメーター
      */
     public void activate(@NotNull PassiveSkillContext context) {
+        AstPlayer player = context.player();
+        if (player.isPassiveSkillSessionClosed() || AstPlayerCache.get(player.getBukkit()) != player) return;
         SkillParamReader params = new SkillParamReader(context.skill().getId(), context.skill().getParams());
         double maximum = params.getDouble("phoenixMax", MAX_PHOENIX);
         double range = params.getDouble("targetRange", DEFAULT_TARGET_RANGE);
         int delay = params.getInt("despawnDelayTicks", DEFAULT_DESPAWN_DELAY_TICKS);
-        states.computeIfAbsent(context.player().getBukkit().getUniqueId(),
-                ignored -> new State(maximum, range * range, delay))
-                .bindings.add(bindingId(context));
+        State state = currentState(player);
+        if (state == null) {
+            state = new State(player, maximum, range * range, delay);
+            states.put(player.getBukkit().getUniqueId(), state);
+        }
+        state.bindings.add(bindingId(context));
     }
 
     /**
      * 最後のバインド個体が解除された場合、召喚体を除去します。
+     * cache切替後でも自身の旧状態は除去し、別の所有セッションの状態には触りません。
      * @param context 無効化されたパッシブ個体
      */
     public void deactivate(@NotNull PassiveSkillContext context) {
         UUID playerId = context.player().getBukkit().getUniqueId();
         State state = states.get(playerId);
-        if (state == null) return;
+        if (state == null || state.owner != context.player()) return;
         state.bindings.remove(bindingId(context));
         if (state.bindings.isEmpty()) clearPlayer(playerId);
     }
@@ -76,6 +84,16 @@ public final class ArchmagePhoenixRuntimeService {
     public void clearPlayer(@NotNull UUID playerId) {
         State state = states.remove(playerId);
         if (state != null) despawn(state);
+    }
+
+    /**
+     * 終了するセッションが所有する不死鳥だけを破棄します。遅れた旧セッションの通知は新状態を消しません。
+     * @param player 終了対象のAstPlayer。現在のcacheから外れた後でも自身の状態は破棄できます
+     */
+    public void clearPlayer(@NotNull AstPlayer player) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        State state = states.get(playerId);
+        if (state != null && state.owner == player) clearPlayer(playerId);
     }
 
     /**
@@ -109,7 +127,7 @@ public final class ArchmagePhoenixRuntimeService {
      * @param target HP と死亡状態が確定済みの敵 Mob
      */
     public void onDirectMobHit(@NotNull AstPlayer attacker, @NotNull MobInstance target) {
-        State state = states.get(attacker.getBukkit().getUniqueId());
+        State state = currentState(attacker);
         if (state == null || state.bindings.isEmpty()) return;
         boolean alive = target.state() != MobState.DEAD
                 && target.currentHealth() > 0.0D
@@ -124,12 +142,13 @@ public final class ArchmagePhoenixRuntimeService {
     }
 
     /**
-     * HUD に有効時 0/最大値、召喚中 最大値/最大値 を渡します。
+     * 現在選択中のアカウントに属する不死鳥の値だけをHUDへ渡します。
+     * メインスレッドで呼び、旧アカウントの状態が残っていれば召喚体ごと破棄します。
      * @param player 表示対象プレイヤー
      * @return 有効性、現在値、最大値
      */
     public @NotNull PhoenixSnapshot snapshot(@NotNull AstPlayer player) {
-        State state = states.get(player.getBukkit().getUniqueId());
+        State state = currentState(player);
         return state == null ? new PhoenixSnapshot(false, 0.0D, 0.0D)
                 : new PhoenixSnapshot(true, state.parrot == null ? 0.0D : state.maximum, state.maximum);
     }
@@ -140,7 +159,7 @@ public final class ArchmagePhoenixRuntimeService {
      */
     public void tick(@NotNull PassiveSkillContext context) {
         Player player = context.player().getBukkit();
-        State state = states.get(player.getUniqueId());
+        State state = currentState(context.player());
         if (state == null || state.parrot == null) return;
         long now = Bukkit.getCurrentTick();
         if (state.lastTick == now) return;
@@ -167,6 +186,19 @@ public final class ArchmagePhoenixRuntimeService {
         if (location != null && (now + state.visualPhase) % 2L == 0L) {
             visuals.render(player, state.parrot, location, now, state.visualPhase);
         }
+    }
+
+    /** 現在のAstPlayerとアカウントUUIDに一致する状態だけを返します。旧callbackは現状態を触りません。 */
+    private State currentState(AstPlayer player) {
+        Player bukkit = player.getBukkit();
+        if (AstPlayerCache.get(bukkit) != player) return null;
+        State state = states.get(bukkit.getUniqueId());
+        if (state != null && (state.owner != player || !state.accountId.equals(player.getAccount().getUuid())
+                || player.isPassiveSkillSessionClosed())) {
+            clearPlayer(bukkit.getUniqueId());
+            return null;
+        }
+        return state;
     }
 
     private boolean targetInRange(Player player, MobInstance target, double rangeSquared) {
@@ -324,6 +356,8 @@ public final class ArchmagePhoenixRuntimeService {
     public record PhoenixSnapshot(boolean active, double current, double maximum) { }
 
     private static final class State {
+        private final AstPlayer owner;
+        private final UUID accountId;
         private final Set<UUID> bindings = new HashSet<>();
         private final double maximum;
         private final double rangeSquared;
@@ -340,7 +374,9 @@ public final class ArchmagePhoenixRuntimeService {
         private int visualPhase;
         private long lastRecoveryTick = -1000L;
 
-        private State(double maximum, double rangeSquared, long delayTicks) {
+        private State(AstPlayer owner, double maximum, double rangeSquared, long delayTicks) {
+            this.owner = owner;
+            this.accountId = owner.getAccount().getUuid();
             this.maximum = maximum;
             this.rangeSquared = rangeSquared;
             this.delayTicks = delayTicks;
