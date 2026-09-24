@@ -16,9 +16,10 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
-    public async Task GetTradeHistory_FiltersAndPagesNewestTransactionsWithoutAccountDetails()
+    public async Task GetTradeHistory_FiltersAndPagesNewestTransactionsWithBothAccounts()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var buyer = await harness.AddBuyerWithGoldAsync(0);
         var entryId = await harness.AddStackEntryAsync(quantity: 1);
         var created = await harness.Repository.CreateListingAsync(harness.CreateStackRequest(entryId, quantity: 1));
         Assert.True(created.Succeeded);
@@ -27,7 +28,7 @@ public class MarketRepositoryEquipmentListingTests
             new MarketTransactionEntity
             {
                 TransactionId = Guid.NewGuid(), ListingId = created.Value!.ListingId,
-                SellerAccountId = harness.AccountId, BuyerAccountId = harness.AccountId,
+                SellerAccountId = harness.AccountId, BuyerAccountId = buyer.AccountId,
                 ItemCategory = "material", ItemId = "astral_ore", Quantity = 1,
                 CurrencyId = "gold", UnitPrice = 100 + index, TotalPrice = 100 + index,
                 SellerProceeds = 100 + index, IdempotencyKey = Guid.NewGuid().ToString(),
@@ -65,6 +66,28 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal(expectedTransactionIds, all.Select(transaction => transaction.TransactionId));
         Assert.Equal(completedAt, all[0].CompletedAt);
         Assert.All(all, transaction => Assert.Equal("astral_ore", transaction.ItemId));
+        Assert.All(all, transaction =>
+        {
+            Assert.Equal(harness.AccountId, transaction.SellerAccountId);
+            Assert.Equal("market-test", transaction.SellerAccountName);
+            Assert.Equal(buyer.AccountId, transaction.BuyerAccountId);
+            Assert.Equal("market-buyer", transaction.BuyerAccountName);
+        });
+
+        var sellerAccount = await harness.DbContext.Accounts.SingleAsync(account => account.Uuid == harness.AccountId);
+        var buyerAccount = await harness.DbContext.Accounts.SingleAsync(account => account.Uuid == buyer.AccountId);
+        sellerAccount.IsDeleted = true;
+        buyerAccount.IsDeleted = true;
+        await harness.DbContext.SaveChangesAsync();
+
+        var afterDeletion = await ReadPage(1);
+        Assert.All(afterDeletion.Items, transaction =>
+        {
+            Assert.Equal(harness.AccountId, transaction.SellerAccountId);
+            Assert.Equal(string.Empty, transaction.SellerAccountName);
+            Assert.Equal(buyer.AccountId, transaction.BuyerAccountId);
+            Assert.Equal(string.Empty, transaction.BuyerAccountName);
+        });
     }
 
     [Fact]

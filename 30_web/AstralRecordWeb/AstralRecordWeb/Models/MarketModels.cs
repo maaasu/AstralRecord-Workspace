@@ -46,6 +46,10 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
 public sealed class MarketTradeHistoryResponse
 {
     public Guid TransactionId { get; init; }
+    public Guid SellerAccountId { get; init; }
+    public string SellerAccountName { get; init; } = string.Empty;
+    public Guid BuyerAccountId { get; init; }
+    public string BuyerAccountName { get; init; } = string.Empty;
     public string ItemCategory { get; init; } = string.Empty;
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }
@@ -68,6 +72,12 @@ public sealed record MarketTradeHistoryItem(MarketTradeHistoryResponse Transacti
     public string DisplayName => MarketText.PlainText(string.IsNullOrWhiteSpace(Item?.Name) ? Transaction.ItemId : Item.Name);
     public string? Rarity => Item?.Rarity;
     public string? Icon => Item?.Icon;
+    public string SellerDisplayName => string.IsNullOrWhiteSpace(Transaction.SellerAccountName)
+        ? "名前不明のアカウント"
+        : Transaction.SellerAccountName;
+    public string BuyerDisplayName => string.IsNullOrWhiteSpace(Transaction.BuyerAccountName)
+        ? "名前不明のアカウント"
+        : Transaction.BuyerAccountName;
 }
 
 public sealed record MarketTradeHistoryPage(

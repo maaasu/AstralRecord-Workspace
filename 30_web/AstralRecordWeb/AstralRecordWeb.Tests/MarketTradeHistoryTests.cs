@@ -35,6 +35,8 @@ public sealed class MarketTradeHistoryTests
         Assert.Equal("material", query["item_category"]);
         Assert.Equal("item/with space", query["item_id"]);
         Assert.Equal("item_0", result.Items[0].DisplayName);
+        Assert.Equal("market-seller", result.Items[0].SellerDisplayName);
+        Assert.Equal("market-buyer", result.Items[0].BuyerDisplayName);
     }
 
     [Fact]
@@ -124,6 +126,10 @@ public sealed class MarketTradeHistoryTests
     private static MarketTradeHistoryResponse Transaction(string itemId, long price) => new()
     {
         TransactionId = Guid.NewGuid(),
+        SellerAccountId = Guid.NewGuid(),
+        SellerAccountName = "market-seller",
+        BuyerAccountId = Guid.NewGuid(),
+        BuyerAccountName = "market-buyer",
         ItemCategory = "material",
         ItemId = itemId,
         Quantity = 1,

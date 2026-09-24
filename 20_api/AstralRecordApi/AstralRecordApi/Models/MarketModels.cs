@@ -170,11 +170,15 @@ public class MarketTransactionResponse
 }
 
 /// <summary>
-/// 公開マーケットの約定履歴に表示する、アカウント識別情報を含まない取引情報です。
+/// 公開マーケットの約定履歴に表示する取引情報です。
 /// </summary>
 public class MarketTradeHistoryResponse
 {
     public Guid TransactionId { get; init; }
+    public Guid SellerAccountId { get; init; }
+    public string SellerAccountName { get; init; } = string.Empty;
+    public Guid BuyerAccountId { get; init; }
+    public string BuyerAccountName { get; init; } = string.Empty;
     public string ItemCategory { get; init; } = string.Empty;
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }

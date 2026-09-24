@@ -97,9 +97,29 @@ public class MarketRepository(
             .ThenByDescending(transaction => transaction.TransactionId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize + 1)
-            .Select(transaction => new MarketTradeHistoryResponse
+            .ToListAsync();
+
+        var visibleTransactions = result.Take(pageSize).ToArray();
+        var accountIds = visibleTransactions
+            .SelectMany(transaction => new[] { transaction.SellerAccountId, transaction.BuyerAccountId })
+            .Distinct()
+            .ToArray();
+        var accountNames = accountIds.Length == 0
+            ? new Dictionary<Guid, string>()
+            : await dbContext.Accounts
+                .AsNoTracking()
+                .Where(account => accountIds.Contains(account.Uuid) && !account.IsDeleted)
+                .ToDictionaryAsync(account => account.Uuid, account => account.AccountName);
+
+        return new MarketTradeHistoryPageResponse
+        {
+            Items = visibleTransactions.Select(transaction => new MarketTradeHistoryResponse
             {
                 TransactionId = transaction.TransactionId,
+                SellerAccountId = transaction.SellerAccountId,
+                SellerAccountName = accountNames.GetValueOrDefault(transaction.SellerAccountId) ?? string.Empty,
+                BuyerAccountId = transaction.BuyerAccountId,
+                BuyerAccountName = accountNames.GetValueOrDefault(transaction.BuyerAccountId) ?? string.Empty,
                 ItemCategory = transaction.ItemCategory,
                 ItemId = transaction.ItemId,
                 InstanceType = transaction.InstanceType,
@@ -108,12 +128,7 @@ public class MarketRepository(
                 UnitPrice = transaction.UnitPrice,
                 TotalPrice = transaction.TotalPrice,
                 CompletedAt = transaction.CompletedAt,
-            })
-            .ToListAsync();
-
-        return new MarketTradeHistoryPageResponse
-        {
-            Items = result.Take(pageSize).ToArray(),
+            }).ToArray(),
             HasNextPage = result.Count > pageSize,
         };
     }

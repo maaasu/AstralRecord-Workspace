@@ -48,10 +48,11 @@
 .market-history-card { display: grid; grid-template-columns: auto minmax(12rem, 1fr) minmax(28rem, 2fr); align-items: center; gap: 1rem; margin: 0; }
 .market-history-item h3 { margin: .2rem 0; font-size: 1.05rem; }
 .market-history-item p { margin-bottom: 0; }
-.market-history-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.market-history-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; margin: 0; }
 .market-history-facts div { min-width: 0; padding: .65rem; background: #080d15a8; border: 1px solid #ffffff0d; border-radius: 7px; }
 .market-history-facts dt { color: var(--ar-text-muted); font-size: .68rem; }
 .market-history-facts dd { margin: .2rem 0 0; color: #edf2f7; font-weight: 700; overflow-wrap: anywhere; }
+.market-history-facts dd small { display: block; margin-top: .2rem; color: var(--ar-text-muted); font-size: .68rem; font-weight: 400; }
 
 @media (max-width: 1199px) {
     .market-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

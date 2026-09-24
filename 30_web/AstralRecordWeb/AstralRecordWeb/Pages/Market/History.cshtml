@@ -11,7 +11,7 @@
             <div>
                 <p class="ar-portal-eyebrow">ASTRAL EXCHANGE</p>
                 <h1>マーケット取引履歴</h1>
-                <p class="ar-portal-sub">成立した取引の商品・数量・価格を新しい順に確認できます。</p>
+                <p class="ar-portal-sub">成立した取引の出品者・購入者と商品・価格を新しい順に確認できます。</p>
             </div>
             <div class="market-heading-actions">
                 <a class="btn ar-btn-outline" asp-page="/Market/Index">出品一覧へ戻る</a>
@@ -60,6 +60,8 @@
                                 <p class="ar-item-id">@transaction.ItemId</p>
                             </div>
                             <dl class="market-history-facts">
+                                <div><dt>出品者</dt><dd>@entry.SellerDisplayName<small>@transaction.SellerAccountId</small></dd></div>
+                                <div><dt>購入者</dt><dd>@entry.BuyerDisplayName<small>@transaction.BuyerAccountId</small></dd></div>
                                 <div><dt>数量</dt><dd>@transaction.Quantity.ToString("N0")</dd></div>
                                 <div><dt>単価</dt><dd>@transaction.UnitPrice.ToString("N0") @transaction.CurrencyId</dd></div>
                                 <div><dt>総額</dt><dd>@transaction.TotalPrice.ToString("N0") @transaction.CurrencyId</dd></div>

@@ -50,7 +50,7 @@ public class MarketController(
     }
 
     /// <summary>
-    /// 成立済みマーケット取引を、アカウント識別情報を含めず新しい順に取得します。
+    /// 成立済みマーケット取引と売買双方のアカウント情報を新しい順に取得します。
     /// </summary>
     [HttpGet("transactions")]
     [ProducesResponseType(StatusCodes.Status200OK)]
