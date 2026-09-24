@@ -1378,6 +1378,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         bossChallengeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         bossChallengeService.setStatusService(statusService);
+        bossChallengeService.setHistoryService(playerActivityHistoryService);
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
             this,

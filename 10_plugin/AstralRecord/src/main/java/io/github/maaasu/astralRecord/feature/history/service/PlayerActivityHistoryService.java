@@ -97,6 +97,11 @@ public final class PlayerActivityHistoryService {
         enqueue(event);
     }
 
+    /** ボス討伐時に戦闘開始・討伐時刻と固定参加者の戦績を記録します。 */
+    public void recordBossClear(@NotNull BossClearEvent event) {
+        enqueue(event);
+    }
+
     /** Mob がプレイヤーへ実際に HP ダメージを与えた結果を1分単位で集約します。 */
     public void recordMobDamage(
         @NotNull String mobId,
@@ -236,29 +241,33 @@ public final class PlayerActivityHistoryService {
             JsonArray ips = new JsonArray();
             JsonArray trades = new JsonArray();
             JsonArray clears = new JsonArray();
+            JsonArray bossClears = new JsonArray();
             JsonArray damage = new JsonArray();
             JsonArray deaths = new JsonArray();
             for (ActivityEvent event : events) {
                 if (event instanceof IpObservationEvent value) ips.add(value.toJson());
                 else if (event instanceof TradeEvent value) trades.add(value.toJson());
                 else if (event instanceof DungeonClearEvent value) clears.add(value.toJson());
+                else if (event instanceof BossClearEvent value) bossClears.add(value.toJson());
                 else if (event instanceof MobDamageSummaryEvent value) damage.add(value.toJson());
                 else if (event instanceof MobPlayerDeathEvent value) deaths.add(value.toJson());
             }
             body.add("ipObservations", ips);
             body.add("trades", trades);
             body.add("dungeonClears", clears);
+            body.add("bossClears", bossClears);
             body.add("mobDamageSummaries", damage);
             body.add("mobPlayerDeaths", deaths);
             return body;
         }
     }
 
-    public sealed interface ActivityEvent permits IpObservationEvent, TradeEvent, DungeonClearEvent,
+    public sealed interface ActivityEvent permits IpObservationEvent, TradeEvent, DungeonClearEvent, BossClearEvent,
         MobDamageSummaryEvent, MobPlayerDeathEvent { }
 
     public record TradeItem(@NotNull String itemId, @NotNull String itemName, long quantity) { }
     public record DungeonParticipant(@NotNull ActivityPlayerSnapshot player, Double distanceMeters, int movementSampleCount) { }
+    public record BossParticipant(@NotNull ActivityPlayerSnapshot player, double damageDealt, int deathCount) { }
 
     public record IpObservationEvent(@NotNull UUID eventId, @NotNull Instant observedAt, @NotNull String globalIp,
                                      @NotNull ActivityPlayerSnapshot player) implements ActivityEvent {
@@ -272,6 +281,11 @@ public final class PlayerActivityHistoryService {
                                     @NotNull Instant startedAt, @NotNull Instant clearedAt,
                                     @NotNull List<DungeonParticipant> participants) implements ActivityEvent {
         JsonObject toJson() { JsonObject json = event(eventId); json.addProperty("dungeonId", dungeonId); json.addProperty("dungeonName", dungeonName); json.addProperty("startedAt", startedAt.toString()); json.addProperty("clearedAt", clearedAt.toString()); JsonArray values = new JsonArray(); for (DungeonParticipant participant : participants) { JsonObject value = new JsonObject(); value.add("player", player(participant.player())); if (participant.distanceMeters() == null) value.add("distanceMeters", null); else value.addProperty("distanceMeters", participant.distanceMeters()); value.addProperty("movementSampleCount", participant.movementSampleCount()); values.add(value); } json.add("participants", values); return json; }
+    }
+    public record BossClearEvent(@NotNull UUID eventId, @NotNull String bossId, @NotNull String bossName,
+                                 @NotNull Instant startedAt, @NotNull Instant clearedAt,
+                                 @NotNull List<BossParticipant> participants) implements ActivityEvent {
+        JsonObject toJson() { JsonObject json = event(eventId); json.addProperty("bossId", bossId); json.addProperty("bossName", bossName); json.addProperty("startedAt", startedAt.toString()); json.addProperty("clearedAt", clearedAt.toString()); JsonArray values = new JsonArray(); for (BossParticipant participant : participants) { JsonObject value = new JsonObject(); value.add("player", player(participant.player())); value.addProperty("damageDealt", participant.damageDealt()); value.addProperty("deathCount", participant.deathCount()); values.add(value); } json.add("participants", values); return json; }
     }
     public record MobDamageSummaryEvent(@NotNull UUID eventId, @NotNull String mobId, @NotNull String mobName,
                                         @NotNull Instant windowStartedAt, @NotNull Instant windowEndedAt,

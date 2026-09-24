@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.boss.BossBar;
 import org.bukkit.scheduler.BukkitTask;
@@ -29,6 +30,7 @@ public final class BossChallengeInstance {
     private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
     private volatile List<UUID> participantIds = List.of();
+    private Map<UUID, ActivityPlayerSnapshot> participantHistory = Map.of();
     private boolean participantsConfirmed;
     private int deathCount;
     private BossChallengeState state = BossChallengeState.PREPARING;
@@ -138,6 +140,20 @@ public final class BossChallengeInstance {
 
     public boolean participantsConfirmed() {
         return participantsConfirmed;
+    }
+
+    /**
+     * 入場時点の固定参加者の識別情報を管理用履歴へ保存するまで保持します。
+     *
+     * @param participantHistory 参加者 UUID と発生時点の識別情報
+     */
+    public void participantHistory(@NotNull Map<UUID, ActivityPlayerSnapshot> participantHistory) {
+        this.participantHistory = Map.copyOf(participantHistory);
+    }
+
+    /** @return 入場時点に取得した固定参加者の識別情報 */
+    public @NotNull Map<UUID, ActivityPlayerSnapshot> participantHistory() {
+        return participantHistory;
     }
 
     public long createdAtMs() {

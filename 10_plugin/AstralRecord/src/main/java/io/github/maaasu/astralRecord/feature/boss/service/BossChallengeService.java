@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeState;
 import io.github.maaasu.astralRecord.feature.boss.model.BossFieldInstance;
 import io.github.maaasu.astralRecord.feature.boss.model.BossLocation;
 import io.github.maaasu.astralRecord.feature.boss.view.BossChallengeCancelController;
+import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
+import io.github.maaasu.astralRecord.feature.history.service.PlayerActivityHistoryService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -74,6 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Coordinates boss challenge acceptance, field entry, and completion.
@@ -116,6 +119,7 @@ public final class BossChallengeService {
     private final String hubWorldId;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private @Nullable StatusService statusService;
+    private @Nullable PlayerActivityHistoryService historyService;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
@@ -268,6 +272,15 @@ public final class BossChallengeService {
      */
     public void setStatusService(@NotNull StatusService statusService) {
         this.statusService = statusService;
+    }
+
+    /**
+     * 討伐履歴を非同期送信するサービスを設定します。
+     *
+     * @param historyService 管理用のプレイヤー活動履歴サービス
+     */
+    public void setHistoryService(@Nullable PlayerActivityHistoryService historyService) {
+        this.historyService = historyService;
     }
 
     /**
@@ -1279,6 +1292,7 @@ public final class BossChallengeService {
 
         List<Player> entrants = eligibleParticipantsForEntry(challenge);
         challenge.confirmParticipants(entrants.stream().map(Player::getUniqueId).toList());
+        captureParticipantHistory(challenge, entrants);
         if (entrants.size() < challenge.config().partyMin()) {
             notifyExpectedParticipants(
                     challenge,
@@ -1627,6 +1641,7 @@ public final class BossChallengeService {
         long defeatElapsedSeconds = calculateDefeatElapsedSeconds(challenge.startedAtMs(), now);
         challenge.state(BossChallengeState.RESULT_WAITING);
         challenge.resultWaitEndsAtMs(now + DEFEATED_RESULT_WAIT_TICKS * 50L);
+        recordBossClearHistory(challenge, now);
         Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), BossChallengeEndReason.DEFEATED.name());
 
         UUID bossMobId = challenge.bossMobInstanceId();
@@ -1643,6 +1658,55 @@ public final class BossChallengeService {
                 DEFEATED_RESULT_WAIT_TICKS
         );
         challenge.resultWaitTask(task);
+    }
+
+    /**
+     * 入場確定時に固定参加者のアカウント情報を保存します。履歴用情報の失敗は入場を妨げません。
+     *
+     * @param challenge 対象のボス挑戦
+     * @param entrants 入場が確定したプレイヤー
+     */
+    private void captureParticipantHistory(@NotNull BossChallengeInstance challenge, @NotNull List<Player> entrants) {
+        if (historyService == null) return;
+        try {
+            Map<UUID, ActivityPlayerSnapshot> snapshots = new HashMap<>();
+            for (Player entrant : entrants) {
+                AstPlayer astPlayer = AstPlayerCache.get(entrant);
+                if (astPlayer == null) return;
+                snapshots.put(entrant.getUniqueId(), ActivityPlayerSnapshot.from(astPlayer));
+            }
+            challenge.participantHistory(snapshots);
+        } catch (RuntimeException ignored) {
+            // 管理用履歴の生成失敗はボス挑戦の進行に影響させない。
+        }
+    }
+
+    /**
+     * ボス討伐を固定参加者の戦績とともに記録します。送信は履歴サービスへ委譲します。
+     *
+     * @param challenge 討伐が確定したボス挑戦
+     * @param clearedAtMs 討伐処理時刻（UNIX epoch ミリ秒）
+     */
+    private void recordBossClearHistory(@NotNull BossChallengeInstance challenge, long clearedAtMs) {
+        try {
+            PlayerActivityHistoryService history = historyService;
+            if (history == null || challenge.startedAtMs() <= 0L
+                    || challenge.participantHistory().size() != challenge.participantIds().size()) return;
+            Map<UUID, Double> damage = challenge.damageSnapshot();
+            Map<UUID, Integer> deaths = challenge.deathSnapshot();
+            List<PlayerActivityHistoryService.BossParticipant> participants = new ArrayList<>();
+            for (UUID participantId : challenge.participantIds()) {
+                ActivityPlayerSnapshot player = challenge.participantHistory().get(participantId);
+                if (player == null) return;
+                participants.add(new PlayerActivityHistoryService.BossParticipant(
+                        player, damage.getOrDefault(participantId, 0.0D), deaths.getOrDefault(participantId, 0)));
+            }
+            history.recordBossClear(new PlayerActivityHistoryService.BossClearEvent(
+                    challenge.challengeId(), challenge.bossTemplate().id(), challenge.bossTemplate().displayName(),
+                    Instant.ofEpochMilli(challenge.startedAtMs()), Instant.ofEpochMilli(clearedAtMs), participants));
+        } catch (RuntimeException ignored) {
+            // 管理用履歴の生成失敗は確定した討伐や報酬に影響させない。
+        }
     }
 
     private void beginChallengeCompletion(
