@@ -74,7 +74,8 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
         if (!authorized(sender)) return;
         confirmations.remove(sender);
         confirmations.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= nanoTime.getAsLong());
-        boolean extendedWithoutSlot = args.length == 3 && !args[2].matches("[0-9]{1,2}");
+        boolean extendedWithoutSlot = args.length == 3 && !args[2].matches("[0-9]{1,2}")
+            && !(isUuid(args[0]) && args[2].matches("-?[0-9]+"));
         boolean extended = args.length == 4 || extendedWithoutSlot;
         boolean ambiguousNumericTarget = args.length == 3 && args[2].matches("[0-9]{1,2}");
         boolean hasSlot = args.length == 4 || (args.length == 3 && !extendedWithoutSlot);
@@ -174,6 +175,11 @@ public final class AccountCloneCommand extends AstCommand implements EventHandle
             if (!occupied.contains(slot)) return slot;
         }
         return -1;
+    }
+
+    private static boolean isUuid(String value) {
+        try { return UUID.fromString(value).toString().equalsIgnoreCase(value); }
+        catch (IllegalArgumentException exception) { return false; }
     }
 
     /**
