@@ -6,7 +6,9 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardLightningStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -14,15 +16,24 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 /** 感電付与に反応するウィザードの単体落雷を管理します。 */
 public final class WizardLightningStrikeRuntimeService {
+    private static final int BOLT_SEGMENTS = 8;
+    private static final double BOLT_HEIGHT = 6.0D;
+
     private final SkillService skillService;
     private final SkillCombatService combatService;
+    private final SkillEffectService effects;
     private final StatusService statusService;
     @Nullable
     private PassiveSkillService passiveSkillService;
@@ -32,15 +43,18 @@ public final class WizardLightningStrikeRuntimeService {
      *
      * @param skillService スキル定義と効果時のMP消費を管理するサービス
      * @param combatService 共通スキルダメージを適用するサービス
+     * @param effects 雷の粒子演出を表示するサービス
      * @param statusService 消費軽減を含む現在ステータスを返すサービス
      */
     public WizardLightningStrikeRuntimeService(
             @NotNull SkillService skillService,
             @NotNull SkillCombatService combatService,
+            @NotNull SkillEffectService effects,
             @NotNull StatusService statusService
     ) {
         this.skillService = skillService;
         this.combatService = combatService;
+        this.effects = effects;
         this.statusService = statusService;
     }
 
@@ -54,7 +68,7 @@ public final class WizardLightningStrikeRuntimeService {
     }
 
     /**
-     * 自身の攻撃で感電の新規付与または再付与が成功したとき、MPを消費してダメージなしのバニラ落雷を表示し、対象へ雷ダメージを与えます。
+     * 自身の攻撃で感電の新規付与または再付与が成功したとき、MPを消費して無音の粒子落雷を表示し、対象へ雷ダメージを与えます。
      *
      * @param request 成功した状態異常の付与要求
      */
@@ -100,8 +114,45 @@ public final class WizardLightningStrikeRuntimeService {
             return;
         }
 
-        world.strikeLightningEffect(targetLocation);
+        displayLightning(targetLocation);
         combatService.hit(attacker, target, AttackType.MAGIC, DamageElement.LIGHTNING,
                 params.getDouble("damageRatio", 1.5D));
+    }
+
+    /**
+     * 対象の頭上から着地点までの屈曲した主幹と枝、着弾火花を粒子だけで描画します。
+     *
+     * @param targetLocation 対象の足元。worldを持つことが呼び出し元の前提
+     */
+    private void displayLightning(@NotNull Location targetLocation) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Location impact = targetLocation.clone().add(0.0D, 0.12D, 0.0D);
+        List<Location> nodes = new ArrayList<>(BOLT_SEGMENTS + 1);
+        for (int index = 0; index <= BOLT_SEGMENTS; index++) {
+            double fraction = (double) index / BOLT_SEGMENTS;
+            double x = index == 0 || index == BOLT_SEGMENTS ? 0.0D : random.nextDouble(-0.65D, 0.65D);
+            double z = index == 0 || index == BOLT_SEGMENTS ? 0.0D : random.nextDouble(-0.65D, 0.65D);
+            nodes.add(impact.clone().add(x, BOLT_HEIGHT * (1.0D - fraction), z));
+        }
+
+        List<SkillEffectLineSegment> segments = new ArrayList<>(BOLT_SEGMENTS + 6);
+        for (int index = 0; index < BOLT_SEGMENTS; index++) {
+            segments.add(new SkillEffectLineSegment(nodes.get(index), nodes.get(index + 1)));
+        }
+        for (int index = 2; index <= 6; index += 2) {
+            Location root = nodes.get(index);
+            double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
+            Location bend = root.clone().add(Math.cos(angle) * 0.55D, -0.45D, Math.sin(angle) * 0.55D);
+            Location tip = root.clone().add(Math.cos(angle + 0.3D) * 1.25D, -1.15D,
+                    Math.sin(angle + 0.3D) * 1.25D);
+            segments.add(new SkillEffectLineSegment(root, bend));
+            segments.add(new SkillEffectLineSegment(bend, tip));
+        }
+
+        effects.lines(impact, segments, 0.22D, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_CORE);
+        effects.lines(impact, segments, 0.35D, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_GLOW);
+        effects.lines(impact, segments, 0.42D, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_SPARK);
+        effects.ring(impact, 0.65D, 14, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_SPARK);
+        effects.point(impact, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_IMPACT);
     }
 }

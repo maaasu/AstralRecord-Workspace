@@ -885,6 +885,24 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
         new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_LIGHTNING_STRIKE_CORE =
+        new SharedParticleDefinition(
+            "wizard_lightning_strike_core", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(245, 250, 255), 1.45F)
+        );
+    public static final SharedParticleDefinition WIZARD_LIGHTNING_STRIKE_GLOW =
+        new SharedParticleDefinition(
+            "wizard_lightning_strike_glow", Particle.DUST, 1, 0.05D, 0.05D, 0.05D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(75, 185, 255), 1.15F)
+        );
+    public static final SharedParticleDefinition WIZARD_LIGHTNING_STRIKE_SPARK =
+        new SharedParticleDefinition(
+            "wizard_lightning_strike_spark", Particle.ELECTRIC_SPARK, 1, 0.04D, 0.04D, 0.04D, 0.02D
+        );
+    public static final SharedParticleDefinition WIZARD_LIGHTNING_STRIKE_IMPACT =
+        new SharedParticleDefinition(
+            "wizard_lightning_strike_impact", Particle.ELECTRIC_SPARK, 18, 0.4D, 0.2D, 0.4D, 0.1D
+        );
     public static final SharedParticleDefinition WIZARD_EMULATE_SPARK =
         new SharedParticleDefinition("wizard_emulate_spark", Particle.SCULK_CHARGE_POP, 2, 0.08D, 0.08D, 0.08D, 0.0D);
     public static final SharedParticleDefinition WIZARD_ELEMENTAL_BALL_TRAIL =
