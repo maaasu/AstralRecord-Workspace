@@ -1,0 +1,124 @@
+package io.github.maaasu.astralRecord.feature.skill.service;
+
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.Location;
+import org.bukkit.entity.Parrot;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/** 不死鳥の炎の羽ばたきと尾を、実体の位置・向きから描画します。 */
+final class ArchmagePhoenixVisuals {
+    private static final double VIEW_DISTANCE = 32.0D;
+    private static final double DETAIL_DISTANCE_SQUARED = 16.0D * 16.0D;
+    private static final int MAX_VIEWERS = 16;
+    private static final int MAX_POINTS = 80;
+    private final ParticleDisplayService particles;
+
+    /** 共有表示サービスを受け取ります。 */
+    ArchmagePhoenixVisuals(ParticleDisplayService particles) {
+        this.particles = particles;
+    }
+
+    /** 閲覧者を1回だけ近傍検索し、近距離2tick・遠距離6tickで描画します。 */
+    void render(Player owner, Parrot parrot, Location body, long tick, int phase) {
+        boolean distantFrame = (tick + phase) % 6L == 0L;
+        List<Player> viewers = body.getWorld().getNearbyPlayers(body, VIEW_DISTANCE).stream()
+                .filter(viewer -> viewer.isOnline() && viewer.canSee(parrot))
+                .filter(viewer -> viewer.getWorld() == body.getWorld()
+                        && viewer.getLocation().distanceSquared(body) <= VIEW_DISTANCE * VIEW_DISTANCE)
+                .filter(viewer -> distantFrame || viewer.getLocation().distanceSquared(body) <= DETAIL_DISTANCE_SQUARED)
+                .sorted(Comparator.comparingDouble(viewer -> viewer.getUniqueId().equals(owner.getUniqueId())
+                        ? -1.0D : viewer.getLocation().distanceSquared(body)))
+                .limit(MAX_VIEWERS)
+                .toList();
+        if (viewers.isEmpty()) return;
+
+        Map<SharedParticleDefinition, List<Location>> frame = createFrame(body, tick, phase, parrot.getVelocity().length());
+        if (frame.values().stream().mapToInt(List::size).sum() > MAX_POINTS) return;
+        Map<SharedParticleDefinition, List<Location>> distant = distantFrame ? reduce(frame) : Map.of();
+        for (Player viewer : viewers) {
+            Map<SharedParticleDefinition, List<Location>> visible = viewer.getLocation().distanceSquared(body)
+                    <= DETAIL_DISTANCE_SQUARED ? frame : distant;
+            visible.forEach((definition, points) -> particles.spawnForViewer(viewer, points, definition));
+        }
+    }
+
+    /** 羽根40点・尾18点・胸元6点・火の粉4点・金色4点・青炎2点の計74点を作ります。 */
+    static Map<SharedParticleDefinition, List<Location>> createFrame(Location body, long tick, int phase, double speed) {
+        Vector forward = body.getDirection().setY(0.0D).normalize();
+        Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
+        double animation = (tick + phase * 4L) * Math.PI / 12.0D;
+        double flap = Math.sin(animation) * 0.48D;
+        double sweep = 0.12D + Math.min(0.3D, Math.max(0.0D, speed) * 0.4D);
+        List<Location> flame = new ArrayList<>(29);
+        List<Location> small = new ArrayList<>(35);
+        List<Location> gold = new ArrayList<>(4);
+        List<Location> embers = new ArrayList<>(4);
+        List<Location> blue = new ArrayList<>(2);
+        for (int side : new int[] {-1, 1}) {
+            for (int feather = 0; feather < 5; feather++) {
+                double span = 1.1D + feather * 0.23D;
+                double trail = sweep + feather * 0.25D;
+                Location tip = null;
+                for (int segment = 1; segment <= 4; segment++) {
+                    double u = segment / 4.0D;
+                    double lift = (0.65D - feather * 0.08D) * u
+                            + Math.sin(flap) * span * u + Math.sin(u * Math.PI) * 0.12D;
+                    tip = point(body, right, forward, side * (0.18D + span * u * Math.cos(flap)),
+                            0.28D + lift, -trail * u);
+                    (segment == 2 || segment == 3 ? flame : small).add(tip);
+                }
+                if (feather == 0 || feather == 4) gold.add(tip.clone());
+                if (feather == 2 || feather == 4) embers.add(tip.clone());
+            }
+            blue.add(point(body, right, forward, side * 0.25D, 0.28D, -0.12D));
+        }
+        for (int strand = -1; strand <= 1; strand++) {
+            for (int segment = 1; segment <= 6; segment++) {
+                double u = segment / 6.0D;
+                double wave = Math.sin(animation * 0.8D - u * 4.0D + strand * 0.5D);
+                Location location = point(body, right, forward,
+                        strand * (0.12D + 0.45D * u) + wave * 0.16D * u,
+                        0.15D - 1.25D * u + Math.cos(animation - u * 3.0D) * 0.09D * u,
+                        -(2.4D + sweep) * u);
+                (segment % 2 == 0 ? flame : small).add(location);
+            }
+        }
+        for (int index = 0; index < 6; index++) {
+            double angle = animation * 0.35D + index * Math.PI / 3.0D;
+            small.add(point(body, right, forward, Math.cos(angle) * 0.22D,
+                    0.30D + index * 0.055D, Math.sin(angle) * 0.18D));
+        }
+        Map<SharedParticleDefinition, List<Location>> frame = new LinkedHashMap<>();
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME, flame);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_SMALL_FLAME, small);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_GOLD, gold);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_EMBER, embers);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_BLUE, blue);
+        return frame;
+    }
+
+    /** 遠距離では各層を3点ごとに間引き、輪郭と火の粉だけを残します。 */
+    private static Map<SharedParticleDefinition, List<Location>> reduce(Map<SharedParticleDefinition, List<Location>> frame) {
+        Map<SharedParticleDefinition, List<Location>> reduced = new LinkedHashMap<>();
+        frame.forEach((definition, points) -> {
+            List<Location> sampled = new ArrayList<>();
+            for (int index = 0; index < points.size(); index += 3) sampled.add(points.get(index));
+            reduced.put(definition, sampled);
+        });
+        return reduced;
+    }
+
+    /** 不死鳥の向きを基準とする局所座標をワールド座標へ変換します。 */
+    private static Location point(Location body, Vector right, Vector forward, double x, double y, double z) {
+        return body.clone().add(right.clone().multiply(x)).add(0.0D, y, 0.0D).add(forward.clone().multiply(z));
+    }
+}

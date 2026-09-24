@@ -44,7 +44,7 @@ public final class ArchmagePhoenixResonanceExecutor implements SkillExecutor {
     public boolean requiresPassiveTick() { return true; }
 
     @Override
-    public long passiveTickIntervalTicks() { return 5L; }
+    public long passiveTickIntervalTicks() { return 1L; }
 
     @Override
     public void validateParams(@NotNull SkillDefinition skill) {

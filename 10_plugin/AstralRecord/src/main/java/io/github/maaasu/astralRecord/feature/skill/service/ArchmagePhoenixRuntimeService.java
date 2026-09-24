@@ -6,8 +6,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
@@ -16,7 +16,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,9 +28,10 @@ public final class ArchmagePhoenixRuntimeService {
     public static final double MAX_PHOENIX = 500.0D;
     private static final double DEFAULT_TARGET_RANGE = 50.0D;
     private static final int DEFAULT_DESPAWN_DELAY_TICKS = 600;
-    private static final long VISUAL_INTERVAL_TICKS = 10L;
-    private static final int MAX_VISUAL_POINTS = 100;
-    private final ParticleDisplayService particles;
+    private static final double MAX_FLIGHT_SPEED = 0.65D;
+    private static final double MAX_ACCELERATION = 0.065D;
+    private static final double RECOVERY_DISTANCE_SQUARED = 24.0D * 24.0D;
+    private final ArchmagePhoenixVisuals visuals;
     private final Map<UUID, State> states = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
 
@@ -40,7 +40,7 @@ public final class ArchmagePhoenixRuntimeService {
      * @param particles 共通の近傍閲覧者向けパーティクル表示サービス
      */
     public ArchmagePhoenixRuntimeService(@NotNull ParticleDisplayService particles) {
-        this.particles = particles;
+        this.visuals = new ArchmagePhoenixVisuals(particles);
     }
 
     /**
@@ -162,11 +162,10 @@ public final class ArchmagePhoenixRuntimeService {
             despawn(state);
             return;
         }
-        Location location = followLocation(player);
-        state.parrot.teleport(location);
-        if (now - state.lastVisualTick >= VISUAL_INTERVAL_TICKS) {
-            state.lastVisualTick = now;
-            renderWingsAndTail(location, player.getLocation().getDirection(), now);
+        Location location = follow(player, state, now);
+        // 通常移動は毎tickの速度制御、描画は位相を分散した2tick周期に分離する。
+        if (location != null && (now + state.visualPhase) % 2L == 0L) {
+            visuals.render(player, state.parrot, location, now, state.visualPhase);
         }
     }
 
@@ -195,7 +194,9 @@ public final class ArchmagePhoenixRuntimeService {
                         state.parrot = parrot;
                         summonedEntityIds.add(parrot.getUniqueId());
                         parrot.setVariant(Parrot.Variant.RED);
-                        parrot.setAI(false);
+                        // NoAIは物理移動自体を止めるため、自律行動だけをawareで止める。
+                        parrot.setAI(true);
+                        parrot.setAware(false);
                         parrot.setGravity(false);
                         parrot.setSilent(true);
                         parrot.setInvulnerable(true);
@@ -205,6 +206,13 @@ public final class ArchmagePhoenixRuntimeService {
             if (!spawned.isValid()) {
                 // 他のイベントハンドラに生成を取り消された場合、保護登録とHP表示を残さない。
                 despawn(state);
+            } else {
+                state.flightVelocity.zero();
+                state.flightYaw = location.getYaw();
+                state.previousLocation = location.clone();
+                state.previousOwnerLocation = player.getLocation();
+                state.visualPhase = Math.floorMod(player.getUniqueId().hashCode(), 6);
+                state.stalledTicks = 0;
             }
         } catch (RuntimeException exception) {
             despawn(state);
@@ -212,59 +220,90 @@ public final class ArchmagePhoenixRuntimeService {
         }
     }
 
+    /** 視線の上下に影響されない背後上空の追従点を、壁の手前へ補正します。 */
     private Location followLocation(Player player) {
         Location location = player.getLocation();
-        Vector forward = location.getDirection().setY(0.0D);
-        if (forward.lengthSquared() > 1.0E-6D) forward.normalize();
-        return location.add(forward.multiply(-1.5D)).add(0.0D, 2.4D, 0.0D);
+        location.setPitch(0.0F);
+        location.add(location.getDirection().multiply(-1.9D)).add(0.0D, 2.4D, 0.0D);
+        Location eye = player.getEyeLocation();
+        Vector offset = location.toVector().subtract(eye.toVector());
+        double distance = offset.length();
+        if (distance > 0.01D) {
+            Vector direction = offset.multiply(1.0D / distance);
+            var hit = player.getWorld().rayTraceBlocks(eye, direction, distance, FluidCollisionMode.NEVER, true);
+            if (hit != null) {
+                double safeDistance = Math.max(0.0D, hit.getHitPosition().distance(eye.toVector()) - 0.6D);
+                location = eye.clone().add(direction.multiply(safeDistance));
+                location.setYaw(player.getLocation().getYaw());
+                location.setPitch(0.0F);
+            }
+        }
+        return location;
     }
 
-    /** 左右5枚の扇状翼と3本の尾を最大86点で描画します。 */
-    private void renderWingsAndTail(Location body, Vector direction, long tick) {
-        Vector forward = direction.clone().setY(0.0D);
-        if (forward.lengthSquared() < 1.0E-6D) forward.setZ(1.0D);
-        forward.normalize();
-        Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
-        double flutter = Math.sin(tick * 0.12D) * 0.16D;
-        List<Location> gold = new ArrayList<>(32);
-        List<Location> orange = new ArrayList<>(32);
-        List<Location> red = new ArrayList<>(32);
-        List<Location> blue = new ArrayList<>(2);
-        List<Location> flame = new ArrayList<>(10);
-        for (int side : new int[] {-1, 1}) {
-            for (int feather = 0; feather < 5; feather++) {
-                double span = 0.95D + feather * 0.23D;
-                double trail = 0.18D + feather * 0.24D;
-                double rise = 0.42D + (4 - feather) * 0.13D + flutter;
-                for (int segment = 1; segment <= 5; segment++) {
-                    double progress = segment / 5.0D;
-                    Location point = body.clone()
-                            .add(right.clone().multiply(side * (0.20D + span * progress)))
-                            .add(forward.clone().multiply(-trail * progress))
-                            .add(0.0D, rise * progress + 0.10D * Math.sin(progress * Math.PI), 0.0D);
-                    (feather <= 1 ? gold : feather <= 3 ? orange : red).add(point);
-                    if (segment == 5) flame.add(point.clone());
+    /** 加減速と旋回を制限し、実際の物理座標へ翼を追従させます。 */
+    private Location follow(Player player, State state, long now) {
+        Location current = state.parrot.getLocation();
+        Location anchor = followLocation(player);
+        Location ownerLocation = player.getLocation();
+        Vector ownerVelocity = state.previousOwnerLocation != null
+                && state.previousOwnerLocation.getWorld() == ownerLocation.getWorld()
+                ? ownerLocation.toVector().subtract(state.previousOwnerLocation.toVector()) : new Vector();
+        state.previousOwnerLocation = ownerLocation.clone();
+        limit(ownerVelocity, MAX_FLIGHT_SPEED);
+        boolean worldChanged = current.getWorld() != anchor.getWorld();
+        double distanceSquared = worldChanged ? Double.POSITIVE_INFINITY : current.distanceSquared(anchor);
+        if (!worldChanged && state.previousLocation != null && state.previousLocation.getWorld() == current.getWorld()
+                && distanceSquared > 1.0D && state.flightVelocity.lengthSquared() > 0.01D
+                && state.previousLocation.distanceSquared(anchor) - distanceSquared < 0.02D) {
+            state.stalledTicks++;
+        } else {
+            state.stalledTicks = 0;
+        }
+        state.previousLocation = current.clone();
+        boolean discontinuity = worldChanged || distanceSquared > RECOVERY_DISTANCE_SQUARED;
+        if (discontinuity || state.stalledTicks >= 40) {
+            long retryDelay = discontinuity ? 20L : 100L;
+            if (now - state.lastRecoveryTick >= retryDelay) {
+                state.lastRecoveryTick = now;
+                if (state.parrot.teleport(anchor)) {
+                    state.flightVelocity.zero();
+                    state.parrot.setVelocity(new Vector());
+                    state.flightYaw = anchor.getYaw();
+                    state.stalledTicks = 0;
+                    state.previousLocation = anchor.clone();
+                    return anchor;
                 }
             }
-            blue.add(body.clone().add(right.clone().multiply(side * 0.26D)).add(0.0D, -0.08D, 0.0D));
+            if (worldChanged) return null;
         }
-        for (int strand = -1; strand <= 1; strand++) {
-            for (int segment = 1; segment <= 8; segment++) {
-                double progress = segment / 8.0D;
-                Location point = body.clone()
-                        .add(forward.clone().multiply(-2.3D * progress))
-                        .add(right.clone().multiply(strand * (0.12D + 0.52D * progress)))
-                        .add(0.0D, -1.45D * progress + Math.sin(tick * 0.1D + segment * 0.45D + strand) * 0.06D, 0.0D);
-                (segment <= 3 ? gold : segment <= 6 ? orange : red).add(point);
-            }
-        }
-        // 翼50点 + 尾24点 + 火炎先端10点 + 青炎2点 = 86点/描画。
-        if (gold.size() + orange.size() + red.size() + blue.size() + flame.size() > MAX_VISUAL_POINTS) return;
-        particles.spawnForNearbyViewers(gold, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_GOLD);
-        particles.spawnForNearbyViewers(orange, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_ORANGE);
-        particles.spawnForNearbyViewers(red, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_RED);
-        particles.spawnForNearbyViewers(blue, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_BLUE);
-        particles.spawnForNearbyViewers(flame, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME);
+        // 周期的な小さい浮沈と、プレイヤーの移動速度を加味した追従。
+        anchor.add(0.0D, Math.sin((now + state.visualPhase) * 0.12D) * 0.12D, 0.0D);
+        Vector desired = anchor.toVector().subtract(current.toVector()).multiply(0.18D)
+                .add(ownerVelocity.multiply(0.8D));
+        limit(desired, MAX_FLIGHT_SPEED);
+        Vector acceleration = desired.subtract(state.flightVelocity).multiply(0.32D);
+        limit(acceleration, MAX_ACCELERATION);
+        state.flightVelocity.add(acceleration);
+        limit(state.flightVelocity, MAX_FLIGHT_SPEED);
+        state.parrot.setVelocity(state.flightVelocity.clone());
+        Vector horizontal = state.flightVelocity.clone().setY(0.0D);
+        float targetYaw = horizontal.lengthSquared() > 0.0064D
+                ? (float) Math.toDegrees(Math.atan2(-horizontal.getX(), horizontal.getZ())) : anchor.getYaw();
+        float turn = Math.floorMod((int) Math.round((targetYaw - state.flightYaw) * 1000.0D) + 180000, 360000)
+                / 1000.0F - 180.0F;
+        state.flightYaw += Math.max(-8.0F, Math.min(8.0F, turn));
+        state.parrot.setRotation(state.flightYaw, 0.0F);
+        current.setYaw(state.flightYaw);
+        current.setPitch(0.0F);
+        return current;
+    }
+
+    /** 非有限値を無効化し、ベクトルの長さを指定上限に制限します。 */
+    private static void limit(Vector vector, double maximum) {
+        double lengthSquared = vector.lengthSquared();
+        if (!Double.isFinite(lengthSquared)) vector.zero();
+        else if (lengthSquared > maximum * maximum) vector.multiply(maximum / Math.sqrt(lengthSquared));
     }
 
     private void despawn(State state) {
@@ -293,7 +332,13 @@ public final class ArchmagePhoenixRuntimeService {
         private MobInstance target;
         private long lastInRangeTick;
         private long lastTick;
-        private long lastVisualTick;
+        private final Vector flightVelocity = new Vector();
+        private float flightYaw;
+        private Location previousLocation;
+        private Location previousOwnerLocation;
+        private int stalledTicks;
+        private int visualPhase;
+        private long lastRecoveryTick = -1000L;
 
         private State(double maximum, double rangeSquared, long delayTicks) {
             this.maximum = maximum;

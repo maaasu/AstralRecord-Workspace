@@ -245,6 +245,30 @@ public class ParticleDisplayService {
         );
     }
 
+    /**
+     * Bukkit viewerへ複数地点の同じ粒子を表示し、密度と統合版判定を一度だけ解決します。
+     * 距離と閲覧可否は呼び出し側で検証し、異なるworldの地点は送信しません。
+     * @param viewer 表示対象プレイヤー。AstPlayer準備前でも使用できます
+     * @param locations 同時に表示する地点
+     * @param definition 共通パーティクル定義
+     */
+    public void spawnForViewer(
+        @NotNull Player viewer,
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition
+    ) {
+        if (locations.isEmpty() || shouldSkipForBedrock(viewer, definition.hideForBedrock())) return;
+        int count = resolveCount(definition.count(), resolvePlayerDensityScale(viewer));
+        if (count <= 0) return;
+        World world = viewer.getWorld();
+        for (Location location : locations) {
+            if (location.getWorld() != world) continue;
+            spawnForViewerResolvedCount(viewer, location, definition.particle(), count,
+                    definition.offsetX(), definition.offsetY(), definition.offsetZ(),
+                    definition.extra(), definition.data());
+        }
+    }
+
     public void spawnForViewer(
         @NotNull Player viewer,
         @NotNull Location location,
