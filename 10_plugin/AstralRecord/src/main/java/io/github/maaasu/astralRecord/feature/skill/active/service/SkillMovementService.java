@@ -116,8 +116,8 @@ public final class SkillMovementService {
     }
 
     /**
-     * 視点方向へ最大距離まで進み、経路が遮られる前の地上へ安全に瞬間移動します。
-     * 候補は遠い位置から調べ、足場または頭上の空間がない場合は手前へ戻ります。
+     * 視点方向へ最大距離まで進み、全身が直線的に到達できる位置へ瞬間移動します。
+     * 上向きの垂直移動は空中を許可し、真下へは移動せず、それ以外は地面の上に足を置きます。
      *
      * @param player 移動するプレイヤー
      * @param mover 移動可否を確認する主体
@@ -138,6 +138,9 @@ public final class SkillMovementService {
             return new MovementResult(start, start.clone(), false);
         }
         direction.normalize();
+        if (direction.getY() < -0.99D) {
+            return new MovementResult(start, start.clone(), false);
+        }
         Location destination = findGroundedDestination(
                 player,
                 start,
@@ -223,6 +226,10 @@ public final class SkillMovementService {
         if (Double.isFinite(bodyCollisionDistance)) {
             pathLimit = Math.min(pathLimit, Math.max(0.0D, bodyCollisionDistance - 0.05D));
         }
+        if (direction.getY() > 0.99D) {
+            Location destination = start.clone().add(direction.clone().multiply(pathLimit));
+            return isBlinkBodyClear(player, destination) ? destination : start.clone();
+        }
         Location eye = player.getEyeLocation();
         RayTraceResult sightHit = world.rayTraceBlocks(
                 eye,
@@ -266,12 +273,29 @@ public final class SkillMovementService {
                     continue;
                 }
                 candidate.setY(surfaceHit.getHitPosition().getY());
-                if (isBlinkBodyClear(player, candidate)) {
+                if (isBlinkBodyClear(player, candidate)
+                        && isBlinkPathClear(player, start, candidate)) {
                     return candidate;
                 }
             }
         }
         return start.clone();
+    }
+
+    /** 開始地点から着地点まで、全身が直線的に通過できる場合だけ許可します。 */
+    private boolean isBlinkPathClear(
+            @NotNull Player player,
+            @NotNull Location start,
+            @NotNull Location destination
+    ) {
+        Vector displacement = destination.toVector().subtract(start.toVector());
+        double distance = displacement.length();
+        if (!Double.isFinite(distance) || distance <= 1.0E-6D) {
+            return false;
+        }
+        Vector direction = displacement.multiply(1.0D / distance);
+        return loadedPathDistance(player, start, direction, distance) >= distance - 1.0E-6D
+                && firstBodyCollisionDistance(player, start, direction, distance) >= distance - 1.0E-6D;
     }
 
     private double loadedPathDistance(
