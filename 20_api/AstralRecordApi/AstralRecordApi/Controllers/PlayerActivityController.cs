@@ -25,6 +25,15 @@ public sealed class PlayerActivityController(IPlayerActivityRepository repositor
     /// <summary>期間内のダンジョン踏破回数をプレイヤー別に集計します。</summary>
     [HttpGet("api/admin/player-activity/dungeons/players")]
     public async Task<IActionResult> GetDungeonPlayers([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] PlayerActivityQuery query) => await Admin(actor, () => repository.GetDungeonPlayersAsync(query));
+    /// <summary>攻略時間と参加者別の与ダメージ・死亡回数を含むボス討伐履歴を返します。</summary>
+    [HttpGet("api/admin/player-activity/bosses")]
+    public async Task<IActionResult> GetBosses([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] PlayerActivityQuery query) => await Admin(actor, () => repository.GetBossesAsync(query));
+    /// <summary>ボス討伐のプレイヤー別回数、攻略時間、与ダメージを集計します。</summary>
+    [HttpGet("api/admin/player-activity/bosses/players")]
+    public async Task<IActionResult> GetBossPlayers([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] PlayerActivityQuery query) => await Admin(actor, () => repository.GetBossPlayersAsync(query));
+    /// <summary>既存のユーザー履歴から、本文と種別と発生元だけを管理者向けに検索します。</summary>
+    [HttpGet("api/admin/player-activity/events")]
+    public async Task<IActionResult> GetEvents([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] PlayerActivityQuery query) => await Admin(actor, () => repository.GetEventsAsync(query));
     /// <summary>Mob別のプレイヤー死亡数と対プレイヤー実ダメージ集計を返します。</summary>
     [HttpGet("api/admin/player-activity/mobs")]
     public async Task<IActionResult> GetMobs([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] PlayerActivityQuery query) => await Admin(actor, () => repository.GetMobsAsync(query));

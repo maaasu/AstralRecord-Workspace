@@ -7,6 +7,7 @@ public sealed class PlayerActivityBatchRequest
     public List<PlayerIpObservationRequest> IpObservations { get; set; } = [];
     public List<PlayerTradeActivityRequest> Trades { get; set; } = [];
     public List<DungeonClearActivityRequest> DungeonClears { get; set; } = [];
+    public List<BossClearActivityRequest> BossClears { get; set; } = [];
     public List<MobDamageSummaryRequest> MobDamageSummaries { get; set; } = [];
     public List<MobPlayerDeathRequest> MobPlayerDeaths { get; set; } = [];
 }
@@ -70,6 +71,23 @@ public sealed class DungeonParticipantActivityRequest
     public int MovementSampleCount { get; set; }
 }
 
+public sealed class BossClearActivityRequest
+{
+    public Guid EventId { get; set; }
+    public string BossId { get; set; } = string.Empty;
+    public string BossName { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public DateTime ClearedAt { get; set; }
+    public List<BossParticipantActivityRequest> Participants { get; set; } = [];
+}
+
+public sealed class BossParticipantActivityRequest
+{
+    public ActivityPlayerSnapshotRequest Player { get; set; } = new();
+    public decimal DamageDealt { get; set; }
+    public int DeathCount { get; set; }
+}
+
 public sealed class MobDamageSummaryRequest
 {
     public Guid EventId { get; set; }
@@ -98,7 +116,10 @@ public sealed class PlayerActivityQuery
     public Guid? OtherUserUuid { get; init; }
     public Guid? AccountId { get; init; }
     public string? DungeonId { get; init; }
+    public string? BossId { get; init; }
     public string? MobId { get; init; }
+    public string? Sort { get; init; }
+    public string? EventType { get; init; }
     public DateTime? From { get; init; }
     public DateTime? To { get; init; }
     public int Page { get; init; } = 1;
@@ -118,8 +139,12 @@ public sealed record SameIpActivityResponse(DateTime FirstObservedAt, DateTime L
 public sealed record PlayerTradeActivityResponse(Guid EventId, DateTime CompletedAt, ActivityPlayerSnapshotResponse Source, ActivityPlayerSnapshotResponse Destination, IReadOnlyList<PlayerTradeItemResponse> Items, long Gold);
 public sealed record PlayerTradeItemResponse(string ItemId, string ItemName, long Quantity);
 public sealed record DungeonParticipantActivityResponse(ActivityPlayerSnapshotResponse Player, decimal? DistanceMeters, int MovementSampleCount);
-public sealed record DungeonClearActivityResponse(Guid EventId, string DungeonId, string DungeonName, DateTime StartedAt, DateTime ClearedAt, long DurationSeconds, IReadOnlyList<DungeonParticipantActivityResponse> Participants);
-public sealed record DungeonPlayerSummaryResponse(ActivityPlayerSnapshotResponse Player, int ClearCount, DateTime FirstClearedAt, DateTime LastClearedAt, decimal? TotalDistanceMeters);
+public sealed record DungeonClearActivityResponse(Guid EventId, string DungeonId, string DungeonName, DateTime StartedAt, DateTime ClearedAt, double DurationSeconds, IReadOnlyList<DungeonParticipantActivityResponse> Participants);
+public sealed record DungeonPlayerSummaryResponse(ActivityPlayerSnapshotResponse Player, int ClearCount, DateTime FirstClearedAt, DateTime LastClearedAt, decimal? TotalDistanceMeters, double BestDurationSeconds, double AverageDurationSeconds);
+public sealed record BossParticipantActivityResponse(ActivityPlayerSnapshotResponse Player, decimal DamageDealt, int DeathCount);
+public sealed record BossClearActivityResponse(Guid EventId, string BossId, string BossName, DateTime StartedAt, DateTime ClearedAt, double DurationSeconds, IReadOnlyList<BossParticipantActivityResponse> Participants);
+public sealed record BossPlayerSummaryResponse(ActivityPlayerSnapshotResponse Player, int ClearCount, DateTime FirstClearedAt, DateTime LastClearedAt, double BestDurationSeconds, double AverageDurationSeconds, decimal TotalDamageDealt, int TotalDeathCount);
+public sealed record UserActivityEventResponse(long HistoryId, Guid? UserUuid, DateTime EventTime, string EventType, string Source, string Message);
 public sealed record MobRankingResponse(string MobId, string MobName, int PlayerKillCount, decimal DamageToPlayers, int HitCount, DateTime LastOccurredAt);
 public sealed record MobPlayerSummaryResponse(ActivityPlayerSnapshotResponse Player, int DeathCount, decimal DamageTaken, int HitCount, DateTime LastOccurredAt);
 public sealed record MobPlayerDeathResponse(Guid EventId, DateTime OccurredAt, string MobId, string MobName, ActivityPlayerSnapshotResponse Victim);

@@ -12,6 +12,8 @@ public class HistoryDbContext(DbContextOptions<HistoryDbContext> options) : DbCo
     public DbSet<PlayerTradeActivityItemEntity> PlayerTradeActivityItems => Set<PlayerTradeActivityItemEntity>();
     public DbSet<DungeonClearActivityEntity> DungeonClearActivities => Set<DungeonClearActivityEntity>();
     public DbSet<DungeonParticipantActivityEntity> DungeonParticipantActivities => Set<DungeonParticipantActivityEntity>();
+    public DbSet<BossClearActivityEntity> BossClearActivities => Set<BossClearActivityEntity>();
+    public DbSet<BossParticipantActivityEntity> BossParticipantActivities => Set<BossParticipantActivityEntity>();
     public DbSet<MobDamageSummaryEntity> MobDamageSummaries => Set<MobDamageSummaryEntity>();
     public DbSet<MobPlayerDeathEntity> MobPlayerDeaths => Set<MobPlayerDeathEntity>();
 
@@ -59,12 +61,26 @@ public class HistoryDbContext(DbContextOptions<HistoryDbContext> options) : DbCo
         modelBuilder.Entity<DungeonClearActivityEntity>(entity =>
         {
             entity.ToTable("dungeon_clear_activity", "dbo"); entity.HasKey(x => x.EventId);
-            entity.Property(x => x.EventId).HasColumnName("event_id"); entity.Property(x => x.DungeonId).HasColumnName("dungeon_id").HasMaxLength(100); entity.Property(x => x.DungeonName).HasColumnName("dungeon_name").HasMaxLength(200); entity.Property(x => x.StartedAt).HasColumnName("started_at"); entity.Property(x => x.ClearedAt).HasColumnName("cleared_at");
+            entity.Property(x => x.EventId).HasColumnName("event_id"); entity.Property(x => x.DungeonId).HasColumnName("dungeon_id").HasMaxLength(100); entity.Property(x => x.DungeonName).HasColumnName("dungeon_name").HasMaxLength(200); entity.Property(x => x.StartedAt).HasColumnName("started_at"); entity.Property(x => x.ClearedAt).HasColumnName("cleared_at"); Duration(entity.Property(x => x.DurationMilliseconds));
             entity.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.ClearedAt, x.DungeonId }).HasDatabaseName("IX_dungeon_clear_activity_cleared_dungeon");
         });
         modelBuilder.Entity<DungeonParticipantActivityEntity>(entity =>
         {
             entity.ToTable("dungeon_clear_participant", "dbo"); entity.HasKey(x => new { x.EventId, x.AccountId }); entity.Property(x => x.EventId).HasColumnName("event_id"); Player(entity, ""); entity.Property(x => x.DistanceMeters).HasColumnName("distance_meters").HasPrecision(18, 3); entity.Property(x => x.MovementSampleCount).HasColumnName("movement_sample_count"); entity.HasIndex(x => new { x.AccountId, x.EventId }).HasDatabaseName("IX_dungeon_clear_participant_account_event");
+        });
+        modelBuilder.Entity<BossClearActivityEntity>(entity =>
+        {
+            entity.ToTable("boss_clear_activity", "dbo"); entity.HasKey(x => x.EventId);
+            entity.Property(x => x.EventId).HasColumnName("event_id"); entity.Property(x => x.BossId).HasColumnName("boss_id").HasMaxLength(100); entity.Property(x => x.BossName).HasColumnName("boss_name").HasMaxLength(200); entity.Property(x => x.StartedAt).HasColumnName("started_at"); entity.Property(x => x.ClearedAt).HasColumnName("cleared_at"); Duration(entity.Property(x => x.DurationMilliseconds));
+            entity.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ClearedAt, x.BossId }).HasDatabaseName("IX_boss_clear_activity_cleared_boss");
+        });
+        modelBuilder.Entity<BossParticipantActivityEntity>(entity =>
+        {
+            entity.ToTable("boss_clear_participant", "dbo"); entity.HasKey(x => new { x.EventId, x.AccountId }); entity.Property(x => x.EventId).HasColumnName("event_id");
+            entity.Property(x => x.UserUuid).HasColumnName("user_uuid"); entity.Property(x => x.AccountId).HasColumnName("account_id"); entity.Property(x => x.Mcid).HasColumnName("mcid").HasMaxLength(20); entity.Property(x => x.AccountName).HasColumnName("account_name").HasMaxLength(50);
+            entity.Property(x => x.DamageDealt).HasColumnName("damage_dealt").HasPrecision(18, 3); entity.Property(x => x.DeathCount).HasColumnName("death_count");
+            entity.HasIndex(x => new { x.AccountId, x.EventId }).HasDatabaseName("IX_boss_clear_participant_account_event");
         });
         modelBuilder.Entity<MobDamageSummaryEntity>(entity =>
         {
@@ -83,5 +99,10 @@ public class HistoryDbContext(DbContextOptions<HistoryDbContext> options) : DbCo
     private static void Victim<TEntity>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity> entity) where TEntity : class
     {
         entity.Property<Guid>("VictimUserUuid").HasColumnName("victim_user_uuid"); entity.Property<Guid>("VictimAccountId").HasColumnName("victim_account_id"); entity.Property<string>("VictimMcid").HasColumnName("victim_mcid").HasMaxLength(20); entity.Property<string>("VictimAccountName").HasColumnName("victim_account_name").HasMaxLength(50);
+    }
+    private void Duration(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<long> property)
+    {
+        property.HasColumnName("duration_milliseconds");
+        if (Database.IsSqlServer()) property.HasComputedColumnSql("DATEDIFF_BIG(MILLISECOND, [started_at], [cleared_at])", stored: true);
     }
 }

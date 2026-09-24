@@ -1,4 +1,5 @@
 using AstralRecordApi.Data;
+using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
@@ -16,7 +17,7 @@ public sealed class PlayerActivityRepositoryTests
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("ASTRALRECORD_RUN_SQLSERVER_INTEGRATION"), "1", StringComparison.Ordinal)) return;
         var name = "HistoryActivityIntegration_" + Guid.NewGuid().ToString("N");
-        var master = new SqlConnectionStringBuilder { DataSource = @"localhost\SQLEXPRESS", InitialCatalog = "master", IntegratedSecurity = true, TrustServerCertificate = true }.ConnectionString;
+        var master = new SqlConnectionStringBuilder { DataSource = Environment.GetEnvironmentVariable("ASTRALRECORD_SQLSERVER_TEST_SOURCE") ?? @"localhost\SQLEXPRESS", InitialCatalog = "master", IntegratedSecurity = true, TrustServerCertificate = true }.ConnectionString;
         var target = new SqlConnectionStringBuilder(master) { InitialCatalog = name }.ConnectionString;
         await using var masterConnection = new SqlConnection(master); await masterConnection.OpenAsync();
         await using (var create = new SqlCommand($"CREATE DATABASE [{name}]", masterConnection)) await create.ExecuteNonQueryAsync();
@@ -26,9 +27,11 @@ public sealed class PlayerActivityRepositoryTests
             await using (var setup = new HistoryDbContext(options)) await setup.Database.EnsureCreatedAsync();
             var now = DateTime.UtcNow; var first = new ActivityPlayerSnapshotRequest { UserUuid = Guid.NewGuid(), AccountId = Guid.NewGuid(), Mcid = "First", AccountName = "First" }; var second = new ActivityPlayerSnapshotRequest { UserUuid = Guid.NewGuid(), AccountId = Guid.NewGuid(), Mcid = "Second", AccountName = "Second" };
             await using var db = new HistoryDbContext(options); var repository = new PlayerActivityRepository(db, TimeProvider.System);
-            await repository.RecordBatchAsync(new PlayerActivityBatchRequest { BatchId = Guid.NewGuid(), IpObservations = [new() { EventId = Guid.NewGuid(), ObservedAt = now, GlobalIp = "203.0.113.7", Player = first }, new() { EventId = Guid.NewGuid(), ObservedAt = now, GlobalIp = "203.0.113.7", Player = second }], Trades = [new() { EventId = Guid.NewGuid(), CompletedAt = now, Source = first, Destination = second }], DungeonClears = [new() { EventId = Guid.NewGuid(), DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddMinutes(-1), ClearedAt = now, Participants = [new() { Player = first, DistanceMeters = 10, MovementSampleCount = 2 }, new() { Player = second, DistanceMeters = 0, MovementSampleCount = 1 }] }], MobDamageSummaries = [new() { EventId = Guid.NewGuid(), MobId = "slime", MobName = "Slime", WindowStartedAt = now.AddMinutes(-1), WindowEndedAt = now, Victim = first, Damage = 5, HitCount = 1 }], MobPlayerDeaths = [new() { EventId = Guid.NewGuid(), OccurredAt = now, MobId = "slime", MobName = "Slime", Victim = first }] });
+            await repository.RecordBatchAsync(new PlayerActivityBatchRequest { BatchId = Guid.NewGuid(), IpObservations = [new() { EventId = Guid.NewGuid(), ObservedAt = now, GlobalIp = "203.0.113.7", Player = first }, new() { EventId = Guid.NewGuid(), ObservedAt = now, GlobalIp = "203.0.113.7", Player = second }], Trades = [new() { EventId = Guid.NewGuid(), CompletedAt = now, Source = first, Destination = second }], DungeonClears = [new() { EventId = Guid.NewGuid(), DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddMinutes(-1), ClearedAt = now, Participants = [new() { Player = first, DistanceMeters = 10, MovementSampleCount = 2 }, new() { Player = second, DistanceMeters = 0, MovementSampleCount = 1 }] }], BossClears = [new() { EventId = Guid.NewGuid(), BossId = "dragon", BossName = "Dragon", StartedAt = now.AddSeconds(-1.125), ClearedAt = now, Participants = [new() { Player = first, DamageDealt = 5.5m, DeathCount = 1 }] }], MobDamageSummaries = [new() { EventId = Guid.NewGuid(), MobId = "slime", MobName = "Slime", WindowStartedAt = now.AddMinutes(-1), WindowEndedAt = now, Victim = first, Damage = 5, HitCount = 1 }], MobPlayerDeaths = [new() { EventId = Guid.NewGuid(), OccurredAt = now, MobId = "slime", MobName = "Slime", Victim = first }] });
             var query = new PlayerActivityQuery { From = now.AddMinutes(-2), To = now.AddMinutes(1) };
             Assert.Single((await repository.GetSameIpAsync(query)).Items); Assert.Single((await repository.GetDungeonsAsync(query)).Items); Assert.Equal(2, (await repository.GetDungeonPlayersAsync(query)).Items.Count); Assert.Single((await repository.GetMobsAsync(query)).Items); Assert.Single((await repository.GetMobPlayersAsync("slime", query)).Items);
+            Assert.Equal(1.125, Assert.Single((await repository.GetBossesAsync(query)).Items).DurationSeconds, 3);
+            Assert.Equal(5.5m, Assert.Single((await repository.GetBossPlayersAsync(query)).Items).TotalDamageDealt);
         }
         finally { await using var drop = new SqlCommand($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{name}]", masterConnection); await drop.ExecuteNonQueryAsync(); }
     }
@@ -113,5 +116,48 @@ public sealed class PlayerActivityRepositoryTests
         await repository.RecordBatchAsync(new PlayerActivityBatchRequest { BatchId = Guid.NewGuid(), DungeonClears = [new() { EventId = Guid.NewGuid(), DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddMinutes(-10), ClearedAt = now.AddMinutes(-9), Participants = [new() { Player = former, DistanceMeters = 2, MovementSampleCount = 1 }] }, new() { EventId = Guid.NewGuid(), DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddMinutes(-2), ClearedAt = now.AddMinutes(-1), Participants = [new() { Player = current, DistanceMeters = 3, MovementSampleCount = 1 }] }] });
         var summary = Assert.Single((await repository.GetDungeonPlayersAsync(new PlayerActivityQuery { From = now.AddMinutes(-20), To = now })).Items);
         Assert.Equal(2, summary.ClearCount); Assert.Equal(accountId, summary.Player.AccountId); Assert.Equal(userId, summary.Player.UserUuid); Assert.Equal("CurrentName", summary.Player.Mcid); Assert.Equal("CurrentAccount", summary.Player.AccountName);
+    }
+
+    [Fact]
+    public async Task ClearRankings_AreSortedBeforePagingAndKeepMillisecondPrecision()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:"); await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<HistoryDbContext>().UseSqlite(connection).Options;
+        await using (var setup = new HistoryDbContext(options)) await setup.Database.EnsureCreatedAsync();
+        var now = DateTime.UtcNow; var first = new ActivityPlayerSnapshotRequest { UserUuid = Guid.NewGuid(), AccountId = Guid.NewGuid(), Mcid = "First", AccountName = "First" }; var second = new ActivityPlayerSnapshotRequest { UserUuid = Guid.NewGuid(), AccountId = Guid.NewGuid(), Mcid = "Second", AccountName = "Second" };
+        var quick = Guid.NewGuid(); var slow = Guid.NewGuid();
+        await using var db = new HistoryDbContext(options); var repository = new PlayerActivityRepository(db, TimeProvider.System);
+        var batch = new PlayerActivityBatchRequest { BatchId = Guid.NewGuid(), DungeonClears = [
+            new() { EventId = slow, DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddSeconds(-10.25), ClearedAt = now, Participants = [new() { Player = second }] },
+            new() { EventId = quick, DungeonId = "cave", DungeonName = "Cave", StartedAt = now.AddSeconds(-1.125), ClearedAt = now.AddSeconds(-1), Participants = [new() { Player = first }] },
+        ], BossClears = [
+            new() { EventId = Guid.NewGuid(), BossId = "dragon", BossName = "Dragon", StartedAt = now.AddSeconds(-10.25), ClearedAt = now, Participants = [new() { Player = second, DamageDealt = 12.5m, DeathCount = 1 }] },
+            new() { EventId = Guid.NewGuid(), BossId = "dragon", BossName = "Dragon", StartedAt = now.AddSeconds(-1.125), ClearedAt = now.AddSeconds(-1), Participants = [new() { Player = first, DamageDealt = 7.25m }] },
+        ] };
+        Assert.Equal(4, (await repository.RecordBatchAsync(batch)).AcceptedEventCount);
+        Assert.Equal(0, (await repository.RecordBatchAsync(new PlayerActivityBatchRequest { BatchId = Guid.NewGuid(), BossClears = batch.BossClears })).AcceptedEventCount);
+        var q = new PlayerActivityQuery { From = now.AddMinutes(-1), To = now.AddMinutes(1), DungeonId = "cave", BossId = "dragon", Sort = "fastest", PageSize = 1 };
+        var dungeon = await repository.GetDungeonsAsync(q); Assert.Equal(2, dungeon.TotalCount); Assert.Equal(quick, Assert.Single(dungeon.Items).EventId); Assert.Equal(0.125, dungeon.Items[0].DurationSeconds, 3);
+        var boss = await repository.GetBossesAsync(q); Assert.Equal(2, boss.TotalCount); Assert.Equal(0.125, Assert.Single(boss.Items).DurationSeconds, 3);
+        var bossPlayers = await repository.GetBossPlayersAsync(q); Assert.Equal(2, bossPlayers.TotalCount); Assert.Equal(first.AccountId, Assert.Single(bossPlayers.Items).Player.AccountId);
+        var dungeonPlayers = await repository.GetDungeonPlayersAsync(q); Assert.Equal(2, dungeonPlayers.TotalCount); Assert.Equal(first.AccountId, Assert.Single(dungeonPlayers.Items).Player.AccountId);
+        Assert.Empty((await repository.GetBossesAsync(new PlayerActivityQuery { From = q.From, To = q.To, BossId = "other" })).Items);
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.GetBossesAsync(new PlayerActivityQuery { Sort = "invalid" }));
+    }
+
+    [Fact]
+    public async Task UserEvents_SearchesStoredHistoryWithoutReturningPayload()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:"); await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<HistoryDbContext>().UseSqlite(connection).Options;
+        await using var db = new HistoryDbContext(options); await db.Database.EnsureCreatedAsync();
+        var now = DateTime.UtcNow; var user = Guid.NewGuid();
+        db.UserHistories.Add(new UserHistoryEntity { UserUuid = user, EventTime = now, EventType = "PLAYER_LOGIN", Source = "PLUGIN", Message = "Player login: Alice", PayloadJson = "{\"private\":true}" });
+        db.UserHistories.Add(new UserHistoryEntity { UserUuid = Guid.NewGuid(), EventTime = now, EventType = "PARTY_JOINED", Source = "PLUGIN", Message = "Party joined", PayloadJson = "{}" });
+        await db.SaveChangesAsync();
+        var repository = new PlayerActivityRepository(db, TimeProvider.System);
+        var result = await repository.GetEventsAsync(new PlayerActivityQuery { From = now.AddMinutes(-1), To = now.AddMinutes(1), UserUuid = user, EventType = "PLAYER_LOGIN", Query = "login" });
+        var item = Assert.Single(result.Items); Assert.Equal(1, result.TotalCount); Assert.Equal("Player login: Alice", item.Message);
+        Assert.DoesNotContain("Payload", System.Text.Json.JsonSerializer.Serialize(item));
     }
 }

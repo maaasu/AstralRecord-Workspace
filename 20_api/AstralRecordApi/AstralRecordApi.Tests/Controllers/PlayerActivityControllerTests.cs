@@ -11,8 +11,11 @@ public sealed class PlayerActivityControllerTests
     [Fact]
     public async Task AdminEndpoints_RejectAnActorWithoutWebAdminPermission()
     {
-        var result = await new PlayerActivityController(new Repository(), new Authorization(false)).GetMobs(Guid.NewGuid(), new PlayerActivityQuery());
+        var controller = new PlayerActivityController(new Repository(), new Authorization(false));
+        var result = await controller.GetMobs(Guid.NewGuid(), new PlayerActivityQuery());
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(result).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.GetBosses(Guid.NewGuid(), new PlayerActivityQuery())).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.GetEvents(Guid.NewGuid(), new PlayerActivityQuery())).StatusCode);
     }
 
     [Fact]
@@ -41,6 +44,9 @@ public sealed class PlayerActivityControllerTests
         public Task<PagedPlayerActivityResponse<PlayerTradeActivityResponse>> GetTradesAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<DungeonClearActivityResponse>> GetDungeonsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<DungeonPlayerSummaryResponse>> GetDungeonPlayersAsync(PlayerActivityQuery query) => throw new NotSupportedException();
+        public Task<PagedPlayerActivityResponse<BossClearActivityResponse>> GetBossesAsync(PlayerActivityQuery query) => throw new NotSupportedException();
+        public Task<PagedPlayerActivityResponse<BossPlayerSummaryResponse>> GetBossPlayersAsync(PlayerActivityQuery query) => throw new NotSupportedException();
+        public Task<PagedPlayerActivityResponse<UserActivityEventResponse>> GetEventsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<MobRankingResponse>> GetMobsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<MobPlayerSummaryResponse>> GetMobPlayersAsync(string mobId, PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<MobPlayerDeathResponse>> GetMobDeathsAsync(string mobId, PlayerActivityQuery query) => throw new NotSupportedException();
