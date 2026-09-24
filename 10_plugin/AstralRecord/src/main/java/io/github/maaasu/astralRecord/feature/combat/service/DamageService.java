@@ -33,6 +33,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkill
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
@@ -98,6 +99,7 @@ public final class DamageService {
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private PassiveSkillService passiveSkillService;
+    private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
@@ -223,6 +225,11 @@ public final class DamageService {
      */
     public void setPassiveSkillService(@Nullable PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
+    }
+
+    /** @param runtime 確定した直接攻撃の Mob 命中通知先 */
+    public void setArchmagePhoenixRuntimeService(@Nullable ArchmagePhoenixRuntimeService runtime) {
+        this.archmagePhoenixRuntimeService = runtime;
     }
 
     /** ガード獲得へ被ダメージ内訳を通知するサービスを設定します。 */
@@ -1146,6 +1153,14 @@ public final class DamageService {
         double victimCurrentHealthBefore = victim.currentHealth();
         double victimMaxHealth = victim.maxHealth();
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
+        if (archmagePhoenixRuntimeService != null
+                && isDirectDamage(source)
+                && !result.evaded()
+                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)
+                && attacker != null && attacker.isPlayer() && attacker.player() != null
+                && victim.isMob() && victim.mob() != null) {
+            archmagePhoenixRuntimeService.onDirectMobHit(attacker.player(), victim.mob());
+        }
         if (victim.isPlayer() && victim.player() != null && paladinGuardRuntimeService != null) {
             double rawDamage = calculated.breakdown().preDefenseDamage() * postCalculationMultiplier
                     + rawFixedHealthDamage;

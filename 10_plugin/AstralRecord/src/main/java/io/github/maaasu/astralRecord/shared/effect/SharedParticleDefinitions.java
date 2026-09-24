@@ -21,6 +21,20 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_GOLD =
+        new SharedParticleDefinition("skill_archmage_phoenix_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 205, 48), 1.8F));
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_ORANGE =
+        new SharedParticleDefinition("skill_archmage_phoenix_orange", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 105, 22), 1.6F));
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_RED =
+        new SharedParticleDefinition("skill_archmage_phoenix_red", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(225, 35, 30), 1.4F));
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_BLUE =
+        new SharedParticleDefinition("skill_archmage_phoenix_blue", Particle.SOUL_FIRE_FLAME, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_FLAME =
+        new SharedParticleDefinition("skill_archmage_phoenix_flame", Particle.FLAME, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+
     public static final SharedParticleDefinition DODGE_CLOUD =
         new SharedParticleDefinition("dodge_cloud", Particle.CLOUD, 6, 0.2D, 0.05D, 0.2D, 0.0D);
     public static final SharedParticleDefinition JUST_DODGE_ENERGY_ABSORB_END_ROD =

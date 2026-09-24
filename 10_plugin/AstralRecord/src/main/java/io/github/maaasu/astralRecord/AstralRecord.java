@@ -235,6 +235,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkill
 import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.passive.mage.MageBlinkSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.ArchmagePhoenixResonanceExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
@@ -272,6 +273,7 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArcaneFlowSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
@@ -477,6 +479,7 @@ public final class AstralRecord extends JavaPlugin {
     private MageBlinkSkillRuntimeService mageBlinkSkillRuntimeService;
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
+    private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
@@ -904,6 +907,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (arcaneFlowSkillRuntimeService != null) {
             arcaneFlowSkillRuntimeService.clearAll();
+        }
+        if (archmagePhoenixRuntimeService != null) {
+            archmagePhoenixRuntimeService.clearAll();
         }
         if (wizardPrismConditionRuntimeService != null) {
             wizardPrismConditionRuntimeService.clearAll();
@@ -1658,6 +1664,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         spellStepSkillRuntimeService = new SpellStepSkillRuntimeService();
         arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService);
+        archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(particleDisplayService);
+        skillService.registerExecutor(new ArchmagePhoenixResonanceExecutor(archmagePhoenixRuntimeService));
+        playerHudService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);
+        damageService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);
         dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
         configureSpellStepIntegration(
             skillService,
@@ -1752,7 +1762,10 @@ public final class AstralRecord extends JavaPlugin {
             temporarySkillEffectService,
             mobTauntService
         );
-        playerDeathService.setDeathStartedListener(activeSkillLifecycleService::clearAll);
+        playerDeathService.setDeathStartedListener(playerId -> {
+            activeSkillLifecycleService.clearAll(playerId);
+            archmagePhoenixRuntimeService.onPlayerDeath(playerId);
+        });
         SkillCombatService activeSkillCombatService = new SkillCombatService(
             damageService, conditionService, mobKnockbackService, statusService, mobTauntService
         );
@@ -2166,6 +2179,7 @@ public final class AstralRecord extends JavaPlugin {
             UUID playerId = player.getBukkit().getUniqueId();
             try {
                 passiveSkillService.onPlayerQuit(player);
+                archmagePhoenixRuntimeService.clearPlayer(playerId);
                 activeSkillLifecycleService.clearAll(playerId);
                 meditationSkillRuntimeService.interrupt(playerId);
                 justDodgeSkillRuntimeService.clearPlayer(playerId);

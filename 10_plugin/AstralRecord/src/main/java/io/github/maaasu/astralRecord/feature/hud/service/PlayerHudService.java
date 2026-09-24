@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -48,6 +49,7 @@ public class PlayerHudService {
     private final PlayerHudView playerHudView;
     private CombatDpsTrackerService combatDpsTrackerService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
+    private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private DungeonService dungeonService;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -99,6 +101,11 @@ public class PlayerHudService {
             @NotNull PaladinGuardRuntimeService paladinGuardRuntimeService
     ) {
         this.paladinGuardRuntimeService = paladinGuardRuntimeService;
+    }
+
+    /** @param runtime アクションバーへ不死鳥リソースを表示する状態サービス */
+    public void setArchmagePhoenixRuntimeService(@NotNull ArchmagePhoenixRuntimeService runtime) {
+        this.archmagePhoenixRuntimeService = runtime;
     }
 
     /** @param dungeonService ダンジョン Sidebar 情報の参照先 */
@@ -388,6 +395,9 @@ public class PlayerHudService {
         PaladinGuardRuntimeService.GuardSnapshot guard = paladinGuardRuntimeService == null
                 ? new PaladinGuardRuntimeService.GuardSnapshot(false, 0.0D, 0.0D)
                 : paladinGuardRuntimeService.snapshot(astPlayer);
+        ArchmagePhoenixRuntimeService.PhoenixSnapshot phoenix = archmagePhoenixRuntimeService == null
+                ? new ArchmagePhoenixRuntimeService.PhoenixSnapshot(false, 0.0D, 0.0D)
+                : archmagePhoenixRuntimeService.snapshot(astPlayer);
         playerHudView.renderActionBar(
             player,
             snapshot,
@@ -397,7 +407,10 @@ public class PlayerHudService {
             guard.active(),
             guard.current(),
             guard.maximum(),
-            statusService.getShieldDisplayCapacity(astPlayer)
+            statusService.getShieldDisplayCapacity(astPlayer),
+            phoenix.active(),
+            phoenix.current(),
+            phoenix.maximum()
         );
     }
 
