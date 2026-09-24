@@ -138,7 +138,7 @@ public final class SkillMovementService {
             return new MovementResult(start, start.clone(), false);
         }
         direction.normalize();
-        if (direction.getY() < -0.99D) {
+        if (direction.getY() < -0.9D) {
             return new MovementResult(start, start.clone(), false);
         }
         Location destination = findGroundedDestination(
@@ -257,22 +257,11 @@ public final class SkillMovementService {
                 if (floor.isPassable()) {
                     continue;
                 }
-                Location surfaceProbe = new Location(
-                        world,
-                        candidate.getX(),
-                        floor.getY() + 2.0D,
-                        candidate.getZ()
-                );
-                RayTraceResult surfaceHit = floor.rayTrace(
-                        surfaceProbe,
-                        new Vector(0.0D, -1.0D, 0.0D),
-                        2.0D,
-                        FluidCollisionMode.NEVER
-                );
-                if (surfaceHit == null) {
+                Double surfaceY = floorSurfaceY(floor, candidate.getX(), candidate.getZ());
+                if (surfaceY == null) {
                     continue;
                 }
-                candidate.setY(surfaceHit.getHitPosition().getY());
+                candidate.setY(surfaceY);
                 if (isBlinkBodyClear(player, candidate)
                         && isBlinkPathClear(player, start, candidate)) {
                     return candidate;
@@ -280,6 +269,24 @@ public final class SkillMovementService {
             }
         }
         return start.clone();
+    }
+
+    /** 足元の真下にある衝突面の最上面をワールド座標で返します。 */
+    private @Nullable Double floorSurfaceY(@NotNull Block floor, double x, double z) {
+        double localX = x - floor.getX();
+        double localZ = z - floor.getZ();
+        Double highest = null;
+        for (BoundingBox shapeBox : floor.getCollisionShape().getBoundingBoxes()) {
+            if (localX < shapeBox.getMinX() || localX > shapeBox.getMaxX()
+                    || localZ < shapeBox.getMinZ() || localZ > shapeBox.getMaxZ()) {
+                continue;
+            }
+            double surface = floor.getY() + shapeBox.getMaxY();
+            if (highest == null || surface > highest) {
+                highest = surface;
+            }
+        }
+        return highest;
     }
 
     /** 開始地点から着地点まで、全身が直線的に通過できる場合だけ許可します。 */
@@ -377,8 +384,9 @@ public final class SkillMovementService {
         for (int blockX = (int) Math.floor(sweepBounds.getMinX());
              blockX <= (int) Math.floor(sweepBounds.getMaxX());
              blockX++) {
-            for (int blockY = (int) Math.floor(sweepBounds.getMinY());
-                 blockY <= (int) Math.floor(sweepBounds.getMaxY());
+            // フェンスなどの衝突形状はブロックの高さを越えるため、上下も隣接ブロックを調べます。
+            for (int blockY = (int) Math.floor(sweepBounds.getMinY()) - 1;
+                 blockY <= (int) Math.floor(sweepBounds.getMaxY()) + 1;
                  blockY++) {
                 for (int blockZ = (int) Math.floor(sweepBounds.getMinZ());
                      blockZ <= (int) Math.floor(sweepBounds.getMaxZ());
@@ -387,9 +395,8 @@ public final class SkillMovementService {
                         continue;
                     }
                     Block block = world.getBlockAt(blockX, blockY, blockZ);
-                    for (BoundingBox shapeBox : block.getBlockData()
-                            .getCollisionShape(block.getLocation())
-                            .getBoundingBoxes()) {
+                    for (BoundingBox localShape : block.getCollisionShape().getBoundingBoxes()) {
+                        BoundingBox shapeBox = localShape.clone().shift(blockX, blockY, blockZ);
                         BoundingBox expandedShape = new BoundingBox(
                                 shapeBox.getMinX() - maxOffsetX,
                                 shapeBox.getMinY() - maxOffsetY,
@@ -469,8 +476,8 @@ public final class SkillMovementService {
 
         int minBlockX = (int) Math.floor(body.getMinX());
         int maxBlockX = (int) Math.floor(body.getMaxX());
-        int minBlockY = (int) Math.floor(body.getMinY());
-        int maxBlockY = (int) Math.floor(body.getMaxY());
+        int minBlockY = (int) Math.floor(body.getMinY()) - 1;
+        int maxBlockY = (int) Math.floor(body.getMaxY()) + 1;
         int minBlockZ = (int) Math.floor(body.getMinZ());
         int maxBlockZ = (int) Math.floor(body.getMaxZ());
         for (int blockX = minBlockX; blockX <= maxBlockX; blockX++) {
@@ -480,8 +487,10 @@ public final class SkillMovementService {
                         return false;
                     }
                     Block block = world.getBlockAt(blockX, blockY, blockZ);
-                    if (block.getBlockData().getCollisionShape(block.getLocation()).overlaps(body)) {
-                        return false;
+                    for (BoundingBox localShape : block.getCollisionShape().getBoundingBoxes()) {
+                        if (localShape.clone().shift(blockX, blockY, blockZ).overlaps(body)) {
+                            return false;
+                        }
                     }
                 }
             }

@@ -9,8 +9,7 @@ name: "&dブリンク"
 description: "&7視線の先へ瞬間移動する空間魔法。"
 icon: CHORUS_FRUIT
 lore:
-  - "&7空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある着地可能な地上へ瞬間移動する。"
-  - "&7視線先のブロック手前を優先し、足場と2ブロック分の空間を確保する。"
+  - "&7空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある安全な位置へ瞬間移動する。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 20
