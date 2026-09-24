@@ -1389,6 +1389,15 @@ public class SkillService {
     }
 
     /**
+     * 発動者のすべてのスキルクールダウンを破棄します。
+     *
+     * @param casterId 発動者 UUID
+     */
+    public void clearAllCooldowns(@NotNull UUID casterId) {
+        cooldownExpiryByCaster.remove(casterId);
+    }
+
+    /**
      * 発動者の有効なクールダウンを開始時刻の降順で取得します。
      *
      * @param caster 発動者

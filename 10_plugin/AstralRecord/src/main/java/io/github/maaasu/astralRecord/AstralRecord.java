@@ -1751,6 +1751,7 @@ public final class AstralRecord extends JavaPlugin {
         temporarySkillEffectService = new TemporarySkillEffectService();
         statusService.setChallengeBuffResetListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
+            skillService.clearAllCooldowns(playerId);
             temporarySkillEffectService.clear(playerId);
             meditationSkillRuntimeService.interrupt(playerId);
         });
