@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2396",
+  "name": "&d鳳翼の星環",
+  "icon": "FEATHER",
+  "tags": [
+    "status",
+    "offense",
+    "agility",
+    "fire"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

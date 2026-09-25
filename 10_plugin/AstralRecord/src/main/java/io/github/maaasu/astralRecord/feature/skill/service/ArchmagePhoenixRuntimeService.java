@@ -16,7 +16,6 @@ import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
-import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -72,7 +71,7 @@ public final class ArchmagePhoenixRuntimeService {
 
     /**
      * 戦闘開始後の攻撃、MP 消費と魔法陣の対象判定を接続します。
-     * @param statusService MP と攻撃速度を扱うサービス
+     * @param statusService MP と不死鳥の追加攻撃回数を扱うサービス
      * @param activeSkills 魔法攻撃とメテオの共有処理
      * @param circles 発動者別の魔法陣影響判定
      * @param meteorDefinition 孵化時に最大レベル相当へ解決するメテオの定義
@@ -329,39 +328,47 @@ public final class ArchmagePhoenixRuntimeService {
                 .orElse(null);
     }
 
-    /** 攻撃速度を演出と待機の両方に適用し、敵の上へ移動して攻撃を始めます。 */
+    /** 固定の9.5秒周期で始まる攻撃サイクルを準備し、最初の攻撃を開始します。 */
     private void beginAttack(Player owner, State state, long now) {
         if (statusService == null || activeSkills == null || state.phoenix < ATTACK_COST) return;
         MobInstance target = attackTarget(owner, state);
-        if (target == null || statusService.getStatus(state.owner).getCurrentMp() < ATTACK_COST) {
+        if (target == null) {
             state.nextAttackTick = now + 20L;
             return;
         }
+        state.additionalAttacksRemaining = resolveAdditionalAttacks(
+                state.owner.getStatusSnapshot().rollValue(StatusType.PHOENIX_EXTRA_ATTACK_COUNT));
+        if (!startAttack(owner, state, target, now)) {
+            state.additionalAttacksRemaining = 0;
+            state.nextAttackTick = now + 20L;
+        }
+    }
+
+    /** 対象上空のランダムな位置へ移動し、攻撃速度に依存しない30tickの攻撃を開始します。 */
+    private boolean startAttack(Player owner, State state, MobInstance target, long now) {
+        if (statusService == null || state.phoenix < ATTACK_COST
+                || statusService.getStatus(state.owner).getCurrentMp() < ATTACK_COST) return false;
         Entity entity = targetEntityPresent(target);
-        if (entity == null) return;
+        if (entity == null || !targetInRange(owner, target, state.rangeSquared)) return false;
         Location center = entity.getLocation();
         double angle = ThreadLocalRandom.current().nextDouble(Math.PI * 2.0D);
         double radius = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * 3.0D;
         Location attackLocation = center.clone().add(Math.cos(angle) * radius, 2.2D, Math.sin(angle) * radius);
         Vector look = center.toVector().subtract(attackLocation.toVector());
         attackLocation.setDirection(look);
-        if (!state.parrot.teleport(attackLocation)) {
-            state.nextAttackTick = now + 20L;
-            return;
-        }
+        if (!state.parrot.teleport(attackLocation)) return false;
         state.parrot.setVelocity(new Vector());
         state.flightVelocity.zero();
         state.flightYaw = attackLocation.getYaw();
         state.returning = false;
         state.attacking = true;
         state.attackTarget = target;
-        double speed = state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED);
-        state.attackEndTick = now + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_ANIMATION_TICKS, speed);
-        state.attackWaitTicks = CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS, speed);
+        state.attackEndTick = now + ATTACK_ANIMATION_TICKS;
         statusService.consumeMp(state.owner, ATTACK_COST);
+        return true;
     }
 
-    /** 演出完了時に一撃を与え、枯渇した不死鳥をその場で卵にします。 */
+    /** 演出完了時に一撃を与え、追加回数が残る間は帰還と次回待機を挟まず攻撃を続けます。 */
     private void completeAttack(Player owner, State state, long now) {
         state.attacking = false;
         MobInstance target = state.attackTarget;
@@ -388,10 +395,24 @@ public final class ArchmagePhoenixRuntimeService {
         }
         if (state.phoenix <= 0.0D) {
             becomeEgg(state, now);
-        } else {
-            state.returning = true;
-            state.nextAttackTick = now + state.attackWaitTicks;
+            return;
         }
+        if (state.additionalAttacksRemaining > 0) {
+            MobInstance nextTarget = attackTarget(owner, state);
+            if (nextTarget != null && startAttack(owner, state, nextTarget, now)) {
+                state.additionalAttacksRemaining--;
+                return;
+            }
+        }
+        state.additionalAttacksRemaining = 0;
+        state.returning = true;
+        state.nextAttackTick = now + ATTACK_WAIT_TICKS;
+    }
+
+    /** ステータス値の整数部分を、1サイクル内で行う追加攻撃回数へ変換します。 */
+    private int resolveAdditionalAttacks(double value) {
+        if (!Double.isFinite(value) || value <= 0.0D) return 0;
+        return (int) Math.min(Integer.MAX_VALUE, Math.floor(value));
     }
 
     /** phoenix 枯渇地点の地面に卵を作り、30 秒の孵化を開始します。 */
@@ -417,8 +438,7 @@ public final class ArchmagePhoenixRuntimeService {
         spawn(owner, state, impact.clone().add(0.0D, 1.5D, 0.0D));
         if (state.parrot != null) {
             state.lastInRangeTick = now;
-            state.nextAttackTick = now + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS,
-                    state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED));
+            state.nextAttackTick = now + ATTACK_WAIT_TICKS;
         }
         if (activeSkills != null) {
             SkillDefinition meteor = meteorDefinition == null ? null : meteorDefinition.get();
@@ -462,9 +482,7 @@ public final class ArchmagePhoenixRuntimeService {
                 state.visualPhase = Math.floorMod(player.getUniqueId().hashCode(), 6);
                 state.stalledTicks = 0;
                 state.phoenix = state.maximum;
-                state.nextAttackTick = Bukkit.getCurrentTick()
-                        + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS,
-                        state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED));
+                state.nextAttackTick = Bukkit.getCurrentTick() + ATTACK_WAIT_TICKS;
             }
         } catch (RuntimeException exception) {
             despawn(state);
@@ -582,6 +600,7 @@ public final class ArchmagePhoenixRuntimeService {
         state.attacking = false;
         state.returning = false;
         state.attackTarget = null;
+        state.additionalAttacksRemaining = 0;
     }
 
     private UUID bindingId(PassiveSkillContext context) {
@@ -612,7 +631,7 @@ public final class ArchmagePhoenixRuntimeService {
         private boolean returning;
         private MobInstance attackTarget;
         private long attackEndTick;
-        private long attackWaitTicks;
+        private int additionalAttacksRemaining;
         private long nextAttackTick;
         private long lastInRangeTick;
         private long lastTick;

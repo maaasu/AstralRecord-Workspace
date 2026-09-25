@@ -38,6 +38,7 @@ enum class StatusType(
     SKILL_DAMAGE_INCREASE("SKILL_DAMAGE_INCREASE", "スキルダメージ増加", "スキルで与えるダメージを増加させる補正。", Category.OFFENSE, "%", 1, true),
     NORMAL_ATTACK_DAMAGE_INCREASE("NORMAL_ATTACK_DAMAGE_INCREASE", "通常攻撃ダメージ増加", "通常攻撃で与えるダメージを増加させる補正。", Category.OFFENSE, "%", 1, true),
     NORMAL_ATTACK_DEGRADATION_DELAY("NORMAL_ATTACK_DEGRADATION_DELAY", "通常攻撃劣化遅延", "1ポイントにつき、通常攻撃劣化が発生しない回数を1回追加する補正。", Category.OFFENSE, "回", 1, false),
+    PHOENIX_EXTRA_ATTACK_COUNT("PHOENIX_EXTRA_ATTACK_COUNT", "不死鳥の追加攻撃回数", "不死鳥との共鳴による1回の攻撃サイクルで、通常攻撃を追加する回数。", Category.OFFENSE, "回", 0, false),
     FINAL_DAMAGE_MULTIPLIER("FINAL_DAMAGE_MULTIPLIER", "最終ダメージ倍率", "各種補正の後に常時適用される最終ダメージ倍率。", Category.OFFENSE, "%", 1, true),
     ACCURACY("ACCURACY", "命中率", "攻撃が対象へ命中する確率。", Category.OFFENSE, "%", 1, true),
     ATTACK_SPEED("ATTACK_SPEED", "攻撃速度", "通常攻撃や攻撃行動を行う速さ。", Category.OFFENSE, "%", 0, true),

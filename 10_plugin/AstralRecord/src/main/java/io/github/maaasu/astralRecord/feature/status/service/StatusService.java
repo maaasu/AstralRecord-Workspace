@@ -1317,6 +1317,7 @@ public class StatusService {
             case FINAL_DAMAGE_MULTIPLIER -> 100.0D;
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
+            case PHOENIX_EXTRA_ATTACK_COUNT -> 0.0D;
             case SHIELD_BREAK -> 0.0D;
             case FIXED_HEALTH_DAMAGE -> 0.0D;
             case NORMAL_ATTACK_DEGRADATION_DELAY -> 0.0D;

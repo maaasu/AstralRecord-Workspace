@@ -498,7 +498,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## アークメイジ専門枝
 
-`2269`〜`2388` はアークメイジ専用の120 status node。各6node群は通常5nodeと強化1nodeで構成し、いずれも1CPとする。表示定義が既存nodeと同じ効果では既存の名前・アイコン・タグを再利用する。現行構造JSONへは配置しない。
+`2269`〜`2388`、`2396`〜`2401` はアークメイジ専用の126 status node。各6node群は通常5nodeと強化1nodeで構成し、いずれも1CPとする。表示定義が既存nodeと同じ効果では既存の名前・アイコン・タグを再利用する。現行構造JSONへは配置しない。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |---|---|---|---|---|---|
@@ -542,5 +542,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `status-archmage-19-notable`（攻撃） | `2382` | SKILL_DAMAGE_INCREASE `FLAT +4` | `&6魔力奔流の極星` | `BEACON` | `status`, `offense`, `mana`, `astral` |
 | `status-archmage-20-normal`（攻撃） | `2383`〜`2387` | NONE_DAMAGE_INCREASE `FLAT +2` | `&d無相の星環` | `END_ROD` | `status`, `offense`, `element`, `astral` |
 | `status-archmage-20-notable`（攻撃） | `2388` | NONE_DAMAGE_INCREASE `FLAT +6` + CRITICAL_DAMAGE `FLAT +5` | `&6星屑の極星` | `NETHER_STAR` | `status`, `offense`, `element`, `astral` |
+| `status-archmage-21-normal`（攻撃） | `2396`〜`2400` | ATTACK_SPEED `FLAT +10` + CRITICAL_RATE `FLAT +2` | `&d鳳翼の星環` | `FEATHER` | `status`, `offense`, `agility`, `fire` |
+| `status-archmage-21-notable`（攻撃） | `2401` | PHOENIX_EXTRA_ATTACK_COUNT `FLAT +2` + CRITICAL_RATE `FLAT +2` | `&6鳳凰連撃の極星` | `FIRE_CHARGE` | `status`, `offense`, `fire`, `astral` |
 
-ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG消費20のブリンクは14となる。バフ持続群 `2293`〜`2298` と `2335`〜`2340` は全取得で80%増加。クリティカルと無属性ダメージは後半の攻撃群にまとめ、会心時のメテオ発動効果そのものは定義しない。
+ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG消費20のブリンクは14となる。バフ持続群 `2293`〜`2298` と `2335`〜`2340` は全取得で80%増加。`2396`〜`2400` は全取得で攻撃速度+50%・会心率+10ポイント、`2401` は不死鳥の追加攻撃回数+2回・会心率+2ポイントとなる。クリティカルと無属性ダメージは後半の攻撃群にまとめ、会心時のメテオ発動効果そのものは定義しない。

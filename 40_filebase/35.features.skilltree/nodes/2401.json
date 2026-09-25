@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2401",
+  "name": "&6鳳凰連撃の極星",
+  "icon": "FIRE_CHARGE",
+  "tags": [
+    "status",
+    "offense",
+    "fire",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "PHOENIX_EXTRA_ATTACK_COUNT",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}
