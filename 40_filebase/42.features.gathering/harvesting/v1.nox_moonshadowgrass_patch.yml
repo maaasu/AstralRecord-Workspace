@@ -6,6 +6,7 @@ id: nox_moonshadowgrass_patch
 type: GATHERING
 category: HARVESTING
 name: "&b月影草の茂み"
+level: 1
 maxHealth: 13
 displayBlock: LARGE_FERN
 displayScale:

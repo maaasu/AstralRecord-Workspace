@@ -1,0 +1,44 @@
+# design:
+#   motif: "工芸 / 道具職人"
+#   progression: 2
+schemaVersion: 1
+id: toolsmith
+type: MOB
+category: NPC
+name: "&6道具職人トルヴァ"
+title: "&7ギャザリングツール"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAiIDogMTYxMjQ2OTAyMjM5NywKICAicHJvZmlsZUlkIiA6ICI5NGMzZGM3YTdiMmQ0NzQ1YmVlYjQzZDc2ZjRjNDVkYyIsCiAgInByb2ZpbGVOYW1lIiA6ICJUaGVRdWFzb24iLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjA2NWQwMTFmMzU3YmZiODU0ODhjMjBhNDNmMmI0ODk4YTJiMjM4OWYwMDc1ZTBiODk0MWFmMDAzZGQwYzg4ZCIKICAgIH0KICB9Cn0="
+  signature: "IUrvmlTxGuzdOWFzQdXsI6oozZg4ZPTA/qWS0snh1nhfLeZiwKCxAV0ILtJzNiFTs/uKvO5k3IcCAsOqRKHGWCVkRiOjhY5BgBGRiUMLBC95DaKZqY2EY1YAKJtg7NzDAOngbg/aLKYVwyxi7rMZu9ZoPjfNbz69pT10L6WrAjHma44EiLcuDaTcl3w+ehxkZ1auJOhwy8gOG8NzCyN/KxDQC+8oWCLuU+ExjqyPZiLJRJLagjjd7algQH9UzogJ/GoQCe4lY+TL6FK4WLS9X1PSQhx3aVVevWLF4Z8gZ+xyP7nnDnP14czZ5LfT3oRmPWT6GbfH/8bqLYdIhwj5AjjDTBJ5im8v2MjFT+1pK0aBCzaY8+pkGSXzUd4Lxygp239qGhrRYahKGEDXEW7EreJamte6Y06QyncIP74EqYfSE8rFRaDPivESxq0OO1liS452nvZBCR7D3Ko2bf4Hl+Z152buyhQx5PEPTebWkk2nU6uAywFa9EGFlLpCCAaP+BwNpu2dUhM+P3TGYSQysAQtOMgt0tEDzGD+qRaubDXHDG7HNWpnsZ4jBWHSqBqjFExiAm9ABJntZpU7CyQ3E9+K+fBXf8P9WYjOK73XS2xaKTsSbKrVak9EG/REAeDAMDI11RsZDov594a+AE8YoI0MlKb3moBrfXSk9inmPXg="
+nameVisible: true
+damageImmune: true
+icon: COPPER_PICKAXE
+lore:
+  - "&7採掘と採取に使う上質な道具を仕立てる職人。"
+  - "&7右クリックで道具職人ショップを開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6道具職人トルヴァ&7: 素材を持ってくれば、上等な道具に仕立てよう。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: toolsmith_shop

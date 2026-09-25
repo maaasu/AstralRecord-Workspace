@@ -6,6 +6,7 @@ id: box_cave_coal_vein
 type: GATHERING
 category: MINING
 name: "&8石炭鉱脈"
+level: 1
 maxHealth: 28
 displayBlock: COAL_ORE
 displayScale:

@@ -6,6 +6,7 @@ id: nox_starrygrass_patch
 type: GATHERING
 category: HARVESTING
 name: "&a星映え草の茂み"
+level: 1
 maxHealth: 2
 displayBlock: FERN
 displayScale:

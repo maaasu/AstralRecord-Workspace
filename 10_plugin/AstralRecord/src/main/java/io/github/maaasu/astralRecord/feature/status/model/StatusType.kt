@@ -113,6 +113,7 @@ enum class StatusType(
     BUFF_DURATION_INCREASE("BUFF_DURATION_INCREASE", "バフ持続時間増加", "自身へ付与するバフの持続時間を割合で増加させる補正。", Category.UTILITY, "%", 1, true),
     SHIELD_RECHARGE_REDUCTION("SHIELD_RECHARGE_REDUCTION", "シールドリチャージ短縮", "シールド破壊後のリチャージ時間、再充填パッシブの待機時間、攻撃による追加時間を割合で短縮する補正。", Category.UTILITY, "%", 1, true),
     MINING_SPEED("MINING_SPEED", "採集速度", "採掘や採取などの採集行動を行う速さ。", Category.UTILITY, "", 0, true),
+    GATHERING_LEVEL("GATHERING_LEVEL", "ギャザリングレベル", "採集オブジェクトへアクセスできる道具の段階。", Category.UTILITY, "", 0, false),
     CAST_DISTANCE("CAST_DISTANCE", "キャスト距離", "釣り竿などの投射物を飛ばす基準距離。", Category.UTILITY, "", 0, true),
     INVENTORY_SLOTS("INVENTORY_SLOTS", "インベントリスロット", "アイテムを保持できるインベントリの枠数。", Category.UTILITY, "", 0, false),
     PASSIVE_SKILL_SLOTS("PASSIVE_SKILL_SLOTS", "パッシブスキルスロット", "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", Category.UTILITY, "", 0, false),

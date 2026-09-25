@@ -6,6 +6,7 @@ id: box_cave_stone_outcrop
 type: GATHERING
 category: MINING
 name: "&7石ころの露頭"
+level: 1
 maxHealth: 18
 displayBlock: STONE
 displayScale:

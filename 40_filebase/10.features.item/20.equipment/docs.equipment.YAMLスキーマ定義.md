@@ -54,6 +54,8 @@
 | `equipment[].transcendence[].overrides.enhance.maxLevel`  | Integer       | ×  | -     | 状態変化後に上書きする `enhance.maxLevel`。未指定時は変更なし。                                                                                                      |
 | `equipment[].transcendence[].overrides.enchant.maxSlots`  | Integer       | ×  | -     | 状態変化後に上書きする `enchant.maxSlots`。未指定時は変更なし。                                                                                                      |
 
+`slot: TOOL` の採集道具は、`stats[]` に `GATHERING_LEVEL` を明示した場合だけそのレベルを持ちます。`GATHERING_LEVEL` 未定義の道具はレベル0として扱い、採集オブジェクトの `level` を満たしません。採集速度は従来どおり `MINING_SPEED` で定義します。
+
 ### equipment[].slot
 以下のいずれかの値を指定します。
 

@@ -6,6 +6,7 @@ id: nox_shadowgrass_patch
 type: GATHERING
 category: HARVESTING
 name: "&a影草の茂み"
+level: 1
 maxHealth: 1
 displayBlock: SHORT_GRASS
 displayScale:

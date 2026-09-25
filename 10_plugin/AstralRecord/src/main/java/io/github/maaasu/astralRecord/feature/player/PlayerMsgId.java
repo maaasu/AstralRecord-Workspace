@@ -838,6 +838,8 @@ public enum PlayerMsgId {
     P_5732(5732),
     /** 他プレイヤー向けレアドロップ全体通知。 */
     P_5733(5733),
+    /** ツールのギャザリングレベルが採集対象の必要レベルに満たない。 */
+    P_5734(5734),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779

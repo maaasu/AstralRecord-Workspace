@@ -13,6 +13,7 @@ public record GatheringDefinition(
         @NotNull String id,
         @NotNull String category,
         @NotNull String name,
+        int level,
         int maxHealth,
         @NotNull Material displayBlock,
         @NotNull Vector3f displayScale,
@@ -22,6 +23,7 @@ public record GatheringDefinition(
 ) {
 
     public GatheringDefinition {
+        level = Math.max(1, level);
         maxHealth = Math.max(1, maxHealth);
         requiredToolTags = requiredToolTags == null ? List.of() : List.copyOf(requiredToolTags);
         sounds = sounds == null ? GatheringSoundConfig.empty() : sounds;

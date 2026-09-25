@@ -13,6 +13,8 @@ public class GatheringResponse
 
     public required string Name { get; init; }
 
+    public int Level { get; init; } = 1;
+
     public int MaxHealth { get; init; }
 
     public required string DisplayBlock { get; init; }
@@ -34,6 +36,8 @@ public class GatheringSummaryResponse
     public required string Category { get; init; }
 
     public required string Name { get; init; }
+
+    public int Level { get; init; } = 1;
 
     public int MaxHealth { get; init; }
 

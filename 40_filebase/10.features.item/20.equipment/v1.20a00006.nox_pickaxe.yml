@@ -20,6 +20,9 @@ equipment:
   tag: PICKAXE
   requiredLevel: 0
   stats:
+  - status: GATHERING_LEVEL
+    type: FLAT
+    value: 1
   - status: MINING_SPEED
     type: FLAT
     value: 2

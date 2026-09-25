@@ -161,6 +161,7 @@ public class MasterDataPayloadContractTests
               "type": "GATHERING",
               "category": "HARVESTING",
               "name": "windleaf",
+              "level": 2,
               "maxHealth": 18,
               "displayBlock": "FERN",
               "displayScale": { "x": 1, "y": 1, "z": 1 },
@@ -181,6 +182,7 @@ public class MasterDataPayloadContractTests
             """);
 
         Assert.Equal("GATHERING", gathering.Type);
+        Assert.Equal(2, gathering.Level);
         Assert.Equal("GATHERING_SPAWNER", spawner.Type);
     }
 

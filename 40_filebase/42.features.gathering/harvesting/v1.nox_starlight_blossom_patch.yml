@@ -6,6 +6,7 @@ id: nox_starlight_blossom_patch
 type: GATHERING
 category: HARVESTING
 name: "&b星灯花の群生"
+level: 1
 maxHealth: 21
 displayBlock: ALLIUM
 displayScale:

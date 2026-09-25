@@ -3,6 +3,7 @@ id: windleaf_patch
 type: GATHERING
 category: HARVESTING
 name: "&a風待ち若葉"
+level: 1
 maxHealth: 4
 displayBlock: FERN
 displayScale:

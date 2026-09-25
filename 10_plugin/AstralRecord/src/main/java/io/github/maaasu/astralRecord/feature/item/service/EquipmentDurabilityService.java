@@ -171,13 +171,35 @@ public final class EquipmentDurabilityService {
      * @param player 採集を完了したプレイヤー
      */
     public void consumeOnGathering(@NotNull AstPlayer player) {
-        consumeReference(
-            player,
-            inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND),
-            equipment -> equipment.getSlot() == ItemEquipmentSlot.TOOL,
-            0.50D,
-            new HashSet<>()
-        );
+        ItemReference reference = inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND);
+        consumeOnGathering(player, reference == null ? null : reference.equipmentInstanceId());
+    }
+
+    /**
+     * 採集完了時に、貢献時へ記録したTOOL装備個体の耐久値を1回分減少させます。
+     * プレイヤーが採集後に持ち替えても、破壊時点のメインハンドは消費しません。
+     *
+     * @param player 採集報酬を受け取るプレイヤー
+     * @param equipmentInstanceId 採集damageを最後に与えたTOOL装備個体ID
+     */
+    public void consumeOnGathering(
+        @NotNull AstPlayer player,
+        @Nullable String equipmentInstanceId
+    ) {
+        if (equipmentInstanceId == null || equipmentInstanceId.isBlank()) {
+            return;
+        }
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(equipmentInstanceId);
+        if (instance == null) {
+            return;
+        }
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        if (model == null
+            || model.getEquipment() == null
+            || model.getEquipment().getSlot() != ItemEquipmentSlot.TOOL) {
+            return;
+        }
+        consumeDurability(player, model, instance, 0.50D);
     }
 
     /**

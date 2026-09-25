@@ -1,0 +1,76 @@
+# design:
+#   motif: "工芸 / 道具鍛造"
+#   progression: 2
+schemaVersion: 1
+id: toolsmith_shop
+type: SHOP
+name: "&6道具職人"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: cave_copper_pickaxe
+    itemId:
+      ref: item:20a00071
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 64
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 30
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 30
+  - id: cave_copper_hoe
+    itemId:
+      ref: item:20a00072
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 64
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 30
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 30

@@ -6,6 +6,7 @@ id: nox_moonpetal_patch
 type: GATHERING
 category: HARVESTING
 name: "&e月片花の群生"
+level: 1
 maxHealth: 8
 displayBlock: LILY_OF_THE_VALLEY
 displayScale:

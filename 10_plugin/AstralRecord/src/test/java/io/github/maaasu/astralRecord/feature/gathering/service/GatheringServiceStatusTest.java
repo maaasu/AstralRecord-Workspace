@@ -52,4 +52,24 @@ class GatheringServiceStatusTest {
             assertTrue(damage >= 2 && damage <= 10);
         }
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
+     * 検証契約: GATHERING_LEVEL未定義時はアクセス判定値を0とする。
+     */
+    @Test
+    void missingGatheringLevelDoesNotGrantAccessLevel() {
+        assertEquals(0, GatheringService.resolveGatheringLevel((StatusValue) null));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
+     * 検証契約: 装備由来GATHERING_LEVELは整数部分をアクセス判定値とする。
+     */
+    @Test
+    void gatheringLevelUsesDefinedWholeLevel() {
+        assertEquals(2, GatheringService.resolveGatheringLevel(new StatusValue(0.0D, 2.75D)));
+    }
 }

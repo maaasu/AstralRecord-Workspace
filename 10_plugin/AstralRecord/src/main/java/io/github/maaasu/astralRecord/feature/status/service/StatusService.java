@@ -1342,6 +1342,8 @@ public class StatusService {
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
             case MINING_SPEED -> 0.0D;
+            // ギャザリングレベルは対応するツールで明示された値だけを使用する。
+            case GATHERING_LEVEL -> 0.0D;
             case INVENTORY_SLOTS -> StatusDefaults.INVENTORY_SLOTS;
             case QUEST_LIMIT -> 3.0D;
             default -> 0.0D;
@@ -1583,11 +1585,15 @@ public class StatusService {
             setCounts.merge(setId.trim(), 1, Integer::sum);
         }
         EquipmentItemBonus itemBonus = new EquipmentItemBonus();
+        boolean hasGatheringLevelRoll = false;
 
         for (EquipmentStatRoll roll : instance.getStatRolls()) {
             StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
             if (statusType == null) {
                 continue;
+            }
+            if (statusType == StatusType.GATHERING_LEVEL) {
+                hasGatheringLevelRoll = true;
             }
             ItemEquipmentStat statDefinition = equipment.findStatDefinition(roll);
             ItemEquipmentStatType statType = statDefinition == null
@@ -1600,6 +1606,9 @@ public class StatusService {
                 parseStatDouble(roll.getMin()),
                 parseStatDouble(roll.getMax())
             );
+        }
+        if (!hasGatheringLevelRoll) {
+            applyMissingGatheringLevelMasterBonus(equipment, itemBonus);
         }
 
         for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
@@ -1639,6 +1648,31 @@ public class StatusService {
             if (contribution != null) {
                 addBonus(bonus, statusType, ItemEquipmentStatType.FLAT, contribution.min(), contribution.max());
             }
+        }
+    }
+
+    /**
+     * 新ステータス追加前に生成された装備インスタンスへ、masterで明示されたギャザリングレベルを補完します。
+     * 既にインスタンスrollがある場合は呼び出し元で除外し、二重加算を防ぎます。
+     *
+     * @param equipment 装備master定義
+     * @param itemBonus 対象装備だけのステータス集計先
+     */
+    private void applyMissingGatheringLevelMasterBonus(
+        @NotNull ItemEquipment equipment,
+        @NotNull EquipmentItemBonus itemBonus
+    ) {
+        for (ItemEquipmentStat stat : equipment.getStats()) {
+            if (!StatusType.GATHERING_LEVEL.getId().equalsIgnoreCase(stat.getStatus())) {
+                continue;
+            }
+            addItemBonus(
+                itemBonus,
+                StatusType.GATHERING_LEVEL,
+                stat.getType(),
+                stat.getMin(),
+                stat.getMax()
+            );
         }
     }
 
@@ -1967,6 +2001,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 5.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case MINING_SPEED -> 0.0D;
+                case GATHERING_LEVEL -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
                 default -> 0.0D;
             };

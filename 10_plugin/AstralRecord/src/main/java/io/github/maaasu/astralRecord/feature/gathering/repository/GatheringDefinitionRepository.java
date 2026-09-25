@@ -57,6 +57,12 @@ public class GatheringDefinitionRepository {
         }
     }
 
+    /**
+     * YAMLから採集定義を生成します。level未指定時は1として読み込みます。
+     *
+     * @param yaml 採集定義YAML
+     * @return 有効なIDを持つ採集定義。ID不在時はnull
+     */
     private @Nullable GatheringDefinition parse(@NotNull YamlConfiguration yaml) {
         String id = yaml.getString("id");
         if (id == null || id.isBlank()) {
@@ -69,6 +75,7 @@ public class GatheringDefinitionRepository {
                 id,
                 yaml.getString("category", "MINING"),
                 yaml.getString("name", id),
+                yaml.getInt("level", 1),
                 yaml.getInt("maxHealth", 1),
                 displayBlock.isBlock() ? displayBlock : Material.STONE,
                 new Vector3f(

@@ -285,7 +285,17 @@ public class GatheringService {
         return false;
     }
 
+    /**
+     * 採集オブジェクトと紐づく全プレイヤーセッション、packet表示を破棄します。
+     *
+     * @param instanceId 破棄対象の採集インスタンスUUID
+     */
     public void destroy(@NotNull UUID instanceId) {
+        for (MiningSession session : List.copyOf(sessions.values())) {
+            if (session.instanceId.equals(instanceId)) {
+                stopSession(session, false);
+            }
+        }
         GatheringInstance removed = instances.remove(instanceId);
         if (removed != null && visualizer != null) {
             visualizer.remove(instanceId);
@@ -334,6 +344,7 @@ public class GatheringService {
     /**
      * プレイヤーが視線を合わせている採集オブジェクトの採集を開始します。
      * 最初の左クリックで即時に1回採集し、その後は一定間隔で自動採集を継続します。
+     * 同じ採集オブジェクトへ複数プレイヤーが参加でき、それぞれの採集速度を共有HPへ反映します。
      * 同じ採集セッション中の追加クリックはクールタイムを迂回するダメージとして扱いません。
      *
      * @param player 採集を開始するプレイヤー
@@ -354,6 +365,13 @@ public class GatheringService {
             }
             return false;
         }
+        if (!hasRequiredGatheringLevel(astPlayer, target.definition())) {
+            if (existing != null) {
+                stopSession(existing, true);
+            }
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5734);
+            return false;
+        }
 
         String toolSignature = currentToolSignature(player);
         if (existing != null
@@ -364,11 +382,8 @@ public class GatheringService {
         if (existing != null) {
             stopSession(existing, true);
         }
-        if (target.activePlayerId() != null && !target.activePlayerId().equals(player.getUniqueId())) {
-            stopSessionByPlayer(target.activePlayerId(), true);
-        }
 
-        target.activePlayerId(playerId);
+        target.addActivePlayer(playerId);
         applyMiningDamage(player, target);
         if (!instances.containsKey(target.instanceId())) {
             return true;
@@ -432,14 +447,23 @@ public class GatheringService {
         return nearest;
     }
 
+    /**
+     * 参加プレイヤーの視線・距離・ツール条件を再検証し、共有HPへ採集ダメージを与えます。
+     *
+     * @param session 継続判定するプレイヤー別採集セッション
+     */
     private void continueMining(@NotNull MiningSession session) {
         Player player = plugin.getServer().getPlayer(session.playerId);
         GatheringInstance instance = instances.get(session.instanceId);
-        if (player == null || !player.isOnline() || instance == null) {
+        if (instance == null) {
             stopSession(session, false);
             return;
         }
-        if (!session.playerId.equals(instance.activePlayerId())) {
+        if (player == null || !player.isOnline()) {
+            stopSession(session, true);
+            return;
+        }
+        if (!instance.hasActivePlayer(session.playerId)) {
             stopSession(session, false);
             return;
         }
@@ -451,17 +475,31 @@ public class GatheringService {
             stopSession(session, true);
             return;
         }
-        if (!canUseCurrentTool(player, instance.definition())) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!canUseCurrentTool(player, instance.definition())
+                || astPlayer == null
+                || !astPlayer.getAccount().getMode().shouldProcessGameplay()
+                || !hasRequiredGatheringLevel(astPlayer, instance.definition())) {
             stopSession(session, true);
             return;
         }
         applyMiningDamage(player, instance);
     }
 
+    /**
+     * プレイヤーを貢献者へ記録して採集ダメージを与え、破壊時は全貢献者へ個別報酬を付与します。
+     *
+     * @param player 今回の採集ダメージを与えるプレイヤー
+     * @param instance 対象採集インスタンス
+     */
     private void applyMiningDamage(@NotNull Player player, @NotNull GatheringInstance instance) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         int miningDamage = astPlayer == null ? 1 : resolveMiningDamage(astPlayer);
-        instance.damage(miningDamage);
+        instance.damage(
+            player.getUniqueId(),
+            ItemStackFactory.getEquipmentInstanceId(player.getInventory().getItemInMainHand()),
+            miningDamage
+        );
         player.swingMainHand();
         if (instance.currentHealth() > 0) {
             playSound(instance.location(), instance.definition().sounds().hit());
@@ -477,42 +515,44 @@ public class GatheringService {
                 )
             );
         }
-        AstPlayer recipient = astPlayer;
-        if (recipient != null && dropPresentationService != null) {
-            MobDropResult rolledResult = dropService.roll(instance.definition().drops(), recipient);
-            MobDropResult result = new MobDropResult(
-                rolledResult.items(),
-                StatusRateCalculator.applyRate(
-                    recipient.getStatusSnapshot(),
-                    StatusType.EXPERIENCE_GAIN_RATE,
-                    rolledResult.exp()
-                ),
-                rolledResult.money()
-            );
-            applyExperienceAndSkillPoints(recipient, result);
-            if (equipmentDurabilityService != null) {
-                equipmentDurabilityService.consumeOnGathering(recipient);
-            }
-            dropPresentationService.presentAndGrant(
-                    recipient,
-                    instance.location(),
-                    ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id()),
-                    result,
-                    DROP_SOURCE
-            );
-            if (questService != null) {
-                questService.recordGathering(recipient, instance.definition().id());
-            }
-            if (gatheringCompleteListener != null) {
-                String targetId = instance.sourceSpawnerId() == null
-                    ? instance.definition().id()
-                    : instance.sourceSpawnerId();
-                gatheringCompleteListener.accept(recipient, targetId);
+        if (dropPresentationService != null) {
+            for (AstPlayer recipient : resolveRewardRecipients(instance)) {
+                MobDropResult rolledResult = dropService.roll(instance.definition().drops(), recipient);
+                MobDropResult result = new MobDropResult(
+                    rolledResult.items(),
+                    StatusRateCalculator.applyRate(
+                        recipient.getStatusSnapshot(),
+                        StatusType.EXPERIENCE_GAIN_RATE,
+                        rolledResult.exp()
+                    ),
+                    rolledResult.money()
+                );
+                applyExperienceAndSkillPoints(recipient, result);
+                if (equipmentDurabilityService != null) {
+                    equipmentDurabilityService.consumeOnGathering(
+                        recipient,
+                        instance.contributorEquipmentInstanceId(recipient.getBukkit().getUniqueId())
+                    );
+                }
+                dropPresentationService.presentAndGrant(
+                        recipient,
+                        instance.location(),
+                        ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id()),
+                        result,
+                        DROP_SOURCE
+                );
+                if (questService != null) {
+                    questService.recordGathering(recipient, instance.definition().id());
+                }
+                if (gatheringCompleteListener != null) {
+                    String targetId = instance.sourceSpawnerId() == null
+                        ? instance.definition().id()
+                        : instance.sourceSpawnerId();
+                    gatheringCompleteListener.accept(recipient, targetId);
+                }
             }
         }
-        UUID instanceId = instance.instanceId();
-        stopSessionByPlayer(player.getUniqueId(), false);
-        destroy(instanceId);
+        destroy(instance.instanceId());
     }
 
     /**
@@ -539,6 +579,30 @@ public class GatheringService {
         return Math.max(1, (int) Math.round(value.rollValue()));
     }
 
+    /**
+     * プレイヤーの装備由来ギャザリングレベルを整数へ変換します。
+     * 未定義時は0とし、明示されたツールの値だけを利用します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 0以上のギャザリングレベル
+     */
+    int resolveGatheringLevel(@NotNull AstPlayer player) {
+        return resolveGatheringLevel(player.getStatusSnapshot().getValue(StatusType.GATHERING_LEVEL));
+    }
+
+    /**
+     * ギャザリングレベルの確定値をアクセス判定用整数へ変換します。
+     *
+     * @param value ギャザリングレベル。未定義の場合はnull
+     * @return 0以上のギャザリングレベル
+     */
+    static int resolveGatheringLevel(@Nullable StatusValue value) {
+        if (value == null) {
+            return 0;
+        }
+        return Math.max(0, (int) Math.floor(value.rollValue()));
+    }
+
     private void playSound(@NotNull Location location, @Nullable GatheringSound sound) {
         if (sound == null || location.getWorld() == null) {
             return;
@@ -546,22 +610,20 @@ public class GatheringService {
         location.getWorld().playSound(location, sound.soundKey(), SoundCategory.BLOCKS, sound.volume(), sound.pitch());
     }
 
-    private void stopSessionByPlayer(@NotNull UUID playerId, boolean resetHealth) {
-        MiningSession session = sessions.remove(playerId);
-        if (session != null) {
-            stopSession(session, resetHealth);
-        }
-    }
-
+    /**
+     * プレイヤー別セッションを停止し、最後の参加者が条件不一致で終了した場合だけ共有HPを初期化します。
+     *
+     * @param session 停止対象セッション
+     * @param resetHealth 最後の参加者なら共有HPと貢献者を初期化するか
+     */
     private void stopSession(@NotNull MiningSession session, boolean resetHealth) {
-        sessions.remove(session.playerId);
+        sessions.remove(session.playerId, session);
         session.cancel();
         GatheringInstance instance = instances.get(session.instanceId);
-        if (instance != null && session.playerId.equals(instance.activePlayerId())) {
-            if (resetHealth) {
+        if (instance != null && instance.hasActivePlayer(session.playerId)) {
+            instance.removeActivePlayer(session.playerId);
+            if (resetHealth && instance.activePlayerIds().isEmpty()) {
                 instance.resetHealth();
-            } else {
-                instance.activePlayerId(null);
             }
         }
     }
@@ -579,6 +641,42 @@ public class GatheringService {
         }
         Set<String> currentTags = currentToolTags(player.getInventory().getItemInMainHand());
         return required.stream().anyMatch(currentTags::contains);
+    }
+
+    /**
+     * 装備由来ギャザリングレベルが採集定義の必要レベル以上か判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @param definition 採集定義
+     * @return 必要レベルを満たす場合はtrue
+     */
+    private boolean hasRequiredGatheringLevel(
+        @NotNull AstPlayer player,
+        @NotNull GatheringDefinition definition
+    ) {
+        return resolveGatheringLevel(player) >= definition.level();
+    }
+
+    /**
+     * 採集ダメージへ寄与したオンラインのgameplayプレイヤーを重複なく解決します。
+     *
+     * @param instance 破壊された採集インスタンス
+     * @return Mob報酬と同じ個別抽選を行う受取人一覧
+     */
+    private @NotNull List<AstPlayer> resolveRewardRecipients(@NotNull GatheringInstance instance) {
+        Map<UUID, AstPlayer> recipients = new LinkedHashMap<>();
+        for (UUID playerId : instance.contributorPlayerIds()) {
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+                continue;
+            }
+            recipients.putIfAbsent(playerId, astPlayer);
+        }
+        return List.copyOf(recipients.values());
     }
 
     private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {

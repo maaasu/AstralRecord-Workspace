@@ -36,6 +36,7 @@ public class GatheringRepository(MasterDataDbContext dbContext) : IGatheringRepo
                 Id = gathering!.Id,
                 Category = gathering.Category,
                 Name = gathering.Name,
+                Level = gathering.Level,
                 MaxHealth = gathering.MaxHealth,
                 DisplayBlock = gathering.DisplayBlock,
                 RequiredToolTags = gathering.RequiredToolTags,

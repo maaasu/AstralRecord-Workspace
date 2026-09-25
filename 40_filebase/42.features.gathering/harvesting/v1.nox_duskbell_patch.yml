@@ -6,6 +6,7 @@ id: nox_duskbell_patch
 type: GATHERING
 category: HARVESTING
 name: "&e宵鐘花の群生"
+level: 1
 maxHealth: 6
 displayBlock: BLUE_ORCHID
 displayScale:

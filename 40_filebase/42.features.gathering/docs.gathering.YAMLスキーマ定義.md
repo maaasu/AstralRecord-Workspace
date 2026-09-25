@@ -19,6 +19,7 @@
 | `type` | String | ○ | - | 種別。`GATHERING` 固定 |
 | `category` | String | ○ | - | カテゴリ。`MINING` / `HARVESTING` |
 | `name` | String | ○ | - | ゲーム内表示名。カラーコード可 |
+| `level` | Integer | 任意 | `1` | 必要ギャザリングレベル。1未満はPluginで1へ補正する |
 | `maxHealth` | Integer | ○ | - | 採集オブジェクトの HP |
 | `displayBlock` | String | ○ | - | DisplayBlock に使う Bukkit Material 名 |
 | `displayScale` | Map | ○ | - | DisplayBlock の拡大率 |
@@ -69,6 +70,7 @@ id: iron_ore_vein
 type: GATHERING
 category: MINING
 name: "&7鉄鉱脈"
+level: 1
 maxHealth: 80
 displayBlock: IRON_ORE
 displayScale:

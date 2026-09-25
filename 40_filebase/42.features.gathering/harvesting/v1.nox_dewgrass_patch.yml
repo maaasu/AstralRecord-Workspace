@@ -6,6 +6,7 @@ id: nox_dewgrass_patch
 type: GATHERING
 category: HARVESTING
 name: "&a夜露草の茂み"
+level: 1
 maxHealth: 2
 displayBlock: TALL_GRASS
 displayScale:
