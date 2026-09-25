@@ -1,0 +1,46 @@
+# design:
+#   motif: "星界 / 光線魔法陣"
+#   progression: 2
+schemaVersion: 1
+id: archmage_astral_ray
+type: SKILL
+implementationId: archmage_astral_ray
+name: "&bアストラルレイ"
+description: "&7星の魔法陣から敵へ光線を放つ。"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGMwZDNkYWM1MjVlODQzZjJmY2ZhYjQxNTdhNTczNjBkNjllY2M3M2JhMmY4MjgyNzQxZWQ4NmE2Mzg5NDlhYiJ9fX0=
+lore:
+  - "&7詠唱完了時に自身由来の魔法陣を数え、光線の総数を決める。"
+  - "&7基礎数は{skill.circleCount}本。魔法陣1つにつき2本追加する。"
+  - "&7{skill.circleIntervalTicks}tick間隔で上空に傾いた魔法陣を描く。"
+  - "&7発射時、自身の周囲{skill.range}m以内の敵モブ1体をランダムに狙う。"
+  - "&7同じ敵モブへの複数命中があり得る。1発の魔法攻撃倍率は{skill.damageRatio:percent}%。"
+cooldownTicks: 280
+resourceType: MANA
+resourceCost: 95
+castTimeTicks: 24
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 3, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 4, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 5, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 6, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 7, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 8, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 9, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+  - { level: 10, resourceCostDelta: 10, paramDeltas: { circleCount: 1 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 15 }]
+params:
+  range: 18.0
+  damageRatio: 1.2
+  circleCount: 1
+  circleIntervalTicks: 5
+tags:
+  - active
+  - magic
+  - ranged

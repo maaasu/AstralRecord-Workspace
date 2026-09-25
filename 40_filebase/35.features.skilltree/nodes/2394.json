@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2394",
+  "name": "&bアストラルレイ",
+  "icon": "PLAYER_HEAD",
+  "tags": ["astral"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "archmage_astral_ray" }
+  ],
+  "unlockCondition": { "classId": "archmage" }
+}

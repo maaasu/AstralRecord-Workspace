@@ -478,7 +478,7 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 
 ## アークメイジのスキルノード
 
-`2268`、`2389`、`2391`、`2392` はアークメイジ用の1CPノードとして定義し、現行の `starter` には配置しない。
+`2268`、`2389`、`2391`、`2392`、`2393`、`2394` はアークメイジ用の1CPノードとして定義し、現行の `starter` には配置しない。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -486,6 +486,8 @@ Specter全取得値は、経路分を含めてSKILL_DAMAGE_INCREASE `FLAT +15`�
 | `skill-archmage-celestial-circle` | `2389` | `skill` / `archmage_celestial_circle` | `&bセレスティアルサークル` | `LIGHT_BLUE_GLAZED_TERRACOTTA` | `astral` |
 | `skill-archmage-heal-circle` | `2391` | `skill` / `archmage_heal_circle` | `&aヒールサークル` | `CACTUS_FLOWER` | `health` |
 | `skill-archmage-bind-circle` | `2392` | `skill` / `archmage_bind_circle` | `&dバインドサークル` | `NETHER_WART_BLOCK` | `magic`, `control` |
+| `skill-archmage-clear-circle` | `2393` | `skill` / `archmage_clear_circle` | `&bクリアサークル` | `WILDFLOWERS` | `condition` |
+| `skill-archmage-astral-ray` | `2394` | `skill` / `archmage_astral_ray` | `&bアストラルレイ` | `PLAYER_HEAD` | `astral` |
 
 ## カタログの更新規約
 
