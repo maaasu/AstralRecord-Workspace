@@ -1,0 +1,30 @@
+# design:
+#   motif: "地形 / 豊かな森と水源"
+#   progression: 15
+schemaVersion: 1
+id: verdia
+displayName: "豊穣の大地ヴェルディア"
+worldType: OVERWORLD
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/verdia"
+instanceRootPath: "plugins/AstralRecord/_world_instances/verdia"
+autoLoad: false
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: true
+showSpawnParticle: true
+spawnLocation:
+  x: 394.5
+  y: 64
+  z: -534.5
+  yaw: 0.0
+  pitch: 0.0
+description: |-
+  豊かな森林と水源、地下資源に恵まれた未開の大地。
+  採集・採掘・釣りを目的とする冒険者が多く訪れる。
+guiIconMaterial: GRASS_BLOCK
+adventureGuide:
+  recommendedLevelMin: 15
+overworldTeleportGui:
+  slot: 1
