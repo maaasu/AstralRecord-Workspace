@@ -84,9 +84,31 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
         var sort = RunSort(query.Sort);
         var (from, to, page, size) = Page(query); var q = history.DungeonClearActivities.AsNoTracking().Include(x => x.Participants).Where(x => x.ClearedAt >= from && x.ClearedAt < to);
         if (!string.IsNullOrWhiteSpace(query.DungeonId)) q = q.Where(x => x.DungeonId == query.DungeonId.Trim()); if (query.AccountId is { } account) q = q.Where(x => x.Participants.Any(p => p.AccountId == account)); if (query.UserUuid is { } user) q = q.Where(x => x.Participants.Any(p => p.UserUuid == user));
+        if (!string.IsNullOrWhiteSpace(query.DungeonSearch)) { var term = query.DungeonSearch.Trim(); q = q.Where(x => x.DungeonId == term || x.DungeonName.Contains(term)); }
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.DungeonId.Contains(term) || x.DungeonName.Contains(term) || x.Participants.Any(p => p.Mcid.Contains(term) || p.AccountName.Contains(term))); }
         var ordered = sort switch { "fastest" => q.OrderBy(x => x.DurationMilliseconds).ThenByDescending(x => x.ClearedAt).ThenBy(x => x.EventId), "slowest" => q.OrderByDescending(x => x.DurationMilliseconds).ThenByDescending(x => x.ClearedAt).ThenBy(x => x.EventId), _ => q.OrderByDescending(x => x.ClearedAt).ThenBy(x => x.EventId) };
         var total = await q.CountAsync(); var rows = (await ordered.Skip((page - 1) * size).Take(size).ToListAsync()).Select(Map).ToList(); return new PagedPlayerActivityResponse<DungeonClearActivityResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows };
+    }
+
+    public async Task<IReadOnlyList<ActivityTargetSuggestionResponse>> GetDungeonSuggestionsAsync(PlayerActivityQuery query)
+    {
+        if (string.IsNullOrWhiteSpace(query.DungeonSearch)) return Array.Empty<ActivityTargetSuggestionResponse>();
+        var (from, to, _, _) = Page(query);
+        var term = query.DungeonSearch.Trim();
+        var q = history.DungeonClearActivities.AsNoTracking().Where(x => x.ClearedAt >= from && x.ClearedAt < to);
+        q = q.Where(x => x.DungeonId.Contains(term) || x.DungeonName.Contains(term));
+        if (query.AccountId is { } account) q = q.Where(x => x.Participants.Any(p => p.AccountId == account));
+        if (query.UserUuid is { } user) q = q.Where(x => x.Participants.Any(p => p.UserUuid == user));
+        if (!string.IsNullOrWhiteSpace(query.Query)) { var playerTerm = query.Query.Trim(); q = q.Where(x => x.Participants.Any(p => p.Mcid.Contains(playerTerm) || p.AccountName.Contains(playerTerm))); }
+        var rows = await q.GroupBy(x => x.DungeonId)
+            .Select(group => new
+            {
+                Id = group.Key,
+                Name = group.OrderByDescending(x => x.ClearedAt).ThenBy(x => x.EventId)
+                    .Select(x => x.DungeonName).First(),
+            })
+            .OrderBy(x => x.Name).ThenBy(x => x.Id).Take(10).ToListAsync();
+        return rows.Select(x => new ActivityTargetSuggestionResponse(x.Id, x.Name)).ToArray();
     }
 
     public async Task<PagedPlayerActivityResponse<DungeonPlayerSummaryResponse>> GetDungeonPlayersAsync(PlayerActivityQuery query)
@@ -94,6 +116,7 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
         var sort = PlayerSort(query.Sort);
         var (rangeStart, rangeEnd, page, size) = Page(query); var q = from run in history.DungeonClearActivities.AsNoTracking().Where(x => x.ClearedAt >= rangeStart && x.ClearedAt < rangeEnd) from p in history.DungeonParticipantActivities.AsNoTracking().Where(p => p.EventId == run.EventId) select new { run, p };
         if (!string.IsNullOrWhiteSpace(query.DungeonId)) q = q.Where(x => x.run.DungeonId == query.DungeonId.Trim()); if (query.AccountId is { } account) q = q.Where(x => x.p.AccountId == account); if (query.UserUuid is { } user) q = q.Where(x => x.p.UserUuid == user);
+        if (!string.IsNullOrWhiteSpace(query.DungeonSearch)) { var term = query.DungeonSearch.Trim(); q = q.Where(x => x.run.DungeonId == term || x.run.DungeonName.Contains(term)); }
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.p.Mcid.Contains(term) || x.p.AccountName.Contains(term)); }
         var grouped = q.GroupBy(x => x.p.AccountId).Select(g => new { AccountId = g.Key, ClearCount = g.Count(), First = g.Min(x => x.run.ClearedAt), Last = g.Max(x => x.run.ClearedAt), DistanceCount = g.Count(x => x.p.DistanceMeters != null), Distance = g.Sum(x => x.p.DistanceMeters ?? 0m), BestDuration = g.Min(x => x.run.DurationMilliseconds), AverageDuration = g.Average(x => x.run.DurationMilliseconds) });
         var ordered = sort switch { "fastest" => grouped.OrderBy(x => x.BestDuration).ThenByDescending(x => x.ClearCount).ThenBy(x => x.AccountId), "slowest" => grouped.OrderByDescending(x => x.AverageDuration).ThenByDescending(x => x.ClearCount).ThenBy(x => x.AccountId), _ => grouped.OrderByDescending(x => x.ClearCount).ThenBy(x => x.AccountId) };
@@ -109,12 +132,34 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
         var (from, to, page, size) = Page(query);
         var q = history.BossClearActivities.AsNoTracking().Include(x => x.Participants).Where(x => x.ClearedAt >= from && x.ClearedAt < to);
         if (!string.IsNullOrWhiteSpace(query.BossId)) q = q.Where(x => x.BossId == query.BossId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.BossSearch)) { var term = query.BossSearch.Trim(); q = q.Where(x => x.BossId == term || x.BossName.Contains(term)); }
         if (query.AccountId is { } account) q = q.Where(x => x.Participants.Any(p => p.AccountId == account));
         if (query.UserUuid is { } user) q = q.Where(x => x.Participants.Any(p => p.UserUuid == user));
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.BossId.Contains(term) || x.BossName.Contains(term) || x.Participants.Any(p => p.Mcid.Contains(term) || p.AccountName.Contains(term))); }
         var ordered = sort switch { "fastest" => q.OrderBy(x => x.DurationMilliseconds).ThenByDescending(x => x.ClearedAt).ThenBy(x => x.EventId), "slowest" => q.OrderByDescending(x => x.DurationMilliseconds).ThenByDescending(x => x.ClearedAt).ThenBy(x => x.EventId), _ => q.OrderByDescending(x => x.ClearedAt).ThenBy(x => x.EventId) };
         var total = await q.CountAsync(); var rows = (await ordered.Skip((page - 1) * size).Take(size).ToListAsync()).Select(Map).ToArray();
         return new PagedPlayerActivityResponse<BossClearActivityResponse> { Page = page, PageSize = size, TotalCount = total, Items = rows };
+    }
+
+    public async Task<IReadOnlyList<ActivityTargetSuggestionResponse>> GetBossSuggestionsAsync(PlayerActivityQuery query)
+    {
+        if (string.IsNullOrWhiteSpace(query.BossSearch)) return Array.Empty<ActivityTargetSuggestionResponse>();
+        var (from, to, _, _) = Page(query);
+        var term = query.BossSearch.Trim();
+        var q = history.BossClearActivities.AsNoTracking().Where(x => x.ClearedAt >= from && x.ClearedAt < to);
+        q = q.Where(x => x.BossId.Contains(term) || x.BossName.Contains(term));
+        if (query.AccountId is { } account) q = q.Where(x => x.Participants.Any(p => p.AccountId == account));
+        if (query.UserUuid is { } user) q = q.Where(x => x.Participants.Any(p => p.UserUuid == user));
+        if (!string.IsNullOrWhiteSpace(query.Query)) { var playerTerm = query.Query.Trim(); q = q.Where(x => x.Participants.Any(p => p.Mcid.Contains(playerTerm) || p.AccountName.Contains(playerTerm))); }
+        var rows = await q.GroupBy(x => x.BossId)
+            .Select(group => new
+            {
+                Id = group.Key,
+                Name = group.OrderByDescending(x => x.ClearedAt).ThenBy(x => x.EventId)
+                    .Select(x => x.BossName).First(),
+            })
+            .OrderBy(x => x.Name).ThenBy(x => x.Id).Take(10).ToListAsync();
+        return rows.Select(x => new ActivityTargetSuggestionResponse(x.Id, x.Name)).ToArray();
     }
 
     public async Task<PagedPlayerActivityResponse<BossPlayerSummaryResponse>> GetBossPlayersAsync(PlayerActivityQuery query)
@@ -125,6 +170,7 @@ public sealed class PlayerActivityRepository(HistoryDbContext history, TimeProvi
                 from p in history.BossParticipantActivities.AsNoTracking().Where(p => p.EventId == run.EventId)
                 select new { run, p };
         if (!string.IsNullOrWhiteSpace(query.BossId)) q = q.Where(x => x.run.BossId == query.BossId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.BossSearch)) { var term = query.BossSearch.Trim(); q = q.Where(x => x.run.BossId == term || x.run.BossName.Contains(term)); }
         if (query.AccountId is { } account) q = q.Where(x => x.p.AccountId == account);
         if (query.UserUuid is { } user) q = q.Where(x => x.p.UserUuid == user);
         if (!string.IsNullOrWhiteSpace(query.Query)) { var term = query.Query.Trim(); q = q.Where(x => x.p.Mcid.Contains(term) || x.p.AccountName.Contains(term)); }

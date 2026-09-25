@@ -10,7 +10,9 @@ Pluginがゲーム本流と独立したキューから `POST /api/history/activi
 | GET `/api/admin/player-activity/same-ip` | 同IP観測した別ユーザーのペア。トレード回数順 |
 | GET `/api/admin/player-activity/trades` | 単方向トレードと明細検索 |
 | GET `/api/admin/player-activity/dungeons` / `dungeons/players` | 攻略履歴とプレイヤー別踏破集計 |
+| GET `/api/admin/player-activity/dungeons/suggestions` | ダンジョンID・名称の候補（最大10件） |
 | GET `/api/admin/player-activity/bosses` / `bosses/players` | ボス攻略履歴、与ダメージ・死亡回数を含むプレイヤー別集計 |
+| GET `/api/admin/player-activity/bosses/suggestions` | ボスID・名称の候補（最大10件） |
 | GET `/api/admin/player-activity/events` | 既存 `user_history` のログイン・ログアウト・パーティー操作等を検索。`payload_json` は返さない |
 | GET `/api/admin/player-activity/mobs` / `mobs/{mobId}/players` / `mobs/{mobId}/kills` | Mobランキング、被害者集計、死亡時系列 |
 
@@ -18,7 +20,7 @@ DTO定義は `20_api/AstralRecordApi/AstralRecordApi/Models/PlayerActivityModels
 
 ボス参加者の `damageDealt` はPluginの実効ダメージを受け取り、API保存時に小数第3位へ四捨五入（ちょうど中間は絶対値の大きい側）する。小数第4位以下があるだけでは拒否しない。負値、および丸め後に `DECIMAL(18,3)` の範囲を超える値は400とする。
 
-ダンジョンとボスの攻略履歴には、`dungeonId` / `bossId` の完全一致、参加者の `userUuid` / `accountId`、部分一致の `query` を指定できる。`sort=recent`（既定）は攻略日時の降順、`fastest` は攻略時間の昇順、`slowest` は降順。プレイヤー別集計は `sort=count`（既定）が踏破回数の降順、`fastest` が最短攻略時間の昇順、`slowest` が平均攻略時間の降順である。いずれもDBで集計・整列後にページングし、同順位は件数や日時、イベント/アカウントIDで安定化する。異なるダンジョンやボスを混ぜた順位は対象の難易度差を含むため、比較時はID絞り込みを推奨する。
+ダンジョンとボスの攻略履歴には、`dungeonId` / `bossId` の完全一致、`dungeonSearch` / `bossSearch` の ID 完全一致または名称部分一致、参加者の `userUuid` / `accountId`、部分一致の `query` を指定できる。`dungeonSearch` / `bossSearch` は攻略回一覧とプレイヤー別集計の両方に適用し、他の検索条件と組み合わせられる。`dungeons/suggestions` / `bosses/suggestions` は同じ期間・参加者条件に合うIDと名称を最大10件返し、IDと名称の部分一致で候補を絞って名前・ID順に並べる。候補APIの `query` は参加者名・アカウント名の部分一致として適用する。`sort=recent`（既定）は攻略日時の降順、`fastest` は攻略時間の昇順、`slowest` は降順。プレイヤー別集計は `sort=count`（既定）が踏破回数の降順、`fastest` が最短攻略時間の昇順、`slowest` が平均攻略時間の降順である。いずれもDBで集計・整列後にページングし、同順位は件数や日時、イベント/アカウントIDで安定化する。異なるダンジョンやボスを混ぜた順位は対象の難易度差を含むため、比較時はID絞り込みを推奨する。
 
 攻略時間は `duration_milliseconds` を正本とし、応答の `durationSeconds` / `bestDurationSeconds` / `averageDurationSeconds` は小数秒の `double` である。ダンジョンのプレイヤー別応答は従来の項目に最短・平均時間を末尾追加する。ボスの参加者には `player`, `damageDealt`, `deathCount`、プレイヤー別応答には `player`, `clearCount`, `firstClearedAt`, `lastClearedAt`, `bestDurationSeconds`, `averageDurationSeconds`, `totalDamageDealt`, `totalDeathCount` を返す。
 

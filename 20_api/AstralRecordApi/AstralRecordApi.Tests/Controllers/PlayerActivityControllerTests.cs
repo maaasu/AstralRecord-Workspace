@@ -43,8 +43,10 @@ public sealed class PlayerActivityControllerTests
         public Task<PagedPlayerActivityResponse<SameIpActivityResponse>> GetSameIpAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<PlayerTradeActivityResponse>> GetTradesAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<DungeonClearActivityResponse>> GetDungeonsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
+        public Task<IReadOnlyList<ActivityTargetSuggestionResponse>> GetDungeonSuggestionsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<DungeonPlayerSummaryResponse>> GetDungeonPlayersAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<BossClearActivityResponse>> GetBossesAsync(PlayerActivityQuery query) => throw new NotSupportedException();
+        public Task<IReadOnlyList<ActivityTargetSuggestionResponse>> GetBossSuggestionsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<BossPlayerSummaryResponse>> GetBossPlayersAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<UserActivityEventResponse>> GetEventsAsync(PlayerActivityQuery query) => throw new NotSupportedException();
         public Task<PagedPlayerActivityResponse<MobRankingResponse>> GetMobsAsync(PlayerActivityQuery query) => throw new NotSupportedException();

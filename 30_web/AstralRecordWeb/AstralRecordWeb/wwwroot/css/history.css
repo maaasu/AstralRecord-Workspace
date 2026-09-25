@@ -19,5 +19,13 @@
 .ar-history-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; align-items:end; }
 .ar-history-filters label { display:block; margin-bottom:.4rem; }
 .ar-history-filters input, .ar-history-filters select { width:100%; background:#101c2a; color:#eef4fa; border:1px solid #536273; padding:.65rem; border-radius:.4rem; color-scheme:dark; }
+.ar-history-entity-search { position:relative; }
+.ar-history-suggestions { position:absolute; z-index:20; top:100%; left:0; right:0; max-height:240px; overflow-y:auto; margin:.25rem 0 0; padding:.25rem; list-style:none; border:1px solid #536273; border-radius:.4rem; background:#101c2a; box-shadow:0 .5rem 1.25rem #0008; }
+.ar-history-suggestions[hidden] { display:none; }
+.ar-history-suggestions li + li { margin-top:.2rem; }
+.ar-history-suggestions button { display:flex; flex-direction:column; align-items:flex-start; width:100%; padding:.55rem .65rem; border:0; border-radius:.25rem; background:transparent; color:#eef4fa; text-align:left; }
+.ar-history-suggestions button:hover, .ar-history-suggestions button:focus-visible { outline:2px solid #8fcbea; background:#283b50; }
+.ar-history-suggestions small, .ar-history-suggestion-status { color:#adbdcc; font-size:.8rem; }
+.ar-history-suggestion-status { margin:.35rem 0 0; }
 .ar-history-transfer { margin:.25rem 0; padding-left:1.2rem; }
 @media(max-width:600px) { .ar-history-table th,.ar-history-table td { padding:.6rem; } .ar-history-card { padding:.8rem; } }

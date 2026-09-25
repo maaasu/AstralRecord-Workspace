@@ -12,6 +12,7 @@ public sealed record ActivityPlayerSnapshotResponse(Guid UserUuid, Guid AccountI
 public sealed record SameIpActivityResponse(DateTime FirstObservedAt, DateTime LastObservedAt, int TradeCount, IReadOnlyList<ActivityPlayerSnapshotResponse> Players);
 public sealed record PlayerTradeActivityResponse(Guid EventId, DateTime CompletedAt, ActivityPlayerSnapshotResponse Source, ActivityPlayerSnapshotResponse Destination, IReadOnlyList<PlayerTradeItemResponse> Items, long Gold);
 public sealed record PlayerTradeItemResponse(string ItemId, string ItemName, long Quantity);
+public sealed record ActivityTargetSuggestionResponse(string Id, string Name);
 public sealed record DungeonParticipantActivityResponse(ActivityPlayerSnapshotResponse Player, decimal? DistanceMeters, int MovementSampleCount);
 public sealed record DungeonClearActivityResponse(Guid EventId, string DungeonId, string DungeonName, DateTime StartedAt, DateTime ClearedAt, double DurationSeconds, IReadOnlyList<DungeonParticipantActivityResponse> Participants);
 public sealed record DungeonPlayerSummaryResponse(ActivityPlayerSnapshotResponse Player, int ClearCount, DateTime FirstClearedAt, DateTime LastClearedAt, decimal? TotalDistanceMeters, double BestDurationSeconds, double AverageDurationSeconds);

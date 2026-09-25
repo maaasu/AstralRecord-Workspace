@@ -11,7 +11,7 @@ public sealed class BossesModel(ActivityHistoryApiClient api) : HistoryPageModel
 {
     [BindProperty(SupportsGet = true)] public Guid? UserUuid { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? AccountId { get; set; }
-    [BindProperty(SupportsGet = true)] public string? BossId { get; set; }
+    [BindProperty(Name = "bossId", SupportsGet = true)] public string? BossSearch { get; set; }
     [BindProperty(SupportsGet = true)] public string? View { get; set; } = "runs";
     [BindProperty(SupportsGet = true)] public string? Sort { get; set; }
     public PagedPlayerActivityResponse<BossClearActivityResponse>? Results { get; private set; }
@@ -20,13 +20,13 @@ public sealed class BossesModel(ActivityHistoryApiClient api) : HistoryPageModel
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (!Prepare(out var actor)) return Page();
-        if (BossId?.Length > 128) return BadRequest();
+        if (BossSearch?.Length > 128) return BadRequest();
         View = View == "players" ? "players" : "runs";
         Sort ??= View == "players" ? "count" : "recent";
         if (Sort is not ("recent" or "count" or "fastest" or "slowest")) return BadRequest();
         if (View == "players" && Sort == "recent") Sort = "count";
         if (View == "runs" && Sort == "count") Sort = "recent";
-        var filters = new (string, string?)[] { ("userUuid", UserUuid?.ToString()), ("accountId", AccountId?.ToString()), ("bossId", BossId?.Trim()), ("sort", Sort) };
+        var filters = new (string, string?)[] { ("userUuid", UserUuid?.ToString()), ("accountId", AccountId?.ToString()), ("bossSearch", BossSearch?.Trim()), ("sort", Sort) };
         if (View == "players")
         {
             var result = await api.GetAsync<PagedPlayerActivityResponse<BossPlayerSummaryResponse>>("bosses/players", actor, FromUtc, ToUtc, PageNumber, Query, ct, filters);
@@ -42,5 +42,26 @@ public sealed class BossesModel(ActivityHistoryApiClient api) : HistoryPageModel
             if (!result.Succeeded) ErrorMessage = "ボス攻略履歴を取得できません。時間をおいて再試行してください。";
         }
         return Page();
+    }
+
+    public async Task<IActionResult> OnGetSuggestionsAsync(string? term, CancellationToken ct)
+    {
+        var searchTerm = term?.Trim() ?? string.Empty;
+        if (searchTerm.Length > 128) return BadRequest(new { message = "検索語は128文字以内で入力してください。" });
+        if (searchTerm.Length < 2) return new JsonResult(new { suggestions = Array.Empty<object>() });
+        if (!Prepare(out var actor)) return new JsonResult(new { message = ErrorMessage ?? "検索条件を確認してください。" }) { StatusCode = 400 };
+
+        var result = await api.GetAsync<IReadOnlyList<ActivityTargetSuggestionResponse>>(
+            "bosses/suggestions", actor, FromUtc, ToUtc, 1, Query, ct,
+            ("userUuid", UserUuid?.ToString()), ("accountId", AccountId?.ToString()), ("bossSearch", searchTerm));
+        if (result.Status is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.Unauthorized) return Forbid();
+        if (!result.Succeeded)
+            return new JsonResult(new { message = "候補を取得できませんでした。" }) { StatusCode = 503 };
+
+        var suggestions = result.Value!
+            .Take(10)
+            .Select(suggestion => new { id = suggestion.Id, name = suggestion.Name })
+            .ToArray();
+        return new JsonResult(new { suggestions });
     }
 }
