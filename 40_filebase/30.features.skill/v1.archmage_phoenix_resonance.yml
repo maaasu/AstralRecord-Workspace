@@ -14,6 +14,12 @@ lore:
   - "&7召喚時のphoenixは{skill.phoenixMax}になる。"
   - "&7最後に攻撃した敵が{skill.targetRange}m以内からいなくなって{skill.despawnDelayTicks:seconds}秒後に消滅する。"
   - "&7召喚中は敵への命中ごとに対象と消滅までの待機時間を更新する。"
+  - "&7自身の最後の通常攻撃先、次に自身の魔法陣の影響中の仲間が攻撃した敵を狙う。"
+  - "&7不死鳥は攻撃速度の影響を受け、基準9.5秒ごとに炎属性魔法攻撃力30%で攻撃する。"
+  - "&7攻撃時にMP20とphoenix20を消費する。"
+  - "&7命中時、{skill.burningChance}%で3秒間の燃焼を付与する。"
+  - "&7phoenixが0になると卵になり、30秒後に孵化して最大Lvのメテオを落とす。"
+  - "&7不死鳥の召喚中は自身によるHP回復量が半減する。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0
@@ -24,7 +30,7 @@ levels:
   - { level: 2 }
   - { level: 3 }
   - { level: 4 }
-  - { level: 5 }
+  - { level: 5, paramDeltas: { burningChance: 15 } }
 sigilSlotsByLevel: []
 allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00025, amount: 15 }]
@@ -35,6 +41,7 @@ params:
   phoenixMax: 500
   targetRange: 50
   despawnDelayTicks: 600
+  burningChance: 0
 tags:
   - passive
   - magic

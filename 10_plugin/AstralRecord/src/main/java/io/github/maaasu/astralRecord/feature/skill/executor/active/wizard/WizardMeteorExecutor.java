@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.support.Playe
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillLevelDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -110,6 +111,56 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         summon(services, caster.getBukkit(), attacker,
                 new MeteorTarget(impact.clone()),
                 2.5D, 1.5D, 20, 0.75D);
+    }
+
+    /**
+     * 不死鳥の卵が孵化した地点へ、所持状況に関係なく最大レベル相当のメテオを発生させます。
+     * この経路は通常発動の MP 消費とクールダウンを適用しません。
+     *
+     * @param services 共有戦闘・演出サービス
+     * @param caster 不死鳥の所有者
+     * @param impact 卵が孵化した固定地点
+     * @param meteorDefinition メテオのマスター定義。最大レベルのパラメーターを解決します
+     * @throws IllegalArgumentException メテオ以外の定義を渡した場合
+     */
+    public static void summonPhoenixHatch(
+            @NotNull ActiveSkillServices services,
+            @NotNull AstPlayer caster,
+            @NotNull Location impact,
+            @NotNull SkillDefinition meteorDefinition
+    ) {
+        if (!ID.equals(meteorDefinition.getId())) {
+            throw new IllegalArgumentException("メテオのスキル定義が必要です");
+        }
+        SkillParamReader params = new SkillParamReader(meteorDefinition.getId(), meteorDefinition.getParams());
+        ActiveSkillCondition burning = new ActiveSkillCondition(
+                ConditionType.BURNING,
+                maxLevelParam(meteorDefinition, params, "burningChance", 25.0D),
+                (int) Math.round(maxLevelParam(meteorDefinition, params, "burningDurationTicks", 100.0D)),
+                1.0D
+        );
+        summon(services, caster.getBukkit(), AstEntity.player(caster),
+                new MeteorTarget(impact.clone()),
+                maxLevelParam(meteorDefinition, params, "radius", 5.0D),
+                maxLevelParam(meteorDefinition, params, "damageRatio", 6.05D),
+                (int) Math.round(maxLevelParam(meteorDefinition, params, "impactDelayTicks", 60.0D)),
+                1.0D, burning);
+    }
+
+    /** 基礎値へ最大レベルまでの各段階のパラメーター加算値を適用します。 */
+    private static double maxLevelParam(
+            @NotNull SkillDefinition definition,
+            @NotNull SkillParamReader params,
+            @NotNull String key,
+            double fallback
+    ) {
+        double value = params.getDouble(key, fallback);
+        for (SkillLevelDefinition level : definition.getLevels()) {
+            if (level.getLevel() <= definition.getMaxLevel()) {
+                value += level.getParamDeltas().getOrDefault(key, 0.0D);
+            }
+        }
+        return value;
     }
 
     /**

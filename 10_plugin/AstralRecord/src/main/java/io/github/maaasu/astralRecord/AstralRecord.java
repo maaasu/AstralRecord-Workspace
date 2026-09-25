@@ -237,6 +237,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillE
 import io.github.maaasu.astralRecord.feature.skill.executor.passive.mage.MageBlinkSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.ArchmagePhoenixResonanceExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
@@ -1682,6 +1683,7 @@ public final class AstralRecord extends JavaPlugin {
         arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService);
         archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(particleDisplayService);
         skillService.registerExecutor(new ArchmagePhoenixResonanceExecutor(archmagePhoenixRuntimeService));
+        statusService.setPhoenixPresentPredicate(archmagePhoenixRuntimeService::hasLivingPhoenix);
         playerHudService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);
         damageService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);
         dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
@@ -1808,6 +1810,9 @@ public final class AstralRecord extends JavaPlugin {
             new ElementalPrismRuntimeService(),
             skillMagicCircleRegistry
         );
+        archmagePhoenixRuntimeService.configureCombat(statusService, activeSkillServices,
+            skillMagicCircleRegistry,
+            () -> skillService.registry().getDefinition(WizardMeteorExecutor.ID));
         skillService.registerExecutor(new MageBlinkSkillExecutor(activeSkillServices.movement()));
         paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(
             skillService,

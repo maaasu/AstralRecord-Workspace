@@ -1159,7 +1159,7 @@ public final class DamageService {
                 && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)
                 && attacker != null && attacker.isPlayer() && attacker.player() != null
                 && victim.isMob() && victim.mob() != null) {
-            archmagePhoenixRuntimeService.onDirectMobHit(attacker.player(), victim.mob());
+            archmagePhoenixRuntimeService.onDirectMobHit(attacker.player(), victim.mob(), source);
         }
         if (victim.isPlayer() && victim.player() != null && paladinGuardRuntimeService != null) {
             double rawDamage = calculated.breakdown().preDefenseDamage() * postCalculationMultiplier

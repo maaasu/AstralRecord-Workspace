@@ -76,7 +76,9 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
         String scope = ID + ":circle:" + UUID.randomUUID();
         Sigil sigil = new Sigil(center, radius);
         sigil.draw(context.services());
-        UUID circleId = context.services().circles().register(casterId);
+        UUID circleId = context.services().circles().register(casterId, player ->
+                context.services().targeting().playersInRadius(center, radius, CONTACT_HEIGHT).stream()
+                        .anyMatch(target -> target.getBukkit().getUniqueId().equals(player.getUniqueId())));
         try {
             context.services().tasks().repeat(
                 casterId,

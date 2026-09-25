@@ -120,7 +120,16 @@ public final class WizardPrismConditionRuntimeService {
         if (center.getWorld() == null) {
             return;
         }
-        Field field = new Field(casterId, center, configuration, circleRegistry.register(casterId));
+        Field field = new Field(casterId, center, configuration,
+                circleRegistry.register(casterId, player -> {
+                    Location location = player.getLocation();
+                    double dx = location.getX() - center.getX();
+                    double dz = location.getZ() - center.getZ();
+                    return center.getWorld().equals(player.getWorld())
+                            && Math.abs(location.getY() - center.getY()) <= VERTICAL_REACH
+                            && dx * dx + dz * dz <= configuration.radius * configuration.radius
+                            && AstPlayerCache.get(player) != null;
+                }));
         fields.add(field);
         try {
             render(field);

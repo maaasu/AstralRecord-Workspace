@@ -2,10 +2,23 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
+import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
@@ -13,6 +26,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Comparator;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 /** アークメイジの不死鳥との共鳴の召喚状態と追従表示を管理します。 */
 public final class ArchmagePhoenixRuntimeService {
@@ -32,9 +49,18 @@ public final class ArchmagePhoenixRuntimeService {
     private static final double MAX_FLIGHT_SPEED = 0.65D;
     private static final double MAX_ACCELERATION = 0.065D;
     private static final double RECOVERY_DISTANCE_SQUARED = 24.0D * 24.0D;
+    private static final long ATTACK_WAIT_TICKS = 160L;
+    private static final long ATTACK_ANIMATION_TICKS = 30L;
+    private static final long EGG_HATCH_TICKS = 600L;
+    private static final double ATTACK_COST = 20.0D;
     private final ArchmagePhoenixVisuals visuals;
     private final Map<UUID, State> states = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
+    private StatusService statusService;
+    private ActiveSkillServices activeSkills;
+    private SkillMagicCircleRegistry circles;
+    private Supplier<SkillDefinition> meteorDefinition;
+    private boolean applyingPhoenixHit;
 
     /**
      * 不死鳥の実行時状態を構築します。
@@ -42,6 +68,23 @@ public final class ArchmagePhoenixRuntimeService {
      */
     public ArchmagePhoenixRuntimeService(@NotNull ParticleDisplayService particles) {
         this.visuals = new ArchmagePhoenixVisuals(particles);
+    }
+
+    /**
+     * 戦闘開始後の攻撃、MP 消費と魔法陣の対象判定を接続します。
+     * @param statusService MP と攻撃速度を扱うサービス
+     * @param activeSkills 魔法攻撃とメテオの共有処理
+     * @param circles 発動者別の魔法陣影響判定
+     * @param meteorDefinition 孵化時に最大レベル相当へ解決するメテオの定義
+     */
+    public void configureCombat(@NotNull StatusService statusService,
+                                @NotNull ActiveSkillServices activeSkills,
+                                @NotNull SkillMagicCircleRegistry circles,
+                                @NotNull Supplier<SkillDefinition> meteorDefinition) {
+        this.statusService = statusService;
+        this.activeSkills = activeSkills;
+        this.circles = circles;
+        this.meteorDefinition = meteorDefinition;
     }
 
     /**
@@ -62,6 +105,8 @@ public final class ArchmagePhoenixRuntimeService {
             states.put(player.getBukkit().getUniqueId(), state);
         }
         state.bindings.add(bindingId(context));
+        state.maximumLevel = context.learnedSkill() != null
+                && context.learnedSkill().getLevel() >= context.skill().getMaxLevel();
     }
 
     /**
@@ -121,24 +166,58 @@ public final class ArchmagePhoenixRuntimeService {
     }
 
     /**
+     * 現在のプレイヤーセッションで不死鳥が飛行中か判定します。卵と未召喚は含みません。
+     * @param player 判定対象
+     * @return 不死鳥が現存する場合は true
+     */
+    public boolean hasLivingPhoenix(@NotNull AstPlayer player) {
+        State state = currentState(player);
+        return state != null && state.parrot != null && state.parrot.isValid();
+    }
+
+    /**
      * 通常攻撃またはスキルの確定した敵 Mob 命中を受け取ります。
      * 未召喚時は対象が生存する場合だけ召喚し、召喚中は致死命中も最新対象へ記録します。
-     * @param attacker 攻撃者。対象パッシブが有効なプレイヤーだけを処理します
+     * @param attacker 攻撃者。本人の召喚と魔法陣の影響中にある味方の対象記録へ使います
      * @param target HP と死亡状態が確定済みの敵 Mob
+     * @param source 通常攻撃とスキルの区別
      */
-    public void onDirectMobHit(@NotNull AstPlayer attacker, @NotNull MobInstance target) {
+    public void onDirectMobHit(@NotNull AstPlayer attacker, @NotNull MobInstance target,
+                               @NotNull DamageSource source) {
+        if (applyingPhoenixHit) return;
+        if (AstPlayerCache.get(attacker.getBukkit()) != attacker) return;
         State state = currentState(attacker);
-        if (state == null || state.bindings.isEmpty()) return;
+        if (state == null || state.bindings.isEmpty()) {
+            recordCircleAllyHit(attacker, target);
+            return;
+        }
         boolean alive = target.state() != MobState.DEAD
                 && target.currentHealth() > 0.0D
                 && targetEntityPresent(target) != null;
-        if (state.parrot == null) {
+        if (state.parrot == null && state.egg == null) {
             if (!alive) return;
             spawn(attacker.getBukkit(), state);
             if (state.parrot == null) return;
         }
         state.target = target;
+        if (source == DamageSource.NORMAL_ATTACK) state.normalTarget = target;
         state.lastInRangeTick = Bukkit.getCurrentTick();
+        recordCircleAllyHit(attacker, target);
+    }
+
+    /** 円内で味方が命中させた敵 Mob を、各不死鳥の候補へ登録します。 */
+    private void recordCircleAllyHit(AstPlayer attacker, MobInstance target) {
+        if (circles == null) return;
+        UUID attackerId = attacker.getBukkit().getUniqueId();
+        for (Map.Entry<UUID, State> entry : states.entrySet()) {
+            State candidate = entry.getValue();
+            if (candidate.parrot != null && candidate.parrot.isValid()
+                    && circles.isPlayerAffectedByCasterCircle(entry.getKey(), attackerId)) {
+                candidate.circleTargets.computeIfAbsent(attackerId, ignored -> new HashMap<>())
+                        .put(target.instanceId(), target);
+                candidate.lastInRangeTick = Bukkit.getCurrentTick();
+            }
+        }
     }
 
     /**
@@ -150,7 +229,7 @@ public final class ArchmagePhoenixRuntimeService {
     public @NotNull PhoenixSnapshot snapshot(@NotNull AstPlayer player) {
         State state = currentState(player);
         return state == null ? new PhoenixSnapshot(false, 0.0D, 0.0D)
-                : new PhoenixSnapshot(true, state.parrot == null ? 0.0D : state.maximum, state.maximum);
+                : new PhoenixSnapshot(true, state.parrot == null ? 0.0D : state.phoenix, state.maximum);
     }
 
     /**
@@ -160,7 +239,7 @@ public final class ArchmagePhoenixRuntimeService {
     public void tick(@NotNull PassiveSkillContext context) {
         Player player = context.player().getBukkit();
         State state = currentState(context.player());
-        if (state == null || state.parrot == null) return;
+        if (state == null || (state.parrot == null && state.egg == null)) return;
         long now = Bukkit.getCurrentTick();
         if (state.lastTick == now) return;
         state.lastTick = now;
@@ -172,7 +251,16 @@ public final class ArchmagePhoenixRuntimeService {
             onPlayerDeath(player.getUniqueId());
             return;
         }
-        if (targetInRange(player, state.target, state.rangeSquared)) state.lastInRangeTick = now;
+        if (state.egg != null) {
+            if (now >= state.hatchTick) hatch(player, state, now);
+            else if (now % 4L == 0L) visuals.renderEgg(state.eggLocation, now);
+            return;
+        }
+        boolean activeAttackTarget = state.parrot.isValid() && now % 20L == 0L
+                && attackTarget(player, state) != null;
+        if (activeAttackTarget || targetInRange(player, state.target, state.rangeSquared)) {
+            state.lastInRangeTick = now;
+        }
         if (now - state.lastInRangeTick >= state.delayTicks) {
             despawn(state);
             return;
@@ -181,10 +269,14 @@ public final class ArchmagePhoenixRuntimeService {
             despawn(state);
             return;
         }
-        Location location = follow(player, state, now);
+        if (state.attacking && now >= state.attackEndTick) completeAttack(player, state, now);
+        if (state.parrot == null) return;
+        if (!state.attacking && now >= state.nextAttackTick) beginAttack(player, state, now);
+        Location location = state.attacking ? state.parrot.getLocation() : follow(player, state, now);
         // 通常移動は毎tickの速度制御、描画は位相を分散した2tick周期に分離する。
         if (location != null && (now + state.visualPhase) % 2L == 0L) {
             visuals.render(player, state.parrot, location, now, state.visualPhase);
+            if (state.attacking) visuals.renderAttack(location, now);
         }
     }
 
@@ -216,8 +308,132 @@ public final class ArchmagePhoenixRuntimeService {
         return entity != null && entity.isValid() ? entity : null;
     }
 
+    /** 優先順位と現在の魔法陣効果を再確認して、最も近い攻撃候補を返します。 */
+    private MobInstance attackTarget(Player owner, State state) {
+        Location origin = state.parrot.getLocation();
+        if (circles != null) {
+            state.circleTargets.entrySet().removeIf(entry -> {
+                Player ally = Bukkit.getPlayer(entry.getKey());
+                return ally == null || !ally.isOnline()
+                        || !circles.isPlayerAffectedByCasterCircle(owner.getUniqueId(), entry.getKey());
+            });
+        } else {
+            state.circleTargets.clear();
+        }
+        state.circleTargets.values().forEach(targets -> targets.values().removeIf(
+                target -> !targetInRange(owner, target, state.rangeSquared)));
+        state.circleTargets.values().removeIf(Map::isEmpty);
+        if (targetInRange(owner, state.normalTarget, state.rangeSquared)) return state.normalTarget;
+        return state.circleTargets.values().stream().flatMap(targets -> targets.values().stream())
+                .min(Comparator.comparingDouble(mob -> targetEntityPresent(mob).getLocation().distanceSquared(origin)))
+                .orElse(null);
+    }
+
+    /** 攻撃速度を演出と待機の両方に適用し、敵の上へ移動して攻撃を始めます。 */
+    private void beginAttack(Player owner, State state, long now) {
+        if (statusService == null || activeSkills == null || state.phoenix < ATTACK_COST) return;
+        MobInstance target = attackTarget(owner, state);
+        if (target == null || statusService.getStatus(state.owner).getCurrentMp() < ATTACK_COST) {
+            state.nextAttackTick = now + 20L;
+            return;
+        }
+        Entity entity = targetEntityPresent(target);
+        if (entity == null) return;
+        Location center = entity.getLocation();
+        double angle = ThreadLocalRandom.current().nextDouble(Math.PI * 2.0D);
+        double radius = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * 3.0D;
+        Location attackLocation = center.clone().add(Math.cos(angle) * radius, 2.2D, Math.sin(angle) * radius);
+        Vector look = center.toVector().subtract(attackLocation.toVector());
+        attackLocation.setDirection(look);
+        if (!state.parrot.teleport(attackLocation)) {
+            state.nextAttackTick = now + 20L;
+            return;
+        }
+        state.parrot.setVelocity(new Vector());
+        state.flightVelocity.zero();
+        state.flightYaw = attackLocation.getYaw();
+        state.returning = false;
+        state.attacking = true;
+        state.attackTarget = target;
+        double speed = state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED);
+        state.attackEndTick = now + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_ANIMATION_TICKS, speed);
+        state.attackWaitTicks = CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS, speed);
+        statusService.consumeMp(state.owner, ATTACK_COST);
+    }
+
+    /** 演出完了時に一撃を与え、枯渇した不死鳥をその場で卵にします。 */
+    private void completeAttack(Player owner, State state, long now) {
+        state.attacking = false;
+        MobInstance target = state.attackTarget;
+        state.attackTarget = null;
+        state.phoenix = Math.max(0.0D, state.phoenix - ATTACK_COST);
+        if (targetInRange(owner, target, state.rangeSquared) && activeSkills != null) {
+            Entity entity = targetEntityPresent(target);
+            if (entity != null) {
+                visuals.renderAttackImpact(entity.getLocation());
+                applyingPhoenixHit = true;
+                try {
+                    if (state.maximumLevel) {
+                        activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
+                                AttackType.MAGIC, DamageElement.FIRE, 0.30D,
+                                new ActiveSkillCondition(ConditionType.BURNING, 15.0D, 60L, 1.0D));
+                    } else {
+                        activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
+                                AttackType.MAGIC, DamageElement.FIRE, 0.30D);
+                    }
+                } finally {
+                    applyingPhoenixHit = false;
+                }
+            }
+        }
+        if (state.phoenix <= 0.0D) {
+            becomeEgg(state, now);
+        } else {
+            state.returning = true;
+            state.nextAttackTick = now + state.attackWaitTicks;
+        }
+    }
+
+    /** phoenix 枯渇地点の地面に卵を作り、30 秒の孵化を開始します。 */
+    private void becomeEgg(State state, long now) {
+        Location position = state.parrot.getLocation();
+        var ground = position.getWorld().rayTraceBlocks(position, new Vector(0, -1, 0), 6.0D,
+                FluidCollisionMode.NEVER, true);
+        Location base = ground == null ? position.clone().add(0.0D, -1.2D, 0.0D)
+                : ground.getHitPosition().toLocation(position.getWorld()).add(0.0D, 0.08D, 0.0D);
+        removeParrot(state);
+        state.eggLocation = base;
+        state.egg = visuals.spawnEgg(base);
+        state.hatchTick = now + EGG_HATCH_TICKS;
+    }
+
+    /** 30 秒を経た卵を不死鳥に戻し、同じ地点へ最大レベル相当のメテオを落とします。 */
+    private void hatch(Player owner, State state, long now) {
+        Location impact = state.eggLocation.clone();
+        state.egg.forEach(Entity::remove);
+        state.egg = null;
+        state.eggLocation = null;
+        state.phoenix = state.maximum;
+        spawn(owner, state, impact.clone().add(0.0D, 1.5D, 0.0D));
+        if (state.parrot != null) {
+            state.lastInRangeTick = now;
+            state.nextAttackTick = now + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS,
+                    state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED));
+        }
+        if (activeSkills != null) {
+            SkillDefinition meteor = meteorDefinition == null ? null : meteorDefinition.get();
+            if (meteor != null) {
+                WizardMeteorExecutor.summonPhoenixHatch(activeSkills, state.owner, impact, meteor);
+            }
+        }
+    }
+
     private void spawn(Player player, State state) {
-        Location location = followLocation(player);
+        spawn(player, state, followLocation(player));
+    }
+
+    /** 指定座標に不死鳥を召喚し、攻撃とHPリソースを初期化します。 */
+    private void spawn(Player player, State state, Location location) {
         if (location.getWorld() == null) return;
         try {
             Parrot spawned = location.getWorld().spawn(
@@ -245,6 +461,10 @@ public final class ArchmagePhoenixRuntimeService {
                 state.previousOwnerLocation = player.getLocation();
                 state.visualPhase = Math.floorMod(player.getUniqueId().hashCode(), 6);
                 state.stalledTicks = 0;
+                state.phoenix = state.maximum;
+                state.nextAttackTick = Bukkit.getCurrentTick()
+                        + CombatTimingCalculator.resolveAttackIntervalTicks(ATTACK_WAIT_TICKS,
+                        state.owner.getStatusSnapshot().rollValue(StatusType.ATTACK_SPEED));
             }
         } catch (RuntimeException exception) {
             despawn(state);
@@ -285,6 +505,9 @@ public final class ArchmagePhoenixRuntimeService {
         limit(ownerVelocity, MAX_FLIGHT_SPEED);
         boolean worldChanged = current.getWorld() != anchor.getWorld();
         double distanceSquared = worldChanged ? Double.POSITIVE_INFINITY : current.distanceSquared(anchor);
+        if (state.returning && !worldChanged && distanceSquared <= 4.0D * 4.0D) {
+            state.returning = false;
+        }
         if (!worldChanged && state.previousLocation != null && state.previousLocation.getWorld() == current.getWorld()
                 && distanceSquared > 1.0D && state.flightVelocity.lengthSquared() > 0.01D
                 && state.previousLocation.distanceSquared(anchor) - distanceSquared < 0.02D) {
@@ -294,7 +517,8 @@ public final class ArchmagePhoenixRuntimeService {
         }
         state.previousLocation = current.clone();
         boolean discontinuity = worldChanged || distanceSquared > RECOVERY_DISTANCE_SQUARED;
-        if (discontinuity || state.stalledTicks >= 40) {
+        // 攻撃後は同一ワールドの追従点まで物理飛行で戻り、距離・停滞による復旧テレポートをしない。
+        if (worldChanged || (!state.returning && (discontinuity || state.stalledTicks >= 40))) {
             long retryDelay = discontinuity ? 20L : 100L;
             if (now - state.lastRecoveryTick >= retryDelay) {
                 state.lastRecoveryTick = now;
@@ -338,13 +562,26 @@ public final class ArchmagePhoenixRuntimeService {
         else if (lengthSquared > maximum * maximum) vector.multiply(maximum / Math.sqrt(lengthSquared));
     }
 
-    private void despawn(State state) {
+    private void removeParrot(State state) {
         if (state.parrot != null) {
             summonedEntityIds.remove(state.parrot.getUniqueId());
             state.parrot.remove();
         }
         state.parrot = null;
+    }
+
+    private void despawn(State state) {
+        removeParrot(state);
+        if (state.egg != null) state.egg.forEach(Entity::remove);
+        state.egg = null;
+        state.eggLocation = null;
+        state.phoenix = 0.0D;
         state.target = null;
+        state.normalTarget = null;
+        state.circleTargets.clear();
+        state.attacking = false;
+        state.returning = false;
+        state.attackTarget = null;
     }
 
     private UUID bindingId(PassiveSkillContext context) {
@@ -363,7 +600,20 @@ public final class ArchmagePhoenixRuntimeService {
         private final double rangeSquared;
         private final long delayTicks;
         private Parrot parrot;
+        private List<BlockDisplay> egg;
+        private Location eggLocation;
+        private long hatchTick;
+        private double phoenix;
+        private boolean maximumLevel;
         private MobInstance target;
+        private MobInstance normalTarget;
+        private final Map<UUID, Map<UUID, MobInstance>> circleTargets = new HashMap<>();
+        private boolean attacking;
+        private boolean returning;
+        private MobInstance attackTarget;
+        private long attackEndTick;
+        private long attackWaitTicks;
+        private long nextAttackTick;
         private long lastInRangeTick;
         private long lastTick;
         private final Vector flightVelocity = new Vector();

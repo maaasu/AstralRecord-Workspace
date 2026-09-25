@@ -54,7 +54,11 @@ public final class ArchmageCelestialCircleRuntimeService {
         }
         synchronize();
         circles.put(casterId, new Circle(center.clone(), level, durationTicks,
-                circleRegistry.register(casterId)));
+                circleRegistry.register(casterId, player -> {
+                    Circle circle = circles.get(casterId);
+                    return circle != null && circle.age >= ANIMATION_TICKS
+                            && AstPlayerCache.get(player) != null && contains(circle, player);
+                })));
     }
 
     /**

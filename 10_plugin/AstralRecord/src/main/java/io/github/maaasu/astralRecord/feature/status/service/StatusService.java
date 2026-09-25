@@ -54,6 +54,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
@@ -90,6 +91,7 @@ public class StatusService {
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
     private Consumer<HealthRecoveryNotification> hpRecoveryListener = notification -> { };
+    private Predicate<AstPlayer> phoenixPresentPredicate = player -> false;
     private Consumer<AstPlayer> challengeBuffResetListener = player -> { };
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
@@ -139,6 +141,15 @@ public class StatusService {
      */
     public void setHpRecoveryListener(@Nullable Consumer<HealthRecoveryNotification> listener) {
         this.hpRecoveryListener = listener == null ? notification -> { } : listener;
+    }
+
+    /**
+     * 不死鳥の召喚状態を問い合わせる判定を設定します。召喚中の回復元による HP 回復量を半減します。
+     *
+     * @param predicate 回復元に不死鳥が存在する場合に true を返す判定。null で解除
+     */
+    public void setPhoenixPresentPredicate(@Nullable Predicate<AstPlayer> predicate) {
+        this.phoenixPresentPredicate = predicate == null ? player -> false : predicate;
     }
 
     /**
@@ -777,6 +788,7 @@ public class StatusService {
     /**
      * 現在HPを回復し、指定された発生元がある場合だけ実回復通知を行います。
      * 発生元を {@code null} にすると、自然回復などの常時回復を表示対象から除外できます。
+     * 回復元に不死鳥が存在する間は、他者への回復も含め最終回復量を半減します。
      *
      * @param player 対象プレイヤー
      * @param amount 支援力適用前の回復量（0以下は無視）
@@ -804,8 +816,12 @@ public class StatusService {
             supportedAmount += snapshot.getMaxValue(StatusType.MAX_HEALTH) * HEAL_ARROW_ALPHA_FOLLOW_UP_RATIO;
         }
         double healingIncrease = Math.max(0.0D, snapshot.getMaxValue(StatusType.HEALING_INCREASE));
+        double recovered = supportedAmount * (1.0D + healingIncrease / 100.0D);
+        if (phoenixPresentPredicate.test(recoverySource)) {
+            recovered *= 0.5D;
+        }
         StatusSnapshot updated = snapshot.withCurrentValues(
-            snapshot.getCurrentHp() + supportedAmount * (1.0D + healingIncrease / 100.0D),
+            snapshot.getCurrentHp() + recovered,
             snapshot.getCurrentMp()
         );
         player.setStatusSnapshot(updated);
@@ -1008,6 +1024,7 @@ public class StatusService {
     /**
      * 現在HP/MP/エネルギーを最大値まで回復し、タンクシールドアクティベートが有効な場合だけShieldも最大値まで回復します。
      * 指定された発生元がある場合だけHP通知を行います。
+     * 回復元に不死鳥が存在する間は、HPの不足分に対する回復量を半減します。
      *
      * @param player 対象プレイヤー
      * @param context 回復元と回復手段。{@code null} の場合はHP通知しない
@@ -1020,6 +1037,13 @@ public class StatusService {
         StatusSnapshot previous = getStatus(player);
         boolean shieldActivationEnabled = isShieldActivationEnabled(player);
         StatusSnapshot snapshot = restoreAllInternal(previous, shieldActivationEnabled);
+        AstPlayer recoverySource = context != null && context.healer() != null ? context.healer() : player;
+        if (phoenixPresentPredicate.test(recoverySource)) {
+            double restoredHp = previous.getCurrentHp()
+                + (snapshot.getCurrentHp() - previous.getCurrentHp()) * 0.5D;
+            snapshot = snapshot.withCurrentValues(
+                restoredHp, snapshot.getCurrentMp(), snapshot.getCurrentEnergy(), snapshot.getCurrentShield());
+        }
         player.setStatusSnapshot(snapshot);
         clearShieldRecharge(player);
         UUID playerId = player.getBukkit().getUniqueId();
