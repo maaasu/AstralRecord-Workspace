@@ -141,9 +141,12 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         MeteorState state = new MeteorState(target, visualScale);
         UUID casterId = caster.getUniqueId();
         String scope = "wizard-meteor:" + UUID.randomUUID();
+        UUID circleId = null;
 
         try {
             state.spawnDisplays(flightTicks);
+            circleId = services.circles().register(casterId);
+            UUID registeredCircleId = circleId;
             services.tasks().repeat(
                     casterId,
                     scope,
@@ -152,6 +155,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                     delayTicks + 1,
                     elapsedTicks -> {
                         if (elapsedTicks >= delayTicks) {
+                            services.circles().remove(registeredCircleId);
                             state.destroy();
                             detonate(services, caster, attacker, impact, radius, damageRatio, visualScale, conditions);
                             return;
@@ -166,9 +170,15 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                             state.drawSigil(services);
                         }
                     },
-                    state::destroy
+                    () -> {
+                        services.circles().remove(registeredCircleId);
+                        state.destroy();
+                    }
             );
         } catch (RuntimeException exception) {
+            if (circleId != null) {
+                services.circles().remove(circleId);
+            }
             state.destroy();
             throw exception;
         }

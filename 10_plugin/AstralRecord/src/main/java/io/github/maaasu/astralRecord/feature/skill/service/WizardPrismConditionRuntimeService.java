@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReaso
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -35,6 +36,7 @@ public final class WizardPrismConditionRuntimeService {
     private final Plugin plugin;
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
+    private final SkillMagicCircleRegistry circleRegistry;
     private final Map<UUID, Map<String, Configuration>> configurations = new HashMap<>();
     private final List<Field> fields = new ArrayList<>();
     private BukkitTask task;
@@ -43,15 +45,18 @@ public final class WizardPrismConditionRuntimeService {
      * @param plugin 魔法陣の同期tickを登録するプラグイン
      * @param statusService MP回復サービス
      * @param particleDisplayService 近傍プレイヤーへの粒子表示サービス
+     * @param circleRegistry 発動者ごとの現存魔法陣
      */
     public WizardPrismConditionRuntimeService(
             @NotNull Plugin plugin,
             @NotNull StatusService statusService,
-            @NotNull ParticleDisplayService particleDisplayService
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull SkillMagicCircleRegistry circleRegistry
     ) {
         this.plugin = plugin;
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
+        this.circleRegistry = circleRegistry;
     }
 
     /**
@@ -115,11 +120,17 @@ public final class WizardPrismConditionRuntimeService {
         if (center.getWorld() == null) {
             return;
         }
-        Field field = new Field(casterId, center, configuration);
+        Field field = new Field(casterId, center, configuration, circleRegistry.register(casterId));
         fields.add(field);
-        render(field);
-        if (task == null) {
-            task = Bukkit.getScheduler().runTaskTimer(plugin, this::advance, 1L, 1L);
+        try {
+            render(field);
+            if (task == null) {
+                task = Bukkit.getScheduler().runTaskTimer(plugin, this::advance, 1L, 1L);
+            }
+        } catch (RuntimeException exception) {
+            fields.remove(field);
+            circleRegistry.remove(field.circleId);
+            throw exception;
         }
     }
 
@@ -131,32 +142,47 @@ public final class WizardPrismConditionRuntimeService {
      */
     public void clearPlayer(@NotNull UUID casterId) {
         configurations.remove(casterId);
-        fields.removeIf(field -> field.casterId.equals(casterId));
+        fields.removeIf(field -> {
+            if (!field.casterId.equals(casterId)) {
+                return false;
+            }
+            circleRegistry.remove(field.circleId);
+            return true;
+        });
         stopIfEmpty();
     }
 
     /** プラグイン終了時に全プレイヤーの設定と魔法陣を消去し、同期taskを停止します。 */
     public void clearAll() {
         configurations.clear();
+        fields.forEach(field -> circleRegistry.remove(field.circleId));
         fields.clear();
         stopIfEmpty();
     }
 
     private void advance() {
-        Iterator<Field> iterator = fields.iterator();
-        while (iterator.hasNext()) {
-            Field field = iterator.next();
-            if (field.remainingTicks <= 0 || recoverFirstPlayer(field)) {
-                iterator.remove();
-                continue;
+        try {
+            Iterator<Field> iterator = fields.iterator();
+            while (iterator.hasNext()) {
+                Field field = iterator.next();
+                if (field.remainingTicks <= 0 || recoverFirstPlayer(field)) {
+                    circleRegistry.remove(field.circleId);
+                    iterator.remove();
+                    continue;
+                }
+                if (field.ageTicks % PARTICLE_INTERVAL_TICKS == 0) {
+                    render(field);
+                }
+                field.ageTicks++;
+                field.remainingTicks--;
             }
-            if (field.ageTicks % PARTICLE_INTERVAL_TICKS == 0) {
-                render(field);
-            }
-            field.ageTicks++;
-            field.remainingTicks--;
+            stopIfEmpty();
+        } catch (RuntimeException exception) {
+            fields.forEach(field -> circleRegistry.remove(field.circleId));
+            fields.clear();
+            stopIfEmpty();
+            throw exception;
         }
-        stopIfEmpty();
     }
 
     private boolean recoverFirstPlayer(@NotNull Field field) {
@@ -248,13 +274,15 @@ public final class WizardPrismConditionRuntimeService {
 
     private static final class Field {
         private final UUID casterId;
+        private final UUID circleId;
         private final Location center;
         private final Configuration configuration;
         private int remainingTicks;
         private int ageTicks;
 
-        private Field(UUID casterId, Location center, Configuration configuration) {
+        private Field(UUID casterId, Location center, Configuration configuration, UUID circleId) {
             this.casterId = casterId;
+            this.circleId = circleId;
             this.center = center;
             this.configuration = configuration;
             this.remainingTicks = configuration.durationTicks;

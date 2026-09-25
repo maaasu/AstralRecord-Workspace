@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 /** 視線先の水平面に設置し、接触した敵を引き寄せて一体だけ拘束する魔法です。 */
 public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor {
@@ -72,7 +73,7 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         Player caster = context.player();
         double range = context.params().getDouble("range", 16.0D);
         Location center = context.services().targeting().groundTarget(caster, range);
-        CircleState state = new CircleState(context.services(), center, binds);
+        CircleState state = new CircleState(context.services(), center, binds, caster.getUniqueId());
         try {
             state.spawn();
             state.searchContact(0);
@@ -107,22 +108,26 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         private final Location center;
         private final BindCircleRuntimeService binds;
         private final BindCircleParticleVisual visual;
+        private final UUID casterId;
+        private UUID circleId;
         private List<MobInstance> touched = List.of();
         private int pulledAt = -1;
         private boolean active = true;
 
         /** 発動時に固定された設置位置と描画点を保持します。 */
         private CircleState(ActiveSkillServices services, Location center,
-                            BindCircleRuntimeService binds) {
+                            BindCircleRuntimeService binds, UUID casterId) {
             this.services = services;
             this.center = center.clone();
             this.binds = binds;
+            this.casterId = casterId;
             this.visual = new BindCircleParticleVisual(center);
         }
 
         /** 魔法陣を最初の一回描画します。 */
         private void spawn() {
             visual.draw(services.effects());
+            circleId = services.circles().register(casterId);
         }
 
         /** 接触待ち・引き寄せ・一体拘束の遷移を一 tick 進めます。 */
@@ -221,6 +226,10 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         /** 継続表示を終了します。すでに出した粒子は自然消滅します。 */
         private void destroy() {
             active = false;
+            if (circleId != null) {
+                services.circles().remove(circleId);
+                circleId = null;
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * @param temporaryEffects 一時戦闘効果サービス
  * @param tasks 遅延・反復タスクサービス
  * @param prisms エレメンタルプリズムの設置と吸収判定
+ * @param circles 発動者が維持する魔法陣の登録状態
  */
 public record ActiveSkillServices(
         @NotNull SkillTargetingService targeting,
@@ -22,6 +23,7 @@ public record ActiveSkillServices(
         @NotNull SkillMovementService movement,
         @NotNull TemporarySkillEffectService temporaryEffects,
         @NotNull SkillTaskService tasks,
-        @NotNull ElementalPrismRuntimeService prisms
+        @NotNull ElementalPrismRuntimeService prisms,
+        @NotNull SkillMagicCircleRegistry circles
 ) {
 }

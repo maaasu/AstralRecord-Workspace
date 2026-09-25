@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -21,6 +22,7 @@ public final class ArchmageCelestialCircleRuntimeService {
     private static final int ANIMATION_TICKS = 40;
     private static final String BUFF_ID = "archmage_celestial_circle";
     private final StatusService statusService;
+    private final SkillMagicCircleRegistry circleRegistry;
     private final Map<UUID, Circle> circles = new HashMap<>();
     private final Map<UUID, Applied> applied = new HashMap<>();
     private long lastSynchronizeTick = -1L;
@@ -29,9 +31,12 @@ public final class ArchmageCelestialCircleRuntimeService {
      * ステータス更新サービスを受け取ります。
      *
      * @param statusService バフの付与と解除に使うサービス
+     * @param circleRegistry 発動者ごとの現存魔法陣
      */
-    public ArchmageCelestialCircleRuntimeService(@NotNull StatusService statusService) {
+    public ArchmageCelestialCircleRuntimeService(@NotNull StatusService statusService,
+                                                 @NotNull SkillMagicCircleRegistry circleRegistry) {
         this.statusService = statusService;
+        this.circleRegistry = circleRegistry;
     }
 
     /**
@@ -43,9 +48,13 @@ public final class ArchmageCelestialCircleRuntimeService {
      * @param durationTicks 完成後の持続tick
      */
     public void start(@NotNull UUID casterId, @NotNull Location center, int level, int durationTicks) {
-        circles.remove(casterId);
+        Circle previous = circles.remove(casterId);
+        if (previous != null) {
+            circleRegistry.remove(previous.circleId);
+        }
         synchronize();
-        circles.put(casterId, new Circle(center.clone(), level, durationTicks));
+        circles.put(casterId, new Circle(center.clone(), level, durationTicks,
+                circleRegistry.register(casterId)));
     }
 
     /**
@@ -92,13 +101,16 @@ public final class ArchmageCelestialCircleRuntimeService {
      * @param casterId 発動者UUID
      */
     public void end(@NotNull UUID casterId) {
-        if (circles.remove(casterId) != null) {
+        Circle circle = circles.remove(casterId);
+        if (circle != null) {
+            circleRegistry.remove(circle.circleId);
             synchronize();
         }
     }
 
     /** すべての魔法陣と付与済みバフを解除します。 */
     public void clearAll() {
+        circles.values().forEach(circle -> circleRegistry.remove(circle.circleId));
         circles.clear();
         synchronize();
     }
@@ -168,12 +180,14 @@ public final class ArchmageCelestialCircleRuntimeService {
     }
 
     private static final class Circle {
+        private final UUID circleId;
         private final Location center;
         private final int level;
         private int age;
         private int remainingTicks;
 
-        private Circle(Location center, int level, int durationTicks) {
+        private Circle(Location center, int level, int durationTicks, UUID circleId) {
+            this.circleId = circleId;
             this.center = center;
             this.level = level;
             this.remainingTicks = durationTicks;

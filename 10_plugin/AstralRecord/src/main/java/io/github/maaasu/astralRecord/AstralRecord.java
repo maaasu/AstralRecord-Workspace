@@ -220,6 +220,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementS
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectileService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.event.AirShiftSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.ArcaneFlowSkillEventHandler;
@@ -499,6 +500,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillBindGuiEventHandler skillBindGuiEventHandler;
     private ActiveSkillLifecycleService activeSkillLifecycleService;
     private SkillTaskService activeSkillTaskService;
+    private SkillMagicCircleRegistry skillMagicCircleRegistry;
     private TemporarySkillEffectService temporarySkillEffectService;
     private DamageService damageService;
     private CombatDpsTrackerService combatDpsTrackerService;
@@ -929,6 +931,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (archmageCelestialCircleRuntimeService != null) {
             archmageCelestialCircleRuntimeService.clearAll();
+        }
+        if (skillMagicCircleRegistry != null) {
+            skillMagicCircleRegistry.clear();
         }
         if (paladinHolySmiteRuntimeService != null) {
             paladinHolySmiteRuntimeService.clearAll();
@@ -1687,8 +1692,9 @@ public final class AstralRecord extends JavaPlugin {
             guideService
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
+        skillMagicCircleRegistry = new SkillMagicCircleRegistry();
         wizardPrismConditionRuntimeService = new WizardPrismConditionRuntimeService(
-            this, statusService, particleDisplayService
+            this, statusService, particleDisplayService, skillMagicCircleRegistry
         );
         conditionService.setAppliedListener(wizardPrismConditionRuntimeService::onConditionApplied);
         skillService.registerExecutor(new WizardPrismConditionSkillExecutor(wizardPrismConditionRuntimeService));
@@ -1697,7 +1703,9 @@ public final class AstralRecord extends JavaPlugin {
         paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(
             statusService, partyService
         );
-        archmageCelestialCircleRuntimeService = new ArchmageCelestialCircleRuntimeService(statusService);
+        archmageCelestialCircleRuntimeService = new ArchmageCelestialCircleRuntimeService(
+            statusService, skillMagicCircleRegistry
+        );
         var paladinGuardRuntimeService = new PaladinGuardRuntimeService();
         var paladinGuardianProtectRuntimeService = new PaladinGuardianProtectRuntimeService();
         skillService.setPaladinGuardRuntimeService(paladinGuardRuntimeService);
@@ -1797,7 +1805,8 @@ public final class AstralRecord extends JavaPlugin {
             new SkillMovementService(conditionService),
             temporarySkillEffectService,
             activeSkillTaskService,
-            new ElementalPrismRuntimeService()
+            new ElementalPrismRuntimeService(),
+            skillMagicCircleRegistry
         );
         skillService.registerExecutor(new MageBlinkSkillExecutor(activeSkillServices.movement()));
         paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(

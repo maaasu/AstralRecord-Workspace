@@ -76,7 +76,9 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
         String scope = ID + ":circle:" + UUID.randomUUID();
         Sigil sigil = new Sigil(center, radius);
         sigil.draw(context.services());
-        context.services().tasks().repeat(
+        UUID circleId = context.services().circles().register(casterId);
+        try {
+            context.services().tasks().repeat(
                 casterId,
                 scope,
                 1L,
@@ -107,8 +109,13 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
                         skillService.clearCooldown(casterId, ID);
                         return;
                     }
-                }
-        );
+                },
+                () -> context.services().circles().remove(circleId)
+            );
+        } catch (RuntimeException exception) {
+            context.services().circles().remove(circleId);
+            throw exception;
+        }
         return context.success();
     }
 
