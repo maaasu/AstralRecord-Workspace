@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageHealCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageClearCircleExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageAstralRayExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageBindCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
@@ -75,6 +76,7 @@ public final class ActiveSkillExecutorCatalog {
         executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
         executors.add(new ArchmageHealCircleExecutor(services, skillService));
         executors.add(new ArchmageClearCircleExecutor(services));
+        executors.add(new ArchmageAstralRayExecutor(services));
         executors.add(new WizardMeteorExecutor(services));
         executors.add(new WizardEmulateSparkExecutor(services));
         executors.add(new WizardSelfHealExecutor(services));

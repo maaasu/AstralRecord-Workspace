@@ -14,7 +14,7 @@ lore:
   - "&7基礎数は{skill.circleCount}本。魔法陣1つにつき2本追加する。"
   - "&7{skill.circleIntervalTicks}tick間隔で上空に傾いた魔法陣を描く。"
   - "&7発射時、自身の周囲{skill.range}m以内の敵モブ1体をランダムに狙う。"
-  - "&7同じ敵モブへの複数命中があり得る。1発の魔法攻撃倍率は{skill.damageRatio:percent}%。"
+  - "&7同じ敵モブへの複数命中があり得る。1発の無属性魔法攻撃倍率は{skill.damageRatio:percent}%。"
 cooldownTicks: 280
 resourceType: MANA
 resourceCost: 95

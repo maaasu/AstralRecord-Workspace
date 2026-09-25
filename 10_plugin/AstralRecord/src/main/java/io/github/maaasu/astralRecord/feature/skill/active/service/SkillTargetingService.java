@@ -772,6 +772,16 @@ public final class SkillTargetingService {
                 .toList();
     }
 
+    /**
+     * 対象判定と光線の着弾演出に共通する、管理対象Mobの体積中心を返します。
+     * @param target 管理対象Mob。その他の対象では現在位置を使用します
+     * @return 新しい中心座標
+     */
+    public @NotNull Location center(@NotNull AstEntity target) {
+        MobInstance mob = target.mob();
+        return mob == null ? target.location().clone() : targetCenter(mob);
+    }
+
     private static @NotNull Location targetCenter(@NotNull MobInstance mob) {
         Location location = mob.currentLocation();
         Vector center = targetBounds(mob).getCenter();

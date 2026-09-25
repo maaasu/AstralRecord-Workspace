@@ -21,6 +21,18 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    public static final SharedParticleDefinition SKILL_ASTRAL_RAY_VIOLET =
+        new SharedParticleDefinition("skill_astral_ray_violet", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(170, 110, 255), 0.85F));
+    public static final SharedParticleDefinition SKILL_ASTRAL_RAY_CYAN =
+        new SharedParticleDefinition("skill_astral_ray_cyan", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(100, 235, 255), 0.8F));
+    public static final SharedParticleDefinition SKILL_ASTRAL_RAY_BEAM =
+        new SharedParticleDefinition("skill_astral_ray_beam", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(220, 245, 255), 1.1F));
+    public static final SharedParticleDefinition SKILL_ASTRAL_RAY_IMPACT =
+        new SharedParticleDefinition("skill_astral_ray_impact", Particle.END_ROD, 8, 0.2D, 0.3D, 0.2D, 0.025D);
+
     public static final SharedParticleDefinition SKILL_ARCHMAGE_CELESTIAL_AZURE =
         new SharedParticleDefinition("skill_archmage_celestial_azure", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(72, 195, 255), 1.15F));
