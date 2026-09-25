@@ -51,7 +51,7 @@ final class ArchmagePhoenixVisuals {
         }
     }
 
-    /** 羽根40点・尾18点・胸元6点・火の粉4点・金色4点・青炎2点の計74点を作ります。 */
+    /** 羽根40点・尾18点・胸元6点・火の粉4点・翼端の金色4点・青炎2点の計74点に旧DUSTと炎を混ぜます。 */
     static Map<SharedParticleDefinition, List<Location>> createFrame(Location body, long tick, int phase, double speed) {
         Vector forward = body.getDirection().setY(0.0D).normalize();
         Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
@@ -60,7 +60,9 @@ final class ArchmagePhoenixVisuals {
         double sweep = 0.12D + Math.min(0.3D, Math.max(0.0D, speed) * 0.4D);
         List<Location> flame = new ArrayList<>(29);
         List<Location> small = new ArrayList<>(35);
-        List<Location> gold = new ArrayList<>(4);
+        List<Location> gold = new ArrayList<>(20);
+        List<Location> orange = new ArrayList<>(10);
+        List<Location> red = new ArrayList<>(10);
         List<Location> embers = new ArrayList<>(4);
         List<Location> blue = new ArrayList<>(2);
         for (int side : new int[] {-1, 1}) {
@@ -74,7 +76,11 @@ final class ArchmagePhoenixVisuals {
                             + Math.sin(flap) * span * u + Math.sin(u * Math.PI) * 0.12D;
                     tip = point(body, right, forward, side * (0.18D + span * u * Math.cos(flap)),
                             0.28D + lift, -trail * u);
-                    (segment == 2 || segment == 3 ? flame : small).add(tip);
+                    if (segment == 1 || segment == 3) {
+                        (feather <= 1 ? gold : feather <= 3 ? orange : red).add(tip);
+                    } else {
+                        (segment == 2 ? flame : small).add(tip);
+                    }
                 }
                 if (feather == 0 || feather == 4) gold.add(tip.clone());
                 if (feather == 2 || feather == 4) embers.add(tip.clone());
@@ -89,7 +95,11 @@ final class ArchmagePhoenixVisuals {
                         strand * (0.12D + 0.45D * u) + wave * 0.16D * u,
                         0.15D - 1.25D * u + Math.cos(animation - u * 3.0D) * 0.09D * u,
                         -(2.4D + sweep) * u);
-                (segment % 2 == 0 ? flame : small).add(location);
+                if (segment % 2 == 1) {
+                    (segment <= 2 ? gold : segment <= 4 ? orange : red).add(location);
+                } else {
+                    (segment == 2 ? flame : small).add(location);
+                }
             }
         }
         for (int index = 0; index < 6; index++) {
@@ -101,6 +111,8 @@ final class ArchmagePhoenixVisuals {
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME, flame);
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_SMALL_FLAME, small);
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_GOLD, gold);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_ORANGE, orange);
+        frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_RED, red);
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_EMBER, embers);
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_BLUE, blue);
         return frame;
