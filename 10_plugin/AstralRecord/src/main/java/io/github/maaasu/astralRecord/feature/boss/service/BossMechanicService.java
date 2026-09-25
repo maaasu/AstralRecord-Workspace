@@ -75,6 +75,17 @@ public final class BossMechanicService {
     private static final double ALDA_COLLAPSE_PUSH_STRENGTH = 0.7D;
     private static final double ALDA_COLLAPSE_MIN_SEPARATION = 16.0D;
     private static final int ALDA_COLLAPSE_DISPLAY_COUNT_PER_ANCHOR = 6;
+    private static final double GRANBAL_ROOT_CROSS_MAX_LENGTH = 20.0D;
+    private static final double GRANBAL_ROOT_CROSS_HALF_WIDTH = 1.35D;
+    private static final long GRANBAL_ROOT_CROSS_TELEGRAPH_TICKS = 32L;
+    private static final double GRANBAL_ROOT_CROSS_DAMAGE_RATIO = 0.60D;
+    private static final double GRANBAL_ROOT_CROSS_PUSH_STRENGTH = 0.40D;
+    private static final double GRANBAL_BLOOM_INNER_RADIUS = 3.2D;
+    private static final double GRANBAL_BLOOM_OUTER_RADIUS = 8.0D;
+    private static final long GRANBAL_BLOOM_TELEGRAPH_TICKS = 36L;
+    private static final long GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS = 14L;
+    private static final double GRANBAL_BLOOM_INNER_DAMAGE_RATIO = 0.70D;
+    private static final double GRANBAL_BLOOM_OUTER_DAMAGE_RATIO = 0.85D;
     private static final long ALDA_EXPOSURE_DURATION_TICKS = 60L;
     private static final double ALDA_EXPOSURE_DAMAGE_MULTIPLIER = 1.50D;
     private static final int ALDA_EXPOSURE_DISPLAY_COUNT = 8;
@@ -1106,6 +1117,7 @@ public final class BossMechanicService {
             return true;
         }
         Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
+            || mechanic == BossMechanicProfile.Mechanic.GRANBAL_SEED_BLOOM
             ? targetLocation
             : bossLocation;
 
@@ -1274,6 +1286,9 @@ public final class BossMechanicService {
             case ALDA_RUIN_SHOCKWAVE -> ALDA_SHOCKWAVE_TELEGRAPH_TICKS;
             case ALDA_PRIMORDIAL_COLLAPSE -> ALDA_COLLAPSE_TELEGRAPH_TICKS;
             case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS;
+            case GRANBAL_ROOT_CROSS -> GRANBAL_ROOT_CROSS_TELEGRAPH_TICKS;
+            case GRANBAL_SEED_BLOOM -> GRANBAL_BLOOM_TELEGRAPH_TICKS;
+            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS;
             case SUNBIRD_SOLAR_FLARE -> 20L;
             case SUNBIRD_SUNSTRIKE -> 25L;
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
@@ -1488,6 +1503,30 @@ public final class BossMechanicService {
                 renderAldaCollapseTelegraph(pending.anchor());
                 animateAldaCollapseDisplays(pending);
             }
+            case GRANBAL_ROOT_CROSS -> renderCross(
+                pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
+                GRANBAL_ROOT_CROSS_HALF_WIDTH, SharedParticleDefinitions.MOB_GRANBAL_ROOT
+            );
+            case GRANBAL_SEED_BLOOM -> {
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_ROOT, 28
+                );
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 48
+                );
+            }
+            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> {
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 28
+                );
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_ROOT, 48
+                );
+            }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
             );
@@ -1572,6 +1611,28 @@ public final class BossMechanicService {
                 boss, pending.anchor(), ALDA_COLLAPSE_INNER_RADIUS, ALDA_COLLAPSE_OUTER_RADIUS,
                 AttackType.MELEE, DamageElement.NONE, ALDA_COLLAPSE_DAMAGE_RATIO,
                 ALDA_COLLAPSE_PUSH_STRENGTH
+            );
+            case GRANBAL_ROOT_CROSS -> damageCross(
+                boss, pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
+                GRANBAL_ROOT_CROSS_HALF_WIDTH, AttackType.MELEE, DamageElement.NONE,
+                GRANBAL_ROOT_CROSS_DAMAGE_RATIO, GRANBAL_ROOT_CROSS_PUSH_STRENGTH
+            );
+            case GRANBAL_SEED_BLOOM -> {
+                damageCircle(
+                    boss, pending.anchor(), 0.0D, GRANBAL_BLOOM_INNER_RADIUS,
+                    AttackType.MAGIC, DamageElement.NONE, GRANBAL_BLOOM_INNER_DAMAGE_RATIO, 0.35D
+                );
+                deferPending(
+                    boss,
+                    BossMechanicProfile.Mechanic.GRANBAL_SEED_BLOOM_FOLLOW_UP,
+                    pending.anchor(),
+                    pending.direction(),
+                    GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS
+                );
+            }
+            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> damageCircle(
+                boss, pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS, GRANBAL_BLOOM_OUTER_RADIUS,
+                AttackType.MAGIC, DamageElement.NONE, GRANBAL_BLOOM_OUTER_DAMAGE_RATIO, 0.55D
             );
             case SUNBIRD_SOLAR_FLARE -> damageCircle(
                 boss, pending.anchor(), 0.0D, SUNBIRD_FLARE_RADIUS,
@@ -2302,6 +2363,24 @@ public final class BossMechanicService {
                 renderCircle(
                     pending.anchor(), ALDA_COLLAPSE_OUTER_RADIUS,
                     SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 44
+                );
+            }
+            case GRANBAL_ROOT_CROSS -> renderCross(
+                pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
+                GRANBAL_ROOT_CROSS_HALF_WIDTH, SharedParticleDefinitions.MOB_GRANBAL_BLOOM
+            );
+            case GRANBAL_SEED_BLOOM -> renderCircle(
+                pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
+                SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 32
+            );
+            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> {
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 28
+                );
+                renderCircle(
+                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
+                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 52
                 );
             }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(

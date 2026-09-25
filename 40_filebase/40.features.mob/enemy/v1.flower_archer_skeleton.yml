@@ -1,0 +1,66 @@
+# design:
+#   motif: "自然 / 花をまとう骸骨の射手"
+#   progression: 20
+schemaVersion: 1
+id: flower_archer_skeleton
+type: MOB
+category: ENEMY
+name: "&d射手花スケルトン"
+level: 20
+entityType: SKELETON
+icon: FLOWERING_AZALEA
+lore:
+  - "&7古木に咲く花をまとった骸骨の射手。"
+  - "&7花びらに隠れながら、離れた相手へ矢を放つ。"
+tags:
+  - midgard
+  - forest
+  - undead
+  - skeleton
+  - ranged
+equipment:
+  mainHand: BOW
+  helmet: FLOWERING_AZALEA
+baseStats:
+  - status: MAX_HEALTH
+    value: 8000
+  - status: ATTACK
+    value: 900
+  - status: RANGED_ATTACK
+    value: 204
+  - status: DEXTERITY
+    value: 5
+  - status: DEFENSE
+    value: 1394
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 98
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.85
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 26
+    deaggroRange: 34
+    leashRange: 38
+  combat:
+    style: RANGED
+    preferredRange: 12
+    skills:
+      - id: mob_skeleton_bow_shot
+        activationRange: 17
+        cooldownTicks: 44
+        castTimeTicks: 14
+        params:
+          damageRatio: 0.78
+          projectileSpeed: 1.20
+          projectileHitRadius: 0.20
+drops:
+  exp: 260

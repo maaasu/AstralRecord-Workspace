@@ -1,0 +1,123 @@
+# design:
+#   motif: "自然 / 花咲く古木と苔の遺跡"
+#   progression: 20
+schemaVersion: 1
+id: flowering_ancient_tree_ruins
+displayName: "花咲く古木の遺跡"
+recommendedLevel: 20
+entry:
+  worldRef: world:midgard_greenfields
+  x: -1035.7
+  y: 118.6
+  z: 1588.8
+  yaw: -12.4
+  pitch: 27.5
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 900
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 15
+    max: 27
+  bossRoomSize:
+    min: 19
+    max: 27
+  roomHeight: 10
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 2
+  roomTypes:
+    - type: STANDARD
+      weight: 3
+    - type: SUPPORT_HALL
+      weight: 3
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  floor:
+    - material: MOSS_BLOCK
+      weight: 3
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+    - material: ROOTED_DIRT
+      weight: 1
+  wall:
+    - material: MOSSY_STONE_BRICKS
+      weight: 3
+    - material: STONE_BRICKS
+      weight: 2
+    - material: TUFF_BRICKS
+      weight: 1
+  ceiling:
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+    - material: ROOTED_DIRT
+      weight: 2
+    - material: MOSS_BLOCK
+      weight: 1
+  corridor:
+    - material: MOSSY_COBBLESTONE
+      weight: 3
+    - material: ROOTED_DIRT
+      weight: 1
+  gateMaterial: DARK_OAK_FENCE
+  lightMaterial: SHROOMLIGHT
+  pillar:
+    enabled: true
+    chance: 0.40
+    material: STRIPPED_DARK_OAK_LOG
+    stairMaterial: MOSSY_COBBLESTONE_STAIRS
+  decorations:
+    supportMaterial: MANGROVE_LOG
+    beamMaterial: STRIPPED_MANGROVE_LOG
+    rubble:
+      - material: MOSS_BLOCK
+        weight: 3
+      - material: ROOTED_DIRT
+        weight: 2
+      - material: COARSE_DIRT
+        weight: 1
+    accent:
+      - material: AMETHYST_BLOCK
+        weight: 3
+      - material: BUDDING_AMETHYST
+        weight: 1
+      - material: CALCITE
+        weight: 1
+encounter:
+  normalMobPool:
+    - mobId: mob:moss_shelled_beast
+      level: 20
+      weight: 3
+    - mobId: mob:flower_archer_skeleton
+      level: 20
+      weight: 3
+    - mobId: mob:vine_spider
+      level: 20
+      weight: 4
+  mobsPerRoom:
+    min: 5
+    max: 7
+  firstCombatRoomMaxMobLevel: 20
+  bossMobId: mob:great_tree_guardian_granbal
+  bossMobLevel: 20

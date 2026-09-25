@@ -10,6 +10,7 @@ Dungeon は、入場条件、道中、節目、boss、報酬、退出条件を�
 - 道中と boss に、事前準備した装備・消耗品・skill を確認する役割を持たせます。
 - dungeon 外の進行必須品を、極端な低確率報酬だけに依存させません。
 - 個別 dungeon のテーマや部屋構成は個別定義で扱います。
+- `alda_origin_ruins` 以降の dungeon は、生成範囲144×144 block、10〜12部屋のアルダ始まりの遺跡を標準的な広さの基準とします。テーマや攻略意図で変える場合も、この規模との差を個別定義で説明できる範囲に留めます。
 - 個別 dungeon の `recommendedLevel` はプレイヤー向け攻略目安として定義し、受付地点の TextDisplay へ表示します。設計メタデータの `progression` や Mob の実レベルを代用しません。
 - `generation.roomTypes` は `STANDARD` / `SUPPORT_HALL` / `COLLAPSED` / `ORE_CHAMBER` を正の相対weightで指定します。省略時は `STANDARD` だけを使用します。
 - `theme.lightMaterial` と `theme.decorations` で照明、木製support／beam、rubble、ore／accentを汎用設定します。中央導線、gate、player／Mob spawnを塞がないことをPluginが保証します。

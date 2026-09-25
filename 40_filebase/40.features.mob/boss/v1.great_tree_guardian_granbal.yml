@@ -1,0 +1,60 @@
+# design:
+#   motif: "自然 / 花咲く古木を守る樹の巨人"
+#   progression: 20
+schemaVersion: 1
+id: great_tree_guardian_granbal
+type: MOB
+category: BOSS
+name: "&2&l大樹の守り手グランバル"
+title: "&d-- 花咲く古木の守護者 --"
+level: 20
+entityType: IRON_GOLEM
+variant:
+  age: ADULT
+  scale: 1.65
+icon: MOSS_BLOCK
+nameVisible: true
+lore:
+  - "&7花咲く古木とともに生き、根を操って侵入者を退ける巨人。"
+  - "&7十字に走る根と、内外へ続けて咲く花を見極める必要がある。"
+tags:
+  - midgard
+  - forest
+  - boss
+  - golem
+  - melee
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 64000
+  - status: ATTACK
+    value: 1391
+  - status: DEFENSE
+    value: 1603
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+shield:
+  enabled: true
+  max: 80
+ai:
+  idle:
+    behavior: STATIONARY
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 40
+    deaggroRange: 56
+    leashRange: 64
+  combat:
+    style: MELEE
+    preferredRange: 3
+drops:
+  exp: 6000

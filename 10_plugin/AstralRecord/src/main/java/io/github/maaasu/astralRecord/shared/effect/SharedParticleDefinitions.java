@@ -342,6 +342,28 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(170, 105, 80), 1.35F)
         );
+    public static final SharedParticleDefinition MOB_GRANBAL_ROOT =
+        new SharedParticleDefinition(
+            "mob_granbal_root",
+            Particle.DUST,
+            2,
+            0.04D,
+            0.06D,
+            0.04D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 145, 72), 1.25F)
+        );
+    public static final SharedParticleDefinition MOB_GRANBAL_BLOOM =
+        new SharedParticleDefinition(
+            "mob_granbal_bloom",
+            Particle.DUST,
+            2,
+            0.04D,
+            0.08D,
+            0.04D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(210, 118, 220), 1.20F)
+        );
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",

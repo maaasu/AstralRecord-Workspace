@@ -1,0 +1,62 @@
+# design:
+#   motif: "自然 / ツタと糸を広げるクモ"
+#   progression: 20
+schemaVersion: 1
+id: vine_spider
+type: MOB
+category: ENEMY
+name: "&aツタクモ"
+level: 20
+entityType: SPIDER
+variant:
+  age: ADULT
+  scale: 1.15
+icon: VINE
+lore:
+  - "&7古木のツタに身を隠し、三方向へ糸を広げるクモ。"
+  - "&7近距離では複数の糸に巻き込まれやすい。"
+tags:
+  - midgard
+  - forest
+  - beast
+  - spider
+  - ranged
+baseStats:
+  - status: MAX_HEALTH
+    value: 8000
+  - status: RANGED_ATTACK
+    value: 1159
+  - status: DEFENSE
+    value: 1394
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.95
+  targeting:
+    strategy: NEAREST
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 8
+    skills:
+      - id: mob_vine_spider_fan_web
+        activationRange: 10
+        cooldownTicks: 70
+        castTimeTicks: 16
+        params:
+          damageRatio: 0.22
+          spreadDegrees: 18.0
+          weaknessChance: 18.0
+drops:
+  exp: 260

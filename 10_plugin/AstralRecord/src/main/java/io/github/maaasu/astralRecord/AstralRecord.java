@@ -143,6 +143,7 @@ import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonAr
 import io.github.maaasu.astralRecord.feature.mob.skill.savannawitch.SavannaWitchEmberBoltMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusGateSlamSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusRuneBoltSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.vinespider.VineSpiderFanWebMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobSkillService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
@@ -1740,6 +1741,7 @@ public final class AstralRecord extends JavaPlugin {
         var mobSkillRegistry = new MobSkillRegistry();
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
         mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
+        mobSkillRegistry.register(new VineSpiderFanWebMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new MossShellShellBashMobSkillExecutor(damageService));
         clayGuardLeapMobSkillExecutor = new ClayGuardLeapMobSkillExecutor(
             mobService, damageService, particleDisplayService

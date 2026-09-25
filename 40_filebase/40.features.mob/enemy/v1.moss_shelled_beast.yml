@@ -1,0 +1,61 @@
+# design:
+#   motif: "自然 / 苔むした甲羅獣"
+#   progression: 20
+schemaVersion: 1
+id: moss_shelled_beast
+type: MOB
+category: ENEMY
+name: "&2苔の甲羅獣"
+level: 20
+entityType: TURTLE
+variant:
+  age: ADULT
+  scale: 1.35
+icon: TURTLE_HELMET
+lore:
+  - "&7古木の根元で苔をまとい、重い甲羅で身を守る獣。"
+  - "&7ゆっくり近づき、甲羅をぶつけて攻撃する。"
+tags:
+  - midgard
+  - forest
+  - beast
+  - melee
+  - moss
+baseStats:
+  - status: MAX_HEALTH
+    value: 12000
+  - status: ATTACK
+    value: 927
+  - status: DEFENSE
+    value: 1743
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 82
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 38
+    skills:
+      - id: mob_moss_shell_shell_bash
+        activationRange: 2
+        cooldownTicks: 110
+        castTimeTicks: 10
+drops:
+  exp: 240
