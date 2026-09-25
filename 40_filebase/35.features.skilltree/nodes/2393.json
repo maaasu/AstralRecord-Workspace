@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
-  "nodeId": "2392",
-  "name": "&dバインドサークル",
-  "icon": "NETHER_WART_BLOCK",
+  "nodeId": "2393",
+  "name": "&bクリアサークル",
+  "icon": "WILDFLOWERS",
   "tags": [
     "condition"
   ],
@@ -12,7 +12,7 @@
   "effects": [
     {
       "type": "skill",
-      "skillId": "archmage_bind_circle"
+      "skillId": "archmage_clear_circle"
     }
   ],
   "unlockCondition": {

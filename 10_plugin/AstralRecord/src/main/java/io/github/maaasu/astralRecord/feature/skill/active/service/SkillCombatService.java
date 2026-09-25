@@ -19,9 +19,13 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -81,6 +85,47 @@ public final class SkillCombatService {
      */
     public void setSkillHitListener(@Nullable SkillHitListener skillHitListener) {
         this.skillHitListener = skillHitListener;
+    }
+
+    /**
+     * 対象プレイヤーの状態異常、デバフ、有害ポーション効果と炎上を解除します。
+     * 解除対象がなければ変更しません。
+     *
+     * @param target 解除対象のプレイヤー
+     * @return 解除した効果の数。0なら解除対象なし
+     */
+    public int clearNegativeEffects(@NotNull AstPlayer target) {
+        AstEntity entity = AstEntity.player(target);
+        Player bukkit = target.getBukkit();
+        int conditionCount = conditionService.getActiveConditions(entity).size();
+        boolean slowed = conditionService.hasTemporaryMovementSpeedReduction(entity);
+        List<String> debuffIds = statusService.getActiveBuffs(target).stream()
+                .map(ActiveBuff::getType)
+                .filter(type -> type.isDebuff())
+                .map(type -> type.getId())
+                .distinct()
+                .toList();
+        List<PotionEffectType> harmfulPotions = bukkit.getActivePotionEffects().stream()
+                .map(effect -> effect.getType())
+                .filter(type -> type.getCategory() == PotionEffectTypeCategory.HARMFUL)
+                .toList();
+        boolean burning = bukkit.getFireTicks() > 0;
+        int removed = conditionCount + debuffIds.size() + harmfulPotions.size()
+                + (burning ? 1 : 0) + (slowed ? 1 : 0);
+        if (removed == 0) {
+            return 0;
+        }
+        conditionService.clearAll(entity);
+        for (String debuffId : debuffIds) {
+            statusService.removeBuff(target, debuffId);
+        }
+        for (PotionEffectType potion : harmfulPotions) {
+            bukkit.removePotionEffect(potion);
+        }
+        if (burning) {
+            bukkit.setFireTicks(0);
+        }
+        return removed;
     }
 
     /**

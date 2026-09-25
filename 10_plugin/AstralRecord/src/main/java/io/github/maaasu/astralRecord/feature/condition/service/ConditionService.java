@@ -136,10 +136,19 @@ public final class ConditionService {
     /** 対象の全状態異常を解除します。 */
     public int clearAll(@NotNull AstEntity target) {
         Map<ConditionType, ActiveCondition> removed = activeByTarget.remove(target.id());
-        temporaryMovementSpeedReductions.remove(target.id());
+        TemporaryMovementSpeedReduction speedReduction = temporaryMovementSpeedReductions.remove(target.id());
         displayService.clearAll(target);
         refreshConditionDependentStatus(target);
-        return removed == null ? 0 : removed.size();
+        return (removed == null ? 0 : removed.size()) + (speedReduction == null ? 0 : 1);
+    }
+
+    /**
+     * 対象に期限内の一時移動速度低下があるか返します。
+     * @param target 判定対象
+     * @return 期限内の低下がある場合 true
+     */
+    public boolean hasTemporaryMovementSpeedReduction(@NotNull AstEntity target) {
+        return temporaryMovementSpeedReduction(target) != null;
     }
 
     /** 対象の有効な状態異常一覧を返します。 */
