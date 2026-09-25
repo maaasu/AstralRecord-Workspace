@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -289,15 +290,34 @@ public class BuffService {
                     continue;
                 }
 
-                if (modifier.getType() == BuffModifierType.SCALAR) {
-                    scalar += modifier.getValue();
-                } else {
-                    flat += modifier.getValue();
+                switch (modifier.getType()) {
+                    case FLAT -> flat += modifier.getValue();
+                    case SCALAR -> scalar += modifier.getValue();
+                    case FINAL_SCALAR -> { }
                 }
             }
         }
 
         return flat + (baseValue * scalar);
+    }
+
+    /**
+     * 他のバフと派生ステータスを合成した後に掛ける最終倍率を返します。
+     * @param player 対象プレイヤー
+     * @return ステータス別 FINAL_SCALAR 係数の積。指定のないステータスは含まない
+     */
+    public @NotNull Map<StatusType, Double> getFinalScalarFactors(@NotNull AstPlayer player) {
+        purgeExpired(player);
+        Map<StatusType, Double> factors = new EnumMap<>(StatusType.class);
+        for (ActiveBuff buff : player.getActiveBuffs()) {
+            for (BuffModifier modifier : buff.getType().getModifiers()) {
+                if (modifier.getType() == BuffModifierType.FINAL_SCALAR) {
+                    factors.merge(modifier.getStatus(), Math.max(0.0D, 1.0D + modifier.getValue()),
+                            (previous, current) -> previous * current);
+                }
+            }
+        }
+        return factors;
     }
 
     /**

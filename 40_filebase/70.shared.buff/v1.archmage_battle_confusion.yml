@@ -1,0 +1,17 @@
+# design:
+#   motif: "復活直後 / 戦意の混乱"
+#   progression: 2
+schemaVersion: 1
+id: archmage_battle_confusion
+type: BUFF
+name: "&6戦意の混乱"
+icon: TOTEM_OF_UNDYING
+lore:
+  - "&7最終ダメージ倍率、防御力、近接防御力、魔法防御力が100%低下する。"
+durationTicks: 200
+isDebuff: true
+modifiers:
+  - { status: FINAL_DAMAGE_MULTIPLIER, type: FINAL_SCALAR, value: -1.0 }
+  - { status: DEFENSE, type: FINAL_SCALAR, value: -1.0 }
+  - { status: MELEE_DEFENSE, type: FINAL_SCALAR, value: -1.0 }
+  - { status: MAGIC_DEFENSE, type: FINAL_SCALAR, value: -1.0 }

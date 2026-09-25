@@ -3240,26 +3240,61 @@ public final class DungeonService {
             if (started) registerDungeonDeath(session, playerId);
             return true;
         }
-        session.deathCount++;
-        session.deathsByPlayer.merge(playerId, 1, Integer::sum);
         boolean started = playerDeathService.startDeath(
                 astPlayer,
                 deathLocation,
                 session.loaded.definition().challenge().reviveDelaySeconds() * 1_000L,
                 false,
-                () -> reviveParticipant(session.id, playerId)
+                () -> finishParticipantDeath(session.id, playerId)
         );
         if (!started) return true;
+        session.deathCount++;
+        session.deathsByPlayer.merge(playerId, 1, Integer::sum);
+        session.pendingCountedDeaths.add(playerId);
         registerDungeonDeath(session, playerId);
         int limit = session.loaded.definition().challenge().deathLimit();
-        if (ChallengeDeathPolicy.isExceeded(session.deathCount, limit)) {
-            message(session.participants, PlayerMsgId.P_7027, session.deathCount, limit);
-            completeSession(session, EndReason.DEATH_LIMIT, false);
-        } else {
-            messageService.send(astPlayer, PlayerMsgId.P_7026,
-                    session.loaded.definition().challenge().reviveDelaySeconds(), session.deathCount, limit);
+        messageService.send(astPlayer, PlayerMsgId.P_7026,
+                session.loaded.definition().challenge().reviveDelaySeconds(), session.deathCount, limit);
+        return true;
+    }
+
+    /**
+     * 魔法陣の復活で、現セッションに属する今回の死亡回数と復帰待ち記録を取り消します。
+     * @param playerId 復活した参加者
+     * @return 対象セッションの復帰待ち記録を取り消した場合は true
+     */
+    public boolean waivePendingDeathForRevival(@NotNull UUID playerId) {
+        UUID sessionId = dungeonDeathSessionByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || !session.dungeonDeathParticipants.remove(playerId)) {
+            return false;
+        }
+        dungeonDeathSessionByParticipant.remove(playerId, session.id);
+        if (session.pendingCountedDeaths.remove(playerId)) {
+            session.deathCount--;
+            session.deathsByPlayer.computeIfPresent(playerId,
+                    (ignored, count) -> count <= 1 ? null : count - 1);
         }
         return true;
+    }
+
+    /**
+     * 通常復帰で死亡を確定し、確定済みの回数が上限を超えた場合だけセッションを終了します。
+     * @param sessionId 死亡を受けたセッション
+     * @param playerId 復帰対象の参加者
+     */
+    private void finishParticipantDeath(@NotNull UUID sessionId, @NotNull UUID playerId) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || !session.pendingCountedDeaths.remove(playerId) || session.ending) {
+            return;
+        }
+        int limit = session.loaded.definition().challenge().deathLimit();
+        if (ChallengeDeathPolicy.isExceeded(session.deathCount - session.pendingCountedDeaths.size(), limit)) {
+            message(session.participants, PlayerMsgId.P_7027, session.deathCount, limit);
+            completeSession(session, EndReason.DEATH_LIMIT, false);
+            return;
+        }
+        reviveParticipant(sessionId, playerId);
     }
 
     /**
@@ -4907,6 +4942,7 @@ public final class DungeonService {
         private boolean emergencyTeleportInProgress;
         private final Map<UUID, Integer> deathsByPlayer = new HashMap<>();
         private final Set<UUID> dungeonDeathParticipants = new LinkedHashSet<>();
+        private final Set<UUID> pendingCountedDeaths = new LinkedHashSet<>();
         private final Map<UUID, List<DungeonRewardEntry>> rewardsByPlayer = new HashMap<>();
         private int deathCount;
         private boolean combatStarted;

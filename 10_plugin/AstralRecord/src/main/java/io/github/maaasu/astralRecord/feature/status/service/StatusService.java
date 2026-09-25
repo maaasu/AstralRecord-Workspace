@@ -1092,8 +1092,44 @@ public class StatusService {
             ));
         }
         applyPrimaryAttributeEffects(values);
+        applyFinalBuffScalars(player, values);
 
         return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, 0.0D, System.currentTimeMillis(), LocalDateTime.now());
+    }
+
+    /**
+     * 基本能力と全派生値の計算後に、バフの最終倍率をステータス値へ反映します。
+     * @param player 補正対象のプレイヤー
+     * @param values 派生値まで計算したステータス一覧
+     */
+    private void applyFinalBuffScalars(@NotNull AstPlayer player, @NotNull Map<StatusType, StatusValue> values) {
+        applyFinalBuffScalars(values, buffService.getFinalScalarFactors(player));
+    }
+
+    /**
+     * 派生値を含む計算済みステータスへ、ステータス別の最終倍率を掛けます。
+     * @param values 計算済みステータス一覧
+     * @param factors ステータス別の最終倍率
+     */
+    static void applyFinalBuffScalars(
+            @NotNull Map<StatusType, StatusValue> values,
+            @NotNull Map<StatusType, Double> factors
+    ) {
+        for (Map.Entry<StatusType, Double> factorEntry : factors.entrySet()) {
+            double factor = factorEntry.getValue();
+            if (factor == 1.0D) {
+                continue;
+            }
+            StatusValue value = values.get(factorEntry.getKey());
+            if (value == null) {
+                continue;
+            }
+            values.put(factorEntry.getKey(), new StatusValue(
+                    value.getBaseMinValue(), value.getBaseMaxValue(),
+                    value.getMinValue() * factor - value.getBaseMinValue(),
+                    value.getMaxValue() * factor - value.getBaseMaxValue()
+            ));
+        }
     }
 
     /**

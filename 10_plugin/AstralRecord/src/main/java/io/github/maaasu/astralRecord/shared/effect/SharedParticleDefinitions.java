@@ -63,6 +63,19 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_archmage_clear_circle_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 190, 85), 0.8F));
 
+    public static final SharedParticleDefinition SKILL_REBORN_PROTECT_BRIGHT =
+        new SharedParticleDefinition("skill_reborn_protect_bright", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 240, 166), 1.05F));
+    public static final SharedParticleDefinition SKILL_REBORN_PROTECT_GOLD =
+        new SharedParticleDefinition("skill_reborn_protect_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 195, 49), 1.05F));
+    public static final SharedParticleDefinition SKILL_REBORN_PROTECT_AMBER =
+        new SharedParticleDefinition("skill_reborn_protect_amber", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(218, 141, 26), 0.9F));
+    public static final SharedParticleDefinition SKILL_REBORN_PROTECT_LIGHT =
+        new SharedParticleDefinition("skill_reborn_protect_light", Particle.END_ROD, 18,
+            0.55D, 0.8D, 0.55D, 0.04D);
+
     public static final SharedParticleDefinition SKILL_ARCHMAGE_PHOENIX_GOLD =
         new SharedParticleDefinition("skill_archmage_phoenix_gold", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 205, 48), 1.8F));

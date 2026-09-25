@@ -29,6 +29,7 @@ public final class BossChallengeInstance {
     private final long createdAtMs;
     private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingDeaths = new LinkedHashSet<>();
     private volatile List<UUID> participantIds = List.of();
     private Map<UUID, ActivityPlayerSnapshot> participantHistory = Map.of();
     private boolean participantsConfirmed;
@@ -254,7 +255,30 @@ public final class BossChallengeInstance {
      */
     public int recordDeath(@NotNull UUID playerId) {
         deathsByPlayerId.merge(playerId, 1, Integer::sum);
+        pendingDeaths.add(playerId);
         return ++deathCount;
+    }
+
+    /**
+     * 復帰待ちの死亡を確定または無消費の蘇生として取り消します。
+     * @param playerId 復帰対象の参加者
+     * @param waived 蘇生により死亡回数を取り消す場合は true
+     * @return 対象の復帰待ち死亡を処理した場合は true
+     */
+    public boolean resolvePendingDeath(@NotNull UUID playerId, boolean waived) {
+        if (!pendingDeaths.remove(playerId)) {
+            return false;
+        }
+        if (waived) {
+            deathCount--;
+            deathsByPlayerId.computeIfPresent(playerId, (ignored, count) -> count <= 1 ? null : count - 1);
+        }
+        return true;
+    }
+
+    /** @return 蘇生可能な死亡を除いた確定済み共有死亡回数 */
+    public int confirmedDeathCount() {
+        return deathCount - pendingDeaths.size();
     }
 
     public int deathCount() {

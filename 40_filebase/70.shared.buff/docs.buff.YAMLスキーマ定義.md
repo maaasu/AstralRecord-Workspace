@@ -23,8 +23,8 @@ Buff（一定時間付与される効果）のスキーマ定義。
 | `stackGroup`         | String       | ×  | Null      | 同じ値のバフは同時に保持せず、後から付与したバフを残す。未指定時は `id` 単位で重複判定する |
 | `modifiers[]`        | List         | ○  | -         | 付与するステータス補正のリスト（後述）                                              |
 | `modifiers[].status` | String       | ○  | -         | 対象ステータス（`StatusType`。例: `ATTACK`）                                |
-| `modifiers[].type`   | String       | ○  | -         | 補正タイプ（`ModifierType`。`FLAT` / `SCALAR`）                          |
-| `modifiers[].value`  | Double       | ○  | -         | 補正値（Double）。`FLAT` は加算、`SCALAR` は乗算係数（例: `0.2` = +20%）           |
+| `modifiers[].type`   | String       | ○  | -         | 補正タイプ（`ModifierType`。`FLAT` / `SCALAR` / `FINAL_SCALAR`）          |
+| `modifiers[].value`  | Double       | ○  | -         | 補正値（Double）。`FLAT` は加算、`SCALAR` は基準値への割合、`FINAL_SCALAR` は他のバフ補正後の倍率 |
 
 ### 参照（ref）
 他DBからbuffを参照する場合は `buff:` prefix を使用します（aliases: `bf`）。
@@ -36,7 +36,10 @@ Buff（一定時間付与される効果）のスキーマ定義。
 ### modifiers[].type（ModifierType）
 
 - `FLAT` : 定数加算
-- `SCALAR`: 乗算（ベース値に対して）。計算式: **最終値 = (base + flatTotal) * (1 + scalarTotal)**
+- `SCALAR`: 基準値に対する割合補正。同じステータスの `SCALAR` は加算してから適用する。
+- `FINAL_SCALAR`: 他のバフ補正と基本能力からの派生値を計算した後に乗算する。`-1.0` は他の倍率バフがあっても最終値を0にする。複数ある場合は係数 `max(0, 1 + value)` をそれぞれ乗算する。
+
+計算式: **最終値 = (base + flatTotal + base × scalarTotal + derivedBonus) × finalFactor**。ここで `base` はバフ適用前のステータス値、`derivedBonus` は基本能力からの派生値、`finalFactor` はすべての `FINAL_SCALAR` 係数の積とする。
 
 
 ## YAML 例

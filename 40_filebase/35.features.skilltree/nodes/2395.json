@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2395",
+  "name": "&6リボーンプロテクトサークル",
+  "icon": "TOTEM_OF_UNDYING",
+  "tags": ["health"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "archmage_reborn_protect_circle" }
+  ],
+  "unlockCondition": { "classId": "archmage" }
+}

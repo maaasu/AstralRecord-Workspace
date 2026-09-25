@@ -9,6 +9,9 @@ enum class BuffModifierType {
 
     /** 基準値に対する割合補正（例: 0.1 = +10%） */
     SCALAR,
+
+    /** 他のバフ補正を合成した後の値に乗算する補正（-1.0 = 100%低下） */
+    FINAL_SCALAR,
     ;
 
     companion object {

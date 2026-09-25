@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageHealCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageClearCircleExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageRebornProtectCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageAstralRayExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageBindCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
@@ -23,10 +24,13 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.Wizard
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalPrismExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalBallExecutor;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
+import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -50,6 +54,9 @@ public final class ActiveSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param paladinGuardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
+     * @param bossChallengeService ボスの死亡回数管理サービス
+     * @param dungeonService ダンジョンの死亡回数管理サービス
+     * @param invulnerabilityVisualService 復活後の無敵表示サービス
      * @param skillService 回復成立時のクールタイム解除サービス
      * @param bindCircleRuntimeService バインドサークル拘束状態
      * @param plugin 設置中の円の独立 task を登録するプラグイン
@@ -64,6 +71,9 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull PartyService partyService,
             @NotNull PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService,
             @NotNull PlayerDeathService playerDeathService,
+            @NotNull BossChallengeService bossChallengeService,
+            @NotNull DungeonService dungeonService,
+            @NotNull InvulnerabilityVisualService invulnerabilityVisualService,
             @NotNull SkillService skillService,
             @NotNull BindCircleRuntimeService bindCircleRuntimeService,
             @NotNull Plugin plugin
@@ -76,6 +86,8 @@ public final class ActiveSkillExecutorCatalog {
         executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
         executors.add(new ArchmageHealCircleExecutor(services, skillService));
         executors.add(new ArchmageClearCircleExecutor(services));
+        executors.add(new ArchmageRebornProtectCircleExecutor(services, playerDeathService,
+                bossChallengeService, dungeonService, invulnerabilityVisualService, statusService));
         executors.add(new ArchmageAstralRayExecutor(services));
         executors.add(new WizardMeteorExecutor(services));
         executors.add(new WizardEmulateSparkExecutor(services));

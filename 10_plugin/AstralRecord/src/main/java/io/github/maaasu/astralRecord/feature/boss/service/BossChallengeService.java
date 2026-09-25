@@ -625,30 +625,54 @@ public final class BossChallengeService {
             return true;
         }
 
-        int deathCount = challenge.recordDeath(playerId);
         boolean started = playerDeathService.startDeath(
                 astPlayer,
                 deathLocation,
                 challenge.config().reviveDelaySeconds() * 1_000L,
                 false,
-                () -> reviveParticipant(challenge.challengeId(), playerId)
+                () -> finishParticipantDeath(challenge.challengeId(), playerId)
         );
         if (!started) {
             return true;
         }
-        if (ChallengeDeathPolicy.isExceeded(deathCount, challenge.config().deathLimit())) {
-            notifyParticipants(challenge, PlayerMsgId.P_6525, deathCount, challenge.config().deathLimit());
-            endChallenge(challenge, BossChallengeEndReason.DEATH_LIMIT);
-        } else {
-            messageService.send(
-                    astPlayer,
-                    PlayerMsgId.P_6524,
-                    challenge.config().reviveDelaySeconds(),
-                    deathCount,
-                    challenge.config().deathLimit()
-            );
-        }
+        int deathCount = challenge.recordDeath(playerId);
+        messageService.send(
+                astPlayer,
+                PlayerMsgId.P_6524,
+                challenge.config().reviveDelaySeconds(),
+                deathCount,
+                challenge.config().deathLimit()
+        );
         return true;
+    }
+
+    /**
+     * 魔法陣で復活した参加者の今回の死亡回数を取り消します。
+     * @param playerId 復活が成立した参加者
+     * @return 進行中の挑戦で復帰待ちの死亡を取り消した場合は true
+     */
+    public boolean waivePendingDeathForRevival(@NotNull UUID playerId) {
+        BossChallengeInstance challenge = findInProgressChallengeByParticipant(playerId);
+        return challenge != null && challenge.resolvePendingDeath(playerId, true);
+    }
+
+    /**
+     * 通常の死亡復帰時に死亡回数を確定し、上限を超えた場合だけ挑戦を終了します。
+     * @param challengeId 死亡が発生した挑戦
+     * @param playerId 復帰対象の参加者
+     */
+    private void finishParticipantDeath(@NotNull UUID challengeId, @NotNull UUID playerId) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || !challenge.resolvePendingDeath(playerId, false)
+                || challenge.state() != BossChallengeState.IN_PROGRESS) {
+            return;
+        }
+        if (ChallengeDeathPolicy.isExceeded(challenge.confirmedDeathCount(), challenge.config().deathLimit())) {
+            notifyParticipants(challenge, PlayerMsgId.P_6525, challenge.deathCount(), challenge.config().deathLimit());
+            endChallenge(challenge, BossChallengeEndReason.DEATH_LIMIT);
+            return;
+        }
+        reviveParticipant(challengeId, playerId);
     }
 
     /**
