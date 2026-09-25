@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * スニーク入力をエアーシフト・壁張り付き・ドッジのfallback候補として提供します。
+ * スニーク入力を壁張り付き・空中スキル・ドッジのfallback候補として提供します。
  */
 public class PlayerSneakEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
@@ -72,15 +72,22 @@ public class PlayerSneakEventHandler extends AbstractEventHandler
         ));
     }
 
+    /**
+     * スニーク開始時は壁張り付きを先に試し、成立しなければ空中スキルとドッジ受付を処理します。
+     * スニーク解除時は壁張り付きの解除を優先し、壁張り付き中でなければドッジを試します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sneaking スニークを開始した場合は {@code true}
+     */
     private void handleSneak(@NotNull AstPlayer astPlayer, boolean sneaking) {
         if (sneaking) {
+            if (airActionService.tryStartWallCling(astPlayer)) {
+                return;
+            }
             if (mageBlinkSkillRuntimeService.tryTrigger(astPlayer)) {
                 return;
             }
             if (airShiftSkillRuntimeService.tryTrigger(astPlayer)) {
-                return;
-            }
-            if (airActionService.tryStartWallCling(astPlayer)) {
                 return;
             }
             dodgeService.beginSneakWindow(astPlayer);
