@@ -70,7 +70,7 @@ public sealed class DonationRepositoryTests
         await f.Repo.ReconcileAsync(default);
         Assert.Equal(2, await f.Game.PlayerMailDeliveries.CountAsync());
         var deliveredNotice = Assert.Single(await f.Repo.NotificationsAsync(f.User), x => x.Kind == "MailDelivered");
-        Assert.Equal("寄付へのお礼のメールが届きました。メール画面をご確認ください。", deliveredNotice.Message);
+        Assert.StartsWith("寄付へのお礼としてアストラルド(有償)1,000個のメールが届きました。", deliveredNotice.Message);
         var firstGrant = await f.Management.Set<DonationGrantEntity>().FirstAsync();
         firstGrant.DeliveredAtUtc = null; // ゲームDB commit後、ManagementDB ACK前に停止した場合。
         await f.Management.SaveChangesAsync();
@@ -118,7 +118,34 @@ public sealed class DonationRepositoryTests
         Assert.Equal(new[] { 500, 1000 }, amounts);
         var notices = (await f.Repo.NotificationsAsync(f.User)).Where(x => x.Kind == "MailDelivered").ToArray();
         Assert.Equal(2, notices.Length);
-        Assert.All(notices, x => Assert.Equal("寄付へのお礼のメールが届きました。メール画面をご確認ください。", x.Message));
+        Assert.Contains(notices, x => x.Message.StartsWith("寄付へのお礼としてアストラルド(有償)500個のメールが届きました。", StringComparison.Ordinal));
+        Assert.Contains(notices, x => x.Message == "寄付へのお礼のメールが届きました。メール画面をご確認ください。");
+    }
+
+    [Fact]
+    public async Task MailDelivered_FirstMailNoticeRemainsSingleWhenAccountIsCreatedLater()
+    {
+        await using var f = await Fixture.Create();
+        await f.AddAccount();
+        for (var i = 0; i < 2; i++)
+        {
+            var request = await f.Repo.CreateAsync(f.User, Request());
+            await f.Repo.TransitionAsync(request.Id, f.Admin, "review");
+            await f.Repo.TransitionAsync(request.Id, f.Admin, "approve");
+            await f.Repo.ReconcileAsync(default);
+        }
+        var before = (await f.Repo.NotificationsAsync(f.User)).Where(x => x.Kind == "MailDelivered").ToArray();
+        Assert.Equal(2, before.Length);
+        Assert.StartsWith("寄付へのお礼としてアストラルド(有償)500個のメールが届きました。", before[1].Message);
+
+        var newAccount = await f.AddAccount();
+        await f.Repo.ReconcileAsync(default);
+
+        Assert.Equal(3, await f.Game.PlayerMailDeliveries.CountAsync());
+        Assert.Contains(await f.Management.Set<DonationGrantEntity>().ToListAsync(),
+            x => x.AccountUuid == newAccount && x.ThroughAmount == 1000 && x.Amount == 1000);
+        var after = (await f.Repo.NotificationsAsync(f.User)).Where(x => x.Kind == "MailDelivered").ToArray();
+        Assert.Equal(before.Select(x => x.Id), after.Select(x => x.Id));
     }
 
     [Fact]

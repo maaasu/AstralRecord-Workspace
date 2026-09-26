@@ -173,12 +173,19 @@ public sealed class DonationRepository(ManagementDbContext management, AstralRec
                     var current = await Grants.SingleAsync(x => x.Id == grant.Id);
                     if (current.DeliveredAtUtc is null)
                     {
-                        // 同じ累計到達額のメールはアカウントごとに配信するが、本人への通知は最初の1件だけにする。
+                        // 同じ累計到達額のメールはアカウントごとに配信するが、本人への通知は最初の配信時点に1件だけ作る。
                         var firstDelivery = !await Grants.AnyAsync(x => x.UserUuid == grant.UserUuid
                             && x.ThroughAmount == current.ThroughAmount && x.DeliveredAtUtc != null);
                         current.DeliveredAtUtc = Now;
                         if (firstDelivery)
-                            Notify(grant.UserUuid, "MailDelivered", grant.Amount, "寄付へのお礼のメールが届きました。メール画面をご確認ください。");
+                        {
+                            var differentAmount = await Grants.AnyAsync(x => x.UserUuid == grant.UserUuid
+                                && x.ThroughAmount == current.ThroughAmount && x.Amount != grant.Amount);
+                            var message = differentAmount
+                                ? "寄付へのお礼のメールが届きました。メール画面をご確認ください。"
+                                : $"寄付へのお礼としてアストラルド(有償){grant.Amount:N0}個のメールが届きました。{grant.Message}";
+                            Notify(grant.UserUuid, "MailDelivered", grant.Amount, message);
+                        }
                     }
                     return true;
                 });
