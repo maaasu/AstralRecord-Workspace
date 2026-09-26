@@ -521,6 +521,49 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task MarketPriceQuote_ZeroSellValueWithoutHistoryHasTradableReferenceBand()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 0)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1, UnitPrice = 1,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal("LOW", quote.Confidence);
+        Assert.Equal(1, quote.AllowedMinUnitPrice);
+        Assert.Equal(1, quote.AllowedMaxUnitPrice);
+        Assert.Equal("ALLOW", quote.Judgement);
+    }
+
+    [Theory]
+    [InlineData(5, "MEDIUM")]
+    [InlineData(20, "HIGH")]
+    public async Task MarketPriceQuote_SellValueRiseDoesNotInvertReferenceBand(int sampleCount, string confidence)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        await AddPriceHistoryAsync(harness, "material", "market_material", sampleCount,
+            "material|market_material|STACK", 101);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 1_000)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1, UnitPrice = 1_001,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal(confidence, quote.Confidence);
+        Assert.Equal(101, quote.ReferenceUnitPrice);
+        Assert.Equal(1_001, quote.AllowedMinUnitPrice);
+        Assert.Equal(1_001, quote.AllowedMaxUnitPrice);
+        Assert.Equal("ALLOW", quote.Judgement);
+    }
+
+    [Fact]
     public async Task MarketPriceQuote_EvenHighValueHistoryDoesNotOverflowMedian()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

@@ -189,8 +189,11 @@ public class MarketPriceService(
         string confidence
     )
     {
+        // 参考帯を出品可能な単価に揃え、履歴や売値が 0 の場合も逆順にしない。
+        var minimumTradablePrice = sellPrice + 1L;
         if (prices.Count == 0 || confidence == "LOW")
-            return (sellPrice, Math.Max(sellPrice * 50L, suggestedPrice * 5L));
+            return (minimumTradablePrice,
+                Math.Max(minimumTradablePrice, Math.Max(sellPrice * 50L, suggestedPrice * 5L)));
 
         var median = Median(prices) ?? suggestedPrice;
         var p25 = Percentile(prices, 0.25m);
@@ -199,16 +202,14 @@ public class MarketPriceService(
 
         if (confidence == "HIGH")
         {
-            return (
-                Math.Max(sellPrice, (long)Math.Floor(Math.Max(median * 0.50m, p25 - 1.5m * iqr))),
-                (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 3.00m, p75 + 2.0m * iqr)))
-            );
+            var minimum = Math.Max(minimumTradablePrice, (long)Math.Floor(Math.Max(median * 0.50m, p25 - 1.5m * iqr)));
+            var maximum = (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 3.00m, p75 + 2.0m * iqr)));
+            return (minimum, Math.Max(minimum, maximum));
         }
 
-        return (
-            Math.Max(sellPrice, (long)Math.Floor(Math.Max(median * 0.40m, p25 - 2.0m * iqr))),
-            (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 4.00m, p75 + 3.0m * iqr)))
-        );
+        var mediumMinimum = Math.Max(minimumTradablePrice, (long)Math.Floor(Math.Max(median * 0.40m, p25 - 2.0m * iqr)));
+        var mediumMaximum = (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 4.00m, p75 + 3.0m * iqr)));
+        return (mediumMinimum, Math.Max(mediumMinimum, mediumMaximum));
     }
 
     private static string ResolveJudgement(long? unitPrice, long sellPrice)
