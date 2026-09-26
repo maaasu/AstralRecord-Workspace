@@ -34,6 +34,12 @@ public sealed class MarketRenderingTests
         Assert.Contains("128,500", html);
         Assert.Contains("現在の所持金", html);
         Assert.Contains("保存済み残高", html);
+        Assert.Equal(3, Regex.Matches(html, "class=\"market-recommended-price\"").Count);
+        Assert.Contains("出品価格（1個あたり）", html);
+        Assert.Equal(6, Regex.Matches(html, "おすすめ価格（出品時点の参考価格）").Count);
+        Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>11,000</strong>", html);
+        Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>700</strong>", html);
+        Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>データなし</strong>", html);
         var firstCard = html[html.IndexOf("<article", StringComparison.Ordinal)..];
         var detailsIndex = firstCard.IndexOf("<details", StringComparison.Ordinal);
         Assert.True(firstCard.IndexOf("出品者", StringComparison.Ordinal) < detailsIndex);
@@ -112,6 +118,8 @@ public sealed class MarketRenderingTests
             sellerAccountName = order == 0 ? "Luna" : order == 1 ? "Aster" : "Mizuki", sellerAccountSlotIndex = 1,
             itemCategory = equipment ? "EQUIPMENT" : "MATERIAL", itemId, quantity, remainingQuantity = quantity,
             unitPrice = price, totalPrice = price * quantity, currencyId = "gold", status = "ACTIVE",
+            referenceUnitPrice = order == 0 ? 11000L : (long?)null,
+            valuationSnapshotJson = order switch { 0 => "{\"SuggestedUnitPrice\":10000}", 1 => "{\"suggestedUnitPrice\":700}", _ => "invalid-json" },
             listedAt = DateTime.UtcNow.AddMinutes(-order * 30), expiresAt = DateTime.UtcNow.AddDays(2),
             instanceId = equipment ? Guid.NewGuid() : (Guid?)null, instanceType = equipment ? "EQUIPMENT" : null,
             equipmentInstance = equipment ? new {

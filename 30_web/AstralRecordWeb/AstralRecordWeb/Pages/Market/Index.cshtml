@@ -115,6 +115,7 @@
                             var equipment = entry.EquipmentInstance;
                             var isOwn = Model.IsOwnListing(listing);
                             var currency = IndexModel.CurrencyLabel(listing.CurrencyId);
+                            var recommendedPrice = entry.RecommendedUnitPrice;
                             <article class="ar-item-card market-card rarity-@((entry.Rarity ?? "common").ToLowerInvariant())">
                                 <div class="market-item-overview">
                                     <div class="ar-item-head">
@@ -149,7 +150,8 @@
                                     <p class="market-listing-time">出品 @DateTime.SpecifyKind(listing.ListedAt, DateTimeKind.Utc).AddHours(9).ToString("MM/dd HH:mm") <span>· 期限 @DateTime.SpecifyKind(listing.ExpiresAt, DateTimeKind.Utc).AddHours(9).ToString("MM/dd HH:mm")（日本時間）</span></p>
                                 </div>
                                 <div class="market-purchase-panel">
-                                    <div class="market-price"><span>1個あたり</span><p><strong>@listing.UnitPrice.ToString("N0")</strong> <em>@currency</em></p></div>
+                                    <div class="market-price"><span>出品価格（1個あたり）</span><p><strong>@listing.UnitPrice.ToString("N0")</strong> <em>@currency</em></p></div>
+                                    <p class="market-recommended-price"><span>おすすめ価格（出品時点の参考価格）</span><strong>@(recommendedPrice?.ToString("N0") ?? "データなし")</strong>@if (recommendedPrice.HasValue) { <small>@currency</small> }</p>
                                     <p class="market-stock">在庫 <strong>@listing.RemainingQuantity.ToString("N0")</strong> 個</p>
                                     @if (buyer is not null && !isOwn)
                                     {
@@ -176,7 +178,7 @@
                             <details class="market-details">
                                 <summary>性能・出品の詳細を見る</summary>
                                 <div class="market-detail-grid">
-                                    <section><h3>出品情報</h3><dl class="ar-item-data"><dt>アイテムID</dt><dd>@listing.ItemId</dd><dt>出品時の総額</dt><dd>@listing.TotalPrice.ToString("N0") @listing.CurrencyId</dd><dt>出品日時</dt><dd>@DateTime.SpecifyKind(listing.ListedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm")</dd><dt>期限</dt><dd>@DateTime.SpecifyKind(listing.ExpiresAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm")</dd><dt>相場参照</dt><dd>@(listing.ReferenceUnitPrice?.ToString("N0") ?? "—")</dd></dl></section>
+                                    <section><h3>出品情報</h3><dl class="ar-item-data"><dt>アイテムID</dt><dd>@listing.ItemId</dd><dt>出品時の総額</dt><dd>@listing.TotalPrice.ToString("N0") @listing.CurrencyId</dd><dt>出品日時</dt><dd>@DateTime.SpecifyKind(listing.ListedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm")</dd><dt>期限</dt><dd>@DateTime.SpecifyKind(listing.ExpiresAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm")</dd><dt>出品価格（1個あたり）</dt><dd>@listing.UnitPrice.ToString("N0") @currency</dd><dt>おすすめ価格（出品時点の参考価格）</dt><dd>@(recommendedPrice?.ToString("N0") ?? "データなし") @if (recommendedPrice.HasValue) { @currency }</dd></dl></section>
                                     <section><h3>基礎アイテム情報</h3><dl class="ar-item-data"><dt>レアリティ</dt><dd>@(entry.Rarity ?? "—")</dd><dt>必要レベル</dt><dd>@(entry.RequiredLevel?.ToString() ?? "—")</dd><dt>売却価格</dt><dd>@(entry.Item?.SaleValue.ToString("N0") ?? "—")</dd><dt>スタック</dt><dd>@(entry.Item?.MaxStack.ToString() ?? "—")</dd></dl>@if (entry.Item?.Equipment?.Stats.Count > 0) { <div class="ar-item-block"><h3>基礎性能の範囲</h3><ul>@foreach (var stat in entry.Item.Equipment.Stats) { <li><span>@stat.Status</span><strong>@Model.ItemStatText(stat)</strong><em>@stat.Type</em></li> }</ul></div> }</section>
                                 </div>
                                 @if (equipment is not null)

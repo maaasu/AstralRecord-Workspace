@@ -141,6 +141,10 @@
 .market-price p { margin: .1rem 0 0; color: #f1d49b; overflow-wrap: anywhere; }
 .market-price strong { font: 600 1.65rem 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; }
 .market-price em { font-size: .75rem; font-style: normal; }
+.market-recommended-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .35rem; margin: .45rem 0 .8rem; color: #aabdd0; font-size: .72rem; line-height: 1.5; }
+.market-recommended-price span { flex-basis: 100%; }
+.market-recommended-price strong { color: #d8e5ed; font-size: .88rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.market-recommended-price small { font-size: .7rem; }
 .market-stock { margin: .3rem 0 1rem; color: #aabdd0; font-size: .75rem; }
 .market-stock strong { color: #dbe8f2; font-weight: 500; }
 .market-browse .market-purchase-form { display: block; margin: 0; padding-top: .9rem; border-top: 1px solid #ffffff13; }

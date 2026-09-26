@@ -1,4 +1,4 @@
-using AstralRecordWeb.Models;
+using System.Text.Json;
 
 namespace AstralRecordWeb.Models;
 
@@ -58,6 +58,31 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
     public string? EquipmentSlot => Item?.Equipment?.Slot;
     public int? RequiredLevel => Item?.Equipment?.RequiredLevel;
     public MarketEquipmentInstanceResponse? EquipmentInstance => Listing.EquipmentInstance;
+    public long? RecommendedUnitPrice
+    {
+        get
+        {
+            if (Listing.ReferenceUnitPrice.HasValue)
+                return Listing.ReferenceUnitPrice;
+            if (string.IsNullOrWhiteSpace(Listing.ValuationSnapshotJson))
+                return null;
+
+            try
+            {
+                using var snapshot = JsonDocument.Parse(Listing.ValuationSnapshotJson);
+                return snapshot.RootElement.ValueKind == JsonValueKind.Object
+                    && (snapshot.RootElement.TryGetProperty("SuggestedUnitPrice", out var suggested)
+                        || snapshot.RootElement.TryGetProperty("suggestedUnitPrice", out suggested))
+                    && suggested.ValueKind == JsonValueKind.Number
+                    && suggested.TryGetInt64(out var price)
+                    ? price : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+    }
     public IReadOnlyDictionary<string, decimal> NumericAttributes { get; init; } = new Dictionary<string, decimal>();
 }
 
