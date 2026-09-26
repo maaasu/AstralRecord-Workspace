@@ -41,6 +41,8 @@ public sealed class SkillTreeServerRuntimeResponse
 {
     public required string ServerId { get; init; }
     public Guid ServerSessionId { get; init; }
+    /// <summary>同一session内で完了したPluginマスタ再読込のrevision。</summary>
+    public long PublicationRevision { get; init; }
     public required string DefinitionGenerationId { get; init; }
     public bool Ready { get; init; }
     public DateTime LastSeenUtc { get; init; }

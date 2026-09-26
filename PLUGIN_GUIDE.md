@@ -31,6 +31,7 @@
 - HTTP クライアント、APIキー、タイムアウト、TLS は `ApiRequestUtil` の共有設定を使い、Bukkit メインスレッドを待機させない。
 - 初回の health 応答は比較基準としてだけ記録し、再読込を開始しない。以後、`lastSeedRunStatus = SUCCEEDED`、`lastSeedRunId != null`、`lastSucceededAt != null` を満たす未適用の Seeder 実行だけを対象とする。`RUNNING`、`FAILED`、null ID、不完全な成功応答は再読込しない。
 - 再読込は `AstralRecord.reloadMasterData()` だけを入口とし、同じ Seeder 実行の成功済み再読込を重複させない。失敗した再読込は適用済みにせず、後続の定期監視で再試行できる状態を維持する。
+- 再読込revisionは全snapshotの公開後にactivation処理を試行し終えた時点で進める。個別activationの例外は既存どおり警告ログを記録して再読込処理を継続するため、revisionは全activation成功の保証ではない。
 - 再読込中に別の成功済み Seeder 実行を確認した場合は開始を保留する。実行中の再読込が完了した後に最新 health を再取得し、未適用であれば追走する。先行する手動再読込を待った場合も、その再読込が検知済み Seeder を含む保証がないため、完了後に再確認する。
 - API障害、タイムアウト、HTTPエラー、JSON解析失敗はログへ記録し、サーバー処理を停止せず次回監視を継続する。Plugin停止時は定期 task と処理中の health 要求を停止し、完了 callback から新しい処理を開始しない。
 - `/masterdata reload` の手動運用は自動監視とは独立して維持する。
@@ -143,4 +144,4 @@
 
 ## スキルツリー世代を含むmaster公開
 
-health監視からのauto reloadは継続する。スキルツリーのruntime登録はmaster公開完了後だけ行い、公開中は保留する。tree/class/参照skillの公開失敗は旧snapshotへ復元し、混在世代をWebへ配信しない。各serverの反映完了は個別runtimeで確認する。Seeder成功だけで全serverが更新済みとは判断しない。運用手順は`00_docs/20_API設計書/feature/20-skilltree/20_5.00-安全編集の導入と検証.md`を参照する。
+health監視からのauto reloadは継続する。スキルツリーのruntime登録はmaster公開完了後だけ行い、公開中は保留する。tree/class/参照skillの公開失敗は旧snapshotへ復元し、混在世代をWebへ配信しない。各serverの反映完了は個別runtimeで確認する。マスタ再読込処理の完了ごとに`publicationRevision`を進め、世代IDが同じ場合も新revisionをruntimeへ登録する。このrevisionは個別activationの成功までは保証しない。Seeder成功だけで全serverが更新済みとは判断しない。運用手順は`00_docs/20_API設計書/feature/20-skilltree/20_5.00-安全編集の導入と検証.md`を参照する。

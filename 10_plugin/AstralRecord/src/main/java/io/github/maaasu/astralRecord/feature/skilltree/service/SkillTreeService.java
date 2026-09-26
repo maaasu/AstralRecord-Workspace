@@ -357,7 +357,9 @@ public class SkillTreeService {
     private volatile String definitionGenerationId = "";
     private volatile String definitionCanonicalSnapshotJson = "";
     private volatile String registeredRuntimeGenerationId = "";
-    private long runtimePublicationRevision;
+    private volatile long registeredRuntimePublicationRevision;
+    /** 初回ロードを1とし、全マスタ再読込の成功後だけ増加します。 */
+    private long runtimePublicationRevision = 1L;
     private volatile boolean masterPublicationInProgress;
 
     public SkillTreeService(
@@ -551,7 +553,6 @@ public class SkillTreeService {
         rootNodeId = snapshot.rootNodeId();
         definitionGenerationId = nextDefinitionGenerationId;
         definitionCanonicalSnapshotJson = nextDefinitionGeneration.canonicalSnapshotJson();
-        runtimePublicationRevision++;
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
         if (visualizer != null) {
@@ -585,6 +586,19 @@ public class SkillTreeService {
 
     /** 一括公開または旧スナップショットへの復元が完了した後に保留を解除する。 */
     public synchronized void endMasterDataPublication() { masterPublicationInProgress = false; }
+
+    /**
+     * マスターデータ全体の再読込処理が完了したことをruntime登録revisionへ反映します。
+     *
+     * <p>snapshot差し替え時には呼ばず、全snapshotのpublication後にactivationを試行し終えてから呼び出します。
+     * activation例外は警告扱いであり、呼び出し元は再読込完了として処理を継続します。</p>
+     */
+    public synchronized void recordCompletedMasterDataReload() {
+        if (definitionGenerationId.isBlank()) {
+            throw new IllegalStateException("Skill tree definitions are not ready for runtime publication");
+        }
+        runtimePublicationRevision++;
+    }
 
     /** 定義の公開成功後、不一致の旧状態を保持して再参加まで操作を止める。メインスレッド専用。 */
     public void finishMasterDataPublication() {
@@ -807,7 +821,8 @@ public class SkillTreeService {
         }
         String serverId = ConfigProperties.getInstance().getApiServerId();
         try {
-            if (generation.equals(registeredRuntimeGenerationId)) {
+            if (generation.equals(registeredRuntimeGenerationId)
+                    && publicationRevision == registeredRuntimePublicationRevision) {
                 runtimeRepository.heartbeat(serverId, runtimeServerSessionId, generation);
             } else {
                 runtimeRepository.register(
@@ -821,6 +836,7 @@ public class SkillTreeService {
                         canonicalSnapshotJson
                 );
                 registeredRuntimeGenerationId = generation;
+                registeredRuntimePublicationRevision = publicationRevision;
             }
         } catch (RuntimeException ignored) {
             // runtime APIの到達不能時はreadyを主張せず、次周期の再登録までWeb即時適用を停止させる。

@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 01 | `01-deploy-debug.bat` | [Dev更新](deploy-debug/README.md)：配置→手動起動待ち→開発アカウント世代移行まで一括実行 |
 | 02 | `02-deploy-debug-plugin-only.bat` | 01のPlugin限定ショートカット（従来どおりテスト省略） |
-| 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動待ち→移行） |
+| 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動または稼働中再読込待ち→移行） |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
 | 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
 | 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
@@ -153,7 +153,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tes
 
 共有タグカタログを変更した後は`08-generate-tag-types.bat`を実行します。生成漏れと全filebaseの未定義・用途違いタグだけを検査する場合は`08-generate-tag-types.bat -Check`を使用できます。
 
-日常の入口は01（Dev更新）、16（本番メンテナンス）、05（エディタ）です。02/03は01へのショートカット、その他は専用開発・管理操作として扱います。サーバー停止・起動は手動のまま、起動案内後の待機と世代移行をバッチが継続します。詳細は各手順を参照してください。
+日常の入口は01（Dev更新）、16（本番メンテナンス）、05（エディタ）です。02/03は01へのショートカット、その他は専用開発・管理操作として扱います。01/16はサーバー停止・起動を運用者が行い、起動後の待機と世代移行をバッチが継続します。03はAPIとPluginを更新済みでマスタ自動再読込が有効なら、Devを稼働させたまま再読込完了を待てます。詳細は各手順を参照してください。
 
 03も01と同じ `deploy-debug.config.json` / `deploy-debug.local.json` を使用します。初回のDevアカウント・接続設定は [Dev更新手順](deploy-debug/README.md) を参照してください。以下は旧 `master-data-reload.ps1` を直接使う詳細操作の設定であり、03の設定ではありません。
 

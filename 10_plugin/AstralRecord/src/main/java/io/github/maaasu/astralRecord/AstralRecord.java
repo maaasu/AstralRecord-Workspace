@@ -3176,6 +3176,7 @@ public final class AstralRecord extends JavaPlugin {
                     Logger.log(LogId.W_1550, activationFailure, activation.target());
                 }
             }
+            skillTreeService.recordCompletedMasterDataReload();
             completion.complete(plan.loadedCount());
         } catch (RuntimeException publicationFailure) {
             completion.completeExceptionally(publicationFailure);

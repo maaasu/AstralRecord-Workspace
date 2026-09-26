@@ -1,6 +1,6 @@
 # Dev更新の入口
 
-通常は `60_tool/01-deploy-debug.bat` を一度実行します。PowerShell 7が必要です。Devの停止・再起動は運用者が行います。
+通常は `60_tool/01-deploy-debug.bat` を実行します。PowerShell 7が必要です。01はDevの停止・再起動を運用者が行います。Filebaseとマスタだけを更新する03は、APIとPluginを更新済みでマスタ自動再読込が有効なら、Devを起動したまま実行できます。
 
 1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。更新中は入場させない。
 2. `01-deploy-debug.bat` を実行し、停止・入場制限の確認に応答する。
@@ -10,6 +10,22 @@
 6. バッチの完了表示を確認して入室する。
 
 JARコピーだけでは完了扱いにしません。API障害、起動待ちタイムアウト、世代不一致、移行拒否は非0終了です。サーバーを強制起動したり入場制限を自動解除したりしません。
+
+## 03で稼働中のDevを使う
+
+03はFilebase同期とAPI seedの後、Dev Pluginの再読込処理とactivation試行が終了したことをruntimeの`publicationRevision`で確認します。個別activation失敗はPlugin既存仕様に従い警告扱いとなるため、この確認だけでworld/NPC等の全activation成功を保証するものではありません。Devのプロセスsessionが変わらなくても、seed後にrevisionが進み、runtimeがreadyかつ安定していれば世代移行へ進みます。マスタの変更でスキルツリー世代IDが変わる場合も、その新世代を確認します。
+
+この運用には、APIの`publicationRevision`応答と、再読込ごとにそのrevisionを再登録するPluginが必要です。先に更新後のAPIとPluginを配置して一度起動してください。Plugin設定の`masterData.autoReload.enabled`も有効にします。それ以降の03ではDevの再起動は不要です。再読込が確認できない場合は完了扱いにならず、待機タイムアウトになります。
+
+この変更より前に作成された`WaitingForStartup` runには再読込前のrevision記録がありません。そのrunを再開する場合は、従来どおりDevを再起動して完了させてください。
+
+Devを動かしたまま実行する場合も、プレイヤーの入場を閉じ、保存を終え、他の自動書込を停止し、別のマスタ再読込が進行していない状態で03を実行します。対話実行では確認文に応答します。非対話実行では確認を明示します。`-AutomaticWritersStopped`は他の自動書込と進行中の別再読込がないことの確認にも使います。
+
+```powershell
+.\03-master-data-reload.bat -ServerAlreadyRunning -AdmissionClosed -AutomaticWritersStopped
+```
+
+`-ServerAlreadyRunning`は`03`専用です。`01`の通常デプロイは引き続きDevを停止し、新しい起動sessionを待ちます。Devを停止した状態から実行する場合は従来どおり`-ServersStopped -AdmissionClosed`を使用します。
 
 ## 一度だけ行う設定
 
@@ -28,7 +44,7 @@ JARコピーだけでは完了扱いにしません。API障害、起動待ち�
 | `runRoot` | 空なら設定ファイルと同じ場所の `runs`。実行ごとの保存先は自動作成 |
 | `startupTimeoutSeconds` | 起動待ちの上限。既定設定は900秒 |
 | `pollIntervalSeconds` | 起動確認の間隔。既定設定は5秒 |
-| `seedMasterData` | 配置後・Dev起動前にAPIのdiff seedを実行。PluginOnlyでは省略 |
+| `seedMasterData` | Filebase同期後にAPIのdiff seedを実行。PluginOnlyでは省略 |
 
 初期設定のserverIds/accountIdsは空です。推測で実データを移行しないため、設定が揃うまでは配置前に停止します。共通APIキーとmigrationキーは異なる値にします。
 
@@ -36,7 +52,7 @@ JARコピーだけでは完了扱いにしません。API障害、起動待ち�
 
 - `01`：有効なAPI/Web/Plugin/Filebaseを従来どおりビルド・配置し、Dev起動待ちと世代移行まで実行。
 - `02`：`01 -PluginOnly` のショートカット。従来どおりPluginテストを省略。Filebase/seedは実行しない。
-- `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動待ち・移行。今回の停止運用へ統一し、ゲーム内reload操作は不要。
+- `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動または稼働中Pluginの再読込を待ち、移行。稼働中利用ではプレイヤー入場と他の自動書込を止める。
 - `10`：リリース管理API/Webの専用入口を維持。Dev更新の停止待ち・移行を混ぜない。
 
 `03` の設定元は旧 `master-data-reload.config.json` から01と同じdeploy-debug設定へ統合しました。旧PowerShellは詳細操作用に残しています。旧 `-Mode rebuild` は日常入口には引き継がず、通常はdiff seedだけを使用します。

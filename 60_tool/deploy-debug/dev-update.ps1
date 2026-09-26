@@ -10,6 +10,8 @@ param(
     [ValidateSet('Auto','Restart','Restore')][string]$Recovery='Auto',
     [switch]$RecoveryChecked,
     [switch]$ServersStopped,
+    [switch]$ServerAlreadyRunning,
+    [switch]$AutomaticWritersStopped,
     [switch]$AdmissionClosed
 )
 $ErrorActionPreference='Stop'
@@ -22,7 +24,7 @@ try {
     $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
     $backend=Join-Path $PSScriptRoot 'deploy-debug.ps1'
     if ($ReleaseManagementOnly -or $PreflightOnly) {
-        if ($MasterDataOnly -or $Plan -or $ServersStopped -or $AdmissionClosed -or $Recovery -ne 'Auto' -or $RecoveryChecked) { throw 'Release management uses its existing preflight/deployment workflow.' }
+        if ($MasterDataOnly -or $Plan -or $ServersStopped -or $ServerAlreadyRunning -or $AutomaticWritersStopped -or $AdmissionClosed -or $Recovery -ne 'Auto' -or $RecoveryChecked) { throw 'Release management uses its existing preflight/deployment workflow.' }
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
         if ($ReleaseManagementOnly) { $arguments+='-ReleaseManagementOnly' }
         if ($PreflightOnly) { $arguments+='-PreflightOnly' }
@@ -31,6 +33,9 @@ try {
         exit $LASTEXITCODE
     }
     if ($PluginOnly -and $MasterDataOnly) { throw 'Choose PluginOnly or MasterDataOnly, not both.' }
+    if ($ServerAlreadyRunning -and !$MasterDataOnly) { throw '-ServerAlreadyRunning is only supported with -MasterDataOnly.' }
+    if ($ServerAlreadyRunning -and $ServersStopped) { throw 'Choose -ServersStopped or -ServerAlreadyRunning, not both.' }
+    if ($ServerAlreadyRunning -and $Recovery -ne 'Auto') { throw '-ServerAlreadyRunning cannot be combined with an explicit recovery action.' }
     if ($Recovery -eq 'Restore') { throw 'DevのDB・ファイル自動復元には対応していません。外部状態確認後に-Recovery Restartを使用してください。' }
     . (Join-Path $PSScriptRoot '../maintenance/Distribution.ps1')
     . (Join-Path $PSScriptRoot '../maintenance/SkillTreeMigration.ps1')
@@ -47,6 +52,7 @@ try {
     $workflow.runRoot=Get-MaintenanceAbsolutePath $workflow.runRoot
     $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
     if ($MasterDataOnly -and !$config.fileDatabase.enabled) { throw 'MasterDataOnly requires fileDatabase.enabled=true.' }
+    if ($ServerAlreadyRunning -and !$workflow.seedMasterData) { throw 'A running Dev requires devWorkflow.seedMasterData=true so its automatic master reload can be confirmed.' }
     if ($PluginOnly -and !$config.plugin.enabled) { throw 'PluginOnly requires plugin.enabled=true.' }
     if ($mode -eq 'Full' -and !$config.plugin.enabled -and !$config.fileDatabase.enabled -and !$config.api.enabled -and !$config.web.enabled) { throw 'No enabled deployment component.' }
     # A pure JAR deployment does not reseed unchanged master data.
@@ -64,7 +70,11 @@ try {
         Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
         if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
         else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
-        Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> migrate -> complete.'
+        if ($MasterDataOnly -and $workflow.seedMasterData) {
+            Write-Host 'Stopped Dev or running Dev with admission closed -> sync Filebase -> seed -> wait for a new session or completed hot reload -> migrate -> complete.'
+        } else {
+            Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> migrate -> complete.'
+        }
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0
     }
@@ -77,11 +87,16 @@ try {
         if ($MasterDataOnly) { $arguments+='-MasterDataOnly' }
         $log=Join-Path $RunDirectory 'dev-deploy.log'
         & powershell.exe @arguments 2>&1 | Tee-Object -FilePath $log | Out-Host
-        if ($LASTEXITCODE -ne 0) { throw "Dev deployment failed. Keep Dev stopped. See $log" }
+        if ($LASTEXITCODE -ne 0) {
+            $recoveryInstruction = if ($MasterDataOnly) { 'Keep player admission closed.' } else { 'Keep Dev stopped.' }
+            throw "Dev deployment failed. $recoveryInstruction See $log"
+        }
         Write-MaintenanceJson @{ completedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'deploy-action-success.json')
     }
     Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
         -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev' `
+        -ServerAlreadyRunning:$ServerAlreadyRunning -AutomaticWritersStopped:$AutomaticWritersStopped `
+        -AllowSameSessionPublication:($MasterDataOnly -and $workflow.seedMasterData) `
         -Recovery $Recovery -RecoveryChecked:$RecoveryChecked
 } catch {
     Write-Error $_.Exception.Message -ErrorAction Continue
