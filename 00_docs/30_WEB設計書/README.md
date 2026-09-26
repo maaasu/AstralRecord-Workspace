@@ -11,6 +11,7 @@ AstralRecord Web (`30_web/AstralRecordWeb`) の画面、認証、画面遷移を
 | `feature/04-market-browser` | ログイン限定の出品閲覧と取得データ由来の詳細検索 |
 | `feature/05-network-management` | WebAdmin専用サーバー設定・MCID指定の管理ロール・ユーザーBAN |
 | `feature/06-player-activity` | WebAdmin専用の同IP関連・トレード・ダンジョン攻略・モブによるプレイヤー撃破履歴 |
+| `feature/07-donations` | Discord本人連携・公式サーバー参加確認、寄付申請・本人履歴、管理者の受領確認と承認・否認 |
 
 API 契約は `00_docs/20_API設計書`、DB 定義は `00_docs/40_Database設計書` を正として参照します。
 

@@ -1,0 +1,20 @@
+@page
+@model AstralRecordWeb.Pages.Admin.Donations.IndexModel
+@{ ViewData["Title"] = "寄付申請管理"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><h1>寄付申請管理</h1><a asp-page="/Donations/Index" class="btn ar-btn-outline">自分の申請</a></header>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    <section class="ar-panel"><h2>すべてのユーザーの申請履歴</h2>
+    @if (Model.History is { } history)
+    {
+        <p>承認済み総額：@history.TotalApprovedAmount.ToString("N0") 円 / @history.TotalCount 件</p>
+        <div class="table-responsive"><table class="table"><thead><tr><th>申請日時（日本時間）</th><th>MCID</th><th>申告額</th><th>承認額</th><th>状態</th><th>操作</th></tr></thead><tbody>
+        @foreach (var request in history.Requests)
+        {
+            <tr><td>@request.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")</td><td>@request.Mcid</td><td>@request.DeclaredAmount.ToString("N0") 円</td><td>@(request.ApprovedAmount?.ToString("N0") ?? "—")</td><td>@request.StatusLabel</td><td><a asp-page="Detail" asp-route-id="@request.Id">内容を確認</a></td></tr>
+        }
+        </tbody></table></div>
+        <nav aria-label="寄付申請のページ">@if (Model.PageNumber > 1) { <a asp-route-pageNumber="@(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> } @if (Model.HasNext) { <a asp-route-pageNumber="@(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }</nav>
+    }
+    </section>
+</div></section>

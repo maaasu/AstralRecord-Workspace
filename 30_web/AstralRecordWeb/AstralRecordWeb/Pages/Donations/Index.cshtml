@@ -1,0 +1,67 @@
+@page
+@model AstralRecordWeb.Pages.Donations.IndexModel
+@{ ViewData["Title"] = "寄付フォーム・申請履歴"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">活動への応援</p><h1>寄付フォーム</h1><p>お送りいただく内容と金額を入力して、管理者へ申請してください。</p></div></header>
+    @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    <section class="ar-panel"><h2>申請の前に</h2>
+        <p>寄付は個人の活動を応援する任意の支援であり、見返りを約束するものではありません。現在の運用では、受領確認後の承認額1円につき「アストラルド(有償)」1個を、お礼として各ゲーム内アカウントに配布します。</p>
+        <p>管理者が承認するとゲーム内メールでアイテムが届きます。オンライン時は到着を通知します。添付アイテムはご自身で受け取ってください。未受取の添付は期限で消失しません。</p>
+        <p>最低500円から、同時に2件まで申請できます。申請中は取消し可能ですが、管理者が確認を開始すると取り消せません。申告額と実際の金額が異なる場合は、実際の受領額で処理します。否認の場合は受領しません。</p>
+        <a asp-page="/Terms" asp-fragment="donation-terms">寄付に関する利用規約を読む</a>
+    </section>
+    <section class="ar-panel"><h2>Discord連携</h2>
+        @if (Model.History?.DiscordLink is { } discord)
+        {
+            <p>連携先：@discord.DiscordName / @(discord.IsGuildMember ? "公式サーバー参加確認済み" : "公式サーバーへの参加確認が必要です")</p>
+        }
+        <p>本人のDiscordアカウントとの連携と、公式Discordサーバーへの参加が必須です。問い合わせ時の連絡に使用します。申請の結果はこのページでも確認できます。</p>
+        <a href="https://discord.gg/Fja6zmpjGX" target="_blank" rel="noopener noreferrer" class="btn ar-btn-outline">公式Discordに参加</a>
+        <form method="post" asp-page="/Donations/Discord" class="d-inline"><button class="btn ar-btn-primary" type="submit">Discordを連携・再確認</button></form>
+    </section>
+    @if (Model.History?.DiscordLink?.IsGuildMember == true)
+    {
+        <section class="ar-panel"><h2>新しい申請</h2>
+            <form method="post" data-donation-form autocomplete="off">
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                <input type="hidden" asp-for="Input.OperationId" />
+                <label asp-for="Input.DeclaredAmount" class="form-label">申告合計金額（円）</label>
+                <input asp-for="Input.DeclaredAmount" type="number" min="500" max="1000000" step="1" class="form-control mb-3" required />
+                <div data-donation-entries>
+                @for (var i = 0; i < Model.Input.Entries.Count; i++)
+                {
+                    <fieldset class="border rounded p-3 mb-3" data-donation-entry>
+                        <legend class="h5">明細 @(i + 1)</legend>
+                        <label for="method-@i" class="form-label">種類</label><select id="method-@i" asp-for="Input.Entries[i].Method" class="form-select"><option value="amazon">Amazonギフトカード番号</option><option value="paypay">PayPay送金URL</option></select>
+                        <label for="amount-@i" class="form-label">この明細の金額（円）</label><input id="amount-@i" asp-for="Input.Entries[i].DeclaredAmount" type="number" min="1" step="1" class="form-control" required />
+                        <label for="value-@i" class="form-label">ギフトカード番号または送金URL</label><input id="value-@i" asp-for="Input.Entries[i].Value" class="form-control" maxlength="2048" autocomplete="off" spellcheck="false" required />
+                        <button type="button" class="btn ar-btn-outline mt-2" data-remove-entry>この明細を削除</button>
+                    </fieldset>
+                }
+                </div>
+                <button type="button" class="btn ar-btn-outline mb-3" data-add-entry>明細を追加（最大10件）</button>
+                <p>複数のギフトカードや送金URLをまとめて登録できます。各明細の金額の合計を、申告合計金額と一致させてください。パスワードや暗証番号は入力しないでください。</p>
+                <div class="form-check mb-3"><input asp-for="Input.Agree" class="form-check-input" required /><label asp-for="Input.Agree" class="form-check-label">寄付に関する利用規約を読み、同意します。</label></div>
+                <button type="submit" class="btn ar-btn-primary">寄付を申請する</button>
+            </form>
+        </section>
+    }
+    <section class="ar-panel"><h2>自分の申請履歴</h2>
+        @if (Model.History is { } history)
+        {
+            <p>承認済み累計：@history.TotalApprovedAmount.ToString("N0") 円</p>
+            @if (history.Requests.Count == 0) { <p>申請はありません。</p> }
+            @foreach (var request in history.Requests)
+            {
+                <article class="border rounded p-3 mb-3"><h3 class="h5">@request.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")（日本時間） / @request.StatusLabel</h3>
+                    <p>申告額：@request.DeclaredAmount.ToString("N0") 円 @if (request.ApprovedAmount is { } amount) { <span> / 承認額：@amount.ToString("N0") 円</span> }</p>
+                    @if (!string.IsNullOrWhiteSpace(request.Reason)) { <p class="text-break">管理者からのメッセージ：@request.Reason</p> }
+                    @if (request.Status == "Pending") { <form method="post" asp-page-handler="Cancel"><input type="hidden" name="id" value="@request.Id" /><button class="btn ar-btn-outline" type="submit">この申請を取り消す</button></form> }
+                </article>
+            }
+            <nav aria-label="申請履歴のページ">@if (Model.PageNumber > 1) { <a asp-route-pageNumber="@(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> } @if (Model.HasNext) { <a asp-route-pageNumber="@(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }</nav>
+        }
+    </section>
+</div></section>
+@section Scripts { <script src="~/js/donations.js" asp-append-version="true"></script> }

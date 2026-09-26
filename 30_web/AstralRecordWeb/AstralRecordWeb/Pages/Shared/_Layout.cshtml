@@ -82,6 +82,7 @@
                     <p class="ar-menu-label"><span class="ar-status-dot"></span>ログイン中</p>
                     <strong class="ar-menu-player">@User.Identity.Name</strong>
                     <a asp-page="/MyPage"><span>マイページ</span><span aria-hidden="true">↗</span></a>
+                    <a asp-page="/Donations/Index"><span>寄付フォーム・履歴</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Bestiary/Index"><span>討伐モブ図鑑</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
                     <a asp-page="/Market/Index"><span>マーケット</span><span aria-hidden="true">↗</span></a>
@@ -92,6 +93,7 @@
                 {
                     <nav class="ar-menu-section ar-menu-admin" aria-label="管理者専用">
                         <p class="ar-menu-label">管理者専用</p>
+                        <a asp-page="/Admin/Donations/Index"><span>寄付申請管理</span><span aria-hidden="true">↗</span></a>
                         <a asp-page="/Admin/Items"><span>アイテム</span><span aria-hidden="true">↗</span></a>
                         <a asp-page="/Admin/Network"><span>ネットワーク設定</span><span aria-hidden="true">↗</span></a>
                         <a asp-page="/Admin/History/SameIp"><span>プレイヤー活動履歴</span><span aria-hidden="true">↗</span></a>

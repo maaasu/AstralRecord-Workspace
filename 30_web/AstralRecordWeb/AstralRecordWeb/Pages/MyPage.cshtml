@@ -10,6 +10,7 @@
         @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         <section class="ar-panel"><h2>ログイン設定</h2><p>任意のID・パスワードで、次回からMinecraftを起動せずログインできます。IDの確認やパスワードの再設定もこちらから行えます。</p><a asp-page="/LoginSettings" class="btn ar-btn-primary">ログイン設定を開く →</a></section>
+        <section class="ar-panel"><h2>寄付・Discord連携</h2><p>活動への支援の申請、Discord連携、申請結果の確認を行えます。</p><a asp-page="/Donations/Index" class="btn ar-btn-primary">寄付フォーム・履歴を開く →</a></section>
         @if (Model.Profile is { } profile)
         {
             <partial name="_PlayerProfile" model="profile" />

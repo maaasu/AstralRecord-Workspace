@@ -138,7 +138,9 @@ public sealed class PublicSiteRenderingTests
         Assert.Contains("ar-legal-shell", privacy);
         Assert.Contains("Minecraftサーバー接続時のIPアドレス", privacy);
         Assert.Contains("広告配信やアクセス解析を目的とするCookieは使用していません", privacy);
-        Assert.Contains("自動で連携されることもありません", privacy);
+        Assert.Contains("Discord連携は本人の明示的な操作と認可によって行い", privacy);
+        Assert.Contains("ギフトカード番号または送金URL", privacy);
+        Assert.Contains("受領を確認して承認した金額1円につき", terms);
         Assert.DoesNotContain("Webサイトへのアクセスログ", privacy);
         Assert.DoesNotContain("プレイ時間", privacy);
     }

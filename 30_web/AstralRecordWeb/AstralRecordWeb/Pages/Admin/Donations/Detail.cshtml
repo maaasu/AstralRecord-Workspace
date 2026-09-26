@@ -1,0 +1,42 @@
+@page "{id:guid}"
+@model AstralRecordWeb.Pages.Admin.Donations.DetailModel
+@{ ViewData["Title"] = "寄付申請の確認"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><h1>寄付申請の確認</h1><a asp-page="Index" class="btn ar-btn-outline">一覧へ戻る</a></header>
+    @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    <div asp-validation-summary="All" class="alert-danger" role="alert"></div>
+    @if (Model.Donation is { } donation)
+    {
+        <section class="ar-panel"><h2>@donation.Mcid / @donation.StatusLabel</h2>
+            <p>申告額：@donation.DeclaredAmount.ToString("N0") 円 / 承認額：@(donation.ApprovedAmount?.ToString("N0") ?? "—") 円</p>
+            <p>Discord：@donation.DiscordName（@donation.DiscordUserId）</p>
+            <p>申請日時：@donation.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")（日本時間）</p>
+            @if (donation.Reason is not null) { <p class="text-break">管理者メッセージ：@donation.Reason</p> }
+            @foreach (var entry in donation.Entries)
+            {
+                <div class="border rounded p-3 mb-2"><strong>@(entry.Method == "amazon" ? "Amazonギフトカード番号" : "PayPay送金URL") / @entry.DeclaredAmount.ToString("N0") 円</strong><p class="text-break mb-0">@entry.Value</p></div>
+            }
+            <p>番号・URLは申請確認に必要な情報です。受領は「確認開始」の後に行ってください。否認する場合は受領しないでください。</p>
+            @if (donation.Status == "Pending")
+            {
+                <form method="post" asp-page-handler="Review"><button type="submit" class="btn ar-btn-primary">確認開始（本人による取消しを停止）</button></form>
+            }
+        </section>
+        @if (donation.Status == "Reviewing")
+        {
+            <section class="ar-panel"><h2>受領を確認して承認</h2>
+                <form method="post" asp-page-handler="Approve" autocomplete="off">
+                    <label asp-for="ApprovedAmount" class="form-label">承認する金額（円・任意）</label><input asp-for="ApprovedAmount" type="number" min="1" max="1000000" step="1" class="form-control" aria-describedby="approval-help" />
+                    <p id="approval-help">空欄なら申告額 @donation.DeclaredAmount.ToString("N0") 円で承認します。入力した場合はその金額を採用し、同数のアストラルド(有償)を各アカウントへ送ります。</p>
+                    <p>500円未満は原則として受領せず否認してください。例外的に受領した場合は実額で承認し、次回は500円以上とする警告を自動添付します。</p>
+                    <div class="form-check mb-3"><input asp-for="ConfirmReceived" class="form-check-input" required /><label asp-for="ConfirmReceived" class="form-check-label">実際の受領額と上記の承認金額を確認しました。</label></div>
+                    <button type="submit" class="btn ar-btn-primary">承認してメール配布</button>
+                </form>
+            </section>
+            <section class="ar-panel"><h2>受領せず否認</h2><form method="post" asp-page-handler="Reject">
+                <label asp-for="Reason" class="form-label">本人に表示する否認理由</label><textarea asp-for="Reason" class="form-control mb-3" maxlength="2000" rows="4" required></textarea><button type="submit" class="btn ar-btn-outline">否認して理由を通知</button>
+            </form></section>
+        }
+    }
+</div></section>
