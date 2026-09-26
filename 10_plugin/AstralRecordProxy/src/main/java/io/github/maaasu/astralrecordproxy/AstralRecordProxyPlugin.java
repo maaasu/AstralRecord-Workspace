@@ -980,7 +980,8 @@ public final class AstralRecordProxyPlugin {
                 settings.channelName(serverId),
                 online ? server.getPlayersConnected().size() : 0,
                 online ? "online" : "offline",
-                capacity
+                capacity,
+                settings.donorOnly(serverId)
             ).exceptionally(apiFailure -> null);
         });
     }

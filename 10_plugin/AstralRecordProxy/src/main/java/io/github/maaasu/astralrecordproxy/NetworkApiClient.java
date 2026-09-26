@@ -102,6 +102,7 @@ final class NetworkApiClient {
      * @param online 現在接続人数
      * @param state backend到達状態
      * @param capacity 基本枠と権限別追加枠
+     * @param donorOnly VIP限定チャンネル表示
      * @return API送信完了を表すfuture
      */
     CompletableFuture<Void> heartbeatServer(
@@ -109,7 +110,8 @@ final class NetworkApiClient {
         String displayName,
         int online,
         String state,
-        ProxyConfig.ServerCapacity capacity
+        ProxyConfig.ServerCapacity capacity,
+        boolean donorOnly
     ) {
         JsonObject body = new JsonObject();
         body.addProperty("serverId", serverId);
@@ -119,6 +121,7 @@ final class NetworkApiClient {
         body.addProperty("capacity", capacity.maxPlayers());
         body.addProperty("donorExtraPlayers", capacity.donorExtraPlayers());
         body.addProperty("adminExtraPlayers", capacity.adminExtraPlayers());
+        body.addProperty("donorOnly", donorOnly);
         return send("PUT", "/api/network/servers/" + serverId, body.toString()).thenApply(ignored -> null);
     }
 

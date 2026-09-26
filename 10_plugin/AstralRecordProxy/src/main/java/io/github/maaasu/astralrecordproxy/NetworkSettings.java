@@ -24,4 +24,7 @@ interface NetworkSettings {
     boolean isServerAuthority(UUID playerId);
 
     ProxyConfig.ServerCapacity capacity(String serverId);
+
+    /** 指定チャンネルをVIP限定としてロビーへ案内するか返します。 */
+    default boolean donorOnly(String serverId) { return false; }
 }

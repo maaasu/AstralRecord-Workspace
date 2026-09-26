@@ -111,6 +111,13 @@ record ManagedNetworkSettings(
         return channels.get(serverId.toLowerCase(Locale.ROOT));
     }
 
+    /** ManagementDB設定のVIP限定フラグをheartbeatへ引き渡します。 */
+    @Override
+    public boolean donorOnly(String serverId) {
+        Channel channel = channel(serverId);
+        return channel != null && channel.donorOnly();
+    }
+
     private static JsonArray array(JsonObject source, String name) {
         JsonElement value = source.get(name);
         return value != null && value.isJsonArray() ? value.getAsJsonArray() : new JsonArray();
