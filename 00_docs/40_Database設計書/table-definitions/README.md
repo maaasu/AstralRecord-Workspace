@@ -24,6 +24,7 @@
 
 | DB | migration | 内容 |
 |:--|:--|:--|
+| `AstralRecord` | `AstralRecord/migrations/20260926_account_benefits.sql` | 有償VIP・優先接続残高/冪等台帳、旧DONOR権限5を0へ移行。API配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260910_market_listing_create_receipt.sql` | 出品作成の冪等結果台帳を追加。対応 API 配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260913_account_rebirth_progress.sql` | 転生進行カラムと初期制約を追加 |
@@ -48,6 +49,8 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 
 | テーブル | 定義 |
 |:--|:--|
+| `dbo.account_benefits` | `AstralRecord/dbo.account_benefits.md` |
+| `dbo.account_benefit_operation` | `AstralRecord/dbo.account_benefit_operation.md` |
 | `dbo.user` | `AstralRecord/dbo.user.md` |
 | `dbo.user_setting` | `AstralRecord/dbo.user_setting.md` |
 | `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |

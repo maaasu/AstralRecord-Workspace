@@ -38,7 +38,7 @@ CREATE TABLE [dbo].[user] (
     [is_deleted]       BIT               NOT NULL  CONSTRAINT [DF_user_is_deleted]       DEFAULT (0),
 
     CONSTRAINT [PK_user] PRIMARY KEY CLUSTERED ([uuid]),
-    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 5, 99))
+    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 99))
 );
 GO
 
@@ -1834,4 +1834,31 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_market_web_purchase_account_status]
     ON [dbo].[market_web_purchase] ([buyer_account_id], [status], [created_at]);
+GO
+
+CREATE TABLE [dbo].[account_benefits] (
+    [account_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_account_benefits] PRIMARY KEY,
+    [instance_priority_uses] INT NOT NULL CONSTRAINT [DF_account_benefits_uses] DEFAULT (0),
+    [doner_expires_at] DATETIME2(3) NULL,
+    [astralder_expires_at] DATETIME2(3) NULL,
+    [astralder_daily_credits_remaining] INT NOT NULL CONSTRAINT [DF_account_benefits_daily] DEFAULT (0),
+    [last_daily_claim_date] DATE NULL,
+    CONSTRAINT [FK_account_benefits_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid]),
+    CONSTRAINT [CK_account_benefits_uses] CHECK ([instance_priority_uses] >= 0),
+    CONSTRAINT [CK_account_benefits_daily] CHECK ([astralder_daily_credits_remaining] >= 0)
+);
+GO
+CREATE TABLE [dbo].[account_benefit_operation] (
+    [operation_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_account_benefit_operation] PRIMARY KEY,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [kind] NVARCHAR(16) NOT NULL,
+    [request_hash] NVARCHAR(64) NOT NULL,
+    [status] NVARCHAR(16) NOT NULL,
+    [reason] NVARCHAR(100) NULL,
+    [inventory_entry_id] UNIQUEIDENTIFIER NULL,
+    [awarded_priority_uses] INT NOT NULL,
+    [refunded] BIT NOT NULL,
+    [created_at_utc] DATETIME2(3) NOT NULL,
+    CONSTRAINT [FK_account_benefit_operation_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid])
+);
 GO

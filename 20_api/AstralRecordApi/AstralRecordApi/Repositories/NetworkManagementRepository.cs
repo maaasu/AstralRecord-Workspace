@@ -79,9 +79,14 @@ public sealed class NetworkManagementRepository(
 
     public async Task<NetworkChannelAccessResponse> GetChannelAccessAsync(Guid userUuid, string serverId)
     {
-        var permission = await gameDb.Users.AsNoTracking().Where(user => user.Uuid == userUuid && !user.IsDeleted)
-            .Select(user => (int?)user.Permission).FirstOrDefaultAsync() ?? 0;
-        return NetworkAccessPolicy.Evaluate(userUuid, serverId, await GetSettingsAsync(), permission);
+        var user = await gameDb.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Uuid == userUuid && !user.IsDeleted);
+        var state = user?.AccountId is Guid accountId
+            ? await (from benefit in gameDb.AccountBenefits.AsNoTracking()
+                     join account in gameDb.Accounts.AsNoTracking() on benefit.AccountId equals account.Uuid
+                     where account.Uuid == accountId && account.UserId == userUuid && !account.IsDeleted
+                     select benefit).SingleOrDefaultAsync() : null;
+        var benefits = state is null ? null : AccountBenefitsPolicy.Describe(state, clock.GetUtcNow().UtcDateTime);
+        return NetworkAccessPolicy.Evaluate(userUuid, serverId, await GetSettingsAsync(), user?.Permission ?? 0, benefits);
     }
 
     public async Task<bool> CanManageBanFromGameAsync(Guid actorUuid)
@@ -230,7 +235,7 @@ public sealed class NetworkManagementRepository(
             {
                 ServerId = channel.ServerId, DisplayName = channel.DisplayName.Trim(), IsGame = channel.IsGame,
                 MaxPlayers = channel.MaxPlayers, DonorExtraPlayers = channel.DonorExtraPlayers, AdminExtraPlayers = channel.AdminExtraPlayers,
-                DiscordEnabled = channel.DiscordEnabled, WhitelistEnabled = channel.WhitelistEnabled,
+                DiscordEnabled = channel.DiscordEnabled, WhitelistEnabled = channel.WhitelistEnabled, DonorOnly = channel.DonorOnly,
                 DebugUsers = Members(channel.DebugUsers), WhitelistUsers = Members(channel.WhitelistUsers),
             };
         }).ToArray();

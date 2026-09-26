@@ -14,6 +14,31 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class NetworkManagementRepositoryTests
 {
     [Fact]
+    public async Task VipAdmissionUsesOnlySelectedOwnedActiveAccountAndExpiresImmediately()
+    {
+        await using var f = await Fixture.Create();
+        await f.Repository.BootstrapAsync(new ManagedNetworkSettings
+        {
+            Channels = [new() { ServerId = "lobby", DisplayName = "Lobby" }, new() { ServerId = "vip", DisplayName = "VIP", IsGame = true, DonorOnly = true, DonorExtraPlayers = 3 }],
+        });
+        var vipId = Guid.NewGuid(); var normalId = Guid.NewGuid(); var now = f.Clock.GetUtcNow().UtcDateTime;
+        f.Game.Accounts.AddRange(new AccountEntity { Uuid = vipId, UserId = f.UserId, AccountName = "Vip", SlotIndex = 1 },
+            new AccountEntity { Uuid = normalId, UserId = f.UserId, AccountName = "Normal", SlotIndex = 2 });
+        f.Game.AccountBenefits.Add(new() { AccountId = vipId, DonerExpiresAt = now.AddDays(15) });
+        var user = await f.Game.Users.SingleAsync(); user.AccountId = normalId; user.Permission = 5;
+        await f.Game.SaveChangesAsync();
+        Assert.False((await f.Repository.GetChannelAccessAsync(f.UserId, "vip")).Allowed);
+        user.AccountId = vipId; await f.Game.SaveChangesAsync();
+        var access = await f.Repository.GetChannelAccessAsync(f.UserId, "vip");
+        Assert.True(access.Allowed); Assert.True(access.IsVip); Assert.Equal("DONER", access.VipTier);
+        Assert.Equal(0, access.Permission);
+        Assert.True((await f.Repository.GetSettingsAsync())!.Channels.Single(c => c.ServerId == "vip").DonorOnly);
+        (await f.Game.AccountBenefits.SingleAsync()).DonerExpiresAt = now;
+        await f.Game.SaveChangesAsync();
+        Assert.False((await f.Repository.GetChannelAccessAsync(f.UserId, "vip")).Allowed);
+    }
+
+    [Fact]
     public async Task Bootstrap_DoesNotOverwriteWebEdits_AndStaleRevisionDoesNotAudit()
     {
         await using var fixture = await Fixture.Create();
@@ -283,15 +308,7 @@ public sealed class NetworkManagementRepositoryTests
             fixture.Management = new(new DbContextOptionsBuilder<ManagementDbContext>().UseSqlite(fixture.managementConnection)
                 .ReplaceService<IExecutionStrategyFactory, RetryingStrategyFactory>().AddInterceptors(interceptors).Options);
             await fixture.Management.Database.EnsureCreatedAsync();
-            await fixture.Game.Database.ExecuteSqlRawAsync("""
-                CREATE TABLE user (
-                    uuid TEXT NOT NULL PRIMARY KEY, mcid TEXT NOT NULL, join_date TEXT NOT NULL,
-                    last_join_date TEXT NOT NULL, global_ip TEXT NOT NULL, account_id TEXT NULL,
-                    ban_indefinite INTEGER NOT NULL, ban_date TEXT NULL, kick_ip INTEGER NOT NULL,
-                    permission INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-                    created_by TEXT NOT NULL, updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL
-                );
-                """);
+            await fixture.Game.Database.EnsureCreatedAsync();
             fixture.Game.Users.Add(new UserEntity
             {
                 Uuid = fixture.UserId, Mcid = "Tester", GlobalIp = "127.0.0.1",

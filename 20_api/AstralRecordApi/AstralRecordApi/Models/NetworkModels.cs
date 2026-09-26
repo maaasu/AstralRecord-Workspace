@@ -16,7 +16,8 @@ public sealed record NetworkAdmissionResponse(
     bool DebugUser = false,
     bool Whitelisted = false,
     bool ChannelKnown = false,
-    bool SettingsInitialized = false);
+    bool SettingsInitialized = false,
+    string VipTier = "NONE", DateTime? VipExpiresAt = null);
 
 public sealed record NetworkPlayerHeartbeatRequest(
     Guid Uuid,
@@ -46,7 +47,8 @@ public sealed record NetworkServerHeartbeatRequest(
     int OnlineCount,
     int Capacity,
     int DonorExtraPlayers,
-    int AdminExtraPlayers);
+    int AdminExtraPlayers,
+    bool DonorOnly = false);
 
 public sealed record NetworkServerPresenceResponse(
     string ServerId,
@@ -56,7 +58,8 @@ public sealed record NetworkServerPresenceResponse(
     int Capacity,
     int DonorExtraPlayers,
     int AdminExtraPlayers,
-    DateTime LastSeenUtc);
+    DateTime LastSeenUtc,
+    bool DonorOnly = false);
 
 public sealed record NetworkChatPublishRequest(
     Guid MessageId,

@@ -55,7 +55,7 @@ public sealed class NetworkControllerTests
         var response = Assert.IsType<NetworkAdmissionResponse>(Assert.IsType<OkObjectResult>(result).Value);
         Assert.True(response.Admitted);
         Assert.True(response.Registered);
-        Assert.Equal(5, response.Permission);
+        Assert.Equal(0, response.Permission);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public sealed class NetworkControllerTests
         public Task<(ManagedNetworkSettings Settings, bool Created)> BootstrapAsync(ManagedNetworkSettings request) => throw new NotSupportedException();
         public Task<ManagedNetworkSettings> UpdateSettingsAsync(ManagedNetworkSettings request, Guid actorUuid) => throw new NotSupportedException();
         public Task<IReadOnlyList<NetworkManagedPlayer>> SearchPlayersAsync(string? query) => throw new NotSupportedException();
-        public Task<NetworkChannelAccessResponse> GetChannelAccessAsync(Guid userUuid, string serverId) => throw new NotSupportedException();
+        public Task<NetworkChannelAccessResponse> GetChannelAccessAsync(Guid userUuid, string serverId) => Task.FromResult(NetworkAccessPolicy.Evaluate(userUuid, serverId, Settings, 0));
         public Task<IReadOnlyList<NetworkBanStateResponse>> GetActiveBansAsync() => throw new NotSupportedException();
         public Task<NetworkBanStateResponse?> UpdateBanAsync(Guid userUuid, NetworkBanUpdateRequest request, Guid actorUuid)
         {

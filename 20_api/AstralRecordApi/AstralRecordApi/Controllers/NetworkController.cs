@@ -18,6 +18,7 @@ public sealed class NetworkController(
     INetworkManagementRepository management) : ControllerBase
 {
     private const string AuthoritySyncHeader = "X-Authority-Sync-Key";
+    /// <summary>選択中アカウントの有効VIPとチャンネル参加権限を都度判定します。</summary>
     [HttpGet("admissions/{uuid:guid}")]
     [ProducesResponseType<NetworkAdmissionResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdmission(Guid uuid, [FromQuery] string? serverId = null)
@@ -25,16 +26,16 @@ public sealed class NetworkController(
         var user = await userRepository.GetByUuidAsync(uuid);
         var settings = await management.GetSettingsAsync();
         var ban = await management.GetBanAsync(uuid);
-        var access = settings is null ? null : NetworkAccessPolicy.Evaluate(uuid, serverId ?? settings.LobbyServerId, settings, user?.Permission ?? 0);
+        var access = await management.GetChannelAccessAsync(uuid, serverId ?? settings?.LobbyServerId ?? "lobby");
         var banned = ban?.IsActive ?? (user?.BanIndefinite == true || user?.BanDate > timeProvider.GetLocalNow().DateTime);
         var banDate = ban is null ? user?.BanDate : ban.ExpiresAtUtc is DateTimeOffset expiry
             ? TimeZoneInfo.ConvertTime(expiry, timeProvider.LocalTimeZone).DateTime : (DateTime?)null;
-        var authorityPermission = runtimeService.IsAuthority(uuid) ? Math.Max(99, user?.Permission ?? 0) : user?.Permission ?? 0;
+        var authorityPermission = runtimeService.IsAuthority(uuid) || user?.Permission == 99 ? 99 : 0;
         return Ok(new NetworkAdmissionResponse(uuid, user?.Mcid ?? ban?.Mcid ?? string.Empty, user is not null,
-            !banned && (access?.Allowed ?? true), banned ? "banned" : access is { ChannelKnown: false } ? "unknown_channel" : access is { Allowed: false } ? "not_whitelisted" : null,
-            access?.Permission ?? authorityPermission, ban?.IsIndefinite ?? user?.BanIndefinite ?? false, banDate, user?.AccountId,
+            !banned && (settings is null || access.Allowed), banned ? "banned" : settings is not null && !access.ChannelKnown ? "unknown_channel" : settings is not null && !access.Allowed ? (access.DonorOnly && !access.IsVip ? "vip_required" : "not_whitelisted") : null,
+            settings is null ? authorityPermission : access.Permission, ban?.IsIndefinite ?? user?.BanIndefinite ?? false, banDate, user?.AccountId,
             timeProvider.GetUtcNow().UtcDateTime, ban?.Reason, ban?.ExpiresAtUtc,
-            access?.DebugUser ?? false, access?.Whitelisted ?? false, access?.ChannelKnown ?? false, settings is not null));
+            access.DebugUser, access.Whitelisted, access.ChannelKnown, settings is not null, access.VipTier, access.VipExpiresAt));
     }
 
     [HttpPut("players/{uuid:guid}")]

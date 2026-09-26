@@ -760,6 +760,148 @@
           "indexes": []
         }
       ]
+    },
+    {
+      "id": "20260926_account_benefits",
+      "fileName": "20260926_account_benefits.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account_benefits",
+        "primaryKey": "PK_account_benefits",
+        "columns": [
+          {
+            "name": "account_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "instance_priority_uses",
+            "sqlType": "int",
+            "isNullable": false,
+            "maxLengthBytes": 4
+          },
+          {
+            "name": "doner_expires_at",
+            "sqlType": "datetime2",
+            "isNullable": true,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "astralder_expires_at",
+            "sqlType": "datetime2",
+            "isNullable": true,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "astralder_daily_credits_remaining",
+            "sqlType": "int",
+            "isNullable": false,
+            "maxLengthBytes": 4
+          },
+          {
+            "name": "last_daily_claim_date",
+            "sqlType": "date",
+            "isNullable": true
+          }
+        ],
+        "checkConstraints": [
+          "CK_account_benefits_uses",
+          "CK_account_benefits_daily"
+        ],
+        "indexes": []
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "account_benefit_operation",
+          "primaryKey": "PK_account_benefit_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "kind",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "status",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "reason",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "inventory_entry_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "awarded_priority_uses",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            },
+            {
+              "name": "refunded",
+              "sqlType": "bit",
+              "isNullable": false,
+              "maxLengthBytes": 1
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "user",
+          "primaryKey": "PK_user",
+          "columns": [
+            {
+              "name": "permission",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            }
+          ],
+          "checkConstraints": [
+            "CK_user_permission"
+          ],
+          "indexes": []
+        }
+      ]
     }
   ]
 }

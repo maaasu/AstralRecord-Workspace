@@ -120,6 +120,7 @@ builder.Services.AddScoped<ILoginBonusClaimRepository, LoginBonusClaimRepository
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();
 builder.Services.AddScoped<IAccountLearnedSkillRepository, AccountLearnedSkillRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IAccountBenefitsRepository, AccountBenefitsRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IPlayerStateSnapshotRepository, PlayerStateSnapshotRepository>();
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();

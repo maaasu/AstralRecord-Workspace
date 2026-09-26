@@ -1031,6 +1031,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     private async Task DeleteOwnedDataAsync(Guid accountId, DateTime deletedAt, Guid deletedBy)
     {
+        await dbContext.AccountBenefits.Where(entity => entity.AccountId == accountId).ExecuteDeleteAsync();
         await dbContext.AccountClassProgresses
             .Where(entity => entity.AccountId == accountId)
             .ExecuteDeleteAsync();

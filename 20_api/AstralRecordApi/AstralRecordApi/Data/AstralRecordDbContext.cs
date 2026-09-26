@@ -56,6 +56,9 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
     public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
 
+    public DbSet<AccountBenefitsEntity> AccountBenefits => Set<AccountBenefitsEntity>();
+    public DbSet<AccountBenefitOperationEntity> AccountBenefitOperations => Set<AccountBenefitOperationEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<MarketWebPurchaseEntity>(entity =>
@@ -74,6 +77,34 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasPrecision(3);
             entity.HasIndex(x => new { x.BuyerAccountId, x.Status, x.CreatedAt })
                 .HasDatabaseName("IX_market_web_purchase_account_status");
+        });
+        modelBuilder.Entity<AccountBenefitsEntity>(entity =>
+        {
+            entity.ToTable("account_benefits", "dbo");
+            entity.HasKey(x => x.AccountId);
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.InstancePriorityUses).HasColumnName("instance_priority_uses");
+            entity.Property(x => x.DonerExpiresAt).HasColumnName("doner_expires_at").HasPrecision(3);
+            entity.Property(x => x.AstralderExpiresAt).HasColumnName("astralder_expires_at").HasPrecision(3);
+            entity.Property(x => x.AstralderDailyCreditsRemaining).HasColumnName("astralder_daily_credits_remaining");
+            entity.Property(x => x.LastDailyClaimDate).HasColumnName("last_daily_claim_date");
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<AccountBenefitOperationEntity>(entity =>
+        {
+            entity.ToTable("account_benefit_operation", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.Kind).HasColumnName("kind").HasMaxLength(16);
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(16);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(100);
+            entity.Property(x => x.InventoryEntryId).HasColumnName("inventory_entry_id");
+            entity.Property(x => x.AwardedPriorityUses).HasColumnName("awarded_priority_uses");
+            entity.Property(x => x.Refunded).HasColumnName("refunded");
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").HasPrecision(3);
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<SkillTreeAccountSessionEntity>(entity =>
         {

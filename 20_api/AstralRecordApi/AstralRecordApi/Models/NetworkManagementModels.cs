@@ -22,6 +22,7 @@ public sealed class ManagedNetworkChannel
     public int DonorExtraPlayers { get; init; }
     public int AdminExtraPlayers { get; init; }
     public bool DiscordEnabled { get; init; } = true;
+    public bool DonorOnly { get; init; }
     public bool WhitelistEnabled { get; init; }
     public IReadOnlyList<Guid> DebugUsers { get; init; } = [];
     public IReadOnlyList<Guid> WhitelistUsers { get; init; } = [];
@@ -52,4 +53,5 @@ public sealed class NetworkBanUpdateRequest
 
 public sealed record NetworkChannelAccessResponse(
     Guid UserUuid, string ServerId, bool ChannelKnown, bool IsAuthority,
-    bool DebugUser, bool Whitelisted, bool WhitelistEnabled, bool Allowed, int Permission);
+    bool DebugUser, bool Whitelisted, bool WhitelistEnabled, bool Allowed, int Permission, bool DonorOnly = false, bool IsVip = false,
+    string VipTier = "NONE", DateTime? VipExpiresAt = null);
