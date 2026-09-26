@@ -219,14 +219,20 @@ public final class MailService {
      * アカウント単位でメールを削除状態にし、完成スナップショットのSQL ACK後に完了します。
      *
      * @param astPlayer 対象プレイヤー
-     * @param mailId メール ID
+     * @param mail 表示中のメール。未受取報酬付きなら削除を拒否する
      * @param completion 完了通知
      */
     public void delete(
         @NotNull AstPlayer astPlayer,
-        @NotNull String mailId,
+        @NotNull MailEntry mail,
         @NotNull Consumer<Boolean> completion
     ) {
+        if (!mail.read() && mail.receiveOnRead() && !mail.rewards().isEmpty()) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_7301);
+            completion.accept(false);
+            return;
+        }
+        String mailId = mail.id();
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();

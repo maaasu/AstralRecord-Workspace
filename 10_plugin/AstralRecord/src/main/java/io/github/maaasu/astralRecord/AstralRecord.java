@@ -109,6 +109,8 @@ import io.github.maaasu.astralRecord.feature.mail.event.MailGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
+import io.github.maaasu.astralRecord.feature.donation.repository.DonationNotificationRepository;
+import io.github.maaasu.astralRecord.feature.donation.service.DonationNotificationService;
 import io.github.maaasu.astralRecord.feature.market.event.MarketGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRepository;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
@@ -543,6 +545,7 @@ public final class AstralRecord extends JavaPlugin {
     private PartyBoardGui partyBoardGui;
     private LoginBonusService loginBonusService;
     private MailService mailService;
+    private DonationNotificationService donationNotificationService;
     private MailGuiEventHandler mailGuiEventHandler;
     private ItemAdminGuiEventHandler itemAdminGuiEventHandler;
     private AdventureRecordService adventureRecordService;
@@ -671,6 +674,7 @@ public final class AstralRecord extends JavaPlugin {
         // 4. イベントとコマンドを登録
         registerPluginFeatures();
         playerActivityHistoryService.start();
+        donationNotificationService.start();
 
         ConfigProperties config = ConfigProperties.getInstance();
         if (config.isMasterDataAutoReloadEnabled()) {
@@ -684,6 +688,10 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (donationNotificationService != null) {
+            donationNotificationService.stop();
+            donationNotificationService = null;
+        }
         if (playerActivityHistoryService != null) {
             playerActivityHistoryService.stop();
         }
@@ -1571,6 +1579,7 @@ public final class AstralRecord extends JavaPlugin {
         inventoryPersistence.registerStateParticipant(loginBonusService::snapshotPlayerState);
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
+        donationNotificationService = new DonationNotificationService(this, new DonationNotificationRepository());
         mailService.setMailReceivedListener((player, mailId) ->
             guideService.recordCondition(player, GuideConditionType.MAIL_RECEIVED, mailId)
         );
@@ -2200,6 +2209,7 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getPluginManager().registerEvents(playerStateIncidents, this);
         playerJoinEventHandler.setPlayerLoadedListener(player -> {
             playerStateIncidents.onLoaded(player);
+            donationNotificationService.pollOnLogin(player);
             var address = player.getBukkit().getAddress();
             if (address != null && address.getAddress() != null) {
                 try {

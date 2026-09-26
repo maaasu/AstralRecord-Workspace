@@ -188,7 +188,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             case DROP, CONTROL_DROP -> {
                 mailService.delete(
                     astPlayer,
-                    mailId,
+                    mail,
                     success -> finishMutation(player, topInventory, filter, pageIndex, success, false)
                 );
             }

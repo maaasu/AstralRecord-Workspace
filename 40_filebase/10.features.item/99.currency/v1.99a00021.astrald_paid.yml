@@ -1,0 +1,19 @@
+# design:
+#   motif: "星 / 寄付への謝意"
+#   progression: 0
+schemaVersion: 1
+id: 99a00021
+category: currency
+name: "&dアストラルド(有償)"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTRkYTU4NWY5NDE0NTNhZDYyOGVjMDk3MTBmNmU0NTU1NGE5ZjUyZWZhNWIwNWVkYTI1MzgzMDQ1MGM1YmY5OCJ9fX0=
+rarity: EPIC
+saleValue: 0
+lore:
+  - "&7寄付への謝意として贈られる有償通貨。"
+  - "&7アカウント間で移動できません。"
+unTradeable: true
+unSellable: true
+currency:
+  type: ASTRALD_PAID
+  group: donation

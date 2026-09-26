@@ -38,6 +38,7 @@
 | 32 | [[32_0-概要]] | BSP ダンジョン生成、部屋戦闘、ゲート進行、一時ワールド回収 | `feature/dungeon` |
 | 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、管理DB設定・ロール・BAN、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
 | 34 | [[34_0-概要]] | レベル1への転生、短縮レベル進行、EXPポイント変換、転生GUI | `feature/rebirth` |
+| 35 | [[35_0-概要]] | 寄付結果のゲーム内通知、表示済み確認 | `feature/donation` |
 
 ## 更新規則
 
@@ -343,3 +344,10 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 - `feature/hud` の転生中レベル表示
 - `feature/skilltree` の最高到達レベル由来PP算出
 - `feature/mob/event/MobInteractionEventHandler.java` のNPC導線
+
+### [[35_0-概要|35-donation]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/donation/*`
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7300` から `P_7301`）
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_7300` から `E_7301`）
+- `40_filebase/10.features.item/99.currency/v1.99a00021.astrald_paid.yml`

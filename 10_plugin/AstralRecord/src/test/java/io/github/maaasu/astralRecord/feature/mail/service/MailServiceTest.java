@@ -170,8 +170,8 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_3-メソッド仕様.md
+     * 章・見出し: # 18_3-メソッド仕様 > ## メール削除
      * 検証契約: 削除は個別PUTを使わずmailDelete sectionとして保存し、対応するSQL ACKで保留を解除する。
      */
     @Test
@@ -196,6 +196,23 @@ class MailServiceTest {
         acknowledgement.addProperty("deletedAt", LocalDateTime.now().toString());
         section.acknowledge().accept(acknowledgement);
         assertNull(participant.getValue().apply(context.accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_3-メソッド仕様.md
+     * 章・見出し: # 18_3-メソッド仕様 > ## メール削除
+     * 検証契約: 未読かつ受取時付与の報酬付きメールは削除を拒否し、mailDelete mutationを作らない。
+     */
+    @Test
+    void unreadRewardMailCannotBeDeleted() {
+        TestContext context = new TestContext();
+        AtomicReference<Boolean> result = new AtomicReference<>();
+
+        context.runWithPlayerServices(() -> context.service.delete(context.astPlayer, context.mail, result::set));
+
+        assertEquals(Boolean.FALSE, result.get());
+        verify(context.inventoryService, never()).executeCriticalPlayerMutation(any(), any());
+        verify(context.messageService).send(context.astPlayer, PlayerMsgId.P_7301);
     }
 
     private static final class TestContext {
@@ -264,7 +281,11 @@ class MailServiceTest {
                 mutation.get();
                 return new CompletableFuture<Boolean>();
             });
-            runWithPlayerServices(() -> service.delete(astPlayer, mail.id(), ignored -> { }));
+            MailEntry receivedMail = new MailEntry(
+                mail.id(), mail.icon(), mail.title(), mail.body(), mail.publishFrom(), mail.publishTo(),
+                mail.receiveOnRead(), mail.rewards(), true, LocalDateTime.now()
+            );
+            runWithPlayerServices(() -> service.delete(astPlayer, receivedMail, ignored -> { }));
         }
 
         private void runCriticalMutationWithoutCompleting() {
