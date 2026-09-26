@@ -902,6 +902,490 @@
           "indexes": []
         }
       ]
+    },
+    {
+      "id": "20260926_channel_boost",
+      "fileName": "20260926_channel_boost.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "channel_boost",
+        "primaryKey": "PK_channel_boost",
+        "columns": [
+          {
+            "name": "channel_id",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "exp_multiplier",
+            "sqlType": "float",
+            "isNullable": true,
+            "maxLengthBytes": 8
+          },
+          {
+            "name": "exp_expires_at",
+            "sqlType": "datetime2",
+            "isNullable": true,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "exp_operation_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": true,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "exp_activator_name",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": 200
+          },
+          {
+            "name": "drop_multiplier",
+            "sqlType": "float",
+            "isNullable": true,
+            "maxLengthBytes": 8
+          },
+          {
+            "name": "drop_expires_at",
+            "sqlType": "datetime2",
+            "isNullable": true,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "drop_operation_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": true,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "drop_activator_name",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": 200
+          }
+        ],
+        "checkConstraints": [],
+        "indexes": []
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "channel_boost_operation",
+          "primaryKey": "PK_channel_boost_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "channel_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "inventory_entry_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "status",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "reason",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "boost_kind",
+              "sqlType": "nvarchar",
+              "isNullable": true,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "multiplier",
+              "sqlType": "float",
+              "isNullable": true,
+              "maxLengthBytes": 8
+            },
+            {
+              "name": "expires_at",
+              "sqlType": "datetime2",
+              "isNullable": true,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "event_cursor",
+              "sqlType": "bigint",
+              "isNullable": true,
+              "maxLengthBytes": 8
+            },
+            {
+              "name": "created_at",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "channel_boost_event",
+          "primaryKey": "PK_channel_boost_event",
+          "columns": [
+            {
+              "name": "event_cursor",
+              "sqlType": "bigint",
+              "isNullable": false,
+              "maxLengthBytes": 8
+            },
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "channel_id",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 128
+            },
+            {
+              "name": "account_name",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 200
+            },
+            {
+              "name": "vip_tier",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "boost_kind",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": 32
+            },
+            {
+              "name": "multiplier",
+              "sqlType": "float",
+              "isNullable": false,
+              "maxLengthBytes": 8
+            },
+            {
+              "name": "expires_at",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            },
+            {
+              "name": "created_at",
+              "sqlType": "datetime2",
+              "isNullable": false,
+              "precision": 23,
+              "scale": 3
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": [
+            "UQ_channel_boost_event_operation"
+          ],
+          "indexDefinitions": [
+            {
+              "name": "UQ_channel_boost_event_operation",
+              "columns": [
+                "operation_id"
+              ]
+            }
+          ]
+        },
+        {
+          "schema": "dbo",
+          "table": "channel_boost_cursor",
+          "primaryKey": "PK_channel_boost_cursor",
+          "columns": [
+            {
+              "name": "id",
+              "sqlType": "int",
+              "isNullable": false,
+              "maxLengthBytes": 4
+            },
+            {
+              "name": "last_event_cursor",
+              "sqlType": "bigint",
+              "isNullable": false,
+              "maxLengthBytes": 8
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        }
+      ]
+    },
+    {
+      "id": "20260927_astrald_shop_purchase",
+      "fileName": "20260927_astrald_shop_purchase.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "astrald_shop_purchase",
+        "primaryKey": "PK_astrald_shop_purchase",
+        "columns": [
+          {
+            "name": "operation_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "actor_user_uuid",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "account_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "item_id",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "channel_id",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "request_hash",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "price_paid_astrald",
+            "sqlType": "int",
+            "isNullable": false,
+            "maxLengthBytes": 4
+          },
+          {
+            "name": "effect_type",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "effect_value",
+            "sqlType": "float",
+            "isNullable": false,
+            "maxLengthBytes": 8
+          },
+          {
+            "name": "duration_seconds",
+            "sqlType": "int",
+            "isNullable": true,
+            "maxLengthBytes": 4
+          },
+          {
+            "name": "status",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 32
+          },
+          {
+            "name": "reason",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": 200
+          },
+          {
+            "name": "response_json",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": -1
+          },
+          {
+            "name": "created_at",
+            "sqlType": "datetime2",
+            "isNullable": false,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "updated_at",
+            "sqlType": "datetime2",
+            "isNullable": false,
+            "precision": 23,
+            "scale": 3
+          }
+        ],
+        "checkConstraints": [
+          "CK_astrald_shop_purchase_status"
+        ],
+        "indexes": [
+          "IX_astrald_shop_purchase_account_status"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "IX_astrald_shop_purchase_account_status",
+            "columns": [
+              "account_id",
+              "status",
+              "created_at"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "20260927_web_mail_currency_claim",
+      "fileName": "20260927_web_mail_currency_claim.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "web_mail_currency_claim",
+        "primaryKey": "PK_web_mail_currency_claim",
+        "columns": [
+          {
+            "name": "operation_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "actor_user_uuid",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "account_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "mail_id",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 400
+          },
+          {
+            "name": "request_hash",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "currency_rewards_json",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": -1
+          },
+          {
+            "name": "has_non_currency_rewards",
+            "sqlType": "bit",
+            "isNullable": false,
+            "maxLengthBytes": 1
+          },
+          {
+            "name": "status",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 32
+          },
+          {
+            "name": "reason",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": 200
+          },
+          {
+            "name": "response_json",
+            "sqlType": "nvarchar",
+            "isNullable": true,
+            "maxLengthBytes": -1
+          },
+          {
+            "name": "created_at",
+            "sqlType": "datetime2",
+            "isNullable": false,
+            "precision": 23,
+            "scale": 3
+          },
+          {
+            "name": "updated_at",
+            "sqlType": "datetime2",
+            "isNullable": false,
+            "precision": 23,
+            "scale": 3
+          }
+        ],
+        "checkConstraints": [
+          "CK_web_mail_currency_claim_status"
+        ],
+        "indexes": [
+          "UX_web_mail_currency_claim_account_mail",
+          "IX_web_mail_currency_claim_account_status"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "UX_web_mail_currency_claim_account_mail",
+            "columns": [
+              "account_id",
+              "mail_id"
+            ]
+          },
+          {
+            "name": "IX_web_mail_currency_claim_account_status",
+            "columns": [
+              "account_id",
+              "status",
+              "created_at"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

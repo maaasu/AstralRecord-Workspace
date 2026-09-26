@@ -1,0 +1,31 @@
+# design:
+#   motif: "交易 / ブースト利用券"
+#   progression: 0
+schemaVersion: 1
+id: 30a00020
+category: consumable
+name: "&bドロップブーストチケット【1.2倍・1時間】"
+icon: PAPER
+rarity: RARE
+maxStack: 64
+saleValue: 0
+unTradeable: true
+unSellable: true
+lore:
+  - "&7右クリックで、現在のチャンネルに適用します。"
+  - "&7効果時間は1時間。チャンネル内の全プレイヤーが対象です。"
+  - "&eドロップ増加率を1.2倍にします。"
+  - "&cドロップブースト中は使用できません。"
+  - "&7EXPブーストと併用できます。"
+  - "&7効果はチャンネルごとに独立します。"
+  - "&7使用者とブースト情報が全チャンネルへ通知されます。"
+  - "&cトレード・売却不可"
+consumable:
+  onUse:
+    amount: 1
+  effects:
+    - type: CHANNEL_DROP_BOOST
+      value: 1.2
+      durationSeconds: 3600
+      rate: 100
+      isPercent: false

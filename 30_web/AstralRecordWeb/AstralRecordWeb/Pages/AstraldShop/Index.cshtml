@@ -2,9 +2,9 @@
 @model AstralRecordWeb.Pages.AstraldShop.IndexModel
 @{ ViewData["Title"] = "有償アストラルドショップ"; }
 <section class="ar-portal"><div class="container">
-    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">アカウント特典</p><h1>有償アストラルドショップ</h1><p class="ar-portal-sub">購入した効果は現在のアカウントへ直接適用されます。ゲーム内メールでの受取操作はありません。</p></div><a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">アカウント特典</p><h1>有償アストラルドショップ</h1><p class="ar-portal-sub">現在のアカウントの有償アストラルドで特典を購入できます。購入した効果は直接適用され、ゲーム内メールでの受取操作はありません。</p></div><a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
-    @if (Model.PurchaseResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.AstraldShop.IndexModel.PurchaseStatus(result) <span>操作ID: @result.OperationId</span></div> }
+    @if (Model.PurchaseResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.AstraldShop.IndexModel.PurchaseStatus(result)</div> }
     @if (Model.Account is { } account)
     {
         <section class="ar-panel"><h2>購入先</h2><p><strong>@account.AccountName</strong>（スロット @account.SlotIndex）</p><p>この画面を開いている間にゲーム内の選択アカウントが変わった場合は購入を受け付けません。</p>

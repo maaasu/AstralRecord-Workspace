@@ -12,7 +12,7 @@ public sealed class AstraldShopItem
     public string Name { get; init; } = "";
     public long PricePaidAstrald { get; init; }
     public string EffectType { get; init; } = "";
-    public long? EffectValue { get; init; }
+    public double EffectValue { get; init; }
     public long? DurationSeconds { get; init; }
     public bool RequiresChannel { get; init; }
 }

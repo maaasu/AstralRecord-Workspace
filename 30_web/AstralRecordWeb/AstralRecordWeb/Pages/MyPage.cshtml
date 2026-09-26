@@ -11,7 +11,7 @@
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         <section class="ar-panel"><h2>ログイン設定</h2><p>任意のID・パスワードで、次回からMinecraftを起動せずログインできます。IDの確認やパスワードの再設定もこちらから行えます。</p><a asp-page="/LoginSettings" class="btn ar-btn-primary">ログイン設定を開く →</a></section>
         <section class="ar-panel"><h2>寄付・Discord連携</h2><p>活動への支援の申請、Discord連携、申請結果の確認を行えます。</p><a asp-page="/Donations/Index" class="btn ar-btn-primary">寄付フォーム・履歴を開く →</a></section>
-        <section class="ar-panel"><h2>有償アストラルドとメール</h2><p>現在のアカウントに直接適用する特典を購入できます。通貨だけのメール報酬はWebで受け取れます。</p><a asp-page="/AstraldShop/Index" class="btn ar-btn-primary">ショップを開く →</a> <a asp-page="/Mail/Index" class="btn ar-btn-outline">メールを開く →</a></section>
+        <section class="ar-panel"><h2>有償アストラルドとメール</h2><p>現在のアカウントに直接適用する特典を購入できます。メールの通貨報酬はWebで、その他のアイテムはゲーム内で受け取れます。</p><a asp-page="/AstraldShop/Index" class="btn ar-btn-primary">ショップを開く →</a> <a asp-page="/Mail/Index" class="btn ar-btn-outline">メールを開く →</a></section>
         @if (Model.Profile is { } profile)
         {
             @if (profile.CurrentAccount is { } selectedAccount)

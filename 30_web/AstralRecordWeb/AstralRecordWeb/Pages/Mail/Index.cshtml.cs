@@ -9,12 +9,14 @@ namespace AstralRecordWeb.Pages.Mail;
 
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClient profiles) : PageModel
+public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClient profiles,
+    ItemMasterApiClient items) : PageModel
 {
     public WebPlayerAccountProfileResponse? Account { get; private set; }
     public IReadOnlyList<WebMail> Messages { get; private set; } = [];
     public WebMailClaim? ClaimResult { get; private set; }
     public string? ErrorMessage { get; private set; }
+    private IReadOnlyDictionary<string, string> itemNames = new Dictionary<string, string>();
     [BindProperty] public Guid AccountId { get; set; }
     [BindProperty] public Guid OperationId { get; set; }
     [BindProperty] public string MailId { get; set; } = "";
@@ -70,6 +72,12 @@ public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClien
 
     private bool Actor(out Guid actor) => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actor);
 
+    public string RewardName(WebMailReward reward) => itemNames.GetValueOrDefault(reward.ItemId)
+        ?? (IsCurrency(reward) ? "未登録の通貨" : "未登録のアイテム");
+
+    public static bool IsCurrency(WebMailReward reward) =>
+        string.Equals(reward.Category, "currency", StringComparison.OrdinalIgnoreCase);
+
     private async Task LoadAsync(Guid actor, CancellationToken ct)
     {
         var profile = await profiles.GetMeAsync(actor, ct);
@@ -80,7 +88,20 @@ public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClien
         }
         Account = profile.Value.CurrentAccount;
         var mail = await paid.MailAsync(actor, Account.AccountId, ct);
-        if (mail.Succeeded) Messages = mail.Value!;
+        if (mail.Succeeded)
+        {
+            Messages = mail.Value!;
+            var ids = Messages.SelectMany(message => message.Rewards).Select(reward => reward.ItemId).ToArray();
+            if (ids.Length > 0)
+            {
+                try { itemNames = await items.GetNamesAsync(ids, ct); }
+                catch (Exception failure) when (!ct.IsCancellationRequested
+                    && failure is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+                {
+                    ErrorMessage = "報酬名を取得できませんでした。時間をおいて再読み込みしてください。";
+                }
+            }
+        }
         else ErrorMessage = "メールを取得できませんでした。時間をおいて再読み込みしてください。";
     }
 }

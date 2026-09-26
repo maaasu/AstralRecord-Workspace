@@ -394,10 +394,15 @@ public final class AstralRecordProxyPlugin {
                     return;
                 }
                 String sourceServerId = connection.getServerInfo().getName();
+                String currentServerId = connection.getPlayer().getCurrentServer()
+                    .map(current -> current.getServerInfo().getName()).orElse(null);
+                if (!isCurrentBackend(currentServerId, sourceServerId)) {
+                    return;
+                }
                 dispatchMinecraftChat(
                     sourceServerId,
                     settings,
-                    () -> broadcastMinecraftChat(chat),
+                    () -> broadcastMinecraftChat(sourceServerId, chat),
                     () -> api.publishMinecraftChat(chat, sourceServerId).exceptionally(failure -> {
                         logger.warn("Failed to relay Minecraft chat to API", failure);
                         return null;
@@ -409,7 +414,13 @@ public final class AstralRecordProxyPlugin {
                     new ServerMetric(metrics.mspt(), System.nanoTime()));
             } else if (incoming instanceof BackendProtocol.PrivateChat privateChat
                 && connection.getPlayer().getUniqueId().equals(privateChat.playerId())) {
-                broadcastPrivateChat(connection.getServerInfo().getName(), privateChat);
+                String sourceServerId = connection.getServerInfo().getName();
+                String currentServerId = connection.getPlayer().getCurrentServer()
+                    .map(current -> current.getServerInfo().getName()).orElse(null);
+                if (!isCurrentBackend(currentServerId, sourceServerId)) {
+                    return;
+                }
+                broadcastPrivateChat(sourceServerId, privateChat);
             } else if (incoming instanceof BackendProtocol.DirectMessage directMessage
                 && connection.getPlayer().getUniqueId().equals(directMessage.playerId())) {
                 String sourceServerId = connection.getServerInfo().getName();
@@ -773,8 +784,8 @@ public final class AstralRecordProxyPlugin {
         });
     }
 
-    private void broadcastMinecraftChat(BackendProtocol.Chat chat) {
-        PlayerMetadata sender = metadata.get(chat.playerId());
+    private void broadcastMinecraftChat(String sourceServerId, BackendProtocol.Chat chat) {
+        PlayerMetadata sender = chatMetadata(metadata.get(chat.playerId()), sourceServerId, chat.displayName());
         Component message = sender == null
             ? Component.text("[" + chat.channel() + "] " + chat.displayName(), NamedTextColor.WHITE)
             : tabDisplayName(sender);
@@ -783,6 +794,18 @@ public final class AstralRecordProxyPlugin {
             .append(chatBodyComponent(chat.original(), chat.converted()));
         Component completedMessage = message;
         proxy.getAllPlayers().forEach(player -> player.sendMessage(completedMessage));
+    }
+
+    /**
+     * チャットの送信元とアカウント表示名に対応するメタデータだけを採用します。
+     * @param value 現在キャッシュされているメタデータ。未受信時はnull
+     * @param sourceServerId パケットを受信したbackendの識別子
+     * @param displayName パケットに含まれる発言時のアカウント表示名
+     * @return 同じbackend・アカウントの値。移動・切替後の値ならnull
+     */
+    static PlayerMetadata chatMetadata(PlayerMetadata value, String sourceServerId, String displayName) {
+        return value != null && isCurrentBackend(value.serverId(), sourceServerId)
+            && java.util.Objects.equals(value.displayName(), displayName) ? value : null;
     }
 
     /** Proxy最高権限UUIDに一致するプレイヤーだけへコマンド監視を配信し、入力者本人を除外する。 */
@@ -810,24 +833,27 @@ public final class AstralRecordProxyPlugin {
     void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
         NetworkSettings settings = settings();
         if (settings == null) return;
+        PlayerMetadata senderMetadata = chatMetadata(
+            metadata.get(chat.playerId()), sourceServerId, chat.senderName());
         Component message = Component.text("[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
         if ("direct".equalsIgnoreCase(chat.type())) {
             Component targetLabel = chat.participantIds().stream()
                 .filter(id -> !id.equals(chat.playerId()))
-                .map(metadata::get).filter(java.util.Objects::nonNull)
+                .map(id -> chatMetadata(metadata.get(id), sourceServerId, chat.targetName()))
+                .filter(java.util.Objects::nonNull)
                 .map(AstralRecordProxyPlugin::tabDisplayName).findFirst()
                 .orElse(Component.text(chat.targetName(), NamedTextColor.LIGHT_PURPLE));
             message = message.append(Component.text("[DM] ", NamedTextColor.LIGHT_PURPLE))
-                .append(metadata.containsKey(chat.playerId())
-                    ? tabDisplayName(metadata.get(chat.playerId()))
+                .append(senderMetadata != null
+                    ? tabDisplayName(senderMetadata)
                     : Component.text(chat.senderName(), NamedTextColor.LIGHT_PURPLE))
                 .append(Component.text(" → ", NamedTextColor.LIGHT_PURPLE))
                 .append(targetLabel)
                 .append(Component.text(": ", NamedTextColor.LIGHT_PURPLE));
         } else if ("party".equalsIgnoreCase(chat.type())) {
             message = message.append(Component.text("[パーティー: " + chat.partyName() + "] ", NamedTextColor.AQUA))
-                .append(metadata.containsKey(chat.playerId())
-                    ? tabDisplayName(metadata.get(chat.playerId()))
+                .append(senderMetadata != null
+                    ? tabDisplayName(senderMetadata)
                     : Component.text(chat.senderName(), NamedTextColor.AQUA))
                 .append(Component.text(": ", NamedTextColor.AQUA));
         } else {

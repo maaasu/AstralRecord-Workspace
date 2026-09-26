@@ -254,6 +254,21 @@ class ProxyTabDisplayTest {
         assertFalse(AstralRecordProxyPlugin.isCurrentBackend(null, "rpg-1"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: チャットの送信元と表示名が一致しない移動・切替後のメタデータを流用しない。
+     */
+    @Test
+    void rejectsChatMetadataFromAnotherBackendOrAccount() {
+        PlayerMetadata value = new PlayerMetadata(PLAYER_ID, "player", "rpg-2", "channel-2",
+            "current#1", 10, "class", false, 0, false, false);
+        assertEquals(value, AstralRecordProxyPlugin.chatMetadata(value, "RPG-2", "current#1"));
+        assertNull(AstralRecordProxyPlugin.chatMetadata(value, "rpg-1", "current#1"));
+        assertNull(AstralRecordProxyPlugin.chatMetadata(value, "rpg-2", "previous#0"));
+        assertNull(AstralRecordProxyPlugin.chatMetadata(null, "rpg-2", "current#1"));
+    }
+
     @Test
     void removesTabEntriesForPlayersNoLongerConnectedToProxy() {
         List<UUID> removedIds = new ArrayList<>();

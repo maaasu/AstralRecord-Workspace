@@ -146,7 +146,7 @@
 | GET `/api/guide/{guideId}` | ゲーム内ガイド詳細取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | GET `/api/account-guide/{accountId}` | アカウント単位のガイド進行取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | POST `/api/account-guide/{accountId}/steps/complete` | ガイド手順達成の冪等登録 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
-| GET `/api/mail?user_id={user_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
+| GET `/api/mail?account_id={account_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | GET `/api/mail/unread-count?account_id={account_id}` | アカウント単位の未読メール件数取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/read` | メール既読更新 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/delete` | プレイヤー単位メール削除 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
@@ -197,3 +197,7 @@ http://localhost:{port}/openapi/v1.json
 ## 寄付受付
 
 本人の寄付申請・管理者審査・Discord本人連携・ゲーム内累計配布は [37-donations](00_docs/20_API設計書/feature/37-donations/37_README.md) を参照する。ManagementDB migrationとDiscordアプリ設定、専用Webキー、永続Data Protection鍵を準備してから有効化する。
+
+## 有償サービスとチャンネルブースト
+
+チャンネルブースト、現在アカウントへのWeb有償ショップ購入、メールの通貨部分受取は [38-paid-services](00_docs/20_API設計書/feature/38-paid-services/38_3.00-エンドポイント仕様.md) を参照する。Web本人・管理者操作は専用Webキーと所有者・権限を検証し、オンライン中の通貨変更はPluginの保存境界で確定する。

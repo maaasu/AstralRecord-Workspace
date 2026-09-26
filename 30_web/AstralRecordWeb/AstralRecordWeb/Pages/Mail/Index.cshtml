@@ -4,7 +4,7 @@
 <section class="ar-portal"><div class="container">
     <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">受信箱</p><h1>メール</h1><p class="ar-portal-sub">現在のアカウント宛のメールです。通貨報酬はWebで受け取れます。アイテム報酬はゲーム内で受け取ってください。</p></div><a asp-page="/Mail/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
-    @if (Model.ClaimResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.Mail.IndexModel.ClaimStatus(result) <span>操作ID: @result.OperationId</span></div> }
+    @if (Model.ClaimResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.Mail.IndexModel.ClaimStatus(result)</div> }
     @if (Model.Account is { } account)
     {
         <section class="ar-panel"><h2>受取先</h2><p><strong>@account.AccountName</strong>（スロット @account.SlotIndex）</p><p>ゲーム内で選択中のアカウントが変わると、この画面からは受け取れません。</p></section>
@@ -13,10 +13,10 @@
         {
             @foreach (var mail in Model.Messages)
             {
-                <article class="ar-panel"><h2>@mail.Title</h2><p style="white-space: pre-wrap">@mail.Body</p>
+                <article class="ar-panel"><h2>@Html.Raw(AstralRecordWeb.Services.MinecraftTextFormatter.ToHtml(mail.Title))</h2><p style="white-space: pre-wrap">@Html.Raw(AstralRecordWeb.Services.MinecraftTextFormatter.ToHtml(mail.Body))</p>
                     @if (mail.Rewards.Count > 0)
                     {
-                        <p>報酬:</p><ul>@foreach (var reward in mail.Rewards) { <li>@reward.ItemId × @reward.Amount.ToString("N0")（@reward.Category）</li> }</ul>
+                        <p>報酬:</p><ul>@foreach (var reward in mail.Rewards) { <li>@Html.Raw(AstralRecordWeb.Services.MinecraftTextFormatter.ToHtml(Model.RewardName(reward))) × @reward.Amount.ToString("N0")（@(AstralRecordWeb.Pages.Mail.IndexModel.IsCurrency(reward) ? "通貨" : "ゲーム内で受取")）</li> }</ul>
                     }
                     @if (mail.CanClaimCurrency)
                     {

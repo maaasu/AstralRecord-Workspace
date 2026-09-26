@@ -25,6 +25,8 @@ public sealed class PaidServicesTests
         var html = WebUtility.HtmlDecode(await client.GetStringAsync("/AstraldShop"));
         Assert.Contains("現在の冒険者", html);
         Assert.Contains("1,200", html);
+        Assert.Contains("経験値ブースト", html);
+        Assert.DoesNotContain("商品一覧を取得できません", html);
         Assert.DoesNotContain("古いアカウント", html);
         var operationId = Guid.NewGuid();
         var fields = ShopForm(Token(html), operationId, PaidHandler.OldAccount);
@@ -51,6 +53,10 @@ public sealed class PaidServicesTests
         var html = WebUtility.HtmlDecode(await client.GetStringAsync("/Mail"));
         Assert.Contains("混在メール", html);
         Assert.Contains("通貨を受け取る", html);
+        Assert.Contains("有償アストラルド", html);
+        Assert.Contains("旅の素材", html);
+        Assert.DoesNotContain("99a00021", html);
+        Assert.DoesNotContain("（CURRENCY）", html);
         var fields = new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = Token(html), ["AccountId"] = PaidHandler.OldAccount.ToString(),
@@ -144,6 +150,7 @@ public sealed class PaidServicesTests
                 services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<PaidServicesApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
+                services.AddHttpClient<ItemMasterApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             });
         }
     }
@@ -182,7 +189,8 @@ public sealed class PaidServicesTests
                 accounts = new[] { new { accountId = OldAccount, accountName = "古いアカウント", slotIndex = 0, playerLevel = 1, classId = "class", className = "戦士" } },
             });
             if (path == "/api/web/account-benefits") return Json(new { accountId = CurrentAccount, instancePriorityUses = 5, vipTier = "DONER", remainingDays = 2, paidAstraldBalance = 1200L });
-            if (path == "/api/web/astrald-shop/catalog") return Json(new { items = new[] { new { itemId = "30a00014", name = "経験値ブースト", pricePaidAstrald = 500, effectType = "CHANNEL_EXP_BOOST", durationSeconds = 3600, requiresChannel = true } }, channels = new[] { new { channelId = "channel-1", displayName = "チャンネル1" } } });
+            if (path == "/api/web/astrald-shop/catalog") return Json(new { items = new[] { new { itemId = "30a00014", name = "経験値ブースト", pricePaidAstrald = 500, effectType = "CHANNEL_EXP_BOOST", effectValue = 1.1, durationSeconds = 3600, requiresChannel = true } }, channels = new[] { new { channelId = "channel-1", displayName = "チャンネル1" } } });
+            if (path == "/api/item") return Json(new[] { new { id = "99a00021", category = "currency", name = "&b有償アストラルド" }, new { id = "material", category = "material", name = "&a旅の素材" } });
             if (path == "/api/channel-boosts") return Json(new { eventCursor = 1, channels = ActiveExpBoost
                 ? new object[] { new { channelId = "channel-1", exp = new { multiplier = 1.5, expiresAt = DateTimeOffset.UtcNow.AddHours(1) } } }
                 : Array.Empty<object>() });
