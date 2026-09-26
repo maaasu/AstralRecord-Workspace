@@ -213,7 +213,10 @@ public final class ItemWeaponAttackService {
                 && seijakuIssenSkillRuntimeService.isActive(player);
         SkillCastResult result;
         if (counterAttack) {
-            result = !skillService.isCasting(caster) && seijakuIssenSkillRuntimeService.beginCounter(player)
+            double attackSpeedMultiplier = degradationTicket == null
+                    ? 1.0D : degradationTicket.attackSpeedMultiplier();
+            result = !skillService.isCasting(caster) && seijakuIssenSkillRuntimeService.beginCounter(
+                    player, skillId, cooldownTicks, attackSpeedMultiplier)
                     ? SkillCastResult.succeeded()
                     : SkillCastResult.failure(null);
             if (completionListener != null) {
@@ -225,7 +228,7 @@ public final class ItemWeaponAttackService {
         } else {
             result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player, completionListener);
         }
-        if (result.success() && cooldownTicks > 0) {
+        if (result.success() && !counterAttack && cooldownTicks > 0) {
             if (degradationTicket == null) {
                 skillService.startAttackCooldown(caster, skillId, cooldownTicks);
             } else {

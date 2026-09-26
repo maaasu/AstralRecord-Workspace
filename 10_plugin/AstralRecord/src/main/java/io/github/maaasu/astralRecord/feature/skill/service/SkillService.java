@@ -1472,15 +1472,66 @@ public class SkillService {
             long baseCooldownTicks,
             double attackSpeedMultiplier
     ) {
+        long cooldownTicks = resolveAttackCooldownTicks(caster, baseCooldownTicks, attackSpeedMultiplier);
+        startCooldown(caster, WEAPON_NORMAL_ATTACK_COOLDOWN_ID, skillId, cooldownTicks);
+    }
+
+    /**
+     * 装備の通常攻撃間隔へCD短縮率・攻撃速度・一時攻撃速度倍率を適用します。
+     *
+     * @param caster 発動者
+     * @param baseCooldownTicks 装備定義上の基本攻撃間隔tick
+     * @param attackSpeedMultiplier この攻撃行動だけへ適用する攻撃速度倍率
+     * @return 実際に使用する通常攻撃クールタイムtick
+     */
+    public long resolveAttackCooldownTicks(
+            @NotNull SkillCaster caster,
+            long baseCooldownTicks,
+            double attackSpeedMultiplier
+    ) {
         long cooldownTicks = resolveCooldownTicks(caster.statusSnapshot(), baseCooldownTicks);
         double temporaryMultiplier = Double.isFinite(attackSpeedMultiplier) && attackSpeedMultiplier > 0.0D
                 ? attackSpeedMultiplier
                 : 1.0D;
-        cooldownTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
+        return CombatTimingCalculator.resolveAttackIntervalTicks(
                 cooldownTicks,
                 caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED) * temporaryMultiplier
         );
-        startCooldown(caster, WEAPON_NORMAL_ATTACK_COOLDOWN_ID, skillId, cooldownTicks);
+    }
+
+    /**
+     * 既に始まった通常攻撃クールタイムを同じ開始時刻から指定した総時間へ設定します。
+     * 静寂一閃の遅延命中では、構え終了時刻を維持してクールタイムを延長します。
+     *
+     * @param caster 発動者
+     * @param skillId 表示用の通常攻撃スキルID
+     * @param totalCooldownTicks 開始時刻からの総クールタイムtick
+     * @param startedAtMillis クールタイムを開始した時刻
+     */
+    public void setAttackCooldownFromStart(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            long totalCooldownTicks,
+            long startedAtMillis
+    ) {
+        if (totalCooldownTicks <= 0L) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long safeStart = Math.min(startedAtMillis, now);
+        long expiry = safeStart + totalCooldownTicks * MS_PER_TICK;
+        if (expiry <= now) {
+            clearCooldown(caster.casterId(), WEAPON_NORMAL_ATTACK_COOLDOWN_ID);
+            return;
+        }
+        cooldownExpiryByCaster
+                .computeIfAbsent(caster.casterId(), ignored -> new ConcurrentHashMap<>())
+                .put(normalize(WEAPON_NORMAL_ATTACK_COOLDOWN_ID), new CooldownState(
+                        expiry,
+                        totalCooldownTicks,
+                        safeStart,
+                        normalize(skillId)
+                ));
     }
 
     private long resolveCooldownTicks(@NotNull SkillCaster caster, long baseCooldownTicks) {

@@ -196,6 +196,10 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("seijaku_issen_dash_crit", Particle.CRIT, 4, 0.12D, 0.16D, 0.12D, 0.04D);
     public static final SharedParticleDefinition SEIJAKU_ISSEN_DASH_SPARK =
         new SharedParticleDefinition("seijaku_issen_dash_spark", Particle.ELECTRIC_SPARK, 3, 0.10D, 0.14D, 0.10D, 0.03D);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_SWEEP_ATTACK =
+        new SharedParticleDefinition("seijaku_issen_sweep_attack", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_EXPLOSION =
+        new SharedParticleDefinition("seijaku_issen_explosion", Particle.EXPLOSION, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

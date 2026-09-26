@@ -1086,9 +1086,12 @@ public final class DamageService {
                 usesDefenseConversion(victim),
                 temporaryDefenseMultiplier(victim)
         );
+        double tackleDamageMultiplier = seijakuIssenSkillRuntimeService == null
+                ? 1.0D : seijakuIssenSkillRuntimeService.damageTakenMultiplier(victim);
         double postCalculationMultiplier = 1.0D;
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
-            postCalculationMultiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
+            postCalculationMultiplier = finalDamageMultiplier(attacker)
+                    * temporaryDamageMultiplier(attacker, victim) * tackleDamageMultiplier;
             if (conditionService != null) {
                 postCalculationMultiplier *= conditionService.damageTakenMultiplier(victim)
                         * conditionService.damageDealtMultiplier(attacker);
@@ -1102,7 +1105,8 @@ public final class DamageService {
                 && !hasActiveShield(victim)) {
             double fixedHealthDamage = fixedHealthDamage(attacker);
             if (fixedHealthDamage > 0.0D) {
-                justDodgeDamage = calculated.withAddedFixedHealthDamage(fixedHealthDamage);
+                justDodgeDamage = calculated.withAddedFixedHealthDamage(
+                        fixedHealthDamage * tackleDamageMultiplier);
             }
         }
         if (justDodgeSkillRuntimeService != null
@@ -1126,13 +1130,16 @@ public final class DamageService {
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         boolean shieldWasActive = hasActiveShield(victim);
         if (bastionStrikeSkillRuntimeService != null
-                && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier, shieldBreakRatio)
+                && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier,
+                        shieldBreakRatio, tackleDamageMultiplier)
                 && bastionStrikeSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
             return new DamageResult(0.0D);
         }
-        DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier, shieldBreakRatio);
+        DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier,
+                shieldBreakRatio, tackleDamageMultiplier);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
-            result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
+            result = result.withAddedFixedHealthDamage(
+                    fixedHealthDamage(attacker) * tackleDamageMultiplier);
         }
         double rawFixedHealthDamage = result.fixedHealthDamage();
         PaladinGuardianProtectRuntimeService.DamageShare protectionShare = null;
@@ -1411,23 +1418,16 @@ public final class DamageService {
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
             double shieldBreakMultiplier,
-            @Nullable Double shieldBreakRatio
+            @Nullable Double shieldBreakRatio,
+            double tackleDamageMultiplier
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return result;
         }
 
-        double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
         double currentShield = currentShield(victim);
-        double shieldDamage = shieldBreakRatio == null
-                ? calculateShieldDamage(
-                        result.finalDamage(),
-                        victim.maxHealth(),
-                        shieldBreak,
-                        shieldBreakMultiplier,
-                        currentShield
-                )
-                : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, currentShield);
+        double shieldDamage = tackleShieldDamage(attacker, victim, result, shieldBreakMultiplier,
+                shieldBreakRatio, currentShield, tackleDamageMultiplier);
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
         return DamageResult.shield(shieldDamage, shieldBroken, result);
@@ -1438,23 +1438,40 @@ public final class DamageService {
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
             double shieldBreakMultiplier,
-            @Nullable Double shieldBreakRatio
+            @Nullable Double shieldBreakRatio,
+            double tackleDamageMultiplier
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return false;
         }
         double currentShield = currentShield(victim);
+        double shieldDamage = tackleShieldDamage(attacker, victim, result, shieldBreakMultiplier,
+                shieldBreakRatio, currentShield, tackleDamageMultiplier);
+        return currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
+    }
+
+    /** タックル中はシールド換算前のダメージを復元してから最終シールド減少量を半減します。 */
+    private double tackleShieldDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result,
+            double shieldBreakMultiplier,
+            @Nullable Double shieldBreakRatio,
+            double currentShield,
+            double tackleDamageMultiplier
+    ) {
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
-        double shieldDamage = shieldBreakRatio == null
+        double rawFinalDamage = result.finalDamage() / tackleDamageMultiplier;
+        double rawShieldDamage = shieldBreakRatio == null
                 ? calculateShieldDamage(
-                        result.finalDamage(),
+                        rawFinalDamage,
                         victim.maxHealth(),
                         shieldBreak,
                         shieldBreakMultiplier,
-                        currentShield
+                        Double.POSITIVE_INFINITY
                 )
-                : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, currentShield);
-        return currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
+                : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, Double.POSITIVE_INFINITY);
+        return Math.min(currentShield, rawShieldDamage * tackleDamageMultiplier);
     }
 
     /**

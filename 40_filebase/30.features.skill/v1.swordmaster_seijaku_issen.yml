@@ -11,9 +11,14 @@ icon: DIAMOND_SWORD
 lore:
   - "&7剣の通常攻撃を{skill.counterTicks}tickのカウンター構えに変える。"
   - "&7構え中の移動速度は70%低下し、残り時間をアクションバーへ表示する。"
-  - "&7直接攻撃を受けると無効化し、攻撃者へ無属性の近接攻撃力{skill.counterDamageRatio:percent}%で反撃する。"
-  - "&7反撃成立時は最大ENGの10%を回復し、通常攻撃のクールタイムをリセットする。"
-  - "&7時間切れ時はENG10を消費し、前方約10mの経路上の敵を近接攻撃力{skill.failureDamageRatio:percent}%で攻撃する。"
+  - "&7ダメージが0の直接攻撃も無効化し、攻撃者へ近接無属性{skill.counterDamageRatio:percent}%で反撃する。"
+  - "&7続けて前方{skill.counterSweepRange}m・最大{skill.counterSweepMaxTargets}体へ同倍率で横薙ぎする。"
+  - "&7最初の反撃が命中した場合だけ最大ENGの10%を回復する。"
+  - "&7構え解除時から剣通常攻撃のクールタイムを開始する。"
+  - "&7時間切れ時はENG10を消費し、前方約10mの経路上の敵を近接無属性{skill.failureDamageRatio:percent}%で攻撃する。"
+  - "&7タックル中の被ダメージを{skill.tackleDamageReductionRatio:percent}%軽減する。"
+  - "&7タックル命中時は半径{skill.explosionRadius}mの各敵へ近接無属性{skill.explosionDamageRatio:percent}%の爆発を追加する。"
+  - "&7タックル命中時の通常攻撃クールタイムは{skill.tackleHitCooldownMultiplier}倍となる。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 0
@@ -21,15 +26,15 @@ castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 10
 levels:
-  - { level: 2, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 3, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 4, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 5, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 6, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 7, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 8, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 9, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
-  - { level: 10, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 2, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 6, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 7, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 8, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 9, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
+  - { level: 10, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1, explosionDamageRatio: 0.1 } }
 sigilSlotsByLevel: []
 allowedSigilIds: []
 learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
@@ -44,6 +49,12 @@ params:
   failureTravelDistance: 10.0
   failureHitRadius: 2.0
   energyRecoveryRatio: 0.1
+  explosionDamageRatio: 5.1
+  explosionRadius: 3.0
+  counterSweepRange: 5.5
+  counterSweepMaxTargets: 5
+  tackleDamageReductionRatio: 0.5
+  tackleHitCooldownMultiplier: 10
 tags:
   - passive
   - melee

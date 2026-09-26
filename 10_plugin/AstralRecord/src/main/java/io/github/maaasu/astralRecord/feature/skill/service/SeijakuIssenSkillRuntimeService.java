@@ -47,9 +47,14 @@ public final class SeijakuIssenSkillRuntimeService {
     private static final String EXPIRY_SCOPE = SKILL_ID + ":expiry";
     private static final String HUD_SCOPE = SKILL_ID + ":hud";
     private static final String DASH_SCOPE = SKILL_ID + ":dash";
+    private static final String SWEEP_SCOPE = SKILL_ID + ":counter-sweep";
     private static final int DASH_SCAN_TICKS = 10;
     private static final double DASH_HORIZONTAL_VELOCITY = 1.5D;
     private static final double DASH_VERTICAL_VELOCITY = 0.3D;
+    private static final double SWEEP_START_ANGLE = 55.0D;
+    private static final double SWEEP_END_ANGLE = -55.0D;
+    private static final int SWEEP_FRAMES = 6;
+    private static final double[] SWEEP_RADIUS_BASES = {2.4D, 3.9D, 5.4D};
 
     private final SkillService skillService;
     private final SkillCombatService combatService;
@@ -62,6 +67,7 @@ public final class SeijakuIssenSkillRuntimeService {
     private final NamespacedKey slowModifierKey;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
     private final Map<UUID, CounterState> counters = new ConcurrentHashMap<>();
+    private final Map<UUID, DashState> dashes = new ConcurrentHashMap<>();
 
     /**
      * 構えと反撃に必要な共有サービスで初期化します。
@@ -112,7 +118,13 @@ public final class SeijakuIssenSkillRuntimeService {
                 params.getDouble("failureEnergyCost", 10.0D),
                 params.getDouble("failureTravelDistance", 10.0D),
                 params.getDouble("failureHitRadius", 2.0D),
-                params.getDouble("energyRecoveryRatio", 0.1D)
+                params.getDouble("energyRecoveryRatio", 0.1D),
+                params.getDouble("explosionDamageRatio", 5.1D),
+                params.getDouble("explosionRadius", 3.0D),
+                params.getDouble("counterSweepRange", 5.5D),
+                params.getInt("counterSweepMaxTargets", 5),
+                params.getDouble("tackleDamageReductionRatio", 0.5D),
+                params.getInt("tackleHitCooldownMultiplier", 10)
         );
         UUID playerId = context.player().getBukkit().getUniqueId();
         configurations.computeIfAbsent(playerId, ignored -> new ConcurrentHashMap<>())
@@ -128,14 +140,17 @@ public final class SeijakuIssenSkillRuntimeService {
         UUID playerId = context.player().getBukkit().getUniqueId();
         Map<String, Configuration> playerConfigurations = configurations.get(playerId);
         if (playerConfigurations == null) {
-            endCounter(playerId);
+            endCounter(playerId, true);
+            taskService.cancel(playerId, DASH_SCOPE);
+            taskService.cancel(playerId, SWEEP_SCOPE);
             return;
         }
         playerConfigurations.remove(configurationKey(context));
         if (playerConfigurations.isEmpty()) {
             configurations.remove(playerId, playerConfigurations);
-            endCounter(playerId);
+            endCounter(playerId, true);
             taskService.cancel(playerId, DASH_SCOPE);
+            taskService.cancel(playerId, SWEEP_SCOPE);
         }
     }
 
@@ -153,19 +168,28 @@ public final class SeijakuIssenSkillRuntimeService {
      * 剣の通常攻撃を構えへ置換し、構え時間と移動低下を開始します。
      *
      * @param astPlayer 発動者。剣の通常攻撃を開始できることが前提
+     * @param attackSkillId 通常攻撃の表示用スキルID
+     * @param baseCooldownTicks 剣通常攻撃の基本クールタイムtick
+     * @param attackSpeedMultiplier 攻撃開始時の一時攻撃速度倍率
      * @return 構えを開始できた場合はtrue
      */
-    public boolean beginCounter(@NotNull AstPlayer astPlayer) {
+    public boolean beginCounter(
+            @NotNull AstPlayer astPlayer,
+            @NotNull String attackSkillId,
+            long baseCooldownTicks,
+            double attackSpeedMultiplier
+    ) {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         Configuration configuration = effectiveConfiguration(playerId);
-        if (configuration == null || !player.isOnline() || player.isDead()) {
+        if (configuration == null || !player.isOnline() || player.isDead()
+                || counters.containsKey(playerId) || dashes.containsKey(playerId)) {
             return false;
         }
-        endCounter(playerId);
         long expiresAtTick = (long) Bukkit.getCurrentTick() + configuration.counterTicks();
         Function<AstPlayer, Component> renderer = ignored -> counterActionBar(playerId);
-        CounterState state = new CounterState(astPlayer, configuration, expiresAtTick, renderer);
+        CounterState state = new CounterState(astPlayer, configuration, expiresAtTick,
+                renderer, attackSkillId, baseCooldownTicks, attackSpeedMultiplier);
         counters.put(playerId, state);
         applySlow(player);
         hudService.setPrimaryActionBarRendererIfAbsent(playerId, renderer);
@@ -204,7 +228,7 @@ public final class SeijakuIssenSkillRuntimeService {
         if ((source != DamageSource.NORMAL_ATTACK && source != DamageSource.SKILL)
                 || !victim.isPlayer() || victim.player() == null
                 || attacker == null || attacker.id().equals(victim.id())
-                || calculated.evaded() || calculated.finalDamage() <= 0.0D) {
+                || calculated.evaded()) {
             return false;
         }
         UUID playerId = victim.id();
@@ -215,13 +239,30 @@ public final class SeijakuIssenSkillRuntimeService {
         if (!counters.remove(playerId, state)) {
             return false;
         }
-        cleanupCounter(playerId, state);
-        combatService.hit(victim, attacker, AttackType.MELEE, DamageElement.NONE,
+        finishCounter(playerId, state);
+        Location counterTarget = attacker.location().clone();
+        DamageResult firstHit = combatService.hit(victim, attacker, AttackType.MELEE, DamageElement.NONE,
                 state.configuration().counterDamageRatio());
-        combatService.recoverEnergyByMaxRatio(state.player(), state.configuration().energyRecoveryRatio());
-        skillService.clearCooldown(playerId, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID);
-        renderCounterHit(state.player().getBukkit(), attacker.location());
+        if (isSuccessfulHit(firstHit)) {
+            combatService.recoverEnergyByMaxRatio(state.player(), state.configuration().energyRecoveryRatio());
+        }
+        renderCounterHit(state.player().getBukkit(), counterTarget);
+        startCounterSweep(state, counterTarget);
         return true;
+    }
+
+    /**
+     * タックルの移動判定中に受けるダメージ倍率を返します。
+     *
+     * @param victim 被弾者
+     * @return タックル中は0.5、通常時は1.0
+     */
+    public double damageTakenMultiplier(@NotNull AstEntity victim) {
+        if (!victim.isPlayer()) {
+            return 1.0D;
+        }
+        DashState state = dashes.get(victim.id());
+        return state == null ? 1.0D : 1.0D - state.configuration().tackleDamageReductionRatio();
     }
 
     /**
@@ -240,18 +281,21 @@ public final class SeijakuIssenSkillRuntimeService {
      * @param playerId 中断対象のプレイヤーUUID
      */
     public void interrupt(@NotNull UUID playerId) {
-        endCounter(playerId);
+        endCounter(playerId, false);
         taskService.cancel(playerId, DASH_SCOPE);
+        taskService.cancel(playerId, SWEEP_SCOPE);
     }
 
     /** Plugin停止時にすべての短命状態を消去します。 */
     public void clearAll() {
         for (UUID playerId : Set.copyOf(counters.keySet())) {
-            endCounter(playerId);
+            endCounter(playerId, false);
         }
         for (UUID playerId : Set.copyOf(configurations.keySet())) {
             taskService.cancel(playerId, DASH_SCOPE);
+            taskService.cancel(playerId, SWEEP_SCOPE);
         }
+        dashes.clear();
         configurations.clear();
     }
 
@@ -259,15 +303,30 @@ public final class SeijakuIssenSkillRuntimeService {
         if (!counters.remove(playerId, state)) {
             return;
         }
-        cleanupCounter(playerId, state);
-        startFailureDash(state);
+        CooldownWindow cooldown = finishCounter(playerId, state);
+        startFailureDash(state, cooldown);
     }
 
-    private void endCounter(@NotNull UUID playerId) {
+    private void endCounter(@NotNull UUID playerId, boolean startCooldown) {
         CounterState state = counters.remove(playerId);
         if (state != null) {
-            cleanupCounter(playerId, state);
+            if (startCooldown) {
+                finishCounter(playerId, state);
+            } else {
+                cleanupCounter(playerId, state);
+            }
         }
+    }
+
+    private @NotNull CooldownWindow finishCounter(@NotNull UUID playerId, @NotNull CounterState state) {
+        cleanupCounter(playerId, state);
+        PlayerSkillCaster caster = new PlayerSkillCaster(state.player());
+        long durationTicks = skillService.resolveAttackCooldownTicks(
+                caster, state.baseCooldownTicks(), state.attackSpeedMultiplier());
+        long startedAtMillis = System.currentTimeMillis();
+        skillService.setAttackCooldownFromStart(
+                caster, state.attackSkillId(), durationTicks, startedAtMillis);
+        return new CooldownWindow(startedAtMillis, durationTicks);
     }
 
     private void cleanupCounter(@NotNull UUID playerId, @NotNull CounterState state) {
@@ -280,7 +339,7 @@ public final class SeijakuIssenSkillRuntimeService {
         }
     }
 
-    private void startFailureDash(@NotNull CounterState state) {
+    private void startFailureDash(@NotNull CounterState state, @NotNull CooldownWindow cooldown) {
         AstPlayer astPlayer = state.player();
         Player player = astPlayer.getBukkit();
         Configuration configuration = state.configuration();
@@ -300,42 +359,134 @@ public final class SeijakuIssenSkillRuntimeService {
         }
         statusService.consumeEnergy(astPlayer, configuration.failureEnergyCost());
         UUID playerId = player.getUniqueId();
+        DashState dash = new DashState(state, cooldown, player.getWorld(), player.getLocation().clone());
+        dashes.put(playerId, dash);
+        taskService.repeat(playerId, DASH_SCOPE, 1L, 1L, DASH_SCAN_TICKS,
+                ignored -> scanDashFrame(playerId, dash),
+                () -> dashes.remove(playerId, dash));
+    }
+
+    private void scanDashFrame(@NotNull UUID playerId, @NotNull DashState dash) {
+        AstPlayer astPlayer = dash.counter.player();
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline() || player.getWorld() != dash.world) {
+            taskService.cancel(playerId, DASH_SCOPE);
+            return;
+        }
+        Location current = player.getLocation().clone();
+        Vector movement = current.toVector().subtract(dash.previous.toVector());
+        double distance = movement.length();
+        double remaining = dash.counter.configuration().failureTravelDistance() - dash.traveled;
+        if (distance > 1.0E-4D && remaining > 0.0D) {
+            double scanDistance = Math.min(distance, remaining);
+            Location scanOrigin = dash.previous.clone().add(0.0D, 1.0D, 0.0D);
+            for (AstEntity target : targetingService.inLine(player, scanOrigin, movement,
+                    scanDistance, dash.counter.configuration().failureHitRadius(), Integer.MAX_VALUE)) {
+                if (!dash.pathHitTargets.add(target.id())) {
+                    continue;
+                }
+                DamageResult hit = combatService.hit(AstEntity.player(astPlayer), target,
+                        AttackType.MELEE, DamageElement.NONE,
+                        dash.counter.configuration().failureDamageRatio());
+                if (isSuccessfulHit(hit)) {
+                    onDashHit(dash, target);
+                }
+                effectService.point(target.location().clone().add(0.0D, 1.0D, 0.0D),
+                        SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
+            }
+            dash.traveled += scanDistance;
+            effectService.point(current.clone().add(0.0D, 1.0D, 0.0D),
+                    SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_CRIT);
+            effectService.point(current.clone().add(0.0D, 0.5D, 0.0D),
+                    SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_SPARK);
+        }
+        dash.previous = current;
+        if (dash.traveled >= dash.counter.configuration().failureTravelDistance()) {
+            taskService.cancel(playerId, DASH_SCOPE);
+        }
+    }
+
+    private void onDashHit(@NotNull DashState dash, @NotNull AstEntity directTarget) {
+        Configuration configuration = dash.counter.configuration();
+        if (!dash.cooldownExtended) {
+            dash.cooldownExtended = true;
+            skillService.setAttackCooldownFromStart(
+                    new PlayerSkillCaster(dash.counter.player()),
+                    dash.counter.attackSkillId(),
+                    dash.cooldown.durationTicks() * configuration.tackleHitCooldownMultiplier(),
+                    dash.cooldown.startedAtMillis());
+        }
+        Location center = directTarget.location().clone().add(0.0D, 0.9D, 0.0D);
+        effectService.point(center, SharedParticleDefinitions.SEIJAKU_ISSEN_EXPLOSION);
+        effectService.ring(center, configuration.explosionRadius(), 32,
+                SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
+        effectService.sound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9F, 1.35F);
+        AstEntity attacker = AstEntity.player(dash.counter.player());
+        for (AstEntity target : targetingService.inSphere(
+                dash.counter.player().getBukkit(), center, configuration.explosionRadius(),
+                Integer.MAX_VALUE, true)) {
+            if (dash.explosionHitTargets.add(target.id())) {
+                combatService.hit(attacker, target, AttackType.MELEE, DamageElement.NONE,
+                        configuration.explosionDamageRatio());
+            }
+        }
+    }
+
+    private void startCounterSweep(@NotNull CounterState state, @NotNull Location counterTarget) {
+        Player player = state.player().getBukkit();
+        UUID playerId = player.getUniqueId();
         World world = player.getWorld();
-        Location[] previous = {player.getLocation().clone()};
-        double[] traveled = {0.0D};
-        Set<UUID> hitTargets = new HashSet<>();
-        taskService.repeat(playerId, DASH_SCOPE, 1L, 1L, DASH_SCAN_TICKS, ignored -> {
+        Location origin = player.getEyeLocation();
+        Vector direction = counterTarget.clone().add(0.0D, 0.9D, 0.0D)
+                .toVector().subtract(origin.toVector());
+        if (direction.lengthSquared() <= 1.0E-8D) {
+            direction = origin.getDirection();
+        }
+        Vector sweepDirection = direction.normalize();
+        Set<UUID> sweepHitTargets = new HashSet<>();
+        Configuration configuration = state.configuration();
+        effectService.sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, 1.15F);
+        taskService.repeat(playerId, SWEEP_SCOPE, 1L, 1L, SWEEP_FRAMES, frame -> {
             if (!player.isOnline() || player.getWorld() != world) {
-                taskService.cancel(playerId, DASH_SCOPE);
+                taskService.cancel(playerId, SWEEP_SCOPE);
                 return;
             }
-            Location current = player.getLocation().clone();
-            Vector movement = current.toVector().subtract(previous[0].toVector());
-            double distance = movement.length();
-            double remaining = configuration.failureTravelDistance() - traveled[0];
-            if (distance > 1.0E-4D && remaining > 0.0D) {
-                double scanDistance = Math.min(distance, remaining);
-                Location scanOrigin = previous[0].clone().add(0.0D, 1.0D, 0.0D);
-                for (AstEntity target : targetingService.inLine(player, scanOrigin, movement,
-                        scanDistance, configuration.failureHitRadius(), Integer.MAX_VALUE)) {
-                    if (hitTargets.add(target.id())) {
-                        combatService.hit(AstEntity.player(astPlayer), target, AttackType.MELEE,
-                                DamageElement.NONE, configuration.failureDamageRatio());
-                        effectService.point(target.location().clone().add(0.0D, 1.0D, 0.0D),
-                                SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
-                    }
-                }
-                traveled[0] += scanDistance;
-                effectService.point(current.clone().add(0.0D, 1.0D, 0.0D),
-                        SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_CRIT);
-                effectService.point(current.clone().add(0.0D, 0.5D, 0.0D),
+            double headStart = SWEEP_START_ANGLE
+                    + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * frame / SWEEP_FRAMES;
+            double headEnd = SWEEP_START_ANGLE
+                    + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * (frame + 1) / SWEEP_FRAMES;
+            for (double baseRadius : SWEEP_RADIUS_BASES) {
+                double radius = baseRadius * configuration.counterSweepRange() / 5.5D;
+                effectService.viewArcSegment(origin, sweepDirection, radius,
+                        headStart, headEnd, 6,
+                        SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
+                effectService.viewArcSegment(origin, sweepDirection, radius,
+                        headStart, headEnd, 4,
                         SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_SPARK);
             }
-            previous[0] = current;
-            if (traveled[0] >= configuration.failureTravelDistance()) {
-                taskService.cancel(playerId, DASH_SCOPE);
+            Vector sweepOffset = sweepDirection.clone().setY(0.0D);
+            if (sweepOffset.lengthSquared() > 1.0E-8D) {
+                sweepOffset.normalize().rotateAroundY(Math.toRadians(headEnd))
+                        .multiply(configuration.counterSweepRange() * 0.55D);
+                effectService.point(origin.clone().add(sweepOffset),
+                        SharedParticleDefinitions.SEIJAKU_ISSEN_SWEEP_ATTACK);
+            }
+            for (AstEntity target : targetingService.inViewArcSegment(
+                    player, origin, sweepDirection, configuration.counterSweepRange(),
+                    headStart, headEnd, configuration.counterSweepMaxTargets(), true)) {
+                if (sweepHitTargets.size() >= configuration.counterSweepMaxTargets()
+                        || !sweepHitTargets.add(target.id())) {
+                    continue;
+                }
+                combatService.hit(AstEntity.player(state.player()), target, AttackType.MELEE,
+                        DamageElement.NONE, configuration.counterDamageRatio());
             }
         });
+    }
+
+    private static boolean isSuccessfulHit(@NotNull DamageResult result) {
+        return !result.evaded()
+                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D);
     }
 
     private void renderCounterHit(@NotNull Player player, @NotNull Location target) {
@@ -357,7 +508,10 @@ public final class SeijakuIssenSkillRuntimeService {
             return Component.empty();
         }
         long remaining = Math.max(0L, state.expiresAtTick() - Bukkit.getCurrentTick());
-        return Component.text("カウンター 残り " + remaining + "tick", NamedTextColor.AQUA);
+        int filled = Math.clamp((int) Math.ceil(
+                remaining * 10.0D / state.configuration().counterTicks()), 0, 10);
+        String bar = "■".repeat(filled) + "□".repeat(10 - filled);
+        return Component.text("カウンター [" + bar + "] " + remaining + "tick", NamedTextColor.AQUA);
     }
 
     private void applySlow(@NotNull Player player) {
@@ -401,7 +555,13 @@ public final class SeijakuIssenSkillRuntimeService {
             double failureEnergyCost,
             double failureTravelDistance,
             double failureHitRadius,
-            double energyRecoveryRatio
+            double energyRecoveryRatio,
+            double explosionDamageRatio,
+            double explosionRadius,
+            double counterSweepRange,
+            int counterSweepMaxTargets,
+            double tackleDamageReductionRatio,
+            int tackleHitCooldownMultiplier
     ) {
     }
 
@@ -409,7 +569,35 @@ public final class SeijakuIssenSkillRuntimeService {
             @NotNull AstPlayer player,
             @NotNull Configuration configuration,
             long expiresAtTick,
-            @NotNull Function<AstPlayer, Component> renderer
+            @NotNull Function<AstPlayer, Component> renderer,
+            @NotNull String attackSkillId,
+            long baseCooldownTicks,
+            double attackSpeedMultiplier
     ) {
+    }
+
+    private record CooldownWindow(long startedAtMillis, long durationTicks) {
+    }
+
+    private static final class DashState {
+        private final CounterState counter;
+        private final CooldownWindow cooldown;
+        private final World world;
+        private final Set<UUID> pathHitTargets = new HashSet<>();
+        private final Set<UUID> explosionHitTargets = new HashSet<>();
+        private Location previous;
+        private double traveled;
+        private boolean cooldownExtended;
+
+        private DashState(CounterState counter, CooldownWindow cooldown, World world, Location previous) {
+            this.counter = counter;
+            this.cooldown = cooldown;
+            this.world = world;
+            this.previous = previous;
+        }
+
+        private Configuration configuration() {
+            return counter.configuration();
+        }
     }
 }
