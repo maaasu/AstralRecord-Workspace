@@ -19,6 +19,11 @@ challenge:
   deathLimit: 5
   reviveDelaySeconds: 5
   timeLimitSeconds: 900
+clearRewards:
+  items:
+    - itemId: item:99a00022
+      rate: 5.0
+      amount: 1
 generation:
   area:
     width: 144

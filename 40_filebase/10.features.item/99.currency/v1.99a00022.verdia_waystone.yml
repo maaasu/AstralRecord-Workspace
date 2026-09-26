@@ -1,0 +1,18 @@
+# design:
+#   motif: "植物 / 若木"
+#   progression: 20
+schemaVersion: 1
+id: 99a00022
+category: currency
+name: "&aヴェルディアの道標"
+icon: AZALEA
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7豊穣の大地ヴェルディアへ通じる道標。"
+unTradeable: true
+unSellable: true
+currency:
+  type: PASS
+  group: verdia
