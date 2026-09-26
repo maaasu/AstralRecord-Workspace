@@ -156,6 +156,7 @@ public sealed class ManagedNetworkChannelInput
     public string ServerId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public bool IsGame { get; set; }
+    public bool NetworkBoostEnabled { get; set; }
     public int MaxPlayers { get; set; } = 30;
     public int DonorExtraPlayers { get; set; }
     public int AdminExtraPlayers { get; set; }
@@ -177,6 +178,7 @@ public sealed class ManagedNetworkChannelInput
         ServerId = channel.ServerId,
         DisplayName = channel.DisplayName,
         IsGame = channel.IsGame,
+        NetworkBoostEnabled = channel.NetworkBoostEnabled,
         MaxPlayers = channel.MaxPlayers,
         DonorExtraPlayers = channel.DonorExtraPlayers,
         AdminExtraPlayers = channel.AdminExtraPlayers,
@@ -192,6 +194,7 @@ public sealed class ManagedNetworkChannelInput
         ServerId = ServerId?.Trim() ?? string.Empty,
         DisplayName = DisplayName?.Trim() ?? string.Empty,
         IsGame = IsGame,
+        NetworkBoostEnabled = NetworkBoostEnabled,
         MaxPlayers = MaxPlayers,
         DonorExtraPlayers = DonorExtraPlayers,
         AdminExtraPlayers = AdminExtraPlayers,

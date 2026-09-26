@@ -13,6 +13,72 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class PaidServicesRepositoryTests
 {
     [Fact]
+    public async Task WebBoostNeedsOptInButGameTicketAndLocalEffectRemainAvailable()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.SeedOffer("30a00014", 500, "CHANNEL_EXP_BOOST", 1.1);
+        await f.Master.SaveChangesAsync();
+        var shop = new AstraldShopRepository(f.Db, f.Master, f.Network, f.Items, TimeProvider.System);
+        Assert.Empty((await shop.GetCatalogAsync()).Channels);
+        var rejected = await shop.CreateAsync(f.UserId, new(Guid.NewGuid(), f.AccountId, "30a00014", 500, "ch1"));
+        Assert.Equal("network_boost_disabled", rejected.Reason);
+        Assert.Equal(1000, (await f.Db.InventoryEntries.SingleAsync(x => x.ItemId == "99a00021")).Quantity);
+
+        var now = DateTime.UtcNow;
+        var ticket = f.AddTicket("30a00014", "CHANNEL_EXP_BOOST", 1.1, now);
+        await f.Db.SaveChangesAsync();
+        var boosts = new ChannelBoostRepository(f.Db, f.Network, f.Items, TimeProvider.System);
+        Assert.Equal("COMPLETED", (await boosts.ActivateAsync("ch1", new(Guid.NewGuid(), f.AccountId, ticket, now))).Status);
+        var local = Assert.Single((await boosts.GetSnapshotAsync()).Channels);
+        Assert.False(local.NetworkBoostEnabled);
+        Assert.NotNull(local.Exp);
+        Assert.Equal("CH1", local.DisplayName);
+        f.Network.BoostEnabled = true;
+        Assert.Single((await shop.GetCatalogAsync()).Channels);
+        Assert.True(Assert.Single((await boosts.GetSnapshotAsync()).Channels).NetworkBoostEnabled);
+    }
+
+    [Fact]
+    public async Task PendingWebBoostRechecksOptInWithoutChargingOrActivating()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Network.BoostEnabled = true;
+        f.SeedOffer("30a00014", 500, "CHANNEL_EXP_BOOST", 1.1);
+        await f.Master.SaveChangesAsync();
+        f.Db.SkillTreeAccountSessions.Add(new() { AccountSessionId = Guid.NewGuid(), AccountId = f.AccountId,
+            ServerId = "ch1", DefinitionGenerationId = "g", LeaseTokenHash = "h", Closed = false,
+            CreatedAtUtc = DateTime.UtcNow, ExpiresAtUtc = DateTime.UtcNow.AddMinutes(1) });
+        await f.Db.SaveChangesAsync();
+        var shop = new AstraldShopRepository(f.Db, f.Master, f.Network, f.Items, TimeProvider.System);
+        var id = Guid.NewGuid();
+        Assert.Equal("PENDING", (await shop.CreateAsync(f.UserId, new(id, f.AccountId, "30a00014", 500, "ch1"))).Status);
+        f.Network.BoostEnabled = false;
+        var result = await shop.ProcessAsync(id, new(f.AccountId, true));
+        Assert.Equal("REJECTED", result!.Status);
+        Assert.Equal("network_boost_disabled", result.Reason);
+        Assert.Equal(1000, (await f.Db.InventoryEntries.SingleAsync(x => x.ItemId == "99a00021")).Quantity);
+        Assert.Empty(await f.Db.ChannelBoosts.ToArrayAsync());
+        Assert.Empty(await f.Db.ChannelBoostEvents.ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task CompletedWebBoostReplaySurvivesLaterOptOutWithoutAnotherCharge()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.Network.BoostEnabled = true;
+        f.SeedOffer("30a00014", 500, "CHANNEL_EXP_BOOST", 1.1);
+        await f.Master.SaveChangesAsync();
+        var shop = new AstraldShopRepository(f.Db, f.Master, f.Network, f.Items, TimeProvider.System);
+        var request = new AstraldShopPurchaseRequest(Guid.NewGuid(), f.AccountId, "30a00014", 500, "ch1");
+        Assert.Equal("COMPLETED", (await shop.CreateAsync(f.UserId, request)).Status);
+        f.Network.BoostEnabled = false;
+        Assert.Equal("COMPLETED", (await shop.CreateAsync(f.UserId, request)).Status);
+        Assert.Equal("COMPLETED", (await shop.ProcessAsync(request.OperationId, new(f.AccountId, true)))!.Status);
+        Assert.Equal(500, (await f.Db.InventoryEntries.SingleAsync(x => x.ItemId == "99a00021")).Quantity);
+        Assert.Single(await f.Db.ChannelBoostEvents.ToArrayAsync());
+    }
+
+    [Fact]
     public async Task TicketActivationRejectsSameKindAndSpecialWithoutConsuming()
     {
         await using var f = await Fixture.CreateAsync();
@@ -211,8 +277,10 @@ public sealed class PaidServicesRepositoryTests
 
     private sealed class FakeNetwork : INetworkManagementRepository
     {
+        public bool BoostEnabled { get; set; }
         public Task<ManagedNetworkSettings?> GetSettingsAsync(bool includePlayers = false) =>
-            Task.FromResult<ManagedNetworkSettings?>(new() { Channels = [new() { ServerId = "ch1", IsGame = true, DisplayName = "CH1" }] });
+            Task.FromResult<ManagedNetworkSettings?>(new() { Channels = [new() { ServerId = "ch1", IsGame = true,
+                DisplayName = "CH1", NetworkBoostEnabled = BoostEnabled }] });
         public Task<(ManagedNetworkSettings Settings, bool Created)> BootstrapAsync(ManagedNetworkSettings request) => throw new NotSupportedException();
         public Task<ManagedNetworkSettings> UpdateSettingsAsync(ManagedNetworkSettings request, Guid actorUuid) => throw new NotSupportedException();
         public Task<IReadOnlyList<NetworkManagedPlayer>> SearchPlayersAsync(string? query) => throw new NotSupportedException();

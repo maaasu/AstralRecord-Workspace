@@ -18,6 +18,7 @@ public sealed class ManagedNetworkChannel
     public string ServerId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public bool IsGame { get; init; }
+    public bool NetworkBoostEnabled { get; init; }
     public int MaxPlayers { get; init; } = 30;
     public int DonorExtraPlayers { get; init; }
     public int AdminExtraPlayers { get; init; }

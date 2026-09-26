@@ -596,7 +596,7 @@ public class PlayerHudView {
     }
 
     /**
-     * Proxyがヘッダーを所有しない場合のTABに全チャンネルのブーストと性能情報を表示します。
+     * Proxyがヘッダーを所有しない場合のTABにネットワーク対象チャンネルのブーストと性能情報を表示します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT（平均値）

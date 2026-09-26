@@ -14,6 +14,33 @@ namespace AstralRecordWeb.Tests;
 
 public sealed class NetworkManagementTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task NetworkBoostOptInSurvivesEditingAndFormSubmission(bool enabled)
+    {
+        var model = AstralRecordWeb.Pages.Admin.ManagedNetworkSettingsInput.From(new()
+        {
+            Channels = [new() { ServerId = "game", DisplayName = "Game", IsGame = true, NetworkBoostEnabled = enabled }],
+        });
+        Assert.Equal(enabled, model.ToSettings().Channels[0].NetworkBoostEnabled);
+        var api = new ManagementHandler { Admin = true };
+        await using var factory = new ManagementFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var html = await client.GetStringAsync("/Admin/Network");
+        var form = SettingsForm(Token(html));
+        form.AddRange([
+            new("Input.Channels[1].ServerId", "game"), new("Input.Channels[1].DisplayName", "Game"),
+            new("Input.Channels[1].IsGame", "true"),
+            new("Input.Channels[1].NetworkBoostEnabled", enabled ? "true" : "false"),
+        ]);
+        using var response = await client.PostAsync("/Admin/Network?handler=Save", new FormUrlEncodedContent(form));
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        using var body = JsonDocument.Parse(api.LastSettingsBody);
+        Assert.Equal(enabled, body.RootElement.GetProperty("channels")[1].GetProperty("networkBoostEnabled").GetBoolean());
+    }
+
     [Fact]
     public async Task NetworkSettings_RequireRecheckedWebAdmin_AndUseCookieActorWithApiKey()
     {

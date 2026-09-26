@@ -21,7 +21,7 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
     public async Task<AstraldShopCatalogResponse> GetCatalogAsync()
     {
         var offers = await ReadOffersAsync();
-        var channels = (await network.GetSettingsAsync())?.Channels.Where(x => x.IsGame)
+        var channels = (await network.GetSettingsAsync())?.Channels.Where(x => x.IsGame && x.NetworkBoostEnabled)
             .Select(x => new AstraldShopChannelResponse(x.ServerId.ToLowerInvariant(), x.DisplayName)).ToArray() ?? [];
         return new(offers.Values.Select(x => x.Display).ToArray(), channels);
     }
@@ -54,7 +54,8 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
             if (request.ExpectedPricePaidAstrald != offer.Display.PricePaidAstrald) return Rejected("price_changed");
             if (offer.Display.RequiresChannel)
             {
-                if (string.IsNullOrEmpty(channel) || !await IsGameChannelAsync(channel)) return Rejected("unknown_channel");
+                if (string.IsNullOrEmpty(channel)) return Rejected("unknown_channel");
+                if (!await IsNetworkBoostChannelAsync(channel)) return Rejected("network_boost_disabled");
             }
             else if (channel is not null) return Rejected("channel_not_allowed");
             var now = Now();
@@ -115,6 +116,9 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
 
     private async Task ApplyAsync(AstraldShopPurchaseEntity operation, AccountEntity account, DateTime now)
     {
+        // A queued Web purchase must still be permitted when the game server processes it.
+        if (operation.ChannelId is { } target && !await IsNetworkBoostChannelAsync(target))
+        { Fail(operation, "network_boost_disabled"); return; }
         var paidInventory = db.Database.IsSqlServer()
             ? await db.Inventories.FromSqlInterpolated($"SELECT * FROM [dbo].[inventory] WITH (UPDLOCK,HOLDLOCK) WHERE [account_id] = {account.Uuid} AND [inventory_profile] = 'GAME' AND [inventory_type] = 'CURRENCY' AND [is_deleted] = 0 AND [is_enabled] = 1").SingleOrDefaultAsync()
             : await db.Inventories.SingleOrDefaultAsync(x => x.AccountId == account.Uuid && x.InventoryProfile == "GAME" && x.InventoryType == "CURRENCY" && !x.IsDeleted && x.IsEnabled);
@@ -238,8 +242,9 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
         var raw = node is JsonObject obj ? obj["ref"]?.GetValue<string>() : node?.GetValue<string>();
         return raw?.StartsWith("item:", StringComparison.OrdinalIgnoreCase) == true ? raw[5..] : raw;
     }
-    private async Task<bool> IsGameChannelAsync(string channel) => (await network.GetSettingsAsync())?.Channels
-        .Any(x => x.IsGame && string.Equals(x.ServerId, channel, StringComparison.OrdinalIgnoreCase)) == true;
+    private async Task<bool> IsNetworkBoostChannelAsync(string channel) => (await network.GetSettingsAsync())?.Channels
+        .Any(x => x.IsGame && x.NetworkBoostEnabled
+            && string.Equals(x.ServerId, channel, StringComparison.OrdinalIgnoreCase)) == true;
     private Task<bool> IsOnlineAsync(Guid accountId) => db.SkillTreeAccountSessions.AsNoTracking()
         .AnyAsync(x => x.AccountId == accountId && !x.Closed);
 

@@ -11,7 +11,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/web/astrald-shop")]
 public sealed class AstraldShopController(IAstraldShopRepository repository, IConfiguration configuration) : ControllerBase
 {
-    /// <summary>有償ショップマスタと購入先チャンネル一覧を取得します。</summary>
+    /// <summary>有償ショップマスタとネットワークブーストを有効にしたゲームチャンネル一覧を取得します。</summary>
     [HttpGet("catalog")]
     public async Task<IActionResult> Catalog() => Ok(await repository.GetCatalogAsync());
 

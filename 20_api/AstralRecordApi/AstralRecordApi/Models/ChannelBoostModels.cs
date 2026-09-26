@@ -3,7 +3,7 @@ namespace AstralRecordApi.Models;
 public sealed record ChannelBoostEffectResponse(double Multiplier, DateTime ExpiresAt,
     string ActivatorAccountName, Guid OperationId);
 public sealed record ChannelBoostResponse(string ChannelId, ChannelBoostEffectResponse? Exp,
-    ChannelBoostEffectResponse? Drop);
+    ChannelBoostEffectResponse? Drop, bool NetworkBoostEnabled = false, string? DisplayName = null);
 public sealed record ChannelBoostSnapshotResponse(long EventCursor, IReadOnlyList<ChannelBoostResponse> Channels);
 public sealed record ChannelBoostEventResponse(long EventCursor, string ChannelId, Guid OperationId,
     Guid AccountId, string AccountName, string VipTier, string BoostKind, double Multiplier, DateTime ExpiresAt);

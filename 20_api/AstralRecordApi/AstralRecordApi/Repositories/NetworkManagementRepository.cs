@@ -234,6 +234,7 @@ public sealed class NetworkManagementRepository(
             return new ManagedNetworkChannel
             {
                 ServerId = channel.ServerId, DisplayName = channel.DisplayName.Trim(), IsGame = channel.IsGame,
+                NetworkBoostEnabled = channel.IsGame && channel.NetworkBoostEnabled,
                 MaxPlayers = channel.MaxPlayers, DonorExtraPlayers = channel.DonorExtraPlayers, AdminExtraPlayers = channel.AdminExtraPlayers,
                 DiscordEnabled = channel.DiscordEnabled, WhitelistEnabled = channel.WhitelistEnabled, DonorOnly = channel.DonorOnly,
                 DebugUsers = Members(channel.DebugUsers), WhitelistUsers = Members(channel.WhitelistUsers),

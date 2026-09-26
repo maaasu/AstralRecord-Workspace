@@ -79,6 +79,7 @@ public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClien
         {
             "insufficient_paid_astrald" => "有償アストラルドの残高が不足しています。購入は成立していません。",
             "boost_already_active" => "対象チャンネルには同種のブーストが有効です。購入は成立していません。",
+            "network_boost_disabled" => "対象チャンネルはWebからのブースト発動を許可していません。購入は成立していません。",
             "account_not_current" => "ゲーム内で選択中のアカウントが変わりました。購入は成立していません。ページを更新してください。",
             "unknown_channel" or "channel_not_allowed" => "対象チャンネルを選択し直してください。購入は成立していません。",
             "price_changed" or "offer_changed" => "商品価格または内容が変わりました。購入は成立していません。ページを更新してください。",

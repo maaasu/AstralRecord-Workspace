@@ -9,7 +9,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/network-management")]
 public sealed class NetworkManagementController(INetworkManagementRepository repository, IWebAuthRepository authorization) : ControllerBase
 {
-    /// <summary>管理設定とMCID表示情報を取得します。</summary>
+    /// <summary>チャンネルのネットワークブースト対象設定を含む管理設定とMCID表示情報を取得します。</summary>
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings([FromQuery(Name = "actor_user_uuid")] Guid actor)
     {

@@ -14,6 +14,26 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class NetworkManagementRepositoryTests
 {
     [Fact]
+    public async Task NetworkBoostDefaultsOffAndPersistsExplicitGameChannelOptIn()
+    {
+        await using var f = await Fixture.Create();
+        Assert.False(System.Text.Json.JsonSerializer.Deserialize<ManagedNetworkChannel>("{}")!.NetworkBoostEnabled);
+        var saved = await f.Repository.UpdateSettingsAsync(new()
+        {
+            Channels = [
+                new() { ServerId = "lobby", DisplayName = "Lobby", NetworkBoostEnabled = true },
+                new() { ServerId = "enabled", DisplayName = "Enabled", IsGame = true, NetworkBoostEnabled = true },
+                new() { ServerId = "unset", DisplayName = "Unset", IsGame = true },
+            ],
+        }, f.UserId);
+        var loaded = (await f.Repository.GetSettingsAsync())!;
+        Assert.False(loaded.Channels.Single(x => x.ServerId == "lobby").NetworkBoostEnabled);
+        Assert.True(loaded.Channels.Single(x => x.ServerId == "enabled").NetworkBoostEnabled);
+        Assert.False(loaded.Channels.Single(x => x.ServerId == "unset").NetworkBoostEnabled);
+        Assert.Equal(saved.Revision, loaded.Revision);
+    }
+
+    [Fact]
     public async Task VipAdmissionUsesOnlySelectedOwnedActiveAccountAndExpiresImmediately()
     {
         await using var f = await Fixture.Create();

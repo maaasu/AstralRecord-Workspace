@@ -9,7 +9,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/channel-boosts")]
 public sealed class ChannelBoostController(IChannelBoostRepository repository) : ControllerBase
 {
-    /// <summary>全ゲームチャンネルの現在状態と、イベント購読開始カーソルを返します。</summary>
+    /// <summary>全ゲームチャンネルの現在状態・表示名・ネットワーク対象設定と、イベント購読開始カーソルを返します。</summary>
     [HttpGet]
     public async Task<IActionResult> Get() => Ok(await repository.GetSnapshotAsync());
 

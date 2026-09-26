@@ -17,12 +17,17 @@ public sealed class ChannelBoostRepository(
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var cursor = await LatestCursorAsync();
-        var configured = (await network.GetSettingsAsync())?.Channels
-            .Where(c => c.IsGame).Select(c => c.ServerId.Trim().ToLowerInvariant()).ToArray() ?? [];
+        var configured = ((await network.GetSettingsAsync())?.Channels ?? [])
+            .Where(c => c.IsGame).ToDictionary(c => c.ServerId.Trim().ToLowerInvariant(),
+                StringComparer.OrdinalIgnoreCase);
         var rows = await db.ChannelBoosts.AsNoTracking().ToDictionaryAsync(x => x.ChannelId);
-        var channels = configured.Concat(rows.Keys).Distinct(StringComparer.OrdinalIgnoreCase)
+        var channels = configured.Keys.Concat(rows.Keys).Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .Select(x => Describe(rows.GetValueOrDefault(x) ?? new ChannelBoostEntity { ChannelId = x }, now)).ToArray();
+            .Select(x => Describe(rows.GetValueOrDefault(x) ?? new ChannelBoostEntity { ChannelId = x }, now) with
+            {
+                NetworkBoostEnabled = configured.GetValueOrDefault(x)?.NetworkBoostEnabled == true,
+                DisplayName = configured.GetValueOrDefault(x)?.DisplayName ?? x,
+            }).ToArray();
         return new(cursor, channels);
     }
 
