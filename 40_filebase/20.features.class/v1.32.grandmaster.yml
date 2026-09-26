@@ -7,7 +7,7 @@ type: CLASS
 name: "&cグランドマスター"
 order: 3.2
 shortName: "&cGMS"
-description: "&7近接戦闘の天才"
+description: "&7近接戦闘の天才。"
 icon: NETHERITE_SPEAR
 classGui: { slot: 38 }
 adminChangeOnly: true
