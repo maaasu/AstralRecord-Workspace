@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -119,6 +120,13 @@ public final class MailGuiView {
         inventory.setItem(FILTER_SLOT, createFilterItem(filter));
     }
 
+    /**
+     * メール一覧の表示アイテムを作ります。ヘッドのテクスチャはメール指定値を優先し、
+     * 省略時は添付アイテムのマスタから補います。
+     *
+     * @param mail 表示するメール
+     * @return 一覧用アイテム
+     */
     private @NotNull ItemStack createMailItem(@NotNull MailEntry mail) {
         Material material = Material.matchMaterial(mail.icon());
         if (material == null || !material.isItem()) {
@@ -138,6 +146,15 @@ public final class MailGuiView {
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         }
         itemStack.setItemMeta(meta);
+        if (material == Material.PLAYER_HEAD && !HeadTextureItemStackSupport.apply(itemStack, mail.iconTexture())) {
+            for (var reward : mail.rewards()) {
+                ItemModel model = itemService.findLoadedById(reward.itemId());
+                if (model != null && "PLAYER_HEAD".equalsIgnoreCase(model.getIcon())
+                    && HeadTextureItemStackSupport.apply(itemStack, model.getIconTexture())) {
+                    break;
+                }
+            }
+        }
         return itemStack;
     }
 

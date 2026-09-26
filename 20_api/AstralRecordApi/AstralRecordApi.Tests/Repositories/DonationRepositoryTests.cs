@@ -69,11 +69,14 @@ public sealed class DonationRepositoryTests
         await f.Repo.ReconcileAsync(default);
         await f.Repo.ReconcileAsync(default);
         Assert.Equal(2, await f.Game.PlayerMailDeliveries.CountAsync());
+        var deliveredNotice = Assert.Single(await f.Repo.NotificationsAsync(f.User), x => x.Kind == "MailDelivered");
+        Assert.Equal("寄付へのお礼のメールが届きました。メール画面をご確認ください。", deliveredNotice.Message);
         var firstGrant = await f.Management.Set<DonationGrantEntity>().FirstAsync();
         firstGrant.DeliveredAtUtc = null; // ゲームDB commit後、ManagementDB ACK前に停止した場合。
         await f.Management.SaveChangesAsync();
         await f.Repo.ReconcileAsync(default);
         Assert.Equal(2, await f.Game.PlayerMailDeliveries.CountAsync());
+        Assert.Single(await f.Repo.NotificationsAsync(f.User), x => x.Kind == "MailDelivered");
         var payload = await f.Game.PlayerMailDeliveries.Select(x => x.PayloadJson).FirstAsync();
         var mail = JsonSerializer.Deserialize<MailResponse>(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
         Assert.Null(mail.PublishTo);
@@ -86,10 +89,36 @@ public sealed class DonationRepositoryTests
         await f.Repo.ReconcileAsync(default);
         Assert.Equal(newAccount, (await f.Game.PlayerMailDeliveries.SingleAsync()).AccountId);
         Assert.Equal(1000, (await f.Repo.ListAsync(f.User, false, 1, 20)).TotalApprovedAmount);
+        Assert.Single(await f.Repo.NotificationsAsync(f.User), x => x.Kind == "MailDelivered");
         await f.AddAccount(account); // 同じUUIDの復元には追加配布しない。
         await f.Repo.ReconcileAsync(default);
         Assert.Single(await f.Game.PlayerMailDeliveries.ToListAsync());
         Assert.NotEqual(account, second);
+    }
+
+    [Fact]
+    public async Task MailDelivered_UsesOneUserMessageWhenAccountMailAmountsDiffer()
+    {
+        await using var f = await Fixture.Create();
+        await f.AddAccount();
+        var first = await f.Repo.CreateAsync(f.User, Request());
+        await f.Repo.TransitionAsync(first.Id, f.Admin, "review");
+        await f.Repo.TransitionAsync(first.Id, f.Admin, "approve");
+        await f.Repo.ReconcileAsync(default);
+
+        var second = await f.Repo.CreateAsync(f.User, Request());
+        await f.Repo.TransitionAsync(second.Id, f.Admin, "review");
+        await f.Repo.TransitionAsync(second.Id, f.Admin, "approve");
+        await f.AddAccount(); // 新規アカウントには累計、既存アカウントには差分のメールを作る。
+        await f.Repo.ReconcileAsync(default);
+
+        Assert.Equal(3, await f.Game.PlayerMailDeliveries.CountAsync());
+        var amounts = await f.Management.Set<DonationGrantEntity>().Where(x => x.ThroughAmount == 1000)
+            .OrderBy(x => x.Amount).Select(x => x.Amount).ToArrayAsync();
+        Assert.Equal(new[] { 500, 1000 }, amounts);
+        var notices = (await f.Repo.NotificationsAsync(f.User)).Where(x => x.Kind == "MailDelivered").ToArray();
+        Assert.Equal(2, notices.Length);
+        Assert.All(notices, x => Assert.Equal("寄付へのお礼のメールが届きました。メール画面をご確認ください。", x.Message));
     }
 
     [Fact]
@@ -137,6 +166,7 @@ public sealed class DonationRepositoryTests
             await f.Repo.ReconcileAsync(default);
         }
         Assert.Equal(1000, await f.Management.Set<DonationGrantEntity>().SumAsync(x => x.Amount));
+        Assert.Equal(2, (await f.Repo.NotificationsAsync(f.User)).Count(x => x.Kind == "MailDelivered"));
         Assert.All((await f.Repo.ListAsync(f.User, false, 1, 20)).Requests, x => Assert.Empty(x.Entries));
         var request = await f.Management.Set<DonationRequestEntity>().FirstAsync();
         Assert.DoesNotContain("amazon", request.ProtectedEntries);

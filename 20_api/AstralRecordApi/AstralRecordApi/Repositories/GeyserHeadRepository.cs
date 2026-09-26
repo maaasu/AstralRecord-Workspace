@@ -18,6 +18,7 @@ public sealed class GeyserHeadRepository(
             .AsNoTracking()
             .Where(entry => !entry.IsDeleted
                 && (entry.MasterType == "item"
+                    || entry.MasterType == "mail"
                     || entry.MasterType == "class"
                     || entry.MasterType == "skill"
                     || entry.MasterType == "mob.boss"

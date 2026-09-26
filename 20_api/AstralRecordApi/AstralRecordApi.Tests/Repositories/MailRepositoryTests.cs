@@ -1,4 +1,6 @@
 using System.Data.Common;
+using System.Text;
+using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Repositories;
@@ -12,6 +14,29 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class MailRepositoryTests
 {
+    [Fact]
+    public async Task GetAvailableByAccountId_PreservesCustomHeadTextureAfterStateMerge()
+    {
+        await using var fixture = await MailRepositoryFixture.CreateAsync();
+        var master = fixture.Mail("head-mail", DateTime.UtcNow.AddMinutes(-1));
+        var payload = JsonNode.Parse(master.PayloadJson)!.AsObject();
+        var texture = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            """{"textures":{"SKIN":{"url":"https://textures.minecraft.net/texture/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}"""));
+        payload["icon"] = "PLAYER_HEAD";
+        payload["iconTexture"] = texture;
+        master.PayloadJson = payload.ToJsonString();
+        await fixture.SeedAsync(
+            accountCreatedAt: DateTime.UtcNow.AddMinutes(-5),
+            masters: [master],
+            states: [fixture.State("head-mail", isRead: true)]);
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var mail = Assert.Single(await fixture.CreateRepository(cache).GetAvailableByAccountIdAsync(fixture.AccountId, "all"));
+
+        Assert.Equal(texture, mail.IconTexture);
+        Assert.True(mail.IsRead);
+    }
+
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md
     /// 章・見出し: # 18_3.00 メール API > ## 未読件数レスポンス

@@ -5,7 +5,7 @@ Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドを
 ## 登録元
 
 - `BuiltinHeadTextures` のJava定数: RPGの `GuiItems` と同じメインメニュー、カレンシー、上下左右矢印・無効ボタンの7テクスチャ。
-- 認証付き `GET /api/geyser/heads` の `textures`: item / mob / skill / classマスターの `icon: PLAYER_HEAD` と `iconTexture`（Base64のtexturesプロパティ）。
+- 認証付き `GET /api/geyser/heads` の `textures`: item / mail / mob / skill / classマスターの `icon: PLAYER_HEAD` と `iconTexture`（Base64のtexturesプロパティ）。
 - 同レスポンスの `playerUuids`: 削除されていない登録ユーザーのMinecraft UUID。オンライン一覧やアカウントIDではない。
 
 テクスチャは `PROFILE`、ユーザーUUIDは `UUID` として `GeyserDefineCustomSkullsEvent` 内で登録する。Geyserが生成するBedrockパックをクライアントが適用すると、RPGから送られた対応するヘッドの見た目が変換される。クリックやスクロールの処理はRPGが引き続き担当する。

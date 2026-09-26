@@ -10,6 +10,7 @@
 | `schemaVersion` | number | yes | スキーマバージョン。現行は `1`。 |
 | `id` | string | yes | メール ID。ファイル名 `v1.<id>.yml` と対応する。 |
 | `icon` | string | yes | Bukkit `Material` 名。無効な場合はプラグインで `PAPER` 表示にフォールバックする。 |
+| `iconTexture` | string | no | `icon: PLAYER_HEAD` の表示に使うBase64 `textures` 値。省略時は添付アイテムのマスタに有効なヘッドテクスチャがあれば利用する。 |
 | `title` | string | yes | メール題名。 |
 | `body` | string | yes | メール本文。改行は `\n`。 |
 | `publishFrom` | ISO-8601 datetime | yes | 公開開始日時。 |

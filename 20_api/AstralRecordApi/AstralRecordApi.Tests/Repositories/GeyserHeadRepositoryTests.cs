@@ -15,7 +15,7 @@ public class GeyserHeadRepositoryTests
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.01-取得系.md
     /// 章・見出し: # 99_3.01-取得系 > ### Geyser ヘッド起動データ取得
-    /// 検証契約: item/class/skill/mob の PLAYER_HEAD iconTexture と、Mob level profile の有効上書きを重複なく返し、NPC skin.texture と論理削除ユーザーを除外する。
+    /// 検証契約: item/mail/class/skill/mob の PLAYER_HEAD iconTexture と、Mob level profile の有効上書きを重複なく返し、NPC skin.texture と論理削除ユーザーを除外する。
     /// </summary>
     [Fact]
     public async Task GetHeadsAsync_ReturnsPlayerHeadTexturesAndActivePlayerUuidsOnly()
@@ -36,6 +36,7 @@ public class GeyserHeadRepositoryTests
         {
             await MasterDataTestSeed.CreateSchemaAsync(masterSetup);
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, ItemPayload, "item", "material");
+            await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, MailPayload, "mail", null);
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, ClassPayload, "class", null);
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, SkillPayload, "skill", null);
             await MasterDataTestSeed.SeedInlinePayloadAsync(masterSetup, MobPayload, "mob.npc", "NPC");
@@ -72,7 +73,7 @@ public class GeyserHeadRepositoryTests
         var result = await repository.GetHeadsAsync();
 
         Assert.Equal(
-            new[] { ItemTexture, ClassTexture, SkillTexture, MobBaseTexture, MobLevelTexture }
+            new[] { ItemTexture, MailTexture, ClassTexture, SkillTexture, MobBaseTexture, MobLevelTexture }
                 .Order(StringComparer.Ordinal),
             result.Textures);
         Assert.Equal([activeUuid], result.PlayerUuids);
@@ -95,6 +96,7 @@ public class GeyserHeadRepositoryTests
     };
 
     private static readonly string ItemTexture = CreateTexture("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    private static readonly string MailTexture = CreateTexture("ffffffffffffffffffffffffffffffff");
     private static readonly string ClassTexture = CreateTexture("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
     private static readonly string SkillTexture = CreateTexture("cccccccccccccccccccccccccccccccc");
     private static readonly string MobBaseTexture = CreateTexture("dddddddddddddddddddddddddddddddd");
@@ -102,6 +104,10 @@ public class GeyserHeadRepositoryTests
 
     private static string ItemPayload => $$"""
         { "schemaVersion": 1, "id": "head_item", "name": "head", "icon": "PLAYER_HEAD", "iconTexture": "{{ItemTexture}}", "rarity": "COMMON" }
+        """;
+
+    private static string MailPayload => $$"""
+        { "schemaVersion": 1, "id": "head_mail", "icon": "PLAYER_HEAD", "iconTexture": "{{MailTexture}}", "title": "head", "body": "test", "publishFrom": "2026-01-01T00:00:00", "receiveOnRead": false }
         """;
 
     private static string ClassPayload => $$"""

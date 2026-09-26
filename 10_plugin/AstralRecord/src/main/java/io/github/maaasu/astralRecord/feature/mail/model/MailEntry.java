@@ -9,6 +9,7 @@ import java.util.List;
 public record MailEntry(
     @NotNull String id,
     @NotNull String icon,
+    @Nullable String iconTexture,
     @NotNull String title,
     @NotNull String body,
     @NotNull LocalDateTime publishFrom,

@@ -229,6 +229,7 @@ public class MailRepository(
         SchemaVersion = master.SchemaVersion,
         Id = master.Id,
         Icon = master.Icon,
+        IconTexture = master.IconTexture,
         Title = master.Title,
         Body = master.Body,
         PublishFrom = master.PublishFrom,

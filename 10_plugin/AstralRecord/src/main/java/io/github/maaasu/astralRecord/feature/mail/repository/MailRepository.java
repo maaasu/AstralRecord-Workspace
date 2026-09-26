@@ -85,6 +85,12 @@ public class MailRepository {
         return mails;
     }
 
+    /**
+     * API のメール応答を表示モデルへ変換します。
+     *
+     * @param obj メール応答。iconTexture は省略可能
+     * @return メール表示モデル
+     */
     private @NotNull MailEntry parse(@NotNull JsonObject obj) {
         List<MailReward> rewards = new ArrayList<>();
         JsonArray rewardArray = obj.getAsJsonArray("rewards");
@@ -104,6 +110,8 @@ public class MailRepository {
         return new MailEntry(
             stringValue(obj, "id", ""),
             stringValue(obj, "icon", "PAPER"),
+            obj.has("iconTexture") && !obj.get("iconTexture").isJsonNull()
+                ? obj.get("iconTexture").getAsString() : null,
             stringValue(obj, "title", ""),
             stringValue(obj, "body", ""),
             parseDateTime(stringValue(obj, "publishFrom", LocalDateTime.MIN.toString())),

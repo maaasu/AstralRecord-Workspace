@@ -309,6 +309,7 @@ public class AccountSkillTreeStateRepository(
         SchemaVersion = master.SchemaVersion,
         Id = deliveryMailId,
         Icon = master.Icon,
+        IconTexture = master.IconTexture,
         Title = master.Title,
         Body = master.Body,
         PublishFrom = now,

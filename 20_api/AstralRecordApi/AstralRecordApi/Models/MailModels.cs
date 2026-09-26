@@ -12,6 +12,7 @@ public class MailResponse
     public required int SchemaVersion { get; init; }
     public required string Id { get; init; }
     public required string Icon { get; init; }
+    public string? IconTexture { get; init; }
     public required string Title { get; init; }
     public required string Body { get; init; }
     public DateTime PublishFrom { get; init; }

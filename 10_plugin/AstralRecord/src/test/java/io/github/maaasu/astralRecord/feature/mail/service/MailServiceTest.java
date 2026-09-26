@@ -233,7 +233,7 @@ class MailServiceTest {
         private final AccountModel account = mock(AccountModel.class);
         private final ItemModel itemModel = mock(ItemModel.class);
         private final MailEntry mail = new MailEntry(
-            "mail-1", "CHEST", "報酬メール", "本文", LocalDateTime.now().minusMinutes(1), null,
+            "mail-1", "CHEST", null, "報酬メール", "本文", LocalDateTime.now().minusMinutes(1), null,
             true, List.of(new MailReward("reward-item", "material", 1)), false, null
         );
         private final MailService service;
@@ -282,7 +282,7 @@ class MailServiceTest {
                 return new CompletableFuture<Boolean>();
             });
             MailEntry receivedMail = new MailEntry(
-                mail.id(), mail.icon(), mail.title(), mail.body(), mail.publishFrom(), mail.publishTo(),
+                mail.id(), mail.icon(), mail.iconTexture(), mail.title(), mail.body(), mail.publishFrom(), mail.publishTo(),
                 mail.receiveOnRead(), mail.rewards(), true, LocalDateTime.now()
             );
             runWithPlayerServices(() -> service.delete(astPlayer, receivedMail, ignored -> { }));
