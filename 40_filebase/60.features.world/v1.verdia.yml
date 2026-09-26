@@ -23,7 +23,7 @@ spawnLocation:
 description: |-
   豊かな森林と水源、地下資源に恵まれた未開の大地。
   採集・採掘・釣りを目的とする冒険者が多く訪れる。
-guiIconMaterial: GRASS_BLOCK
+guiIconMaterial: tall_dry_grass
 adventureGuide:
   recommendedLevelMin: 15
 overworldTeleportGui:

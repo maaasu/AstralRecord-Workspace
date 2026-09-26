@@ -6,7 +6,7 @@ id: flowering_ancient_tree_ruins
 displayName: "花咲く古木の遺跡"
 recommendedLevel: 20
 entry:
-  worldRef: world:midgard_greenfields
+  worldRef: world:vanaheim_supercontinent
   x: -1037.0
   y: 116.0
   z: 1594.5
