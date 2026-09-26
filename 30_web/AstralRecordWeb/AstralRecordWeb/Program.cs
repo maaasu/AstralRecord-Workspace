@@ -21,6 +21,15 @@ builder.Services.AddHttpClient<DonationApiClient>((services, client) =>
     if (!string.IsNullOrWhiteSpace(api.ApiKey)) client.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
     if (!string.IsNullOrWhiteSpace(donations.WebKey)) client.DefaultRequestHeaders.Add("X-Donation-Web-Key", donations.WebKey);
 }).RedactLoggedHeaders(new[] { "X-Api-Key", "X-Donation-Web-Key" });
+builder.Services.AddHttpClient<PaidServicesApiClient>((services, client) =>
+{
+    var api = services.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    var donations = services.GetRequiredService<IOptions<DonationOptions>>().Value;
+    client.BaseAddress = new Uri(api.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    if (!string.IsNullOrWhiteSpace(api.ApiKey)) client.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
+    if (!string.IsNullOrWhiteSpace(donations.WebKey)) client.DefaultRequestHeaders.Add("X-Donation-Web-Key", donations.WebKey);
+}).RedactLoggedHeaders(new[] { "X-Api-Key", "X-Donation-Web-Key" });
 builder.Services.AddHttpClient<DiscordOAuthClient>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<WebSessionEvents>();
 builder.Services.AddRateLimiter(options =>

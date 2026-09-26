@@ -1,0 +1,32 @@
+@page
+@model AstralRecordWeb.Pages.Mail.IndexModel
+@{ ViewData["Title"] = "メール"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">受信箱</p><h1>メール</h1><p class="ar-portal-sub">現在のアカウント宛のメールです。通貨報酬はWebで受け取れます。アイテム報酬はゲーム内で受け取ってください。</p></div><a asp-page="/Mail/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.ClaimResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.Mail.IndexModel.ClaimStatus(result) <span>操作ID: @result.OperationId</span></div> }
+    @if (Model.Account is { } account)
+    {
+        <section class="ar-panel"><h2>受取先</h2><p><strong>@account.AccountName</strong>（スロット @account.SlotIndex）</p><p>ゲーム内で選択中のアカウントが変わると、この画面からは受け取れません。</p></section>
+        @if (Model.Messages.Count == 0) { <section class="ar-panel"><p>表示できるメールはありません。</p></section> }
+        else
+        {
+            @foreach (var mail in Model.Messages)
+            {
+                <article class="ar-panel"><h2>@mail.Title</h2><p style="white-space: pre-wrap">@mail.Body</p>
+                    @if (mail.Rewards.Count > 0)
+                    {
+                        <p>報酬:</p><ul>@foreach (var reward in mail.Rewards) { <li>@reward.ItemId × @reward.Amount.ToString("N0")（@reward.Category）</li> }</ul>
+                    }
+                    @if (mail.CanClaimCurrency)
+                    {
+                        <form method="post" asp-page-handler="Claim" data-single-submit><input type="hidden" name="AccountId" value="@account.AccountId" /><input type="hidden" name="OperationId" value="@Guid.NewGuid()" /><input type="hidden" name="MailId" value="@mail.Id" /><button type="submit" class="btn ar-btn-primary">通貨を受け取る</button></form>
+                    }
+                    else if (mail.CurrencyClaimed && !mail.IsRead) { <p>通貨はWebで受取済みです。残りの報酬はゲーム内で受け取ってください。</p> }
+                    else { <p>@(mail.IsRead ? "受取済みです。" : "ゲーム内で受け取ってください。")</p> }
+                </article>
+            }
+        }
+    }
+</div></section>
+@section Scripts { <script src="~/js/paid-services.js" asp-append-version="true"></script> }

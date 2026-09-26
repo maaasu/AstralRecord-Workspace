@@ -9,9 +9,11 @@ namespace AstralRecordWeb.Pages;
 
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class MyPageModel(PlayerProfileApiClient profiles) : PageModel
+public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient paid) : PageModel
 {
     public WebPlayerProfileResponse? Profile { get; private set; }
+    public AccountBenefits? Benefits { get; private set; }
+    public string? BenefitsError { get; private set; }
     public string? ErrorMessage { get; private set; }
     [TempData] public string? StatusMessage { get; set; }
     [BindProperty] public bool IsPublic { get; set; }
@@ -22,6 +24,12 @@ public class MyPageModel(PlayerProfileApiClient profiles) : PageModel
         var result = await profiles.GetMeAsync(viewer, ct);
         Profile = result.Value;
         if (!result.Succeeded) ErrorMessage = "プレイヤー情報を取得できませんでした。時間をおいて再読み込みしてください。";
+        if (result.Succeeded && result.Value?.UserUuid == viewer && result.Value.CurrentAccount is { } account)
+        {
+            var benefits = await paid.BenefitsAsync(viewer, account.AccountId, ct);
+            if (benefits.Succeeded && benefits.Value?.AccountId == account.AccountId) Benefits = benefits.Value;
+            else BenefitsError = "特典情報を取得できませんでした。時間をおいて再読み込みしてください。";
+        }
         return Page();
     }
 

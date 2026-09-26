@@ -11,8 +11,24 @@
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         <section class="ar-panel"><h2>ログイン設定</h2><p>任意のID・パスワードで、次回からMinecraftを起動せずログインできます。IDの確認やパスワードの再設定もこちらから行えます。</p><a asp-page="/LoginSettings" class="btn ar-btn-primary">ログイン設定を開く →</a></section>
         <section class="ar-panel"><h2>寄付・Discord連携</h2><p>活動への支援の申請、Discord連携、申請結果の確認を行えます。</p><a asp-page="/Donations/Index" class="btn ar-btn-primary">寄付フォーム・履歴を開く →</a></section>
+        <section class="ar-panel"><h2>有償アストラルドとメール</h2><p>現在のアカウントに直接適用する特典を購入できます。通貨だけのメール報酬はWebで受け取れます。</p><a asp-page="/AstraldShop/Index" class="btn ar-btn-primary">ショップを開く →</a> <a asp-page="/Mail/Index" class="btn ar-btn-outline">メールを開く →</a></section>
         @if (Model.Profile is { } profile)
         {
+            @if (profile.CurrentAccount is { } selectedAccount)
+            {
+                <section class="ar-panel"><h2>現在のアカウント特典</h2><p>@selectedAccount.AccountName（スロット @selectedAccount.SlotIndex）</p>
+                    @if (Model.Benefits is { } benefits)
+                    {
+                        <dl class="ar-profile-facts">
+                            <div><dt>インスタンス優先接続</dt><dd>残り @benefits.InstancePriorityUses 回</dd></div>
+                            <div><dt>VIP</dt><dd>@(benefits.VipTier is "DONER" or "ASTRALDER" ? benefits.VipTier : "なし")</dd></div>
+                            <div><dt>有効期限（日本時間）</dt><dd>@(benefits.VipExpiresAt is { } expires ? expires.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm") : "—")</dd></div>
+                            <div><dt>残り日数</dt><dd>@benefits.RemainingDays 日</dd></div>
+                        </dl>
+                    }
+                    else { <p class="alert alert-warning" role="alert">@Model.BenefitsError</p> }
+                </section>
+            }
             <partial name="_PlayerProfile" model="profile" />
             <section class="ar-panel"><h2>討伐モブ図鑑</h2><p>自分が討伐したモブの能力値やドロップ、討伐回数を確認できます。この図鑑を他のプレイヤーが見ることはできません。</p><a asp-page="/Bestiary/Index" class="btn ar-btn-primary">自分の図鑑を開く →</a></section>
             <section class="ar-panel ar-visibility" aria-labelledby="visibility-title">

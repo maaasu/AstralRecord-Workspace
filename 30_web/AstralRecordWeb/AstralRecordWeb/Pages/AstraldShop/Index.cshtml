@@ -1,0 +1,44 @@
+@page
+@model AstralRecordWeb.Pages.AstraldShop.IndexModel
+@{ ViewData["Title"] = "有償アストラルドショップ"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">アカウント特典</p><h1>有償アストラルドショップ</h1><p class="ar-portal-sub">購入した効果は現在のアカウントへ直接適用されます。ゲーム内メールでの受取操作はありません。</p></div><a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.PurchaseResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.AstraldShop.IndexModel.PurchaseStatus(result) <span>操作ID: @result.OperationId</span></div> }
+    @if (Model.Account is { } account)
+    {
+        <section class="ar-panel"><h2>購入先</h2><p><strong>@account.AccountName</strong>（スロット @account.SlotIndex）</p><p>この画面を開いている間にゲーム内の選択アカウントが変わった場合は購入を受け付けません。</p>
+            @if (Model.Benefits?.PaidAstraldBalance is { } balance) { <p>有償アストラルド残高: <strong>@balance.ToString("N0")</strong></p> }
+            else { <p>有償アストラルド残高を確認できません。購入前に再読み込みしてください。</p> }
+            <p><a asp-page="/MyPage">マイページで特典を確認する →</a></p>
+        </section>
+    }
+    @if (Model.Catalog is { } catalog && Model.Account is { } selectedAccount)
+    {
+        <section class="ar-panel"><h2>商品</h2><p>チャンネルブーストは選んだチャンネルで購入と同時に発動します。同じ種類の効果が有効な間は重複購入できません。EXP・DROP同時ブーストは両方とも無効な場合に限ります。</p>
+            @if (catalog.Items.Count == 0) { <p>現在購入できる商品はありません。</p> }
+            else { <div class="row g-3">
+                @foreach (var item in catalog.Items)
+                {
+                    <div class="col-md-6"><article class="ar-panel h-100"><h3>@item.Name</h3><p>消費: <strong>@item.PricePaidAstrald.ToString("N0") 有償アストラルド</strong></p>
+                        @if (item.DurationSeconds is > 0) { <p>有効時間: @TimeSpan.FromSeconds(item.DurationSeconds.Value).TotalHours.ToString("0.#") 時間</p> }
+                        @if (item.RequiresChannel && catalog.Channels.Count == 0) { <p>対象チャンネルを取得できないため、現在購入できません。</p> }
+                        else
+                        {
+                            <form method="post" asp-page-handler="Purchase" data-single-submit>
+                                <input type="hidden" name="AccountId" value="@selectedAccount.AccountId" /><input type="hidden" name="OperationId" value="@Guid.NewGuid()" /><input type="hidden" name="ItemId" value="@item.ItemId" /><input type="hidden" name="ExpectedPricePaidAstrald" value="@item.PricePaidAstrald" />
+                                @if (item.RequiresChannel)
+                                {
+                                    <label class="form-label" for="channel-@item.ItemId">発動するチャンネル</label>
+                                    <select class="form-select mb-3" id="channel-@item.ItemId" name="ChannelId" required><option value="">選択してください</option>@foreach (var channel in catalog.Channels) { <option value="@channel.ChannelId" disabled="@Model.IsChannelBlocked(item, channel.ChannelId)">@channel.DisplayName@(Model.IsChannelBlocked(item, channel.ChannelId) ? "（同種ブースト中）" : "")</option> }</select>
+                                }
+                                <button class="btn ar-btn-primary" type="submit" @(Model.Benefits?.PaidAstraldBalance is null ? "disabled" : null)>購入して直接適用</button>
+                            </form>
+                        }
+                    </article></div>
+                }
+            </div> }
+        </section>
+    }
+</div></section>
+@section Scripts { <script src="~/js/paid-services.js" asp-append-version="true"></script> }
