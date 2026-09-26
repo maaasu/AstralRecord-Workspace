@@ -1186,6 +1186,63 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     [Fact]
+    public async Task SaveAsync_WebCurrencyClaimRejectsStaleMailSnapshotAndAllowsFreshRemainingClaim()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        const string mailId = "mixed-web-mail";
+        var delivery = CreateMailDelivery(mailId, fixture);
+        delivery.PayloadJson = JsonSerializer.Serialize(new MailResponse
+        {
+            SchemaVersion = 1, Id = mailId, Icon = "CHEST", Title = "Mixed", Body = "Mixed",
+            PublishFrom = fixture.BaseTime.AddMinutes(-1),
+            Rewards = [new MailRewardResponse { ItemId = "gold", Category = "CURRENCY", Amount = 1 },
+                new MailRewardResponse { ItemId = "ticket", Category = "consumable", Amount = 1 }],
+        }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        fixture.DbContext.PlayerMailDeliveries.Add(delivery);
+        fixture.DbContext.WebMailCurrencyClaims.Add(new()
+        {
+            OperationId = Guid.NewGuid(), ActorUserUuid = fixture.AccountId, AccountId = fixture.AccountId,
+            MailId = mailId, RequestHash = new string('0', 64), Status = "COMPLETED",
+            CurrencyRewardsJson = "[]", HasNonCurrencyRewards = true,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+        var stale = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = fixture.FirstInventoryId,
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                    ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 11,
+                }],
+            }],
+            MailClaim = Section(new PlayerStateMailClaimSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId,
+            }),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, stale.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Equal(10, (await fixture.DbContext.InventoryEntries.SingleAsync()).Quantity);
+
+        var fresh = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            MailClaim = Section(new PlayerStateMailClaimSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId,
+                CurrencyAlreadyClaimed = true,
+            }),
+        });
+        Assert.True(fresh.Succeeded, fresh.Detail);
+        Assert.True((await fixture.DbContext.PlayerMailStates.SingleAsync()).IsRead);
+    }
+
+    [Fact]
     public async Task SaveAsync_ClaimsPurchasedEquipmentBeforeEntryIsSaved_OnlyOnce()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();

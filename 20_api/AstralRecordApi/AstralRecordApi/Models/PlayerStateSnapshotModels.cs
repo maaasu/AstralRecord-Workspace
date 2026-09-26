@@ -327,6 +327,7 @@ public sealed class PlayerStateMailClaimSection
     public Guid AccountId { get; init; }
     public Guid ClientRevision { get; init; }
     public required string MailId { get; init; }
+    public bool CurrencyAlreadyClaimed { get; init; }
 }
 
 /// <summary>メール削除状態を完成スナップショットと同じ transaction で確定する section です。</summary>

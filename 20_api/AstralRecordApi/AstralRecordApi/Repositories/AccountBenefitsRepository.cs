@@ -18,7 +18,13 @@ public sealed class AccountBenefitsRepository(AstralRecordDbContext db, IItemRep
         if (!await db.Accounts.AnyAsync(a => a.Uuid == accountId && !a.IsDeleted)) return null;
         var state = await db.AccountBenefits.AsNoTracking().SingleOrDefaultAsync(a => a.AccountId == accountId)
             ?? new AccountBenefitsEntity { AccountId = accountId };
-        return AccountBenefitsPolicy.Describe(state, clock.GetUtcNow().UtcDateTime);
+        var balance = await (from entry in db.InventoryEntries.AsNoTracking()
+                             join inventory in db.Inventories.AsNoTracking() on entry.InventoryId equals inventory.InventoryId
+                             where inventory.AccountId == accountId && inventory.InventoryProfile == "GAME"
+                                   && inventory.InventoryType == "CURRENCY" && inventory.IsEnabled && !inventory.IsDeleted
+                                   && !entry.IsDeleted && entry.ItemId == DonationRules.PaidAstraldItemId
+                             select (long?)entry.Quantity).SumAsync() ?? 0;
+        return AccountBenefitsPolicy.Describe(state, clock.GetUtcNow().UtcDateTime) with { PaidAstraldBalance = balance };
     }
 
     public async Task<IReadOnlyList<VipSupporterResponse>> ListSupportersAsync()

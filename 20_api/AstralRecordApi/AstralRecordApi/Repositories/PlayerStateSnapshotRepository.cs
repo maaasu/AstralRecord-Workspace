@@ -1182,6 +1182,14 @@ public sealed class PlayerStateSnapshotRepository(
             || mail.FirstLoginOnly && account.CreatedAt < mail.PublishFrom)
             return null;
 
+        // A Web currency claim keeps mixed mail unread. A stale full-claim snapshot must
+        // reload the mail before receiving the remaining inventory rewards.
+        var webCurrencyClaimed = await dbContext.WebMailCurrencyClaims.AsNoTracking()
+            .AnyAsync(value => value.AccountId == request.AccountId && value.MailId == mailId
+                && value.Status == "COMPLETED");
+        if (webCurrencyClaimed != section.CurrencyAlreadyClaimed)
+            return null;
+
         // メールに保留した装備個体を、同一snapshotで一度だけ本人のinventoryへ移す。
         foreach (var reward in mail.Rewards.Where(value => value.InstanceId.HasValue))
         {

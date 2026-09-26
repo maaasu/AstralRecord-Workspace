@@ -2,7 +2,7 @@ namespace AstralRecordApi.Models;
 
 public sealed record AccountBenefitsResponse(Guid AccountId, int InstancePriorityUses, string VipTier,
     DateTime? VipExpiresAt, DateTime? DonerExpiresAt, DateTime? AstralderExpiresAt,
-    int RemainingDays, int AstralderDailyCreditsRemaining);
+    int RemainingDays, int AstralderDailyCreditsRemaining, long PaidAstraldBalance = 0);
 public sealed record VipSupporterResponse(Guid AccountId, string DisplayName, string VipTier, DateTime? VipExpiresAt, int RemainingDays);
 public class AccountBenefitOperationRequest
 {

@@ -92,6 +92,9 @@ public class ItemConsumableEffectResponse
 
     public double? Value { get; init; }
 
+    /// <summary>チャンネルブーストの有効期間（秒）。</summary>
+    public int? DurationSeconds { get; init; }
+
     public string? Status { get; init; }
 
     public bool IsPercent { get; init; }

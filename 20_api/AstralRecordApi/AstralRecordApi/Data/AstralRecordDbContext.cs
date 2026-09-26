@@ -58,9 +58,109 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
     public DbSet<AccountBenefitsEntity> AccountBenefits => Set<AccountBenefitsEntity>();
     public DbSet<AccountBenefitOperationEntity> AccountBenefitOperations => Set<AccountBenefitOperationEntity>();
+    public DbSet<ChannelBoostEntity> ChannelBoosts => Set<ChannelBoostEntity>();
+    public DbSet<ChannelBoostOperationEntity> ChannelBoostOperations => Set<ChannelBoostOperationEntity>();
+    public DbSet<ChannelBoostEventEntity> ChannelBoostEvents => Set<ChannelBoostEventEntity>();
+    public DbSet<ChannelBoostCursorEntity> ChannelBoostCursors => Set<ChannelBoostCursorEntity>();
+    public DbSet<AstraldShopPurchaseEntity> AstraldShopPurchases => Set<AstraldShopPurchaseEntity>();
+    public DbSet<WebMailCurrencyClaimEntity> WebMailCurrencyClaims => Set<WebMailCurrencyClaimEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<WebMailCurrencyClaimEntity>(entity =>
+        {
+            entity.ToTable("web_mail_currency_claim", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.ActorUserUuid).HasColumnName("actor_user_uuid");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.MailId).HasColumnName("mail_id").HasMaxLength(200);
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(x => x.CurrencyRewardsJson).HasColumnName("currency_rewards_json");
+            entity.Property(x => x.HasNonCurrencyRewards).HasColumnName("has_non_currency_rewards");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(16);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(100);
+            entity.Property(x => x.ResponseJson).HasColumnName("response_json");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(3);
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasPrecision(3);
+            entity.HasIndex(x => new { x.AccountId, x.MailId }).IsUnique().HasFilter("[status] <> 'REJECTED'");
+            entity.HasIndex(x => new { x.AccountId, x.Status, x.CreatedAt });
+        });
+        modelBuilder.Entity<AstraldShopPurchaseEntity>(entity =>
+        {
+            entity.ToTable("astrald_shop_purchase", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.ActorUserUuid).HasColumnName("actor_user_uuid");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ItemId).HasColumnName("item_id").HasMaxLength(64);
+            entity.Property(x => x.ChannelId).HasColumnName("channel_id").HasMaxLength(64);
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(x => x.PricePaidAstrald).HasColumnName("price_paid_astrald");
+            entity.Property(x => x.EffectType).HasColumnName("effect_type").HasMaxLength(64);
+            entity.Property(x => x.EffectValue).HasColumnName("effect_value");
+            entity.Property(x => x.DurationSeconds).HasColumnName("duration_seconds");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(16);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(100);
+            entity.Property(x => x.ResponseJson).HasColumnName("response_json");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(3);
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasPrecision(3);
+            entity.HasIndex(x => new { x.AccountId, x.Status, x.CreatedAt });
+        });
+        modelBuilder.Entity<ChannelBoostCursorEntity>(entity =>
+        {
+            entity.ToTable("channel_boost_cursor", "dbo");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(x => x.LastEventCursor).HasColumnName("last_event_cursor");
+        });
+        modelBuilder.Entity<ChannelBoostEntity>(entity =>
+        {
+            entity.ToTable("channel_boost", "dbo");
+            entity.HasKey(x => x.ChannelId);
+            entity.Property(x => x.ChannelId).HasColumnName("channel_id").HasMaxLength(64);
+            entity.Property(x => x.ExpMultiplier).HasColumnName("exp_multiplier");
+            entity.Property(x => x.ExpExpiresAt).HasColumnName("exp_expires_at").HasPrecision(3);
+            entity.Property(x => x.ExpOperationId).HasColumnName("exp_operation_id");
+            entity.Property(x => x.ExpActivatorName).HasColumnName("exp_activator_name").HasMaxLength(100);
+            entity.Property(x => x.DropMultiplier).HasColumnName("drop_multiplier");
+            entity.Property(x => x.DropExpiresAt).HasColumnName("drop_expires_at").HasPrecision(3);
+            entity.Property(x => x.DropOperationId).HasColumnName("drop_operation_id");
+            entity.Property(x => x.DropActivatorName).HasColumnName("drop_activator_name").HasMaxLength(100);
+        });
+        modelBuilder.Entity<ChannelBoostOperationEntity>(entity =>
+        {
+            entity.ToTable("channel_boost_operation", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ChannelId).HasColumnName("channel_id").HasMaxLength(64);
+            entity.Property(x => x.InventoryEntryId).HasColumnName("inventory_entry_id");
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(16);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(100);
+            entity.Property(x => x.BoostKind).HasColumnName("boost_kind").HasMaxLength(16);
+            entity.Property(x => x.Multiplier).HasColumnName("multiplier");
+            entity.Property(x => x.ExpiresAt).HasColumnName("expires_at").HasPrecision(3);
+            entity.Property(x => x.EventCursor).HasColumnName("event_cursor");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(3);
+        });
+        modelBuilder.Entity<ChannelBoostEventEntity>(entity =>
+        {
+            entity.ToTable("channel_boost_event", "dbo");
+            entity.HasKey(x => x.EventCursor);
+            entity.Property(x => x.EventCursor).HasColumnName("event_cursor").ValueGeneratedNever();
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ChannelId).HasColumnName("channel_id").HasMaxLength(64);
+            entity.Property(x => x.VipTier).HasColumnName("vip_tier").HasMaxLength(16);
+            entity.Property(x => x.AccountName).HasColumnName("account_name").HasMaxLength(100);
+            entity.Property(x => x.BoostKind).HasColumnName("boost_kind").HasMaxLength(16);
+            entity.Property(x => x.Multiplier).HasColumnName("multiplier");
+            entity.Property(x => x.ExpiresAt).HasColumnName("expires_at").HasPrecision(3);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(3);
+            entity.HasIndex(x => x.OperationId).IsUnique();
+        });
         modelBuilder.Entity<MarketWebPurchaseEntity>(entity =>
         {
             entity.ToTable("market_web_purchase", "dbo");

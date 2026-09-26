@@ -29,10 +29,13 @@ public class MailRepository(
             .AsNoTracking()
             .Where(state => state.AccountId == accountId)
             .ToDictionaryAsync(state => state.MailId);
+        var currencyClaimed = await dbContext.WebMailCurrencyClaims.AsNoTracking()
+            .Where(claim => claim.AccountId == accountId && claim.Status == "COMPLETED")
+            .Select(claim => claim.MailId).ToHashSetAsync();
 
         var normalizedFilter = (filter ?? "all").Trim().ToLowerInvariant();
         return masters.Concat(deliveries)
-            .Select(master => Merge(master, states.GetValueOrDefault(master.Id)))
+            .Select(master => Merge(master, states.GetValueOrDefault(master.Id), currencyClaimed.Contains(master.Id)))
             .Where(mail => mail.PublishFrom <= now && (mail.PublishTo is null || mail.PublishTo >= now))
             .Where(mail => !mail.FirstLoginOnly || (accountCreatedAt is not null && accountCreatedAt >= mail.PublishFrom))
             .Where(mail => !mail.IsDeleted)
@@ -224,7 +227,7 @@ public class MailRepository(
             .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted && account.CreatedAt >= publishFrom);
     }
 
-    private static MailResponse Merge(MailResponse master, PlayerMailStateEntity? state) => new()
+    private static MailResponse Merge(MailResponse master, PlayerMailStateEntity? state, bool currencyClaimed = false) => new()
     {
         SchemaVersion = master.SchemaVersion,
         Id = master.Id,
@@ -236,9 +239,15 @@ public class MailRepository(
         PublishTo = master.PublishTo,
         FirstLoginOnly = master.FirstLoginOnly,
         ReceiveOnRead = master.ReceiveOnRead,
-        Rewards = master.Rewards,
+        Rewards = currencyClaimed
+            ? master.Rewards.Where(reward => !string.Equals(reward.Category, "CURRENCY", StringComparison.OrdinalIgnoreCase)).ToArray()
+            : master.Rewards,
         IsRead = state?.IsRead ?? false,
         ReadAt = state?.ReadAt,
         IsDeleted = state?.IsDeleted ?? false,
+        CurrencyClaimed = currencyClaimed,
+        CanClaimCurrency = !currencyClaimed && !(state?.IsRead ?? false) && !(state?.IsDeleted ?? false)
+            && master.Rewards.Any(reward => string.Equals(reward.Category, "CURRENCY", StringComparison.OrdinalIgnoreCase)
+                && reward.InstanceId is null && reward.Amount > 0),
     };
 }

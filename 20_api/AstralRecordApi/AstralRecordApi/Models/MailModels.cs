@@ -25,6 +25,8 @@ public class MailResponse
     public bool IsRead { get; init; }
     public DateTime? ReadAt { get; init; }
     public bool IsDeleted { get; init; }
+    public bool CurrencyClaimed { get; init; }
+    public bool CanClaimCurrency { get; init; }
 }
 
 public class MailActionRequest

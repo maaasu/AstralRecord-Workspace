@@ -1862,3 +1862,91 @@ CREATE TABLE [dbo].[account_benefit_operation] (
     CONSTRAINT [FK_account_benefit_operation_account] FOREIGN KEY ([account_id]) REFERENCES [dbo].[account] ([uuid])
 );
 GO
+CREATE TABLE [dbo].[channel_boost] (
+    [channel_id] NVARCHAR(64) NOT NULL CONSTRAINT [PK_channel_boost] PRIMARY KEY,
+    [exp_multiplier] FLOAT NULL,
+    [exp_expires_at] DATETIME2(3) NULL,
+    [exp_operation_id] UNIQUEIDENTIFIER NULL,
+    [exp_activator_name] NVARCHAR(100) NULL,
+    [drop_multiplier] FLOAT NULL,
+    [drop_expires_at] DATETIME2(3) NULL,
+    [drop_operation_id] UNIQUEIDENTIFIER NULL,
+    [drop_activator_name] NVARCHAR(100) NULL
+);
+GO
+CREATE TABLE [dbo].[channel_boost_operation] (
+    [operation_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_channel_boost_operation] PRIMARY KEY,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [channel_id] NVARCHAR(64) NOT NULL,
+    [inventory_entry_id] UNIQUEIDENTIFIER NULL,
+    [request_hash] NVARCHAR(64) NOT NULL,
+    [status] NVARCHAR(16) NOT NULL,
+    [reason] NVARCHAR(100) NULL,
+    [boost_kind] NVARCHAR(16) NULL,
+    [multiplier] FLOAT NULL,
+    [expires_at] DATETIME2(3) NULL,
+    [event_cursor] BIGINT NULL,
+    [created_at] DATETIME2(3) NOT NULL
+);
+GO
+CREATE TABLE [dbo].[channel_boost_event] (
+    [event_cursor] BIGINT NOT NULL CONSTRAINT [PK_channel_boost_event] PRIMARY KEY,
+    [operation_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [UQ_channel_boost_event_operation] UNIQUE,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [channel_id] NVARCHAR(64) NOT NULL,
+    [account_name] NVARCHAR(100) NOT NULL,
+    [vip_tier] NVARCHAR(16) NOT NULL,
+    [boost_kind] NVARCHAR(16) NOT NULL,
+    [multiplier] FLOAT NOT NULL,
+    [expires_at] DATETIME2(3) NOT NULL,
+    [created_at] DATETIME2(3) NOT NULL
+);
+GO
+CREATE TABLE [dbo].[channel_boost_cursor] (
+    [id] INT NOT NULL CONSTRAINT [PK_channel_boost_cursor] PRIMARY KEY,
+    [last_event_cursor] BIGINT NOT NULL
+);
+GO
+INSERT INTO [dbo].[channel_boost_cursor] ([id], [last_event_cursor]) VALUES (1, 0);
+GO
+CREATE TABLE [dbo].[astrald_shop_purchase] (
+    [operation_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_astrald_shop_purchase] PRIMARY KEY,
+    [actor_user_uuid] UNIQUEIDENTIFIER NOT NULL,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [item_id] NVARCHAR(64) NOT NULL,
+    [channel_id] NVARCHAR(64) NULL,
+    [request_hash] NVARCHAR(64) NOT NULL,
+    [price_paid_astrald] INT NOT NULL,
+    [effect_type] NVARCHAR(64) NOT NULL,
+    [effect_value] FLOAT NOT NULL,
+    [duration_seconds] INT NULL,
+    [status] NVARCHAR(16) NOT NULL,
+    [reason] NVARCHAR(100) NULL,
+    [response_json] NVARCHAR(MAX) NULL,
+    [created_at] DATETIME2(3) NOT NULL,
+    [updated_at] DATETIME2(3) NOT NULL,
+    CONSTRAINT [CK_astrald_shop_purchase_status] CHECK ([status] IN (N'PENDING', N'COMPLETED', N'REJECTED'))
+);
+GO
+CREATE INDEX [IX_astrald_shop_purchase_account_status] ON [dbo].[astrald_shop_purchase] ([account_id], [status], [created_at]);
+GO
+CREATE TABLE [dbo].[web_mail_currency_claim] (
+    [operation_id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_web_mail_currency_claim] PRIMARY KEY,
+    [actor_user_uuid] UNIQUEIDENTIFIER NOT NULL,
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [mail_id] NVARCHAR(200) NOT NULL,
+    [request_hash] NVARCHAR(64) NOT NULL,
+    [currency_rewards_json] NVARCHAR(MAX) NOT NULL,
+    [has_non_currency_rewards] BIT NOT NULL,
+    [status] NVARCHAR(16) NOT NULL,
+    [reason] NVARCHAR(100) NULL,
+    [response_json] NVARCHAR(MAX) NULL,
+    [created_at] DATETIME2(3) NOT NULL,
+    [updated_at] DATETIME2(3) NOT NULL,
+    CONSTRAINT [CK_web_mail_currency_claim_status] CHECK ([status] IN (N'PENDING', N'COMPLETED', N'REJECTED'))
+);
+GO
+CREATE UNIQUE INDEX [UX_web_mail_currency_claim_account_mail] ON [dbo].[web_mail_currency_claim] ([account_id], [mail_id]) WHERE [status] <> N'REJECTED';
+GO
+CREATE INDEX [IX_web_mail_currency_claim_account_status] ON [dbo].[web_mail_currency_claim] ([account_id], [status], [created_at]);
+GO
