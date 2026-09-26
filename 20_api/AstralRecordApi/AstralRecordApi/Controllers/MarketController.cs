@@ -102,7 +102,7 @@ public class MarketController(
     }
 
     /// <summary>
-    /// 出品予定商品の相場見積と価格ガード判定を返します。
+    /// 出品予定商品の相場参考帯と、店売り単価に対する出品可否判定を返します。
     /// </summary>
     [HttpPost("price-quote")]
     [ProducesResponseType(StatusCodes.Status200OK)]

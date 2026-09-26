@@ -98,7 +98,9 @@ public class MarketPriceQuoteResponse
     public int SampleCount { get; init; }
     public string ReferenceScope { get; init; } = string.Empty;
     public string Confidence { get; init; } = string.Empty;
+    /// <summary>互換用フィールド。出品制限ではなく相場の参考下限です。</summary>
     public long AllowedMinUnitPrice { get; init; }
+    /// <summary>互換用フィールド。出品制限ではなく相場の参考上限です。</summary>
     public long AllowedMaxUnitPrice { get; init; }
     public string Judgement { get; init; } = string.Empty;
     public string? ValuationSignature { get; init; }

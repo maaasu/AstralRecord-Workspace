@@ -35,7 +35,7 @@ public class MarketPriceService(
             ? "LOW"
             : ResolveConfidence(sample.Prices.Count);
         var allowed = ResolveAllowedRange(sellPrice, suggestedUnitPrice, sample.Prices, confidence);
-        var judgement = ResolveJudgement(request.UnitPrice, sellPrice, allowed.Min, allowed.Max, confidence);
+        var judgement = ResolveJudgement(request.UnitPrice, sellPrice);
 
         return new MarketPriceQuoteResponse
         {
@@ -211,15 +211,12 @@ public class MarketPriceService(
         );
     }
 
-    private static string ResolveJudgement(long? unitPrice, long sellPrice, long allowedMin, long allowedMax, string confidence)
+    private static string ResolveJudgement(long? unitPrice, long sellPrice)
     {
         if (!unitPrice.HasValue)
             return "ALLOW";
         if (unitPrice.Value <= sellPrice)
             return "BLOCK_AT_OR_BELOW_SELL_VALUE";
-        if (unitPrice.Value < allowedMin || unitPrice.Value > allowedMax)
-            return confidence == "LOW" ? "LOW_CONFIDENCE_ALLOW" : "BLOCK_OUT_OF_MARKET_RANGE";
-
         return "ALLOW";
     }
 

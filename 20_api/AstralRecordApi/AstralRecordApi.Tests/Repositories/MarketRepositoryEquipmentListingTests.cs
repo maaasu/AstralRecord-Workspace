@@ -433,7 +433,7 @@ public class MarketRepositoryEquipmentListingTests
         });
 
         Assert.NotNull(quote);
-        Assert.Equal("LOW_CONFIDENCE_ALLOW", quote.Judgement);
+        Assert.Equal("ALLOW", quote.Judgement);
     }
 
     [Fact]
@@ -457,14 +457,14 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Theory]
-    [InlineData(4, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
-    [InlineData(13, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
-    [InlineData(20, false, "LOW", "LOW_CONFIDENCE_ALLOW")]
-    [InlineData(4, true, "LOW", "LOW_CONFIDENCE_ALLOW")]
-    [InlineData(5, true, "MEDIUM", "BLOCK_OUT_OF_MARKET_RANGE")]
-    [InlineData(20, true, "HIGH", "BLOCK_OUT_OF_MARKET_RANGE")]
-    public async Task MarketPriceQuote_EquipmentRequiresComparableHistoryForPriceGuard(
-        int sampleCount, bool sameSignature, string confidence, string judgement)
+    [InlineData(4, false, "LOW")]
+    [InlineData(13, false, "LOW")]
+    [InlineData(20, false, "LOW")]
+    [InlineData(4, true, "LOW")]
+    [InlineData(5, true, "MEDIUM")]
+    [InlineData(20, true, "HIGH")]
+    public async Task MarketPriceQuote_EquipmentHistoryDoesNotRestrictListingPrice(
+        int sampleCount, bool sameSignature, string confidence)
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
         var service = new MarketPriceService(harness.DbContext, new StaticItemRepository(CreateEquipmentMarketItem()));
@@ -483,16 +483,24 @@ public class MarketRepositoryEquipmentListingTests
 
         Assert.NotNull(quote);
         Assert.Equal(confidence, quote.Confidence);
-        Assert.Equal(judgement, quote.Judgement);
+        Assert.Equal("ALLOW", quote.Judgement);
         Assert.Equal(sameSignature && sampleCount >= 5 ? "EXACT_SIGNATURE" : "ITEM_ONLY", quote.ReferenceScope);
         Assert.Equal(sampleCount, quote.SampleCount);
         Assert.Equal(50_000L, quote.ReferenceUnitPrice);
+        if (sameSignature && sampleCount >= 5)
+        {
+            request.UnitPrice = 5_000;
+            var belowReferenceRange = await service.CreateQuoteAsync(request);
+            Assert.NotNull(belowReferenceRange);
+            Assert.True(request.UnitPrice < belowReferenceRange.AllowedMinUnitPrice);
+            Assert.Equal("ALLOW", belowReferenceRange.Judgement);
+        }
         request.UnitPrice = 2_600;
         Assert.Equal("BLOCK_AT_OR_BELOW_SELL_VALUE", (await service.CreateQuoteAsync(request))!.Judgement);
     }
 
     [Fact]
-    public async Task MarketPriceQuote_StackItemHistoryStillEnforcesPriceGuard()
+    public async Task MarketPriceQuote_StackItemHistoryKeepsReferenceRangeWithoutBlocking()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
         await AddPriceHistoryAsync(harness, "material", "market_material", 13, "legacy-signature");
@@ -507,7 +515,69 @@ public class MarketRepositoryEquipmentListingTests
         Assert.NotNull(quote);
         Assert.Equal("ITEM_ONLY", quote.ReferenceScope);
         Assert.Equal("MEDIUM", quote.Confidence);
-        Assert.Equal("BLOCK_OUT_OF_MARKET_RANGE", quote.Judgement);
+        Assert.True(quote.AllowedMaxUnitPrice < 500_000);
+        Assert.Equal("ALLOW", quote.Judgement);
+    }
+
+    [Theory]
+    [InlineData(5_000L)]
+    [InlineData(500_000L)]
+    public async Task CreateListing_AllowsPricesOutsideHighConfidenceReferenceRange(long unitPrice)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var service = new MarketPriceService(harness.DbContext, new StaticItemRepository(CreateEquipmentMarketItem()));
+        var request = harness.CreateRequest();
+        request.UnitPrice = unitPrice;
+        var initial = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = request.ItemCategory,
+            ItemId = request.ItemId,
+            InstanceType = request.InstanceType,
+            InstanceId = request.InstanceId,
+            Quantity = request.Quantity,
+        });
+        Assert.NotNull(initial);
+        await AddPriceHistoryAsync(harness, request.ItemCategory, request.ItemId, 20, initial.ValuationSignature!);
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = request.ItemCategory,
+            ItemId = request.ItemId,
+            InstanceType = request.InstanceType,
+            InstanceId = request.InstanceId,
+            Quantity = request.Quantity,
+            UnitPrice = unitPrice,
+        });
+        Assert.NotNull(quote);
+        Assert.Equal("HIGH", quote.Confidence);
+        Assert.True(unitPrice < quote.AllowedMinUnitPrice || unitPrice > quote.AllowedMaxUnitPrice);
+        Assert.Equal("ALLOW", quote.Judgement);
+
+        var repository = new MarketRepository(harness.DbContext, service, new FixedLimitService(10));
+        var result = await repository.CreateListingAsync(request);
+
+        Assert.True(result.Succeeded, result.ErrorCode);
+        Assert.Equal(unitPrice, result.Value!.UnitPrice);
+        Assert.Equal("ALLOW", (await harness.DbContext.MarketPriceSnapshots.SingleAsync()).Judgement);
+    }
+
+    [Fact]
+    public async Task CreateListing_RejectsPriceAtSellValueAndRollsBackEscrow()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var service = new MarketPriceService(harness.DbContext, new StaticItemRepository(CreateEquipmentMarketItem()));
+        var repository = new MarketRepository(harness.DbContext, service, new FixedLimitService(10));
+        var request = harness.CreateRequest();
+        request.UnitPrice = 2_600;
+
+        var result = await repository.CreateListingAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("market.price_guard_rejected", result.ErrorCode);
+        Assert.Empty(await harness.DbContext.MarketListings.ToListAsync());
+        var entry = await harness.DbContext.InventoryEntries.SingleAsync(e => e.InventoryEntryId == harness.EquipmentEntryId);
+        Assert.False(entry.IsDeleted);
+        Assert.Equal(1, entry.Quantity);
     }
 
     [Fact]

@@ -371,8 +371,7 @@ public class MarketRepository(
 
             if (quote is null)
                 return await RollbackFailureAsync(404, "market.item_not_found", "Item or instance was not found.");
-            if (quote.Judgement is "BLOCK_AT_OR_BELOW_SELL_VALUE"
-                or "BLOCK_OUT_OF_MARKET_RANGE")
+            if (quote.Judgement is "BLOCK_AT_OR_BELOW_SELL_VALUE")
                 return await RollbackFailureAsync(400, "market.price_guard_rejected", quote.Judgement);
 
             long totalPrice;
