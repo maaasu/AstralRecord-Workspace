@@ -70,3 +70,9 @@ consumable:
 ```
 
 `usingSound` は使用中、`sound` は使用完了後のサウンドを指定します。食料などは `usingSound: entity.generic.eat` を指定してください。
+
+## アカウント特典券
+
+`INSTANCE_PRIORITY` は `value` 回のインスタンス優先接続回数、`VIP_DONER` は `value` 日のDONER、`VIP_ASTRALDER` は `value` 日のASTRALDERを使用中アカウントへ追加します。効果は1件、`rate: 100`、`isPercent: false`、`onUse.amount: 1` とします。右クリックで即時に原子的API操作を開始し、通常ポーションの使用時間・演出処理には渡しません。
+
+ASTRALDERを先に消化し、その追加日数だけ残存DONER期限を繰り越します。ASTRALDER中にDONERを追加した場合もASTRALDER終了後から開始します。日数は使用確定時から24時間単位で加算します。ASTRALDER日次特典は日本時間のログイン日ごとに1回、券1枚につき最大20回です。未ログイン日の遡及付与はしません。特典券はトレード・売却不可です。

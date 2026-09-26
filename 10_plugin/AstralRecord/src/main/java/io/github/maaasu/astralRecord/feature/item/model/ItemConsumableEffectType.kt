@@ -6,6 +6,9 @@ package io.github.maaasu.astralRecord.feature.item.model
 enum class ItemConsumableEffectType {
     RECOVER,
     BUFF,
+    INSTANCE_PRIORITY,
+    VIP_DONER,
+    VIP_ASTRALDER,
     UNKNOWN,
     ;
 
@@ -32,4 +35,3 @@ enum class ItemConsumableEffectType {
         }
     }
 }
-

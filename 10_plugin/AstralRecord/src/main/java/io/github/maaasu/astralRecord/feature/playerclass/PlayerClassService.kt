@@ -119,7 +119,7 @@ class PlayerClassService @JvmOverloads constructor(
         if (!playerListNameUpdatesEnabled) {
             return
         }
-        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
+        val standardName = io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account)
         if (astPlayer.account.mode == AccountMode.ADMIN) {
             astPlayer.bukkit.playerListName(standardName)
             return

@@ -1,0 +1,32 @@
+# design:
+#   motif: "交易 / サービス利用券"
+#   progression: 0
+schemaVersion: 1
+id: 30a00013
+category: consumable
+name: "&6&lASTRALDER利用券【20日】"
+icon: NAME_TAG
+rarity: RARE
+maxStack: 64
+saleValue: 0
+unTradeable: true
+unSellable: true
+lore:
+  - "&7右クリックで、使用中のアカウントに適用します。"
+  - "&e20日間のVIP特典を追加します。"
+  - "&7各チャンネルの追加枠とDONER専用チャンネルを利用可能。"
+  - "&7同じ券は残りの期間に加算されます。"
+  - "&eASTRALDERの期間を優先して消化します。"
+  - "&7DONERの期間はASTRALDER終了後に消化します。"
+  - "&7TABのアカウント名が金色・太字になります。"
+  - "&7ログイン日に優先接続回数を1回追加（最大20回）。"
+  - "&7日本時間で1日1回、未ログイン日の繰越はありません。"
+  - "&cトレード・売却不可"
+consumable:
+  onUse:
+    amount: 1
+  effects:
+    - type: VIP_ASTRALDER
+      value: 20
+      rate: 100
+      isPercent: false

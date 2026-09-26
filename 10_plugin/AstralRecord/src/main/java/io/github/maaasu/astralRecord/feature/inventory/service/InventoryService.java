@@ -3405,6 +3405,22 @@ public class InventoryService {
             returnNormalization, null);
     }
 
+    /**
+     * 特典券などの外部原子操作を、保存済みbaselineと応答snapshotで三者マージします。
+     * @param accountId 対象アカウント
+     * @param affectedEntryIds 操作対象entry
+     * @param baseline 保存済みの操作前状態
+     * @param snapshot 応答正本。未収録ならAPIから取得します
+     */
+    public void reconcileExternalInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot
+    ) {
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null, null, snapshot);
+    }
+
     /** 応答内正本が対象account・entry・通貨inventoryを完全に収録する場合に追加GETを省略する。 */
     private @NotNull Set<UUID> reconcileExternalInventoryEntries(
         @NotNull UUID accountId,

@@ -205,6 +205,7 @@ final class CraftShortcutView {
             .append(Component.text(String.valueOf(context.availableClassPoints()), NamedTextColor.AQUA))
             .append(Component.text(" / PP: ", NamedTextColor.GRAY))
             .append(Component.text(String.valueOf(context.availablePassivePoints()), NamedTextColor.AQUA)));
+        io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.appendLore(lore, selectedAccount.getUuid());
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         List<StatusType> changedStatusTypes = changedStatusTypes(snapshot);
         if (!changedStatusTypes.isEmpty()) {

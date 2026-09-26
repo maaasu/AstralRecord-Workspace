@@ -11,7 +11,7 @@ plugin:
     world: "starlit_nox"
 
 # Player connection capacity
-# maxPlayers is reserved for PLAYER. donorExtraPlayers can be used by DONOR and ADMIN,
+# maxPlayers is reserved for PLAYER. donorExtraPlayers can be used by active account VIP and ADMIN,
 # and adminExtraPlayers can be used by ADMIN only.
 playerCapacity:
   maxPlayers: 30
@@ -41,8 +41,8 @@ boss:
 
 # Boss／Dungeon instance creation limits
 # normalLimit is reserved for ordinary requests. reservedLimit is a finite
-# donor-only pool and is never an unlimited bypass.
-# Donor classification uses the cached UserPermission.DONOR (5); it is not configurable here.
+# paid-priority pool and is never an unlimited bypass.
+# Waiting leaders spend one instance-priority use; immediate normal admission is free.
 instanceLimits:
   boss:
     normalLimit: 2

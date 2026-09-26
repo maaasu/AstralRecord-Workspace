@@ -124,3 +124,94 @@ items:
           ref: item:99a00008
         category: currency
         amount: 500
+  - id: 30a00007
+    itemId:
+      ref: item:30a00007
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 500
+  - id: 30a00008
+    itemId:
+      ref: item:30a00008
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 1000
+  - id: 30a00009
+    itemId:
+      ref: item:30a00009
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 3000
+  - id: 30a00010
+    itemId:
+      ref: item:30a00010
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 3
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 5000
+  - id: 30a00011
+    itemId:
+      ref: item:30a00011
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 10000
+  - id: 30a00012
+    itemId:
+      ref: item:30a00012
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 1500
+  - id: 30a00013
+    itemId:
+      ref: item:30a00013
+    category: consumable
+    amount: 1
+    page: 2
+    slot: 8
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00021
+        category: currency
+        amount: 3000

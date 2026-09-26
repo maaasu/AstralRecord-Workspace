@@ -1240,25 +1240,33 @@ public final class BossChallengeService {
                         : plugin.getAccountBenefitsService().consumeInstancePriority(payer, operationId)
                                 .whenComplete((consumed, error) -> refreshCreationQueue()),
                 () -> plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId),
-                ignored -> beginQueuedFieldPreparation(challenge, fieldData)
+                granted -> {
+                    boolean started = beginQueuedFieldPreparation(challenge, fieldData);
+                    if (granted.reserved()) {
+                        if (started) plugin.getAccountBenefitsService().confirmInstancePriority(operationId);
+                        else plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId);
+                    }
+                }
         );
         renderQueueStatus(challenge, ticket);
     }
 
-    private void beginQueuedFieldPreparation(
+    /** 待機参加条件を再確認して生成を開始し、開始できた場合だけtrueを返します。 */
+    private boolean beginQueuedFieldPreparation(
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData fieldData
     ) {
         if (challenge.state() != BossChallengeState.PREPARING) {
-            return;
+            return false;
         }
         List<Player> participants = eligibleParticipantsForEntry(challenge);
         if (participants.size() < challenge.config().partyMin()) {
             endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
-            return;
+            return false;
         }
         clearQueueTitles(participants.stream().map(Player::getUniqueId).toList());
         beginFieldPreparation(challenge, fieldData);
+        return true;
     }
 
     private void beginFieldPreparation(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData fieldData) {

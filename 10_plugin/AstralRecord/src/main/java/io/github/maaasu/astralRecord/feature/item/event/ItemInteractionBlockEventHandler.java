@@ -93,7 +93,9 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
                     if (category == ItemCategory.BUNDLE) {
                         bundleUseService.beginBundleUse(astPlayer, hand, model);
                     } else {
-                        potionUseService.use(astPlayer, hand, model);
+                        var benefits = io.github.maaasu.astralRecord.AstralRecord.getInstance().getAccountBenefitsService();
+                        if (benefits.supports(model)) benefits.use(astPlayer, hand, model);
+                        else potionUseService.use(astPlayer, hand, model);
                     }
                 }, LogId.E_3002, "item_use_candidate:" + snapshot.player().getName())
             ));

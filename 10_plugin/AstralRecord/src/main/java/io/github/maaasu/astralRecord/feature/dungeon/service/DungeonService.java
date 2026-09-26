@@ -1035,7 +1035,13 @@ public final class DungeonService {
                         : plugin.getAccountBenefitsService().consumeInstancePriority(payer, operationId)
                                 .whenComplete((consumed, error) -> refreshCreationQueue()),
                 () -> plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId),
-                ignored -> beginQueuedInstanceCreation(session)
+                granted -> {
+                    boolean started = beginQueuedInstanceCreation(session);
+                    if (granted.reserved()) {
+                        if (started) plugin.getAccountBenefitsService().confirmInstancePriority(operationId);
+                        else plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId);
+                    }
+                }
         );
         renderQueueStatus(session, ticket);
     }
@@ -1115,22 +1121,24 @@ public final class DungeonService {
         enqueueInstanceCreation(session);
     }
 
-    private void beginQueuedInstanceCreation(@NotNull Session session) {
+    /** 待機参加条件を再確認して生成を開始し、開始できた場合だけtrueを返します。 */
+    private boolean beginQueuedInstanceCreation(@NotNull Session session) {
         if (session.ending || stopping || sessionsById.get(session.id) != session) {
-            return;
+            return false;
         }
         WorldMasterData hubData = worldService.getById(hubWorldId);
         if (hubData == null) {
             completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
-            return;
+            return false;
         }
         retainEligiblePreparingParticipants(session, hubData);
         if (session.participants.size() < session.loaded.definition().partySize().min()) {
             completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
-            return;
+            return false;
         }
         clearQueueTitles(session.participants);
         prepareAsync(session);
+        return true;
     }
 
     private @NotNull List<UUID> currentPartyParticipantIds(

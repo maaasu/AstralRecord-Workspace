@@ -1,0 +1,28 @@
+# design:
+#   motif: "交易 / サービス利用券"
+#   progression: 0
+schemaVersion: 1
+id: 30a00008
+category: consumable
+name: "&bインスタンス優先接続券【11回】"
+icon: PAPER
+rarity: RARE
+maxStack: 64
+saleValue: 0
+unTradeable: true
+unSellable: true
+lore:
+  - "&7右クリックで、使用中のアカウントに適用します。"
+  - "&bインスタンス優先接続回数を11回追加。"
+  - "&7ボス・ダンジョンで待機が発生した場合、"
+  - "&7リーダー本人の回数を1消費して優先予約します。"
+  - "&7通常枠へすぐ入れる場合は消費しません。"
+  - "&cトレード・売却不可"
+consumable:
+  onUse:
+    amount: 1
+  effects:
+    - type: INSTANCE_PRIORITY
+      value: 11
+      rate: 100
+      isPercent: false

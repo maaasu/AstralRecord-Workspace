@@ -1,0 +1,30 @@
+# design:
+#   motif: "交易 / サービス利用券"
+#   progression: 0
+schemaVersion: 1
+id: 30a00012
+category: consumable
+name: "&bDONER利用券【15日】"
+icon: NAME_TAG
+rarity: RARE
+maxStack: 64
+saleValue: 0
+unTradeable: true
+unSellable: true
+lore:
+  - "&7右クリックで、使用中のアカウントに適用します。"
+  - "&e15日間のVIP特典を追加します。"
+  - "&7各チャンネルの追加枠とDONER専用チャンネルを利用可能。"
+  - "&7同じ券は残りの期間に加算されます。"
+  - "&eASTRALDERの期間を優先して消化します。"
+  - "&7DONERの期間はASTRALDER終了後に消化します。"
+  - "&7TABのアカウント名が水色になります。"
+  - "&cトレード・売却不可"
+consumable:
+  onUse:
+    amount: 1
+  effects:
+    - type: VIP_DONER
+      value: 15
+      rate: 100
+      isPercent: false

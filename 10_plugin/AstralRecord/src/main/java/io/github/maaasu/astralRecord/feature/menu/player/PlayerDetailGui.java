@@ -901,6 +901,10 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                 .append(AccountDisplayNameFormatter.toComponent(target.getAccount()))));
             lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
+            var skillTree = io.github.maaasu.astralRecord.AstralRecord.getInstance().getSkillTreeService();
+            lore.add(noItalic(Component.text(skillTree.currentClassPointLabel(target) + ": "
+                + skillTree.availableClassPoints(target) + " / PP: " + skillTree.availablePassivePoints(target), NamedTextColor.AQUA)));
+            io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.appendLore(lore, target.getAccount().getUuid());
             lore.add(Component.empty());
             lore.add(noItalic(Component.text("所持ゴールド: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
             lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));

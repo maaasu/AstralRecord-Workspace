@@ -546,6 +546,7 @@ public final class AstralRecord extends JavaPlugin {
     private LoginBonusService loginBonusService;
     private MailService mailService;
     private DonationNotificationService donationNotificationService;
+    private io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService accountBenefitsService;
     private MailGuiEventHandler mailGuiEventHandler;
     private ItemAdminGuiEventHandler itemAdminGuiEventHandler;
     private AdventureRecordService adventureRecordService;
@@ -676,6 +677,7 @@ public final class AstralRecord extends JavaPlugin {
         playerActivityHistoryService.start();
         donationNotificationService.start();
         marketGuiEventHandler.startWebPurchasePolling();
+        accountBenefitsService.start();
 
         ConfigProperties config = ConfigProperties.getInstance();
         if (config.isMasterDataAutoReloadEnabled()) {
@@ -690,6 +692,7 @@ public final class AstralRecord extends JavaPlugin {
     @Override
     public void onDisable() {
         if (donationNotificationService != null) {
+            accountBenefitsService.stop();
             donationNotificationService.stop();
             donationNotificationService = null;
         }
@@ -1581,6 +1584,8 @@ public final class AstralRecord extends JavaPlugin {
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
         donationNotificationService = new DonationNotificationService(this, new DonationNotificationRepository());
+        accountBenefitsService = new io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService(
+            this, inventoryService, inventorySaveCoordinator);
         mailService.setMailReceivedListener((player, mailId) ->
             guideService.recordCondition(player, GuideConditionType.MAIL_RECEIVED, mailId)
         );
@@ -2211,6 +2216,7 @@ public final class AstralRecord extends JavaPlugin {
         playerJoinEventHandler.setPlayerLoadedListener(player -> {
             playerStateIncidents.onLoaded(player);
             donationNotificationService.pollOnLogin(player);
+            accountBenefitsService.onLogin(player);
             var address = player.getBukkit().getAddress();
             if (address != null && address.getAddress() != null) {
                 try {
@@ -2925,6 +2931,11 @@ public final class AstralRecord extends JavaPlugin {
      */
     public SkillTreeService getSkillTreeService() {
         return skillTreeService;
+    }
+
+    /** アカウント単位のVIPとインスタンス優先回数を管理するサービスを返します。 */
+    public io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService getAccountBenefitsService() {
+        return accountBenefitsService;
     }
 
     /**

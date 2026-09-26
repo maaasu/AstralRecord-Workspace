@@ -1238,6 +1238,8 @@ public enum LogId {
     E_5163(5163),
     /** アカウントUUID照会失敗。 */
     E_5164(5164),
+    /** アカウント特典API操作失敗。 */
+    E_7600(7600),
     ;
     private final String id;
 
