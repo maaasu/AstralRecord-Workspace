@@ -14,9 +14,9 @@ public record InstanceCreationQueueConfig(
         @NotNull InstanceCreationLimits boss,
         @NotNull InstanceCreationLimits dungeon
 ) {
-    /** Boss の既定作成枠です。通常2件、寄付者予約1件を保持します。 */
+    /** Boss の既定作成枠です。通常2件、優先予約1件を保持します。 */
     public static final InstanceCreationLimits DEFAULT_BOSS = new InstanceCreationLimits(2, 1);
-    /** Dungeon の既定作成枠です。通常3件、寄付者予約1件を保持します。 */
+    /** Dungeon の既定作成枠です。通常3件、優先予約1件を保持します。 */
     public static final InstanceCreationLimits DEFAULT_DUNGEON = new InstanceCreationLimits(3, 1);
     public InstanceCreationQueueConfig {
         if (boss == null || dungeon == null) {
@@ -49,7 +49,7 @@ public record InstanceCreationQueueConfig(
         );
     }
 
-    /** 通常枠と寄付者予約枠の上限です。 */
+    /** 通常枠と優先予約枠の上限です。 */
     public record InstanceCreationLimits(int normalLimit, int reservedLimit) {
         public InstanceCreationLimits {
             normalLimit = Math.max(1, normalLimit);

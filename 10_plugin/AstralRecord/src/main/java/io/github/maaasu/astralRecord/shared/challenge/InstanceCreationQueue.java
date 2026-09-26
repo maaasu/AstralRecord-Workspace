@@ -9,11 +9,13 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
- * インスタンス作成の通常枠・寄付者予約枠と待機列を管理します。
+ * インスタンス作成の通常枠・優先予約枠と待機列を管理します。
  * <p>
  * すべてのメソッドは Plugin のメインスレッドから呼び出す前提です。枠は受付完了時ではなく
  * {@link #enqueue(List, boolean, String, Consumer)} の開始 callback 実行時に占有され、
@@ -39,21 +41,21 @@ public final class InstanceCreationQueue {
 
     /**
      * 作成要求を待機列へ追加し、空き枠があれば直ちに開始します。
-     * 寄付者予約枠が0件の場合、寄付者も通常枠へ入ります。
+     * 優先予約枠が0件の場合、優先利用者も通常枠へ入ります。
      *
      * @param participantIds 参加予定者
-     * @param donor 寄付者枠を要求するか
+     * @param priority 優先予約枠を要求するか
      * @param displayName 待機表示名
      * @param onGranted 枠が割り当てられたときの開始処理
      * @return 作成要求チケット
      */
     public @NotNull Ticket enqueue(
             @NotNull List<UUID> participantIds,
-            boolean donor,
+            boolean priority,
             @NotNull String displayName,
             @NotNull Consumer<Ticket> onGranted
     ) {
-        return enqueue(UUID.randomUUID(), participantIds, donor, displayName, onGranted);
+        return enqueue(UUID.randomUUID(), participantIds, priority, displayName, onGranted);
     }
 
     /**
@@ -61,7 +63,7 @@ public final class InstanceCreationQueue {
      *
      * @param ticketId 呼出元セッションの一意な ID
      * @param participantIds 参加予定者
-     * @param donor 寄付者枠を要求するか
+     * @param priority 優先予約枠を要求するか
      * @param displayName 待機表示名
      * @param onGranted 枠が割り当てられたときの開始処理
      * @return 作成要求チケット
@@ -69,14 +71,14 @@ public final class InstanceCreationQueue {
     public @NotNull Ticket enqueue(
             @NotNull UUID ticketId,
             @NotNull List<UUID> participantIds,
-            boolean donor,
+            boolean priority,
             @NotNull String displayName,
             @NotNull Consumer<Ticket> onGranted
     ) {
         if (active.containsKey(ticketId) || containsWaiting(ticketId)) {
             throw new IllegalArgumentException("Creation queue ticket already exists: " + ticketId);
         }
-        boolean reserved = donor && limits.reservedLimit() > 0;
+        boolean reserved = priority && limits.reservedLimit() > 0;
         Ticket ticket = new Ticket(
                 ticketId,
                 reserved,
@@ -87,6 +89,62 @@ public final class InstanceCreationQueue {
         waiting(reserved).addLast(pending);
         rethrow(drain());
         return ticket;
+    }
+
+    /**
+     * 通常枠へ即時入場できない場合だけ非同期で優先回数を消費し、予約列へ登録します。
+     * 消費の完了までは開始せず、待機取消・開始 callback 例外時は消費済み回数を返却します。
+     * 呼出元は future の完了をメインスレッドへ戻す必要があります。
+     *
+     * @param ticketId セッションの作成枠 ID
+     * @param participantIds 参加予定者
+     * @param displayName 待機表示名
+     * @param consumePriority この待機登録に対する冪等な消費処理
+     * @param refundPriority 同じ消費要求に対する冪等な返却処理
+     * @param onGranted 枠取得後の開始処理
+     * @return 作成要求チケット（昇格後の状態は waitingTickets から取得）
+     */
+    public @NotNull Ticket enqueueWithPriority(
+            @NotNull UUID ticketId,
+            @NotNull List<UUID> participantIds,
+            @NotNull String displayName,
+            @NotNull Supplier<CompletableFuture<Boolean>> consumePriority,
+            @NotNull Runnable refundPriority,
+            @NotNull Consumer<Ticket> onGranted
+    ) {
+        if (active.containsKey(ticketId) || containsWaiting(ticketId)) {
+            throw new IllegalArgumentException("Creation queue ticket already exists: " + ticketId);
+        }
+        if (limits.reservedLimit() == 0 || (normalWaiting.isEmpty() && hasCapacity(false))) {
+            return enqueue(ticketId, participantIds, false, displayName, onGranted);
+        }
+        Pending pending = new Pending(new Ticket(ticketId, false, participantIds, displayName), onGranted);
+        pending.deciding = true;
+        pending.refund = refundPriority;
+        normalWaiting.addLast(pending);
+        CompletableFuture<Boolean> decision;
+        try {
+            decision = consumePriority.get();
+        } catch (RuntimeException exception) {
+            normalWaiting.remove(pending);
+            throw exception;
+        }
+        decision.whenComplete((consumed, error) -> {
+            pending.deciding = false;
+            pending.paid = Boolean.TRUE.equals(consumed);
+            if (pending.cancelled) {
+                pending.refundIfPaid();
+                return;
+            }
+            if (pending.paid) {
+                normalWaiting.remove(pending);
+                pending.ticket = new Ticket(ticketId, true,
+                        pending.ticket.participantIds(), pending.ticket.displayName());
+                reservedWaiting.addLast(pending);
+            }
+            rethrow(drain());
+        });
+        return pending.ticket;
     }
 
     /**
@@ -111,15 +169,15 @@ public final class InstanceCreationQueue {
      *
      * @param ticketId 更新対象チケット
      * @param participantIds 更新後の参加予定者
-     * @param donor 更新後の予約枠要求
+     * @param priority 更新後の予約枠要求
      * @return 更新後チケット。対象が待機中でなければ {@code null}
      */
     public @Nullable Ticket updateWaiting(
             @NotNull UUID ticketId,
             @NotNull List<UUID> participantIds,
-            boolean donor
+            boolean priority
     ) {
-        boolean reserved = donor && limits.reservedLimit() > 0;
+        boolean reserved = priority && limits.reservedLimit() > 0;
         for (Deque<Pending> lane : List.of(normalWaiting, reservedWaiting)) {
             List<Pending> snapshot = new ArrayList<>(lane);
             for (int index = 0; index < snapshot.size(); index++) {
@@ -128,9 +186,11 @@ public final class InstanceCreationQueue {
                     continue;
                 }
                 Ticket updated = new Ticket(ticketId, reserved, participantIds, pending.ticket().displayName());
-                Pending replacement = new Pending(updated, pending.onGranted());
+                boolean sameLane = pending.ticket().reserved() == reserved;
+                Pending replacement = pending;
+                replacement.ticket = updated;
                 lane.clear();
-                if (pending.ticket().reserved() == reserved) {
+                if (sameLane) {
                     snapshot.set(index, replacement);
                     lane.addAll(snapshot);
                 } else {
@@ -216,6 +276,8 @@ public final class InstanceCreationQueue {
      * 停止時に待機・稼働中のチケットをすべて破棄します。
      */
     public void clear() {
+        normalWaiting.forEach(Pending::cancel);
+        reservedWaiting.forEach(Pending::cancel);
         normalWaiting.clear();
         reservedWaiting.clear();
         active.clear();
@@ -251,7 +313,7 @@ public final class InstanceCreationQueue {
             boolean reserved,
             @Nullable Throwable firstFailure
     ) {
-        while (!lane.isEmpty() && hasCapacity(reserved)) {
+        while (!lane.isEmpty() && !lane.peekFirst().deciding && hasCapacity(reserved)) {
             try {
                 grant(lane.removeFirst());
             } catch (RuntimeException | Error ex) {
@@ -269,6 +331,7 @@ public final class InstanceCreationQueue {
             pending.onGranted().accept(pending.ticket());
         } catch (RuntimeException | Error ex) {
             active.remove(pending.ticket().id(), pending);
+            pending.refundIfPaid();
             throw ex;
         }
     }
@@ -299,7 +362,13 @@ public final class InstanceCreationQueue {
     }
 
     private static boolean removeWaiting(@NotNull Deque<Pending> lane, @NotNull UUID ticketId) {
-        return lane.removeIf(pending -> pending.ticket().id().equals(ticketId));
+        return lane.removeIf(pending -> {
+            if (!pending.ticket().id().equals(ticketId)) {
+                return false;
+            }
+            pending.cancel();
+            return true;
+        });
     }
 
     private boolean containsWaiting(@NotNull UUID ticketId) {
@@ -323,11 +392,40 @@ public final class InstanceCreationQueue {
                 return false;
             }
             removed.add(pending.ticket());
+            pending.cancel();
             return true;
         });
     }
 
-    private record Pending(@NotNull Ticket ticket, @NotNull Consumer<Ticket> onGranted) {
+    private static final class Pending {
+        private Ticket ticket;
+        private final Consumer<Ticket> onGranted;
+        private boolean deciding;
+        private boolean cancelled;
+        private boolean paid;
+        private Runnable refund = () -> { };
+
+        private Pending(Ticket ticket, Consumer<Ticket> onGranted) {
+            this.ticket = ticket;
+            this.onGranted = onGranted;
+        }
+
+        private Ticket ticket() { return ticket; }
+        private Consumer<Ticket> onGranted() { return onGranted; }
+
+        /** 未開始の登録を取消し、消費が確定済みなら一度だけ返却します。 */
+        private void cancel() {
+            cancelled = true;
+            refundIfPaid();
+        }
+
+        /** 未開始または開始失敗の消費を一度だけ補償します。 */
+        private void refundIfPaid() {
+            if (paid) {
+                paid = false;
+                refund.run();
+            }
+        }
     }
 
     /** 作成要求を識別するチケットです。 */

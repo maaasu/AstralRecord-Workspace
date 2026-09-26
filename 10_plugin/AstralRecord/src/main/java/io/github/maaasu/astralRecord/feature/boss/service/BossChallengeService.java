@@ -26,7 +26,6 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -535,7 +534,6 @@ public final class BossChallengeService {
                 config,
                 participants
         );
-        challenge.reservedCreationSlot(hasDonorPermission(party, player.getUniqueId()));
         challengesById.put(challenge.challengeId(), challenge);
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
@@ -1196,6 +1194,12 @@ public final class BossChallengeService {
                         challenge.challengeId(), fieldData, player.getUniqueId(), result, throwable)));
     }
 
+    /**
+     * 全員の待機条件を確認し、通常枠が満員のときだけ現在リーダーの優先回数を非同期消費します。
+     * 消費結果はメインスレッドで反映し、取消時は同じ操作 ID で返却します。
+     * @param challenge 待機中の挑戦
+     * @param fieldData 作成対象のフィールド定義
+     */
     private void tryEnqueueWaitingChallenge(
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData fieldData
@@ -1219,18 +1223,25 @@ public final class BossChallengeService {
         if (readyCount < challenge.config().partyMin() || readyCount > challenge.config().partyMax()) {
             return;
         }
-        challenge.reservedCreationSlot(currentReservedCreationSlot(challenge));
         if (challenge.creationQueueTicketId() != null) {
             return;
         }
-        InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
+        UUID leaderId = currentQueueLeaderId(challenge);
+        Player leader = leaderId == null ? null : Bukkit.getPlayer(leaderId);
+        AstPlayer payer = leader == null ? null : AstPlayerCache.get(leader);
+        UUID operationId = UUID.randomUUID();
+        challenge.creationQueueLeaderId(leaderId);
+        challenge.creationQueueTicketId(challenge.challengeId());
+        InstanceCreationQueue.Ticket ticket = creationQueue.enqueueWithPriority(
                 challenge.challengeId(),
                 challenge.expectedParticipantIds(),
-                challenge.reservedCreationSlot(),
                 challenge.bossTemplate().displayName(),
+                () -> payer == null ? CompletableFuture.completedFuture(false)
+                        : plugin.getAccountBenefitsService().consumeInstancePriority(payer, operationId)
+                                .whenComplete((consumed, error) -> refreshCreationQueue()),
+                () -> plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId),
                 ignored -> beginQueuedFieldPreparation(challenge, fieldData)
         );
-        challenge.creationQueueTicketId(ticket.id());
         renderQueueStatus(challenge, ticket);
     }
 
@@ -2250,6 +2261,7 @@ public final class BossChallengeService {
                 && (ticketId == null || !creationQueue.isActive(ticketId));
     }
 
+    /** 現在の参加者を待機登録へ同期し、リーダー交代時は消費を返却して再登録可能にします。 */
     private void synchronizeWaitingParty(@NotNull BossChallengeInstance challenge) {
         if (!challenge.partyKey().startsWith("party:") || !isWaitingForPartyMembers(challenge)) {
             return;
@@ -2275,6 +2287,10 @@ public final class BossChallengeService {
             return;
         }
 
+        if (challenge.creationQueueTicketId() != null
+                && !party.getLeaderId().equals(challenge.creationQueueLeaderId())) {
+            cancelWaitingTicket(challenge);
+        }
         List<UUID> previous = challenge.expectedParticipantIds();
         List<UUID> current = party.members();
         if (current.stream().noneMatch(this::isInHub)) {
@@ -2302,7 +2318,6 @@ public final class BossChallengeService {
                 clearQueueTitles(waitingTicket.participantIds());
             }
             challenge.updateExpectedParticipantIds(current);
-            challenge.reservedCreationSlot(hasDonorPermission(party, challenge.initiatorId()));
             if (waitingTicket != null) {
                 clearQueueTitles(removed);
             }
@@ -2317,25 +2332,12 @@ public final class BossChallengeService {
                 InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
                         waitingTicket.id(),
                         current,
-                        challenge.reservedCreationSlot());
+                        waitingTicket.reserved());
                 if (updated != null) {
                     renderQueueStatus(challenge, updated);
                 }
             }
             return;
-        }
-
-        boolean reserved = hasDonorPermission(party, challenge.initiatorId());
-        if (challenge.reservedCreationSlot() != reserved) {
-            challenge.reservedCreationSlot(reserved);
-            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(challenge);
-            if (waitingTicket != null) {
-                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
-                        waitingTicket.id(), current, reserved);
-                if (updated != null) {
-                    renderQueueStatus(challenge, updated);
-                }
-            }
         }
     }
 
@@ -2403,34 +2405,18 @@ public final class BossChallengeService {
         return true;
     }
 
-    private boolean currentReservedCreationSlot(@NotNull BossChallengeInstance challenge) {
+    /** 現在のパーティーリーダー、またはソロ本人を優先回数の消費対象として返します。 */
+    private @Nullable UUID currentQueueLeaderId(@NotNull BossChallengeInstance challenge) {
         if (challenge.partyKey().startsWith("solo:")) {
-            Player initiator = Bukkit.getPlayer(challenge.initiatorId());
-            AstPlayer astPlayer = initiator == null ? null : AstPlayerCache.get(initiator);
-            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
+            return challenge.initiatorId();
         }
         try {
             UUID partyId = UUID.fromString(challenge.partyKey().substring("party:".length()));
-            return hasDonorPermission(partyService.findPartyById(partyId), challenge.initiatorId());
+            Party party = partyService.findPartyById(partyId);
+            return party == null ? null : party.getLeaderId();
         } catch (IllegalArgumentException exception) {
-            return false;
+            return null;
         }
-    }
-
-    private boolean hasDonorPermission(@Nullable Party party, @NotNull UUID soloPlayerId) {
-        if (party == null) {
-            Player player = Bukkit.getPlayer(soloPlayerId);
-            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
-        }
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            AstPlayer astPlayer = member == null ? null : AstPlayerCache.get(member);
-            if (astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private @NotNull List<Player> onlinePlayers(@NotNull Collection<UUID> playerIds) {

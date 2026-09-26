@@ -54,7 +54,6 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -810,7 +809,6 @@ public final class DungeonService {
                 returnLocations,
                 participantHistory
         );
-        session.reservedCreationSlot = hasDonorPermission(party, leader.getUniqueId());
         sessionsById.put(sessionId, session);
         sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
@@ -1013,19 +1011,32 @@ public final class DungeonService {
         }));
     }
 
-    /** Hub滞在確認後に作成枠を確保し、空き次第で生成を開始します。 */
+    /**
+     * 全員の Hub 滞在確認後、通常枠が満員のときだけ現在リーダーの優先回数を非同期消費します。
+     * 消費結果はメインスレッドで反映し、未開始取消時は同じ操作 ID で返却します。
+     * @param session 待機中のセッション
+     */
     private void enqueueInstanceCreation(@NotNull Session session) {
         if (session.creationQueueTicketId != null) {
             return;
         }
-        InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
+        Party party = currentParty(session);
+        UUID leaderId = party == null ? session.initiatorId : party.getLeaderId();
+        Player leader = Bukkit.getPlayer(leaderId);
+        AstPlayer payer = leader == null ? null : AstPlayerCache.get(leader);
+        UUID operationId = UUID.randomUUID();
+        session.creationQueueLeaderId = leaderId;
+        session.creationQueueTicketId = session.id;
+        InstanceCreationQueue.Ticket ticket = creationQueue.enqueueWithPriority(
                 session.id,
                 List.copyOf(session.participants),
-                session.reservedCreationSlot,
                 session.loaded.definition().displayName(),
+                () -> payer == null ? CompletableFuture.completedFuture(false)
+                        : plugin.getAccountBenefitsService().consumeInstancePriority(payer, operationId)
+                                .whenComplete((consumed, error) -> refreshCreationQueue()),
+                () -> plugin.getAccountBenefitsService().refundInstancePriority(payer, operationId),
                 ignored -> beginQueuedInstanceCreation(session)
         );
-        session.creationQueueTicketId = ticket.id();
         renderQueueStatus(session, ticket);
     }
 
@@ -1101,7 +1112,6 @@ public final class DungeonService {
         if (count < allowed.min() || count > allowed.max()) {
             return;
         }
-        session.reservedCreationSlot = currentReservedCreationSlot(session);
         enqueueInstanceCreation(session);
     }
 
@@ -4228,6 +4238,7 @@ public final class DungeonService {
      *
      * @param session 同期対象の Dungeon セッション
      */
+    /** 現在の参加者を待機登録へ同期し、リーダー交代時は消費を返却して再登録可能にします。 */
     private void synchronizeWaitingParty(@NotNull Session session) {
         if (!session.partyKey.startsWith("party:") || !isWaitingForPartyMembers(session)) {
             return;
@@ -4242,6 +4253,10 @@ public final class DungeonService {
             }
             completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
             return;
+        }
+        if (session.creationQueueTicketId != null
+                && !party.getLeaderId().equals(session.creationQueueLeaderId)) {
+            cancelWaitingTicket(session);
         }
         List<UUID> previous = List.copyOf(session.participants);
         List<UUID> current = party.members();
@@ -4278,32 +4293,18 @@ public final class DungeonService {
                 }
             }
             session.waitingAbsentParticipants.retainAll(currentSet);
-            session.reservedCreationSlot = hasDonorPermission(party, session.initiatorId);
             if (waitingTicket != null) {
                 clearQueueTitles(removed);
             }
             if (waitingTicket != null && !added && session.creationQueueTicketId != null
                     && allParticipantsInHub(session, current)) {
                 InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
-                        waitingTicket.id(), current, session.reservedCreationSlot);
+                        waitingTicket.id(), current, waitingTicket.reserved());
                 if (updated != null) {
                     renderQueueStatus(session, updated);
                 }
             }
             return;
-        }
-
-        boolean reserved = hasDonorPermission(party, session.initiatorId);
-        if (session.reservedCreationSlot != reserved) {
-            session.reservedCreationSlot = reserved;
-            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(session);
-            if (waitingTicket != null) {
-                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
-                        waitingTicket.id(), current, reserved);
-                if (updated != null) {
-                    renderQueueStatus(session, updated);
-                }
-            }
         }
     }
 
@@ -4450,26 +4451,6 @@ public final class DungeonService {
         if (target != null) {
             worldService.teleportPlayerAsync(player, target, null);
         }
-    }
-
-    private boolean currentReservedCreationSlot(@NotNull Session session) {
-        return hasDonorPermission(currentParty(session), session.initiatorId);
-    }
-
-    private boolean hasDonorPermission(@Nullable Party party, @NotNull UUID soloPlayerId) {
-        if (party == null) {
-            Player player = Bukkit.getPlayer(soloPlayerId);
-            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
-        }
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            AstPlayer astPlayer = member == null ? null : AstPlayerCache.get(member);
-            if (astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -4948,7 +4929,7 @@ public final class DungeonService {
         private boolean combatStarted;
         private boolean cleared;
         private boolean ending;
-        private boolean reservedCreationSlot;
+        private UUID creationQueueLeaderId;
         private UUID creationQueueTicketId;
         private long transferGeneration = 1L;
 

@@ -43,7 +43,7 @@ public final class BossChallengeInstance {
     private BukkitTask startCountdownTask;
     private DisplayTextService.ManagedTextDisplay resultDisplay;
     private BossBar bossBar;
-    private boolean reservedCreationSlot;
+    private UUID creationQueueLeaderId;
     private UUID creationQueueTicketId;
 
     public BossChallengeInstance(
@@ -170,21 +170,19 @@ public final class BossChallengeInstance {
     }
 
     /**
-     * この挑戦が寄付者予約枠を要求するか返します。
-     *
-     * @return 予約枠要求なら true
+     * 待機登録時点の優先回数消費対象リーダーを返します。
+     * @return 待機登録時のリーダー。未登録なら null
      */
-    public boolean reservedCreationSlot() {
-        return reservedCreationSlot;
+    public @Nullable UUID creationQueueLeaderId() {
+        return creationQueueLeaderId;
     }
 
     /**
-     * 寄付者予約枠の要求状態を設定します。
-     *
-     * @param reservedCreationSlot 予約枠を要求する場合は true
+     * 待機登録時点のリーダーを記録します。
+     * @param leaderId 登録時のリーダー UUID
      */
-    public void reservedCreationSlot(boolean reservedCreationSlot) {
-        this.reservedCreationSlot = reservedCreationSlot;
+    public void creationQueueLeaderId(@Nullable UUID leaderId) {
+        this.creationQueueLeaderId = leaderId;
     }
 
     /**
