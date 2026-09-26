@@ -21,6 +21,8 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
+import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuote;
+import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuoteRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.feature.market.model.MarketWebPurchase;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRequestRejectedException;
@@ -56,6 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -486,6 +489,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         GuiSound.SELECT.play(player);
     }
 
+    /**
+     * 選択 item の出品案を作り、見積を非同期取得してから価格初期値を表示します。
+     *
+     * @param event 選択クリック
+     * @param player 操作プレイヤー
+     * @param session 現在のマーケットセッション
+     */
     private void handleSellSelectClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -569,11 +579,47 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             maxQuantity,
             minimumUnitPrice
         );
-        session.screen = MarketScreen.SELL_CONFIG;
-        marketGui.openSellConfig(player, session.sessionId, session.draft);
+        MarketListingDraft draft = session.draft;
+        session.screen = MarketScreen.LOADING;
+        long requestVersion = ++session.requestVersion;
+        marketGui.openLoading(player, session.sessionId);
+        MarketPriceQuoteRequest quoteRequest = new MarketPriceQuoteRequest(
+            astPlayer.getAccount().getUuid(), draft.itemCategory(), draft.itemId(),
+            draft.instanceType(), draft.instanceId(), 1L, null
+        );
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            MarketPriceQuote quote;
+            try {
+                quote = marketService.createPriceQuote(quoteRequest).orElse(null);
+            } catch (RuntimeException failure) {
+                quote = null;
+            }
+            MarketPriceQuote result = quote;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!isCurrentSession(player, session, requestVersion)
+                    || session.screen != MarketScreen.LOADING || session.draft != draft) {
+                    return;
+                }
+                if (result != null && result.itemCategory().equalsIgnoreCase(draft.itemCategory())
+                    && result.itemId().equalsIgnoreCase(draft.itemId())
+                    && java.util.Objects.equals(result.instanceId(), draft.instanceId())) {
+                    draft.setPriceQuote(result);
+                    draft.setUnitPrice(draft.recommendedUnitPrice());
+                }
+                session.screen = MarketScreen.SELL_CONFIG;
+                marketGui.openSellConfig(player, session.sessionId, draft);
+            });
+        });
         GuiSound.SELECT.play(player);
     }
 
+    /**
+     * 数量・単価設定と出品確定を処理します。
+     *
+     * @param event 設定画面クリック
+     * @param player 操作プレイヤー
+     * @param session 現在のマーケットセッション
+     */
     private void handleSellConfigClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -604,14 +650,18 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 GuiSound.SELECT.play(player);
             }
             case MarketGui.PRICE_SLOT -> {
-                long maxUnitPrice = Math.max(1L, Long.MAX_VALUE / draft.quantity());
                 goldAmountSettingGui.open(
                     player,
                     GOLD_AMOUNT_SOURCE_KEY,
                     draft.contextId(),
                     draft.unitPrice(),
-                    maxUnitPrice,
-                    new GuiNavigationDestination(org.bukkit.Material.CHEST, "出品設定")
+                    draft.maximumUnitPrice(),
+                    draft.quickMaxUnitPrice(),
+                    draft.priceQuote() == null ? "最低出品単価" : "相場参考上限",
+                    MarketGui.priceGuideLore(draft),
+                    new GuiNavigationDestination(org.bukkit.Material.CHEST, "出品設定"),
+                    () -> { },
+                    () -> { }
                 );
                 GuiSound.SELECT.play(player);
             }
@@ -697,6 +747,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         cancelListing(player, session, session.selectedListing);
     }
 
+    /**
+     * マーケット用 Gold 単価入力を安全上限内で処理します。
+     *
+     * @param event 金額画面クリック
+     * @param player 操作プレイヤー
+     * @param top 金額設定インベントリ
+     */
     private void handleGoldAmountClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -726,7 +783,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == GoldAmountSettingGui.CONFIRM_SLOT) {
-            if (holder.amount() < 1L) {
+            if (holder.amount() < session.draft.minimumUnitPrice()) {
+                sendListingPriceRejection(player, session.draft);
                 GuiSound.DENY.play(player);
                 return;
             }
@@ -752,7 +810,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             case GoldAmountSettingGui.HALF_SLOT -> holder.amount() / 2L;
             case GoldAmountSettingGui.DOUBLE_SLOT -> goldAmountSettingGui.applyDelta(holder, holder.amount());
             case GoldAmountSettingGui.PLUS_SLOT -> goldAmountSettingGui.applyStepDelta(holder, 1, goldMultiplier(event));
-            case GoldAmountSettingGui.MAX_SLOT -> holder.maxAmount();
+            case GoldAmountSettingGui.MAX_SLOT -> holder.quickMaxAmount();
             default -> before;
         };
         if (amount != before) {
@@ -764,6 +822,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
+    /**
+     * 売値超を事前確認し、保存 lane で出品を確定します。
+     *
+     * @param player 操作プレイヤー
+     * @param session 現在のマーケットセッション
+     * @param draft 出品案
+     */
     private void submitListing(
         @NotNull Player player,
         @NotNull MarketSession session,
@@ -771,6 +836,12 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || session.busy) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (draft.unitPrice() < draft.minimumUnitPrice()
+            || draft.unitPrice() > draft.maximumUnitPrice()) {
+            sendListingPriceRejection(player, draft);
             GuiSound.DENY.play(player);
             return;
         }
@@ -809,7 +880,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             }
             session.busy = false;
             if (throwable != null) {
-                sendMarketFailure(player, throwable);
+                sendMarketFailure(player, throwable, draft);
                 session.screen = MarketScreen.SELL_CONFIG;
                 marketGui.openSellConfig(player, session.sessionId, draft);
                 return;
@@ -1854,13 +1925,49 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return astPlayer == null ? 0L : currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
     }
 
+    /**
+     * 売値以下での出品拒否時に、実際の入力範囲と参考相場を通知します。
+     *
+     * @param player 通知先
+     * @param draft 拒否した出品案
+     */
+    private void sendListingPriceRejection(@NotNull Player player, @NotNull MarketListingDraft draft) {
+        MarketPriceQuote quote = draft.priceQuote();
+        String range = quote == null ? "取得できません" :
+            String.format(Locale.ROOT, "%,d〜%,d Gold/個", quote.allowedMinUnitPrice(), quote.allowedMaxUnitPrice());
+        String recommendation = quote == null ? "取得できません" :
+            String.format(Locale.ROOT, "%,d Gold/個", draft.recommendedUnitPrice());
+        messageService.send(player, PlayerMsgId.P_6312,
+            String.format(Locale.ROOT, "%,d", draft.minimumUnitPrice()),
+            String.format(Locale.ROOT, "%,d", draft.maximumUnitPrice()),
+            recommendation,
+            range);
+    }
+
     private void sendMarketFailure(@NotNull Player player, @NotNull Throwable throwable) {
+        sendMarketFailure(player, throwable, null);
+    }
+
+    /**
+     * API 失敗を操作に応じたプレイヤーメッセージへ変換します。
+     *
+     * @param player 通知先
+     * @param throwable 失敗
+     * @param draft 出品操作時の案。その他の操作では null
+     */
+    private void sendMarketFailure(
+        @NotNull Player player,
+        @NotNull Throwable throwable,
+        @Nullable MarketListingDraft draft
+    ) {
         Throwable cause = throwable;
         while (cause.getCause() != null && cause.getCause() != cause) {
             cause = cause.getCause();
         }
         String message = cause.getMessage();
-        if (message != null && message.contains("market.insufficient_gold")) {
+        if (draft != null && message != null && message.contains("market.price_guard_rejected")) {
+            sendListingPriceRejection(player, draft);
+        } else if (message != null && message.contains("market.insufficient_gold")) {
             messageService.send(player, PlayerMsgId.P_6307);
         } else if (message != null && message.contains("market.self_purchase")) {
             messageService.send(player, PlayerMsgId.P_6309);

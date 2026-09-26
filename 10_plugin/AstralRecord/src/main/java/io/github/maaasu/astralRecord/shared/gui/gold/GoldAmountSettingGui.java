@@ -131,8 +131,41 @@ public final class GoldAmountSettingGui {
         @NotNull Runnable onOpened,
         @NotNull Runnable onCancelled
     ) {
+        open(viewer, sourceKey, contextId, amount, maxAmount, maxAmount, "最大", List.of(),
+            returnDestination, onOpened, onCancelled);
+    }
+
+    /**
+     * 金額の安全上限とは別に「最大」ボタンの設定額と説明を指定します。
+     *
+     * @param viewer 表示対象
+     * @param sourceKey 呼出元キー
+     * @param contextId 呼出元コンテキスト
+     * @param amount 初期金額
+     * @param maxAmount 手入力の安全上限
+     * @param quickMaxAmount 「最大」ボタンが設定する額
+     * @param quickMaxLabel 「最大」ボタンの表示名
+     * @param extraAmountLore 金額表示欄へ追加する説明
+     * @param returnDestination 戻り先
+     * @param onOpened 表示完了時の処理
+     * @param onCancelled 遷移取消時の処理
+     */
+    public void open(
+        @NotNull Player viewer,
+        @NotNull String sourceKey,
+        @NotNull UUID contextId,
+        long amount,
+        long maxAmount,
+        long quickMaxAmount,
+        @NotNull String quickMaxLabel,
+        @NotNull List<String> extraAmountLore,
+        @NotNull GuiNavigationDestination returnDestination,
+        @NotNull Runnable onOpened,
+        @NotNull Runnable onCancelled
+    ) {
         long normalizedMax = Math.max(0L, maxAmount);
         long normalizedAmount = clamp(amount, normalizedMax);
+        long normalizedQuickMax = clamp(quickMaxAmount, normalizedMax);
         Inventory inventory = Bukkit.createInventory(
             new GoldAmountHolder(
                 sourceKey,
@@ -140,12 +173,16 @@ public final class GoldAmountSettingGui {
                 viewer.getUniqueId(),
                 normalizedAmount,
                 normalizedMax,
+                normalizedQuickMax,
+                quickMaxLabel,
+                extraAmountLore,
                 returnDestination
             ),
             SIZE,
             Component.text("ゴールド金額", NamedTextColor.GOLD)
         );
-        render(inventory, normalizedAmount, normalizedMax, 1L, returnDestination);
+        render(inventory, normalizedAmount, normalizedMax, normalizedQuickMax, quickMaxLabel,
+            extraAmountLore, 1L, returnDestination);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
     }
 
@@ -231,6 +268,9 @@ public final class GoldAmountSettingGui {
             inventory,
             clamp(holder.amount(), holder.maxAmount()),
             Math.max(0L, holder.maxAmount()),
+            holder.quickMaxAmount(),
+            holder.quickMaxLabel(),
+            holder.extraAmountLore(),
             holder.step(),
             holder.returnDestination()
         );
@@ -248,6 +288,9 @@ public final class GoldAmountSettingGui {
         @NotNull Inventory inventory,
         long amount,
         long maxAmount,
+        long quickMaxAmount,
+        @NotNull String quickMaxLabel,
+        @NotNull List<String> extraAmountLore,
         long step,
         @NotNull GuiNavigationDestination returnDestination
     ) {
@@ -281,14 +324,16 @@ public final class GoldAmountSettingGui {
             Component.text("半分", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(Component.text(formatAmount(amount / 2L) + " ゴールド", NamedTextColor.GRAY))
         ));
+        List<Component> amountLore = new java.util.ArrayList<>(List.of(
+            Component.text("入力上限: " + formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW),
+            Component.text("調整単位: " + formatAmount(step), NamedTextColor.WHITE),
+            Component.text("桁切替と増減ボタンで金額を変更します", NamedTextColor.GRAY)
+        ));
+        extraAmountLore.stream().map(line -> Component.text(line, NamedTextColor.GRAY)).forEach(amountLore::add);
         inventory.setItem(AMOUNT_SLOT, item(
             Material.GOLD_INGOT,
             Component.text(formatAmount(amount) + " ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
-            List.of(
-                Component.text("上限: " + formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW),
-                Component.text("調整単位: " + formatAmount(step), NamedTextColor.WHITE),
-                Component.text("桁切替と増減ボタンで金額を変更します", NamedTextColor.GRAY)
-            )
+            amountLore
         ));
         inventory.setItem(DOUBLE_SLOT, item(
             Material.LIME_STAINED_GLASS_PANE,
@@ -314,8 +359,8 @@ public final class GoldAmountSettingGui {
         ));
         inventory.setItem(MAX_SLOT, item(
             Material.EMERALD_BLOCK,
-            Component.text("最大", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text(formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW))
+            Component.text(quickMaxLabel, NamedTextColor.GREEN, TextDecoration.BOLD),
+            List.of(Component.text(formatAmount(quickMaxAmount) + " ゴールド", NamedTextColor.YELLOW))
         ));
         inventory.setItem(BACK_SLOT, GuiItems.backButton(returnDestination));
         inventory.setItem(CONFIRM_SLOT, item(
@@ -384,6 +429,9 @@ public final class GoldAmountSettingGui {
         private final UUID viewerUuid;
         private long amount;
         private final long maxAmount;
+        private final long quickMaxAmount;
+        private final String quickMaxLabel;
+        private final List<String> extraAmountLore;
         private final GuiNavigationDestination returnDestination;
         private long step = 1L;
 
@@ -409,6 +457,9 @@ public final class GoldAmountSettingGui {
                 viewerUuid,
                 amount,
                 maxAmount,
+                maxAmount,
+                "最大",
+                List.of(),
                 new GuiNavigationDestination(Material.CHEST, "前の")
             );
         }
@@ -431,11 +482,42 @@ public final class GoldAmountSettingGui {
             long maxAmount,
             @NotNull GuiNavigationDestination returnDestination
         ) {
+            this(sourceKey, contextId, viewerUuid, amount, maxAmount, maxAmount, "最大",
+                List.of(), returnDestination);
+        }
+
+        /**
+         * 「最大」ボタンと追加説明を持つ金額設定状態を作成します。
+         *
+         * @param sourceKey 呼出元キー
+         * @param contextId 呼出元コンテキスト
+         * @param viewerUuid 表示対象 UUID
+         * @param amount 初期額
+         * @param maxAmount 手入力の安全上限
+         * @param quickMaxAmount 「最大」ボタンの設定額
+         * @param quickMaxLabel 「最大」ボタンの表示名
+         * @param extraAmountLore 追加説明
+         * @param returnDestination 戻り先
+         */
+        public GoldAmountHolder(
+            @NotNull String sourceKey,
+            @NotNull UUID contextId,
+            @NotNull UUID viewerUuid,
+            long amount,
+            long maxAmount,
+            long quickMaxAmount,
+            @NotNull String quickMaxLabel,
+            @NotNull List<String> extraAmountLore,
+            @NotNull GuiNavigationDestination returnDestination
+        ) {
             this.sourceKey = sourceKey;
             this.contextId = contextId;
             this.viewerUuid = viewerUuid;
             this.amount = amount;
             this.maxAmount = maxAmount;
+            this.quickMaxAmount = quickMaxAmount;
+            this.quickMaxLabel = quickMaxLabel;
+            this.extraAmountLore = List.copyOf(extraAmountLore);
             this.returnDestination = returnDestination;
         }
 
@@ -457,6 +539,21 @@ public final class GoldAmountSettingGui {
 
         public long maxAmount() {
             return maxAmount;
+        }
+
+        /** @return 「最大」ボタンが設定する金額 */
+        public long quickMaxAmount() {
+            return quickMaxAmount;
+        }
+
+        /** @return 「最大」ボタンの表示名 */
+        public @NotNull String quickMaxLabel() {
+            return quickMaxLabel;
+        }
+
+        /** @return 金額欄へ追加する説明 */
+        public @NotNull List<String> extraAmountLore() {
+            return extraAmountLore;
         }
 
         /**

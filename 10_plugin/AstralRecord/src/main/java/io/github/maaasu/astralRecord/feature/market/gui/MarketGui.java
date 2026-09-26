@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.market.model.MarketAccountSummary;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
+import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuote;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
@@ -199,10 +200,7 @@ public final class MarketGui {
             Material.GOLD_INGOT,
             "1個あたり: " + format(draft.unitPrice()) + " Gold",
             NamedTextColor.GOLD,
-            List.of(
-                "合計: " + format(draft.totalPrice()) + " Gold",
-                "クリックして価格を設定します。"
-            )
+            sellPriceLore(draft)
         ));
         inventory.setItem(QUANTITY_UP_SLOT, item(
             Material.LIME_CONCRETE,
@@ -217,7 +215,10 @@ public final class MarketGui {
             Material.EMERALD_BLOCK,
             "出品を確定",
             NamedTextColor.GREEN,
-            List.of("合計 " + format(draft.totalPrice()) + " Gold で出品します。")
+            List.of(
+                "合計 " + format(draft.totalPrice()) + " Gold で出品します。",
+                "売値を上回れば相場参考範囲外でも出品できます。"
+            )
         ));
         open(viewer, inventory);
     }
@@ -522,6 +523,42 @@ public final class MarketGui {
 
     private static @NotNull String format(long amount) {
         return String.format(Locale.ROOT, "%,d", amount);
+    }
+
+    /**
+     * 出品設定の単価欄へ、現在の合計と共通価格案内を表示します。
+     *
+     * @param draft 表示対象の出品案
+     * @return 出品設定用 lore
+     */
+    private static @NotNull List<String> sellPriceLore(@NotNull MarketListingDraft draft) {
+        List<String> lines = new ArrayList<>();
+        lines.add("合計: " + format(draft.totalPrice()) + " Gold");
+        lines.addAll(priceGuideLore(draft));
+        lines.add("クリックして価格を設定します。");
+        return List.copyOf(lines);
+    }
+
+    /**
+     * 出品設定と金額入力で共有する価格案内を組み立てます。
+     *
+     * @param draft 表示対象の出品案
+     * @return 実際の出品可能範囲と参考相場を記した lore
+     */
+    public static @NotNull List<String> priceGuideLore(@NotNull MarketListingDraft draft) {
+        List<String> lines = new ArrayList<>();
+        lines.add("出品可能: " + format(draft.minimumUnitPrice()) + "〜"
+            + format(draft.maximumUnitPrice()) + " Gold/個");
+        MarketPriceQuote quote = draft.priceQuote();
+        if (quote == null) {
+            lines.add("おすすめ価格・相場参考範囲: 取得できませんでした");
+        } else {
+            lines.add("おすすめ価格: " + format(draft.recommendedUnitPrice()) + " Gold/個");
+            lines.add("相場参考範囲: " + format(quote.allowedMinUnitPrice()) + "〜"
+                + format(quote.allowedMaxUnitPrice()) + " Gold/個");
+        }
+        lines.add("相場参考範囲外でも売値超なら出品できます。");
+        return List.copyOf(lines);
     }
 
     private static @NotNull Component displaySellerName(@NotNull MarketListing listing) {

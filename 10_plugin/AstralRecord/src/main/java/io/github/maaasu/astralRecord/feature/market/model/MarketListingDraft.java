@@ -18,8 +18,10 @@ public final class MarketListingDraft {
     private final @Nullable String instanceType;
     private final @Nullable UUID instanceId;
     private final long maxQuantity;
+    private final long minimumUnitPrice;
     private long quantity;
     private long unitPrice;
+    private @Nullable MarketPriceQuote priceQuote;
 
     public MarketListingDraft(
         @NotNull UUID contextId,
@@ -38,8 +40,9 @@ public final class MarketListingDraft {
         this.instanceType = instanceType;
         this.instanceId = instanceId;
         this.maxQuantity = Math.max(1L, maxQuantity);
+        this.minimumUnitPrice = Math.max(1L, unitPrice);
         this.quantity = 1L;
-        this.unitPrice = Math.max(1L, unitPrice);
+        this.unitPrice = minimumUnitPrice;
     }
 
     public @NotNull UUID contextId() {
@@ -66,24 +69,78 @@ public final class MarketListingDraft {
         return instanceId;
     }
 
+    /** @return 売値超の単価で合計価格を表現できる最大出品数量 */
     public long maxQuantity() {
-        return maxQuantity;
+        return Math.min(maxQuantity, Long.MAX_VALUE / minimumUnitPrice());
     }
 
     public long quantity() {
         return quantity;
     }
 
+    /**
+     * 出品数量を所持数と価格積の安全範囲へ補正します。
+     *
+     * @param quantity 希望する出品数量
+     */
     public void setQuantity(long quantity) {
-        this.quantity = Math.max(1L, Math.min(quantity, maxQuantity));
+        this.quantity = Math.max(1L, Math.min(quantity, maxQuantity()));
+    }
+
+    /** @return 売値を上回る最低出品単価。API 見積取得後は API の売値も反映します。 */
+    public long minimumUnitPrice() {
+        long quotedSellPrice = priceQuote == null ? 0L : priceQuote.sellPrice();
+        return Math.max(minimumUnitPrice, quotedSellPrice >= Long.MAX_VALUE
+            ? Long.MAX_VALUE : quotedSellPrice + 1L);
+    }
+
+    /** @return 数量と long の積があふれない最大単価 */
+    public long maximumUnitPrice() {
+        return Long.MAX_VALUE / quantity;
+    }
+
+    /** @return 相場のおすすめ単価。見積取得失敗時は最低出品単価 */
+    public long recommendedUnitPrice() {
+        if (priceQuote == null) {
+            return minimumUnitPrice();
+        }
+        Long reference = priceQuote.referenceUnitPrice();
+        long candidate = reference == null ? priceQuote.suggestedUnitPrice() : reference;
+        return Math.min(maximumUnitPrice(), Math.max(minimumUnitPrice(), candidate));
+    }
+
+    /** @return 相場参考上限に合わせた「最大」ボタンの設定単価 */
+    public long quickMaxUnitPrice() {
+        return priceQuote == null
+            ? Math.min(maximumUnitPrice(), minimumUnitPrice())
+            : Math.min(maximumUnitPrice(), Math.max(minimumUnitPrice(), priceQuote.allowedMaxUnitPrice()));
     }
 
     public long unitPrice() {
         return unitPrice;
     }
 
+    /**
+     * 単価を数量積の安全上限へ補正します。売値超の判定は確定時に行います。
+     *
+     * @param unitPrice 希望する単価
+     */
     public void setUnitPrice(long unitPrice) {
         this.unitPrice = Math.max(1L, Math.min(unitPrice, Long.MAX_VALUE / quantity));
+    }
+
+    /** @return API から取得した相場見積。取得できなければ null */
+    public @Nullable MarketPriceQuote priceQuote() {
+        return priceQuote;
+    }
+
+    /**
+     * 出品アイテムの見積を保存します。
+     *
+     * @param priceQuote API の見積。取得できなければ null
+     */
+    public void setPriceQuote(@Nullable MarketPriceQuote priceQuote) {
+        this.priceQuote = priceQuote;
     }
 
     public long totalPrice() {

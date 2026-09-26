@@ -1190,6 +1190,8 @@ public enum PlayerMsgId {
     P_6310(6310),
     /** 出品作成の SQL 確定結果を確認中。 */
     P_6311(6311),
+    /** 出品単価が売値以下などの価格拒否時に出品可能範囲と参考相場を示す。 */
+    P_6312(6312),
     // endregion
 
     // region /feature/webauth 6400-6409
