@@ -15,7 +15,7 @@
             </div>
             <div class="market-heading-actions">
                 <a class="btn ar-btn-outline" asp-page="/Market/History">取引履歴を見る</a>
-                <span class="ar-profile-badge ar-profile-badge--other">閲覧・検索のみ</span>
+                <span class="ar-profile-badge ar-profile-badge--other">ゲーム内メールで受け取り</span>
             </div>
         </header>
 
@@ -54,6 +54,10 @@
             <div class="market-search-actions"><button type="submit" class="btn ar-btn-primary">検索する</button><button type="button" class="btn ar-btn-outline" disabled aria-disabled="true">出品する（準備中）</button></div>
         </form>
 
+        @if (!string.IsNullOrWhiteSpace(Model.PurchaseMessage))
+        {
+            <div class="alert alert-info" role="status">@Model.PurchaseMessage</div>
+        }
         @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
             <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div>
@@ -121,7 +125,27 @@
                                     </div>
                                 }
                             </details>
-                            <button type="button" class="btn ar-btn-outline market-buy-button" disabled aria-disabled="true">購入する（準備中）</button>
+                            @if (Model.BuyerAccounts.Count > 0)
+                            {
+                                <form method="post" asp-page-handler="Purchase" class="market-purchase-form">
+                                    <input type="hidden" name="ListingId" value="@listing.ListingId" />
+                                    <input type="hidden" name="OperationId" value="@Guid.NewGuid()" />
+                                    <label>購入先アカウント
+                                        <select name="BuyerAccountId" required>
+                                            @foreach (var account in Model.BuyerAccounts)
+                                            {
+                                                <option value="@account.Uuid">@account.AccountName #@account.SlotIndex</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    <label>数量
+                                        <input name="PurchaseQuantity" type="number" min="1"
+                                               max="@(listing.InstanceId.HasValue ? 1 : Math.Min(listing.RemainingQuantity, int.MaxValue))"
+                                               value="1" required />
+                                    </label>
+                                    <button type="submit" class="btn ar-btn-outline market-buy-button">購入する</button>
+                                </form>
+                            }
                         </article>
                     }
                 </div>

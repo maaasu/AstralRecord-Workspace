@@ -5,6 +5,8 @@ public class MailRewardResponse
     public required string ItemId { get; init; }
     public required string Category { get; init; }
     public int Amount { get; init; }
+    /// <summary>マーケットで購入した装備個体の ID。通常の報酬は null です。</summary>
+    public Guid? InstanceId { get; init; }
 }
 
 public class MailResponse

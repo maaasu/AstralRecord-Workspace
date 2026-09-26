@@ -1182,6 +1182,37 @@ public sealed class PlayerStateSnapshotRepository(
             || mail.FirstLoginOnly && account.CreatedAt < mail.PublishFrom)
             return null;
 
+        // メールに保留した装備個体を、同一snapshotで一度だけ本人のinventoryへ移す。
+        foreach (var reward in mail.Rewards.Where(value => value.InstanceId.HasValue))
+        {
+            if (reward.Amount != 1 || reward.InstanceId == Guid.Empty)
+                return null;
+            var matches = request.Inventories.SelectMany(inventory => inventory.Entries)
+                .Count(entry => entry.InstanceId == reward.InstanceId
+                    && string.Equals(entry.InstanceType, "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(entry.ItemId, reward.ItemId, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(entry.ItemCategory, reward.Category, StringComparison.OrdinalIgnoreCase)
+                    && entry.Quantity == 1);
+            var activeEntryIds = await dbContext.InventoryEntries.AsNoTracking()
+                .Where(entry => entry.InstanceId == reward.InstanceId && !entry.IsDeleted)
+                .Select(entry => entry.InventoryEntryId).ToHashSetAsync();
+            // ApplyCoreStateAsyncのAdd/UpdateはまだSaveChanges前。追跡中の最終状態を上書きして判定する。
+            foreach (var tracked in dbContext.ChangeTracker.Entries<InventoryEntryEntity>()
+                .Where(value => value.Entity.InstanceId == reward.InstanceId))
+            {
+                if (tracked.State == EntityState.Deleted || tracked.Entity.IsDeleted)
+                    activeEntryIds.Remove(tracked.Entity.InventoryEntryId);
+                else
+                    activeEntryIds.Add(tracked.Entity.InventoryEntryId);
+            }
+            if (matches != 1
+                || activeEntryIds.Count != 1
+                || !await dbContext.EquipmentInstances.AnyAsync(instance =>
+                    instance.EquipmentInstanceId == reward.InstanceId && instance.AccountId == request.AccountId
+                    && !instance.IsDeleted))
+                return null;
+        }
+
         var state = await dbContext.PlayerMailStates
             .FirstOrDefaultAsync(value => value.AccountId == request.AccountId && value.MailId == mailId);
         if (state is { IsRead: true } or { IsDeleted: true })

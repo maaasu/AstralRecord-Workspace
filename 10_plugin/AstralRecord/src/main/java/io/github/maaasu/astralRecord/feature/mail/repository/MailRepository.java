@@ -103,7 +103,9 @@ public class MailRepository {
                 rewards.add(new MailReward(
                     stringValue(rewardObj, "itemId", ""),
                     stringValue(rewardObj, "category", "material"),
-                    intValue(rewardObj, "amount", 1)
+                    intValue(rewardObj, "amount", 1),
+                    rewardObj.has("instanceId") && !rewardObj.get("instanceId").isJsonNull()
+                        ? UUID.fromString(rewardObj.get("instanceId").getAsString()) : null
                 ));
             }
         }

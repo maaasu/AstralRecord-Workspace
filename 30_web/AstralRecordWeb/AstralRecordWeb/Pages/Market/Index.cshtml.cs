@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +21,13 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     public IReadOnlyList<MarketNumericFilterDefinition> NumericFilters { get; private set; } = [];
     public string? ErrorMessage { get; private set; }
     public int TotalListingCount { get; private set; }
+    public IReadOnlyList<MarketBuyerAccountResponse> BuyerAccounts { get; private set; } = [];
+    public string? PurchaseMessage { get; private set; }
+    [BindProperty] public Guid ListingId { get; set; }
+    [BindProperty] public Guid BuyerAccountId { get; set; }
+    [BindProperty] public Guid OperationId { get; set; }
+    [BindProperty] public long PurchaseQuantity { get; set; } = 1;
+    [BindProperty(SupportsGet = true)] public Guid? PurchaseId { get; set; }
 
     [BindProperty(SupportsGet = true)] public string? Query { get; set; }
     [BindProperty(SupportsGet = true)] public string? Category { get; set; }
@@ -35,6 +43,25 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     {
         try
         {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor))
+            {
+                ErrorMessage = "ログイン状態を確認できません。再度ログインしてください。";
+                return;
+            }
+            BuyerAccounts = (await marketApiClient.GetBuyerAccountsAsync(actor, cancellationToken))
+                .Where(account => account.UserId == actor && !account.IsDeleted)
+                .OrderBy(account => account.SlotIndex).ToArray();
+            if (PurchaseId is { } purchaseId)
+            {
+                var purchase = await marketApiClient.GetWebPurchaseAsync(actor, purchaseId, cancellationToken);
+                PurchaseMessage = purchase?.Status switch
+                {
+                    "COMPLETED" => "購入が完了しました。購入品はゲーム内メールから受け取れます。",
+                    "PENDING" => "購入を受け付けました。ゲームにログイン中の場合、保存処理後にメールへ届きます。しばらくしてからページを更新してください。",
+                    "FAILED" => "購入を確定できませんでした。出品状況と所持ゴールドを確認して、もう一度お試しください。",
+                    _ => "購入結果を確認できませんでした。しばらくしてからページを更新してください。",
+                };
+            }
             // Keep the catalog independent of current filters so every category remains selectable.
             var source = await marketApiClient.GetActiveListingsAsync(null, null, null, null, cancellationToken);
             var items = await marketApiClient.GetItemsAsync(source.Select(listing => listing.ItemId), cancellationToken);
@@ -81,6 +108,40 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
         {
             ErrorMessage = "マーケット情報を表示できませんでした。時間をおいて再試行してください。";
         }
+    }
+
+    public async Task<IActionResult> OnPostPurchaseAsync(CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor))
+            return Challenge();
+        if (ListingId == Guid.Empty || BuyerAccountId == Guid.Empty || OperationId == Guid.Empty
+            || PurchaseQuantity is < 1 or > int.MaxValue)
+        {
+            ErrorMessage = "購入内容を確認してください。";
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+        try
+        {
+            var (_, status) = await marketApiClient.CreateWebPurchaseAsync(
+                actor, ListingId, OperationId, BuyerAccountId, PurchaseQuantity, cancellationToken);
+            if ((int)status is >= 200 and < 300)
+                return RedirectToPage(new { PurchaseId = OperationId });
+            ErrorMessage = status switch
+            {
+                System.Net.HttpStatusCode.Forbidden => "購入先アカウントを確認できませんでした。",
+                System.Net.HttpStatusCode.ServiceUnavailable => "Webマーケット購入の設定またはAPI接続を確認できません。運営にお問い合わせください。",
+                System.Net.HttpStatusCode.Conflict => "この出品は購入できなくなりました。ページを更新してください。",
+                _ => "購入を確定できませんでした。ページを更新して再度お試しください。",
+            };
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or OperationCanceledException)
+        {
+            PurchaseId = OperationId;
+            return RedirectToPage(new { PurchaseId });
+        }
+        await OnGetAsync(cancellationToken);
+        return Page();
     }
 
     public string AttributeLabel(string key) => NumericFilters.FirstOrDefault(filter => filter.Key == key)?.Label ?? key;

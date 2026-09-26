@@ -30,6 +30,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260915_expand_rebirth_experience_remainder.sql` | 100EXP単位の変換に合わせて転生EXP端数の許容範囲を0～99へ拡張。対応 API 配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_safe_editor.sql` | 実ロード世代・server session・Plugin評価view・編集操作台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_batch_editor.sql` | スキルツリー一括変更JSONとaction制約。safe_editor適用後、新API配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20260926_market_web_purchase.sql` | Web購入要求の冪等台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
@@ -84,6 +85,7 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
 | `dbo.market_listing_source` | `AstralRecord/dbo.market_listing_source.md` |
 | `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
+| `dbo.market_web_purchase` | `AstralRecord/dbo.market_web_purchase.md` |
 | `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
 | `dbo.trade_commit` | `AstralRecord/dbo.trade_commit.md` |
 | `dbo.schema_migration` | `AstralRecord/dbo.schema_migration.md` |

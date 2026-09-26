@@ -31,6 +31,23 @@ public sealed class MarketListingResponse
     public DateTime ExpiresAt { get; init; }
 }
 
+public sealed class MarketBuyerAccountResponse
+{
+    public Guid Uuid { get; init; }
+    public Guid UserId { get; init; }
+    public string AccountName { get; init; } = string.Empty;
+    public int SlotIndex { get; init; }
+    public bool IsDeleted { get; init; }
+}
+
+public sealed class MarketWebPurchaseResponse
+{
+    public Guid OperationId { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public Guid? TransactionId { get; init; }
+    public string? ErrorCode { get; init; }
+}
+
 public sealed record MarketListingItem(MarketListingResponse Listing, ItemMasterResponse? Item)
 {
     public string Category => Item?.Category ?? Listing.ItemCategory;

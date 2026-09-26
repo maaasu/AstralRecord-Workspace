@@ -706,6 +706,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
 
             PlayerService.PlayerJoinInventoryState inventoryState = null;
+            SkillTreePlayerState skillTreeStateToDiscard = null;
             MenuToolJoinGrantService.PreparedGrant preparedMenuGrant = null;
             boolean handedOffToMain = false;
             QuestService.InitialState questStateToDiscard = null;
@@ -716,21 +717,23 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 if (!isJoinLoading(attempt)) {
                     return;
                 }
-                inventoryState = playerService.loadPlayerJoinInventoryState(account);
-                if (!isJoinLoading(attempt)) {
-                    return;
-                }
+                // 購入APIのオフライン決済を遮断してからGoldを含むinventoryを読み込む。
                 SkillTreePlayerState skillTreeState = loadInitialSkillTreeState(
                     attempt,
                     playerName,
                     account.getUuid(),
                     user.getUuid()
                 );
+                skillTreeStateToDiscard = skillTreeState;
                 if (!isJoinLoading(attempt)) {
                     return;
                 }
                 if (skillTreeState == null) {
                     finishAccountLoad(attempt, false, completionListener);
+                    return;
+                }
+                inventoryState = playerService.loadPlayerJoinInventoryState(account);
+                if (!isJoinLoading(attempt)) {
                     return;
                 }
                 QuestService.InitialState questState = questService.loadInitialState(account.getUuid());
@@ -769,14 +772,21 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     )
                 );
                 handedOffToMain = true;
+                skillTreeStateToDiscard = null;
                 questStateToDiscard = null;
             } finally {
                 if (!handedOffToMain) {
-                    if (questStateToDiscard != null) {
-                        questService.discardInitialState(questStateToDiscard);
-                    }
-                    if (inventoryState != null) {
-                        playerService.discardPlayerJoinInventoryState(inventoryState);
+                    try {
+                        if (questStateToDiscard != null) {
+                            questService.discardInitialState(questStateToDiscard);
+                        }
+                        if (inventoryState != null) {
+                            playerService.discardPlayerJoinInventoryState(inventoryState);
+                        }
+                    } finally {
+                        if (skillTreeStateToDiscard != null) {
+                            skillTreeService.discardInitialPlayerState(skillTreeStateToDiscard);
+                        }
                     }
                 }
             }
@@ -994,7 +1004,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 () -> skillBindPresetService.invalidate(joinData.account().getUuid())
             );
         }
-        if (skillTreeApplied && skillTreeState != null) {
+        // 公開前の初期ロードでもaccount sessionを取得済みなので必ず解放する。
+        if (skillTreeState != null) {
             runJoinRollbackStep(playerName, () -> skillTreeService.discardInitialPlayerState(skillTreeState));
         }
         if (questApplied) {

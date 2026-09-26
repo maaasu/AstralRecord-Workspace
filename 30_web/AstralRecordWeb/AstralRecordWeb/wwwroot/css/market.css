@@ -38,7 +38,10 @@
 .market-detail-grid > section { min-width: 0; padding: .85rem; background: #080d15a8; border: 1px solid #ffffff0d; border-radius: 7px; }
 .market-detail-grid h3 { color: var(--ar-teal); font-size: .8rem; margin: 0 0 .6rem; }
 .market-instance-details { border-top: 1px solid #ffffff12; padding-top: .8rem; }
-.market-buy-button { align-self: stretch; margin-top: 1rem; opacity: .72; }
+.market-purchase-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, .35fr); gap: .7rem; margin-top: 1rem; }
+.market-purchase-form label { color: #bad0e0; font-size: .8rem; }
+.market-purchase-form select, .market-purchase-form input { width: 100%; margin-top: .4rem; padding: .65rem; color: #edf2f7; background: #091422; border: 1px solid #789bb14f; border-radius: 6px; }
+.market-buy-button { grid-column: 1 / -1; width: 100%; }
 .ar-item-icon [data-market-icon-fallback] { display: grid; }
 .ar-item-icon [data-market-icon-fallback][hidden] { display: none; }
 .ar-item-icon img:not([hidden]) + [data-market-icon-fallback] { display: none; }

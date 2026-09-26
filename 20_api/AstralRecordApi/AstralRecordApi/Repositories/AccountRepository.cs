@@ -1198,6 +1198,12 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 .SetProperty(entity => entity.IsDeleted, true)
                 .SetProperty(entity => entity.UpdatedAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.MarketWebPurchases
+            .Where(entity => entity.BuyerAccountId == accountId && entity.Status == "PENDING")
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.Status, "FAILED")
+                .SetProperty(entity => entity.ErrorCode, "market.buyer_deleted")
+                .SetProperty(entity => entity.UpdatedAt, deletedAt));
         await dbContext.MarketListings
             .Where(entity => entity.SellerAccountId == accountId && entity.Status == "ACTIVE" && !entity.IsDeleted)
             .ExecuteUpdateAsync(setters => setters

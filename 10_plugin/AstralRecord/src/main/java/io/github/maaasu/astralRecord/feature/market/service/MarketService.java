@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.model.MarketWebPurchase;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRepository;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +28,18 @@ public class MarketService {
 
     public MarketService(@NotNull MarketRepository repository) {
         this.repository = repository;
+    }
+
+    /** ログイン中の本人アカウントに保留されたWeb購入を返します。 */
+    public @NotNull List<MarketWebPurchase> findPendingWebPurchases(@NotNull UUID accountId) {
+        return repository.findPendingWebPurchases(accountId);
+    }
+
+    /** 保存済み状態を基準にWeb購入を確定します。 */
+    public @NotNull MarketTransaction processWebPurchase(
+        @NotNull MarketWebPurchase pending, @NotNull UUID userId
+    ) {
+        return repository.processWebPurchase(pending, userId);
     }
 
     /**

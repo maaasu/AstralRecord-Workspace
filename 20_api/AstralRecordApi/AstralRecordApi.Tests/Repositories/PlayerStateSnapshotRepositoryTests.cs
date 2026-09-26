@@ -1186,6 +1186,86 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     [Fact]
+    public async Task SaveAsync_ClaimsPurchasedEquipmentBeforeEntryIsSaved_OnlyOnce()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var instanceId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
+        const string mailId = "market-equipment-mail";
+        fixture.DbContext.EquipmentInstances.Add(new EquipmentInstanceEntity
+        {
+            EquipmentInstanceId = instanceId, AccountId = fixture.AccountId,
+            ItemId = "market_equipment", EnhanceLevel = 7, DurabilityMax = 100, DurabilityValue = 63,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        fixture.DbContext.PlayerMailDeliveries.Add(new PlayerMailDeliveryEntity
+        {
+            PlayerMailDeliveryId = Guid.NewGuid(), AccountId = fixture.AccountId, MailId = mailId,
+            PayloadJson = JsonSerializer.Serialize(new MailResponse
+            {
+                SchemaVersion = 1, Id = mailId, Icon = "DIAMOND_SWORD", Title = "Purchased equipment",
+                Body = "Claim the item", PublishFrom = fixture.BaseTime.AddSeconds(-1),
+                ReceiveOnRead = true, Rewards = [new MailRewardResponse
+                {
+                    ItemId = "market_equipment", Category = "EQUIPMENT", Amount = 1,
+                    InstanceId = instanceId,
+                }],
+            }, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            Version = 1, CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = fixture.FirstInventoryId, EntryMode = "DELTA",
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry
+                {
+                    InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime,
+                }],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = entryId, ItemCategory = "EQUIPMENT", ItemId = "market_equipment",
+                    InstanceType = "EQUIPMENT", InstanceId = instanceId, Quantity = 1,
+                }],
+            }],
+            MailClaim = Section(new PlayerStateMailClaimSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId,
+            }),
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Single(await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => entry.InstanceId == instanceId && !entry.IsDeleted).ToListAsync());
+        var equipment = await fixture.DbContext.EquipmentInstances.AsNoTracking()
+            .SingleAsync(value => value.EquipmentInstanceId == instanceId);
+        Assert.Equal(7, equipment.EnhanceLevel);
+        Assert.Equal(63, equipment.DurabilityValue);
+        Assert.True((await fixture.DbContext.PlayerMailStates.AsNoTracking()
+            .SingleAsync(value => value.MailId == mailId)).IsRead);
+
+        var second = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(
+            new PlayerStateSnapshotSaveRequest
+            {
+                SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+                MailClaim = Section(new PlayerStateMailClaimSection
+                {
+                    AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId,
+                }),
+            });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, second.Failure);
+    }
+
+    [Fact]
     public async Task SaveAsync_RollsBackInventoryWhenMailWasAlreadyClaimed()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();

@@ -158,11 +158,14 @@ builder.Services.AddHttpClient<ItemMasterApiClient>((serviceProvider, httpClient
 builder.Services.AddHttpClient<MarketApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    var donations = serviceProvider.GetRequiredService<IOptions<DonationOptions>>().Value;
     httpClient.BaseAddress = new Uri(options.BaseUrl);
 
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
-});
+    if (!string.IsNullOrWhiteSpace(donations.WebKey))
+        httpClient.DefaultRequestHeaders.Add("X-Donation-Web-Key", donations.WebKey);
+}).RedactLoggedHeaders(new[] { "X-Api-Key", "X-Donation-Web-Key" });
 builder.Services.AddHttpClient<ReleaseNoteApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

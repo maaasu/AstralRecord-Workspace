@@ -443,7 +443,15 @@ public final class MailService {
             if (model == null) {
                 return null;
             }
-            preparedRewards.add(new PreparedReward(model, reward.amount()));
+            if (reward.instanceId() != null) {
+                if (reward.amount() != 1
+                    || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.EQUIPMENT
+                    || itemService.reloadEquipmentInstances(List.of(reward.instanceId().toString()))
+                        != ItemService.EquipmentPreloadResult.COMPLETE) {
+                    return null;
+                }
+            }
+            preparedRewards.add(new PreparedReward(model, reward.amount(), reward.instanceId()));
         }
         return new PreparedClaimRewards(preparedRewards);
     }
@@ -459,7 +467,11 @@ public final class MailService {
         List<InventoryService.PreparedInventoryReward> materialized = new ArrayList<>();
         for (PreparedReward reward : rewards) {
             List<InventoryService.PreparedInventoryInstance> instances = new ArrayList<>();
-            if (ItemCategory.fromApiValue(reward.model().getCategory()) == ItemCategory.EQUIPMENT) {
+            if (reward.instanceId() != null) {
+                instances.add(new InventoryService.PreparedInventoryInstance(
+                    InventoryInstanceType.EQUIPMENT, reward.instanceId()
+                ));
+            } else if (ItemCategory.fromApiValue(reward.model().getCategory()) == ItemCategory.EQUIPMENT) {
                 for (int index = 0; index < reward.amount(); index++) {
                     var instance = itemService.createLocalEquipmentInstance(reward.model(), accountId);
                     if (instance == null) {
@@ -550,7 +562,7 @@ public final class MailService {
     ) {
     }
 
-    private record PreparedReward(@NotNull ItemModel model, int amount) {
+    private record PreparedReward(@NotNull ItemModel model, int amount, @Nullable UUID instanceId) {
     }
 
     private record PreparedClaimRewards(@NotNull List<PreparedReward> rewards) {

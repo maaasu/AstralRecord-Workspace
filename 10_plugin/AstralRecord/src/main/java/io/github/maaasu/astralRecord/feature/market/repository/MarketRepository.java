@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.model.MarketWebPurchase;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -216,6 +217,55 @@ public class MarketRepository {
         invalidateSeller(transaction.sellerAccountId());
         summaryCache.remove(transaction.buyerAccountId());
         listingCache.remove(listingId);
+        return transaction;
+    }
+
+    /**
+     * ログイン中アカウント向けに保存されたWeb購入要求を取得します。
+     *
+     * @param accountId 対象アカウント
+     * @return 保留中の要求
+     */
+    public @NotNull List<MarketWebPurchase> findPendingWebPurchases(@NotNull UUID accountId) {
+        String path = "/api/market/web-purchases/pending/" + accountId;
+        JsonArray array = getJsonArray(path);
+        List<MarketWebPurchase> result = new ArrayList<>();
+        for (var value : array) {
+            JsonObject row = value.getAsJsonObject();
+            result.add(new MarketWebPurchase(
+                UUID.fromString(row.get("operationId").getAsString()),
+                UUID.fromString(row.get("listingId").getAsString()),
+                UUID.fromString(row.get("buyerAccountId").getAsString()),
+                row.get("quantity").getAsLong()
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * 保存済み状態を基準に、Web購入要求をメール配送として確定します。
+     *
+     * @param pending 本人の保留購入
+     * @param userId 本人ユーザーID
+     * @return 約定情報
+     */
+    public @NotNull MarketTransaction processWebPurchase(
+        @NotNull MarketWebPurchase pending, @NotNull UUID userId
+    ) {
+        String path = "/api/market/web-purchases/" + pending.operationId() + "/process";
+        JsonObject body = new JsonObject();
+        body.addProperty("buyerAccountId", pending.buyerAccountId().toString());
+        body.addProperty("quantity", pending.quantity());
+        body.addProperty("idempotencyKey", "web-" + pending.operationId().toString().replace("-", ""));
+        body.addProperty("updatedBy", userId.toString());
+        body.addProperty("webOperationId", pending.operationId().toString());
+        body.addProperty("preparedOnline", true);
+        HttpResponse<String> response = post(path, body);
+        ensureReplayableMutationStatus(response, 200, "POST " + path);
+        MarketTransaction transaction = parseTransaction(JsonParser.parseString(response.body()).getAsJsonObject());
+        invalidateSeller(transaction.sellerAccountId());
+        summaryCache.remove(transaction.buyerAccountId());
+        listingCache.remove(pending.listingId());
         return transaction;
     }
 

@@ -143,6 +143,41 @@ class MailServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
      * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: マーケット購入装備は既存個体IDを再読込して使い、受取時に別個体を生成しない。
+     */
+    @Test
+    void marketEquipmentMailReusesPurchasedInstance() {
+        TestContext context = new TestContext();
+        UUID instanceId = UUID.randomUUID();
+        when(context.itemModel.getCategory()).thenReturn("equipment");
+        when(context.itemService.reloadEquipmentInstances(List.of(instanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
+        when(context.inventoryService.snapshotState(context.accountId)).thenReturn(context.rollbackSnapshot());
+        when(context.inventoryService.addPreparedRewardsToNormalInventoryStateOnly(eq(context.astPlayer), any()))
+            .thenReturn(context.receipt(1L));
+        context.completeCriticalMutation();
+        MailEntry purchaseMail = new MailEntry(
+            "market-1", "DIAMOND_SWORD", null, "購入品", "本文",
+            LocalDateTime.now().minusMinutes(1), null, true,
+            List.of(new MailReward("reward-item", "equipment", 1, instanceId)), false, null
+        );
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InventoryService.PreparedInventoryReward>> rewards = ArgumentCaptor.forClass(List.class);
+
+        context.runWithPlayerServices(() ->
+            context.service.readAndReceive(context.astPlayer, purchaseMail, ignored -> { })
+        );
+
+        verify(context.itemService).reloadEquipmentInstances(List.of(instanceId.toString()));
+        verify(context.itemService, never()).createLocalEquipmentInstance(any(), any());
+        verify(context.inventoryService).addPreparedRewardsToNormalInventoryStateOnly(
+            eq(context.astPlayer), rewards.capture());
+        assertEquals(instanceId, rewards.getValue().getFirst().instances().getFirst().instanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
      * 検証契約: snapshotはaccountId・clientRevision・mailIdを送り、ACKのID照合後にだけ保留claimを解除する。
      */
     @Test

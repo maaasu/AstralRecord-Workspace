@@ -114,6 +114,28 @@ public class MarketPurchaseRequest
     public long Quantity { get; set; } = 1;
     public required string IdempotencyKey { get; set; }
     public Guid UpdatedBy { get; set; }
+    /// <summary>Web購入を確定する場合の、本人確認済み要求 ID。通常のゲーム内購入では null です。</summary>
+    public Guid? WebOperationId { get; set; }
+    /// <summary>ゲームサーバーが保存境界でオンライン処理を引き受けた場合だけ指定します。</summary>
+    public bool PreparedOnline { get; set; }
+}
+
+public sealed class MarketWebPurchaseRequest
+{
+    public Guid OperationId { get; set; }
+    public Guid BuyerAccountId { get; set; }
+    public long Quantity { get; set; } = 1;
+}
+
+public sealed class MarketWebPurchaseResponse
+{
+    public Guid OperationId { get; init; }
+    public Guid ListingId { get; init; }
+    public Guid BuyerAccountId { get; init; }
+    public long Quantity { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public Guid? TransactionId { get; init; }
+    public string? ErrorCode { get; init; }
 }
 
 public class MarketCancelRequest

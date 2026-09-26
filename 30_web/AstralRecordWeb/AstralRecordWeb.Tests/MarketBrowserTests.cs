@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Security.Claims;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Pages.Market;
 using AstralRecordWeb.Services;
@@ -18,6 +19,44 @@ namespace AstralRecordWeb.Tests;
 
 public sealed class MarketBrowserTests
 {
+    private static readonly Guid TestActor = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    [Fact]
+    public async Task MarketPage_PurchaseUsesAuthenticatedActorAndStableOperationId()
+    {
+        var handler = new MarketFixtureHandler(_ => []);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(httpClient));
+        page.ListingId = Guid.NewGuid();
+        page.BuyerAccountId = Guid.NewGuid();
+        page.OperationId = Guid.NewGuid();
+        page.PurchaseQuantity = 2;
+
+        var result = await page.OnPostPurchaseAsync(CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(result);
+        Assert.Contains($"actor_user_uuid={TestActor:D}", handler.PurchaseUri);
+        using var body = JsonDocument.Parse(handler.PurchaseBody!);
+        Assert.Equal(page.OperationId, body.RootElement.GetProperty("operationId").GetGuid());
+        Assert.Equal(page.BuyerAccountId, body.RootElement.GetProperty("buyerAccountId").GetGuid());
+        Assert.Equal(2, body.RootElement.GetProperty("quantity").GetInt64());
+    }
+
+    [Fact]
+    public async Task MarketPage_ShowsConfigurationErrorWhenPurchaseIsUnavailable()
+    {
+        var handler = new MarketFixtureHandler(_ => []) { PurchaseStatus = HttpStatusCode.ServiceUnavailable };
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(httpClient));
+        page.ListingId = Guid.NewGuid();
+        page.BuyerAccountId = Guid.NewGuid();
+        page.OperationId = Guid.NewGuid();
+
+        await page.OnPostPurchaseAsync(CancellationToken.None);
+
+        Assert.Contains("設定", page.ErrorMessage);
+    }
+
     [Fact]
     public async Task MarketClient_ReadsEveryPageUntilTheShortTerminalPage()
     {
@@ -172,7 +211,10 @@ public sealed class MarketBrowserTests
     private static IndexModel CreatePage(MarketApiClient client)
     {
         var page = new IndexModel(client);
-        page.PageContext = new PageContext { HttpContext = new DefaultHttpContext() };
+        var context = new DefaultHttpContext();
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, TestActor.ToString())], "test"));
+        page.PageContext = new PageContext { HttpContext = context };
         return page;
     }
 
@@ -208,11 +250,29 @@ public sealed class MarketBrowserTests
         public int ListingRequests { get; private set; }
         public List<HttpRequestMessage> Requests { get; } = [];
         public List<string> RequestUris { get; } = [];
+        public string? PurchaseUri { get; private set; }
+        public string? PurchaseBody { get; private set; }
+        public HttpStatusCode PurchaseStatus { get; set; } = HttpStatusCode.OK;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
             RequestUris.Add(request.RequestUri!.Query);
+            if (request.RequestUri.AbsolutePath == "/api/account")
+                return Task.FromResult(Json(Array.Empty<MarketBuyerAccountResponse>()));
+            if (request.RequestUri.AbsolutePath.StartsWith("/api/market/web-purchases/", StringComparison.Ordinal)
+                && request.Method == HttpMethod.Post)
+            {
+                if (PurchaseStatus != HttpStatusCode.OK)
+                    return Task.FromResult(new HttpResponseMessage(PurchaseStatus));
+                PurchaseUri = request.RequestUri.ToString();
+                PurchaseBody = request.Content!.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+                return Task.FromResult(Json(new MarketWebPurchaseResponse
+                {
+                    OperationId = JsonDocument.Parse(PurchaseBody).RootElement.GetProperty("operationId").GetGuid(),
+                    Status = "PENDING",
+                }));
+            }
             if (request.RequestUri.AbsolutePath == "/api/market/listings")
             {
                 ListingRequests++;

@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.model.MarketWebPurchase;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRequestRejectedException;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
@@ -47,6 +48,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,6 +88,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final Map<UUID, MarketSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, MarketCancelRecovery> cancelRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, MarketListingCreateRecovery> listingCreateRecoveries = new ConcurrentHashMap<>();
+    private final java.util.Set<UUID> webPurchaseAccountsInFlight = ConcurrentHashMap.newKeySet();
+    private @Nullable BukkitTask webPurchasePollTask;
     private volatile boolean closing;
 
     /**
@@ -203,9 +207,96 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
      */
     public void shutdown() {
         closing = true;
+        if (webPurchasePollTask != null) {
+            webPurchasePollTask.cancel();
+            webPurchasePollTask = null;
+        }
         cancelRecoveries.values().forEach(this::stopCancelRecoveryForShutdown);
         listingCreateRecoveries.values().forEach(this::stopListingCreateRecoveryForShutdown);
         sessions.clear();
+    }
+
+    /**
+     * オンライン中のWeb購入要求を2秒ごとに取得し、同一アカウントの保存境界で処理します。
+     */
+    public void startWebPurchasePolling() {
+        if (webPurchasePollTask != null) return;
+        webPurchasePollTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                AstPlayer astPlayer = AstPlayerCache.get(player);
+                if (astPlayer == null) continue;
+                UUID accountId = astPlayer.getAccount().getUuid();
+                if (!webPurchaseAccountsInFlight.add(accountId)) continue;
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        List<MarketWebPurchase> pending = marketService.findPendingWebPurchases(accountId);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (closing || !player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                                || pending.isEmpty()) {
+                                webPurchaseAccountsInFlight.remove(accountId);
+                                return;
+                            }
+                            processWebPurchase(player, astPlayer, pending.getFirst());
+                        });
+                    } catch (RuntimeException failure) {
+                        webPurchaseAccountsInFlight.remove(accountId);
+                    }
+                });
+            }
+        }, 40L, 40L);
+    }
+
+    /** 保存済みbaselineを保持し、応答喪失時も同じ購入要求を再送して正本へ追従します。 */
+    private void processWebPurchase(
+        @NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull MarketWebPurchase pending
+    ) {
+        UUID accountId = pending.buyerAccountId();
+        inventorySaveCoordinator.prepareExternalOperationAfterSave(accountId)
+            .whenComplete((prepared, preparationFailure) -> {
+                if (preparationFailure != null || prepared == null) {
+                    webPurchaseAccountsInFlight.remove(accountId);
+                    return;
+                }
+                completeWebPurchase(player, astPlayer, pending, prepared);
+            });
+    }
+
+    /** API確定とGold再同期が完了するまで同じprepared境界を維持します。 */
+    private void completeWebPurchase(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketWebPurchase pending,
+        @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+    ) {
+        inventorySaveCoordinator.completePreparedExternalOperation(prepared, baseline -> {
+            MarketTransaction transaction = marketService.processWebPurchase(
+                pending, astPlayer.getUser().getUuid());
+            inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+                astPlayer, transaction.affectedInventoryEntryIds(), baseline);
+            return transaction;
+        }).whenComplete((transaction, failure) -> {
+            if (failure != null) {
+                Throwable cause = failure;
+                while (cause.getCause() != null) cause = cause.getCause();
+                if (cause instanceof MarketRequestRejectedException) {
+                    inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                    webPurchaseAccountsInFlight.remove(pending.buyerAccountId());
+                    return;
+                }
+                if (!closing) {
+                    Bukkit.getScheduler().runTaskLaterAsynchronously(plugin,
+                        () -> completeWebPurchase(player, astPlayer, pending, prepared), 40L);
+                }
+                return;
+            }
+            webPurchaseAccountsInFlight.remove(pending.buyerAccountId());
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (player.isOnline() && AstPlayerCache.get(player) == astPlayer) {
+                    inventoryService.refreshManagedInventoryUi(astPlayer);
+                    messageService.send(astPlayer, PlayerMsgId.P_7302, transaction.totalPrice());
+                }
+            });
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

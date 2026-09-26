@@ -675,6 +675,7 @@ public final class AstralRecord extends JavaPlugin {
         registerPluginFeatures();
         playerActivityHistoryService.start();
         donationNotificationService.start();
+        marketGuiEventHandler.startWebPurchasePolling();
 
         ConfigProperties config = ConfigProperties.getInstance();
         if (config.isMasterDataAutoReloadEnabled()) {

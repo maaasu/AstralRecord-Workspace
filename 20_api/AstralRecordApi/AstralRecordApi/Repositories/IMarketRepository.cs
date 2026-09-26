@@ -20,6 +20,15 @@ public interface IMarketRepository
 
     Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request);
 
+    Task<MarketOperationResult<MarketWebPurchaseResponse>> CreateWebPurchaseAsync(
+        Guid listingId, Guid actorUserUuid, MarketWebPurchaseRequest request);
+
+    Task<MarketWebPurchaseResponse?> GetWebPurchaseAsync(Guid operationId, Guid actorUserUuid);
+
+    Task<IReadOnlyList<MarketWebPurchaseResponse>> GetPendingWebPurchasesAsync(Guid buyerAccountId);
+
+    Task RejectWebPurchaseAsync(Guid operationId, string errorCode);
+
     Task<MarketOperationResult<MarketListingResponse>> CancelListingAsync(Guid listingId, MarketCancelRequest request);
 
     Task<MarketOperationResult<MarketListingResponse>> GetCancelResultAsync(

@@ -4,11 +4,38 @@ using AstralRecordWeb.Models;
 
 namespace AstralRecordWeb.Services;
 
-/// <summary>マーケットの参照専用 API クライアントです。変更系 endpoint は公開しません。</summary>
+/// <summary>マーケットの閲覧と、本人のWeb購入を扱う API クライアントです。</summary>
 public sealed class MarketApiClient(HttpClient httpClient)
 {
     private const int ListingPageSize = 100;
     public const int TradeHistoryPageSize = 20;
+
+    public async Task<IReadOnlyList<MarketBuyerAccountResponse>> GetBuyerAccountsAsync(
+        Guid actor, CancellationToken cancellationToken) =>
+        await httpClient.GetFromJsonAsync<IReadOnlyList<MarketBuyerAccountResponse>>(
+            $"api/account?user_id={actor:D}", cancellationToken) ?? [];
+
+    public async Task<(MarketWebPurchaseResponse? Result, HttpStatusCode Status)> CreateWebPurchaseAsync(
+        Guid actor, Guid listingId, Guid operationId, Guid buyerAccountId, long quantity,
+        CancellationToken cancellationToken)
+    {
+        using var response = await httpClient.PostAsJsonAsync(
+            $"api/market/web-purchases/{listingId:D}?actor_user_uuid={actor:D}",
+            new { operationId, buyerAccountId, quantity }, cancellationToken);
+        return (response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<MarketWebPurchaseResponse>(cancellationToken)
+            : null, response.StatusCode);
+    }
+
+    public async Task<MarketWebPurchaseResponse?> GetWebPurchaseAsync(
+        Guid actor, Guid operationId, CancellationToken cancellationToken)
+    {
+        using var response = await httpClient.GetAsync(
+            $"api/market/web-purchases/{operationId:D}?actor_user_uuid={actor:D}", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<MarketWebPurchaseResponse>(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<MarketListingResponse>> GetActiveListingsAsync(
         string? category,

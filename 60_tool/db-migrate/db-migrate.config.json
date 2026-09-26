@@ -7,6 +7,35 @@
   "preExistingMigrationFileNames": [],
   "migrations": [
     {
+      "id": "20260926_market_web_purchase",
+      "fileName": "20260926_market_web_purchase.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "market_web_purchase",
+        "primaryKey": "PK_market_web_purchase",
+        "columns": [
+          { "name": "operation_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "actor_user_uuid", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "buyer_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "listing_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "quantity", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false },
+          { "name": "status", "sqlType": "nvarchar", "maxLengthBytes": 32, "isNullable": false },
+          { "name": "transaction_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": true },
+          { "name": "error_code", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": true },
+          { "name": "created_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "updated_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false }
+        ],
+        "checkConstraints": [ "CK_market_web_purchase_quantity", "CK_market_web_purchase_status" ],
+        "indexes": [ "IX_market_web_purchase_account_status" ],
+        "indexDefinitions": [
+          {
+            "name": "IX_market_web_purchase_account_status",
+            "columns": [ "buyer_account_id", "status", "created_at" ]
+          }
+        ]
+      }
+    },
+    {
       "id": "20260921_skill_bind_capacity",
       "fileName": "20260921_skill_bind_capacity.sql",
       "expectation": {

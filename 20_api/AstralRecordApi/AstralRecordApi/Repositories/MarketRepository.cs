@@ -13,10 +13,108 @@ namespace AstralRecordApi.Repositories;
 public class MarketRepository(
     AstralRecordDbContext dbContext,
     IMarketPriceService marketPriceService,
-    IMarketListingLimitService listingLimitService
+    IMarketListingLimitService listingLimitService,
+    IItemRepository? itemRepository = null
 ) : IMarketRepository
 {
     private static readonly StringComparer KeyComparer = StringComparer.OrdinalIgnoreCase;
+
+    /// <summary>本人のWeb購入要求を固定IDで登録し、ログインしていなければ直ちに確定します。</summary>
+    public async Task<MarketOperationResult<MarketWebPurchaseResponse>> CreateWebPurchaseAsync(
+        Guid listingId, Guid actorUserUuid, MarketWebPurchaseRequest request)
+    {
+        if (listingId == Guid.Empty || actorUserUuid == Guid.Empty || request.OperationId == Guid.Empty
+            || request.BuyerAccountId == Guid.Empty || request.Quantity is < 1 or > int.MaxValue)
+            return MarketOperationResult<MarketWebPurchaseResponse>.Failure(
+                400, "market.invalid_web_purchase", "Purchase request is invalid.");
+
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        var registered = await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var scope = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var account = dbContext.Database.IsSqlServer()
+                ? await dbContext.Accounts.FromSqlInterpolated(
+                    $"SELECT * FROM dbo.account WITH (UPDLOCK,HOLDLOCK) WHERE uuid={request.BuyerAccountId}")
+                    .SingleOrDefaultAsync()
+                : await dbContext.Accounts.SingleOrDefaultAsync(x => x.Uuid == request.BuyerAccountId);
+            if (account is null || account.IsDeleted || account.UserId != actorUserUuid)
+                return MarketOperationResult<MarketWebPurchaseResponse>.Failure(
+                    403, "market.buyer_not_owned", "Buyer account does not belong to the signed-in user.");
+            var existing = await dbContext.MarketWebPurchases
+                .SingleOrDefaultAsync(x => x.OperationId == request.OperationId);
+            if (existing is not null)
+            {
+                if (existing.ActorUserUuid != actorUserUuid || existing.BuyerAccountId != request.BuyerAccountId
+                    || existing.ListingId != listingId || existing.Quantity != request.Quantity)
+                    return MarketOperationResult<MarketWebPurchaseResponse>.Failure(
+                        409, "market.idempotency_conflict", "Operation ID was already used for another purchase.");
+                await scope.CommitAsync();
+                return MarketOperationResult<MarketWebPurchaseResponse>.Success(MapWebPurchase(existing));
+            }
+            var listing = await dbContext.MarketListings.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.ListingId == listingId && !x.IsDeleted);
+            if (listing is null || listing.Status != "ACTIVE" || listing.ExpiresAt <= DateTime.UtcNow
+                || listing.RemainingQuantity < request.Quantity || listing.SellerAccountId == request.BuyerAccountId)
+                return MarketOperationResult<MarketWebPurchaseResponse>.Failure(
+                    409, "market.listing_unavailable", "Listing is no longer available.");
+            var now = DateTime.UtcNow;
+            var pending = new MarketWebPurchaseEntity
+            {
+                OperationId = request.OperationId, ActorUserUuid = actorUserUuid,
+                BuyerAccountId = request.BuyerAccountId, ListingId = listingId, Quantity = request.Quantity,
+                Status = "PENDING", CreatedAt = now, UpdatedAt = now,
+            };
+            dbContext.MarketWebPurchases.Add(pending);
+            await dbContext.SaveChangesAsync();
+            await scope.CommitAsync();
+            return MarketOperationResult<MarketWebPurchaseResponse>.Success(MapWebPurchase(pending));
+        });
+        if (!registered.Succeeded || registered.Value!.Status != "PENDING") return registered;
+        var result = await PurchaseListingAsync(listingId, new MarketPurchaseRequest
+        {
+            BuyerAccountId = request.BuyerAccountId, Quantity = request.Quantity,
+            IdempotencyKey = WebPurchaseKey(request.OperationId),
+            UpdatedBy = actorUserUuid, WebOperationId = request.OperationId,
+        });
+        if (!result.Succeeded && result.ErrorCode != "market.online_session")
+            await FailWebPurchaseAsync(request.OperationId, result.ErrorCode!);
+        return MarketOperationResult<MarketWebPurchaseResponse>.Success(
+            (await GetWebPurchaseAsync(request.OperationId, actorUserUuid))!);
+    }
+
+    /// <summary>本人に属するWeb購入要求の現在の確定状態を返します。</summary>
+    public async Task<MarketWebPurchaseResponse?> GetWebPurchaseAsync(Guid operationId, Guid actorUserUuid)
+    {
+        var row = await dbContext.MarketWebPurchases.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.OperationId == operationId && x.ActorUserUuid == actorUserUuid);
+        return row is null ? null : MapWebPurchase(row);
+    }
+
+    /// <summary>ログイン済みアカウントが処理する保留中のWeb購入を取得します。</summary>
+    public async Task<IReadOnlyList<MarketWebPurchaseResponse>> GetPendingWebPurchasesAsync(Guid buyerAccountId) =>
+        (await dbContext.MarketWebPurchases.AsNoTracking()
+            .Where(x => x.BuyerAccountId == buyerAccountId && x.Status == "PENDING")
+            .OrderBy(x => x.CreatedAt).Take(10).ToListAsync())
+        .Select(MapWebPurchase).ToArray();
+
+    private static MarketWebPurchaseResponse MapWebPurchase(MarketWebPurchaseEntity row) => new()
+    {
+        OperationId = row.OperationId, ListingId = row.ListingId, BuyerAccountId = row.BuyerAccountId,
+        Quantity = row.Quantity, Status = row.Status, TransactionId = row.TransactionId, ErrorCode = row.ErrorCode,
+    };
+
+    private static string WebPurchaseKey(Guid operationId) => "web-" + operationId.ToString("N");
+
+    public Task RejectWebPurchaseAsync(Guid operationId, string errorCode) =>
+        FailWebPurchaseAsync(operationId, errorCode);
+
+    private async Task FailWebPurchaseAsync(Guid operationId, string errorCode)
+    {
+        await dbContext.MarketWebPurchases.Where(x => x.OperationId == operationId && x.Status == "PENDING")
+            .ExecuteUpdateAsync(update => update.SetProperty(x => x.Status, "FAILED")
+                .SetProperty(x => x.ErrorCode, errorCode).SetProperty(x => x.UpdatedAt, DateTime.UtcNow));
+    }
     public async Task<IReadOnlyList<MarketListingResponse>> GetListingsAsync(MarketListingQuery query)
     {
         var page = Math.Max(1, query.Page);
@@ -425,6 +523,35 @@ public class MarketRepository(
                 return MarketOperationResult<MarketTransactionResponse>.Failure(statusCode, errorCode, detail);
             }
 
+            MarketWebPurchaseEntity? webPurchase = null;
+            ItemResponse? mailItem = null;
+            if (request.WebOperationId is { } operationId)
+            {
+                var buyer = dbContext.Database.IsSqlServer()
+                    ? await dbContext.Accounts.FromSqlInterpolated(
+                        $"SELECT * FROM dbo.account WITH (UPDLOCK,HOLDLOCK) WHERE uuid={request.BuyerAccountId}")
+                        .SingleOrDefaultAsync()
+                    : await dbContext.Accounts.SingleOrDefaultAsync(x => x.Uuid == request.BuyerAccountId);
+                webPurchase = await dbContext.MarketWebPurchases
+                    .SingleOrDefaultAsync(x => x.OperationId == operationId);
+                if (buyer is null || buyer.IsDeleted || webPurchase is null
+                    || webPurchase.ActorUserUuid != buyer.UserId
+                    || webPurchase.BuyerAccountId != request.BuyerAccountId
+                    || webPurchase.ListingId != listingId
+                    || webPurchase.Quantity != request.Quantity
+                    || request.IdempotencyKey != WebPurchaseKey(operationId)
+                    || request.UpdatedBy != buyer.UserId)
+                    return await RollbackFailureAsync(
+                        403, "market.web_purchase_invalid", "Web purchase request is not authorized.");
+                if (webPurchase.Status == "FAILED")
+                    return await RollbackFailureAsync(
+                        409, "market.web_purchase_failed", "Web purchase already failed.");
+                if (!request.PreparedOnline && await dbContext.SkillTreeAccountSessions.AsNoTracking()
+                        .AnyAsync(x => x.AccountId == request.BuyerAccountId && !x.Closed))
+                    return await RollbackFailureAsync(
+                        409, "market.online_session", "Online account must be processed by the game server.");
+            }
+
             var existingTransaction = await dbContext.MarketTransactions
                 .AsNoTracking()
                 .FirstOrDefaultAsync(transaction =>
@@ -458,6 +585,8 @@ public class MarketRepository(
                 return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
             if (listing.Status != "ACTIVE")
                 return await RollbackFailureAsync(409, "market.listing_not_active", "Listing is not active.");
+            if (listing.ExpiresAt <= DateTime.UtcNow)
+                return await RollbackFailureAsync(409, "market.listing_expired", "Listing has expired.");
             if (listing.SellerAccountId == request.BuyerAccountId)
                 return await RollbackFailureAsync(400, "market.self_purchase", "Seller cannot buy own listing.");
             if (request.Quantity > listing.RemainingQuantity)
@@ -491,13 +620,21 @@ public class MarketRepository(
             if (!payment.Succeeded)
                 return await RollbackFailureAsync(payment.StatusCode, payment.ErrorCode!, payment.Detail!);
 
-            var transfer = await TransferListingItemAsync(
-                listing,
-                request.Quantity,
-                request.BuyerAccountId,
-                request.UpdatedBy);
+            var transfer = webPurchase is null
+                ? await TransferListingItemAsync(
+                    listing, request.Quantity, request.BuyerAccountId, request.UpdatedBy)
+                : await ReserveListingItemForMailAsync(
+                    listing, request.Quantity, request.BuyerAccountId, request.UpdatedBy);
             if (!transfer.Succeeded)
                 return await RollbackFailureAsync(transfer.StatusCode, transfer.ErrorCode!, transfer.Detail!);
+
+            if (webPurchase is not null)
+            {
+                mailItem = itemRepository?.GetById(listing.ItemId);
+                if (mailItem is null || !KeyComparer.Equals(mailItem.Category, listing.ItemCategory))
+                    return await RollbackFailureAsync(
+                        409, "market.item_master_missing", "Purchased item definition is unavailable.");
+            }
 
             var affectedInventoryEntryIds = payment.Value!
                 .Concat(transfer.Value!)
@@ -540,6 +677,33 @@ public class MarketRepository(
             listing.Version += 1;
 
             await dbContext.MarketTransactions.AddAsync(transaction);
+            if (webPurchase is not null)
+            {
+                var mailId = "market-" + transaction.TransactionId.ToString("N");
+                var mail = new MailResponse
+                {
+                    SchemaVersion = 1, Id = mailId, Icon = mailItem!.Icon,
+                    IconTexture = mailItem.IconTexture,
+                    Title = "マーケット購入品",
+                    Body = $"購入品: {mailItem.Name}\n数量: {request.Quantity:N0}\n消費ゴールド: {totalPrice:N0}\n添付アイテムを手動でお受け取りください。",
+                    PublishFrom = now, ReceiveOnRead = true,
+                    Rewards = [new MailRewardResponse
+                    {
+                        ItemId = listing.ItemId, Category = listing.ItemCategory,
+                        Amount = checked((int)request.Quantity), InstanceId = listing.InstanceId,
+                    }],
+                };
+                dbContext.PlayerMailDeliveries.Add(new PlayerMailDeliveryEntity
+                {
+                    PlayerMailDeliveryId = transaction.TransactionId, AccountId = request.BuyerAccountId,
+                    MailId = mailId, PayloadJson = JsonSerializer.Serialize(mail, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+                    Version = 1, CreatedAt = now, UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy,
+                });
+                webPurchase.Status = "COMPLETED";
+                webPurchase.TransactionId = transaction.TransactionId;
+                webPurchase.UpdatedAt = now;
+            }
             await IncrementTradeCountAsync(listing.SellerAccountId, request.UpdatedBy, now);
             await IncrementTradeCountAsync(request.BuyerAccountId, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
@@ -1182,6 +1346,30 @@ public class MarketRepository(
                             && !slot.IsDeleted
                             && slot.EquipmentInstanceId == equipmentInstanceId
                       select slot).AnyAsync();
+    }
+
+    /// <summary>Web購入品をメール受取まで保留し、個体装備の所有者だけを購入者へ移します。</summary>
+    private async Task<MarketOperationResult<IReadOnlyList<Guid>>> ReserveListingItemForMailAsync(
+        MarketListingEntity listing, long quantity, Guid buyerAccountId, Guid updatedBy)
+    {
+        if (!listing.InstanceId.HasValue)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Success([]);
+        if (quantity != 1 || listing.SourceInventoryEntryId is not { } sourceId
+            || !KeyComparer.Equals(listing.InstanceType, "EQUIPMENT"))
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                409, "market.mail_instance_invalid", "Listed instance cannot be delivered by mail.");
+        var source = await FindInventoryEntryForUpdateAsync(sourceId, includeDeleted: true);
+        if (source is null || !source.IsDeleted || source.InstanceId != listing.InstanceId)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                409, "market.escrow_not_found", "Listed instance is not held in escrow.");
+        var equipment = await FindEquipmentForUpdateAsync(listing.InstanceId.Value);
+        if (equipment is null || equipment.AccountId != listing.SellerAccountId)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                409, "market.instance_owner_mismatch", "Equipment owner mismatch.");
+        equipment.AccountId = buyerAccountId;
+        equipment.UpdatedAt = DateTime.UtcNow;
+        equipment.UpdatedBy = updatedBy;
+        return MarketOperationResult<IReadOnlyList<Guid>>.Success([]);
     }
 
     private async Task<MarketOperationResult<IReadOnlyList<Guid>>> TransferListingItemAsync(

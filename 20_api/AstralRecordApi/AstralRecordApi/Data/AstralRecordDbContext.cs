@@ -42,6 +42,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketListingCreateReceiptEntity> MarketListingCreateReceipts => Set<MarketListingCreateReceiptEntity>();
     public DbSet<MarketListingSourceEntity> MarketListingSources => Set<MarketListingSourceEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
+    public DbSet<MarketWebPurchaseEntity> MarketWebPurchases => Set<MarketWebPurchaseEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
     public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
     public DbSet<PlayerStateSnapshotEntity> PlayerStateSnapshots => Set<PlayerStateSnapshotEntity>();
@@ -57,6 +58,23 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<MarketWebPurchaseEntity>(entity =>
+        {
+            entity.ToTable("market_web_purchase", "dbo");
+            entity.HasKey(x => x.OperationId).HasName("PK_market_web_purchase");
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.ActorUserUuid).HasColumnName("actor_user_uuid");
+            entity.Property(x => x.BuyerAccountId).HasColumnName("buyer_account_id");
+            entity.Property(x => x.ListingId).HasColumnName("listing_id");
+            entity.Property(x => x.Quantity).HasColumnName("quantity");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(16);
+            entity.Property(x => x.TransactionId).HasColumnName("transaction_id");
+            entity.Property(x => x.ErrorCode).HasColumnName("error_code").HasMaxLength(100);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(3);
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasPrecision(3);
+            entity.HasIndex(x => new { x.BuyerAccountId, x.Status, x.CreatedAt })
+                .HasDatabaseName("IX_market_web_purchase_account_status");
+        });
         modelBuilder.Entity<SkillTreeAccountSessionEntity>(entity =>
         {
             entity.ToTable("skilltree_account_session", "dbo");

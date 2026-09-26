@@ -16,6 +16,151 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task WebPurchase_OfflineCreatesMailWithoutBagItem_AndReplayDoesNotChargeTwice()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var actor = await harness.DbContext.Accounts.Where(x => x.Uuid == buyer.AccountId)
+            .Select(x => x.UserId).SingleAsync();
+        var source = await harness.AddStackEntryAsync(quantity: 2);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(source, quantity: 2));
+        Assert.True(listing.Succeeded);
+        var request = new MarketWebPurchaseRequest
+        {
+            OperationId = Guid.NewGuid(), BuyerAccountId = buyer.AccountId, Quantity = 1,
+        };
+
+        var result = await harness.Repository.CreateWebPurchaseAsync(listing.Value!.ListingId, actor, request);
+        Assert.True(result.Succeeded);
+        Assert.Equal("COMPLETED", result.Value!.Status);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+        Assert.Empty(await harness.DbContext.InventoryEntries.Where(x =>
+            x.InventoryId == buyer.BagInventoryId && x.ItemId == "market_material" && !x.IsDeleted).ToListAsync());
+        var delivery = await harness.DbContext.PlayerMailDeliveries.SingleAsync();
+        var mail = System.Text.Json.JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Equal("DIAMOND", mail!.Icon);
+        Assert.Single(mail.Rewards);
+        Assert.Equal("market_material", mail.Rewards[0].ItemId);
+
+        var replay = await harness.Repository.CreateWebPurchaseAsync(listing.Value.ListingId, actor, request);
+        Assert.Equal(result.Value.TransactionId, replay.Value!.TransactionId);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+        Assert.Single(await harness.DbContext.PlayerMailDeliveries.ToListAsync());
+    }
+
+    [Fact]
+    public async Task WebPurchase_EquipmentMailKeepsOriginalInstanceAndEnhancements()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var actor = await harness.DbContext.Accounts.Where(x => x.Uuid == buyer.AccountId)
+            .Select(x => x.UserId).SingleAsync();
+        var listing = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(listing.Succeeded);
+
+        var result = await harness.Repository.CreateWebPurchaseAsync(listing.Value!.ListingId, actor,
+            new MarketWebPurchaseRequest
+            {
+                OperationId = Guid.NewGuid(), BuyerAccountId = buyer.AccountId, Quantity = 1,
+            });
+
+        Assert.Equal("COMPLETED", result.Value!.Status);
+        harness.DbContext.ChangeTracker.Clear();
+        var equipment = await harness.DbContext.EquipmentInstances.AsNoTracking()
+            .SingleAsync(x => x.EquipmentInstanceId == harness.EquipmentInstanceId);
+        Assert.Equal(buyer.AccountId, equipment.AccountId);
+        Assert.Equal(7, equipment.EnhanceLevel);
+        Assert.Equal(93, equipment.DurabilityValue);
+        Assert.False(await harness.DbContext.InventoryEntries.AsNoTracking()
+            .AnyAsync(x => x.InstanceId == harness.EquipmentInstanceId && !x.IsDeleted));
+        var delivery = await harness.DbContext.PlayerMailDeliveries.AsNoTracking().SingleAsync();
+        var mail = System.Text.Json.JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Equal("DIAMOND_SWORD", mail!.Icon);
+        Assert.Equal(harness.EquipmentInstanceId, Assert.Single(mail.Rewards).InstanceId);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+    }
+
+    [Fact]
+    public async Task WebPurchase_WithOpenAccountSession_RemainsPendingUntilPluginProcesses()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var actor = await harness.DbContext.Accounts.Where(x => x.Uuid == buyer.AccountId)
+            .Select(x => x.UserId).SingleAsync();
+        var source = await harness.AddStackEntryAsync(quantity: 1);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(source, quantity: 1));
+        Assert.True(listing.Succeeded);
+        harness.DbContext.SkillTreeAccountSessions.Add(new SkillTreeAccountSessionEntity
+        {
+            AccountSessionId = Guid.NewGuid(), AccountId = buyer.AccountId,
+            ServerId = "test", ServerSessionId = Guid.NewGuid(),
+            DefinitionGenerationId = "test", LeaseTokenHash = new string('0', 64),
+            CreatedAtUtc = DateTime.UtcNow, ExpiresAtUtc = DateTime.UtcNow.AddMinutes(1),
+        });
+        await harness.DbContext.SaveChangesAsync();
+        var operation = Guid.NewGuid();
+        var result = await harness.Repository.CreateWebPurchaseAsync(listing.Value!.ListingId, actor,
+            new MarketWebPurchaseRequest { OperationId = operation, BuyerAccountId = buyer.AccountId });
+        Assert.Equal("PENDING", result.Value!.Status);
+        Assert.Equal(500, await harness.TotalGoldAsync(buyer.AccountId));
+        Assert.Empty(await harness.DbContext.PlayerMailDeliveries.ToListAsync());
+
+        var processed = await harness.Repository.PurchaseListingAsync(listing.Value.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId, Quantity = 1,
+                IdempotencyKey = "web-" + operation.ToString("N"),
+                UpdatedBy = actor, WebOperationId = operation, PreparedOnline = true,
+            });
+        Assert.True(processed.Succeeded);
+        Assert.Equal("COMPLETED", (await harness.Repository.GetWebPurchaseAsync(operation, actor))!.Status);
+        Assert.Single(await harness.DbContext.PlayerMailDeliveries.ToListAsync());
+    }
+
+    [Fact]
+    public async Task WebPurchase_ExpiredWhilePending_DoesNotDebitOrDeliver()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var actor = await harness.DbContext.Accounts.Where(x => x.Uuid == buyer.AccountId)
+            .Select(x => x.UserId).SingleAsync();
+        var source = await harness.AddStackEntryAsync(quantity: 1);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(source, quantity: 1));
+        Assert.True(listing.Succeeded);
+        harness.DbContext.SkillTreeAccountSessions.Add(new SkillTreeAccountSessionEntity
+        {
+            AccountSessionId = Guid.NewGuid(), AccountId = buyer.AccountId,
+            ServerId = "test", ServerSessionId = Guid.NewGuid(),
+            DefinitionGenerationId = "test", LeaseTokenHash = new string('0', 64),
+            CreatedAtUtc = DateTime.UtcNow, ExpiresAtUtc = DateTime.UtcNow.AddMinutes(1),
+        });
+        await harness.DbContext.SaveChangesAsync();
+        var operation = Guid.NewGuid();
+        var pending = await harness.Repository.CreateWebPurchaseAsync(listing.Value!.ListingId, actor,
+            new MarketWebPurchaseRequest { OperationId = operation, BuyerAccountId = buyer.AccountId });
+        Assert.Equal("PENDING", pending.Value!.Status);
+        var row = await harness.DbContext.MarketListings.SingleAsync(x => x.ListingId == listing.Value.ListingId);
+        row.ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
+        await harness.DbContext.SaveChangesAsync();
+
+        var processed = await harness.Repository.PurchaseListingAsync(listing.Value.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId, Quantity = 1,
+                IdempotencyKey = "web-" + operation.ToString("N"),
+                UpdatedBy = actor, WebOperationId = operation, PreparedOnline = true,
+            });
+        Assert.False(processed.Succeeded);
+        Assert.Equal("market.listing_expired", processed.ErrorCode);
+        Assert.Equal(500, await harness.TotalGoldAsync(buyer.AccountId));
+        Assert.Empty(await harness.DbContext.PlayerMailDeliveries.ToListAsync());
+    }
+    [Fact]
     public async Task GetTradeHistory_FiltersAndPagesNewestTransactionsWithBothAccounts()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
@@ -1372,7 +1517,8 @@ public class MarketRepositoryEquipmentListingTests
             AccountId = accountId;
             EquipmentInstanceId = equipmentInstanceId;
             EquipmentEntryId = equipmentEntryId;
-            Repository = new MarketRepository(dbContext, priceService, new FixedLimitService(maxListingSlots));
+            Repository = new MarketRepository(dbContext, priceService, new FixedLimitService(maxListingSlots),
+                new FixedItemRepository());
         }
 
         public AstralRecordDbContext DbContext { get; }
@@ -1847,6 +1993,20 @@ public class MarketRepositoryEquipmentListingTests
         }
 
         public sealed record BuyerSetup(Guid AccountId, Guid BagInventoryId);
+    }
+
+    private sealed class FixedItemRepository : IItemRepository
+    {
+        public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() => [];
+        public ItemResponse? GetById(string itemId) => itemId == "market_material" ? new ItemResponse
+        {
+            SchemaVersion = 1, Id = itemId, Category = "material",
+            Name = "Astral Ore", Icon = "DIAMOND", Rarity = "COMMON",
+        } : itemId == "market_equipment" ? new ItemResponse
+        {
+            SchemaVersion = 1, Id = itemId, Category = "equipment",
+            Name = "Market Sword", Icon = "DIAMOND_SWORD", Rarity = "RARE",
+        } : null;
     }
 
     private sealed class RecordingPriceService(
