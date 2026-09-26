@@ -122,7 +122,18 @@ function Get-UpdateWorkflowRuntime {
     $runtime = $response.Body
     if ($null -eq $runtime -or (Get-UpdateWorkflowValue $runtime 'serverId') -ne $ServerId) { throw "Runtime response did not match server '$ServerId'." }
     try { $session = ([Guid](Get-UpdateWorkflowValue $runtime 'serverSessionId')).ToString('D') } catch { throw "Runtime response for '$ServerId' has an invalid session ID." }
-    if ((Get-UpdateWorkflowValue $runtime 'ready') -ne $true) { return [pscustomobject]@{ ServerId=$ServerId; Ready=$false; ServerSessionId=$session } }
+    $publicationRevisionValue = Get-UpdateWorkflowValue $runtime 'publicationRevision'
+    $publicationRevision = $null
+    if ($null -ne $publicationRevisionValue) {
+        $parsedRevision = 0L
+        if (-not [long]::TryParse([string]$publicationRevisionValue, [Globalization.NumberStyles]::Integer, [Globalization.CultureInfo]::InvariantCulture, [ref]$parsedRevision) -or $parsedRevision -lt 1) {
+            throw "Runtime response for '$ServerId' has an invalid publication revision."
+        }
+        $publicationRevision = $parsedRevision
+    }
+    if ((Get-UpdateWorkflowValue $runtime 'ready') -ne $true) {
+        return [pscustomobject]@{ ServerId=$ServerId; Ready=$false; ServerSessionId=$session; DefinitionGenerationId=$null; PublicationRevision=$publicationRevision }
+    }
     $generation = Get-UpdateWorkflowValue $runtime 'definitionGenerationId'
     if ($generation -isnot [string] -or $generation -notmatch '^[0-9a-f]{64}$') { throw "Runtime response for '$ServerId' has an invalid generation." }
     $lastSeen = Get-UpdateWorkflowValue $runtime 'lastSeenUtc'
@@ -131,7 +142,7 @@ function Get-UpdateWorkflowRuntime {
         catch { throw "Runtime response for '$ServerId' has an invalid lastSeenUtc." }
         if ($seen.UtcDateTime -gt [DateTime]::UtcNow.AddMinutes(5)) { throw "Runtime response for '$ServerId' has a future lastSeenUtc." }
     }
-    return [pscustomobject]@{ ServerId=$ServerId; Ready=$true; ServerSessionId=$session; DefinitionGenerationId=$generation }
+    return [pscustomobject]@{ ServerId=$ServerId; Ready=$true; ServerSessionId=$session; DefinitionGenerationId=$generation; PublicationRevision=$publicationRevision }
 }
 
 function Test-UpdateWorkflowDeploymentEvidence {
@@ -149,7 +160,8 @@ function Test-UpdateWorkflowDeploymentEvidence {
 function Wait-UpdateWorkflowRuntimes {
     param(
         [Parameter(Mandatory)] $Migration,
-        [Parameter(Mandatory)][hashtable] $BaselineSessions,
+        [Parameter(Mandatory)][hashtable] $BaselineRuntimes,
+        [switch] $AllowSameSessionPublication,
         [Parameter(Mandatory)][scriptblock] $Invoker,
         [Parameter(Mandatory)][hashtable] $Headers,
         [Parameter(Mandatory)][int] $TimeoutSeconds,
@@ -166,18 +178,28 @@ function Wait-UpdateWorkflowRuntimes {
             $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers
             Write-MaintenanceDiagnostic 'startup.poll' @{server=$serverId; ready=($null -ne $runtime -and $runtime.Ready)}
             if ($null -eq $runtime -or !$runtime.Ready) { $usable=$false; break }
-            if ($BaselineSessions[$serverId] -and $runtime.ServerSessionId -eq $BaselineSessions[$serverId]) { $usable=$false; break }
+            $baseline = $BaselineRuntimes[$serverId]
+            if ($baseline -and $runtime.ServerSessionId -eq $baseline.ServerSessionId) {
+                if (!$baseline.Ready) { $usable=$false; break }
+                $generationPublished = $baseline.DefinitionGenerationId -and $runtime.DefinitionGenerationId -ne $baseline.DefinitionGenerationId
+                $revisionPublished = $null -ne $baseline.PublicationRevision -and $null -ne $runtime.PublicationRevision -and
+                    $runtime.PublicationRevision -gt [long]$baseline.PublicationRevision
+                if (!$AllowSameSessionPublication -or (!$generationPublished -and !$revisionPublished)) { $usable=$false; break }
+            }
             $runtimes += $runtime
         }
         if ($usable -and @($runtimes.DefinitionGenerationId | Select-Object -Unique).Count -eq 1) {
-            $signature = @($runtimes | Sort-Object ServerId | ForEach-Object { "$($_.ServerId)|$($_.ServerSessionId)|$($_.DefinitionGenerationId)" }) -join "`n"
+            $signature = @($runtimes | Sort-Object ServerId | ForEach-Object { "$($_.ServerId)|$($_.ServerSessionId)|$($_.DefinitionGenerationId)|$($_.PublicationRevision)" }) -join "`n"
             if ($signature -ceq $previousSignature) { $consecutive++ } else { $previousSignature=$signature; $consecutive=1 }
             if ($consecutive -ge 2) { return $runtimes }
         } else { $previousSignature=$null; $consecutive=0 }
         if ([DateTime]::UtcNow -ge $deadline) { break }
         if ($SleepAction) { & $SleepAction -Seconds $PollIntervalSeconds } else { Start-Sleep -Seconds $PollIntervalSeconds }
     } while ([DateTime]::UtcNow -lt $deadline)
-    throw 'Timed out waiting for all servers to start with new, matching ready runtimes.'
+    if ($AllowSameSessionPublication) {
+        throw 'Timed out waiting for Dev to start or publish the master reload. Check masterData.autoReload.enabled and the deployed API/Plugin versions, or restart Dev while admission remains closed.'
+    }
+    throw 'Timed out waiting for all servers to start or reload with matching ready runtimes.'
 }
 
 function Assert-UpdateWorkflowExpectedRuntimes {
@@ -218,6 +240,9 @@ function Invoke-UpdateWorkflow {
         [ValidateSet('Auto','Restart','Restore')][string] $Recovery = 'Auto',
         [switch] $RecoveryChecked,
         [switch] $ServersStopped,
+        [switch] $ServerAlreadyRunning,
+        [switch] $AutomaticWritersStopped,
+        [switch] $AllowSameSessionPublication,
         [switch] $AdmissionClosed,
         [ValidateSet('Dev','Channels')][string] $Label = 'Dev',
         [scriptblock] $HttpInvoker,
@@ -225,6 +250,8 @@ function Invoke-UpdateWorkflow {
     )
 
     $maintenanceDiagnosticFile = $null
+    if ($ServersStopped -and $ServerAlreadyRunning) { throw 'Choose ServersStopped or ServerAlreadyRunning, not both.' }
+    if ($ServerAlreadyRunning -and !$AllowSameSessionPublication) { throw 'ServerAlreadyRunning is only supported for a master-data-only update.' }
     $validated = Assert-UpdateWorkflowInputs $WorkflowConfig $MigrationConfig $ConfigurationFingerprint $ServerRoots
     if (!$HttpInvoker) {
         $workflowTransportBaseUrl=$validated.Migration.BaseUrl
@@ -286,12 +313,19 @@ function Invoke-UpdateWorkflow {
         }
         if (!$state) {
             # This happens before the deployment action and establishes the old session baseline.
-            $baseline = [ordered]@{}
+            $baselineSessions = [ordered]@{}
+            $baselineRuntimes = [ordered]@{}
             foreach ($serverId in $validated.Migration.ServerIds) {
                 $runtime = Get-UpdateWorkflowRuntime $validated.Migration $serverId $HttpInvoker $headers
-                $baseline[$serverId] = if ($null -eq $runtime) { $null } else { $runtime.ServerSessionId }
+                $baselineSessions[$serverId] = if ($null -eq $runtime) { $null } else { $runtime.ServerSessionId }
+                $baselineRuntimes[$serverId] = if ($null -eq $runtime) { $null } else { [ordered]@{
+                    ServerSessionId=$runtime.ServerSessionId
+                    Ready=$runtime.Ready
+                    DefinitionGenerationId=$runtime.DefinitionGenerationId
+                    PublicationRevision=$runtime.PublicationRevision
+                } }
             }
-            $state = [ordered]@{ schemaVersion=1; configurationFingerprint=$ConfigurationFingerprint; label=$Label; status='AwaitingDeployment'; baselineSessions=$baseline; deployedRuntimes=@(); seedStatus='PENDING'; createdAtUtc=[DateTime]::UtcNow.ToString('o') }
+            $state = [ordered]@{ schemaVersion=1; configurationFingerprint=$ConfigurationFingerprint; label=$Label; status='AwaitingDeployment'; baselineSessions=$baselineSessions; baselineRuntimes=$baselineRuntimes; deployedRuntimes=@(); seedStatus='PENDING'; createdAtUtc=[DateTime]::UtcNow.ToString('o') }
             if ($PrepareRunAction) { $state.runPreparationFingerprint=$preparedFingerprint }
             Save-UpdateWorkflowJson $state $statePath
         }
@@ -306,9 +340,26 @@ function Invoke-UpdateWorkflow {
             $state.status='WaitingForStartup'; Save-UpdateWorkflowJson $state $statePath
         }
         if ($state.status -eq 'AwaitingDeployment') {
-            if (!$ServersStopped -or !$AdmissionClosed) {
-                if ([Console]::IsInputRedirected) { throw 'Non-interactive execution requires -ServersStopped and -AdmissionClosed.' }
-                $answer = Read-Host "Confirm $Label servers are stopped, player admission remains closed, and automatic writers are stopped. Type DEPLOY to continue"
+            $runningModeAvailable = [bool]$AllowSameSessionPublication
+            foreach ($serverId in $validated.Migration.ServerIds) {
+                $baseline = if ($state.ContainsKey('baselineRuntimes')) { $state.baselineRuntimes[$serverId] } else { $null }
+                if (!$baseline -or !$baseline.Ready -or $null -eq $baseline.PublicationRevision) {
+                    $runningModeAvailable = $false
+                    break
+                }
+            }
+            if ($ServerAlreadyRunning -and !$runningModeAvailable) {
+                throw 'A running server can only be used when its pre-update runtime is ready and reports publicationRevision. Deploy the updated API/Plugin first, or run Dev stopped.'
+            }
+            if ($AllowSameSessionPublication -and !$runningModeAvailable) {
+                Write-Host '稼働中Devは使用できません。更新前runtimeがreadyでpublicationRevisionを返すことを確認できないため、Devを停止してから実行してください。'
+            }
+            $stoppedConfirmed = $ServersStopped -and $AdmissionClosed
+            $runningConfirmed = $ServerAlreadyRunning -and $AutomaticWritersStopped -and $runningModeAvailable -and $AdmissionClosed
+            if (!$stoppedConfirmed -and !$runningConfirmed) {
+                if ([Console]::IsInputRedirected) { throw 'Non-interactive execution requires -ServersStopped and -AdmissionClosed, or for supported master-data-only updates -ServerAlreadyRunning, -AdmissionClosed, and -AutomaticWritersStopped.' }
+                $condition = if ($runningModeAvailable) { "$Label is stopped, or remains running with player admission closed, automatic writers stopped, and no other master reload in progress" } else { "$Label is stopped, player admission remains closed, and automatic writers are stopped" }
+                $answer = Read-Host "Confirm $condition. Type DEPLOY to continue"
                 if ($answer -cne 'DEPLOY') { throw 'Deployment was not confirmed.' }
             }
             $state.status='Deploying'; Save-UpdateWorkflowJson $state $statePath
@@ -353,9 +404,24 @@ function Invoke-UpdateWorkflow {
                 $state.seedStatus='SUCCEEDED'; $state.seededAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
                 Write-MaintenanceDiagnostic 'seed.end'
             }
-            Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
+            if ($AllowSameSessionPublication) {
+                Write-Host '対象サーバーを起動するか、稼働中サーバーのマスタ再読込を待ちます。入場制限を維持してください。'
+            } else {
+                Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
+            }
             Write-MaintenanceDiagnostic 'startup.wait.begin'
-            $runtimes = Wait-UpdateWorkflowRuntimes $validated.Migration $state.baselineSessions $HttpInvoker $headers $WorkflowConfig.startupTimeoutSeconds $WorkflowConfig.pollIntervalSeconds $SleepAction
+            $baselineRuntimes = if ($state.ContainsKey('baselineRuntimes')) { $state.baselineRuntimes } else { $null }
+            if ($null -eq $baselineRuntimes) {
+                $baselineRuntimes = [ordered]@{}
+                foreach ($serverId in $validated.Migration.ServerIds) {
+                    $session = $state.baselineSessions[$serverId]
+                    $baselineRuntimes[$serverId] = if ($session) { [ordered]@{ServerSessionId=$session; Ready=$false; DefinitionGenerationId=$null; PublicationRevision=$null} } else { $null }
+                }
+            }
+            $runtimes = Wait-UpdateWorkflowRuntimes -Migration $validated.Migration -BaselineRuntimes $baselineRuntimes `
+                -AllowSameSessionPublication:$AllowSameSessionPublication -Invoker $HttpInvoker -Headers $headers `
+                -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
+                -SleepAction $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='ReadyForMigration'; Save-UpdateWorkflowJson $state $statePath
             Write-MaintenanceDiagnostic 'startup.wait.end'
         }

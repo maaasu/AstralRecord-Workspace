@@ -75,17 +75,19 @@ public final class BossMechanicService {
     private static final double ALDA_COLLAPSE_PUSH_STRENGTH = 0.7D;
     private static final double ALDA_COLLAPSE_MIN_SEPARATION = 16.0D;
     private static final int ALDA_COLLAPSE_DISPLAY_COUNT_PER_ANCHOR = 6;
-    private static final double GRANBAL_ROOT_CROSS_MAX_LENGTH = 20.0D;
-    private static final double GRANBAL_ROOT_CROSS_HALF_WIDTH = 1.35D;
-    private static final long GRANBAL_ROOT_CROSS_TELEGRAPH_TICKS = 32L;
-    private static final double GRANBAL_ROOT_CROSS_DAMAGE_RATIO = 0.60D;
-    private static final double GRANBAL_ROOT_CROSS_PUSH_STRENGTH = 0.40D;
-    private static final double GRANBAL_BLOOM_INNER_RADIUS = 3.2D;
-    private static final double GRANBAL_BLOOM_OUTER_RADIUS = 8.0D;
-    private static final long GRANBAL_BLOOM_TELEGRAPH_TICKS = 36L;
-    private static final long GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS = 14L;
-    private static final double GRANBAL_BLOOM_INNER_DAMAGE_RATIO = 0.70D;
-    private static final double GRANBAL_BLOOM_OUTER_DAMAGE_RATIO = 0.85D;
+    private static final double GRANBAL_ROOT_FAN_LENGTH = 16.0D;
+    private static final double GRANBAL_ROOT_FAN_ANGLE_DEGREES = 70.0D;
+    private static final long GRANBAL_ROOT_FAN_TELEGRAPH_TICKS = 30L;
+    private static final double GRANBAL_ROOT_FAN_DAMAGE_RATIO = 0.60D;
+    private static final double GRANBAL_ROOT_FAN_PUSH_STRENGTH = 0.45D;
+    private static final int GRANBAL_ROOT_FAN_TELEGRAPH_RAYS = 7;
+    private static final double GRANBAL_PETAL_RADIUS = 2.4D;
+    private static final double GRANBAL_PETAL_OFFSET = 4.5D;
+    private static final int GRANBAL_PETAL_COUNT = 6;
+    private static final long GRANBAL_PETAL_TELEGRAPH_TICKS = 36L;
+    private static final double GRANBAL_PETAL_DAMAGE_RATIO = 0.75D;
+    private static final double GRANBAL_PETAL_PUSH_STRENGTH = 0.45D;
+    private static final double GRANBAL_IMPACT_PARTICLE_SPACING = 1.2D;
     private static final long ALDA_EXPOSURE_DURATION_TICKS = 60L;
     private static final double ALDA_EXPOSURE_DAMAGE_MULTIPLIER = 1.50D;
     private static final int ALDA_EXPOSURE_DISPLAY_COUNT = 8;
@@ -1116,8 +1118,20 @@ public final class BossMechanicService {
             );
             return true;
         }
+        if (mechanic == BossMechanicProfile.Mechanic.GRANBAL_PETAL_BURST) {
+            List<Location> anchors = resolveGranbalPetalAnchors(targetLocation);
+            addPending(
+                boss,
+                mechanic,
+                anchors.getFirst(),
+                direction,
+                telegraphTicks,
+                null,
+                anchors.subList(1, anchors.size())
+            );
+            return true;
+        }
         Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
-            || mechanic == BossMechanicProfile.Mechanic.GRANBAL_SEED_BLOOM
             ? targetLocation
             : bossLocation;
 
@@ -1152,6 +1166,21 @@ public final class BossMechanicService {
             secondary.setY(bossLocation.getY());
         }
         return List.of(primaryTarget.clone(), secondary.clone());
+    }
+
+    /** 対象地点を花芯とし、周囲へ等間隔に6枚の花弁中心を配置します。 */
+    private @NotNull List<Location> resolveGranbalPetalAnchors(@NotNull Location center) {
+        List<Location> anchors = new ArrayList<>(GRANBAL_PETAL_COUNT + 1);
+        anchors.add(center.clone());
+        for (int index = 0; index < GRANBAL_PETAL_COUNT; index++) {
+            double angle = Math.PI * 2.0D * index / GRANBAL_PETAL_COUNT;
+            anchors.add(center.clone().add(
+                Math.cos(angle) * GRANBAL_PETAL_OFFSET,
+                0.0D,
+                Math.sin(angle) * GRANBAL_PETAL_OFFSET
+            ));
+        }
+        return List.copyOf(anchors);
     }
 
     /**
@@ -1286,9 +1315,8 @@ public final class BossMechanicService {
             case ALDA_RUIN_SHOCKWAVE -> ALDA_SHOCKWAVE_TELEGRAPH_TICKS;
             case ALDA_PRIMORDIAL_COLLAPSE -> ALDA_COLLAPSE_TELEGRAPH_TICKS;
             case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS;
-            case GRANBAL_ROOT_CROSS -> GRANBAL_ROOT_CROSS_TELEGRAPH_TICKS;
-            case GRANBAL_SEED_BLOOM -> GRANBAL_BLOOM_TELEGRAPH_TICKS;
-            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS;
+            case GRANBAL_ROOT_FAN -> GRANBAL_ROOT_FAN_TELEGRAPH_TICKS;
+            case GRANBAL_PETAL_BURST -> GRANBAL_PETAL_TELEGRAPH_TICKS;
             case SUNBIRD_SOLAR_FLARE -> 20L;
             case SUNBIRD_SUNSTRIKE -> 25L;
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
@@ -1468,6 +1496,29 @@ public final class BossMechanicService {
         );
     }
 
+    /** 花芯と6枚の花弁へ、花形の円形予兆を表示します。 */
+    private void renderGranbalPetalTelegraph(@NotNull PendingMechanic pending) {
+        List<Location> anchors = granbalPetalAnchors(pending);
+        renderRange(
+            pending.anchor(),
+            circleLocations(anchors.getFirst(), GRANBAL_PETAL_RADIUS, 24),
+            SharedParticleDefinitions.MOB_GRANBAL_ROOT
+        );
+        List<Location> petals = new ArrayList<>();
+        for (Location anchor : anchors.subList(1, anchors.size())) {
+            petals.addAll(circleLocations(anchor, GRANBAL_PETAL_RADIUS, 20));
+        }
+        renderRange(pending.anchor(), petals, SharedParticleDefinitions.MOB_GRANBAL_BLOOM);
+    }
+
+    /** グランバルの花形攻撃が保持する花芯と花弁の全中心を返します。 */
+    private @NotNull List<Location> granbalPetalAnchors(@NotNull PendingMechanic pending) {
+        List<Location> anchors = new ArrayList<>(1 + pending.additionalAnchors().size());
+        anchors.add(pending.anchor());
+        anchors.addAll(pending.additionalAnchors());
+        return List.copyOf(anchors);
+    }
+
     /**
      * 予兆または発動瞬間の、現在有効な攻撃範囲を表示します。
      *
@@ -1503,30 +1554,12 @@ public final class BossMechanicService {
                 renderAldaCollapseTelegraph(pending.anchor());
                 animateAldaCollapseDisplays(pending);
             }
-            case GRANBAL_ROOT_CROSS -> renderCross(
-                pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
-                GRANBAL_ROOT_CROSS_HALF_WIDTH, SharedParticleDefinitions.MOB_GRANBAL_ROOT
+            case GRANBAL_ROOT_FAN -> renderCone(
+                pending.anchor(), pending.direction(), GRANBAL_ROOT_FAN_LENGTH,
+                GRANBAL_ROOT_FAN_ANGLE_DEGREES, GRANBAL_ROOT_FAN_TELEGRAPH_RAYS,
+                SharedParticleDefinitions.MOB_GRANBAL_ROOT
             );
-            case GRANBAL_SEED_BLOOM -> {
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_ROOT, 28
-                );
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 48
-                );
-            }
-            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> {
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 28
-                );
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_ROOT, 48
-                );
-            }
+            case GRANBAL_PETAL_BURST -> renderGranbalPetalTelegraph(pending);
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
             );
@@ -1612,28 +1645,12 @@ public final class BossMechanicService {
                 AttackType.MELEE, DamageElement.NONE, ALDA_COLLAPSE_DAMAGE_RATIO,
                 ALDA_COLLAPSE_PUSH_STRENGTH
             );
-            case GRANBAL_ROOT_CROSS -> damageCross(
-                boss, pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
-                GRANBAL_ROOT_CROSS_HALF_WIDTH, AttackType.MELEE, DamageElement.NONE,
-                GRANBAL_ROOT_CROSS_DAMAGE_RATIO, GRANBAL_ROOT_CROSS_PUSH_STRENGTH
+            case GRANBAL_ROOT_FAN -> damageCone(
+                boss, pending.anchor(), pending.direction(), GRANBAL_ROOT_FAN_LENGTH,
+                GRANBAL_ROOT_FAN_ANGLE_DEGREES, AttackType.MELEE, DamageElement.NONE,
+                GRANBAL_ROOT_FAN_DAMAGE_RATIO, GRANBAL_ROOT_FAN_PUSH_STRENGTH
             );
-            case GRANBAL_SEED_BLOOM -> {
-                damageCircle(
-                    boss, pending.anchor(), 0.0D, GRANBAL_BLOOM_INNER_RADIUS,
-                    AttackType.MAGIC, DamageElement.NONE, GRANBAL_BLOOM_INNER_DAMAGE_RATIO, 0.35D
-                );
-                deferPending(
-                    boss,
-                    BossMechanicProfile.Mechanic.GRANBAL_SEED_BLOOM_FOLLOW_UP,
-                    pending.anchor(),
-                    pending.direction(),
-                    GRANBAL_BLOOM_FOLLOW_UP_TELEGRAPH_TICKS
-                );
-            }
-            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> damageCircle(
-                boss, pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS, GRANBAL_BLOOM_OUTER_RADIUS,
-                AttackType.MAGIC, DamageElement.NONE, GRANBAL_BLOOM_OUTER_DAMAGE_RATIO, 0.55D
-            );
+            case GRANBAL_PETAL_BURST -> damageGranbalPetalBurst(boss, pending);
             case SUNBIRD_SOLAR_FLARE -> damageCircle(
                 boss, pending.anchor(), 0.0D, SUNBIRD_FLARE_RADIUS,
                 AttackType.MAGIC, DamageElement.FIRE, 0.65D, 0.75D
@@ -1840,6 +1857,19 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 前方扇形内のPlayerへ1回だけダメージと起点からのノックバックを適用します。
+     *
+     * @param boss ダメージ発生元
+     * @param origin 扇形の起点
+     * @param direction 扇形の中心方向
+     * @param length 扇形の最大距離
+     * @param angleDegrees 扇形の全角度
+     * @param attackType 攻撃種別
+     * @param element 攻撃属性
+     * @param ratio 攻撃力倍率
+     * @param pushStrength ノックバック強度
+     */
     private void damageCone(
         @NotNull MobInstance boss,
         @NotNull Location origin,
@@ -1848,18 +1878,58 @@ public final class BossMechanicService {
         double angleDegrees,
         @NotNull AttackType attackType,
         @NotNull DamageElement element,
-        double ratio
+        double ratio,
+        double pushStrength
     ) {
         double minimumDot = Math.cos(Math.toRadians(angleDegrees / 2.0D));
+        Vector normalizedDirection = direction.clone().setY(0.0D);
+        if (normalizedDirection.lengthSquared() <= 0.001D) {
+            return;
+        }
+        normalizedDirection.normalize();
         for (Player player : nearbyManagedPlayers(origin, length)) {
             Vector offset = player.getLocation().toVector().subtract(origin.toVector()).setY(0.0D);
             double distance = offset.length();
             if (distance <= 0.001D || distance > length) {
                 continue;
             }
-            if (offset.normalize().dot(direction) >= minimumDot) {
+            if (offset.normalize().dot(normalizedDirection) >= minimumDot) {
                 damagePlayer(boss, player, attackType, element, ratio);
+                pushAway(player, origin, pushStrength);
             }
+        }
+    }
+
+    /** 花芯と花弁の重複範囲を和集合として扱い、各Playerへ1回だけダメージを適用します。 */
+    private void damageGranbalPetalBurst(
+        @NotNull MobInstance boss,
+        @NotNull PendingMechanic pending
+    ) {
+        List<Location> anchors = granbalPetalAnchors(pending);
+        double radiusSquared = GRANBAL_PETAL_RADIUS * GRANBAL_PETAL_RADIUS;
+        double searchRadius = GRANBAL_PETAL_OFFSET + GRANBAL_PETAL_RADIUS;
+        for (Player player : nearbyManagedPlayers(pending.anchor(), searchRadius)) {
+            Location playerLocation = player.getLocation();
+            Location nearestAnchor = null;
+            double nearestDistanceSquared = Double.MAX_VALUE;
+            for (Location anchor : anchors) {
+                double distanceSquared = horizontalDistanceSquared(playerLocation, anchor);
+                if (distanceSquared < nearestDistanceSquared) {
+                    nearestDistanceSquared = distanceSquared;
+                    nearestAnchor = anchor;
+                }
+            }
+            if (nearestAnchor == null || nearestDistanceSquared > radiusSquared) {
+                continue;
+            }
+            damagePlayer(
+                boss,
+                player,
+                AttackType.MAGIC,
+                DamageElement.NONE,
+                GRANBAL_PETAL_DAMAGE_RATIO
+            );
+            pushAway(player, nearestAnchor, GRANBAL_PETAL_PUSH_STRENGTH);
         }
     }
 
@@ -2250,23 +2320,49 @@ public final class BossMechanicService {
     }
 
     /**
-     * 扇形の境界と中心線を1回の近傍閲覧者判定で表示します。
+     * 扇形の複数放射線と外周弧を1回の近傍閲覧者判定で表示します。
      *
      * @param origin 扇形の起点
      * @param direction 扇形の中心方向
      * @param length 扇形の長さ
+     * @param angleDegrees 扇形の全角度
+     * @param rayCount 境界を含む放射線の本数
      * @param particle 表示する共通パーティクル定義
      */
     private void renderCone(
         @NotNull Location origin,
         @NotNull Vector direction,
         double length,
+        double angleDegrees,
+        int rayCount,
         @NotNull SharedParticleDefinition particle
     ) {
+        Vector centerDirection = direction.clone().setY(0.0D);
+        if (centerDirection.lengthSquared() <= 0.001D) {
+            return;
+        }
+        centerDirection.normalize();
+        int boundedRayCount = Math.max(2, rayCount);
+        double halfAngle = angleDegrees / 2.0D;
         List<Location> locations = new ArrayList<>();
-        appendLine(locations, origin, direction.clone().rotateAroundY(Math.toRadians(-26.0D)), length);
-        appendLine(locations, origin, direction, length);
-        appendLine(locations, origin, direction.clone().rotateAroundY(Math.toRadians(26.0D)), length);
+        for (int index = 0; index < boundedRayCount; index++) {
+            double progress = (double) index / (boundedRayCount - 1);
+            double angle = -halfAngle + angleDegrees * progress;
+            appendLine(
+                locations,
+                origin,
+                centerDirection.clone().rotateAroundY(Math.toRadians(angle)),
+                length
+            );
+        }
+        int arcPointCount = Math.max(16, boundedRayCount * 3);
+        for (int index = 0; index < arcPointCount; index++) {
+            double progress = (double) index / (arcPointCount - 1);
+            double angle = -halfAngle + angleDegrees * progress;
+            locations.add(origin.clone().add(
+                centerDirection.clone().rotateAroundY(Math.toRadians(angle)).multiply(length)
+            ).add(0.0D, 0.15D, 0.0D));
+        }
         renderRange(origin, locations, particle);
     }
 
@@ -2332,6 +2428,70 @@ public final class BossMechanicService {
         particleDisplayService.spawnForNearbyViewers(center, locations, particle);
     }
 
+    /** 扇形の命中面全体へ、一定間隔でパーティクル表示地点を作成します。 */
+    private static @NotNull List<Location> coneAreaParticleLocations(
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double length,
+        double angleDegrees,
+        double spacing
+    ) {
+        Vector centerDirection = direction.clone().setY(0.0D);
+        if (centerDirection.lengthSquared() <= 0.001D || length <= 0.0D || spacing <= 0.0D) {
+            return List.of();
+        }
+        centerDirection.normalize();
+        double angleRadians = Math.toRadians(angleDegrees);
+        double halfAngle = angleDegrees / 2.0D;
+        List<Location> locations = new ArrayList<>();
+        for (double radius = spacing * 0.5D; radius <= length; radius += spacing) {
+            int pointCount = Math.max(2, (int) Math.ceil(radius * angleRadians / spacing) + 1);
+            for (int index = 0; index < pointCount; index++) {
+                double progress = (double) index / (pointCount - 1);
+                double angle = -halfAngle + angleDegrees * progress;
+                locations.add(origin.clone().add(
+                    centerDirection.clone().rotateAroundY(Math.toRadians(angle)).multiply(radius)
+                ).add(0.0D, 0.25D, 0.0D));
+            }
+        }
+        return List.copyOf(locations);
+    }
+
+    /** 円形の命中面全体へ、格子状にパーティクル表示地点を作成します。 */
+    private static @NotNull List<Location> circleAreaParticleLocations(
+        @NotNull Location center,
+        double radius,
+        double spacing
+    ) {
+        if (radius <= 0.0D || spacing <= 0.0D) {
+            return List.of();
+        }
+        double radiusSquared = radius * radius;
+        List<Location> locations = new ArrayList<>();
+        for (double x = -radius; x <= radius; x += spacing) {
+            for (double z = -radius; z <= radius; z += spacing) {
+                if (x * x + z * z > radiusSquared) {
+                    continue;
+                }
+                locations.add(center.clone().add(x, 0.25D, z));
+            }
+        }
+        return List.copyOf(locations);
+    }
+
+    /** 花芯と6枚の花弁の命中面を、重なりを許容した一つの表示地点一覧へまとめます。 */
+    private @NotNull List<Location> granbalPetalImpactLocations(@NotNull PendingMechanic pending) {
+        List<Location> locations = new ArrayList<>();
+        for (Location anchor : granbalPetalAnchors(pending)) {
+            locations.addAll(circleAreaParticleLocations(
+                anchor,
+                GRANBAL_PETAL_RADIUS,
+                GRANBAL_IMPACT_PARTICLE_SPACING
+            ));
+        }
+        return List.copyOf(locations);
+    }
+
     /**
      * 予兆が完了した瞬間に、実際に攻撃する範囲をパーティクルで再表示します。
      *
@@ -2365,24 +2525,19 @@ public final class BossMechanicService {
                     SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 44
                 );
             }
-            case GRANBAL_ROOT_CROSS -> renderCross(
-                pending.anchor(), pending.direction(), GRANBAL_ROOT_CROSS_MAX_LENGTH,
-                GRANBAL_ROOT_CROSS_HALF_WIDTH, SharedParticleDefinitions.MOB_GRANBAL_BLOOM
+            case GRANBAL_ROOT_FAN -> renderRange(
+                pending.anchor(),
+                coneAreaParticleLocations(
+                    pending.anchor(), pending.direction(), GRANBAL_ROOT_FAN_LENGTH,
+                    GRANBAL_ROOT_FAN_ANGLE_DEGREES, GRANBAL_IMPACT_PARTICLE_SPACING
+                ),
+                SharedParticleDefinitions.MOB_GRANBAL_IMPACT
             );
-            case GRANBAL_SEED_BLOOM -> renderCircle(
-                pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
-                SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 32
+            case GRANBAL_PETAL_BURST -> renderRange(
+                pending.anchor(),
+                granbalPetalImpactLocations(pending),
+                SharedParticleDefinitions.MOB_GRANBAL_IMPACT
             );
-            case GRANBAL_SEED_BLOOM_FOLLOW_UP -> {
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_INNER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 28
-                );
-                renderCircle(
-                    pending.anchor(), GRANBAL_BLOOM_OUTER_RADIUS,
-                    SharedParticleDefinitions.MOB_GRANBAL_BLOOM, 52
-                );
-            }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 32
             );

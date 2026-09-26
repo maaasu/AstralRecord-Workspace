@@ -42,7 +42,9 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.Component;
@@ -355,7 +357,9 @@ public class SkillTreeService {
     private volatile String definitionGenerationId = "";
     private volatile String definitionCanonicalSnapshotJson = "";
     private volatile String registeredRuntimeGenerationId = "";
-    private long runtimePublicationRevision;
+    private volatile long registeredRuntimePublicationRevision;
+    /** 初回ロードを1とし、全マスタ再読込の成功後だけ増加します。 */
+    private long runtimePublicationRevision = 1L;
     private volatile boolean masterPublicationInProgress;
 
     public SkillTreeService(
@@ -549,7 +553,6 @@ public class SkillTreeService {
         rootNodeId = snapshot.rootNodeId();
         definitionGenerationId = nextDefinitionGenerationId;
         definitionCanonicalSnapshotJson = nextDefinitionGeneration.canonicalSnapshotJson();
-        runtimePublicationRevision++;
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
         if (visualizer != null) {
@@ -583,6 +586,19 @@ public class SkillTreeService {
 
     /** 一括公開または旧スナップショットへの復元が完了した後に保留を解除する。 */
     public synchronized void endMasterDataPublication() { masterPublicationInProgress = false; }
+
+    /**
+     * マスターデータ全体の再読込処理が完了したことをruntime登録revisionへ反映します。
+     *
+     * <p>snapshot差し替え時には呼ばず、全snapshotのpublication後にactivationを試行し終えてから呼び出します。
+     * activation例外は警告扱いであり、呼び出し元は再読込完了として処理を継続します。</p>
+     */
+    public synchronized void recordCompletedMasterDataReload() {
+        if (definitionGenerationId.isBlank()) {
+            throw new IllegalStateException("Skill tree definitions are not ready for runtime publication");
+        }
+        runtimePublicationRevision++;
+    }
 
     /** 定義の公開成功後、不一致の旧状態を保持して再参加まで操作を止める。メインスレッド専用。 */
     public void finishMasterDataPublication() {
@@ -805,7 +821,8 @@ public class SkillTreeService {
         }
         String serverId = ConfigProperties.getInstance().getApiServerId();
         try {
-            if (generation.equals(registeredRuntimeGenerationId)) {
+            if (generation.equals(registeredRuntimeGenerationId)
+                    && publicationRevision == registeredRuntimePublicationRevision) {
                 runtimeRepository.heartbeat(serverId, runtimeServerSessionId, generation);
             } else {
                 runtimeRepository.register(
@@ -819,6 +836,7 @@ public class SkillTreeService {
                         canonicalSnapshotJson
                 );
                 registeredRuntimeGenerationId = generation;
+                registeredRuntimePublicationRevision = publicationRevision;
             }
         } catch (RuntimeException ignored) {
             // runtime APIの到達不能時はreadyを主張せず、次周期の再登録までWeb即時適用を停止させる。
@@ -3067,10 +3085,17 @@ public class SkillTreeService {
         return NodeLabelDetail.HIDDEN;
     }
 
+    /**
+     * ノードのワールド表示用アイテムを返します。
+     *
+     * @param node 表示対象ノード
+     * @param unlocked 解放済み表示にする場合は {@code true}
+     * @return キャッシュ済み、または生成したノード表示用アイテム
+     */
     @NotNull
     public ItemStack createNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.nodeId()) : lockedNodeDisplayItems.get(node.nodeId());
-        return cached == null ? new ItemStack(node.icon()) : cached.clone();
+        return cached == null ? createCachedNodeDisplayItem(node, unlocked) : cached.clone();
     }
 
     /**
@@ -3506,6 +3531,7 @@ public class SkillTreeService {
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         ItemStack itemStack = new ItemStack(node.icon());
+        HeadTextureItemStackSupport.apply(itemStack, resolveNodeIconTexture(node));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
@@ -3513,6 +3539,33 @@ public class SkillTreeService {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    /**
+     * ノードに紐づくスキルから、アイコン素材と一致するカスタムヘッドテクスチャを解決します。
+     *
+     * @param node 表示対象ノード
+     * @return 有効なテクスチャ値が一意に定まる場合はその値。それ以外は {@code null}
+     */
+    private @Nullable String resolveNodeIconTexture(@NotNull SkillTreeNodeDefinition node) {
+        if (node.icon() != Material.PLAYER_HEAD || skillService == null) {
+            return null;
+        }
+        Set<String> matchingTextures = new LinkedHashSet<>();
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            var definition = skillService.registry().getDefinition(effect.skillId());
+            if (definition == null || MaterialNameResolver.match(definition.getIcon()) != node.icon()) {
+                continue;
+            }
+            String iconTexture = definition.getIconTexture();
+            if (HeadTextureItemStackSupport.isValid(iconTexture)) {
+                matchingTextures.add(iconTexture.trim());
+                if (matchingTextures.size() > 1) {
+                    return null;
+                }
+            }
+        }
+        return matchingTextures.isEmpty() ? null : matchingTextures.iterator().next();
     }
 
     private @NotNull NodeLabelSet createNodeLabelSet(

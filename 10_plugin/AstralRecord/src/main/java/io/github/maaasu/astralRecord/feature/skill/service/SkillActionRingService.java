@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -923,6 +924,7 @@ public final class SkillActionRingService {
         private Vector right;
         private Vector up;
         private final List<SlotView> slots;
+        private final List<ItemStack> iconItemStacks;
         private final Player viewer;
         private final SkillActionRingDisplay actionRingDisplay;
         private final SkillService skillService;
@@ -969,6 +971,7 @@ public final class SkillActionRingService {
             this.right = right.clone();
             this.up = up.clone();
             this.slots = slots;
+            this.iconItemStacks = slots.stream().map(this::createIconItemStack).toList();
             this.viewer = viewer;
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
@@ -1044,13 +1047,9 @@ public final class SkillActionRingService {
             }
             for (int index = 0; index < slots.size(); index++) {
                 Location location = iconLocation(currentCenter(), index);
-                ItemStack itemStack = new ItemStack(slots.get(index).material());
-                SkillDefinition definition = slots.get(index).definition();
-                io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(
-                    itemStack, definition == null ? null : definition.getIconTexture());
                 SkillActionRingDisplay.DisplayEntity icon = actionRingDisplay.item(
                     location,
-                    itemStack,
+                    iconItemStacks.get(index),
                     false,
                     scaledItemScale()
                 );
@@ -1077,6 +1076,22 @@ public final class SkillActionRingService {
                 scaledTextScale(LABEL_TEXT_SCALE)
             );
             instructionLabel.spawn(player);
+        }
+
+        /**
+         * スロット定義からアイコンを作成し、PLAYER_HEAD には設定済みのテクスチャを適用します。
+         *
+         * @param slot 表示するスロット
+         * @return リングに表示するアイコンアイテム
+         */
+        private @NotNull ItemStack createIconItemStack(@NotNull SlotView slot) {
+            ItemStack itemStack = new ItemStack(slot.material());
+            SkillDefinition definition = slot.definition();
+            HeadTextureItemStackSupport.apply(
+                itemStack,
+                definition == null ? null : definition.getIconTexture()
+            );
+            return itemStack;
         }
 
         /**
@@ -1135,7 +1150,7 @@ public final class SkillActionRingService {
                 actionRingDisplay.updateItem(
                     player,
                     icon,
-                    hiddenByConfirmedSelection ? HIDDEN_ITEM : new ItemStack(slot.material()),
+                    hiddenByConfirmedSelection ? HIDDEN_ITEM : iconItemStacks.get(index),
                     selected && !hiddenByConfirmedSelection,
                     scaledItemScale()
                 );

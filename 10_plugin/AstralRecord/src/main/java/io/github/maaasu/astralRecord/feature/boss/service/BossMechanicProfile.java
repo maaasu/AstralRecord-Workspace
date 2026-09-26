@@ -63,12 +63,12 @@ final class BossMechanicProfile {
         GREAT_TREE_GUARDIAN_GRANBAL,
         new BossMechanicProfile(
             List.of(
-                List.of(Mechanic.GRANBAL_ROOT_CROSS),
-                List.of(Mechanic.GRANBAL_ROOT_CROSS, Mechanic.GRANBAL_SEED_BLOOM),
-                List.of(Mechanic.GRANBAL_SEED_BLOOM, Mechanic.GRANBAL_ROOT_CROSS, Mechanic.GRANBAL_SEED_BLOOM)
+                List.of(Mechanic.GRANBAL_ROOT_FAN),
+                List.of(Mechanic.GRANBAL_ROOT_FAN, Mechanic.GRANBAL_PETAL_BURST),
+                List.of(Mechanic.GRANBAL_PETAL_BURST, Mechanic.GRANBAL_ROOT_FAN, Mechanic.GRANBAL_PETAL_BURST)
             ),
-            List.of(115L, 100L, 85L),
-            List.of(0.70D, 0.35D)
+            List.of(105L, 90L, 75L),
+            List.of(0.60D, 0.30D)
         )
     );
 
@@ -126,9 +126,8 @@ final class BossMechanicProfile {
         ALDA_RUIN_SHOCKWAVE,
         ALDA_PRIMORDIAL_COLLAPSE,
         ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP,
-        GRANBAL_ROOT_CROSS,
-        GRANBAL_SEED_BLOOM,
-        GRANBAL_SEED_BLOOM_FOLLOW_UP,
+        GRANBAL_ROOT_FAN,
+        GRANBAL_PETAL_BURST,
         SUNBIRD_SOLAR_FLARE,
         SUNBIRD_SUNSTRIKE,
         SUNBIRD_SOLAR_BEAM,

@@ -364,6 +364,16 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(210, 118, 220), 1.20F)
         );
+    public static final SharedParticleDefinition MOB_GRANBAL_IMPACT =
+        new SharedParticleDefinition(
+            "mob_granbal_impact",
+            Particle.EXPLOSION,
+            1,
+            0.08D,
+            0.08D,
+            0.08D,
+            0.0D
+        );
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",

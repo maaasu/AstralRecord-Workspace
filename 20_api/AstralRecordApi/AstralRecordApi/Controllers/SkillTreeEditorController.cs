@@ -36,7 +36,7 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> Register(string serverId, [FromBody] SkillTreeServerRegistrationRequest request)
         => !HasRuntimeCredential() ? Unauthorized() : await repository.RegisterServerAsync(serverId, request) is { } result ? Ok(result) : BadRequest();
 
-    /// <summary>運用者が現在稼働中のPlugin sessionと実ロード世代を確認します。</summary>
+    /// <summary>運用者が現在稼働中のPlugin session、master公開revision、実ロード世代を確認します。</summary>
     [HttpGet("runtime/servers/{serverId}")]
     public async Task<IActionResult> GetRuntime(string serverId)
         => !HasMigrationCredential() ? Unauthorized()
