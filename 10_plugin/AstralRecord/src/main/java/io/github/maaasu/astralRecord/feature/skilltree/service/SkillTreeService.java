@@ -42,7 +42,9 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.Component;
@@ -3067,10 +3069,17 @@ public class SkillTreeService {
         return NodeLabelDetail.HIDDEN;
     }
 
+    /**
+     * ノードのワールド表示用アイテムを返します。
+     *
+     * @param node 表示対象ノード
+     * @param unlocked 解放済み表示にする場合は {@code true}
+     * @return キャッシュ済み、または生成したノード表示用アイテム
+     */
     @NotNull
     public ItemStack createNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.nodeId()) : lockedNodeDisplayItems.get(node.nodeId());
-        return cached == null ? new ItemStack(node.icon()) : cached.clone();
+        return cached == null ? createCachedNodeDisplayItem(node, unlocked) : cached.clone();
     }
 
     /**
@@ -3506,6 +3515,7 @@ public class SkillTreeService {
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         ItemStack itemStack = new ItemStack(node.icon());
+        HeadTextureItemStackSupport.apply(itemStack, resolveNodeIconTexture(node));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
@@ -3513,6 +3523,33 @@ public class SkillTreeService {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    /**
+     * ノードに紐づくスキルから、アイコン素材と一致するカスタムヘッドテクスチャを解決します。
+     *
+     * @param node 表示対象ノード
+     * @return 有効なテクスチャ値が一意に定まる場合はその値。それ以外は {@code null}
+     */
+    private @Nullable String resolveNodeIconTexture(@NotNull SkillTreeNodeDefinition node) {
+        if (node.icon() != Material.PLAYER_HEAD || skillService == null) {
+            return null;
+        }
+        Set<String> matchingTextures = new LinkedHashSet<>();
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            var definition = skillService.registry().getDefinition(effect.skillId());
+            if (definition == null || MaterialNameResolver.match(definition.getIcon()) != node.icon()) {
+                continue;
+            }
+            String iconTexture = definition.getIconTexture();
+            if (HeadTextureItemStackSupport.isValid(iconTexture)) {
+                matchingTextures.add(iconTexture.trim());
+                if (matchingTextures.size() > 1) {
+                    return null;
+                }
+            }
+        }
+        return matchingTextures.isEmpty() ? null : matchingTextures.iterator().next();
     }
 
     private @NotNull NodeLabelSet createNodeLabelSet(
