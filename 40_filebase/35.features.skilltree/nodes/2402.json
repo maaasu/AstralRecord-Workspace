@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2402",
+  "name": "&b静寂一閃",
+  "icon": "DIAMOND_SWORD",
+  "tags": ["offense", "defense"],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    { "type": "skill", "skillId": "swordmaster_seijaku_issen" }
+  ],
+  "unlockCondition": { "classId": "swordmaster" }
+}

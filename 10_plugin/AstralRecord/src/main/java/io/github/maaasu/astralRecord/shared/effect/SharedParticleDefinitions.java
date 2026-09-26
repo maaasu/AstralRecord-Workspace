@@ -188,6 +188,14 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("bastion_strike_impact_spark", Particle.ELECTRIC_SPARK, 10, 0.28D, 0.42D, 0.28D, 0.04D);
     public static final SharedParticleDefinition BASTION_STRIKE_IMPACT_FLASH =
         new SharedParticleDefinition("bastion_strike_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_GUARD =
+        new SharedParticleDefinition("seijaku_issen_guard", Particle.ENCHANT, 2, 0.08D, 0.12D, 0.08D, 0.01D);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_ENCHANTED_HIT =
+        new SharedParticleDefinition("seijaku_issen_enchanted_hit", Particle.ENCHANTED_HIT, 4, 0.12D, 0.18D, 0.12D, 0.05D);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_DASH_CRIT =
+        new SharedParticleDefinition("seijaku_issen_dash_crit", Particle.CRIT, 4, 0.12D, 0.16D, 0.12D, 0.04D);
+    public static final SharedParticleDefinition SEIJAKU_ISSEN_DASH_SPARK =
+        new SharedParticleDefinition("seijaku_issen_dash_spark", Particle.ELECTRIC_SPARK, 3, 0.10D, 0.14D, 0.10D, 0.03D);
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

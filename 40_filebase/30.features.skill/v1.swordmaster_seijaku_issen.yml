@@ -1,0 +1,50 @@
+# design:
+#   motif: "剣聖 / 静寂の反撃"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_seijaku_issen
+type: SKILL
+implementationId: swordmaster_seijaku_issen
+name: "&b静寂一閃"
+description: "&7剣の構えから攻撃を受け流し、鋭く反撃する。"
+icon: DIAMOND_SWORD
+lore:
+  - "&7剣の通常攻撃を{skill.counterTicks}tickのカウンター構えに変える。"
+  - "&7構え中の移動速度は70%低下し、残り時間をアクションバーへ表示する。"
+  - "&7直接攻撃を受けると無効化し、攻撃者へ無属性の近接攻撃力{skill.counterDamageRatio:percent}%で反撃する。"
+  - "&7反撃成立時は最大ENGの10%を回復し、通常攻撃のクールタイムをリセットする。"
+  - "&7時間切れ時はENG10を消費し、前方約10mの経路上の敵を近接攻撃力{skill.failureDamageRatio:percent}%で攻撃する。"
+cooldownTicks: 0
+resourceType: ENERGY
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 6, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 7, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 8, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 9, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+  - { level: 10, paramDeltas: { counterTicks: 1, counterDamageRatio: 0.1, failureDamageRatio: 0.1 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+passive:
+  bindRequired: true
+params:
+  counterTicks: 1
+  counterDamageRatio: 3.9
+  failureDamageRatio: 0.1
+  failureEnergyCost: 10
+  failureTravelDistance: 10.0
+  failureHitRadius: 2.0
+  energyRecoveryRatio: 0.1
+tags:
+  - passive
+  - melee
+  - defense

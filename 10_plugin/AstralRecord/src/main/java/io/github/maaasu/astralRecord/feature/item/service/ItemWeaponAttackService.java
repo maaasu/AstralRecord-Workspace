@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Location;
@@ -30,6 +31,7 @@ public final class ItemWeaponAttackService {
     private final SkillService skillService;
     private final NormalAttackDegradationService normalAttackDegradationService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService;
     private Consumer<AstPlayer> attackAttemptListener = player -> { };
 
     public ItemWeaponAttackService(
@@ -58,6 +60,15 @@ public final class ItemWeaponAttackService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 剣通常攻撃を静寂一閃へ置換するバインド状態の参照先を設定します。
+     *
+     * @param runtimeService バインド状態の参照先。nullなら置換しない
+     */
+    public void setSeijakuIssenSkillRuntimeService(@Nullable SeijakuIssenSkillRuntimeService runtimeService) {
+        this.seijakuIssenSkillRuntimeService = runtimeService;
     }
 
     /**
@@ -197,7 +208,23 @@ public final class ItemWeaponAttackService {
 
         NormalAttackDegradationService.AttackTicket degradationTicket =
                 normalAttackDegradationService == null ? null : normalAttackDegradationService.beginNormalAttack(player);
-        var result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player, completionListener);
+        boolean counterAttack = MasterTagIds.Equipment.SWORD.equalsIgnoreCase(equipment.getTag())
+                && seijakuIssenSkillRuntimeService != null
+                && seijakuIssenSkillRuntimeService.isActive(player);
+        SkillCastResult result;
+        if (counterAttack) {
+            result = !skillService.isCasting(caster) && seijakuIssenSkillRuntimeService.beginCounter(player)
+                    ? SkillCastResult.succeeded()
+                    : SkillCastResult.failure(null);
+            if (completionListener != null) {
+                completionListener.accept(result);
+            }
+            if (!result.success() && degradationTicket != null) {
+                normalAttackDegradationService.rollbackNormalAttack(player, degradationTicket);
+            }
+        } else {
+            result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player, completionListener);
+        }
         if (result.success() && cooldownTicks > 0) {
             if (degradationTicket == null) {
                 skillService.startAttackCooldown(caster, skillId, cooldownTicks);

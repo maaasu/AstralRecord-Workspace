@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
@@ -98,6 +99,7 @@ public final class DamageService {
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
+    private SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService;
     private PassiveSkillService passiveSkillService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
@@ -318,6 +320,17 @@ public final class DamageService {
             @Nullable BastionStrikeSkillRuntimeService runtimeService
     ) {
         this.bastionStrikeSkillRuntimeService = runtimeService;
+    }
+
+    /**
+     * 静寂一閃の直接被弾反撃を設定します。
+     *
+     * @param runtimeService 反撃状態の参照先。nullなら反撃しない
+     */
+    public void setSeijakuIssenSkillRuntimeService(
+            @Nullable SeijakuIssenSkillRuntimeService runtimeService
+    ) {
+        this.seijakuIssenSkillRuntimeService = runtimeService;
     }
 
     /**
@@ -1099,6 +1112,11 @@ public final class DamageService {
                         source,
                         justDodgeDamage
                 )) {
+            return new DamageResult(0.0D);
+        }
+        if (seijakuIssenSkillRuntimeService != null
+                && seijakuIssenSkillRuntimeService.tryCounterDirectDamage(
+                        victim, attacker, source, justDodgeDamage)) {
             return new DamageResult(0.0D);
         }
         Location superStarOrigin = shouldSpawnSuperStarCriticalProjectiles(attacker, victim, calculated, superStarCriticalMode)

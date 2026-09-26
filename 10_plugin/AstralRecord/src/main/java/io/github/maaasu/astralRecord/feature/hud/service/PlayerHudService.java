@@ -184,12 +184,38 @@ public class PlayerHudService {
     }
 
     /**
+     * 他の処理がActionBarを表示していない場合だけ描画関数を登録します。
+     *
+     * @param playerId 対象プレイヤー UUID
+     * @param renderer 登録する描画関数
+     */
+    public void setPrimaryActionBarRendererIfAbsent(
+            @NotNull UUID playerId,
+            @NotNull Function<AstPlayer, Component> renderer
+    ) {
+        primaryActionBarRenderers.putIfAbsent(playerId, renderer);
+    }
+
+    /**
      * プレイヤー固有の ActionBar 描画関数を解除します。
      *
      * @param playerId プレイヤー UUID
      */
     public void clearPrimaryActionBarRenderer(@NotNull UUID playerId) {
         primaryActionBarRenderers.remove(playerId);
+    }
+
+    /**
+     * 指定した描画関数が現在も登録されている場合だけ解除します。
+     *
+     * @param playerId 対象プレイヤー UUID
+     * @param renderer 解除する描画関数
+     */
+    public void clearPrimaryActionBarRendererIfSame(
+            @NotNull UUID playerId,
+            @NotNull Function<AstPlayer, Component> renderer
+    ) {
+        primaryActionBarRenderers.remove(playerId, renderer);
     }
 
     /**

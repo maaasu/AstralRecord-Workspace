@@ -243,6 +243,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.ArchmagePhoenixReson
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.SwordmasterSeijakuIssenExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDivineChaserSkillExecutor;
@@ -284,6 +285,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeServ
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
@@ -490,6 +492,7 @@ public final class AstralRecord extends JavaPlugin {
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
+    private SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService;
     private PaladinDivineChaserRuntimeService paladinDivineChaserRuntimeService;
     private WizardLightningStrikeRuntimeService wizardLightningStrikeRuntimeService;
     private PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
@@ -939,6 +942,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (bastionStrikeSkillRuntimeService != null) {
             bastionStrikeSkillRuntimeService.clearAll();
+        }
+        if (seijakuIssenSkillRuntimeService != null) {
+            seijakuIssenSkillRuntimeService.clearAll();
         }
         if (paladinHolyFieldRuntimeService != null) {
             paladinHolyFieldRuntimeService.clearAll();
@@ -1806,6 +1812,9 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService
         );
         playerDeathService.setDeathStartedListener(playerId -> {
+            if (seijakuIssenSkillRuntimeService != null) {
+                seijakuIssenSkillRuntimeService.interrupt(playerId);
+            }
             activeSkillLifecycleService.clearAll(playerId);
             archmagePhoenixRuntimeService.onPlayerDeath(playerId);
         });
@@ -1852,6 +1861,19 @@ public final class AstralRecord extends JavaPlugin {
         );
         damageService.setBastionStrikeSkillRuntimeService(bastionStrikeSkillRuntimeService);
         skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
+        seijakuIssenSkillRuntimeService = new SeijakuIssenSkillRuntimeService(
+            this,
+            skillService,
+            activeSkillServices.combat(),
+            activeSkillServices.targeting(),
+            activeSkillServices.movement(),
+            activeSkillServices.effects(),
+            activeSkillServices.tasks(),
+            statusService,
+            playerHudService
+        );
+        damageService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
+        skillService.registerExecutor(new SwordmasterSeijakuIssenExecutor(seijakuIssenSkillRuntimeService));
         ActiveSkillExecutorCatalog.create(
             activeSkillServices,
             archmageCelestialCircleRuntimeService,
@@ -2002,6 +2024,7 @@ public final class AstralRecord extends JavaPlugin {
             normalAttackDegradationService
         );
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
+        itemWeaponAttackService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
         skillActionRingHoldService = new SkillActionRingHoldService(
             this,
@@ -2245,6 +2268,7 @@ public final class AstralRecord extends JavaPlugin {
                 arcaneFlowSkillRuntimeService.clearPlayer(playerId);
                 wizardPrismConditionRuntimeService.clearPlayer(playerId);
                 bastionStrikeSkillRuntimeService.clearPlayer(playerId);
+                seijakuIssenSkillRuntimeService.clearPlayer(playerId);
                 paladinHolyFieldRuntimeService.end(playerId);
                 archmageCelestialCircleRuntimeService.end(playerId);
                 normalAttackDegradationService.clearPlayer(playerId);

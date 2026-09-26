@@ -543,7 +543,7 @@ public class SkillService {
      * @param caster 発動者
      * @return 詠唱中の場合は true
      */
-    private boolean isCasting(@NotNull SkillCaster caster) {
+    public boolean isCasting(@NotNull SkillCaster caster) {
         if (castingSessions.containsKey(caster.casterId())) {
             return true;
         }

@@ -294,7 +294,11 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ソードマスター専門枝
 
-ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status nodeは `pointCost: 1`、`unlockCondition.classId: swordmaster` である。今回はskill使用許可nodeを含めない。
+ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status nodeと未配置の静寂一閃skill node `2402` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|:--|:--|:--|:--|:--|:--|
+| `skill-swordmaster-seijaku-issen` | `2402` | `skill` / `swordmaster_seijaku_issen` | `&b静寂一閃` | `DIAMOND_SWORD` | `offense`, `defense` |
 
 ### 共通剣技パッケージ
 
