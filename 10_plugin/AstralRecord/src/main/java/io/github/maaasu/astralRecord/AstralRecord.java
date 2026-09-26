@@ -550,6 +550,8 @@ public final class AstralRecord extends JavaPlugin {
     private MailService mailService;
     private DonationNotificationService donationNotificationService;
     private io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService accountBenefitsService;
+    private io.github.maaasu.astralRecord.feature.channelboost.ChannelBoostService channelBoostService;
+    private io.github.maaasu.astralRecord.feature.vip.service.OnlinePaidOperationService onlinePaidOperationService;
     private MailGuiEventHandler mailGuiEventHandler;
     private ItemAdminGuiEventHandler itemAdminGuiEventHandler;
     private AdventureRecordService adventureRecordService;
@@ -681,6 +683,8 @@ public final class AstralRecord extends JavaPlugin {
         donationNotificationService.start();
         marketGuiEventHandler.startWebPurchasePolling();
         accountBenefitsService.start();
+        channelBoostService.start();
+        onlinePaidOperationService.start();
 
         ConfigProperties config = ConfigProperties.getInstance();
         if (config.isMasterDataAutoReloadEnabled()) {
@@ -696,6 +700,8 @@ public final class AstralRecord extends JavaPlugin {
     public void onDisable() {
         if (donationNotificationService != null) {
             accountBenefitsService.stop();
+            channelBoostService.stop();
+            onlinePaidOperationService.stop();
             donationNotificationService.stop();
             donationNotificationService = null;
         }
@@ -1591,6 +1597,9 @@ public final class AstralRecord extends JavaPlugin {
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
         donationNotificationService = new DonationNotificationService(this, new DonationNotificationRepository());
         accountBenefitsService = new io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService(
+            this, inventoryService, inventorySaveCoordinator);
+        channelBoostService = new io.github.maaasu.astralRecord.feature.channelboost.ChannelBoostService(this);
+        onlinePaidOperationService = new io.github.maaasu.astralRecord.feature.vip.service.OnlinePaidOperationService(
             this, inventoryService, inventorySaveCoordinator);
         mailService.setMailReceivedListener((player, mailId) ->
             guideService.recordCondition(player, GuideConditionType.MAIL_RECEIVED, mailId)
@@ -2960,6 +2969,11 @@ public final class AstralRecord extends JavaPlugin {
     /** アカウント単位のVIPとインスタンス優先回数を管理するサービスを返します。 */
     public io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService getAccountBenefitsService() {
         return accountBenefitsService;
+    }
+
+    /** 現在チャンネルのAPI確定済みブースト状態を返します。 */
+    public io.github.maaasu.astralRecord.feature.channelboost.ChannelBoostService getChannelBoostService() {
+        return channelBoostService;
     }
 
     /**

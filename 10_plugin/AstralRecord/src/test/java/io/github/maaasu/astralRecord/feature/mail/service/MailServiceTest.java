@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
+import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailReward;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
@@ -161,6 +162,7 @@ class MailServiceTest {
             LocalDateTime.now().minusMinutes(1), null, true,
             List.of(new MailReward("reward-item", "equipment", 1, instanceId)), false, null
         );
+        when(context.repository.findAvailable(context.accountId, MailFilter.ALL)).thenReturn(List.of(purchaseMail));
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<InventoryService.PreparedInventoryReward>> rewards = ArgumentCaptor.forClass(List.class);
 
@@ -202,6 +204,31 @@ class MailServiceTest {
         acknowledgement.addProperty("readAt", LocalDateTime.now().toString());
         section.acknowledge().accept(acknowledgement);
         assertNull(participant.getValue().apply(context.accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: 表示中の古いメールではなくfresh API応答の通貨受取状態をclaim sectionへ送る。
+     */
+    @Test
+    void webCurrencyClaimUsesFreshMailState() {
+        TestContext context = new TestContext();
+        MailEntry fresh = new MailEntry(context.mail.id(), context.mail.icon(),
+            context.mail.iconTexture(), context.mail.title(), context.mail.body(),
+            context.mail.publishFrom(), context.mail.publishTo(), true, context.mail.rewards(),
+            false, null, true);
+        when(context.repository.findAvailable(context.accountId, MailFilter.ALL)).thenReturn(List.of(fresh));
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Function<UUID, PlayerStateSection>> participant = ArgumentCaptor.forClass(Function.class);
+        verify(context.persistence).registerStateParticipant(participant.capture());
+
+        context.runCriticalMutationWithoutCompleting();
+
+        PlayerStateSection section = participant.getValue().apply(context.accountId);
+        assertNotNull(section);
+        assertTrue(section.payload().getAsJsonObject().get("currencyAlreadyClaimed").getAsBoolean());
+        verify(context.repository).findAvailable(context.accountId, MailFilter.ALL);
     }
 
     /**
@@ -274,6 +301,7 @@ class MailServiceTest {
         private final MailService service;
 
         private TestContext() {
+            when(repository.findAvailable(accountId, MailFilter.ALL)).thenReturn(List.of(mail));
             when(plugin.getServer()).thenReturn(server);
             when(server.getScheduler()).thenReturn(scheduler);
             when(server.getPlayer(playerId)).thenReturn(player);

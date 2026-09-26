@@ -9,6 +9,9 @@ enum class ItemConsumableEffectType {
     INSTANCE_PRIORITY,
     VIP_DONER,
     VIP_ASTRALDER,
+    CHANNEL_EXP_BOOST,
+    CHANNEL_DROP_BOOST,
+    CHANNEL_SPECIAL_BOOST,
     UNKNOWN,
     ;
 

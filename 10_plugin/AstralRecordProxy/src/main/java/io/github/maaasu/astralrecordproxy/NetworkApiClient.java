@@ -71,6 +71,18 @@ final class NetworkApiClient {
             .thenApply(json -> ManagedNetworkSettings.fromJson(gson.fromJson(json, JsonObject.class)));
     }
 
+    /** 全ゲームチャンネルのブースト正本を取得します。 */
+    CompletableFuture<JsonObject> getChannelBoosts() {
+        return send("GET", "/api/channel-boosts", null)
+            .thenApply(json -> gson.fromJson(json, JsonObject.class));
+    }
+
+    /** 指定カーソル以後の発動通知を取得します。 */
+    CompletableFuture<JsonObject> getChannelBoostEvents(long after) {
+        return send("GET", "/api/channel-boosts/events?after=" + after, null)
+            .thenApply(json -> gson.fromJson(json, JsonObject.class));
+    }
+
     /** APIが未初期化の場合だけYAML旧値をManagement DBへbootstrapする。 */
     CompletableFuture<ManagedNetworkSettings> bootstrapManagedSettings(ManagedNetworkSettings legacySettings) {
         return send("POST", "/api/network/settings/bootstrap", legacySettings.toBootstrapJson().toString(), authoritySyncKey)

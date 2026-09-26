@@ -10,5 +10,5 @@ data class ItemConsumableEffect(
     val status: String?,
     val isPercent: Boolean,
     val buffId: String?,
+    val durationSeconds: Long? = null,
 )
-

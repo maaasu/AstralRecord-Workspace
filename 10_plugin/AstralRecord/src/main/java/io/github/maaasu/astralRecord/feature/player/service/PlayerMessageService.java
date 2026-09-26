@@ -289,7 +289,7 @@ public final class PlayerMessageService {
 
     /**
      * 全体チャットをオンラインプレイヤー全員へ配信する。
-     * 発言者のプレイヤーレベルを表示する。
+     * 発言者ラベルにはTABと同じクラスレベル・VIP色を使う。
      *
      * @param sender 発言者
      * @param message チャット本文
@@ -309,17 +309,10 @@ public final class PlayerMessageService {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(sender);
-        String displayName = astPlayer == null
-            ? sender.getName()
-            : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
         Component component = PlayerMsgResource.formatPlainComponent(
-            PlayerMsgId.P_5941.getId(),
-            resolvePlayerLevel(sender),
-            displayName
-        ).append(chatBodyComponent(conversion));
-        if (astPlayer != null) {
-            component = replaceAccountDisplay(component, astPlayer);
-        }
+            PlayerMsgId.P_5941.getId()
+        ).append(Component.space()).append(playerLabel(sender, astPlayer)).append(Component.text(": ", NamedTextColor.WHITE))
+            .append(chatBodyComponent(conversion));
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -356,7 +349,7 @@ public final class PlayerMessageService {
 
     /**
      * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
-     * 発言者のプレイヤーレベルを表示する。
+     * 発言者ラベルにはTABと同じクラスレベル・VIP色を使う。
      *
      * @param sender 送信者
      * @param itemName チャットへ表示し、クリック時にコピーする装飾なしのアイテム名
@@ -368,22 +361,13 @@ public final class PlayerMessageService {
         @NotNull ItemStack itemTooltip
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(sender);
-        String displayName = astPlayer == null
-            ? sender.getName()
-            : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
         Component component = PlayerMsgResource.formatPlainComponent(
-            PlayerMsgId.P_5941.getId(),
-            resolvePlayerLevel(sender),
-            displayName,
-            ""
-        ).append(
+            PlayerMsgId.P_5941.getId()
+        ).append(Component.space()).append(playerLabel(sender, astPlayer)).append(Component.text(": ", NamedTextColor.WHITE)).append(
             Component.text(itemName)
                 .hoverEvent(itemTooltip.asHoverEvent())
                 .clickEvent(ClickEvent.copyToClipboard(itemName))
         );
-        if (astPlayer != null) {
-            component = replaceAccountDisplay(component, astPlayer);
-        }
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -429,13 +413,9 @@ public final class PlayerMessageService {
             ? sender.getName()
             : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
         Component component = PlayerMsgResource.formatPlainComponent(
-            PlayerMsgId.P_5942.getId(),
-            resolvePlayerLevel(sender),
-            displayName
-        ).append(chatBodyComponent(conversion));
-        if (astPlayer != null) {
-            component = replaceAccountDisplay(component, astPlayer);
-        }
+            PlayerMsgId.P_5942.getId()
+        ).append(Component.space()).append(playerLabel(sender, astPlayer)).append(Component.text(": ", NamedTextColor.WHITE))
+            .append(chatBodyComponent(conversion));
         for (Player recipient : recipients) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -506,28 +486,14 @@ public final class PlayerMessageService {
         String targetDisplayName = targetAstPlayer == null
             ? target.getName()
             : AccountDisplayNameFormatter.toPlain(targetAstPlayer.getAccount());
-        Component sent = PlayerMsgResource.formatPlainComponent(
-            PlayerMsgId.P_5943.getId(),
-            resolvePlayerLevel(sender),
-            senderDisplayName,
-            resolvePlayerLevel(target),
-            targetDisplayName
-        ).append(chatBodyComponent(conversion));
-        Component received = PlayerMsgResource.formatPlainComponent(
-            PlayerMsgId.P_5944.getId(),
-            resolvePlayerLevel(sender),
-            senderDisplayName,
-            resolvePlayerLevel(target),
-            targetDisplayName
-        ).append(chatBodyComponent(conversion));
-        if (senderAstPlayer != null) {
-            sent = replaceAccountDisplay(sent, senderAstPlayer);
-            received = replaceAccountDisplay(received, senderAstPlayer);
-        }
-        if (targetAstPlayer != null) {
-            sent = replaceAccountDisplay(sent, targetAstPlayer);
-            received = replaceAccountDisplay(received, targetAstPlayer);
-        }
+        Component names = playerLabel(sender, senderAstPlayer)
+            .append(Component.text(" → ", NamedTextColor.WHITE))
+            .append(playerLabel(target, targetAstPlayer))
+            .append(Component.text(": ", NamedTextColor.WHITE));
+        Component sent = PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_5943.getId())
+            .append(Component.space()).append(names).append(chatBodyComponent(conversion));
+        Component received = PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_5944.getId())
+            .append(Component.space()).append(names).append(chatBodyComponent(conversion));
         if (sender.isOnline()) {
             sender.sendMessage(sent);
         }
@@ -630,7 +596,7 @@ public final class PlayerMessageService {
         @NotNull AstPlayer astPlayer,
         @NotNull String matchText
     ) {
-        Component display = AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())
+        Component display = AccountDisplayNameFormatter.playerLabel(astPlayer)
             .clickEvent(ClickEvent.runCommand("/player info " + astPlayer.getBukkit().getName()))
             .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
                 Component.text("クリックでプレイヤー情報を開く")
@@ -651,11 +617,8 @@ public final class PlayerMessageService {
         );
     }
 
-    private @NotNull String resolvePlayerLevel(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return "---";
-        }
-        return Integer.toString(Math.max(1, astPlayer.getAccount().getLevel()));
+    private @NotNull Component playerLabel(@NotNull Player player, @Nullable AstPlayer astPlayer) {
+        return astPlayer == null ? Component.text(player.getName(), NamedTextColor.WHITE)
+            : AccountDisplayNameFormatter.playerLabel(astPlayer);
     }
 }

@@ -619,6 +619,7 @@ class ItemRepository {
                 status = effectObj.get("status")?.takeIf { !it.isJsonNull }?.asString,
                 isPercent = effectObj.get("isPercent")?.asBoolean ?: false,
                 buffId = effectObj.get("buffId")?.takeIf { !it.isJsonNull }?.asString,
+                durationSeconds = effectObj.get("durationSeconds")?.takeIf { !it.isJsonNull }?.asLong,
             )
         }
 

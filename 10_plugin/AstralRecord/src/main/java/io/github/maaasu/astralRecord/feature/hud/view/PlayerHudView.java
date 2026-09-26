@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
@@ -595,10 +596,11 @@ public class PlayerHudView {
     }
 
     /**
-     * Tabキー押下時のプレイヤーリストにMSPT・Pingをヘッダー/フッター表示します。
+     * Proxyがヘッダーを所有しない場合のTABに全チャンネルのブーストと性能情報を表示します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT（平均値）
+     * @param showPerformanceInfo MSPTとpingを表示するか
      */
     public void renderTabList(Player player, double mspt, boolean showPerformanceInfo) {
         int ping = player.getPing();
@@ -609,10 +611,19 @@ public class PlayerHudView {
                     .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
                 : Component.empty())
             .build();
-        Component footer = showPerformanceInfo
-            ? Component.text().append(Component.text("通信遅延 ", NamedTextColor.GRAY))
-                .append(Component.text(ping + "ms", pingTextColor(ping))).build()
-            : Component.empty();
+        Component footer = Component.empty();
+        var plugin = AstralRecord.getInstance();
+        var boosts = plugin == null ? null : plugin.getChannelBoostService();
+        if (boosts != null) {
+            footer = Component.text("全チャンネル EXP/DROP", NamedTextColor.YELLOW);
+            for (String line : boosts.displayLines()) footer = footer.append(Component.newline())
+                .append(Component.text(line, NamedTextColor.GRAY));
+        }
+        if (showPerformanceInfo) {
+            if (boosts != null) footer = footer.append(Component.newline());
+            footer = footer.append(Component.text("通信遅延 ", NamedTextColor.GRAY))
+                .append(Component.text(ping + "ms", pingTextColor(ping)));
+        }
         player.sendPlayerListHeaderAndFooter(header, footer);
     }
 

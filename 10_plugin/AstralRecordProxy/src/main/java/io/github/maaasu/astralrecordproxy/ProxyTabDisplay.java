@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 import java.util.Locale;
+import java.util.List;
 
 /** Proxy共通Tabのヘッダーとフッターを生成する。 */
 final class ProxyTabDisplay {
@@ -21,6 +22,12 @@ final class ProxyTabDisplay {
      * @return Tabへ送信するヘッダーとフッター
      */
     static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers) {
+        return render(serverAddress, ping, mspt, totalPlayers, List.of());
+    }
+
+    /** 全チャンネルのブースト状況を性能表示の上へ追加します。 */
+    static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers,
+                               List<String> boostLines) {
         Component msptValue = mspt == null
             ? Component.text("計測中", NamedTextColor.GRAY)
             : Component.text(String.format(Locale.ROOT, "%.1f", mspt), msptColor(mspt));
@@ -33,15 +40,17 @@ final class ProxyTabDisplay {
             .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         Component footer = Component.text()
             .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
-            .append(Component.newline())
+            .build();
+        for (String line : boostLines) footer = footer.append(Component.newline())
+            .append(Component.text(line, NamedTextColor.YELLOW));
+        footer = footer.append(Component.newline())
             .append(Component.text("MSPT ", NamedTextColor.GRAY))
             .append(msptValue)
             .append(Component.text("  |  PING ", NamedTextColor.DARK_GRAY))
             .append(Component.text(Math.max(0L, ping) + "ms", pingColor(ping)))
             .append(Component.newline())
             .append(Component.text("オンライン ", NamedTextColor.GRAY))
-            .append(Component.text(Math.max(0, totalPlayers) + "人", NamedTextColor.AQUA))
-            .build();
+            .append(Component.text(Math.max(0, totalPlayers) + "人", NamedTextColor.AQUA));
         return new HeaderFooter(header, footer);
     }
 

@@ -1,6 +1,8 @@
 package io.github.maaasu.astralrecordproxy;
 
 import com.google.inject.Inject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -82,6 +85,10 @@ public final class AstralRecordProxyPlugin {
     private final AtomicReference<ManagedNetworkSettings> managedSettings = new AtomicReference<>();
     private final AtomicBoolean settingsRefreshRunning = new AtomicBoolean();
     private final AtomicBoolean settingsFailureLogged = new AtomicBoolean();
+    private final AtomicBoolean boostPollRunning = new AtomicBoolean();
+    private volatile JsonObject boostSnapshot;
+    private volatile long boostEventCursor;
+    private volatile boolean boostInitialized;
     private ProxyConfig config;
     private NetworkApiClient api;
     private ScheduledTask tabRefreshTask;
@@ -109,6 +116,11 @@ public final class AstralRecordProxyPlugin {
         proxy.getCommandManager().register(
             proxy.getCommandManager().metaBuilder("server").plugin(this).build(),
             new ServerMenuCommand());
+        proxy.getCommandManager().register(
+            proxy.getCommandManager().metaBuilder("server-info").plugin(this).build(),
+            new ServerInfoCommand());
+        proxy.getScheduler().buildTask(this, this::pollChannelBoosts)
+            .repeat(Duration.ofSeconds(5)).schedule();
         proxy.getScheduler().buildTask(this, this::pollDiscordChat)
             .repeat(Duration.ofMillis(config.discordPollMillis())).schedule();
         proxy.getScheduler().buildTask(this, this::refreshManagedSettings)
@@ -762,14 +774,12 @@ public final class AstralRecordProxyPlugin {
     }
 
     private void broadcastMinecraftChat(BackendProtocol.Chat chat) {
-        Component message = Component.text("[" + chat.channel() + "] ", NamedTextColor.GRAY);
-        if (!chat.className().isBlank()) {
-            message = message.append(Component.text(
-                "[Lv." + Math.max(1, chat.level()) + " " + chat.className() + "] ",
-                NamedTextColor.AQUA));
-        }
+        PlayerMetadata sender = metadata.get(chat.playerId());
+        Component message = sender == null
+            ? Component.text("[" + chat.channel() + "] " + chat.displayName(), NamedTextColor.WHITE)
+            : tabDisplayName(sender);
         message = message
-            .append(Component.text(chat.displayName() + ": ", NamedTextColor.WHITE))
+            .append(Component.text(": ", NamedTextColor.WHITE))
             .append(chatBodyComponent(chat.original(), chat.converted()));
         Component completedMessage = message;
         proxy.getAllPlayers().forEach(player -> player.sendMessage(completedMessage));
@@ -781,13 +791,14 @@ public final class AstralRecordProxyPlugin {
         if (settings == null) return;
         UUID senderId = sender.getUniqueId();
         PlayerMetadata senderMetadata = metadata.get(senderId);
-        String senderName = senderMetadata != null
+        Component senderName = senderMetadata != null
             && senderMetadata.serverId().equalsIgnoreCase(sourceServerId)
-            ? senderMetadata.displayName()
-            : sender.getUsername();
+            ? tabDisplayName(senderMetadata)
+            : Component.text(sender.getUsername(), NamedTextColor.YELLOW);
         Component message = Component.text(
-                "[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY)
-            .append(Component.text("[コマンド] " + senderName + ": ", NamedTextColor.YELLOW))
+                "[監視] [コマンド] ", NamedTextColor.DARK_GRAY)
+            .append(senderName)
+            .append(Component.text(": ", NamedTextColor.YELLOW))
             .append(Component.text(command, NamedTextColor.WHITE));
         proxy.getAllPlayers().stream()
             .filter(player -> settings.isServerAuthority(player.getUniqueId()))
@@ -801,11 +812,24 @@ public final class AstralRecordProxyPlugin {
         if (settings == null) return;
         Component message = Component.text("[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
         if ("direct".equalsIgnoreCase(chat.type())) {
-            message = message.append(Component.text(
-                "[DM] " + chat.senderName() + " → " + chat.targetName() + ": ", NamedTextColor.LIGHT_PURPLE));
+            Component targetLabel = chat.participantIds().stream()
+                .filter(id -> !id.equals(chat.playerId()))
+                .map(metadata::get).filter(java.util.Objects::nonNull)
+                .map(AstralRecordProxyPlugin::tabDisplayName).findFirst()
+                .orElse(Component.text(chat.targetName(), NamedTextColor.LIGHT_PURPLE));
+            message = message.append(Component.text("[DM] ", NamedTextColor.LIGHT_PURPLE))
+                .append(metadata.containsKey(chat.playerId())
+                    ? tabDisplayName(metadata.get(chat.playerId()))
+                    : Component.text(chat.senderName(), NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(" → ", NamedTextColor.LIGHT_PURPLE))
+                .append(targetLabel)
+                .append(Component.text(": ", NamedTextColor.LIGHT_PURPLE));
         } else if ("party".equalsIgnoreCase(chat.type())) {
-            message = message.append(Component.text(
-                "[パーティー: " + chat.partyName() + "] " + chat.senderName() + ": ", NamedTextColor.AQUA));
+            message = message.append(Component.text("[パーティー: " + chat.partyName() + "] ", NamedTextColor.AQUA))
+                .append(metadata.containsKey(chat.playerId())
+                    ? tabDisplayName(metadata.get(chat.playerId()))
+                    : Component.text(chat.senderName(), NamedTextColor.AQUA))
+                .append(Component.text(": ", NamedTextColor.AQUA));
         } else {
             return;
         }
@@ -867,12 +891,13 @@ public final class AstralRecordProxyPlugin {
         }
         PlayerMetadata targetMetadata = metadata.get(target.getUniqueId());
         String targetName = targetMetadata == null ? target.getUsername() : targetMetadata.displayName();
-        int targetLevel = targetMetadata == null || targetMetadata.level() == null
-            ? 0 : targetMetadata.level();
-        Component sent = directMessageComponent(
-            "DM送信", message.senderLevel(), message.senderName(), targetLevel, targetName, message);
-        Component received = directMessageComponent(
-            "DM受信", message.senderLevel(), message.senderName(), targetLevel, targetName, message);
+        Component senderLabel = metadata.containsKey(sender.getUniqueId())
+            ? tabDisplayName(metadata.get(sender.getUniqueId()))
+            : Component.text(message.senderName(), NamedTextColor.WHITE);
+        Component targetLabel = targetMetadata == null
+            ? Component.text(targetName, NamedTextColor.WHITE) : tabDisplayName(targetMetadata);
+        Component sent = directMessageComponent("DM送信", senderLabel, targetLabel, message);
+        Component received = directMessageComponent("DM受信", senderLabel, targetLabel, message);
         sender.sendMessage(sent);
         target.sendMessage(received);
         broadcastPrivateChat(sourceServerId, new BackendProtocol.PrivateChat(
@@ -881,25 +906,16 @@ public final class AstralRecordProxyPlugin {
     }
 
     /** Proxyから直接配送するDMの表示Componentを生成します。 */
-    private static Component directMessageComponent(
-        String direction,
-        int senderLevel,
-        String senderName,
-        int targetLevel,
-        String targetName,
-        BackendProtocol.DirectMessage message
-    ) {
+    private static Component directMessageComponent(String direction, Component senderLabel,
+                                                    Component targetLabel, BackendProtocol.DirectMessage message) {
         return Component.text("[", NamedTextColor.GRAY)
             .append(Component.text(direction, NamedTextColor.LIGHT_PURPLE))
-            .append(Component.text("] [Lv." + directMessageLevel(senderLevel) + "] ", NamedTextColor.GRAY))
-            .append(Component.text(senderName, NamedTextColor.WHITE))
-            .append(Component.text(" -> [Lv." + directMessageLevel(targetLevel) + "] ", NamedTextColor.WHITE))
-            .append(Component.text(targetName + ": ", NamedTextColor.WHITE))
+            .append(Component.text("] ", NamedTextColor.GRAY))
+            .append(senderLabel)
+            .append(Component.text(" → ", NamedTextColor.WHITE))
+            .append(targetLabel)
+            .append(Component.text(": ", NamedTextColor.WHITE))
             .append(chatBodyComponent(message.original(), message.converted()));
-    }
-
-    private static String directMessageLevel(int level) {
-        return level > 0 ? String.valueOf(level) : "---";
     }
 
     static Component chatBodyComponent(String original, String converted) {
@@ -986,6 +1002,66 @@ public final class AstralRecordProxyPlugin {
         });
     }
 
+    /** APIの永続状態と発動イベントを取得し、ロビーにも全体通知します。 */
+    private void pollChannelBoosts() {
+        if (!boostPollRunning.compareAndSet(false, true)) return;
+        if (!boostInitialized) {
+            api.getChannelBoosts().whenComplete((snapshot, failure) -> {
+                boostPollRunning.set(false);
+                if (failure != null) { logger.warn("Channel boosts unavailable", failure); return; }
+                boostSnapshot = snapshot;
+                boostEventCursor = snapshot.get("eventCursor").getAsLong();
+                boostInitialized = true;
+            });
+            return;
+        }
+        long after = boostEventCursor;
+        api.getChannelBoostEvents(after).thenCombine(api.getChannelBoosts(), (events, snapshot) -> {
+            for (JsonElement element : events.getAsJsonArray("events")) {
+                JsonObject event = element.getAsJsonObject();
+                if (event.get("eventCursor").getAsLong() > after) announceBoostInLobby(event);
+            }
+            boostEventCursor = events.get("eventCursor").getAsLong();
+            boostSnapshot = snapshot;
+            return snapshot;
+        }).whenComplete((ignored, failure) -> {
+            boostPollRunning.set(false);
+            if (failure != null) logger.warn("Channel boosts unavailable", failure);
+        });
+    }
+
+    /** RPGバックエンド内の通知と重複しないようロビー接続者だけへ通知します。 */
+    private void announceBoostInLobby(JsonObject event) {
+        NetworkSettings settings = settings();
+        if (settings == null) return;
+        String kind = event.get("boostKind").getAsString();
+        String label = switch (kind) {
+            case "EXP" -> "EXP";
+            case "DROP" -> "DROP";
+            default -> "EXP・DROP";
+        };
+        String tier = event.has("vipTier") && !event.get("vipTier").isJsonNull()
+            ? event.get("vipTier").getAsString() : "NONE";
+        Component name = vipName(event.get("accountName").getAsString(), tier);
+        Component message = Component.text("[AstralRecord] ", NamedTextColor.LIGHT_PURPLE)
+            .append(name)
+            .append(Component.text("さんが" + event.get("channelId").getAsString() + "で" + label
+                + "ブースト" + event.get("multiplier").getAsDouble() + "倍を発動しました。期限: "
+                + DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm").withZone(JAPAN_ZONE)
+                    .format(Instant.parse(event.get("expiresAt").getAsString())), NamedTextColor.YELLOW));
+        proxy.getAllPlayers().stream()
+            .filter(player -> player.getCurrentServer().map(connection -> connection.getServerInfo().getName()
+                .equalsIgnoreCase(settings.lobbyServer())).orElse(false))
+            .forEach(player -> player.sendMessage(message));
+    }
+
+    private static Component vipName(String name, String tier) {
+        if ("ASTRALDER".equalsIgnoreCase(tier)) return Component.text(name, NamedTextColor.GOLD)
+            .decorate(TextDecoration.BOLD);
+        if ("DONER".equalsIgnoreCase(tier)) return Component.text(name, NamedTextColor.AQUA);
+        return Component.text(name, NamedTextColor.WHITE);
+    }
+
     private synchronized void refreshTabEntries() {
         NetworkSettings settings = settings();
         if (settings == null) return;
@@ -993,6 +1069,7 @@ public final class AstralRecordProxyPlugin {
         Set<UUID> onlineIds = new HashSet<>();
         connectedPlayers.forEach(player -> onlineIds.add(player.getUniqueId()));
         int totalPlayers = onlineIds.size();
+        List<String> boostLines = ProxyChannelBoosts.lines(boostSnapshot, Instant.now());
         long nowNanos = System.nanoTime();
         serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
         for (Player viewer : connectedPlayers) {
@@ -1001,7 +1078,7 @@ public final class AstralRecordProxyPlugin {
                 .orElse("");
             ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
                 config.tabServerAddress(), viewer.getPing(),
-                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers);
+                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostLines);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             removeStaleTabEntries(tabList, onlineIds);
@@ -1189,6 +1266,16 @@ public final class AstralRecordProxyPlugin {
     }
 
     record LifecycleNotification(String action, String message) {
+    }
+
+    private final class ServerInfoCommand implements SimpleCommand {
+        @Override
+        public void execute(Invocation invocation) {
+            invocation.source().sendMessage(Component.text("全チャンネルのEXP/DROPブースト状況:",
+                NamedTextColor.YELLOW));
+            for (String line : ProxyChannelBoosts.lines(boostSnapshot, Instant.now()))
+                invocation.source().sendMessage(Component.text(line, NamedTextColor.GRAY));
+        }
     }
 
     private final class ServerMenuCommand implements SimpleCommand {

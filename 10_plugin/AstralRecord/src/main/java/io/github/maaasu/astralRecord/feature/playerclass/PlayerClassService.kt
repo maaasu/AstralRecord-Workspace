@@ -119,10 +119,14 @@ class PlayerClassService @JvmOverloads constructor(
         if (!playerListNameUpdatesEnabled) {
             return
         }
+        astPlayer.bukkit.playerListName(playerListLabel(astPlayer))
+    }
+
+    /** TABとサーバーメッセージで共有するクラス・レベル・AFK・アカウント名を返します。 */
+    fun playerListLabel(astPlayer: AstPlayer): Component {
         val standardName = io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account)
         if (astPlayer.account.mode == AccountMode.ADMIN) {
-            astPlayer.bukkit.playerListName(standardName)
-            return
+            return standardName
         }
         val classDisplayName = if (getLoadedClass(astPlayer.classId) == null) {
             PlayerMsgResource.getMessage(PlayerMsgId.P_7122.id)
@@ -140,7 +144,7 @@ class PlayerClassService @JvmOverloads constructor(
                 .append(PlayerMsgResource.getComponent(PlayerMsgId.P_7121.id))
                 .append(Component.space())
         }
-        astPlayer.bukkit.playerListName(playerListName.append(standardName))
+        return playerListName.append(standardName)
     }
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()

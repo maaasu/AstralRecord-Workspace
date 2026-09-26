@@ -186,21 +186,30 @@ public final class MailService {
             completion.accept(new ReadAndReceiveResult(false, false));
             return;
         }
-        if (mail.read()) {
-            completedClaims.add(claimKey);
-            claimsInFlight.remove(claimKey);
-            completion.accept(new ReadAndReceiveResult(true, false));
-            return;
-        }
-
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            PreparedClaimRewards prepared = mail.receiveOnRead()
-                ? prepareRewards(mail.rewards())
-                : new PreparedClaimRewards(List.of());
+            MailEntry fresh;
+            PreparedClaimRewards prepared;
+            try {
+                fresh = mailRepository.findAvailable(accountId, MailFilter.ALL).stream()
+                    .filter(candidate -> candidate.id().equals(mail.id())).findFirst().orElse(null);
+                prepared = fresh == null ? null : fresh.receiveOnRead()
+                    ? prepareRewards(fresh.rewards()) : new PreparedClaimRewards(List.of());
+            } catch (RuntimeException error) {
+                fresh = null;
+                prepared = null;
+            }
+            MailEntry currentMail = fresh;
+            PreparedClaimRewards preparedForClaim = prepared;
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (prepared == null) {
+                if (preparedForClaim == null || currentMail == null) {
                     finishClaimFailure(claimKey, currentPlayer(playerId, userId, accountId), mail,
                         completion, PlayerMsgId.P_5623);
+                    return;
+                }
+                if (currentMail.read()) {
+                    completedClaims.add(claimKey);
+                    claimsInFlight.remove(claimKey);
+                    completion.accept(new ReadAndReceiveResult(true, false));
                     return;
                 }
                 AstPlayer current = currentPlayer(playerId, userId, accountId);
@@ -209,7 +218,7 @@ public final class MailService {
                     return;
                 }
                 claimWithinCriticalSnapshot(
-                    current, playerId, userId, accountId, claimKey, mail, prepared, completion
+                    current, playerId, userId, accountId, claimKey, currentMail, preparedForClaim, completion
                 );
             });
         });
@@ -289,7 +298,7 @@ public final class MailService {
             }
 
             PendingMailClaim pending = new PendingMailClaim(
-                accountId, UUID.randomUUID(), mail.id()
+                accountId, UUID.randomUUID(), mail.id(), mail.currencyClaimed()
             );
             if (pendingClaimsByAccount.putIfAbsent(accountId, pending) != null) {
                 equipmentRollback.run();
@@ -351,6 +360,7 @@ public final class MailService {
         payload.addProperty("accountId", pending.accountId().toString());
         payload.addProperty("clientRevision", pending.clientRevision().toString());
         payload.addProperty("mailId", pending.mailId());
+        payload.addProperty("currencyAlreadyClaimed", pending.currencyAlreadyClaimed());
         return new PlayerStateSection(MAIL_CLAIM_SECTION, payload,
             acknowledgement -> acknowledgeMailClaim(pending, acknowledgement));
     }
@@ -544,7 +554,8 @@ public final class MailService {
     private record PendingMailClaim(
         @NotNull UUID accountId,
         @NotNull UUID clientRevision,
-        @NotNull String mailId
+        @NotNull String mailId,
+        boolean currencyAlreadyClaimed
     ) {
     }
 

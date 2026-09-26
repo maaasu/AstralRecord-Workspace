@@ -17,6 +17,14 @@ public record MailEntry(
     boolean receiveOnRead,
     @NotNull List<MailReward> rewards,
     boolean read,
-    @Nullable LocalDateTime readAt
+    @Nullable LocalDateTime readAt,
+    boolean currencyClaimed
 ) {
+    /** 既存の非Webメール構築呼出との互換コンストラクタです。 */
+    public MailEntry(String id, String icon, String iconTexture, String title, String body,
+                     LocalDateTime publishFrom, LocalDateTime publishTo, boolean receiveOnRead,
+                     List<MailReward> rewards, boolean read, LocalDateTime readAt) {
+        this(id, icon, iconTexture, title, body, publishFrom, publishTo, receiveOnRead,
+            rewards, read, readAt, false);
+    }
 }

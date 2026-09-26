@@ -1117,6 +1117,14 @@ public class StatusService {
         }
         applyPrimaryAttributeEffects(values);
         applyFinalBuffScalars(player, values);
+        var plugin = io.github.maaasu.astralRecord.AstralRecord.getInstance();
+        var boosts = plugin == null ? null : plugin.getChannelBoostService();
+        if (boosts != null) {
+            applyFinalBuffScalars(values, Map.of(
+                StatusType.EXPERIENCE_GAIN_RATE, boosts.expFactor(),
+                StatusType.DROP_RATE_INCREASE, boosts.dropFactor()
+            ));
+        }
 
         return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, 0.0D, System.currentTimeMillis(), LocalDateTime.now());
     }

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.vip.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.vip.model.AccountBenefitsSnapshot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -34,12 +35,7 @@ public final class AccountBenefitsView {
 
     /** TABのアカウント名だけにVIP色を適用し、スロット番号の装飾を独立させます。 */
     public static Component tabName(AccountModel account) {
-        String tier = state(account.getUuid()).tier();
-        Component name = Component.text(account.getAccountName());
-        if (tier.equals("DONER")) name = name.color(NamedTextColor.AQUA);
-        else if (tier.equals("ASTRALDER")) name = name.color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD);
-        return Component.empty().append(name).append(Component.text("#" + account.getSlotIndex(), NamedTextColor.GRAY)
-            .decoration(TextDecoration.BOLD, false));
+        return AccountDisplayNameFormatter.toComponent(account);
     }
 
     /** 初期化前は通常状態として描画します。 */

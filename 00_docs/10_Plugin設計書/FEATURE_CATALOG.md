@@ -39,6 +39,7 @@
 | 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、管理DB設定・ロール・BAN、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
 | 34 | [[34_0-概要]] | レベル1への転生、短縮レベル進行、EXPポイント変換、転生GUI | `feature/rebirth` |
 | 35 | [[35_0-概要]] | 寄付結果のゲーム内通知、表示済み確認 | `feature/donation` |
+| 36 | [[36_0-概要]] | アカウント有償特典、チャンネルブースト、Web保留操作の保存境界 | `feature/vip`, `feature/channelboost` |
 
 ## 更新規則
 
@@ -351,3 +352,12 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7300` から `P_7301`）
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_7300` から `E_7301`）
 - `40_filebase/10.features.item/99.currency/v1.99a00021.astrald_paid.yml`
+
+### [[36_0-概要|36-paid-benefits]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/vip/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/channelboost/*`
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7600` から `P_7613`）
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_7600`、`E_7610`、`E_7611`）
+- `feature/status` のEXP/DROP最終倍率適用、`feature/item` の券種別とduration読込、`feature/account` のVIP名色
+- `AstralRecordProxy` のブースト一覧・通知・TAB表示

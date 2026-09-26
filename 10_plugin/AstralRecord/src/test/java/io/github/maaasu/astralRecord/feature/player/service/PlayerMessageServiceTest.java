@@ -159,10 +159,10 @@ class PlayerMessageServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
-     * 検証契約: 全体chatでプレイヤーLv.をplayer名より前に置く。
+     * 検証契約: クラスruntime不在時にも全体chatのアカウント名とslotを表示する。
      */
     @Test
-    void globalChatPlacesPlayerLevelBeforePlayerName() {
+    void globalChatUsesAccountNameWhenClassRuntimeUnavailable() {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         AccountModel account = mock(AccountModel.class);
@@ -182,7 +182,7 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "hello");
 
             assertEquals(
-                "[全体] [Lv.12] Alice#0: hello",
+                "[全体] Alice#0: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
         }
@@ -217,7 +217,7 @@ class PlayerMessageServiceTest {
             service.sendDirectMessage(sender, target, "gakkou");
 
             Component global = captureMessage(globalRecipient);
-            assertEquals("[全体] [Lv.---] Alice: gakkou[変換済み]", PlainTextComponentSerializer.plainText().serialize(global));
+            assertEquals("[全体] Alice: gakkou[変換済み]", PlainTextComponentSerializer.plainText().serialize(global));
             Component originalBody = findText(global, "gakkou");
             assertNotNull(originalBody);
             assertEquals(NamedTextColor.WHITE, originalBody.style().color());
@@ -230,15 +230,15 @@ class PlayerMessageServiceTest {
             assertEquals(NamedTextColor.GOLD, convertedBody.style().color());
             assertEquals(TextDecoration.State.TRUE, convertedBody.style().decoration(TextDecoration.ITALIC));
             assertEquals(
-                "[パーティー] [Lv.---] Alice: gakkou[変換済み]",
+                "[パーティー] Alice: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(partyRecipient))
             );
             assertEquals(
-                "[DM送信] [Lv.---] Alice -> [Lv.---] Bob: gakkou[変換済み]",
+                "[DM送信] Alice → Bob: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             assertEquals(
-                "[DM受信] [Lv.---] Alice -> [Lv.---] Bob: gakkou[変換済み]",
+                "[DM受信] Alice → Bob: gakkou[変換済み]",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }
@@ -288,11 +288,11 @@ class PlayerMessageServiceTest {
             ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
             verify(recipient, times(2)).sendMessage(captor.capture());
             assertEquals(
-                "[全体] [Lv.---] Alice: first[first-converted]",
+                "[全体] Alice: first[first-converted]",
                 PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(0))
             );
             assertEquals(
-                "[全体] [Lv.---] Alice: second[second-converted]",
+                "[全体] Alice: second[second-converted]",
                 PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(1))
             );
         }
@@ -322,10 +322,10 @@ class PlayerMessageServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### パーティーチャット配信
-     * 検証契約: パーティーチャットでプレイヤーLv.をplayer名より前に置く。
+     * 検証契約: クラスruntime不在時にもパーティーチャットのアカウント名とslotを表示する。
      */
     @Test
-    void partyChatPlacesPlayerLevelBeforePlayerName() {
+    void partyChatUsesAccountNameWhenClassRuntimeUnavailable() {
         Player sender = onlinePlayer();
         Player recipient = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
@@ -345,7 +345,7 @@ class PlayerMessageServiceTest {
             service.broadcastPartyChat(Set.of(recipient), sender, "Aliceのパーティー", "party");
 
             assertEquals(
-                "[パーティー] [Lv.12] Alice#0: party",
+                "[パーティー] Alice#0: party",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(recipient))
             );
         }
@@ -354,10 +354,10 @@ class PlayerMessageServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ダイレクトメッセージ配信
-     * 検証契約: DMの送受信者それぞれにプレイヤーLv.を表示する。
+     * 検証契約: クラスruntime不在時にもDMの送受信者のアカウント名とslotを表示する。
      */
     @Test
-    void directMessagePlacesEachPlayerLevelBeforePlayerName() {
+    void directMessageUsesAccountNamesWhenClassRuntimeUnavailable() {
         Player sender = onlinePlayer();
         Player target = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
@@ -388,11 +388,11 @@ class PlayerMessageServiceTest {
             service.sendDirectMessage(sender, target, "direct");
 
             assertEquals(
-                "[DM送信] [Lv.12] Alice#0 -> [Lv.7] Bob#0: direct",
+                "[DM送信] Alice#0 → Bob#0: direct",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             assertEquals(
-                "[DM受信] [Lv.12] Alice#0 -> [Lv.7] Bob#0: direct",
+                "[DM受信] Alice#0 → Bob#0: direct",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }
@@ -453,7 +453,7 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "&chello");
 
             assertEquals(
-                "[全体] [Lv.---] Alice: &chello",
+                "[全体] Alice: &chello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             verify(bridge).publishMinecraftGlobalChat(sender, "&chello");

@@ -121,7 +121,8 @@ public class MailRepository {
             booleanValue(obj, "receiveOnRead", true),
             List.copyOf(rewards),
             booleanValue(obj, "isRead", false),
-            parseNullableDateTime(obj, "readAt")
+            parseNullableDateTime(obj, "readAt"),
+            booleanValue(obj, "currencyClaimed", false)
         );
     }
 

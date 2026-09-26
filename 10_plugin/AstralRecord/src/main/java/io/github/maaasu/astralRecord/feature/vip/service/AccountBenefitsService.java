@@ -66,6 +66,17 @@ public final class AccountBenefitsService {
         return snapshots.getOrDefault(accountId, AccountBenefitsSnapshot.EMPTY);
     }
 
+    /** Web購入確定応答の特典正本をキャッシュへ反映します。 */
+    public void applyConfirmedSnapshot(UUID accountId, JsonObject benefits) {
+        if (benefits == null) return;
+        synchronized (locks.computeIfAbsent(accountId, ignored -> new Object())) {
+            snapshots.put(accountId, AccountBenefitsRepository.snapshot(benefits));
+        }
+        for (AstPlayer player : AstPlayerCache.getAll()) {
+            if (player.getAccount().getUuid().equals(accountId)) refreshDisplay(player);
+        }
+    }
+
     /** 待機列の事前表示用に確定済み回数を返します。 */
     public long getInstancePriorityUses(UUID accountId) { return current(accountId).instancePriorityUses(); }
 
@@ -113,7 +124,10 @@ public final class AccountBenefitsService {
         return model.getConsumable() != null && model.getConsumable().getEffects().stream().anyMatch(effect ->
             effect.getType() == ItemConsumableEffectType.INSTANCE_PRIORITY
                 || effect.getType() == ItemConsumableEffectType.VIP_DONER
-                || effect.getType() == ItemConsumableEffectType.VIP_ASTRALDER);
+                || effect.getType() == ItemConsumableEffectType.VIP_ASTRALDER
+                || effect.getType() == ItemConsumableEffectType.CHANNEL_EXP_BOOST
+                || effect.getType() == ItemConsumableEffectType.CHANNEL_DROP_BOOST
+                || effect.getType() == ItemConsumableEffectType.CHANNEL_SPECIAL_BOOST);
     }
 
     /** 右クリックされた特典券を保存後にAPIで消費し、同じtransactionで特典を付与します。 */
@@ -137,6 +151,7 @@ public final class AccountBenefitsService {
             JsonObject body = operation(operationId);
             body.addProperty("inventoryEntryId", entry.getInventoryEntryId().toString());
             body.addProperty("expectedUpdatedAt", baselineEntry.getUpdatedAt().toString());
+            body.addProperty("accountId", accountId.toString());
             completeItem(player, model, prepared, entry.getInventoryEntryId(), body, false);
         }));
     }
@@ -146,9 +161,14 @@ public final class AccountBenefitsService {
                               InventorySaveCoordinator.PreparedExternalOperation prepared,
                               UUID entryId, JsonObject body, boolean retry) {
         UUID accountId = prepared.accountId();
+        boolean channelBoost = model.getConsumable().getEffects().stream().anyMatch(effect ->
+            effect.getType() == ItemConsumableEffectType.CHANNEL_EXP_BOOST
+                || effect.getType() == ItemConsumableEffectType.CHANNEL_DROP_BOOST
+                || effect.getType() == ItemConsumableEffectType.CHANNEL_SPECIAL_BOOST);
         saves.completePreparedExternalOperation(prepared, baseline -> {
-            JsonObject result = perform(accountId, "/consume-item", body);
-            inventory.reconcileExternalInventoryEntries(accountId, List.of(entryId), baseline,
+            JsonObject result = channelBoost ? plugin.getChannelBoostService().activate(body)
+                : perform(accountId, "/consume-item", body);
+            if (completed(result)) inventory.reconcileExternalInventoryEntries(accountId, List.of(entryId), baseline,
                 InventoryOperationSnapshotParser.parse(result.get("inventorySnapshot")));
             return result;
         }).whenComplete((result, error) -> onMain(() -> {
@@ -164,7 +184,18 @@ public final class AccountBenefitsService {
             usingItems.remove(accountId);
             if (!isCurrent(player)) return;
             inventory.applyHotbarInventoryToGui(player);
-            if (!completed(result)) { send(player, PlayerMsgId.P_7607); return; }
+            if (!completed(result)) {
+                if (channelBoost && result.has("reason")
+                    && "boost_already_active".equals(result.get("reason").getAsString()))
+                    send(player, PlayerMsgId.P_7614);
+                else send(player, PlayerMsgId.P_7607);
+                return;
+            }
+            if (channelBoost) {
+                plugin.getChannelBoostService().applyActivation(result);
+                send(player, PlayerMsgId.P_7613);
+                return;
+            }
             var effect = model.getConsumable().getEffects().getFirst();
             var state = current(accountId);
             if (effect.getType() == ItemConsumableEffectType.INSTANCE_PRIORITY)
