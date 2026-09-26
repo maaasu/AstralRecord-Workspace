@@ -5,6 +5,7 @@ using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -519,6 +520,132 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal("ALLOW", quote.Judgement);
     }
 
+    [Fact]
+    public async Task MarketPriceQuote_EvenHighValueHistoryDoesNotOverflowMedian()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        await AddPriceHistoryAsync(harness, "material", "market_material", 2, "legacy-signature",
+            5_000_000_000_000_000_000L);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 1)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal(5_000_000_000_000_000_000L, quote.ReferenceUnitPrice);
+    }
+
+    [Theory]
+    [InlineData(5, "MEDIUM")]
+    [InlineData(20, "HIGH")]
+    public async Task MarketPriceQuote_HighValueHistoryCapsReferenceUpperBound(int sampleCount, string confidence)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var prices = new[]
+        {
+            2_000_000_000_000_000_000L,
+            4_000_000_000_000_000_000L,
+            5_000_000_000_000_000_000L,
+            6_000_000_000_000_000_000L,
+            9_000_000_000_000_000_000L,
+        };
+        foreach (var price in Enumerable.Range(0, sampleCount).Select(index => prices[index % prices.Length]))
+            await AddPriceHistoryAsync(harness, "material", "market_material", 1, "legacy-signature", price);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 1)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1, UnitPrice = long.MaxValue,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal(confidence, quote.Confidence);
+        Assert.Equal(5_000_000_000_000_000_000L, quote.ReferenceUnitPrice);
+        Assert.Equal(long.MaxValue, quote.AllowedMaxUnitPrice);
+        Assert.Equal("ALLOW", quote.Judgement);
+    }
+
+    [Theory]
+    [InlineData(999_999_999_999L, 999_999_999_999L)]
+    [InlineData(1_000_000_000_000L, null)]
+    public async Task CreateListing_OmitsDeviationRateOutsideSqlDecimalPrecision(
+        long unitPrice, long? expectedDeviationRate)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        await AddPriceHistoryAsync(harness, "material", "market_material", 5,
+            "material|market_material|STACK", 1);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 0)));
+        var repository = new MarketRepository(harness.DbContext, service, new FixedLimitService(10));
+        var request = harness.CreateStackRequest(sourceEntryId, quantity: 1);
+        request.UnitPrice = unitPrice;
+
+        var result = await repository.CreateListingAsync(request);
+
+        Assert.True(result.Succeeded, result.ErrorCode);
+        Assert.Equal(1L, result.Value!.ReferenceUnitPrice);
+        Assert.Equal(expectedDeviationRate, result.Value.PriceDeviationRate);
+        var stored = await harness.DbContext.MarketListings.AsNoTracking().SingleAsync();
+        Assert.Equal(expectedDeviationRate, stored.PriceDeviationRate);
+        var property = harness.DbContext.Model.FindEntityType(typeof(MarketListingEntity))!
+            .FindProperty(nameof(MarketListingEntity.PriceDeviationRate))!;
+        Assert.Equal(18, property.GetPrecision());
+        Assert.Equal(6, property.GetScale());
+    }
+
+    [Theory]
+    [Trait("Category", "SqlServerIntegration")]
+    [InlineData(999_999_999_999L, 999_999_999_999L)]
+    [InlineData(1_000_000_000_000L, null)]
+    public async Task CreateListing_DeviationRateFitsSqlServerDecimalColumn(
+        long unitPrice, long? expectedDeviationRate)
+    {
+        if (Environment.GetEnvironmentVariable("ASTRALRECORD_RUN_SQLSERVER_INTEGRATION") != "1")
+            return;
+
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        await AddPriceHistoryAsync(harness, "material", "market_material", 5,
+            "material|market_material|STACK", 1);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 0)));
+        var repository = new MarketRepository(harness.DbContext, service, new FixedLimitService(10));
+        var request = harness.CreateStackRequest(sourceEntryId, quantity: 1);
+        request.UnitPrice = unitPrice;
+        var result = await repository.CreateListingAsync(request);
+        Assert.True(result.Succeeded, result.ErrorCode);
+
+        // SQL Server の実列精度で、出品作成時に保存する値が受け入れられることを確認する。
+        var connectionString = new SqlConnectionStringBuilder
+        {
+            DataSource = @"localhost\SQLEXPRESS",
+            InitialCatalog = "tempdb",
+            IntegratedSecurity = true,
+            TrustServerCertificate = true,
+        }.ConnectionString;
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE #market_deviation_rate ([price_deviation_rate] DECIMAL(18,6) NULL);
+            INSERT INTO #market_deviation_rate ([price_deviation_rate]) VALUES (@rate);
+            SELECT [price_deviation_rate] FROM #market_deviation_rate;
+            """;
+        var parameter = command.Parameters.Add("@rate", SqlDbType.Decimal);
+        parameter.Precision = 18;
+        parameter.Scale = 6;
+        parameter.Value = result.Value!.PriceDeviationRate is decimal rate ? rate : DBNull.Value;
+        var stored = await command.ExecuteScalarAsync();
+
+        Assert.Equal(expectedDeviationRate.HasValue ? (decimal?)expectedDeviationRate.Value : null,
+            stored is DBNull ? null : (decimal)stored!);
+    }
+
     [Theory]
     [InlineData(5_000L)]
     [InlineData(500_000L)]
@@ -627,7 +754,8 @@ public class MarketRepositoryEquipmentListingTests
     };
 
     private static async Task AddPriceHistoryAsync(
-        MarketHarness harness, string category, string itemId, int count, string signature)
+        MarketHarness harness, string category, string itemId, int count, string signature,
+        long unitPrice = 50_000)
     {
         var now = DateTime.UtcNow;
         harness.DbContext.MarketTransactions.AddRange(Enumerable.Range(0, count).Select(_ => new MarketTransactionEntity
@@ -635,7 +763,7 @@ public class MarketRepositoryEquipmentListingTests
             TransactionId = Guid.NewGuid(), ListingId = Guid.NewGuid(),
             SellerAccountId = harness.AccountId, BuyerAccountId = Guid.NewGuid(),
             ItemCategory = category, ItemId = itemId, Quantity = 1, CurrencyId = "gold",
-            UnitPrice = 50_000, TotalPrice = 50_000, SellerProceeds = 50_000,
+            UnitPrice = unitPrice, TotalPrice = unitPrice, SellerProceeds = unitPrice,
             ValuationSignature = signature, IdempotencyKey = Guid.NewGuid().ToString(),
             CompletedAt = now, CreatedAt = now, CreatedBy = harness.AccountId,
         }));

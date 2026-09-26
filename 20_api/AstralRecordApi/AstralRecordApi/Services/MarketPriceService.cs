@@ -201,13 +201,13 @@ public class MarketPriceService(
         {
             return (
                 Math.Max(sellPrice, (long)Math.Floor(Math.Max(median * 0.50m, p25 - 1.5m * iqr))),
-                (long)Math.Ceiling(Math.Min(median * 3.00m, p75 + 2.0m * iqr))
+                (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 3.00m, p75 + 2.0m * iqr)))
             );
         }
 
         return (
             Math.Max(sellPrice, (long)Math.Floor(Math.Max(median * 0.40m, p25 - 2.0m * iqr))),
-            (long)Math.Ceiling(Math.Min(median * 4.00m, p75 + 3.0m * iqr))
+            (long)Math.Min(long.MaxValue, Math.Ceiling(Math.Min(median * 4.00m, p75 + 3.0m * iqr)))
         );
     }
 
@@ -228,7 +228,7 @@ public class MarketPriceService(
         var sorted = values.Order().ToArray();
         var middle = sorted.Length / 2;
         return sorted.Length % 2 == 0
-            ? (sorted[middle - 1] + sorted[middle]) / 2L
+            ? (long)(((decimal)sorted[middle - 1] + sorted[middle]) / 2m)
             : sorted[middle];
     }
 

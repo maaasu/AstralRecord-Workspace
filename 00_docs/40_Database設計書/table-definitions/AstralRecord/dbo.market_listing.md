@@ -38,7 +38,7 @@
 | `total_price` | `BIGINT` |  | ○ |  | 総額 |
 | `price_floor` | `BIGINT` |  | ○ |  | 店売り価格下限 |
 | `reference_unit_price` | `BIGINT` |  |  |  | 相場参照単価 |
-| `price_deviation_rate` | `DECIMAL(18,6)` |  |  |  | `unit_price / reference_unit_price` |
+| `price_deviation_rate` | `DECIMAL(18,6)` |  |  |  | `unit_price / reference_unit_price` を小数第6位に丸めた値。参照単価がない・0以下、または列の表現可能域を超える場合は NULL |
 | `price_confidence` | `NVARCHAR(20)` |  | ○ |  | `HIGH` / `MEDIUM` / `LOW` |
 | `valuation_signature` | `NVARCHAR(300)` |  |  |  | 個体評価シグネチャ |
 | `valuation_snapshot_json` | `NVARCHAR(MAX)` |  |  |  | 出品時評価 JSON |

@@ -384,6 +384,15 @@ public class MarketRepository(
                 return await RollbackFailureAsync(400, "market.total_price_overflow", "Total price is too large.");
             }
 
+            const decimal maxStoredDeviationRate = 999_999_999_999.999999m; // DECIMAL(18,6)
+            decimal? priceDeviationRate = null;
+            if (quote.ReferenceUnitPrice is > 0)
+            {
+                var roundedRate = Math.Round(request.UnitPrice / (decimal)quote.ReferenceUnitPrice.Value, 6);
+                if (roundedRate <= maxStoredDeviationRate)
+                    priceDeviationRate = roundedRate;
+            }
+
             var listing = new MarketListingEntity
             {
                 ListingId = Guid.NewGuid(),
@@ -400,9 +409,7 @@ public class MarketRepository(
                 TotalPrice = totalPrice,
                 PriceFloor = quote.SellPrice,
                 ReferenceUnitPrice = quote.ReferenceUnitPrice,
-                PriceDeviationRate = quote.ReferenceUnitPrice.HasValue && quote.ReferenceUnitPrice.Value > 0
-                    ? Math.Round(request.UnitPrice / (decimal)quote.ReferenceUnitPrice.Value, 6)
-                    : null,
+                PriceDeviationRate = priceDeviationRate,
                 PriceConfidence = quote.Confidence,
                 ValuationSignature = quote.ValuationSignature,
                 ValuationSnapshotJson = JsonSerializer.Serialize(quote),
