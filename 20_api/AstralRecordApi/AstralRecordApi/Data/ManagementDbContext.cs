@@ -16,6 +16,8 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        DonationMapping.Configure(modelBuilder);
+        DonationDiscordMapping.Configure(modelBuilder);
         modelBuilder.Entity<ManagedNetworkSettingsEntity>(entity =>
         {
             entity.ToTable("network_settings", "dbo");

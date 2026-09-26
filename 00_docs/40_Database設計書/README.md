@@ -18,7 +18,7 @@
 - filebase YAML は編集・レビューの正本、MasterDataDB は API が常時参照する配信用データストアとする。
 - 履歴データは `HistoryDB` に保存し、`AstralRecord` DB へ直接テーブルを追加しない。
 - プレイヤーUUID単位の運営情報は `ManagementDB` に長期保持し、ゲームリセット・キャラクター削除から独立させる。Web管理権限をゲーム側permissionから判定しない。
-- ManagementDBは通常リセットしない。将来の寄付履歴も同DB内の独立した履歴テーブルで保持する方針とし、現在は未実装。詳細は [[ManagementDB設計]]。
+- ManagementDBは通常リセットしない。寄付申請・承認累計・アカウント別配布台帳・Discord本人連携も同DBで保持する。詳細は [[ManagementDB設計]]。
 - API 起動時または Seeder API 実行時に filebase を読み、MasterDataDB へ upsert する。
 - Plugin は DB へ直接接続せず、AstralRecord API 経由でデータを操作する。
 

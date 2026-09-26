@@ -49,13 +49,20 @@ $databaseConnectionBuilder['Initial Catalog'] = $databaseName
         "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.web_credential') AND name=N'UX_web_credential_login_id'",
         "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.web_trusted_browser') AND name=N'UX_web_trusted_browser_token_hash'",
         "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260917_web_credentials'",
-        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260920_trusted_admin_browser'"
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260920_trusted_admin_browser'",
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260926_donations'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_request'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_ledger'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_grant'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_notification'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_discord_link'",
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.donation_grant') AND name=N'UX_donation_grant_account_total'"
     )) {
         if ([int](Invoke-Sql $databaseName $sql -Scalar) -ne 1) { throw "Schema verification failed: $sql" }
     }
     & dotnet run --no-build --project $project -- --config $configPath
     if ($LASTEXITCODE -ne 0 -or
-        [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id IN (N'20260917_web_credentials', N'20260920_trusted_admin_browser')" -Scalar) -ne 2) { throw 'Management migration rerun was not idempotent.' }
+        [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id IN (N'20260917_web_credentials', N'20260920_trusted_admin_browser', N'20260926_donations')" -Scalar) -ne 3) { throw 'Management migration rerun was not idempotent.' }
 
     $negativeRoot = Join-Path $temporaryRoot 'altered'
     [void][IO.Directory]::CreateDirectory($negativeRoot)

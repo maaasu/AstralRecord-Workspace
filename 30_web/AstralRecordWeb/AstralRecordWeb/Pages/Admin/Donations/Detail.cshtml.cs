@@ -38,9 +38,9 @@ public sealed class DetailModel(DonationApiClient api) : PageModel
     }
     public async Task<IActionResult> OnPostRejectAsync(CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(Reason) || Reason.Length > 2000)
+        if (string.IsNullOrWhiteSpace(Reason) || Reason.Length > 1000)
         {
-            ModelState.AddModelError(nameof(Reason), "否認理由を1文字から2,000文字で入力してください。");
+            ModelState.AddModelError(nameof(Reason), "否認理由を1文字から1,000文字で入力してください。");
             return await Load(ct);
         }
         return await Act("reject", new { reason = Reason.Trim() }, ct);

@@ -35,7 +35,7 @@
                 </form>
             </section>
             <section class="ar-panel"><h2>受領せず否認</h2><form method="post" asp-page-handler="Reject">
-                <label asp-for="Reason" class="form-label">本人に表示する否認理由</label><textarea asp-for="Reason" class="form-control mb-3" maxlength="2000" rows="4" required></textarea><button type="submit" class="btn ar-btn-outline">否認して理由を通知</button>
+                <label asp-for="Reason" class="form-label">本人に表示する否認理由</label><textarea asp-for="Reason" class="form-control mb-3" maxlength="1000" rows="4" required></textarea><button type="submit" class="btn ar-btn-outline">否認して理由を通知</button>
             </form></section>
         }
     }

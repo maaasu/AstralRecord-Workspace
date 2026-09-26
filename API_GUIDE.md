@@ -193,3 +193,7 @@ OpenAPI スペック（JSON）:
 ```text
 http://localhost:{port}/openapi/v1.json
 ```
+
+## 寄付受付
+
+本人の寄付申請・管理者審査・Discord本人連携・ゲーム内累計配布は [37-donations](00_docs/20_API設計書/feature/37-donations/37_README.md) を参照する。ManagementDB migrationとDiscordアプリ設定、専用Webキー、永続Data Protection鍵を準備してから有効化する。

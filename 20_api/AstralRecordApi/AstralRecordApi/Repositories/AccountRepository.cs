@@ -433,7 +433,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             var sourceInventoryIds = inventoryIds.Keys.ToList();
             var entries = await dbContext.InventoryEntries.AsNoTracking()
-                .Where(entry => sourceInventoryIds.Contains(entry.InventoryId) && !entry.IsDeleted).ToListAsync();
+                .Where(entry => sourceInventoryIds.Contains(entry.InventoryId) && !entry.IsDeleted
+                    && entry.ItemId != DonationRules.PaidAstraldItemId).ToListAsync();
             await dbContext.InventoryEntries.AddRangeAsync(entries.Select(entry => new InventoryEntryEntity
             {
                 InventoryEntryId = Guid.NewGuid(), InventoryId = inventoryIds[entry.InventoryId],

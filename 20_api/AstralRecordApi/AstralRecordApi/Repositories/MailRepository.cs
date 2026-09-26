@@ -74,6 +74,10 @@ public class MailRepository(
         if (master is null)
             return null;
 
+        // 添付付きメールの既読化は報酬と同時確定するplayer-state snapshotだけに許可する。
+        if (master.Rewards.Count > 0)
+            return null;
+
         var state = await GetOrCreateStateAsync(mailId, request.AccountId, request.UpdatedBy);
         if (!state.IsRead)
         {
@@ -96,6 +100,8 @@ public class MailRepository(
             return false;
 
         var state = await GetOrCreateStateAsync(mailId, request.AccountId, request.UpdatedBy);
+        if (master.Rewards.Count > 0 && !state.IsRead)
+            return false;
         if (!state.IsDeleted)
         {
             var now = DateTime.UtcNow;

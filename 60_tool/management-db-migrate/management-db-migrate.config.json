@@ -62,6 +62,111 @@
           "uniqueIndexes": [ "UX_web_trusted_browser_token_hash" ]
         }
       ]
+    },
+    {
+      "id": "20260926_donations",
+      "fileName": "20260926_donations.sql",
+      "commandTimeoutSeconds": 120,
+      "tables": [
+        {
+          "name": "donation_ledger",
+          "primaryKey": "PK_donation_ledger",
+          "columns": [
+            {"name": "user_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "total_approved_amount", "sqlType": "bigint", "isNullable": false, "maxLengthBytes": 8},
+            {"name": "revision", "sqlType": "int", "isNullable": false, "maxLengthBytes": 4}
+          ],
+          "checkConstraints": [],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": []
+        },
+        {
+          "name": "donation_request",
+          "primaryKey": "PK_donation_request",
+          "columns": [
+            {"name": "id", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "user_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "mcid", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 200},
+            {"name": "declared_amount", "sqlType": "int", "isNullable": false, "maxLengthBytes": 4},
+            {"name": "approved_amount", "sqlType": "int", "isNullable": true, "maxLengthBytes": 4},
+            {"name": "status", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 40},
+            {"name": "protected_entries", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": -1},
+            {"name": "terms_version", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 64},
+            {"name": "discord_user_id", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 64},
+            {"name": "discord_name", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 256},
+            {"name": "reason", "sqlType": "nvarchar", "isNullable": true, "maxLengthBytes": 2000},
+            {"name": "reviewer_uuid", "sqlType": "uniqueidentifier", "isNullable": true, "maxLengthBytes": 16},
+            {"name": "created_at_utc", "sqlType": "datetime2", "isNullable": false, "precision": 27, "scale": 7},
+            {"name": "review_started_at_utc", "sqlType": "datetime2", "isNullable": true, "precision": 27, "scale": 7},
+            {"name": "decided_at_utc", "sqlType": "datetime2", "isNullable": true, "precision": 27, "scale": 7},
+            {"name": "approved_through_amount", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": true}
+          ],
+          "checkConstraints": ["CK_donation_approved"],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": []
+        },
+        {
+          "name": "donation_entry_fingerprint",
+          "primaryKey": "PK_donation_entry_fingerprint",
+          "columns": [
+            {"name": "fingerprint", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 128},
+            {"name": "request_id", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16}
+          ],
+          "checkConstraints": [],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": []
+        },
+        {
+          "name": "donation_grant",
+          "primaryKey": "PK_donation_grant",
+          "columns": [
+            {"name": "id", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "user_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "account_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "through_amount", "sqlType": "bigint", "isNullable": false, "maxLengthBytes": 8},
+            {"name": "amount", "sqlType": "int", "isNullable": false, "maxLengthBytes": 4},
+            {"name": "message", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 4000},
+            {"name": "created_at_utc", "sqlType": "datetime2", "isNullable": false, "precision": 27, "scale": 7},
+            {"name": "delivered_at_utc", "sqlType": "datetime2", "isNullable": true, "precision": 27, "scale": 7}
+          ],
+          "checkConstraints": [],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": ["UX_donation_grant_account_total"]
+        },
+        {
+          "name": "donation_notification",
+          "primaryKey": "PK_donation_notification",
+          "columns": [
+            {"name": "id", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "user_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "kind", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 64},
+            {"name": "amount", "sqlType": "int", "isNullable": false, "maxLengthBytes": 4},
+            {"name": "message", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 4000},
+            {"name": "created_at_utc", "sqlType": "datetime2", "isNullable": false, "precision": 27, "scale": 7},
+            {"name": "acknowledged_at_utc", "sqlType": "datetime2", "isNullable": true, "precision": 27, "scale": 7}
+          ],
+          "checkConstraints": [],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": []
+        },
+        {
+          "name": "donation_discord_link",
+          "primaryKey": "PK_donation_discord_link",
+          "columns": [
+            {"name": "user_uuid", "sqlType": "uniqueidentifier", "isNullable": false, "maxLengthBytes": 16},
+            {"name": "discord_user_id", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 64},
+            {"name": "discord_name", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": 256},
+            {"name": "protected_access_token", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": -1},
+            {"name": "protected_refresh_token", "sqlType": "nvarchar", "isNullable": false, "maxLengthBytes": -1},
+            {"name": "is_guild_member", "sqlType": "bit", "isNullable": false, "maxLengthBytes": 1},
+            {"name": "verified_at_utc", "sqlType": "datetime2", "isNullable": false, "precision": 27, "scale": 7},
+            {"name": "revision", "sqlType": "int", "isNullable": false, "maxLengthBytes": 4}
+          ],
+          "checkConstraints": [],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": ["UX_donation_discord_user"]
+        }
+      ]
     }
   ]
 }

@@ -10,6 +10,9 @@ const string WebCredentialsMigrationSha256 = "F0A41E24D0364ADAC6BD058941A2DB5423
 const string TrustedBrowserMigrationId = "20260920_trusted_admin_browser";
 const string TrustedBrowserMigrationFileName = "20260920_trusted_admin_browser.sql";
 const string TrustedBrowserMigrationSha256 = "3F5F0DCD5872C60F3A4A2463C961053C5D36D255A88B34DBB6D209F5F4622B6B";
+const string DonationsMigrationId = "20260926_donations";
+const string DonationsMigrationFileName = "20260926_donations.sql";
+const string DonationsMigrationSha256 = "F6E363583BB0C2781A530FA6862098CBC0856B77EE7DDCA307868D53C3B84574";
 var options = CommandLineOptions.Parse(args);
 if (options.ShowHelp)
 {
@@ -135,12 +138,14 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
         throw new DirectoryNotFoundException("Management migration directory was not found.");
     if (config.Migrations.Count == 0)
         throw new InvalidOperationException("At least one explicit management migration must be configured.");
-    if (config.Migrations.Count != 2
+    if (config.Migrations.Count != 3
         || !string.Equals(config.Migrations[0].Id, WebCredentialsMigrationId, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[0].FileName, WebCredentialsMigrationFileName, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[1].Id, TrustedBrowserMigrationId, StringComparison.Ordinal)
-        || !string.Equals(config.Migrations[1].FileName, TrustedBrowserMigrationFileName, StringComparison.Ordinal))
-        throw new InvalidOperationException($"Only the reviewed ManagementDB migrations {WebCredentialsMigrationFileName} and {TrustedBrowserMigrationFileName} may be applied by this runner.");
+        || !string.Equals(config.Migrations[1].FileName, TrustedBrowserMigrationFileName, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[2].Id, DonationsMigrationId, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[2].FileName, DonationsMigrationFileName, StringComparison.Ordinal))
+        throw new InvalidOperationException($"Only the reviewed ManagementDB migrations {WebCredentialsMigrationFileName}, {TrustedBrowserMigrationFileName}, {DonationsMigrationFileName} may be applied by this runner.");
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     foreach (var migration in config.Migrations)
@@ -194,6 +199,7 @@ static string ExpectedMigrationHash(string fileName) => fileName switch
 {
     WebCredentialsMigrationFileName => WebCredentialsMigrationSha256,
     TrustedBrowserMigrationFileName => TrustedBrowserMigrationSha256,
+    DonationsMigrationFileName => DonationsMigrationSha256,
     _ => throw new InvalidOperationException($"Migration file is not approved by this runner: {fileName}"),
 };
 

@@ -1414,6 +1414,12 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         await using var fixture = await SnapshotFixture.CreateAsync();
         const string mailId = "alpha-delete-mail";
         fixture.DbContext.PlayerMailDeliveries.Add(CreateMailDelivery(mailId, fixture));
+        fixture.DbContext.PlayerMailStates.Add(new PlayerMailStateEntity
+        {
+            PlayerMailStateId = Guid.NewGuid(), AccountId = fixture.AccountId, MailId = mailId,
+            IsRead = true, ReadAt = DateTime.UtcNow, Version = 2, CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow, CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
         await fixture.DbContext.SaveChangesAsync();
         var clientRevision = Guid.NewGuid();
         var request = new PlayerStateSnapshotSaveRequest
@@ -1438,6 +1444,24 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.Equal(mailId, first.Ack!.MailDelete!.Value.GetProperty("mailId").GetString());
         Assert.Equal(clientRevision, first.Ack.MailDelete.Value.GetProperty("clientRevision").GetGuid());
         Assert.Equal(first.Ack.MailDelete?.GetRawText(), replay.Ack!.MailDelete?.GetRawText());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsDeletingUnclaimedRewardMail()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        const string mailId = "unclaimed-reward";
+        fixture.DbContext.PlayerMailDeliveries.Add(CreateMailDelivery(mailId, fixture));
+        await fixture.DbContext.SaveChangesAsync();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            MailDelete = Section(new PlayerStateMailDeleteSection
+            { AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId }),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Empty(await fixture.DbContext.PlayerMailStates.ToListAsync());
     }
 
     private static JsonElement Section<T>(T section) => JsonSerializer.SerializeToElement(section, new JsonSerializerOptions(JsonSerializerDefaults.Web));

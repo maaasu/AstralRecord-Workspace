@@ -15,6 +15,19 @@ namespace AstralRecordWeb.Tests;
 public sealed class DonationTests
 {
     [Fact]
+    public async Task OAuth_ExpiredLoginDoesNotCopyCodeIntoLoginReturnUrl()
+    {
+        await using var factory = new DonationFactory(new DonationHandler());
+        using var client = Client(factory);
+        var response = await client.GetAsync("/Donations/Discord?code=sensitive-code&state=sensitive-state");
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.DoesNotContain("sensitive", response.Headers.Location!.OriginalString);
+        Assert.DoesNotContain("Discord", response.Headers.Location.OriginalString);
+        Assert.Equal("no-referrer", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
+        Assert.True(response.Headers.CacheControl!.NoStore);
+    }
+
+    [Fact]
     public async Task Submission_RequiresLoginCsrfConsentAndMatchingAmounts_UsesCookieActor()
     {
         var api = new DonationHandler();

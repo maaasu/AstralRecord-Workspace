@@ -7,6 +7,11 @@ namespace AstralRecordWeb.Authorization;
 
 public sealed class WebSessionEvents(WebAuthApiClient api) : CookieAuthenticationEvents
 {
+    public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        return RedirectDiscordCallback(context) ? Task.CompletedTask : base.RedirectToLogin(context);
+    }
+
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         var user = context.Principal;
@@ -23,6 +28,7 @@ public sealed class WebSessionEvents(WebAuthApiClient api) : CookieAuthenticatio
 
     public override Task RedirectToAccessDenied(RedirectContext<CookieAuthenticationOptions> context)
     {
+        if (RedirectDiscordCallback(context)) return Task.CompletedTask;
         if (context.HttpContext.Items.ContainsKey(WebSession.NeedsCodeItem))
         {
             var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
@@ -30,5 +36,19 @@ public sealed class WebSessionEvents(WebAuthApiClient api) : CookieAuthenticatio
             return Task.CompletedTask;
         }
         return base.RedirectToAccessDenied(context);
+    }
+
+    /// <summary>認証切れのOAuth callbackからcode/stateをログインのReturnUrlへ転記しません。</summary>
+    private static bool RedirectDiscordCallback(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        if (!string.Equals(context.Request.Path.Value?.TrimEnd('/'), "/Donations/Discord", StringComparison.OrdinalIgnoreCase)) return false;
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Cookies.Delete(Pages.Donations.DiscordModel.StateCookie,
+            new CookieOptions { Secure = true, HttpOnly = true, SameSite = SameSiteMode.Lax, Path = "/" });
+        var destination = context.Request.PathBase + "/Donations";
+        context.Response.Redirect(context.Request.PathBase + context.Options.LoginPath + "?"
+            + context.Options.ReturnUrlParameter + "=" + Uri.EscapeDataString(destination));
+        return true;
     }
 }

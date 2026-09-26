@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /** オンラインプレイヤーへ寄付結果を表示し、表示後に API へ確認を返します。 */
 public final class DonationNotificationService {
-    private static final long POLL_TICKS = 200L;
+    private static final long POLL_TICKS = 40L;
     private static final long ERROR_LOG_INTERVAL_NANOS = 60_000_000_000L;
 
     private final AstralRecord plugin;
@@ -50,7 +50,7 @@ public final class DonationNotificationService {
         this.repository = repository;
     }
 
-    /** オンラインユーザーの未確認通知を10秒間隔で確認します。 */
+    /** オンラインユーザーの未確認通知を2秒間隔で確認します。 */
     public void start() {
         if (task != null) {
             return;
@@ -64,7 +64,8 @@ public final class DonationNotificationService {
                     poll(astPlayer.getUser().getUuid());
                 }
             }
-            displayedIdsByUser.keySet().retainAll(users);
+            // ACK待ちのIDはログアウト後も保持し、再ログイン時の重複表示を防ぐ。
+            displayedIdsByUser.entrySet().removeIf(entry -> entry.getValue().isEmpty());
         }, POLL_TICKS, POLL_TICKS);
     }
 
@@ -126,6 +127,7 @@ public final class DonationNotificationService {
      * @param notifications API が返した未確認通知
      */
     private void deliver(@NotNull UUID userId, @NotNull List<DonationNotification> notifications) {
+        boolean awaitingAcknowledgement = false;
         try {
             if (!running || !plugin.isEnabled()) {
                 return;
@@ -154,31 +156,56 @@ public final class DonationNotificationService {
                     );
                     displayed.add(notification.id());
                 }
-                acknowledgeAsync(userId, notification.id());
+            }
+            if (!notifications.isEmpty()) {
+                acknowledgeAsync(userId, notifications);
+                awaitingAcknowledgement = true;
             }
         } finally {
-            inFlightUsers.remove(userId);
+            if (!awaitingAcknowledgement) {
+                inFlightUsers.remove(userId);
+            }
         }
     }
 
     /**
-     * 表示済み通知の ACK を非同期で試みます。
+     * 表示済み通知をまとめて確認し、取得との競合を避けて成功した ID を解放します。
+     * ACK とキャッシュ解放が完了するまで同じユーザーの次の取得を開始しません。
      *
      * @param userId 通知対象ユーザー UUID
-     * @param notificationId 通知 UUID
+     * @param notifications 表示済みの通知
      */
-    private void acknowledgeAsync(@NotNull UUID userId, @NotNull String notificationId) {
-        if (!running || !plugin.isEnabled()) {
-            return;
-        }
+    private void acknowledgeAsync(@NotNull UUID userId, @NotNull List<DonationNotification> notifications) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            Set<String> acknowledged = new HashSet<>();
             try {
-                repository.acknowledge(userId, notificationId);
+                for (DonationNotification notification : notifications) {
+                    if (!running || !plugin.isEnabled()) {
+                        break;
+                    }
+                    repository.acknowledge(userId, notification.id());
+                    acknowledged.add(notification.id());
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (shouldLogFailure()) {
                     Logger.error(LogId.E_7301, e, userId);
+                }
+            } finally {
+                if (running && plugin.isEnabled()) {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        Set<String> displayed = displayedIdsByUser.get(userId);
+                        if (displayed != null) {
+                            displayed.removeAll(acknowledged);
+                            if (displayed.isEmpty()) {
+                                displayedIdsByUser.remove(userId);
+                            }
+                        }
+                        inFlightUsers.remove(userId);
+                    });
+                } else {
+                    inFlightUsers.remove(userId);
                 }
             }
         });

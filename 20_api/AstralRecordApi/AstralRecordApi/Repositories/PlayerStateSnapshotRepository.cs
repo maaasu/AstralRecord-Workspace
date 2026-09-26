@@ -1244,6 +1244,10 @@ public sealed class PlayerStateSnapshotRepository(
         if (state is { IsDeleted: true })
             return null;
 
+        // 報酬受取と既読化は同じsnapshotで確定する。未受取報酬は削除させない。
+        if (mail.Rewards.Count > 0 && state is not { IsRead: true })
+            return null;
+
         if (state is null)
         {
             state = new PlayerMailStateEntity

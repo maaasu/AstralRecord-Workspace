@@ -20,6 +20,8 @@ builder.Logging.AddSimpleConsole(options =>
 
 // Add services to the container.
 builder.Services.AddDataProtection().SetApplicationName("AstralRecordApi.WebAuthentication");
+if (builder.Configuration["DataProtection:KeyPath"] is { Length: > 0 } donationKeyPath)
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(donationKeyPath));
 builder.Services.AddSingleton<WebCodeProofProtector>();
 
 builder.Services.Configure<FileDatabaseOptions>(
@@ -99,6 +101,11 @@ builder.Services.AddScoped<IGatheringRepository, GatheringRepository>();
 builder.Services.AddScoped<IGatheringSpawnerRepository, GatheringSpawnerRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
+builder.Services.AddScoped<IDonationRepository, DonationRepository>();
+builder.Services.Configure<DonationDiscordOptions>(builder.Configuration.GetSection(DonationDiscordOptions.SectionName));
+builder.Services.AddHttpClient<DiscordDonationClient>();
+builder.Services.AddScoped<IDonationDiscordRepository, DonationDiscordRepository>();
+builder.Services.AddHostedService<DonationDeliveryHostedService>();
 builder.Services.AddScoped<IGuideRepository, GuideRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGeyserHeadRepository, GeyserHeadRepository>();
