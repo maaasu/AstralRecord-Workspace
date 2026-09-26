@@ -1,27 +1,27 @@
 # design:
-#   motif: "自然 / 花咲く古木を守る樹の巨人"
+#   motif: "植物 / 古代の種と花獣"
 #   progression: 20
 schemaVersion: 1
 id: great_tree_guardian_granbal
 type: MOB
 category: BOSS
 name: "&2&l大樹の守り手グランバル"
-title: "&d-- 花咲く古木の守護者 --"
+title: "&d-- 古代の種の守護獣 --"
 level: 20
-entityType: IRON_GOLEM
+entityType: SNIFFER
 variant:
   age: ADULT
-  scale: 1.65
-icon: MOSS_BLOCK
+  scale: 1.25
+icon: TORCHFLOWER
 nameVisible: true
 lore:
-  - "&7花咲く古木とともに生き、根を操って侵入者を退ける巨人。"
-  - "&7十字に走る根と、内外へ続けて咲く花を見極める必要がある。"
+  - "&7古代の種から目覚め、花咲く古木の根を守る大きな獣。"
+  - "&7鼻先で根を扇状に払い、地面へ大輪の花を咲かせる。"
 tags:
   - midgard
   - forest
   - boss
-  - golem
+  - beast
   - melee
   - shield
 baseStats:
@@ -55,6 +55,6 @@ ai:
     leashRange: 64
   combat:
     style: MELEE
-    preferredRange: 3
+    preferredRange: 4
 drops:
   exp: 6000
