@@ -1,0 +1,155 @@
+# design:
+#   motif: "動物 / グラスボア"
+#   progression: 15
+schemaVersion: 1
+id: eriva_grassboar
+type: MOB
+category: ENEMY
+name: "&aエリヴァ・グラスボア"
+level: 15
+entityType: PIG
+icon: PIG
+lore:
+  - "&7エリヴァ大草原を駆ける野生のグラスボア。"
+  - "&7攻撃を受けると反撃する。"
+tags:
+  - grassland
+  - beast
+  - melee
+
+levels:
+  - level: 15
+    name: "&aエリヴァ・グラスボア Lv.15"
+  - level: 16
+    name: "&aエリヴァ・グラスボア Lv.16"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 5120
+      - status: ATTACK
+        value: 927
+      - status: DEFENSE
+        value: 892
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 160
+  - level: 17
+    name: "&aエリヴァ・グラスボア Lv.17"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 5840
+      - status: ATTACK
+        value: 1058
+      - status: DEFENSE
+        value: 1018
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 180
+  - level: 18
+    name: "&aエリヴァ・グラスボア Lv.18"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 6560
+      - status: ATTACK
+        value: 1188
+      - status: DEFENSE
+        value: 1143
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 200
+  - level: 19
+    name: "&aエリヴァ・グラスボア Lv.19"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 7280
+      - status: ATTACK
+        value: 1319
+      - status: DEFENSE
+        value: 1269
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 220
+  - level: 20
+    name: "&aエリヴァ・グラスボア Lv.20"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 8000
+      - status: ATTACK
+        value: 1449
+      - status: DEFENSE
+        value: 1394
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 240
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 4400
+  - status: ATTACK
+    value: 797
+  - status: DEFENSE
+    value: 767
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.9
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 32
+    retaliateOnly: true
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+
+drops:
+  exp: 140
+  items:
+    - itemId:
+        ref: item:10a00067
+      rate: 40.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:10a00068
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false

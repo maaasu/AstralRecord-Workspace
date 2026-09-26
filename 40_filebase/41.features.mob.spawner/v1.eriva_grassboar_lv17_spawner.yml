@@ -1,15 +1,15 @@
 # design:
-#   motif: "北欧神話 / ミズガルズの草原"
-#   progression: 20
+#   motif: "地形 / 草原"
+#   progression: 17
 schemaVersion: 1
-id: midgard_grassboar_lv20_spawner
+id: eriva_grassboar_lv17_spawner
 type: MOB_SPAWNER
-region: "ミズガルズ草原"
+region: "エリヴァ大草原"
 radiusMeters: 18
 
 spawnMobs:
-  - mobId: mob:midgard_grassboar
-    level: 20
+  - mobId: mob:eriva_grassboar
+    level: 17
     weight: 100
 
 spawnTimes:
