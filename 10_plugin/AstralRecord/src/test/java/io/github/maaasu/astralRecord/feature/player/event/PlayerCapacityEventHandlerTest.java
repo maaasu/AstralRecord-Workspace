@@ -38,7 +38,7 @@ class PlayerCapacityEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
      * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: 寄付者の追加枠が満杯の場合、接続前イベントを KICK_FULL と参加可能人数到達メッセージで拒否する。
+     * 検証契約: 旧権限5の通常枠が満杯の場合、接続前イベントを KICK_FULL と参加可能人数到達メッセージで拒否する。
      */
     @Test
     void rejectsConnectionWhenPermissionSpecificCapacityIsFull() {
@@ -50,8 +50,8 @@ class PlayerCapacityEventHandlerTest {
         when(event.getLoginResult()).thenReturn(AsyncPlayerPreLoginEvent.Result.ALLOWED);
         when(event.getUniqueId()).thenReturn(playerUuid);
         when(userService.getUser(playerUuid)).thenReturn(user);
-        when(user.getPermission()).thenReturn(UserPermission.DONOR.getValue());
-        when(capacityService.tryReserve(playerUuid, UserPermission.DONOR.getValue())).thenReturn(false);
+        when(user.getPermission()).thenReturn(5);
+        when(capacityService.tryReserve(playerUuid, 5, false)).thenReturn(false);
 
         new PlayerCapacityEventHandler(userService, capacityService).onAsyncPreLogin(event);
 
@@ -86,7 +86,7 @@ class PlayerCapacityEventHandlerTest {
             new PlayerCapacityEventHandler(userService, capacityService).onAsyncPreLogin(event);
         }
 
-        verify(capacityService).tryReserve(playerUuid, UserPermission.ADMIN.getValue());
+        verify(capacityService).tryReserve(playerUuid, UserPermission.ADMIN.getValue(), false);
     }
 
     /**

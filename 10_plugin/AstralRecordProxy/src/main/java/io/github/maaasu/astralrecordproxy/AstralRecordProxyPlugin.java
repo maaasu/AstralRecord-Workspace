@@ -56,7 +56,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
-    private static final int DONOR_PERMISSION = 5;
     private static final String LIFECYCLE_ACTION_JOIN = "join";
     private static final String LIFECYCLE_ACTION_CHANNEL_CONNECT = "channel_connect";
     private static final String LIFECYCLE_ACTION_LEAVE = "leave";
@@ -376,7 +375,7 @@ public final class AstralRecordProxyPlugin {
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
                     update.level(), update.className(), update.afk(), update.permission(),
-                    update.classLevelMax(), update.accountNameOnly()));
+                    update.classLevelMax(), update.accountNameOnly(), update.vipTier()));
                 refreshTabEntries();
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
@@ -521,11 +520,11 @@ public final class AstralRecordProxyPlugin {
                 }
                 return;
             }
-            requestConnection(player, sourceServer, targetServer, admission.permission());
+            requestConnection(player, sourceServer, targetServer, admission.permission(), admission.hasActiveVip());
         });
     }
 
-    private void requestConnection(Player player, String sourceServer, String targetServer, int permission) {
+    private void requestConnection(Player player, String sourceServer, String targetServer, int permission, boolean activeVip) {
         NetworkSettings settings = settings();
         if (settings == null) {
             player.sendMessage(Component.text("認証サーバーに接続できません。", NamedTextColor.RED));
@@ -568,7 +567,7 @@ public final class AstralRecordProxyPlugin {
                 return;
             }
             ProxyConfig.ServerCapacity capacity = settings.capacity(targetServer);
-            int connectionLimit = capacity.limitFor(effectivePermission);
+            int connectionLimit = capacity.limitFor(effectivePermission, activeVip);
             if (connectionLimit > 0 && !reserveServerSlot(targetServer, target, connectionLimit)) {
                 pendingGameConnections.remove(player.getUniqueId());
                 player.sendMessage(Component.text("このチャンネルは満員です。", NamedTextColor.YELLOW));
@@ -1104,12 +1103,14 @@ public final class AstralRecordProxyPlugin {
             && displayName.substring(slotSeparator + 1).chars().allMatch(Character::isDigit);
         String accountName = hasSlotSuffix ? displayName.substring(0, slotSeparator) : displayName;
         Component name = Component.text(accountName,
-            value.permission() == DONOR_PERMISSION ? NamedTextColor.AQUA : NamedTextColor.WHITE);
-        if (value.permission() == DONOR_PERMISSION) {
+            value.vipTier() == VipTier.ASTRALDER ? NamedTextColor.GOLD
+                : value.vipTier() == VipTier.DONER ? NamedTextColor.AQUA : NamedTextColor.WHITE);
+        if (value.vipTier() == VipTier.ASTRALDER) {
             name = name.decorate(TextDecoration.BOLD);
         }
         return hasSlotSuffix
-            ? name.append(Component.text(displayName.substring(slotSeparator), NamedTextColor.GRAY))
+            ? name.append(Component.text(displayName.substring(slotSeparator), NamedTextColor.GRAY)
+                .decoration(TextDecoration.BOLD, false))
             : name;
     }
 

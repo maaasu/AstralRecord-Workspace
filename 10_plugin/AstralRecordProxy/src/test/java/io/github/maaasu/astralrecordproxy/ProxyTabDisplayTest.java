@@ -126,7 +126,7 @@ class ProxyTabDisplayTest {
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(classTag)
             .append(Component.text("account", NamedTextColor.WHITE)
-                .append(Component.text("#0", NamedTextColor.GRAY))),
+                .append(Component.text("#0", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -149,14 +149,14 @@ class ProxyTabDisplayTest {
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
                 .append(classTag)
                 .append(Component.text("account", NamedTextColor.WHITE)
-                    .append(Component.text("#0", NamedTextColor.GRAY))),
+                    .append(Component.text("#0", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
     @Test
-    void rendersDonorAccountNameInBoldAqua() {
+    void rendersDonerAccountNameInAqua() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 5, false, false);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 0, false, false, VipTier.DONER);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
@@ -166,8 +166,8 @@ class ProxyTabDisplayTest {
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(classTag)
-            .append(Component.text("account", NamedTextColor.AQUA, TextDecoration.BOLD)
-                .append(Component.text("#0", NamedTextColor.GRAY))),
+            .append(Component.text("account", NamedTextColor.AQUA)
+                .append(Component.text("#0", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -183,7 +183,7 @@ class ProxyTabDisplayTest {
                 .append(Component.text("4", NamedTextColor.YELLOW))
                 .append(Component.text("] ", NamedTextColor.DARK_GRAY)))
             .append(Component.text("account", NamedTextColor.WHITE)
-                .append(Component.text("#0", NamedTextColor.GRAY))),
+                .append(Component.text("#0", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -207,7 +207,7 @@ class ProxyTabDisplayTest {
             .append(classTag)
             .append(Component.text("[AFK] ", NamedTextColor.RED))
             .append(Component.text("account", NamedTextColor.WHITE)
-                .append(Component.text("#0", NamedTextColor.GRAY))),
+                .append(Component.text("#0", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -238,7 +238,7 @@ class ProxyTabDisplayTest {
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
                 .append(Component.text("admin", NamedTextColor.WHITE)
-                    .append(Component.text("#1", NamedTextColor.GRAY))),
+                    .append(Component.text("#1", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false))),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 

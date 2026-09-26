@@ -92,7 +92,7 @@
                             <label>接続先識別子<input name="Input.Channels[@i].ServerId" value="@channel.ServerId" maxlength="64" required pattern="[A-Za-z0-9_.-]+" /></label>
                             <label>表示名<input name="Input.Channels[@i].DisplayName" value="@channel.DisplayName" maxlength="100" required data-channel-label="@i" /></label>
                             <label>上限人数<input name="Input.Channels[@i].MaxPlayers" value="@channel.MaxPlayers" type="number" min="0" required /></label>
-                            <label>支援者追加枠<input name="Input.Channels[@i].DonorExtraPlayers" value="@channel.DonorExtraPlayers" type="number" min="0" required /></label>
+                            <label>VIP追加枠<input name="Input.Channels[@i].DonorExtraPlayers" value="@channel.DonorExtraPlayers" type="number" min="0" required /></label>
                             <label>管理者追加枠<input name="Input.Channels[@i].AdminExtraPlayers" value="@channel.AdminExtraPlayers" type="number" min="0" required /></label>
                         </div>
                         <div class="ar-network-checks">
@@ -101,6 +101,8 @@
                             <input name="Input.Channels[@i].DiscordEnabled" type="hidden" value="false" />
                             <label><input name="Input.Channels[@i].WhitelistEnabled" type="checkbox" value="true" checked="@channel.WhitelistEnabled" />ホワイトリストを有効にする</label>
                         </div>
+                        <label><input name="Input.Channels[@i].DonorOnly" type="checkbox" value="true" checked="@channel.DonorOnly" />VIP限定（DONER / ASTRALDER）</label>
+                        <input name="Input.Channels[@i].DonorOnly" type="hidden" value="false" />
                         <div class="ar-network-access-lists">
                             <div><h4>デバッグ利用者</h4><ul class="ar-network-user-list" data-user-list="debug" data-channel-index="@i">
                                 @for (var j = 0; j < channel.DebugUsers.Count; j++)

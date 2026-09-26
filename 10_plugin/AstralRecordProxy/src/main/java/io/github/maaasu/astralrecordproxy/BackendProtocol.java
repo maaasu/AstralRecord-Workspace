@@ -42,9 +42,10 @@ final class BackendProtocol {
                     int permission = input.available() >= Integer.BYTES ? input.readInt() : 0;
                     boolean classLevelMax = input.available() > 0 && input.readBoolean();
                     boolean accountNameOnly = input.available() > 0 && input.readBoolean();
+                    VipTier vipTier = input.available() > 0 ? VipTier.parse(input.readUTF()) : VipTier.NONE;
                     yield new Metadata(
                         playerId, mcid, channel, displayName, level, className, afk, permission,
-                        classLevelMax, accountNameOnly);
+                        classLevelMax, accountNameOnly, vipTier);
                 }
                 case CHAT -> {
                     UUID messageId = UUID.fromString(input.readUTF());
@@ -148,7 +149,8 @@ final class BackendProtocol {
         boolean afk,
         int permission,
         boolean classLevelMax,
-        boolean accountNameOnly
+        boolean accountNameOnly,
+        VipTier vipTier
     ) implements Incoming {
     }
 

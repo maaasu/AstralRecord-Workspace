@@ -1,0 +1,39 @@
+@page
+@model AstralRecordWeb.Pages.Players.VipModel
+@{
+    ViewData["Title"] = "VIPプレイヤー一覧";
+}
+<div class="ar-portal">
+    <header class="ar-portal-heading">
+        <div><h1>VIPプレイヤー一覧</h1><p class="ar-portal-sub">現在 DONER または ASTRALDER の期間中のアカウントです。残り日数は端数を切り上げて表示します。</p></div>
+    </header>
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div>
+    }
+    else if (Model.Supporters.Count == 0)
+    {
+        <section class="ar-panel"><p>現在VIP期間中のアカウントはありません。</p></section>
+    }
+    else
+    {
+        <section class="ar-panel">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th scope="col">アカウント名</th><th scope="col">VIP</th><th scope="col">有効期限（日本時間）</th><th scope="col">残り日数</th></tr></thead>
+                    <tbody>
+                    @foreach (var supporter in Model.Supporters)
+                    {
+                        <tr>
+                            <td>@supporter.DisplayName</td>
+                            <td>@supporter.VipTier</td>
+                            <td>@supporter.VipExpiresAt.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")</td>
+                            <td>@supporter.RemainingDays 日</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>

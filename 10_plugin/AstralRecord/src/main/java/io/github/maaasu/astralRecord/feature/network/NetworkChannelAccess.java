@@ -14,6 +14,26 @@ public record NetworkChannelAccess(
     boolean whitelisted,
     boolean whitelistEnabled,
     boolean allowed,
-    int permission
+    int permission,
+    boolean vip,
+    String vipTier,
+    java.time.Instant vipExpiresAt,
+    boolean donorOnly
 ) {
+    /** 旧応答にはVIP接続権を付与しません。 */
+    public NetworkChannelAccess(UUID userUuid, String serverId, boolean channelKnown,
+            boolean authority, boolean debugUser, boolean whitelisted, boolean whitelistEnabled,
+            boolean allowed, int permission) {
+        this(userUuid, serverId, channelKnown, authority, debugUser, whitelisted, whitelistEnabled,
+            allowed, permission, false, "NONE", null, false);
+    }
+
+    /**
+     * 選択中アカウントのVIPが失効していないか確認します。
+     * @return APIがVIPと認め、種別・期限も有効ならtrue
+     */
+    public boolean hasActiveVip() {
+        return vip && ("DONER".equals(vipTier) || "ASTRALDER".equals(vipTier))
+            && vipExpiresAt != null && vipExpiresAt.isAfter(java.time.Instant.now());
+    }
 }

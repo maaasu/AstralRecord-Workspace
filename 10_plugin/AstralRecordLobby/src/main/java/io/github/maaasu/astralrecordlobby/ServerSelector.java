@@ -143,6 +143,7 @@ final class ServerSelector {
             Map<String, LobbyApiClient.ServerPresence> presences;
             StatusLoadState loadState;
             try {
+                plugin.cacheAdmission(playerId, plugin.api().getAdmission(playerId));
                 presences = plugin.api().getServers();
                 loadState = StatusLoadState.AVAILABLE;
             } catch (RuntimeException exception) {
@@ -193,7 +194,7 @@ final class ServerSelector {
                 LobbyApiClient.ServerPresence presence = presences.get(server.toLowerCase(Locale.ROOT));
                 lore.add(Component.text("❖ 接続情報", NamedTextColor.AQUA, TextDecoration.BOLD));
                 boolean connectable = appendServerStatus(
-                    lore, presence, plugin.permissionOf(player.getUniqueId()), loadState);
+                    lore, presence, plugin.permissionOf(player.getUniqueId()), plugin.hasActiveVip(player.getUniqueId()), loadState);
                 lore.add(Component.empty());
                 lore.add(sectionSeparator());
                 meta.lore(lore);
@@ -211,6 +212,7 @@ final class ServerSelector {
      * @param lore 更新対象lore
      * @param presence APIサーバー状態
      * @param permission 閲覧者のAPI権限
+     * @param activeVip 選択中アカウントのVIPが有効か
      * @param loadState API取得状態
      * @return 現在接続操作を許可する場合true
      */
@@ -218,6 +220,7 @@ final class ServerSelector {
         List<Component> lore,
         LobbyApiClient.ServerPresence presence,
         int permission,
+        boolean activeVip,
         StatusLoadState loadState
     ) {
         if (loadState == StatusLoadState.LOADING) {
@@ -233,10 +236,13 @@ final class ServerSelector {
             return false;
         }
 
+        if (presence.donorOnly()) {
+            lore.add(detailLine("VIP限定: DONER / ASTRALDER", NamedTextColor.GOLD));
+        }
         int online = Math.max(0, presence.onlineCount());
         int baseCapacity = Math.max(0, presence.capacity());
-        int extra = presence.extraFor(permission);
-        int limit = presence.limitFor(permission);
+        int extra = presence.extraFor(permission, activeVip);
+        int limit = presence.limitFor(permission, activeVip);
         lore.add(detailLine("現在人数: " + online, NamedTextColor.WHITE));
         if (extra > 0) {
             lore.add(detailLine(
@@ -245,7 +251,7 @@ final class ServerSelector {
         } else {
             lore.add(detailLine("最大人数: " + limit, NamedTextColor.WHITE));
         }
-        if (presence.fullFor(permission)) {
+        if (presence.fullFor(permission, activeVip)) {
             lore.add(detailLine("満員のため接続できません", NamedTextColor.RED));
             return false;
         }

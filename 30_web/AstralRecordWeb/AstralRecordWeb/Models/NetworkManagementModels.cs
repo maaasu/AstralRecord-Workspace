@@ -23,6 +23,7 @@ public sealed class ManagedNetworkChannel
     public int AdminExtraPlayers { get; init; }
     public bool DiscordEnabled { get; init; } = true;
     public bool WhitelistEnabled { get; init; }
+    public bool DonorOnly { get; init; }
     public IReadOnlyList<Guid> DebugUsers { get; init; } = [];
     public IReadOnlyList<Guid> WhitelistUsers { get; init; } = [];
 }

@@ -51,7 +51,8 @@ final class LobbyApiClient {
             json.get("admitted").getAsBoolean(),
             json.get("permission").getAsInt(),
             json.has("denyReason") && !json.get("denyReason").isJsonNull()
-                ? json.get("denyReason").getAsString() : null);
+                ? json.get("denyReason").getAsString() : null,
+            optionalString(json, "vipTier"), optionalString(json, "vipExpiresAt"));
     }
 
     void publishDiscordChat(String serverId, String authorName, String message) {
@@ -107,7 +108,8 @@ final class LobbyApiClient {
                 value.get("onlineCount").getAsInt(),
                 value.get("capacity").getAsInt(),
                 optionalInt(value, "donorExtraPlayers"),
-                optionalInt(value, "adminExtraPlayers"));
+                optionalInt(value, "adminExtraPlayers"),
+                value.has("donorOnly") && value.get("donorOnly").getAsBoolean());
             servers.put(presence.serverId().toLowerCase(java.util.Locale.ROOT), presence);
         });
         return Map.copyOf(servers);
@@ -230,7 +232,17 @@ final class LobbyApiClient {
         }
     }
 
-    record Admission(boolean admitted, int permission, String denyReason) {
+    record Admission(boolean admitted, int permission, String denyReason, String vipTier, String vipExpiresAt) {
+        /** VIPが現在も有効か判定する。不完全・不正な応答では追加枠を与えない。 */
+        boolean hasActiveVip() {
+            if (!"DONER".equals(vipTier) && !"ASTRALDER".equals(vipTier)) return false;
+            if (vipExpiresAt == null) return false;
+            try {
+                return java.time.OffsetDateTime.parse(vipExpiresAt).isAfter(java.time.OffsetDateTime.now());
+            } catch (java.time.format.DateTimeParseException ignored) {
+                return false;
+            }
+        }
     }
 
     record ChatMessage(
@@ -266,8 +278,15 @@ final class LobbyApiClient {
         int onlineCount,
         int capacity,
         int donorExtraPlayers,
-        int adminExtraPlayers
+        int adminExtraPlayers,
+        boolean donorOnly
     ) {
+        /** 旧状態応答ではVIP限定設定なしとして扱う。 */
+        ServerPresence(String serverId, String state, int onlineCount, int capacity,
+                       int donorExtraPlayers, int adminExtraPlayers) {
+            this(serverId, state, onlineCount, capacity, donorExtraPlayers, adminExtraPlayers, false);
+        }
+
         /**
          * 指定権限で利用できる追加枠を返す。
          *
@@ -275,11 +294,16 @@ final class LobbyApiClient {
          * @return 寄付者・管理者が利用できる追加人数
          */
         int extraFor(int permission) {
+            return extraFor(permission, false);
+        }
+
+        /** 選択中アカウントの有効VIPを反映して接続枠を判定する。 */
+        int extraFor(int permission, boolean activeVip) {
             if (permission >= 99) {
                 return (int) Math.min(Integer.MAX_VALUE,
                     (long) donorExtraPlayers + adminExtraPlayers);
             }
-            if (permission >= 5) return donorExtraPlayers;
+            if (activeVip) return donorExtraPlayers;
             return 0;
         }
 
@@ -290,8 +314,13 @@ final class LobbyApiClient {
          * @return 基本上限と追加枠の合計
          */
         int limitFor(int permission) {
+            return limitFor(permission, false);
+        }
+
+        /** 選択中アカウントの有効VIPを反映して接続枠を判定する。 */
+        int limitFor(int permission, boolean activeVip) {
             return (int) Math.min(Integer.MAX_VALUE,
-                (long) Math.max(0, capacity) + extraFor(permission));
+                (long) Math.max(0, capacity) + extraFor(permission, activeVip));
         }
 
         /**
@@ -301,7 +330,12 @@ final class LobbyApiClient {
          * @return 上限が無効、または現在人数が上限以上の場合true
          */
         boolean fullFor(int permission) {
-            int limit = limitFor(permission);
+            return fullFor(permission, false);
+        }
+
+        /** 選択中アカウントの有効VIPを反映して接続枠を判定する。 */
+        boolean fullFor(int permission, boolean activeVip) {
+            int limit = limitFor(permission, activeVip);
             return limit <= 0 || Math.max(0, onlineCount) >= limit;
         }
 

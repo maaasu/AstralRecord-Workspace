@@ -51,6 +51,7 @@ final class BackendProtocol {
         }
     }
 
+    /** 選択アカウントのVIP種別を末尾に含めてProxyのTAB表示へ送信します。 */
     static void sendMetadata(
         @NotNull Plugin plugin,
         @NotNull AstPlayer player,
@@ -59,7 +60,8 @@ final class BackendProtocol {
         @NotNull String className,
         boolean afk,
         boolean classLevelMax,
-        boolean accountNameOnly
+        boolean accountNameOnly,
+        @NotNull String vipTier
     ) {
         send(plugin, player.getBukkit(), output -> {
             output.writeUTF("metadata");
@@ -73,6 +75,7 @@ final class BackendProtocol {
             output.writeInt(player.getEffectivePermissionLevel());
             output.writeBoolean(classLevelMax);
             output.writeBoolean(accountNameOnly);
+            output.writeUTF(vipTier);
         });
     }
 

@@ -299,15 +299,30 @@ final class NetworkApiClient {
         int permission,
         boolean banIndefinite,
         OffsetDateTime banExpiresAtUtc,
-        String banReason
+        String banReason,
+        VipTier vipTier,
+        OffsetDateTime vipExpiresAt
     ) {
+        /** 旧応答のコンストラクタではVIP枠を付与しない。 */
+        Admission(boolean admitted, String denyReason, int permission, boolean banIndefinite,
+                  OffsetDateTime banExpiresAtUtc, String banReason) {
+            this(admitted, denyReason, permission, banIndefinite, banExpiresAtUtc, banReason,
+                VipTier.NONE, null);
+        }
+
+        /** APIが認めたVIP種別と期限の両方を接続時に確認する。 */
+        boolean hasActiveVip() {
+            return vipTier != VipTier.NONE && vipExpiresAt != null && vipExpiresAt.isAfter(OffsetDateTime.now());
+        }
+
         static Admission fromJson(JsonObject value) {
             return new Admission(
                 value.has("admitted") && value.get("admitted").getAsBoolean(),
                 optionalText(value, "denyReason"),
                 value.has("permission") ? value.get("permission").getAsInt() : 0,
                 value.has("banIndefinite") && value.get("banIndefinite").getAsBoolean(),
-                optionalDate(value, "banExpiresAtUtc"), optionalText(value, "banReason"));
+                optionalDate(value, "banExpiresAtUtc"), optionalText(value, "banReason"),
+                VipTier.parse(optionalText(value, "vipTier")), optionalDate(value, "vipExpiresAt"));
         }
     }
 

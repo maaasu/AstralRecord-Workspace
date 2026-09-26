@@ -111,11 +111,11 @@ record ProxyConfig(
         Map<String, ManagedNetworkSettings.Channel> channels = new LinkedHashMap<>();
         channels.put(lobbyServer.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
             lobbyServer, channelName(lobbyServer), false, capacity(lobbyServer),
-            !isDiscordSourceServerExcluded(lobbyServer), false, Set.of(), Set.of()));
+            !isDiscordSourceServerExcluded(lobbyServer), false, false, Set.of(), Set.of()));
         for (String serverId : gameServers) {
             channels.putIfAbsent(serverId.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
                 serverId, channelName(serverId), true, capacity(serverId),
-                !isDiscordSourceServerExcluded(serverId), false, Set.of(), Set.of()));
+                !isDiscordSourceServerExcluded(serverId), false, false, Set.of(), Set.of()));
         }
         return new ManagedNetworkSettings(
             0, lobbyServer, transferCooldownSeconds, tabRefreshSeconds, presenceHeartbeatSeconds,
@@ -227,10 +227,15 @@ record ProxyConfig(
          * @return 一般枠と利用可能な追加枠の合計
          */
         int limitFor(int permission) {
+            return limitFor(permission, false);
+        }
+
+        /** 選択中アカウントの有効VIPに追加枠を認める。旧権限5だけでは追加しない。 */
+        int limitFor(int permission, boolean activeVip) {
             long limit = maxPlayers;
             if (permission >= 99) {
                 limit += (long) donorExtraPlayers + adminExtraPlayers;
-            } else if (permission >= 5) {
+            } else if (activeVip) {
                 limit += donorExtraPlayers;
             }
             return (int) Math.min(Integer.MAX_VALUE, limit);

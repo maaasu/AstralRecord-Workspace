@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class AstralRecordLobbyPlugin extends JavaPlugin {
+    private final Map<UUID, LobbyApiClient.Admission> admissions = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> permissions = new ConcurrentHashMap<>();
     private final Set<UUID> administrators = ConcurrentHashMap.newKeySet();
     private LobbyApiClient api;
@@ -73,7 +74,20 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         if (permission == 99) administrators.add(playerId); else administrators.remove(playerId);
     }
 
+    /** 選択中アカウントを含むAPI admissionを保持し、権限とVIP期限を更新する。 */
+    void cacheAdmission(UUID playerId, LobbyApiClient.Admission admission) {
+        admissions.put(playerId, admission);
+        cachePermission(playerId, admission.permission());
+    }
+
+    /** 期限切れVIPを通常枠へ戻す。取得失敗・未取得はVIP枠を与えない。 */
+    boolean hasActiveVip(UUID playerId) {
+        LobbyApiClient.Admission admission = admissions.get(playerId);
+        return admission != null && admission.admitted() && admission.hasActiveVip();
+    }
+
     void clearPermission(UUID playerId) {
+        admissions.remove(playerId);
         permissions.remove(playerId);
         administrators.remove(playerId);
     }

@@ -78,7 +78,7 @@ class BackendProtocolTest {
     }
 
     @Test
-    void decodesDonorPermissionFromMetadata() throws Exception {
+    void legacyDonorPermissionDoesNotGrantVip() throws Exception {
         byte[] payload;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
              DataOutputStream output = new DataOutputStream(bytes)) {
@@ -97,6 +97,7 @@ class BackendProtocolTest {
         BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
 
         assertEquals(5, metadata.permission());
+        assertEquals(VipTier.NONE, metadata.vipTier());
         assertFalse(metadata.classLevelMax());
         assertFalse(metadata.accountNameOnly());
     }

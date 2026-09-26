@@ -45,7 +45,12 @@ final class NetworkChannelAccessClient {
                 value.get("whitelisted").getAsBoolean(),
                 value.get("whitelistEnabled").getAsBoolean(),
                 value.get("allowed").getAsBoolean(),
-                value.get("permission").getAsInt()
+                value.get("permission").getAsInt(),
+                value.has("isVip") && value.get("isVip").getAsBoolean(),
+                value.has("vipTier") ? value.get("vipTier").getAsString() : "NONE",
+                value.has("vipExpiresAt") && !value.get("vipExpiresAt").isJsonNull()
+                    ? java.time.OffsetDateTime.parse(value.get("vipExpiresAt").getAsString()).toInstant() : null,
+                value.has("donorOnly") && value.get("donorOnly").getAsBoolean()
             );
         } catch (RuntimeException exception) {
             throw new IOException("Network API returned an invalid channel access response", exception);

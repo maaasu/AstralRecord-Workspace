@@ -394,7 +394,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             plugin, player, channelName, displayName(player), tabClassName(
                 playerClassService.getShortDisplayName(player.getClassId()), player.getClassId()),
             afkService.isAfk(player), playerClassService.isMaxClassLevel(player),
-            player.getAccount().getMode() == AccountMode.ADMIN);
+            player.getAccount().getMode() == AccountMode.ADMIN,
+            plugin.getAccountBenefitsService().current(player.getAccount().getUuid()).tier());
     }
 
     /** プレイヤーTabメタデータとサーバー平均MSPTをProxyへ送る。 */

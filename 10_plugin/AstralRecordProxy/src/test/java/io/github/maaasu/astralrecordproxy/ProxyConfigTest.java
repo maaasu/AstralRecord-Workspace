@@ -75,7 +75,8 @@ class ProxyConfigTest {
         ProxyConfig.ServerCapacity capacity = ProxyConfig.load(dataDirectory).capacity("ch1");
 
         assertEquals(40, capacity.limitFor(0));
-        assertEquals(45, capacity.limitFor(5));
+        assertEquals(40, capacity.limitFor(5));
+        assertEquals(45, capacity.limitFor(0, true));
         assertEquals(46, capacity.limitFor(99));
         assertEquals(46, capacity.totalCapacity());
     }
@@ -90,6 +91,7 @@ class ProxyConfigTest {
         ProxyConfig.ServerCapacity capacity = ProxyConfig.load(dataDirectory).capacity("ch1");
 
         assertEquals(40, capacity.limitFor(0));
+        assertEquals(40, capacity.limitFor(5));
         assertEquals(40, capacity.limitFor(99));
     }
 

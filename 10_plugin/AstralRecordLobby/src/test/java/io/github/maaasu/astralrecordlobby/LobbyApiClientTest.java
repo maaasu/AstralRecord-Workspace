@@ -35,6 +35,16 @@ class LobbyApiClientTest {
     Path temporaryDirectory;
 
     @Test
+    void vipAdmissionRejectsExpiredMissingAndUnknownTiers() {
+        assertTrue(new LobbyApiClient.Admission(true, 0, null, "DONER", "2099-01-01T00:00:00Z").hasActiveVip());
+        assertTrue(new LobbyApiClient.Admission(true, 0, null, "ASTRALDER", "2099-01-01T00:00:00Z").hasActiveVip());
+        assertFalse(new LobbyApiClient.Admission(true, 5, null, null, null).hasActiveVip());
+        assertFalse(new LobbyApiClient.Admission(true, 0, null, "DONER", "2000-01-01T00:00:00Z").hasActiveVip());
+        assertFalse(new LobbyApiClient.Admission(true, 0, null, "UNKNOWN", "2099-01-01T00:00:00Z").hasActiveVip());
+        assertFalse(new LobbyApiClient.Admission(true, 0, null, "DONER", "invalid").hasActiveVip());
+    }
+
+    @Test
     void insecureTlsAcceptsSelfSignedCertificateWithMismatchedHostName() throws Exception {
         SSLContext serverContext = createServerContext();
         UUID playerId = UUID.randomUUID();
@@ -79,17 +89,18 @@ class LobbyApiClientTest {
             new LobbyApiClient.ServerPresence("ch1", "online", 32, 40, 5, 1);
 
         assertEquals(40, presence.limitFor(0));
-        assertEquals(45, presence.limitFor(5));
+        assertEquals(40, presence.limitFor(5));
+        assertEquals(45, presence.limitFor(0, true));
         assertEquals(46, presence.limitFor(99));
         assertEquals(0, presence.extraFor(0));
-        assertEquals(5, presence.extraFor(5));
+        assertEquals(5, presence.extraFor(0, true));
         assertEquals(6, presence.extraFor(99));
         assertFalse(presence.fullFor(0));
 
         LobbyApiClient.ServerPresence fullForPlayer =
             new LobbyApiClient.ServerPresence("ch1", "online", 40, 40, 5, 1);
         assertTrue(fullForPlayer.fullFor(0));
-        assertFalse(fullForPlayer.fullFor(5));
+        assertFalse(fullForPlayer.fullFor(0, true));
 
         LobbyApiClient.ServerPresence maximumValues = new LobbyApiClient.ServerPresence(
             "ch1", "online", Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);

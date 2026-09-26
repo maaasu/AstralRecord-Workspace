@@ -60,7 +60,7 @@ final class LobbyListener implements Listener {
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, "このサーバーへの参加は禁止されています。");
                 return;
             }
-            plugin.cachePermission(event.getUniqueId(), admission.permission());
+            plugin.cacheAdmission(event.getUniqueId(), admission);
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("Admission check failed for " + event.getName() + ": " + exception.getMessage());
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,

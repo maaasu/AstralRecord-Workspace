@@ -62,6 +62,7 @@ public sealed class NetworkManagementTests
         Assert.Contains(ManagementHandler.TargetId.ToString(), api.LastSettingsBody);
         Assert.DoesNotContain("mcid", api.LastSettingsBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("authorityUsers", api.LastSettingsBody, StringComparison.Ordinal);
+        Assert.True(System.Text.Json.JsonDocument.Parse(api.LastSettingsBody).RootElement.GetProperty("channels")[0].GetProperty("donorOnly").GetBoolean());
     }
 
     [Fact]
@@ -238,7 +239,7 @@ public sealed class NetworkManagementTests
             new("Input.TabRefreshSeconds", "2"), new("Input.PresenceHeartbeatSeconds", "10"),
             new("Input.AuthorityUsers[0]", ManagementHandler.TargetId.ToString()), new("Input.Channels[0].ServerId", "lobby"),
             new("Input.Channels[0].DisplayName", "ロビー"), new("Input.Channels[0].MaxPlayers", "100"),
-            new("Input.Channels[0].DonorExtraPlayers", "0"), new("Input.Channels[0].AdminExtraPlayers", "0"),
+            new("Input.Channels[0].DonorOnly", "true"), new("Input.Channels[0].DonorExtraPlayers", "0"), new("Input.Channels[0].AdminExtraPlayers", "0"),
             new("Input.Channels[0].DiscordEnabled", "true"),
         };
         if (token is not null) fields.Add(new("__RequestVerificationToken", token));

@@ -10,6 +10,9 @@ import io.github.maaasu.astralRecord.feature.network.NetworkChannelAccessRegistr
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.feature.vip.repository.AccountBenefitsRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -84,11 +87,31 @@ public final class PlayerCapacityEventHandler extends AbstractEventHandler {
                 ? UserPermission.PLAYER.getValue()
                 : user.getPermission();
         permission = NetworkAuthorityRegistry.effectivePermission(playerUuid, permission);
-        if (!playerCapacityService.tryReserve(playerUuid, permission)) {
+        boolean activeVip = resolveActiveVip(user);
+        if (!playerCapacityService.tryReserve(playerUuid, permission, activeVip)) {
             event.disallow(
                     AsyncPlayerPreLoginEvent.Result.KICK_FULL,
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7140.getId())
             );
+        }
+    }
+
+    /**
+     * 非管理サーバーの接続前に選択中アカウントのVIPをAPIから確認します。
+     * @param user 接続ユーザー。未作成時はnull
+     * @return 有効なVIP期限が確認できた場合true。取得失敗時は通常枠
+     */
+    private boolean resolveActiveVip(UserModel user) {
+        if (user == null || user.getAccountId() == null) return false;
+        try {
+            var snapshot = AccountBenefitsRepository.snapshot(
+                new AccountBenefitsRepository().request(user.getAccountId(), "", null));
+            return !"NONE".equals(snapshot.tier()) && snapshot.expiresAt() != null
+                && snapshot.expiresAt().isAfter(java.time.Instant.now());
+        } catch (Exception exception) {
+            if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
+            Logger.error(LogId.E_7600, exception, user.getAccountId());
+            return false;
         }
     }
 

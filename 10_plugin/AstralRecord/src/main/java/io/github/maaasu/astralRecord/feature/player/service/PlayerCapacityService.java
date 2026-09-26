@@ -42,12 +42,22 @@ public final class PlayerCapacityService {
     /**
      * 指定権限のプレイヤーが利用できる接続上限を返します。
      * <p>
-     * `DONOR` 以上は通常枠と寄付者追加枠を、`ADMIN` 以上はさらに管理者追加枠を利用できます。
+     * VIPなしの接続上限です。管理者は寄付者追加枠と管理者追加枠も利用できます。
      *
      * @param permission 判定する user.permission 値
      * @return 指定権限が利用できる接続上限
      */
     public int getMaximumPlayersForPermission(int permission) {
+        return getMaximumPlayersForPermission(permission, false);
+    }
+
+    /**
+     * 選択中アカウントの有効VIPを含めた接続上限を返します。
+     * @param permission user.permission 値
+     * @param activeVip 選択中アカウントに有効なVIPがあるか
+     * @return 通常枠と利用可能な追加枠の合計
+     */
+    public int getMaximumPlayersForPermission(int permission, boolean activeVip) {
         ConfigProperties properties = ConfigProperties.getInstance();
         int normalPlayers = Math.max(1, properties.getPlayerCapacityMaxPlayers());
         int donorExtraPlayers = Math.max(0, properties.getPlayerCapacityDonorExtraPlayers());
@@ -56,7 +66,7 @@ public final class PlayerCapacityService {
         if (permission >= UserPermission.ADMIN.getValue()) {
             return safeAdd(safeAdd(normalPlayers, donorExtraPlayers), adminExtraPlayers);
         }
-        if (permission >= UserPermission.DONOR.getValue()) {
+        if (activeVip) {
             return safeAdd(normalPlayers, donorExtraPlayers);
         }
         return normalPlayers;
@@ -88,6 +98,17 @@ public final class PlayerCapacityService {
      * @return 利用可能な枠を確保できた場合は {@code true}
      */
     public boolean tryReserve(@Nullable UUID playerUuid, int permission) {
+        return tryReserve(playerUuid, permission, false);
+    }
+
+    /**
+     * 権限と選択中アカウントのVIPに応じて接続枠を排他的に予約します。
+     * @param playerUuid 接続するプレイヤーUUID
+     * @param permission user.permission 値
+     * @param activeVip 選択中アカウントに有効なVIPがあるか
+     * @return 予約成功時true。同一UUIDは二重予約しない
+     */
+    public boolean tryReserve(@Nullable UUID playerUuid, int permission, boolean activeVip) {
         if (playerUuid == null) {
             return false;
         }
@@ -98,7 +119,7 @@ public final class PlayerCapacityService {
             }
 
             int occupiedPlayers = safeAdd(onlinePlayerCount, reservedPlayerUuids.size());
-            if (occupiedPlayers >= getMaximumPlayersForPermission(permission)) {
+            if (occupiedPlayers >= getMaximumPlayersForPermission(permission, activeVip)) {
                 return false;
             }
 

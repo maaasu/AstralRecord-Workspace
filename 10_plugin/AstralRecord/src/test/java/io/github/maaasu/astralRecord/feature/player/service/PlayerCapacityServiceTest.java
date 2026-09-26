@@ -22,7 +22,7 @@ class PlayerCapacityServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
      * 章・見出し: # 03_2-ユースケース > ## 12. 権限別接続人数制限
-     * 検証契約: 基本枠30、寄付者追加枠5、管理者追加枠1のとき、通常は30人、寄付者以上は35人、管理者は36人まで接続できる。
+     * 検証契約: 基本枠30、寄付者追加枠5、管理者追加枠1のとき、通常は30人、有効なVIPアカウントは35人、管理者は36人まで接続できる。
      */
     @Test
     void reservesConfiguredSlotsByPermissionLevel() {
@@ -33,14 +33,15 @@ class PlayerCapacityServiceTest {
             PlayerCapacityService service = new PlayerCapacityService(30);
 
             assertEquals(30, service.getMaximumPlayersForPermission(UserPermission.PLAYER.getValue()));
-            assertEquals(35, service.getMaximumPlayersForPermission(UserPermission.DONOR.getValue()));
+            assertEquals(30, service.getMaximumPlayersForPermission(5));
+            assertEquals(35, service.getMaximumPlayersForPermission(UserPermission.PLAYER.getValue(), true));
             assertEquals(36, service.getMaximumPlayersForPermission(UserPermission.ADMIN.getValue()));
 
             assertFalse(service.tryReserve(UUID.randomUUID(), UserPermission.PLAYER.getValue()));
             for (int index = 0; index < 5; index++) {
-                assertTrue(service.tryReserve(UUID.randomUUID(), UserPermission.DONOR.getValue()));
+                assertTrue(service.tryReserve(UUID.randomUUID(), UserPermission.PLAYER.getValue(), true));
             }
-            assertFalse(service.tryReserve(UUID.randomUUID(), UserPermission.DONOR.getValue()));
+            assertFalse(service.tryReserve(UUID.randomUUID(), UserPermission.PLAYER.getValue(), true));
             assertTrue(service.tryReserve(UUID.randomUUID(), UserPermission.ADMIN.getValue()));
             assertFalse(service.tryReserve(UUID.randomUUID(), UserPermission.ADMIN.getValue()));
         }
@@ -61,10 +62,10 @@ class PlayerCapacityServiceTest {
             config.when(ConfigProperties::getInstance).thenReturn(properties);
             PlayerCapacityService service = new PlayerCapacityService(30);
 
-            assertTrue(service.tryReserve(firstDonor, UserPermission.DONOR.getValue()));
-            assertFalse(service.tryReserve(secondDonor, UserPermission.DONOR.getValue()));
+            assertTrue(service.tryReserve(firstDonor, UserPermission.PLAYER.getValue(), true));
+            assertFalse(service.tryReserve(secondDonor, UserPermission.PLAYER.getValue(), true));
             service.release(firstDonor);
-            assertTrue(service.tryReserve(secondDonor, UserPermission.DONOR.getValue()));
+            assertTrue(service.tryReserve(secondDonor, UserPermission.PLAYER.getValue(), true));
         }
     }
 
@@ -83,12 +84,12 @@ class PlayerCapacityServiceTest {
             config.when(ConfigProperties::getInstance).thenReturn(properties);
             PlayerCapacityService service = new PlayerCapacityService(30);
 
-            assertTrue(service.tryReserve(joinedPlayer, UserPermission.DONOR.getValue()));
+            assertTrue(service.tryReserve(joinedPlayer, UserPermission.PLAYER.getValue(), true));
             service.recordPlayerJoin(joinedPlayer);
-            assertFalse(service.tryReserve(nextDonor, UserPermission.DONOR.getValue()));
+            assertFalse(service.tryReserve(nextDonor, UserPermission.PLAYER.getValue(), true));
 
             service.recordPlayerQuit(joinedPlayer);
-            assertTrue(service.tryReserve(nextDonor, UserPermission.DONOR.getValue()));
+            assertTrue(service.tryReserve(nextDonor, UserPermission.PLAYER.getValue(), true));
         }
     }
 

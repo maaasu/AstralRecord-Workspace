@@ -161,6 +161,7 @@ public sealed class ManagedNetworkChannelInput
     public int AdminExtraPlayers { get; set; }
     public bool DiscordEnabled { get; set; } = true;
     public bool WhitelistEnabled { get; set; }
+    public bool DonorOnly { get; set; }
     public List<Guid> DebugUsers { get; set; } = [];
     public List<Guid> WhitelistUsers { get; set; } = [];
 
@@ -181,6 +182,7 @@ public sealed class ManagedNetworkChannelInput
         AdminExtraPlayers = channel.AdminExtraPlayers,
         DiscordEnabled = channel.DiscordEnabled,
         WhitelistEnabled = channel.WhitelistEnabled,
+        DonorOnly = channel.DonorOnly,
         DebugUsers = channel.DebugUsers.ToList(),
         WhitelistUsers = channel.WhitelistUsers.ToList(),
     };
@@ -195,6 +197,7 @@ public sealed class ManagedNetworkChannelInput
         AdminExtraPlayers = AdminExtraPlayers,
         DiscordEnabled = DiscordEnabled,
         WhitelistEnabled = WhitelistEnabled,
+        DonorOnly = DonorOnly,
         DebugUsers = DebugUsers.Distinct().ToArray(),
         WhitelistUsers = WhitelistUsers.Distinct().ToArray(),
     };

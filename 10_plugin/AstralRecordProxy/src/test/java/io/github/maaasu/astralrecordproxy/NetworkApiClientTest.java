@@ -35,6 +35,22 @@ class NetworkApiClientTest {
     Path temporaryDirectory;
 
     @Test
+    void admissionRequiresValidTierAndFutureExpiryForVipSlots() {
+        for (String tier : new String[] {"DONER", "ASTRALDER"}) {
+            var admission = NetworkApiClient.Admission.fromJson(JsonParser.parseString(
+                "{\"admitted\":true,\"vipTier\":\"" + tier + "\",\"vipExpiresAt\":\"2099-01-01T00:00:00Z\"}").getAsJsonObject());
+            assertEquals(true, admission.hasActiveVip());
+        }
+        for (String body : new String[] {
+            "{\"admitted\":true,\"permission\":5}",
+            "{\"admitted\":true,\"vipTier\":\"DONER\",\"vipExpiresAt\":\"2000-01-01T00:00:00Z\"}",
+            "{\"admitted\":true,\"vipTier\":\"UNKNOWN\",\"vipExpiresAt\":\"2099-01-01T00:00:00Z\"}",
+            "{\"admitted\":true,\"vipTier\":\"ASTRALDER\"}"}) {
+            assertEquals(false, NetworkApiClient.Admission.fromJson(JsonParser.parseString(body).getAsJsonObject()).hasActiveVip());
+        }
+    }
+
+    @Test
     void insecureTlsAcceptsSelfSignedCertificateWithMismatchedHostName() throws Exception {
         SSLContext serverContext = createServerContext();
         byte[] responseBody = "{\"generationId\":\"test-generation\",\"messages\":[]}".getBytes(StandardCharsets.UTF_8);
