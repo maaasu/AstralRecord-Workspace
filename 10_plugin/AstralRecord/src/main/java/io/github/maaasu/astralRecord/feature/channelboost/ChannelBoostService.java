@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.regex.Pattern;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 /** API永続状態をキャッシュし、期限と発動通知を全チャンネルで同期します。 */
 public final class ChannelBoostService {
@@ -93,7 +96,7 @@ public final class ChannelBoostService {
         poll();
     }
 
-    /** server-info/TAB用の全チャンネル行を生成します。 */
+    /** server-info用の全チャンネル行を生成します。 */
     public List<String> displayLines() {
         List<String> lines = new ArrayList<>();
         Instant now = Instant.now();
@@ -103,7 +106,29 @@ public final class ChannelBoostService {
         return lines;
     }
 
-    /** TABとコマンドで共有する倍率・残分数を表示します。 */
+    /** ネットワーク発動対象のみ、単独RPGのTABへ表示する行を返します。 */
+    public List<Component> tabRows() {
+        List<Component> rows = new ArrayList<>();
+        Instant now = Instant.now();
+        state.channels().values().stream().filter(ChannelBoostState.Channel::networkBoostEnabled)
+            .sorted(Comparator.comparing(ChannelBoostState.Channel::channelId))
+            .forEach(channel -> rows.add(Component.text(channel.displayName(), NamedTextColor.WHITE)
+                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+                .append(tabBoost(channel.exp(), "EXP", NamedTextColor.GREEN, now))
+                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+                .append(tabBoost(channel.drop(), "DROP", NamedTextColor.AQUA, now))));
+        return rows;
+    }
+
+    private static Component tabBoost(ChannelBoostState.Boost boost, String label, NamedTextColor color, Instant now) {
+        Component value = Component.text(label, color);
+        if (boost == null || !boost.activeAt(now)) return value.append(Component.text("—", color));
+        long minutes = Math.max(1, (java.time.Duration.between(now, boost.expiresAt()).getSeconds() + 59) / 60);
+        return value.append(Component.text("×" + BigDecimal.valueOf(boost.multiplier()).stripTrailingZeros().toPlainString(), color))
+            .append(Component.text("[" + minutes + "分]", NamedTextColor.GRAY));
+    }
+
+    /** server-info用に倍率・残分数を表示します。 */
     private static String display(ChannelBoostState.Boost boost, Instant now) {
         if (boost == null || !boost.activeAt(now)) return "通常";
         long seconds = Math.max(1, java.time.Duration.between(now, boost.expiresAt()).getSeconds());

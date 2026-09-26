@@ -19,7 +19,7 @@ public record ChannelBoostState(Map<String, Channel> channels, long eventCursor)
     }
 
     /** EXP/DROPを独立して保持します。 */
-    public record Channel(String channelId, Boost exp, Boost drop) {
+    public record Channel(String channelId, String displayName, boolean networkBoostEnabled, Boost exp, Boost drop) {
         /** EXPの現在倍率を返します。 */
         public double expFactorAt(Instant now) { return exp == null ? 1.0 : exp.factorAt(now); }
         /** DROPの現在倍率を返します。 */

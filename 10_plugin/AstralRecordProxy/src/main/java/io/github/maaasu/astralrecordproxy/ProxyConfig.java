@@ -111,11 +111,11 @@ record ProxyConfig(
         Map<String, ManagedNetworkSettings.Channel> channels = new LinkedHashMap<>();
         channels.put(lobbyServer.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
             lobbyServer, channelName(lobbyServer), false, capacity(lobbyServer),
-            !isDiscordSourceServerExcluded(lobbyServer), false, false, Set.of(), Set.of()));
+            !isDiscordSourceServerExcluded(lobbyServer), false, false, false, Set.of(), Set.of()));
         for (String serverId : gameServers) {
             channels.putIfAbsent(serverId.toLowerCase(java.util.Locale.ROOT), new ManagedNetworkSettings.Channel(
                 serverId, channelName(serverId), true, capacity(serverId),
-                !isDiscordSourceServerExcluded(serverId), false, false, Set.of(), Set.of()));
+                !isDiscordSourceServerExcluded(serverId), false, false, false, Set.of(), Set.of()));
         }
         return new ManagedNetworkSettings(
             0, lobbyServer, transferCooldownSeconds, tabRefreshSeconds, presenceHeartbeatSeconds,

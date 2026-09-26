@@ -53,7 +53,11 @@ public final class ChannelBoostRepository {
         if (values != null) for (JsonElement value : values) {
             JsonObject channel = value.getAsJsonObject();
             String channelId = channel.get("channelId").getAsString().toLowerCase(Locale.ROOT);
+            JsonElement name = channel.get("displayName");
+            JsonElement enabled = channel.get("networkBoostEnabled");
             channels.put(channelId, new ChannelBoostState.Channel(channelId,
+                name == null || name.isJsonNull() || name.getAsString().isBlank() ? "チャンネル" : name.getAsString().trim(),
+                enabled != null && !enabled.isJsonNull() && enabled.getAsBoolean(),
                 boost(channel, "exp"), boost(channel, "drop")));
         }
         return new ChannelBoostState(Map.copyOf(channels), response.get("eventCursor").getAsLong());

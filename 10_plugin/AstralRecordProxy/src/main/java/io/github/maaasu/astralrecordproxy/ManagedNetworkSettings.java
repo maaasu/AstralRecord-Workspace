@@ -154,6 +154,7 @@ record ManagedNetworkSettings(
         boolean discordEnabled,
         boolean whitelistEnabled,
         boolean donorOnly,
+        boolean networkBoostEnabled,
         Set<UUID> debugUsers,
         Set<UUID> whitelistUsers
     ) {
@@ -171,6 +172,7 @@ record ManagedNetworkSettings(
                     Math.max(0, number(json, "donorExtraPlayers", 0)),
                     Math.max(0, number(json, "adminExtraPlayers", 0))),
                 bool(json, "discordEnabled", true), bool(json, "whitelistEnabled", false), bool(json, "donorOnly", false),
+                bool(json, "networkBoostEnabled", false),
                 uuidSet(array(json, "debugUsers")), uuidSet(array(json, "whitelistUsers")));
         }
 
@@ -185,6 +187,7 @@ record ManagedNetworkSettings(
             result.addProperty("discordEnabled", discordEnabled);
             result.addProperty("whitelistEnabled", whitelistEnabled);
             result.addProperty("donorOnly", donorOnly);
+            result.addProperty("networkBoostEnabled", networkBoostEnabled);
             result.add("debugUsers", uuidArray(debugUsers));
             result.add("whitelistUsers", uuidArray(whitelistUsers));
             return result;

@@ -131,7 +131,7 @@ class ProxyConfigTest {
              "tabRefreshSeconds":3,"presenceHeartbeatSeconds":12,"authorityUsers":["%s"],
              "channels":[
               {"serverId":"lobby","displayName":"ロビー","isGame":false,"maxPlayers":100,"discordEnabled":true,"whitelistEnabled":false,"debugUsers":[],"whitelistUsers":[]},
-              {"serverId":"ch1","displayName":"第一","isGame":true,"maxPlayers":30,"donorExtraPlayers":5,"adminExtraPlayers":1,"discordEnabled":false,"whitelistEnabled":true,"debugUsers":[],"whitelistUsers":[]}
+              {"serverId":"ch1","displayName":"第一","isGame":true,"maxPlayers":30,"donorExtraPlayers":5,"adminExtraPlayers":1,"discordEnabled":false,"whitelistEnabled":true,"networkBoostEnabled":true,"debugUsers":[],"whitelistUsers":[]}
              ]}
             """.formatted(authority)).getAsJsonObject());
 
@@ -140,6 +140,12 @@ class ProxyConfigTest {
         assertTrue(settings.isServerAuthority(authority));
         assertTrue(settings.isDiscordSourceServerExcluded("ch1"));
         assertEquals(36, settings.capacity("ch1").limitFor(99));
+        assertTrue(settings.channels().get("ch1").networkBoostEnabled());
+        assertFalse(settings.channels().get("lobby").networkBoostEnabled());
+        assertTrue(settings.toBootstrapJson().getAsJsonArray("channels").asList().stream()
+            .map(value -> value.getAsJsonObject())
+            .anyMatch(value -> "ch1".equals(value.get("serverId").getAsString())
+                && value.get("networkBoostEnabled").getAsBoolean()));
     }
 
     @Test

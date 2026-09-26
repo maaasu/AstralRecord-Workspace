@@ -614,13 +614,15 @@ public class PlayerHudView {
         Component footer = Component.empty();
         var plugin = AstralRecord.getInstance();
         var boosts = plugin == null ? null : plugin.getChannelBoostService();
-        if (boosts != null) {
-            footer = Component.text("全チャンネル EXP/DROP", NamedTextColor.YELLOW);
-            for (String line : boosts.displayLines()) footer = footer.append(Component.newline())
-                .append(Component.text(line, NamedTextColor.GRAY));
+        var boostRows = boosts == null ? List.<Component>of() : boosts.tabRows();
+        if (!boostRows.isEmpty()) {
+            footer = Component.text("チャンネルブースト", NamedTextColor.YELLOW);
+            for (Component row : boostRows) footer = footer.append(Component.newline()).append(row);
         }
         if (showPerformanceInfo) {
-            if (boosts != null) footer = footer.append(Component.newline());
+            if (!boostRows.isEmpty()) footer = footer.append(Component.newline())
+                .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
+                .append(Component.newline());
             footer = footer.append(Component.text("通信遅延 ", NamedTextColor.GRAY))
                 .append(Component.text(ping + "ms", pingTextColor(ping)));
         }

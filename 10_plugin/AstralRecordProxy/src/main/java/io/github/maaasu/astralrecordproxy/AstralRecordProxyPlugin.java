@@ -1095,7 +1095,7 @@ public final class AstralRecordProxyPlugin {
         Set<UUID> onlineIds = new HashSet<>();
         connectedPlayers.forEach(player -> onlineIds.add(player.getUniqueId()));
         int totalPlayers = onlineIds.size();
-        List<String> boostLines = ProxyChannelBoosts.lines(boostSnapshot, Instant.now());
+        List<Component> boostRows = ProxyChannelBoosts.tabRows(boostSnapshot, Instant.now());
         long nowNanos = System.nanoTime();
         serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
         for (Player viewer : connectedPlayers) {
@@ -1104,7 +1104,7 @@ public final class AstralRecordProxyPlugin {
                 .orElse("");
             ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
                 config.tabServerAddress(), viewer.getPing(),
-                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostLines);
+                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostRows);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             removeStaleTabEntries(tabList, onlineIds);
