@@ -50,6 +50,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -594,21 +595,30 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             } catch (RuntimeException failure) {
                 quote = null;
             }
+            if (closing || !plugin.isEnabled()) {
+                return;
+            }
             MarketPriceQuote result = quote;
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!isCurrentSession(player, session, requestVersion)
-                    || session.screen != MarketScreen.LOADING || session.draft != draft) {
-                    return;
+            try {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (closing || !isCurrentSession(player, session, requestVersion)
+                        || session.screen != MarketScreen.LOADING || session.draft != draft) {
+                        return;
+                    }
+                    if (result != null && result.itemCategory().equalsIgnoreCase(draft.itemCategory())
+                        && result.itemId().equalsIgnoreCase(draft.itemId())
+                        && java.util.Objects.equals(result.instanceId(), draft.instanceId())) {
+                        draft.setPriceQuote(result);
+                        draft.setUnitPrice(draft.recommendedUnitPrice());
+                    }
+                    session.screen = MarketScreen.SELL_CONFIG;
+                    marketGui.openSellConfig(player, session.sessionId, draft);
+                });
+            } catch (IllegalPluginAccessException rejected) {
+                if (!closing && plugin.isEnabled()) {
+                    throw rejected;
                 }
-                if (result != null && result.itemCategory().equalsIgnoreCase(draft.itemCategory())
-                    && result.itemId().equalsIgnoreCase(draft.itemId())
-                    && java.util.Objects.equals(result.instanceId(), draft.instanceId())) {
-                    draft.setPriceQuote(result);
-                    draft.setUnitPrice(draft.recommendedUnitPrice());
-                }
-                session.screen = MarketScreen.SELL_CONFIG;
-                marketGui.openSellConfig(player, session.sessionId, draft);
-            });
+            }
         });
         GuiSound.SELECT.play(player);
     }
