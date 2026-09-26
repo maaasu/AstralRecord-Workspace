@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの草原"
+#   progression: 15
+schemaVersion: 1
+id: 10a00068
+category: material
+name: "&a上質なグラスボアの毛皮"
+icon: LEATHER
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 220
+lore:
+  - "&7傷が少なく毛並みの密なグラスボアの毛皮。"
+  - "&7手触りがよく、丁寧な加工に向いている。"
+unTradeable: false
+unSellable: false

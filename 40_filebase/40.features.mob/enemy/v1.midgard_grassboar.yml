@@ -37,6 +37,192 @@ levels:
         value: 102
     drops:
       exp: 16
+  - level: 15
+    name: "&aミズガルズ・グラスボア Lv.15"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 4400
+      - status: ATTACK
+        value: 797
+      - status: DEFENSE
+        value: 767
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 140
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
+  - level: 16
+    name: "&aミズガルズ・グラスボア Lv.16"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 5120
+      - status: ATTACK
+        value: 927
+      - status: DEFENSE
+        value: 892
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 160
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
+  - level: 17
+    name: "&aミズガルズ・グラスボア Lv.17"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 5840
+      - status: ATTACK
+        value: 1058
+      - status: DEFENSE
+        value: 1018
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 180
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
+  - level: 18
+    name: "&aミズガルズ・グラスボア Lv.18"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 6560
+      - status: ATTACK
+        value: 1188
+      - status: DEFENSE
+        value: 1143
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 200
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
+  - level: 19
+    name: "&aミズガルズ・グラスボア Lv.19"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 7280
+      - status: ATTACK
+        value: 1319
+      - status: DEFENSE
+        value: 1269
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 220
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
+  - level: 20
+    name: "&aミズガルズ・グラスボア Lv.20"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 8000
+      - status: ATTACK
+        value: 1449
+      - status: DEFENSE
+        value: 1394
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 240
+      items:
+        - itemId:
+            ref: item:10a00067
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:10a00068
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable: null
 
 baseStats:
   - status: MAX_HEALTH

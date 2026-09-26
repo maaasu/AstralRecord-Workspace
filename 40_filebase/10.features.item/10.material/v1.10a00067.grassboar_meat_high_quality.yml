@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの草原"
+#   progression: 15
+schemaVersion: 1
+id: 10a00067
+category: material
+name: "&e上質なグラスボア肉"
+icon: PORKCHOP
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 180
+lore:
+  - "&7肉質の良いグラスボアから得られる赤身。"
+  - "&7きめ細かな繊維と豊かな脂を備えている。"
+unTradeable: false
+unSellable: false
