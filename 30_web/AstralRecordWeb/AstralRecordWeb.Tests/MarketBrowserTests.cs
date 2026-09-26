@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace AstralRecordWeb.Tests;
@@ -208,9 +209,92 @@ public sealed class MarketBrowserTests
         Assert.DoesNotContain(handler.RequestUris, uri => uri.Contains("item_category=weapon", StringComparison.Ordinal));
     }
 
-    private static IndexModel CreatePage(MarketApiClient client)
+    [Theory]
+    [InlineData("Query", "Sort", "stat_test_min")]
+    [InlineData("query", "sort", "STAT_test_min")]
+    public async Task WalletUsesSelectedOwnedAccountAndRetainsSearchWhenSwitching(string queryKey, string sortKey, string statKey)
     {
-        var page = new IndexModel(client);
+        var first = new MarketBuyerAccountResponse { Uuid = Guid.NewGuid(), UserId = TestActor, SlotIndex = 1 };
+        var second = new MarketBuyerAccountResponse { Uuid = Guid.NewGuid(), UserId = TestActor, SlotIndex = 2 };
+        var outsider = new MarketBuyerAccountResponse { Uuid = Guid.NewGuid(), UserId = Guid.NewGuid(), SlotIndex = 0 };
+        var deleted = new MarketBuyerAccountResponse { Uuid = Guid.NewGuid(), UserId = TestActor, IsDeleted = true };
+        var handler = new MarketFixtureHandler(_ => [Listing("ore", 120)]) { Accounts = [first, second, outsider, deleted] };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var profileHandler = new WalletHandler(second.Uuid, 123456);
+        using var profileHttp = new HttpClient(profileHandler) { BaseAddress = http.BaseAddress };
+        var profiles = new PlayerProfileApiClient(profileHttp, NullLogger<PlayerProfileApiClient>.Instance);
+        var page = CreatePage(new MarketApiClient(http), profiles);
+        page.BuyerAccountId = second.Uuid;
+        page.Request.QueryString = new QueryString($"?{queryKey}=ore&{sortKey}=price_asc&{statKey}=10&PurchaseId=old&BuyerAccountId=old");
+
+        await page.OnGetAsync(CancellationToken.None);
+
+        Assert.Equal(second.Uuid, page.SelectedBuyerAccount?.Uuid);
+        Assert.Equal(123456, page.BuyerGold);
+        Assert.Equal(2, page.BuyerAccounts.Count);
+        var profileQuery = QueryHelpers.ParseQuery(profileHandler.RequestUri!.Query);
+        Assert.Equal(second.Uuid.ToString(), profileQuery["account_id"]);
+        Assert.Equal(TestActor.ToString(), profileQuery["viewer_user_uuid"]);
+        Assert.EndsWith(TestActor.ToString(), profileHandler.RequestUri.AbsolutePath);
+        var preserved = page.PreservedSearchParameters().ToDictionary(pair => pair.Key, pair => pair.Value);
+        Assert.Equal("ore", preserved[queryKey]);
+        Assert.Equal("price_asc", preserved[sortKey]);
+        Assert.Equal("10", preserved[statKey]);
+        Assert.False(preserved.ContainsKey("PurchaseId"));
+        Assert.False(preserved.ContainsKey("BuyerAccountId"));
+
+        page.BuyerAccountId = outsider.Uuid;
+        await page.OnGetAsync(CancellationToken.None);
+        Assert.Equal(first.Uuid, page.SelectedBuyerAccount?.Uuid);
+        Assert.Contains($"account_id={first.Uuid}", profileHandler.RequestUri!.Query);
+        Assert.Null(page.BuyerGold);
+    }
+
+    [Fact]
+    public async Task WalletFailureDoesNotHideListingsOrInventAZeroBalance()
+    {
+        var account = new MarketBuyerAccountResponse { Uuid = Guid.NewGuid(), UserId = TestActor, SlotIndex = 1 };
+        var handler = new MarketFixtureHandler(_ => [Listing("ore", 120)]) { Accounts = [account] };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.example/") };
+        var page = CreatePage(new MarketApiClient(http));
+
+        await page.OnGetAsync(CancellationToken.None);
+
+        Assert.Null(page.BuyerGold);
+        Assert.Null(page.ErrorMessage);
+        Assert.Single(page.Listings);
+        Assert.Equal(account.Uuid, page.SelectedBuyerAccount?.Uuid);
+    }
+
+    private sealed class WalletHandler(Guid accountId, long gold) : HttpMessageHandler
+    {
+        public Uri? RequestUri { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            RequestUri = request.RequestUri;
+            var profile = new
+            {
+                userUuid = TestActor, mcid = "buyer", accounts = Array.Empty<object>(),
+                currentAccount = new
+                {
+                    accountId, accountName = "buyer", slotIndex = 2, playerLevel = 10,
+                    classId = "warrior", className = "Warrior", classLevel = 1,
+                    classProgresses = Array.Empty<object>(), gold, updatedAt = DateTime.UtcNow,
+                    skillTree = new { structureId = "test", name = "test", rootNodeId = "root", nodes = Array.Empty<object>(), edges = Array.Empty<object>() },
+                },
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(profile), Encoding.UTF8, "application/json"),
+            });
+        }
+    }
+
+    private static IndexModel CreatePage(MarketApiClient client, PlayerProfileApiClient? profiles = null)
+    {
+        var page = new IndexModel(client, profiles ?? new PlayerProfileApiClient(
+            new HttpClient(new FixedResponseHandler(HttpStatusCode.ServiceUnavailable)) { BaseAddress = new Uri("https://api.example/") },
+            NullLogger<PlayerProfileApiClient>.Instance));
         var context = new DefaultHttpContext();
         context.User = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier, TestActor.ToString())], "test"));
@@ -247,6 +331,7 @@ public sealed class MarketBrowserTests
     private sealed class MarketFixtureHandler(Func<int, IReadOnlyList<MarketListingResponse>> listingsForPage, Func<string, string>? categoryForItem = null) : HttpMessageHandler
     {
         private readonly JsonSerializerOptions serializerOptions = new(JsonSerializerDefaults.Web);
+        public IReadOnlyList<MarketBuyerAccountResponse> Accounts { get; init; } = [];
         public int ListingRequests { get; private set; }
         public List<HttpRequestMessage> Requests { get; } = [];
         public List<string> RequestUris { get; } = [];
@@ -259,7 +344,7 @@ public sealed class MarketBrowserTests
             Requests.Add(request);
             RequestUris.Add(request.RequestUri!.Query);
             if (request.RequestUri.AbsolutePath == "/api/account")
-                return Task.FromResult(Json(Array.Empty<MarketBuyerAccountResponse>()));
+                return Task.FromResult(Json(Accounts));
             if (request.RequestUri.AbsolutePath.StartsWith("/api/market/web-purchases/", StringComparison.Ordinal)
                 && request.Method == HttpMethod.Post)
             {

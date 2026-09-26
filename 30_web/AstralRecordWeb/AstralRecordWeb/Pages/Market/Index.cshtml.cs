@@ -12,8 +12,14 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace AstralRecordWeb.Pages.Market;
 
 [Authorize]
-public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
+public sealed class IndexModel(MarketApiClient marketApiClient, PlayerProfileApiClient profileApiClient) : PageModel
 {
+    private static readonly HashSet<string> SearchParameterNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        nameof(Query), nameof(Category), nameof(Rarity), nameof(EquipmentSlot), nameof(RequiredLevelMin),
+        nameof(RequiredLevelMax), nameof(MinimumPrice), nameof(MaximumPrice), nameof(Sort),
+    };
+
     public IReadOnlyList<MarketListingItem> Listings { get; private set; } = [];
     public IReadOnlyList<string> Categories { get; private set; } = [];
     public IReadOnlyList<string> Rarities { get; private set; } = [];
@@ -22,9 +28,11 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
     public string? ErrorMessage { get; private set; }
     public int TotalListingCount { get; private set; }
     public IReadOnlyList<MarketBuyerAccountResponse> BuyerAccounts { get; private set; } = [];
+    public MarketBuyerAccountResponse? SelectedBuyerAccount => BuyerAccounts.FirstOrDefault(account => account.Uuid == BuyerAccountId);
+    public long? BuyerGold { get; private set; }
     public string? PurchaseMessage { get; private set; }
     [BindProperty] public Guid ListingId { get; set; }
-    [BindProperty] public Guid BuyerAccountId { get; set; }
+    [BindProperty(SupportsGet = true)] public Guid BuyerAccountId { get; set; }
     [BindProperty] public Guid OperationId { get; set; }
     [BindProperty] public long PurchaseQuantity { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public Guid? PurchaseId { get; set; }
@@ -51,6 +59,16 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
             BuyerAccounts = (await marketApiClient.GetBuyerAccountsAsync(actor, cancellationToken))
                 .Where(account => account.UserId == actor && !account.IsDeleted)
                 .OrderBy(account => account.SlotIndex).ToArray();
+            if (SelectedBuyerAccount is null)
+                BuyerAccountId = BuyerAccounts.FirstOrDefault()?.Uuid ?? Guid.Empty;
+            BuyerGold = null;
+            if (SelectedBuyerAccount is { } buyer)
+            {
+                var profile = await profileApiClient.GetProfileAsync(actor, actor, false, buyer.Uuid, cancellationToken);
+                if (profile.Succeeded && profile.Value?.UserUuid == actor
+                    && profile.Value.CurrentAccount is { } account && account.AccountId == buyer.Uuid)
+                    BuyerGold = account.Gold;
+            }
             if (PurchaseId is { } purchaseId)
             {
                 var purchase = await marketApiClient.GetWebPurchaseAsync(actor, purchaseId, cancellationToken);
@@ -126,7 +144,7 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
             var (_, status) = await marketApiClient.CreateWebPurchaseAsync(
                 actor, ListingId, OperationId, BuyerAccountId, PurchaseQuantity, cancellationToken);
             if ((int)status is >= 200 and < 300)
-                return RedirectToPage(new { PurchaseId = OperationId });
+                return RedirectToPage(new { PurchaseId = OperationId, BuyerAccountId });
             ErrorMessage = status switch
             {
                 System.Net.HttpStatusCode.Forbidden => "購入先アカウントを確認できませんでした。",
@@ -138,7 +156,7 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
         catch (Exception exception) when (exception is HttpRequestException or JsonException or OperationCanceledException)
         {
             PurchaseId = OperationId;
-            return RedirectToPage(new { PurchaseId });
+            return RedirectToPage(new { PurchaseId, BuyerAccountId });
         }
         await OnGetAsync(cancellationToken);
         return Page();
@@ -148,8 +166,18 @@ public sealed class IndexModel(MarketApiClient marketApiClient) : PageModel
 
     public string NumericMinimumName(MarketNumericFilterDefinition filter) => $"stat_{filter.Id}_min";
     public string NumericMaximumName(MarketNumericFilterDefinition filter) => $"stat_{filter.Id}_max";
-    public string SellerName(MarketListingResponse listing) => listing.SellerAccountSlotIndex is null
-        ? listing.SellerAccountName : $"{listing.SellerAccountName}#{listing.SellerAccountSlotIndex}";
+    public string SellerName(MarketListingResponse listing) => string.IsNullOrWhiteSpace(listing.SellerAccountName)
+        ? "名前不明の出品者"
+        : listing.SellerAccountSlotIndex is null ? listing.SellerAccountName : $"{listing.SellerAccountName} #{listing.SellerAccountSlotIndex}";
+    public bool IsOwnListing(MarketListingResponse listing) => SelectedBuyerAccount?.Uuid == listing.SellerAccountId;
+    public static string CurrencyLabel(string currencyId) => string.Equals(currencyId, "gold", StringComparison.OrdinalIgnoreCase) ? "Gold" : currencyId;
+
+    // Account switching keeps the search, but never replays a purchase-result notification.
+    public IEnumerable<KeyValuePair<string, string>> PreservedSearchParameters() => Request.Query
+        .Where(parameter => SearchParameterNames.Contains(parameter.Key)
+            || parameter.Key.StartsWith("stat_", StringComparison.OrdinalIgnoreCase))
+        .SelectMany(parameter => parameter.Value.Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => new KeyValuePair<string, string>(parameter.Key, value!)));
     public string ItemStatText(ItemEquipmentStatResponse stat) => stat.Value is null
         ? string.Empty
         : string.Equals(stat.Value.Min, stat.Value.Max, StringComparison.Ordinal) ? stat.Value.Min : $"{stat.Value.Min} - {stat.Value.Max}";

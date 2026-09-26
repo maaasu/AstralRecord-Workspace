@@ -18,3 +18,11 @@ for (const form of document.querySelectorAll('[data-market-search]')) {
         }
     });
 }
+
+// Compact filters leave the listing visible on small screens.
+const compactFilters = window.matchMedia('(max-width: 991px)');
+for (const disclosure of document.querySelectorAll('[data-market-filters]')) {
+    const updateDisclosure = () => { disclosure.open = !compactFilters.matches; };
+    compactFilters.addEventListener('change', updateDisclosure);
+    updateDisclosure();
+}
