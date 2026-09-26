@@ -7,9 +7,9 @@ displayName: "花咲く古木の遺跡"
 recommendedLevel: 20
 entry:
   worldRef: world:midgard_greenfields
-  x: -1035.7
-  y: 118.6
-  z: 1588.8
+  x: -1037.0
+  y: 116.0
+  z: 1594.5
   yaw: -12.4
   pitch: 27.5
 party:
