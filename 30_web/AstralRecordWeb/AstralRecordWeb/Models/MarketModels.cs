@@ -62,25 +62,32 @@ public sealed record MarketListingItem(MarketListingResponse Listing, ItemMaster
     {
         get
         {
-            if (Listing.ReferenceUnitPrice.HasValue)
-                return Listing.ReferenceUnitPrice;
-            if (string.IsNullOrWhiteSpace(Listing.ValuationSnapshotJson))
-                return null;
+            var price = Listing.ReferenceUnitPrice;
+            if (!price.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(Listing.ValuationSnapshotJson))
+                    return null;
 
-            try
-            {
-                using var snapshot = JsonDocument.Parse(Listing.ValuationSnapshotJson);
-                return snapshot.RootElement.ValueKind == JsonValueKind.Object
-                    && (snapshot.RootElement.TryGetProperty("SuggestedUnitPrice", out var suggested)
-                        || snapshot.RootElement.TryGetProperty("suggestedUnitPrice", out suggested))
-                    && suggested.ValueKind == JsonValueKind.Number
-                    && suggested.TryGetInt64(out var price)
-                    ? price : null;
+                try
+                {
+                    using var snapshot = JsonDocument.Parse(Listing.ValuationSnapshotJson);
+                    if (snapshot.RootElement.ValueKind != JsonValueKind.Object
+                        || !(snapshot.RootElement.TryGetProperty("SuggestedUnitPrice", out var suggested)
+                            || snapshot.RootElement.TryGetProperty("suggestedUnitPrice", out suggested))
+                        || suggested.ValueKind != JsonValueKind.Number
+                        || !suggested.TryGetInt64(out var parsed))
+                        return null;
+                    price = parsed;
+                }
+                catch (JsonException)
+                {
+                    return null;
+                }
             }
-            catch (JsonException)
-            {
-                return null;
-            }
+
+            return price.Value <= Listing.PriceFloor
+                ? Listing.PriceFloor == long.MaxValue ? null : Listing.PriceFloor + 1
+                : price;
         }
     }
     public IReadOnlyDictionary<string, decimal> NumericAttributes { get; init; } = new Dictionary<string, decimal>();

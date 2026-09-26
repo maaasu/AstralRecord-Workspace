@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -22,6 +23,25 @@ public sealed class MarketRenderingTests
     private static readonly Guid Buyer = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private static readonly Guid Seller = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
+    [Theory]
+    [InlineData(100L, 100L, "{\"SuggestedUnitPrice\":500}", 101L)]
+    [InlineData(null, 100L, "{\"SuggestedUnitPrice\":100}", 101L)]
+    [InlineData(null, 0L, "{\"suggestedUnitPrice\":0}", 1L)]
+    [InlineData(null, 100L, "{\"SuggestedUnitPrice\":200}", 200L)]
+    [InlineData(150L, 100L, "{\"SuggestedUnitPrice\":200}", 150L)]
+    [InlineData(null, long.MaxValue, "{\"SuggestedUnitPrice\":9223372036854775807}", null)]
+    public void RecommendedPrice_StaysAboveListingPriceFloor(long? reference, long floor, string snapshot, long? expected)
+    {
+        var listing = new MarketListingResponse
+        {
+            ReferenceUnitPrice = reference,
+            PriceFloor = floor,
+            ValuationSnapshotJson = snapshot,
+        };
+
+        Assert.Equal(expected, new MarketListingItem(listing, null).RecommendedUnitPrice);
+    }
+
     [Fact]
     public async Task MarketRendersWalletVisibleSellerAndOneSharedBuyerForEveryPurchase()
     {
@@ -38,7 +58,8 @@ public sealed class MarketRenderingTests
         Assert.Contains("出品価格（1個あたり）", html);
         Assert.Equal(6, Regex.Matches(html, "おすすめ価格（出品時点の参考価格）").Count);
         Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>11,000</strong>", html);
-        Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>700</strong>", html);
+        Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>701</strong>", html);
+        Assert.Matches("おすすめ価格（出品時点の参考価格）</dt><dd>701\\s+Gold</dd>", html);
         Assert.Matches("market-recommended-price[^>]*><span>おすすめ価格[^<]*</span><strong>データなし</strong>", html);
         var firstCard = html[html.IndexOf("<article", StringComparison.Ordinal)..];
         var detailsIndex = firstCard.IndexOf("<details", StringComparison.Ordinal);
@@ -118,6 +139,7 @@ public sealed class MarketRenderingTests
             sellerAccountName = order == 0 ? "Luna" : order == 1 ? "Aster" : "Mizuki", sellerAccountSlotIndex = 1,
             itemCategory = equipment ? "EQUIPMENT" : "MATERIAL", itemId, quantity, remainingQuantity = quantity,
             unitPrice = price, totalPrice = price * quantity, currencyId = "gold", status = "ACTIVE",
+            priceFloor = order == 1 ? 700L : 0L,
             referenceUnitPrice = order == 0 ? 11000L : (long?)null,
             valuationSnapshotJson = order switch { 0 => "{\"SuggestedUnitPrice\":10000}", 1 => "{\"suggestedUnitPrice\":700}", _ => "invalid-json" },
             listedAt = DateTime.UtcNow.AddMinutes(-order * 30), expiresAt = DateTime.UtcNow.AddDays(2),
