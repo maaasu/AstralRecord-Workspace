@@ -18,8 +18,8 @@ public final class MobInstance {
 
     private final UUID instanceId;
     private final MobTemplate template;
-    private final Location spawnLocation;
-    private final Location wanderAnchor;
+    private Location spawnLocation;
+    private Location wanderAnchor;
     private final MobThreatTable threatTable = new MobThreatTable();
 
     private UUID bukkitEntityId;
@@ -174,10 +174,22 @@ public final class MobInstance {
         return template;
     }
 
-    /** スポーン位置を返します（変更不可なコピー）。 */
+    /** 現在のスポーン基準位置を返します（変更不可なコピー）。 */
     @NotNull
     public Location spawnLocation() {
         return spawnLocation.clone();
+    }
+
+    /**
+     * 塞がれたスポーン地点を安全な位置へ移し、帰還・徘徊の基準と徘徊目標をリセットします。
+     *
+     * @param location 新しいスポーン基準位置。同じワールド内の安全な地点を呼び出し側で確認します。
+     */
+    public void relocateSpawnAnchor(@NotNull Location location) {
+        spawnLocation = location.clone();
+        wanderAnchor = location.clone();
+        wanderTarget = null;
+        wanderPauseUntilTick = 0L;
     }
 
     /** WANDER 時の中心座標を返します（変更不可なコピー）。 */

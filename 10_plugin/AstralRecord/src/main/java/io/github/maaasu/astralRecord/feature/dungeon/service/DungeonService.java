@@ -86,8 +86,10 @@ import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.BoundingBox;
 import net.kyori.adventure.title.Title;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -130,7 +132,8 @@ public final class DungeonService {
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
-    private static final long BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS = 1L;
+    private static final long DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS = 1L;
+    private static final long MOB_RETURN_SEARCH_RETRY_TICKS = 20L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
@@ -188,6 +191,7 @@ public final class DungeonService {
     private final Map<String, UUID> sessionIdByPartyKey = new HashMap<>();
     private final Map<UUID, UUID> dungeonDeathSessionByParticipant = new HashMap<>();
     private final Map<UUID, MobBinding> mobBindings = new HashMap<>();
+    private final Map<UUID, Long> nextMobReturnSearchTick = new HashMap<>();
     private final Map<UUID, DungeonCancelController> cancelControllers = new HashMap<>();
     private final Map<UUID, UUID> sessionIdByCancelInteraction = new HashMap<>();
     private final Map<String, DisplayTextService.ManagedTextDisplay> entryPromptDisplays = new HashMap<>();
@@ -195,7 +199,8 @@ public final class DungeonService {
     private final Set<UUID> loadedArchiveAccounts = new HashSet<>();
     private final Set<UUID> loadingArchiveAccounts = new HashSet<>();
     private BukkitTask entryVisualTask;
-    private BukkitTask bossRoomBoundaryTask;
+    private BukkitTask dungeonMobPositionTask;
+    private long mobPositionTick;
     private long entryVisualFrame;
     private boolean stopping;
 
@@ -593,6 +598,8 @@ public final class DungeonService {
     public void start() {
         requireMainThread();
         stopping = false;
+        mobPositionTick = 0L;
+        nextMobReturnSearchTick.clear();
         Collection<WorldMasterData> worlds = loadedDefinitions.values().stream()
                 .map(LoadedDefinition::instanceWorldData)
                 .distinct()
@@ -608,27 +615,28 @@ public final class DungeonService {
                 1L,
                 ENTRY_VISUAL_PERIOD_TICKS
         );
-        if (bossRoomBoundaryTask != null) {
-            bossRoomBoundaryTask.cancel();
+        if (dungeonMobPositionTask != null) {
+            dungeonMobPositionTask.cancel();
         }
-        bossRoomBoundaryTask = Bukkit.getScheduler().runTaskTimer(
+        dungeonMobPositionTask = Bukkit.getScheduler().runTaskTimer(
                 plugin,
-                this::tickBossRoomBoundaries,
+                this::tickDungeonMobPositions,
                 1L,
-                BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS
+                DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS
         );
     }
 
     /**
-     * ACTIVEなBOSS部屋のボスが部屋の水平範囲から外れていないか確認し、外れていれば生成位置へ戻します。
+     * ACTIVEな部屋のDungeon Mobが部屋の水平範囲外またはブロック内にいないか確認します。
      *
-     * <p>判定はボス実体の現在ブロックの x/z 座標と部屋形状だけを対象とし、Y座標は判定しません。
-     * メインスレッド上で実行し、既存のMobServiceの位置同期と復帰処理を利用します。</p>
+     * <p>ブロックとの重なりは実体の当たり判定とブロックの衝突形状で判定します。
+     * Y座標だけでは部屋外と判定しません。メインスレッド上で実行します。</p>
      */
-    private void tickBossRoomBoundaries() {
+    private void tickDungeonMobPositions() {
         if (stopping || mobBindings.isEmpty()) {
             return;
         }
+        mobPositionTick++;
         for (Map.Entry<UUID, MobBinding> entry : List.copyOf(mobBindings.entrySet())) {
             MobBinding binding = entry.getValue();
             Session session = sessionsById.get(binding.sessionId());
@@ -636,22 +644,164 @@ public final class DungeonService {
                 continue;
             }
             DungeonLayout.Room room = room(session, binding.roomId());
-            if (room.role() != DungeonLayout.RoomRole.BOSS) {
-                continue;
-            }
             MobInstance mob = mobService.getInstance(entry.getKey());
-            if (mob == null || mob.state() == MobState.DEAD || !mobService.syncLocation(mob)) {
-                continue;
+            if (mob != null && mob.state() != MobState.DEAD) {
+                recoverDungeonMobPosition(session, room, mob);
             }
-            Location current = mob.currentLocation();
-            if (current.getWorld() == null
-                    || session.instanceWorld == null
-                    || !current.getWorld().getUID().equals(session.instanceWorld.world().getUID())
-                    || contains(room, current.getBlockX(), current.getBlockZ())) {
-                continue;
-            }
-            mobService.resetPosition(mob, mob.spawnLocation());
         }
+    }
+
+    /**
+     * Dungeon Mobの位置を同期し、部屋外またはブロック内なら安全な位置へ戻します。
+     *
+     * @param session 対象Mobが属するセッション
+     * @param room 対象Mobが属する部屋
+     * @param mob 位置を確認するMob
+     */
+    private void recoverDungeonMobPosition(
+            @NotNull Session session,
+            @NotNull DungeonLayout.Room room,
+            @NotNull MobInstance mob
+    ) {
+        if (!mobService.syncLocation(mob)) {
+            return;
+        }
+        Location current = mob.currentLocation();
+        if (current.getWorld() == null
+                || session.instanceWorld == null
+                || !current.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
+            return;
+        }
+        Entity entity = mobService.entityController().getEntity(mob);
+        if (entity == null) {
+            return;
+        }
+        BoundingBox body = entity.getBoundingBox();
+        if (contains(room, current.getBlockX(), current.getBlockZ())
+                && isMobBodyClear(current.getWorld(), body)) {
+            nextMobReturnSearchTick.remove(mob.instanceId());
+            return;
+        }
+        Long nextSearch = nextMobReturnSearchTick.get(mob.instanceId());
+        if (nextSearch != null && mobPositionTick < nextSearch) {
+            return;
+        }
+        Location destination = findSafeMobReturnLocation(session, room, mob, current, body);
+        if (destination == null) {
+            nextMobReturnSearchTick.put(mob.instanceId(), mobPositionTick + MOB_RETURN_SEARCH_RETRY_TICKS);
+            return;
+        }
+        nextMobReturnSearchTick.remove(mob.instanceId());
+        if (!destination.equals(mob.spawnLocation())) {
+            mob.relocateSpawnAnchor(destination);
+        }
+        mobService.resetPosition(mob, destination);
+    }
+
+    /**
+     * 元のスポーン地点を優先し、塞がれている場合は同じ部屋の安全な地点を探します。
+     *
+     * @param session 対象Mobが属するセッション
+     * @param room 対象Mobが属する部屋
+     * @param mob 戻すMob
+     * @param current 実体の現在位置
+     * @param body 実体の現在の当たり判定
+     * @return 衝突せず床のある帰還先。見つからなければ {@code null}
+     */
+    private @Nullable Location findSafeMobReturnLocation(
+            @NotNull Session session,
+            @NotNull DungeonLayout.Room room,
+            @NotNull MobInstance mob,
+            @NotNull Location current,
+            @NotNull BoundingBox body
+    ) {
+        World world = session.instanceWorld.world();
+        Location spawn = mob.spawnLocation();
+        if (isSafeMobReturnLocation(world, room, spawn, current, body)) {
+            return spawn;
+        }
+        for (DungeonBlockPlan.Position position : session.blockPlan.spawnPointsByRoom()
+                .getOrDefault(room.id(), List.of())) {
+            Location candidate = new Location(world,
+                    position.x() + 0.5D, spawn.getY(), position.z() + 0.5D,
+                    spawn.getYaw(), spawn.getPitch());
+            if (isSafeMobReturnLocation(world, room, candidate, current, body)) {
+                return candidate;
+            }
+        }
+        for (int x = room.bounds().minX() + 1; x < room.bounds().maxX(); x++) {
+            for (int z = room.bounds().minZ() + 1; z < room.bounds().maxZ(); z++) {
+                Location candidate = new Location(world, x + 0.5D, spawn.getY(), z + 0.5D,
+                        spawn.getYaw(), spawn.getPitch());
+                if (isSafeMobReturnLocation(world, room, candidate, current, body)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Mobの足元に床があり、移動後の実体全体がブロックに重ならないか判定します。
+     *
+     * @param world 判定するワールド
+     * @param room 帰還先の部屋
+     * @param candidate 帰還先候補
+     * @param current 実体の現在位置
+     * @param body 実体の現在の当たり判定
+     * @return 安全な候補なら {@code true}
+     */
+    private boolean isSafeMobReturnLocation(
+            @NotNull World world,
+            @NotNull DungeonLayout.Room room,
+            @NotNull Location candidate,
+            @NotNull Location current,
+            @NotNull BoundingBox body
+    ) {
+        if (candidate.getWorld() != world
+                || !contains(room, candidate.getBlockX(), candidate.getBlockZ())
+                || !world.isChunkLoaded(candidate.getBlockX() >> 4, candidate.getBlockZ() >> 4)
+                || world.getBlockAt(candidate).getRelative(BlockFace.DOWN).isPassable()) {
+            return false;
+        }
+        BoundingBox destinationBody = body.clone().shift(
+                candidate.getX() - current.getX(),
+                candidate.getY() - current.getY(),
+                candidate.getZ() - current.getZ());
+        return isMobBodyClear(world, destinationBody);
+    }
+
+    /**
+     * 実体の当たり判定と、交差する全ブロックの衝突形状を照合します。
+     *
+     * @param world 判定するワールド
+     * @param body ワールド座標の実体当たり判定
+     * @return 読み込み済み領域内で衝突がなければ {@code true}
+     */
+    private boolean isMobBodyClear(@NotNull World world, @NotNull BoundingBox body) {
+        int minX = (int) Math.floor(body.getMinX());
+        int maxX = (int) Math.floor(Math.nextDown(body.getMaxX()));
+        int minY = (int) Math.floor(body.getMinY());
+        int maxY = (int) Math.floor(Math.nextDown(body.getMaxY()));
+        int minZ = (int) Math.floor(body.getMinZ());
+        int maxZ = (int) Math.floor(Math.nextDown(body.getMaxZ()));
+        if (minY < world.getMinHeight() || maxY >= world.getMaxHeight()) {
+            return false;
+        }
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                    return false;
+                }
+                for (int y = minY; y <= maxY; y++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (block.getCollisionShape().overlaps(body.clone().shift(-x, -y, -z))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -1686,6 +1836,7 @@ public final class DungeonService {
                 mob.keepWhenUnobserved(true);
                 liveMobs.add(mob.instanceId());
                 mobBindings.put(mob.instanceId(), new MobBinding(session.id, roomId));
+                recoverDungeonMobPosition(session, room, mob);
             }
         }
         message(session.participants, PlayerMsgId.P_7010, room.distanceFromStart() + 1);
@@ -1707,6 +1858,7 @@ public final class DungeonService {
     public void handleMobDefeated(@NotNull UUID mobInstanceId) {
         requireMainThread();
         MobBinding binding = mobBindings.remove(mobInstanceId);
+        nextMobReturnSearchTick.remove(mobInstanceId);
         if (binding == null) {
             return;
         }
@@ -3789,6 +3941,7 @@ public final class DungeonService {
         for (Set<UUID> roomMobs : session.liveMobsByRoom.values()) {
             for (UUID mobId : List.copyOf(roomMobs)) {
                 mobBindings.remove(mobId);
+                nextMobReturnSearchTick.remove(mobId);
                 cleanupSafely(session, "mob:" + mobId, () -> mobService.destroy(mobId));
             }
             roomMobs.clear();
@@ -4081,9 +4234,9 @@ public final class DungeonService {
             entryVisualTask.cancel();
             entryVisualTask = null;
         }
-        if (bossRoomBoundaryTask != null) {
-            bossRoomBoundaryTask.cancel();
-            bossRoomBoundaryTask = null;
+        if (dungeonMobPositionTask != null) {
+            dungeonMobPositionTask.cancel();
+            dungeonMobPositionTask = null;
         }
         clearEntryPromptDisplays();
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
@@ -4102,6 +4255,7 @@ public final class DungeonService {
             for (Set<UUID> roomMobs : session.liveMobsByRoom.values()) {
                 for (UUID mobId : roomMobs) {
                     mobBindings.remove(mobId);
+                    nextMobReturnSearchTick.remove(mobId);
                     cleanupSafely(session, "mob:" + mobId, () -> mobService.destroy(mobId));
                 }
                 roomMobs.clear();
@@ -4142,6 +4296,7 @@ public final class DungeonService {
         sessionIdByPartyKey.clear();
         dungeonDeathSessionByParticipant.clear();
         mobBindings.clear();
+        nextMobReturnSearchTick.clear();
         cancelControllers.clear();
         sessionIdByCancelInteraction.clear();
         cartographBindings.clear();
