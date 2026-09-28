@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2416",
+  "name": "&bミラージュリトリート",
+  "icon": "LIGHT_GRAY_STAINED_GLASS_PANE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_mirage_retreat"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

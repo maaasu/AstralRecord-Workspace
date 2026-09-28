@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2418",
+  "name": "&eリヴェンジアクセル",
+  "icon": "RAISER_ARMOR_TRIM_SMITHING_TEMPLATE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_revenge_accel"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

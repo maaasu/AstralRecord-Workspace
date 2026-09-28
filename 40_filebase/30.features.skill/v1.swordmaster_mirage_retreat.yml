@@ -1,0 +1,64 @@
+# design:
+#   motif: "蜃気楼 / 残る剣影"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_mirage_retreat
+type: SKILL
+implementationId: swordmaster_mirage_retreat
+name: "&bミラージュリトリート"
+description: "&7残像に斬撃を任せ、間合いを取り直す。"
+icon: LIGHT_GRAY_STAINED_GLASS_PANE
+lore:
+  - "&7後方へ最大{skill.range}m退き、元の位置へ残像を残す。"
+  - "&7残像は半径{skill.radius}mを{skill.intervalTicks}tick間隔で{skill.hitCount}回斬る。"
+  - "&7毎回最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7後退できない時は不発。移動中の無敵は付かない。"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.1 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  range: 4
+  radius: 2.8
+  maxTargets: 5
+  damageRatio: 1.35
+  hitCount: 3
+  intervalTicks: 4
+tags:
+  - active
+  - melee
+  - offense

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2415",
+  "name": "&dヴォルテックスエッジ",
+  "icon": "HOPPER",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_vortex_edge"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

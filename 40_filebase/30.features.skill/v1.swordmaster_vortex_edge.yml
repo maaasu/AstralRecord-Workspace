@@ -1,21 +1,21 @@
 # design:
-#   motif: "剣術 / 受け流しの返し刃"
+#   motif: "渦 / 吸い寄せる剣閃"
 #   progression: 2
 schemaVersion: 1
-id: swordmaster_riposte
+id: swordmaster_vortex_edge
 type: SKILL
-implementationId: swordmaster_riposte
-name: "&b返し刃"
-description: "&7受け流した勢いを鋭い一撃へ返す。"
-icon: TINTED_GLASS
+implementationId: swordmaster_vortex_edge
+name: "&dヴォルテックスエッジ"
+description: "&7渦を巻く剣閃で敵を引き寄せる。"
+icon: HOPPER
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気が残っていれば消費し、威力を{skill.riposteMultiplier}倍にする。"
-  - "&7剣気は静寂一閃の反撃成立後に短時間だけ残り、明鏡止水・リヴェンジアクセルと共有する。"
-  - "&7剣気を持たない時も通常の威力で発動できる。"
-cooldownTicks: 140
+  - "&7周囲{skill.radius}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7命中して生き残った敵を、自分の手元へ引き寄せる。"
+  - "&7近すぎる敵は引かず、ノックバック耐性によって引き寄せが弱まる。"
+  - "&7敵をまとめ、旋風剣舞や焔花咲きにつなげる剣技。"
+cooldownTicks: 160
 resourceType: ENERGY
-resourceCost: 26
+resourceCost: 22
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 5
@@ -52,11 +52,11 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 params:
-  range: 5.5
-  angle: 80
+  radius: 5
   maxTargets: 6
-  damageRatio: 4
-  riposteMultiplier: 2
+  damageRatio: 3.2
+  pullStrength: 0.85
+  stopDistance: 1.6
 tags:
   - active
   - melee

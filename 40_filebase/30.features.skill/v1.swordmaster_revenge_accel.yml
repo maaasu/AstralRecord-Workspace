@@ -1,21 +1,22 @@
 # design:
-#   motif: "剣術 / 受け流しの返し刃"
+#   motif: "剣術 / 反撃からの再加速"
 #   progression: 2
 schemaVersion: 1
-id: swordmaster_riposte
+id: swordmaster_revenge_accel
 type: SKILL
-implementationId: swordmaster_riposte
-name: "&b返し刃"
-description: "&7受け流した勢いを鋭い一撃へ返す。"
-icon: TINTED_GLASS
+implementationId: swordmaster_revenge_accel
+name: "&eリヴェンジアクセル"
+description: "&7反撃の勢いを、新たな踏み込みへ変える。"
+icon: RAISER_ARMOR_TRIM_SMITHING_TEMPLATE
 lore:
   - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気が残っていれば消費し、威力を{skill.riposteMultiplier}倍にする。"
-  - "&7剣気は静寂一閃の反撃成立後に短時間だけ残り、明鏡止水・リヴェンジアクセルと共有する。"
-  - "&7剣気を持たない時も通常の威力で発動できる。"
-cooldownTicks: 140
+  - "&7静寂一閃の剣気があれば消費し、威力が{skill.riposteMultiplier}倍になる。"
+  - "&7剣気で強化した一撃が命中すると、疾風抜刀と紅蓮疾駆のクールタイムを解除。"
+  - "&7自身のクールタイムは残り、再使用した突進もリソースを消費する。"
+  - "&7剣気は返し刃・明鏡止水と共有。空振りでは突進を再使用可能にしない。"
+cooldownTicks: 200
 resourceType: ENERGY
-resourceCost: 26
+resourceCost: 24
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 5
@@ -52,11 +53,11 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 params:
-  range: 5.5
-  angle: 80
-  maxTargets: 6
-  damageRatio: 4
-  riposteMultiplier: 2
+  range: 4.5
+  angle: 65
+  maxTargets: 5
+  damageRatio: 2.8
+  riposteMultiplier: 1.5
 tags:
   - active
   - melee

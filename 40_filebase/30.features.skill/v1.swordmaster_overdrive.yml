@@ -1,0 +1,49 @@
+# design:
+#   motif: "機構 / 過負荷の駆動"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_overdrive
+type: SKILL
+implementationId: swordmaster_overdrive
+name: "&cオーバードライブ"
+description: "&7守りを捨て、短い好機へ全力を注ぐ。"
+icon: LAVA_BUCKET
+lore:
+  - "&7{skill.durationTicks:seconds}秒間、自分の与ダメージが{skill.outgoingMultiplier}倍になる。"
+  - "&7その間、自分の被ダメージも{skill.incomingMultiplier}倍になる。"
+  - "&7攻撃する隙を見極めて使う自己強化。固定HPダメージには適用しない。"
+cooldownTicks: 360
+resourceType: ENERGY
+resourceCost: 28
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { outgoingMultiplier: 0.05 } }
+  - { level: 3, paramDeltas: { outgoingMultiplier: 0.05 } }
+  - { level: 4, paramDeltas: { outgoingMultiplier: 0.05 } }
+  - { level: 5, paramDeltas: { outgoingMultiplier: 0.05 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  durationTicks: 80
+  outgoingMultiplier: 1.2
+  incomingMultiplier: 1.15
+tags:
+  - active
+  - support

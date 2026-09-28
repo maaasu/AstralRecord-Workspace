@@ -12,7 +12,7 @@ lore:
   - "&7自分の最大HPの{skill.healHpRatio:percent}%を回復する。"
   - "&7静寂一閃の剣気が残っていれば消費し、最大HPの{skill.riposteHealHpRatio:percent}%を追加回復。"
   - "&7剣気を消費した時はENGを{skill.energyRecovery}回復する。"
-  - "&7剣気は返し刃と共有。回復阻害中は回復しない。"
+  - "&7剣気は返し刃・リヴェンジアクセルと共有。回復阻害中は回復しない。"
 cooldownTicks: 280
 resourceType: MANA
 resourceCost: 10

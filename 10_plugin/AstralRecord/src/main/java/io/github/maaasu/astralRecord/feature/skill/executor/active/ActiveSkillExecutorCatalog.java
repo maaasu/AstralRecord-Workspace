@@ -103,7 +103,7 @@ public final class ActiveSkillExecutorCatalog {
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
-        executors.addAll(SwordmasterSkillExecutorCatalog.create(services, seijakuIssenSkillRuntimeService));
+        executors.addAll(SwordmasterSkillExecutorCatalog.create(services, seijakuIssenSkillRuntimeService, skillService));
         return List.copyOf(executors);
     }
 }

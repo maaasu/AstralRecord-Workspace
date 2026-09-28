@@ -294,7 +294,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ソードマスター専門枝
 
-ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status node、静寂一閃skill node `2402`、未配置の新規skill node `2403`〜`2414` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
+ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status node、静寂一閃skill node `2402`、未配置の新規skill node `2403`〜`2418` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -311,6 +311,10 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `skill-swordmaster-frost-bloom` | `2412` | `skill` / `swordmaster_frost_bloom` | `&b氷華円舞` | `BLUE_ICE` | `offense` |
 | `skill-swordmaster-flame-lotus` | `2413` | `skill` / `swordmaster_flame_lotus` | `&c焔花咲き` | `FIRE_CORAL_FAN` | `offense` |
 | `skill-swordmaster-trinity-edge` | `2414` | `skill` / `swordmaster_trinity_edge` | `&d三煌終刃` | `DRAGON_BREATH` | `offense` |
+| `skill-swordmaster-vortex-edge` | `2415` | `skill` / `swordmaster_vortex_edge` | `&dヴォルテックスエッジ` | `HOPPER` | `offense` |
+| `skill-swordmaster-mirage-retreat` | `2416` | `skill` / `swordmaster_mirage_retreat` | `&bミラージュリトリート` | `LIGHT_GRAY_STAINED_GLASS_PANE` | `offense` |
+| `skill-swordmaster-overdrive` | `2417` | `skill` / `swordmaster_overdrive` | `&cオーバードライブ` | `LAVA_BUCKET` | `offense` |
+| `skill-swordmaster-revenge-accel` | `2418` | `skill` / `swordmaster_revenge_accel` | `&eリヴェンジアクセル` | `RAISER_ARMOR_TRIM_SMITHING_TEMPLATE` | `offense` |
 
 ### 共通剣技パッケージ
 
