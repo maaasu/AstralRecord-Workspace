@@ -109,6 +109,7 @@ public class SkillTreeService {
     static final String NODE_INTERACTION_TAG = "astralrecord:skilltree:node-interaction";
     private static final long SAVE_INTERVAL_TICKS = 20L;
     private static final long FEEDBACK_INTERVAL_TICKS = 5L;
+    private static final int RUNTIME_PLAYER_VIEW_PERIOD_TICKS = 20 * 5;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
     private static final long SAVE_DEBOUNCE_MILLIS = 5_000L;
     private static final int DEFAULT_VIEW_DISTANCE = 27;
@@ -347,6 +348,9 @@ public class SkillTreeService {
     private BukkitTask feedbackTask;
     private BukkitTask runtimeHeartbeatTask;
     private BukkitTask runtimePlayerViewTask;
+    private List<UUID> runtimePlayerViewBatch = List.of();
+    private int runtimePlayerViewBatchIndex;
+    private int runtimePlayerViewTick;
     private SkillTreeVisualizer visualizer;
     private @Nullable ParticleDisplayService particleDisplayService;
     private boolean playerStateSaveInProgress;
@@ -766,7 +770,7 @@ public class SkillTreeService {
         }
         if (runtimePlayerViewTask == null && runtimeRepository.isConfigured()) {
             runtimePlayerViewTask = Bukkit.getScheduler().runTaskTimer(
-                    plugin, this::publishOnlineRuntimePlayerViews, 1L, 20L * 5L
+                    plugin, this::publishOnlineRuntimePlayerViews, 1L, 1L
             );
         }
         refreshAllPlayerVisibility();
@@ -794,6 +798,9 @@ public class SkillTreeService {
             runtimePlayerViewTask.cancel();
             runtimePlayerViewTask = null;
         }
+        runtimePlayerViewBatch = List.of();
+        runtimePlayerViewBatchIndex = 0;
+        runtimePlayerViewTick = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             clearPlayerPresentation(player);
         }
@@ -912,12 +919,17 @@ public class SkillTreeService {
     /** 保存境界でも利用できるデータ評価。Bukkitの位置はメインスレッドで取得済みの値だけを使用する。 */
     private synchronized JsonObject createRuntimePlayerDataView(AstPlayer astPlayer, JsonObject location, boolean online, boolean eligible) {
         SkillTreePlayerState state = state(astPlayer);
+        NodePresentationSnapshot snapshot = createNodePresentationSnapshot(astPlayer);
+        Set<String> inactiveNodeIds = derivedState(astPlayer, state).inactiveUnlockedNodeIds();
+        List<CpSourceOption> cpOptions = runtimeCpSourceOptions(astPlayer, snapshot);
+        long relockGold = availableRelockGold(astPlayer);
         JsonObject view = new JsonObject();
         view.addProperty("accountId", state.accountId().toString());
         view.addProperty("definitionGenerationId", definitionGenerationId);
         view.addProperty("playerStateVersion", state.persistedVersion());
         view.addProperty("playerStateRevision", playerStateRevisions.getOrDefault(state.accountId(), 0L));
-        view.addProperty("evaluationFingerprint", createRuntimeEvaluationFingerprint(astPlayer, state));
+        view.addProperty("evaluationFingerprint", createRuntimeEvaluationFingerprint(
+                astPlayer, state, cpOptions, snapshot.availablePassivePoints(), relockGold));
         view.addProperty("online", online);
         view.addProperty("editorVersion", 2);
         view.addProperty("channelName", ConfigProperties.getInstance().getNetworkChannelName());
@@ -927,18 +939,19 @@ public class SkillTreeService {
         view.add("location", location.deepCopy());
 
         JsonObject points = new JsonObject();
-        points.addProperty("pp", availablePassivePoints(astPlayer));
+        points.addProperty("pp", snapshot.availablePassivePoints());
         points.addProperty("earnedPp", earnedPassivePoints(astPlayer));
-        points.addProperty("spentPp", spentPassivePoints(knownUnlockedNodeIds(state)));
-        points.addProperty("gold", availableRelockGold(astPlayer));
+        points.addProperty("spentPp", spentPassivePoints(snapshot.knownUnlockedNodeIds()));
+        points.addProperty("gold", relockGold);
         JsonArray classPoints = new JsonArray();
-        for (CpSourceOption option : cpSourceOptions(astPlayer)) {
+        for (CpSourceOption option : cpOptions) {
             JsonObject value = new JsonObject();
             value.addProperty("classId", option.classId());
             value.addProperty("className", runtimeClassName(option.classId()));
             value.addProperty("availableCp", option.availablePoints());
             value.addProperty("earnedCp", Math.max(0, option.classLevel() - 1));
-            value.addProperty("spentCp", spentClassPoints(state, option.classId()));
+            value.addProperty("spentCp", snapshot.spentClassPointsByClassId()
+                    .getOrDefault(normalizeClassId(option.classId()), 0));
             classPoints.add(value);
         }
         points.add("classes", classPoints);
@@ -952,7 +965,9 @@ public class SkillTreeService {
         Set<String> visibleNodes = new LinkedHashSet<>();
         for (SkillTreeNodeDefinition node : nodesById.values()) {
             SkillTreePosition position = positionsByNodeId.get(node.nodeId());
-            if (position == null || !isNodeVisible(astPlayer, node)) continue;
+            if (position == null) continue;
+            boolean conditionMet = isNodeUnlockConditionMet(astPlayer, node);
+            if (node.pointType() == SkillTreePointType.CLASS_POINT && !conditionMet) continue;
             visibleNodes.add(node.nodeId());
             JsonObject nodeView = new JsonObject();
             nodeView.addProperty("nodeId", node.nodeId());
@@ -967,13 +982,12 @@ public class SkillTreeService {
             node.lore().forEach(line -> nodeLore.add(ColorCodeUtil.toPlainText(line, "")));
             nodeView.add("lore", nodeLore);
             boolean unlocked = state.isUnlocked(node.nodeId());
-            boolean canUnlock = canUnlockNode(astPlayer, node);
-            boolean canRelock = unlocked && canRelockNode(astPlayer, node) && canAffordRelock(astPlayer);
-            boolean conditionMet = isNodeUnlockConditionMet(astPlayer, node);
-            boolean inactive = unlocked && derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.nodeId());
+            boolean canUnlock = conditionMet && canUnlockNode(snapshot, node);
+            boolean canRelock = unlocked && canRelockNode(state, node, snapshot.knownUnlockedNodeIds(), conditionMet)
+                    && relockGold >= RELOCK_GOLD_COST;
+            boolean inactive = unlocked && inactiveNodeIds.contains(node.nodeId());
             nodeView.addProperty("isUnlocked", unlocked);
-            nodeView.addProperty("isEffectiveUnlocked", activeUnlockedNodeIds(astPlayer, state).contains(node.nodeId()));
-            nodeView.addProperty("isConditionMet", isNodeUnlockConditionMet(astPlayer, node));
+            nodeView.addProperty("isEffectiveUnlocked", snapshot.activeUnlockedNodeIds().contains(node.nodeId()));
             nodeView.addProperty("isConditionMet", conditionMet);
             nodeView.addProperty("stateText", unlocked
                     ? !conditionMet ? "解放済み・条件未達のため無効" : inactive ? "解放済み・ポイント不足のため無効" : "解放済み"
@@ -1018,7 +1032,7 @@ public class SkillTreeService {
             }
             JsonArray cpSources = new JsonArray();
             if (node.pointType() == SkillTreePointType.CLASS_POINT) {
-                for (CpSourceOption option : cpSourceOptions(astPlayer)) {
+                for (CpSourceOption option : cpOptions) {
                     JsonObject source = new JsonObject();
                     source.addProperty("classId", option.classId());
                     source.addProperty("className", runtimeClassName(option.classId()));
@@ -1030,7 +1044,8 @@ public class SkillTreeService {
             if (canUnlock || canRelock) {
                 nodeView.add("blockedReason", com.google.gson.JsonNull.INSTANCE);
             } else {
-                nodeView.addProperty("blockedReason", runtimeBlockedReason(astPlayer, node, unlocked));
+                nodeView.addProperty("blockedReason", runtimeBlockedReason(
+                        node, unlocked, conditionMet, relockGold, snapshot, cpOptions));
             }
             treeNodes.add(nodeView);
         }
@@ -1071,15 +1086,28 @@ public class SkillTreeService {
         });
     }
 
-    /** Bukkit メインスレッドでオンライン状態を再評価し、Web表示用に非同期公開します。 */
+    /** 5秒ごとの対象を100 tickに分散し、Web表示用のビューを公開します。 */
     private void publishOnlineRuntimePlayerViews() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        if (runtimePlayerViewTick == 0) {
+            runtimePlayerViewBatch = Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getUniqueId)
+                    .toList();
+            runtimePlayerViewBatchIndex = 0;
+        }
+        int targetIndex = (int) (((long) runtimePlayerViewBatch.size() * (runtimePlayerViewTick + 1)
+                + RUNTIME_PLAYER_VIEW_PERIOD_TICKS - 1) / RUNTIME_PLAYER_VIEW_PERIOD_TICKS);
+        while (runtimePlayerViewBatchIndex < targetIndex) {
+            UUID playerId = runtimePlayerViewBatch.get(runtimePlayerViewBatchIndex++);
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline()) continue;
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null && isStateReady(astPlayer)) {
                 publishRuntimePlayerViewAsync(astPlayer);
                 pollRuntimeOperationsAsync(astPlayer);
             }
         }
+        runtimePlayerViewTick = (runtimePlayerViewTick + 1) % RUNTIME_PLAYER_VIEW_PERIOD_TICKS;
+        if (runtimePlayerViewTick == 0) runtimePlayerViewBatch = List.of();
     }
 
     /**
@@ -1248,15 +1276,26 @@ public class SkillTreeService {
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreePlayerState state
     ) {
+        return createRuntimeEvaluationFingerprint(astPlayer, state, cpSourceOptions(astPlayer),
+                availablePassivePoints(astPlayer), availableRelockGold(astPlayer));
+    }
+
+    private @NotNull String createRuntimeEvaluationFingerprint(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state,
+            @NotNull List<CpSourceOption> cpOptions,
+            int availablePassivePoints,
+            long relockGold
+    ) {
         StringBuilder canonical = new StringBuilder()
                 .append(definitionGenerationId).append('\n')
                 .append(astPlayer.getAccount().getLevel()).append('\n')
                 .append(astPlayer.getAccount().getHighestLevel()).append('\n')
                 .append(astPlayer.getAccount().getClassId()).append('\n')
                 .append(astPlayer.getAccount().getMode()).append('\n')
-                .append(availablePassivePoints(astPlayer)).append('\n')
-                .append(availableRelockGold(astPlayer)).append('\n');
-        cpSourceOptions(astPlayer).forEach(option -> canonical
+                .append(availablePassivePoints).append('\n')
+                .append(relockGold).append('\n');
+        cpOptions.forEach(option -> canonical
                 .append(option.classId()).append(':')
                 .append(option.classLevel()).append(':')
                 .append(option.availablePoints()).append('\n'));
@@ -1276,21 +1315,24 @@ public class SkillTreeService {
     }
 
     private @NotNull String runtimeBlockedReason(
-            @NotNull AstPlayer astPlayer,
             @NotNull SkillTreeNodeDefinition node,
-            boolean unlocked
+            boolean unlocked,
+            boolean conditionMet,
+            long relockGold,
+            @NotNull NodePresentationSnapshot snapshot,
+            @NotNull List<CpSourceOption> cpOptions
     ) {
         if (unlocked) {
-            return canAffordRelock(astPlayer) ? "RELOCK_DISCONNECTS_TREE" : "INSUFFICIENT_GOLD";
+            return relockGold >= RELOCK_GOLD_COST ? "RELOCK_DISCONNECTS_TREE" : "INSUFFICIENT_GOLD";
         }
-        if (!isNodeUnlockConditionMet(astPlayer, node)) {
+        if (!conditionMet) {
             return "UNLOCK_CONDITION_NOT_MET";
         }
         boolean hasPoints = node.pointType() == SkillTreePointType.CLASS_POINT
                 && requiresCpSourceSelection(node)
-                ? cpSourceOptions(astPlayer).stream()
-                        .anyMatch(option -> hasRequiredPoints(astPlayer, node, option.classId()))
-                : hasRequiredPoints(astPlayer, node, node.pointType() == SkillTreePointType.CLASS_POINT
+                ? cpOptions.stream()
+                        .anyMatch(option -> hasRequiredPoints(snapshot, node, option.classId()))
+                : hasRequiredPoints(snapshot, node, node.pointType() == SkillTreePointType.CLASS_POINT
                         ? node.unlockCondition().classId() : null);
         if (!hasPoints) {
             return "INSUFFICIENT_POINTS";
@@ -1482,6 +1524,30 @@ public class SkillTreeService {
                     playerClassService != null
                             && playerClassService.isMaxClassLevel(classId, progress.getLevel()),
                     availableClassPoints(astPlayer, classId)
+            ));
+        }
+        options.sort(java.util.Comparator.comparing(CpSourceOption::classId));
+        return List.copyOf(options);
+    }
+
+    /** ビューの評価済みCP残高を使い、同じ解放済みノードを再走査しません。 */
+    private @NotNull List<CpSourceOption> runtimeCpSourceOptions(
+            @NotNull AstPlayer astPlayer,
+            @NotNull NodePresentationSnapshot snapshot
+    ) {
+        List<CpSourceOption> options = new ArrayList<>();
+        for (var progress : astPlayer.getAllClassProgresses()) {
+            String classId = progress.getClassId();
+            String displayName = playerClassService == null
+                    ? classId
+                    : playerClassService.getDisplayName(classId);
+            options.add(new CpSourceOption(
+                    classId,
+                    displayName,
+                    Math.max(1, progress.getLevel()),
+                    playerClassService != null
+                            && playerClassService.isMaxClassLevel(classId, progress.getLevel()),
+                    snapshot.availableClassPointsByClassId().getOrDefault(normalizeClassId(classId), 0)
             ));
         }
         options.sort(java.util.Comparator.comparing(CpSourceOption::classId));
@@ -1953,7 +2019,15 @@ public class SkillTreeService {
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreePlayerState state
     ) {
-        Set<String> activeNodeIds = knownUnlockedNodeIds(state);
+        return activeUnlockedNodeIds(astPlayer, state, knownUnlockedNodeIds(state));
+    }
+
+    private @NotNull Set<String> activeUnlockedNodeIds(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state,
+            @NotNull Set<String> knownNodeIds
+    ) {
+        Set<String> activeNodeIds = new LinkedHashSet<>(knownNodeIds);
 
         List<String> passiveNodeIds = activeNodeIds.stream()
                 .filter(nodeId -> nodesById.get(nodeId).pointType() == SkillTreePointType.PASSIVE_POINT)
@@ -1970,7 +2044,7 @@ public class SkillTreeService {
 
         Map<String, List<String>> classNodeIds = new LinkedHashMap<>();
         Map<String, Integer> classSpent = new LinkedHashMap<>();
-        for (String nodeId : knownUnlockedNodeIds(state)) {
+        for (String nodeId : knownNodeIds) {
             SkillTreeNodeDefinition node = nodesById.get(nodeId);
             if (node.pointType() != SkillTreePointType.CLASS_POINT || node.pointCost() <= 0) {
                 continue;
@@ -2800,11 +2874,20 @@ public class SkillTreeService {
 
     public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        if (!state.isUnlocked(node.nodeId()) || !isNodeUnlockConditionMet(astPlayer, node)) {
+        return canRelockNode(state, node, knownUnlockedNodeIds(state), isNodeUnlockConditionMet(astPlayer, node));
+    }
+
+    private boolean canRelockNode(
+            @NotNull SkillTreePlayerState state,
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull Set<String> knownUnlockedNodeIds,
+            boolean conditionMet
+    ) {
+        if (!state.isUnlocked(node.nodeId()) || !conditionMet) {
             return false;
         }
 
-        Set<String> remainingUnlocked = knownUnlockedNodeIds(state);
+        Set<String> remainingUnlocked = new LinkedHashSet<>(knownUnlockedNodeIds);
         remainingUnlocked.remove(node.nodeId());
         if (remainingUnlocked.isEmpty()) {
             return true;
@@ -3798,13 +3881,21 @@ public class SkillTreeService {
     @NotNull NodePresentationSnapshot createNodePresentationSnapshot(@NotNull AstPlayer astPlayer) {
         SkillTreePlayerState state = state(astPlayer);
         Set<String> knownUnlockedNodeIds = knownUnlockedNodeIds(state);
-        Set<String> activeUnlockedNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        Set<String> activeUnlockedNodeIds = activeUnlockedNodeIds(astPlayer, state, knownUnlockedNodeIds);
         Set<String> inactiveUnlockedNodeIds = new LinkedHashSet<>(state.unlockedNodeIds());
         inactiveUnlockedNodeIds.removeAll(activeUnlockedNodeIds);
+        Map<String, Integer> spentClassPointsByClassId = new HashMap<>();
+        for (String nodeId : knownUnlockedNodeIds) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node.pointType() != SkillTreePointType.CLASS_POINT || node.pointCost() <= 0) continue;
+            String classId = resolvedConsumedClassId(state.unlockedNode(nodeId), node);
+            if (classId != null) spentClassPointsByClassId.merge(classId, node.pointCost(), Integer::sum);
+        }
         Map<String, Integer> availableClassPointsByClassId = new LinkedHashMap<>();
         for (var progress : astPlayer.getAllClassProgresses()) {
             String classId = normalizeClassId(progress.getClassId());
-            availableClassPointsByClassId.put(classId, availableClassPoints(astPlayer, classId));
+            availableClassPointsByClassId.put(classId, Math.max(0,
+                    earnedClassPoints(astPlayer, classId) - spentClassPointsByClassId.getOrDefault(classId, 0)));
         }
         for (SkillTreeNodeDefinition node : nodesById.values()) {
             String requiredClassId = node.unlockCondition().classId();
@@ -3812,7 +3903,8 @@ public class SkillTreeService {
                 String classId = normalizeClassId(requiredClassId);
                 availableClassPointsByClassId.computeIfAbsent(
                         classId,
-                        ignored -> availableClassPoints(astPlayer, classId)
+                        ignored -> Math.max(0, earnedClassPoints(astPlayer, classId)
+                                - spentClassPointsByClassId.getOrDefault(classId, 0))
                 );
             }
         }
@@ -3820,10 +3912,12 @@ public class SkillTreeService {
                 astPlayer,
                 state,
                 knownUnlockedNodeIds.isEmpty(),
+                Set.copyOf(knownUnlockedNodeIds),
                 Set.copyOf(activeUnlockedNodeIds),
                 Set.copyOf(inactiveUnlockedNodeIds),
-                availablePassivePoints(astPlayer),
-                Map.copyOf(availableClassPointsByClassId)
+                Math.max(0, earnedPassivePoints(astPlayer) - spentPassivePoints(knownUnlockedNodeIds)),
+                Map.copyOf(availableClassPointsByClassId),
+                Map.copyOf(spentClassPointsByClassId)
         );
     }
 
@@ -3954,10 +4048,12 @@ public class SkillTreeService {
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreePlayerState state,
             boolean hasNoKnownUnlockedNodeIds,
+            @NotNull Set<String> knownUnlockedNodeIds,
             @NotNull Set<String> activeUnlockedNodeIds,
             @NotNull Set<String> inactiveUnlockedNodeIds,
             int availablePassivePoints,
-            @NotNull Map<String, Integer> availableClassPointsByClassId
+            @NotNull Map<String, Integer> availableClassPointsByClassId,
+            @NotNull Map<String, Integer> spentClassPointsByClassId
     ) {
     }
 
