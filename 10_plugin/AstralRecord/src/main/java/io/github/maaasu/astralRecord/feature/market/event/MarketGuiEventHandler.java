@@ -92,6 +92,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final Map<UUID, MarketSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, MarketCancelRecovery> cancelRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, MarketListingCreateRecovery> listingCreateRecoveries = new ConcurrentHashMap<>();
+    private final Map<UUID, MarketPurchaseRecovery> purchaseRecoveries = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> webPurchaseAccountsInFlight = ConcurrentHashMap.newKeySet();
     private @Nullable BukkitTask webPurchasePollTask;
     private volatile boolean closing;
@@ -217,6 +218,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
         cancelRecoveries.values().forEach(this::stopCancelRecoveryForShutdown);
         listingCreateRecoveries.values().forEach(this::stopListingCreateRecoveryForShutdown);
+        purchaseRecoveries.values().forEach(this::stopPurchaseRecoveryForShutdown);
         sessions.clear();
     }
 
@@ -1157,60 +1159,247 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        UUID playerId = player.getUniqueId();
         session.busy = true;
         session.screen = MarketScreen.LOADING;
         long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
-        inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
-            PlayerMsgId preflightRejection = purchasePreflightRejection(astPlayer, listing, purchaseQuantity);
-            if (preflightRejection != null) {
-                return PurchaseListingResult.rejected(preflightRejection);
+        inventorySaveCoordinator.prepareExternalOperationAfterSave(accountId)
+            .thenCompose(prepared -> dispatchPreparedPurchase(playerId, astPlayer, listing,
+                purchaseQuantity, prepared))
+            .whenComplete((result, throwable) -> finishPurchaseOnMainThread(
+                playerId, session, requestVersion, result, throwable));
+    }
+
+    /** prepared取得が即時完了しても購入HTTPをBukkit main threadへ戻さない。 */
+    private @NotNull CompletableFuture<PurchaseListingResult> dispatchPreparedPurchase(
+        @NotNull UUID playerId, @NotNull AstPlayer astPlayer, @NotNull MarketListing listing,
+        long purchaseQuantity, @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+    ) {
+        CompletableFuture<PurchaseListingResult> dispatched = new CompletableFuture<>();
+        AtomicBoolean started = new AtomicBoolean();
+        try {
+            cancelRecoveryExecutor.execute(() -> {
+                started.set(true);
+                try {
+                    beginPreparedPurchase(playerId, astPlayer, listing, purchaseQuantity, prepared)
+                        .whenComplete((result, failure) -> {
+                            if (failure != null) dispatched.completeExceptionally(failure);
+                            else dispatched.complete(result);
+                        });
+                } catch (RuntimeException unexpected) {
+                    dispatched.completeExceptionally(unexpected);
+                }
+            });
+        } catch (RuntimeException schedulingFailure) {
+            if (!started.get()) inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+            dispatched.completeExceptionally(schedulingFailure);
+        }
+        return dispatched;
+    }
+
+    /** 事前保存済み境界で購入前検証を行い、固定した要求と回復状態を作成します。 */
+    private @NotNull CompletableFuture<PurchaseListingResult> beginPreparedPurchase(
+        @NotNull UUID playerId,
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketListing listing,
+        long purchaseQuantity,
+        @NotNull InventorySaveCoordinator.PreparedExternalOperation prepared
+    ) {
+        final MarketPurchaseRecovery recovery;
+        try {
+            if (closing) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.failedFuture(new IllegalStateException("Market purchase is stopping"));
             }
+            PlayerMsgId rejection = purchasePreflightRejection(astPlayer, listing, purchaseQuantity);
+            if (rejection != null) {
+                inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+                return CompletableFuture.completedFuture(PurchaseListingResult.rejected(rejection));
+            }
+            UUID operationId = UUID.randomUUID();
+            UUID accountId = astPlayer.getAccount().getUuid();
             MarketPurchaseRequest request = new MarketPurchaseRequest(
-                accountId,
-                purchaseQuantity,
-                UUID.randomUUID().toString(),
-                accountId
-            );
-            MarketTransaction transaction = purchaseWithReplay(listing.listingId(), request);
-            inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
-                astPlayer,
-                transaction.affectedInventoryEntryIds(),
-                baseline
-            );
-            return PurchaseListingResult.completed(transaction);
-        }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
-            refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session, requestVersion)) {
-                return;
+                accountId, purchaseQuantity, operationId.toString(), accountId);
+            recovery = new MarketPurchaseRecovery(
+                operationId, playerId, astPlayer, listing.listingId(), request, prepared);
+        } catch (RuntimeException failure) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(prepared);
+            return CompletableFuture.failedFuture(failure);
+        }
+        purchaseRecoveries.put(recovery.operationId(), recovery);
+        attemptPurchaseRecovery(recovery);
+        return recovery.completion();
+    }
+
+    /** 同一要求のreceipt取得と、同一prepared handleでの再同期・後保存を試みます。 */
+    private void attemptPurchaseRecovery(@NotNull MarketPurchaseRecovery recovery) {
+        if (closing) {
+            stopPurchaseRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!purchaseRecoveries.containsKey(recovery.operationId()) || !recovery.beginAttempt()) return;
+
+        final MarketTransaction transaction;
+        try {
+            transaction = recovery.state().resolve(() -> marketService.purchase(
+                recovery.listingId(), recovery.request()));
+        } catch (MarketRequestRejectedException rejected) {
+            recovery.finishAttempt();
+            if (recovery.state().canAbandonOnRejection()) {
+                rejectPurchaseRecovery(recovery, rejected);
+            } else {
+                schedulePurchaseRecovery(recovery, rejected);
             }
-            session.busy = false;
-            if (throwable != null) {
-                sendMarketFailure(player, throwable);
+            return;
+        } catch (RuntimeException unresolved) {
+            recovery.finishAttempt();
+            schedulePurchaseRecovery(recovery, unresolved);
+            return;
+        }
+
+        try {
+            inventorySaveCoordinator.completePreparedExternalOperation(recovery.prepared(), baseline -> {
+                inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+                    recovery.astPlayer(), transaction.affectedInventoryEntryIds(), baseline);
+                return PurchaseListingResult.completed(transaction);
+            }).whenComplete((result, throwable) -> {
+                recovery.finishAttempt();
+                if (throwable != null) {
+                    schedulePurchaseRecovery(recovery, throwable);
+                } else if (purchaseRecoveries.remove(recovery.operationId(), recovery)) {
+                    recovery.completion().complete(result);
+                }
+            });
+        } catch (RuntimeException completionFailure) {
+            recovery.finishAttempt();
+            schedulePurchaseRecovery(recovery, completionFailure);
+        }
+    }
+
+    /** 未確定の購入を保持したまま遅延再試行します。 */
+    private void schedulePurchaseRecovery(@NotNull MarketPurchaseRecovery recovery, @NotNull Throwable failure) {
+        if (closing) {
+            stopPurchaseRecoveryForShutdown(recovery);
+            return;
+        }
+        if (!purchaseRecoveries.containsKey(recovery.operationId())) return;
+        if (recovery.markPendingNotified()) {
+            Logger.log(LogId.E_6320, failure, recovery.playerId(),
+                "purchase-recovery:" + recovery.operationId());
+            notifyPurchaseRecoveryPending(recovery);
+        }
+        if (!recovery.markScheduled()) return;
+        try {
+            cancelRecoveryScheduler.schedule(() -> {
+                recovery.clearScheduled();
+                attemptPurchaseRecovery(recovery);
+            }, recovery.nextDelayTicks());
+        } catch (RuntimeException schedulingFailure) {
+            schedulingFailure.addSuppressed(failure);
+            try {
+                cancelRecoveryExecutor.execute(() -> awaitPurchaseRecoveryFallback(recovery));
+            } catch (RuntimeException executorFailure) {
+                executorFailure.addSuppressed(schedulingFailure);
+                stopUnscheduledPurchaseRecovery(recovery, executorFailure);
+            }
+        }
+    }
+
+    /** Bukkitの遅延taskを登録できなかった場合、退避executorで再試行を待ちます。 */
+    private void awaitPurchaseRecoveryFallback(@NotNull MarketPurchaseRecovery recovery) {
+        long remainingMillis = Math.max(1L, recovery.nextDelayTicks() * 50L);
+        try {
+            while (!closing && purchaseRecoveries.containsKey(recovery.operationId()) && remainingMillis > 0L) {
+                long sleepMillis = Math.min(CANCEL_RECOVERY_FALLBACK_POLL_MILLIS, remainingMillis);
+                TimeUnit.MILLISECONDS.sleep(sleepMillis);
+                remainingMillis -= sleepMillis;
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            stopUnscheduledPurchaseRecovery(recovery, interrupted);
+            return;
+        }
+        recovery.clearScheduled();
+        if (closing) stopPurchaseRecoveryForShutdown(recovery);
+        else attemptPurchaseRecovery(recovery);
+    }
+
+    /** 購入の確定待ちをオンラインの本人へ一度だけ通知します。 */
+    private void notifyPurchaseRecoveryPending(@NotNull MarketPurchaseRecovery recovery) {
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player online = Bukkit.getPlayer(recovery.playerId());
+                if (online != null && online.isOnline()) messageService.send(online, PlayerMsgId.P_6313);
+            });
+        } catch (RuntimeException notificationFailure) {
+            Logger.log(LogId.E_6320, notificationFailure, recovery.playerId(),
+                "purchase-recovery-notification:" + recovery.operationId());
+        }
+    }
+
+    /** 再試行予約自体が失敗した場合も、結果不明の保存境界は維持します。 */
+    private void stopUnscheduledPurchaseRecovery(
+        @NotNull MarketPurchaseRecovery recovery, @NotNull Throwable failure
+    ) {
+        recovery.clearScheduled();
+        if (purchaseRecoveries.remove(recovery.operationId(), recovery)) {
+            Logger.log(LogId.E_6320, failure, recovery.playerId(),
+                "purchase-recovery-unavailable:" + recovery.operationId());
+            recovery.completion().completeExceptionally(failure);
+        }
+    }
+
+    /** 停止時はprocess-localの回復だけ終了し、旧snapshotを防ぐ境界を維持します。 */
+    private void stopPurchaseRecoveryForShutdown(@NotNull MarketPurchaseRecovery recovery) {
+        recovery.clearScheduled();
+        if (purchaseRecoveries.remove(recovery.operationId(), recovery)) {
+            recovery.completion().completeExceptionally(
+                new IllegalStateException("Market purchase recovery stopped: " + recovery.operationId()));
+        }
+    }
+
+    /** 初回の確定拒否を処理し、API未成立のprepared境界を解除します。 */
+    private void rejectPurchaseRecovery(
+        @NotNull MarketPurchaseRecovery recovery, @NotNull MarketRequestRejectedException rejected
+    ) {
+        if (purchaseRecoveries.remove(recovery.operationId(), recovery)) {
+            inventorySaveCoordinator.abandonPreparedExternalOperation(recovery.prepared());
+            recovery.completion().completeExceptionally(rejected);
+        }
+    }
+
+    /** 完了結果を現在のGUI sessionに限ってメインスレッドへ反映します。 */
+    private void finishPurchaseOnMainThread(
+        @NotNull UUID playerId, @NotNull MarketSession session, long requestVersion,
+        @Nullable PurchaseListingResult result, @Nullable Throwable throwable
+    ) {
+        if (closing) return;
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (closing) return;
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null || !player.isOnline()) return;
+                refreshInventoryUiAfterMarketMutation(player, throwable);
+                if (!isCurrentSession(player, session, requestVersion)) return;
+                session.busy = false;
+                if (throwable != null || result == null || result.transaction() == null
+                    && result.rejectionMessage() == null) {
+                    sendMarketFailure(player, throwable != null ? throwable :
+                        new IllegalStateException("Market purchase result was empty"));
+                } else if (result.rejectionMessage() != null) {
+                    messageService.send(player, result.rejectionMessage());
+                    GuiSound.DENY.play(player);
+                } else {
+                    messageService.send(player, PlayerMsgId.P_6302, result.transaction().totalPrice());
+                    GuiSound.SUCCESS.play(player);
+                }
                 openListings(player, false, session.page);
-                return;
-            }
-            if (result == null) {
-                sendMarketFailure(player, new IllegalStateException("Market purchase result was empty"));
-                openListings(player, false, session.page);
-                return;
-            }
-            if (result.rejectionMessage() != null) {
-                messageService.send(player, result.rejectionMessage());
-                GuiSound.DENY.play(player);
-                openListings(player, false, session.page);
-                return;
-            }
-            MarketTransaction transaction = result.transaction();
-            if (transaction == null) {
-                sendMarketFailure(player, new IllegalStateException("Market purchase result was empty"));
-                openListings(player, false, session.page);
-                return;
-            }
-            messageService.send(player, PlayerMsgId.P_6302, transaction.totalPrice());
-            GuiSound.SUCCESS.play(player);
-            openListings(player, false, session.page);
-        }));
+            });
+        } catch (RuntimeException schedulingFailure) {
+            Logger.log(LogId.E_6320, schedulingFailure, playerId,
+                "purchase-completion:" + session.sessionId);
+        }
     }
 
     private void cancelListing(
@@ -1793,7 +1982,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         );
     }
 
-    /** 購入 API の直前に数量・item 解決・所持容量を同一保存 lane で検証します。 */
+    /** 事前保存済みの外部操作境界で、購入APIの直前に数量・item・所持容量を検証します。 */
     private @Nullable PlayerMsgId purchasePreflightRejection(
         @NotNull AstPlayer astPlayer,
         @NotNull MarketListing listing,
@@ -1840,32 +2029,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         } catch (MarketTransportException firstFailure) {
             try {
                 return marketService.claimProceeds(listingId, request);
-            } catch (RuntimeException retryFailure) {
-                retryFailure.addSuppressed(firstFailure);
-                throw retryFailure;
-            }
-        }
-    }
-
-    /**
-     * 応答喪失の可能性がある購入確定を、同じ冪等キーで一度だけ再送します。
-     * <p>
-     * API は確定済み取引の receipt を同じキーで再生するため、二重購入せず
-     * Gold と購入品の再同期対象を取得できます。
-     *
-     * @param listingId 購入対象の出品 ID
-     * @param request 再送時にも同じキーを使う購入リクエスト
-     * @return API が確定した購入結果
-     */
-    private @NotNull MarketTransaction purchaseWithReplay(
-        @NotNull UUID listingId,
-        @NotNull MarketPurchaseRequest request
-    ) {
-        try {
-            return marketService.purchase(listingId, request);
-        } catch (MarketTransportException firstFailure) {
-            try {
-                return marketService.purchase(listingId, request);
             } catch (RuntimeException retryFailure) {
                 retryFailure.addSuppressed(firstFailure);
                 throw retryFailure;
@@ -2170,6 +2333,54 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
         private synchronized long nextDelayTicks() {
             long delay = retryDelayTicks + Math.floorMod(operationId().hashCode(), 11);
+            retryDelayTicks = Math.min(CANCEL_RECOVERY_MAX_DELAY_TICKS, retryDelayTicks * 2L);
+            return delay;
+        }
+    }
+
+    /** 同一購入要求のreceiptと事前保存境界を、再同期・保存完了まで保持します。 */
+    private static final class MarketPurchaseRecovery {
+        private final UUID operationId;
+        private final UUID playerId;
+        private final AstPlayer astPlayer;
+        private final UUID listingId;
+        private final MarketPurchaseRequest request;
+        private final InventorySaveCoordinator.PreparedExternalOperation prepared;
+        private final MarketPurchaseRecoveryState state = new MarketPurchaseRecoveryState();
+        private final CompletableFuture<PurchaseListingResult> completion = new CompletableFuture<>();
+        private final AtomicBoolean attempting = new AtomicBoolean();
+        private final AtomicBoolean scheduled = new AtomicBoolean();
+        private final AtomicBoolean pendingNotified = new AtomicBoolean();
+        private long retryDelayTicks = CANCEL_RECOVERY_INITIAL_DELAY_TICKS;
+
+        private MarketPurchaseRecovery(
+            UUID operationId, UUID playerId, AstPlayer astPlayer, UUID listingId,
+            MarketPurchaseRequest request, InventorySaveCoordinator.PreparedExternalOperation prepared
+        ) {
+            this.operationId = operationId;
+            this.playerId = playerId;
+            this.astPlayer = astPlayer;
+            this.listingId = listingId;
+            this.request = request;
+            this.prepared = prepared;
+        }
+
+        private UUID operationId() { return operationId; }
+        private UUID playerId() { return playerId; }
+        private AstPlayer astPlayer() { return astPlayer; }
+        private UUID listingId() { return listingId; }
+        private MarketPurchaseRequest request() { return request; }
+        private InventorySaveCoordinator.PreparedExternalOperation prepared() { return prepared; }
+        private MarketPurchaseRecoveryState state() { return state; }
+        private CompletableFuture<PurchaseListingResult> completion() { return completion; }
+        private boolean beginAttempt() { return attempting.compareAndSet(false, true); }
+        private void finishAttempt() { attempting.set(false); }
+        private boolean markScheduled() { return scheduled.compareAndSet(false, true); }
+        private void clearScheduled() { scheduled.set(false); }
+        private boolean markPendingNotified() { return pendingNotified.compareAndSet(false, true); }
+
+        private synchronized long nextDelayTicks() {
+            long delay = retryDelayTicks + Math.floorMod(operationId.hashCode(), 11);
             retryDelayTicks = Math.min(CANCEL_RECOVERY_MAX_DELAY_TICKS, retryDelayTicks * 2L);
             return delay;
         }
