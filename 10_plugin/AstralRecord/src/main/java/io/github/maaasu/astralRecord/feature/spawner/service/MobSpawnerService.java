@@ -25,9 +25,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Tag;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -59,9 +57,7 @@ public class MobSpawnerService {
     private static final long TICK_INTERVAL = 20L;
     private static final long SAVE_INTERVAL = 20L * 60L;
     private static final int MAX_PLAYER_SCALE = 6;
-    private static final int SPAWN_LOCATION_ATTEMPTS = 24;
-    private static final int INTERIOR_Y_OFFSET = -3;
-    private static final int REQUIRED_SPAWN_SPACE_BLOCKS = 2;
+    private static final int SPAWN_SEARCH_CHECKS_PER_TICK = 32;
 
     private final Plugin plugin;
     private final MobService mobService;
@@ -75,6 +71,7 @@ public class MobSpawnerService {
     private final Map<String, Integer> regionLevelByName = new HashMap<>();
     private final Map<String, MobSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
+    private final LinkedHashMap<String, SpawnAttempt> pendingSpawns = new LinkedHashMap<>();
 
     private ParticleDisplayService particleDisplayService;
     private BukkitTask task;
@@ -152,6 +149,7 @@ public class MobSpawnerService {
 
         locations.clear();
         spawnedByLocation.clear();
+        pendingSpawns.clear();
         for (MobSpawnerLocation location : snapshot.locations()) {
             locations.put(location.locationKey(), location);
             spawnedByLocation.put(location.locationKey(), new HashSet<>());
@@ -171,7 +169,7 @@ public class MobSpawnerService {
      */
     public void start() {
         if (task == null) {
-            task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_INTERVAL, TICK_INTERVAL);
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
         }
         if (saveTask == null) {
             saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveIfDirty, SAVE_INTERVAL, SAVE_INTERVAL);
@@ -190,6 +188,7 @@ public class MobSpawnerService {
      * スポナー関連タスクを停止し、未保存座標を保存します。
      */
     public void stop() {
+        pendingSpawns.clear();
         if (task != null) {
             task.cancel();
             task = null;
@@ -383,6 +382,7 @@ public class MobSpawnerService {
         String key = MobSpawnerLocation.from("_", location).locationKey();
         boolean removed = locations.remove(key) != null;
         spawnedByLocation.remove(key);
+        pendingSpawns.remove(key);
         if (removed) {
             dirty = true;
         }
@@ -503,13 +503,28 @@ public class MobSpawnerService {
     }
 
     /**
-     * 地域判定と各スポナーのスポーン判定を1秒周期で実行します。
+     * 地域・出現周期は1秒ごとに判定し、待機中の探索を毎 tick 1配置ずつ進めます。
+     * 1 tick の空間判定を32回、Mob生成を最大1体に制限します。
      */
     private void tick() {
-        tick += TICK_INTERVAL;
-        updateNearbyPlayerRegions();
-        for (MobSpawnerLocation spawnerLocation : List.copyOf(locations.values())) {
-            processSpawner(spawnerLocation);
+        tick++;
+        if (tick % TICK_INTERVAL == 0L) {
+            updateNearbyPlayerRegions();
+            for (MobSpawnerLocation location : locations.values()) {
+                MobSpawnerDefinition definition = definitions.get(location.spawnerId());
+                if (definition != null && tick % definition.spawnIntervalTicks() == 0L) {
+                    Location origin = location.toLocation();
+                    if (origin != null && origin.getWorld() != null
+                            && definition.canSpawnAt(origin.getWorld().getTime())
+                            && countNearbyGameplayPlayers(origin, definition.radiusMeters()) > 0) {
+                        pendingSpawns.computeIfAbsent(location.locationKey(), ignored -> new SpawnAttempt(location));
+                    }
+                }
+            }
+        }
+        var pending = pendingSpawns.pollFirstEntry();
+        if (pending != null && processSpawner(pending.getValue())) {
+            pendingSpawns.put(pending.getKey(), pending.getValue());
         }
     }
 
@@ -616,41 +631,66 @@ public class MobSpawnerService {
         return Map.copyOf(levels);
     }
 
-    private void processSpawner(@NotNull MobSpawnerLocation spawnerLocation) {
+    /**
+     * 待機中の配置の条件を再検証し、探索予算分だけ処理します。
+     *
+     * @param attempt 処理する配置と継続中の探索
+     * @return 次の tick 以降も探索を継続する場合は true
+     */
+    private boolean processSpawner(@NotNull SpawnAttempt attempt) {
+        MobSpawnerLocation spawnerLocation = attempt.location;
         MobSpawnerDefinition definition = definitions.get(spawnerLocation.spawnerId());
         Location origin = spawnerLocation.toLocation();
-        if (definition == null || origin == null || origin.getWorld() == null) {
-            return;
+        if (locations.get(spawnerLocation.locationKey()) != spawnerLocation
+                || definition == null || origin == null || origin.getWorld() == null) {
+            return false;
         }
-        if (tick % definition.spawnIntervalTicks() != 0L || !definition.canSpawnAt(origin.getWorld().getTime())) {
+        if (!definition.canSpawnAt(origin.getWorld().getTime())) {
             cleanupTracked(spawnerLocation.locationKey());
-            return;
+            return false;
         }
 
         int nearbyPlayers = countNearbyGameplayPlayers(origin, definition.radiusMeters());
         if (nearbyPlayers <= 0) {
             cleanupTracked(spawnerLocation.locationKey());
-            return;
+            return false;
         }
 
         int desired = definition.desiredAliveCount(Math.min(MAX_PLAYER_SCALE, nearbyPlayers));
         int alive = cleanupTracked(spawnerLocation.locationKey());
         if (alive >= desired || countNearbyMobs(origin, definition.radiusMeters()) >= definition.maxNearbyMobs()) {
-            return;
+            return false;
         }
 
+        if (attempt.search == null || attempt.world != origin.getWorld()) {
+            attempt.world = origin.getWorld();
+            attempt.search = new MobSpawnLocationSearch(origin, definition.radiusMeters(), ThreadLocalRandom.current());
+        }
+        Location spawnLocation = attempt.search.advance(SPAWN_SEARCH_CHECKS_PER_TICK);
+        if (spawnLocation == null) {
+            return !attempt.search.isFinished();
+        }
         MobSpawnerEntry entry = choose(definition.spawnMobs());
         if (entry == null) {
-            return;
-        }
-        Location spawnLocation = randomSpawnLocation(origin, definition.radiusMeters());
-        if (spawnLocation == null) {
-            return;
+            return false;
         }
         MobInstance instance = mobService.spawn(entry.mobId(), entry.level(), spawnLocation);
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());
+        }
+        return false;
+    }
+
+    /** 1配置につき1件だけ保持し、削除・再読込・停止時に破棄するスポーン待機状態です。 */
+    private static final class SpawnAttempt {
+        private final MobSpawnerLocation location;
+        private World world;
+        private MobSpawnLocationSearch search;
+
+        /** 対象配置を固定し、実際の探索は実行順が来てから作成します。 */
+        private SpawnAttempt(MobSpawnerLocation location) {
+            this.location = location;
         }
     }
 
@@ -702,119 +742,6 @@ public class MobSpawnerService {
             }
         }
         return entries.get(entries.size() - 1);
-    }
-
-    @Nullable
-    private Location randomSpawnLocation(@NotNull Location origin, double radius) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        World world = origin.getWorld();
-        if (world == null) {
-            return null;
-        }
-
-        int minInteriorY = Math.max(world.getMinHeight() + 1, origin.getBlockY() + INTERIOR_Y_OFFSET);
-        int maxSpawnY = Math.min(world.getMaxHeight() - REQUIRED_SPAWN_SPACE_BLOCKS, (int) Math.floor(origin.getY() + radius));
-        for (int attempt = 0; attempt < SPAWN_LOCATION_ATTEMPTS; attempt++) {
-            Location horizontalCandidate = randomHorizontalLocation(origin, radius, random);
-            Location interiorLocation = randomInteriorSpawnLocation(horizontalCandidate, minInteriorY, maxSpawnY, random);
-            if (interiorLocation != null) {
-                return interiorLocation;
-            }
-            Location surfaceLocation = surfaceSpawnLocation(horizontalCandidate, maxSpawnY);
-            if (surfaceLocation != null) {
-                return surfaceLocation;
-            }
-        }
-
-        Location surfaceLocation = surfaceSpawnLocation(origin, maxSpawnY);
-        if (surfaceLocation != null) {
-            return surfaceLocation;
-        }
-        return null;
-    }
-
-    @NotNull
-    private Location randomHorizontalLocation(
-            @NotNull Location origin,
-            double radius,
-            @NotNull ThreadLocalRandom random
-    ) {
-        double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
-        double distance = Math.sqrt(random.nextDouble()) * radius;
-        return origin.clone().add(Math.cos(angle) * distance, 0.0D, Math.sin(angle) * distance);
-    }
-
-    @Nullable
-    private Location randomInteriorSpawnLocation(
-            @NotNull Location horizontalCandidate,
-            int minInteriorY,
-            int maxSpawnY,
-            @NotNull ThreadLocalRandom random
-    ) {
-        if (minInteriorY > maxSpawnY) {
-            return null;
-        }
-
-        int yCount = maxSpawnY - minInteriorY + 1;
-        int startOffset = random.nextInt(yCount);
-        for (int offset = 0; offset < yCount; offset++) {
-            int y = minInteriorY + ((startOffset + offset) % yCount);
-            Location candidate = horizontalCandidate.clone();
-            candidate.setY(y);
-            if (isSpawnSpace(candidate)) {
-                return blockCenter(candidate);
-            }
-        }
-        return null;
-    }
-
-    @Nullable
-    private Location surfaceSpawnLocation(@NotNull Location horizontalCandidate, int maxSpawnY) {
-        World world = horizontalCandidate.getWorld();
-        if (world == null) {
-            return null;
-        }
-
-        int spawnY = world.getHighestBlockYAt(horizontalCandidate) + 1;
-        if (spawnY > maxSpawnY) {
-            return null;
-        }
-        Location candidate = horizontalCandidate.clone();
-        candidate.setY(spawnY);
-        return isSpawnSpace(candidate) ? blockCenter(candidate) : null;
-    }
-
-    static boolean isSpawnSpace(@NotNull Location location) {
-        World world = location.getWorld();
-        if (world == null) {
-            return false;
-        }
-
-        int x = location.getBlockX();
-        int y = location.getBlockY();
-        int z = location.getBlockZ();
-        if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) {
-            return false;
-        }
-        Block ground = world.getBlockAt(x, y - 1, z);
-        Block feet = world.getBlockAt(x, y, z);
-        Block head = world.getBlockAt(x, y + 1, z);
-        return !Tag.LEAVES.isTagged(ground.getType())
-                && ground.getType().isSolid()
-                && feet.isPassable()
-                && !feet.isLiquid()
-                && head.isPassable()
-                && !head.isLiquid();
-    }
-
-    @NotNull
-    private Location blockCenter(@NotNull Location location) {
-        return new Location(
-                location.getWorld(),
-                location.getBlockX() + 0.5D,
-                location.getBlockY(),
-                location.getBlockZ() + 0.5D
-        );
     }
 
     private void saveIfDirty() {
