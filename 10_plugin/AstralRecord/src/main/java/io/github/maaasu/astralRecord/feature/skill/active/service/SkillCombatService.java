@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
@@ -32,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * 発動スキルから custom combat と状態異常へ接続する共通サービスです。
@@ -43,6 +45,8 @@ public final class SkillCombatService {
     private final MobKnockbackService knockbackService;
     private final StatusService statusService;
     private final MobTauntService tauntService;
+    @Nullable
+    private final SkillAttackWear attackWear;
     @Nullable
     private SkillHitListener skillHitListener;
 
@@ -71,11 +75,50 @@ public final class SkillCombatService {
             @NotNull StatusService statusService,
             MobTauntService tauntService
     ) {
+        this(damageService, conditionService, knockbackService, statusService, tauntService, null);
+    }
+
+    private SkillCombatService(
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService,
+            @NotNull MobKnockbackService knockbackService,
+            @NotNull StatusService statusService,
+            @Nullable MobTauntService tauntService,
+            @Nullable SkillAttackWear attackWear
+    ) {
         this.damageService = damageService;
         this.conditionService = conditionService;
         this.knockbackService = knockbackService;
         this.statusService = statusService;
         this.tauntService = tauntService;
+        this.attackWear = attackWear;
+    }
+
+    /**
+     * 1回の発動に専用の攻撃側耐久判定を割り当てます。
+     *
+     * @return 発動単位の戦闘サービス
+     */
+    public @NotNull SkillCombatService forCast() {
+        return forAttackWear(new SkillAttackWear());
+    }
+
+    /**
+     * 派生攻撃へ発動元の攻撃側耐久判定を引き継ぎます。
+     *
+     * @param wear 発動元の耐久判定状態
+     * @return 同じ状態を使う戦闘サービス
+     */
+    public @NotNull SkillCombatService forAttackWear(@NotNull SkillAttackWear wear) {
+        SkillCombatService scoped = new SkillCombatService(
+                damageService, conditionService, knockbackService, statusService, tauntService, wear
+        );
+        scoped.skillHitListener = skillHitListener;
+        return scoped;
+    }
+
+    private @NotNull DamageResult applyHit(@NotNull Supplier<DamageResult> action) {
+        return attackWear == null ? action.get() : damageService.withSkillAttackWear(attackWear, action);
     }
 
     /**
@@ -202,7 +245,9 @@ public final class SkillCombatService {
             @NotNull List<DamageComponent> components,
             @NotNull ActiveSkillCondition... conditions
     ) {
-        DamageResult result = damageService.attack(attacker, target, attackType, components, DamageSource.SKILL);
+        DamageResult result = applyHit(() -> damageService.attack(
+                attacker, target, attackType, components, DamageSource.SKILL
+        ));
         if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
             Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, attackType, condition));
         }
@@ -228,7 +273,7 @@ public final class SkillCombatService {
             double ratio,
             double shieldBreakMultiplier
     ) {
-        return damageService.attack(
+        return applyHit(() -> damageService.attack(
                 attacker,
                 target,
                 attackType,
@@ -236,7 +281,7 @@ public final class SkillCombatService {
                 DamageSource.SKILL,
                 1.0D,
                 shieldBreakMultiplier
-        );
+        ));
     }
 
     /**
@@ -261,7 +306,7 @@ public final class SkillCombatService {
             double shieldBreakMultiplier,
             double superStarCriticalChance
     ) {
-        return damageService.attackWithSuperStarCriticalChance(
+        return applyHit(() -> damageService.attackWithSuperStarCriticalChance(
                 attacker,
                 target,
                 attackType,
@@ -270,7 +315,7 @@ public final class SkillCombatService {
                 1.0D,
                 shieldBreakMultiplier,
                 superStarCriticalChance
-        );
+        ));
     }
 
     /**
@@ -292,14 +337,14 @@ public final class SkillCombatService {
             double ratio,
             double shieldBreakRatio
     ) {
-        return damageService.attackWithShieldBreakRatio(
+        return applyHit(() -> damageService.attackWithShieldBreakRatio(
                 attacker,
                 target,
                 attackType,
                 List.of(new DamageComponent(element, ratio)),
                 DamageSource.SKILL,
                 shieldBreakRatio
-        );
+        ));
     }
 
     /**
@@ -322,14 +367,14 @@ public final class SkillCombatService {
             @NotNull DamageElement element,
             double ratio
     ) {
-        return damageService.attackWithResolvedAttackPower(
+        return applyHit(() -> damageService.attackWithResolvedAttackPower(
                 attacker,
                 target,
                 attackType,
                 List.of(new DamageComponent(element, ratio)),
                 DamageSource.SKILL,
                 resolvedAttackPower
-        );
+        ));
     }
 
     /**
@@ -550,7 +595,7 @@ public final class SkillCombatService {
             @NotNull DamageResult result
     ) {
         if (skillHitListener != null) {
-            skillHitListener.onSkillHit(skill, attacker, target, result);
+            skillHitListener.onSkillHit(skill, attacker, target, result, attackWear);
         }
     }
 }

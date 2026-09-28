@@ -2,8 +2,10 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** スキル定義を伴う命中結果を受け取る listener です。 */
 @FunctionalInterface
@@ -16,11 +18,13 @@ public interface SkillHitListener {
      * @param attacker 攻撃者
      * @param target 命中対象
      * @param result 共通ダメージ処理の結果
+     * @param attackWear 発動元と派生攻撃で共有する攻撃側耐久判定。発動外なら null
      */
     void onSkillHit(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
             @NotNull AstEntity target,
-            @NotNull DamageResult result
+            @NotNull DamageResult result,
+            @Nullable SkillAttackWear attackWear
     );
 }

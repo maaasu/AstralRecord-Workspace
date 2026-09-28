@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
@@ -85,12 +86,14 @@ public final class PaladinDivineChaserRuntimeService {
      * @param attacker 攻撃者
      * @param target 命中対象
      * @param result 主攻撃の結果
+     * @param attackWear 発動元と共有する攻撃側耐久判定
      */
     public void onSkillHit(
             @NotNull SkillDefinition sourceSkill,
             @NotNull AstEntity attacker,
             @NotNull AstEntity target,
-            @NotNull DamageResult result
+            @NotNull DamageResult result,
+            @Nullable SkillAttackWear attackWear
     ) {
         if (!hasHolyKnightTag(sourceSkill)
                 || result.evaded()
@@ -162,7 +165,9 @@ public final class PaladinDivineChaserRuntimeService {
                 targetId,
                 direction,
                 projectile,
-                (hit, ignored) -> combatService.hitWithResolvedAttackPower(
+                (hit, ignored) -> (attackWear == null
+                        ? combatService
+                        : combatService.forAttackWear(attackWear)).hitWithResolvedAttackPower(
                         followUpAttacker,
                         hit,
                         AttackType.MELEE,

@@ -26,4 +26,15 @@ public record ActiveSkillServices(
         @NotNull ElementalPrismRuntimeService prisms,
         @NotNull SkillMagicCircleRegistry circles
 ) {
+    /**
+     * 1回の発動に専用の攻撃側耐久判定を持つサービス群を返します。
+     *
+     * @return 発動単位の戦闘サービスを含むサービス群
+     */
+    public @NotNull ActiveSkillServices forCast() {
+        return new ActiveSkillServices(
+                targeting, combat.forCast(), effects, projectiles, movement,
+                temporaryEffects, tasks, prisms, circles
+        );
+    }
 }

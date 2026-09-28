@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
@@ -70,6 +71,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * custom combat のダメージ適用を一元化するサービスです。
@@ -95,6 +97,7 @@ public final class DamageService {
     private DungeonService dungeonService;
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private final ThreadLocal<SkillAttackWear> skillAttackWear = new ThreadLocal<>();
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
@@ -289,6 +292,28 @@ public final class DamageService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 1回のスキル命中処理だけ、発動単位の攻撃側耐久判定を適用します。
+     * 遅延攻撃は同じ状態を渡して、このメソッドを命中時に再度呼び出します。
+     *
+     * @param wear 発動と派生攻撃で共有する状態
+     * @param action 命中処理
+     * @return 命中処理の結果
+     */
+    public <T> T withSkillAttackWear(@NotNull SkillAttackWear wear, @NotNull Supplier<T> action) {
+        SkillAttackWear previous = skillAttackWear.get();
+        skillAttackWear.set(wear);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) {
+                skillAttackWear.remove();
+            } else {
+                skillAttackWear.set(previous);
+            }
+        }
     }
 
     /**
@@ -1407,7 +1432,11 @@ public final class DamageService {
         if (equipmentDurabilityService == null) {
             return;
         }
-        equipmentDurabilityService.consumeOnAttackHit(attacker, result);
+        SkillAttackWear wear = skillAttackWear.get();
+        if (wear == null || (attacker != null && attacker.isPlayer()
+                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D) && wear.claim())) {
+            equipmentDurabilityService.consumeOnAttackHit(attacker, result);
+        }
         equipmentDurabilityService.consumeOnDamageTaken(victim, result);
     }
 
