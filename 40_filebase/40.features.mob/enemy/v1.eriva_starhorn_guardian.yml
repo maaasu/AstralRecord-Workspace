@@ -1,0 +1,63 @@
+# design:
+#   motif: "天体 / 星角"
+#   progression: 15
+schemaVersion: 1
+id: eriva_starhorn_guardian
+type: MOB
+category: ENEMY
+name: "&a星角の森守"
+level: 15
+entityType: GOAT
+icon: GOAT_HORN
+lore:
+  - "&7樹冠からこぼれる光を角に宿す、森の番人。"
+  - "&7足元に光の輪を刻み、遅れて根の魔力を噴き上げる。"
+tags:
+  - forest
+  - beast
+  - melee
+  - magic
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 4400
+  - status: ATTACK
+    value: 760
+  - status: MAGIC_ATTACK
+    value: 37
+  - status: DEFENSE
+    value: 767
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+    skills:
+      - id: mob_eriva_starhorn_grove_circle
+        activationRange: 9
+        cooldownTicks: 100
+        castTimeTicks: 20
+        params:
+          radius: 2.5
+          damageRatio: 0.8
+
+drops:
+  exp: 140

@@ -1,0 +1,63 @@
+# design:
+#   motif: "動物 / 森のクモ"
+#   progression: 15
+schemaVersion: 1
+id: eriva_underbrush_spider
+type: MOB
+category: ENEMY
+name: "&2下草の狩人"
+level: 15
+entityType: SPIDER
+icon: SPIDER_SPAWN_EGG
+lore:
+  - "&7深い下草に巣を張る、エリヴァ大森林の捕食者。"
+  - "&7糸弾で獲物を衰弱させ、距離を取りながら追い詰める。"
+tags:
+  - forest
+  - beast
+  - spider
+  - ranged
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 3520
+  - status: ATTACK
+    value: 650
+  - status: RANGED_ATTACK
+    value: 147
+  - status: DEFENSE
+    value: 614
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 7
+    skills:
+      - id: mob_forest_spider_web_shot
+        activationRange: 9
+        cooldownTicks: 50
+        castTimeTicks: 12
+        params:
+          damageRatio: 0.8
+          projectileSpeed: 0.9
+          projectileHitRadius: 0.25
+          weaknessChance: 20.0
+          weaknessDurationTicks: 80.0
+
+drops:
+  exp: 140

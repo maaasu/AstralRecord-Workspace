@@ -1,0 +1,28 @@
+# design:
+#   motif: "地形 / 大森林"
+#   progression: 15
+schemaVersion: 1
+id: eriva_great_forest_spawner
+type: MOB_SPAWNER
+region: "エリヴァ大森林"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:eriva_starhorn_guardian
+    level: 15
+    weight: 55
+  - mobId: mob:eriva_underbrush_spider
+    level: 15
+    weight: 45
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

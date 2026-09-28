@@ -386,6 +386,28 @@ public final class SharedParticleDefinitions {
             0.08D,
             0.0D
         );
+    public static final SharedParticleDefinition MOB_ERIVA_STARHORN_WARNING =
+        new SharedParticleDefinition(
+            "mob_eriva_starhorn_warning",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(153, 224, 124), 1.05F)
+        );
+    public static final SharedParticleDefinition MOB_ERIVA_STARHORN_BLOOM =
+        new SharedParticleDefinition(
+            "mob_eriva_starhorn_bloom",
+            Particle.DUST,
+            2,
+            0.07D,
+            0.12D,
+            0.07D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(242, 220, 128), 1.4F)
+        );
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",
