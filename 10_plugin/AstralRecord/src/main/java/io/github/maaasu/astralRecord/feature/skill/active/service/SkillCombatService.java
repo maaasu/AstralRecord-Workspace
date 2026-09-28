@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -97,10 +98,11 @@ public final class SkillCombatService {
     /**
      * 1回の発動に専用の攻撃側耐久判定を割り当てます。
      *
+     * @param ownerId 発動者 ID
      * @return 発動単位の戦闘サービス
      */
-    public @NotNull SkillCombatService forCast() {
-        return forAttackWear(new SkillAttackWear());
+    public @NotNull SkillCombatService forCast(@NotNull UUID ownerId) {
+        return forAttackWear(new SkillAttackWear(ownerId));
     }
 
     /**
@@ -118,7 +120,7 @@ public final class SkillCombatService {
     }
 
     private @NotNull DamageResult applyHit(@NotNull Supplier<DamageResult> action) {
-        return attackWear == null ? action.get() : damageService.withSkillAttackWear(attackWear, action);
+        return damageService.withSkillAttackWear(attackWear, action);
     }
 
     /**

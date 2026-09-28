@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import org.jetbrains.annotations.NotNull;
+import java.util.UUID;
 
 /**
  * 個別発動スキルへ渡す共有サービス群です。
@@ -29,11 +30,12 @@ public record ActiveSkillServices(
     /**
      * 1回の発動に専用の攻撃側耐久判定を持つサービス群を返します。
      *
+     * @param ownerId 発動者 ID
      * @return 発動単位の戦闘サービスを含むサービス群
      */
-    public @NotNull ActiveSkillServices forCast() {
+    public @NotNull ActiveSkillServices forCast(@NotNull UUID ownerId) {
         return new ActiveSkillServices(
-                targeting, combat.forCast(), effects, projectiles, movement,
+                targeting, combat.forCast(ownerId), effects, projectiles, movement,
                 temporaryEffects, tasks, prisms, circles
         );
     }

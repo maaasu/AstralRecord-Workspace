@@ -298,13 +298,17 @@ public final class DamageService {
      * 1回のスキル命中処理だけ、発動単位の攻撃側耐久判定を適用します。
      * 遅延攻撃は同じ状態を渡して、このメソッドを命中時に再度呼び出します。
      *
-     * @param wear 発動と派生攻撃で共有する状態
+     * @param wear 発動と派生攻撃で共有する状態。発動外は null
      * @param action 命中処理
      * @return 命中処理の結果
      */
-    public <T> T withSkillAttackWear(@NotNull SkillAttackWear wear, @NotNull Supplier<T> action) {
+    public <T> T withSkillAttackWear(@Nullable SkillAttackWear wear, @NotNull Supplier<T> action) {
         SkillAttackWear previous = skillAttackWear.get();
-        skillAttackWear.set(wear);
+        if (wear == null) {
+            skillAttackWear.remove();
+        } else {
+            skillAttackWear.set(wear);
+        }
         try {
             return action.get();
         } finally {
@@ -1433,8 +1437,8 @@ public final class DamageService {
             return;
         }
         SkillAttackWear wear = skillAttackWear.get();
-        if (wear == null || (attacker != null && attacker.isPlayer()
-                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D) && wear.claim())) {
+        if (wear == null || attacker == null || !attacker.isPlayer() || !wear.belongsTo(attacker.id())
+                || ((result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D) && wear.claim())) {
             equipmentDurabilityService.consumeOnAttackHit(attacker, result);
         }
         equipmentDurabilityService.consumeOnDamageTaken(victim, result);
