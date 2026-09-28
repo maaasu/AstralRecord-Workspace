@@ -202,6 +202,9 @@ public final class ItemWeaponAttackService {
         String skillId = attack.skillId();
         long cooldownTicks = attack.cooldownTicks();
         var caster = new PlayerSkillCaster(player);
+        if (seijakuIssenSkillRuntimeService != null && !player.getBukkit().isSneaking()) {
+            seijakuIssenSkillRuntimeService.finishForNormalAttack(player);
+        }
         if (cooldownTicks > 0 && skillService.isOnCooldown(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID)) {
             return SkillCastResult.failure(null);
         }
@@ -210,6 +213,7 @@ public final class ItemWeaponAttackService {
                 normalAttackDegradationService == null ? null : normalAttackDegradationService.beginNormalAttack(player);
         boolean counterAttack = MasterTagIds.Equipment.SWORD.equalsIgnoreCase(equipment.getTag())
                 && seijakuIssenSkillRuntimeService != null
+                && player.getBukkit().isSneaking()
                 && seijakuIssenSkillRuntimeService.isActive(player);
         SkillCastResult result;
         if (counterAttack) {

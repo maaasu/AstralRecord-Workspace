@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2412",
+  "name": "&b氷華円舞",
+  "icon": "BLUE_ICE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_frost_bloom"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

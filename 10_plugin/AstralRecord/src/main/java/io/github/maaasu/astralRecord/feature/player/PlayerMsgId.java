@@ -1824,6 +1824,8 @@ public enum PlayerMsgId {
     P_7614(7614),
     /** Web操作のAPI確定拒否。 */
     P_7615(7615),
+    /** 静寂一閃の構え残り時間。 */
+    P_7616(7616),
     ;
 
     private final String id;

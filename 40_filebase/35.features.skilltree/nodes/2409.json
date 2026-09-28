@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2409",
+  "name": "&b返し刃",
+  "icon": "TINTED_GLASS",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_riposte"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

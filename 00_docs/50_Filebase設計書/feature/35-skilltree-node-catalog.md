@@ -294,11 +294,23 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ソードマスター専門枝
 
-ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status nodeと未配置の静寂一閃skill node `2402` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
+ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status node、静寂一閃skill node `2402`、未配置の新規skill node `2403`〜`2414` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
 | `skill-swordmaster-seijaku-issen` | `2402` | `skill` / `swordmaster_seijaku_issen` | `&b静寂一閃` | `DIAMOND_SWORD` | `offense`, `defense` |
+| `skill-swordmaster-gale-reaper` | `2403` | `skill` / `swordmaster_gale_reaper` | `&b疾風抜刀` | `NETHERITE_HOE` | `offense` |
+| `skill-swordmaster-crimson-drive` | `2404` | `skill` / `swordmaster_crimson_drive` | `&c紅蓮疾駆` | `FLINT_AND_STEEL` | `offense` |
+| `skill-swordmaster-blade-tempest` | `2405` | `skill` / `swordmaster_blade_tempest` | `&f旋風剣舞` | `STONECUTTER` | `offense` |
+| `skill-swordmaster-star-cleave` | `2406` | `skill` / `swordmaster_star_cleave` | `&e星砕き` | `GOLDEN_HOE` | `offense` |
+| `skill-swordmaster-crescent-duet` | `2407` | `skill` / `swordmaster_crescent_duet` | `&d月影双斬` | `SOUL_TORCH` | `offense` |
+| `skill-swordmaster-heartseeker` | `2408` | `skill` / `swordmaster_heartseeker` | `&6断命剣` | `IRON_BARS` | `offense` |
+| `skill-swordmaster-riposte` | `2409` | `skill` / `swordmaster_riposte` | `&b返し刃` | `TINTED_GLASS` | `offense` |
+| `skill-swordmaster-serene-mend` | `2410` | `skill` / `swordmaster_serene_mend` | `&a明鏡止水` | `CHORUS_FLOWER` | `resource`, `health` |
+| `skill-swordmaster-thunder-line` | `2411` | `skill` / `swordmaster_thunder_line` | `&e雷鳴一文字` | `REDSTONE_TORCH` | `offense` |
+| `skill-swordmaster-frost-bloom` | `2412` | `skill` / `swordmaster_frost_bloom` | `&b氷華円舞` | `BLUE_ICE` | `offense` |
+| `skill-swordmaster-flame-lotus` | `2413` | `skill` / `swordmaster_flame_lotus` | `&c焔花咲き` | `FIRE_CORAL_FAN` | `offense` |
+| `skill-swordmaster-trinity-edge` | `2414` | `skill` / `swordmaster_trinity_edge` | `&d三煌終刃` | `DRAGON_BREATH` | `offense` |
 
 ### 共通剣技パッケージ
 

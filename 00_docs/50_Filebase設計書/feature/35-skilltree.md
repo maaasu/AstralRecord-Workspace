@@ -91,7 +91,7 @@ Shadowはマークを付与してからまとめて攻撃する将来skillを想
 
 ## ソードマスター専門枝
 
-`starter` のソードマスター領域は、status node `1655`〜`1774` の120個で構成する。全nodeを `pointType: CP`、`pointCost: 1`、`unlockCondition.classId: swordmaster` とする。静寂一閃のskill使用許可node `2402` は定義のみ作成し、`starter` へ配置・接続しない。既存ソードマン領域の4終端から、四象限へ分けた4本の主円弧へ個別に接続する。
+`starter` のソードマスター領域は、status node `1655`〜`1774` の120個で構成する。全nodeを `pointType: CP`、`pointCost: 1`、`unlockCondition.classId: swordmaster` とする。静寂一閃のskill使用許可node `2402` は既存配置を維持する。新規12スキルの使用許可node `2403`〜`2414` は定義だけ作成し、`starter` へ配置・接続しない。既存ソードマン領域の4終端から、四象限へ分けた4本の主円弧へ個別に接続する。
 
 | 系統 | status node | 全取得CP | 役割 |
 |:--|:--|--:|:--|
@@ -249,7 +249,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - パラディンは共通防御領域からHolyとGuardianへ分岐します。Guardian最外周のnode `1487` から `paladin_defense_conversion` の1CP leaf `1522` と、Guard系入口 `paladin_guard_convert` の1CP node `1529` を別方向へ分岐します。`1529`から盾攻撃側の`paladin_shield_bash` `1530`→`paladin_shield_impact` `1531`、防衛制御側の`paladin_fortress` `1532`→`paladin_guardian_protect` `1533` / `paladin_guardian_chain` `1534`へ接続し、Holy skillとは反対の西側へ配置します。Holy側の既存配置は維持し、skill nodeはstatus nodeへ混載しません。
 - ウィザードはメイジ領域の4終端から、四象限に分けた4本の開いた主円弧へ接続します。共通魔導24node、エレメンタル48node、アーケイン48nodeという能力区分を維持しつつ、内部を4成分の木構造として全外周へ分散します。エレメンタルは火・氷・雷のダメージと貫通を同率で伸ばし、アーケインは最大MP、魔法攻撃力、知力、スキルダメージ、魔法防御貫通、詠唱短縮を伸ばします。120nodeはすべてstatus nodeとし、skill使用許可を混載しません。
 - ファントムアーチャーのstatus node 120個、ヒールアローαnode `2256`、ファントムショットnode `2259` は定義済みですが、現行の `starter` にはnode、座標、edgeを配置しません。配置設計を確定するまでは未配置とし、ハンター領域からも接続しません。
-- ソードマスターはソードマン領域の4終端から、四象限に分けた4本の開いた主円弧へ接続します。共通剣技24node、剣聖48node、剣舞48nodeの能力区分を維持し、内部を4成分の木構造として配置します。剣聖は単発火力、会心、貫通、見切り、クールダウン短縮を伸ばし、剣舞は攻撃速度、ENG効率、継続火力、吸収回復を伸ばします。両枝のstatus nodeへskill使用許可を混載せず、静寂一閃node `2402` は未配置にします。
+- ソードマスターはソードマン領域の4終端から、四象限に分けた4本の開いた主円弧へ接続します。共通剣技24node、剣聖48node、剣舞48nodeの能力区分を維持し、内部を4成分の木構造として配置します。剣聖は単発火力、会心、貫通、見切り、クールダウン短縮を伸ばし、剣舞は攻撃速度、ENG効率、継続火力、吸収回復を伸ばします。両枝のstatus nodeへskill使用許可を混載せず、既存の静寂一閃node `2402` の配置を維持し、新規スキルnode `2403`〜`2414` は未配置にします。
 - シャープシューターのstatus node 120個と継承の心得のskill node `2240` は定義済みで、現行の `starter` に配置します。`2240` は共通射撃node `2120` から独立leafとして接続し、ハンター領域からは接続しません。ファイアアローnode `2241`、アイスアローnode `2242`、ヒールアローαnode `2255`、拡散する野望node `2257`、ファントムショットnode `2258` は定義済みですが、現行の `starter` には配置しません。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 

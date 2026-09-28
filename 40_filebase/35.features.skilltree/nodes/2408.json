@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2408",
+  "name": "&6断命剣",
+  "icon": "IRON_BARS",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_heartseeker"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

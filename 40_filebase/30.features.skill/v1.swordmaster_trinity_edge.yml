@@ -1,0 +1,66 @@
+# design:
+#   motif: "剣術 / 火氷雷の三重剣"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_trinity_edge
+type: SKILL
+implementationId: swordmaster_trinity_edge
+name: "&d三煌終刃"
+description: "&7三色の刃で積み重ねた属性攻撃を締めくくる。"
+icon: DRAGON_BREATH
+lore:
+  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ、火・氷・雷の複合近接攻撃。"
+  - "&7各属性の威力は近接攻撃力の{skill.effectiveDamageRatio:percent}%ずつ。"
+  - "&7対象の燃焼・冷気・感電1種類につき、合計威力が{skill.conditionBonusRatio:percent}%増える。"
+  - "&7追加補正は最大3種類。状態異常を消さずに追撃する。"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 30
+manaCost: 10
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.15 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  range: 5.5
+  angle: 80
+  maxTargets: 6
+  damageRatio: 1.6
+  conditionBonusRatio: 0.2
+tags:
+  - active
+  - melee
+  - fire
+  - ice
+  - lightning

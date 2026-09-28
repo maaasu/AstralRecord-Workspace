@@ -1,0 +1,66 @@
+# design:
+#   motif: "花 / 焔の蓮"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_flame_lotus
+type: SKILL
+implementationId: swordmaster_flame_lotus
+name: "&c焔花咲き"
+description: "&7残した焔の花が敵を繰り返し斬り上げる。"
+icon: FIRE_CORAL_FAN
+lore:
+  - "&7発動地点の半径{skill.radius}mへ、{skill.intervalTicks}tick間隔で{skill.hitCount}回の斬撃を残す。"
+  - "&7毎回最大{skill.maxTargets}体へ近接火属性{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の燃焼を付与する。"
+  - "&7自分は発動地点を離れて戦える。"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 24
+manaCost: 6
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.125 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.125 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.125 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.125 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  radius: 4
+  maxTargets: 6
+  damageRatio: 1.6
+  hitCount: 3
+  intervalTicks: 6
+  conditionChance: 50
+  conditionTicks: 80
+tags:
+  - active
+  - melee
+  - fire

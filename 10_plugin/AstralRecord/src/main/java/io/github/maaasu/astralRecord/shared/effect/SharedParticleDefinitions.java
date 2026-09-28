@@ -188,6 +188,41 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("bastion_strike_impact_spark", Particle.ELECTRIC_SPARK, 10, 0.28D, 0.42D, 0.28D, 0.04D);
     public static final SharedParticleDefinition BASTION_STRIKE_IMPACT_FLASH =
         new SharedParticleDefinition("bastion_strike_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
+    /** ソードマスターのsilver系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_SILVER =
+        new SharedParticleDefinition("swordmaster_silver", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(205, 245, 255), 1.25F));
+    /** ソードマスターのgold系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_GOLD =
+        new SharedParticleDefinition("swordmaster_gold", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 211, 72), 1.25F));
+    /** ソードマスターのviolet系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_VIOLET =
+        new SharedParticleDefinition("swordmaster_violet", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(172, 116, 255), 1.25F));
+    /** ソードマスターのfire系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_FIRE =
+        new SharedParticleDefinition("swordmaster_fire", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 83, 38), 1.25F));
+    /** ソードマスターのice系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_ICE =
+        new SharedParticleDefinition("swordmaster_ice", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(92, 220, 255), 1.25F));
+    /** ソードマスターのlightning系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_LIGHTNING =
+        new SharedParticleDefinition("swordmaster_lightning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(221, 182, 255), 1.25F));
+    /** ソードマスターのjade系剣閃。輪郭を保つため一点ずつ描画します。 */
+    public static final SharedParticleDefinition SWORDMASTER_JADE =
+        new SharedParticleDefinition("swordmaster_jade", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(98, 255, 182), 1.25F));
     public static final SharedParticleDefinition SEIJAKU_ISSEN_GUARD =
         new SharedParticleDefinition("seijaku_issen_guard", Particle.ENCHANT, 2, 0.08D, 0.12D, 0.08D, 0.01D);
     public static final SharedParticleDefinition SEIJAKU_ISSEN_ENCHANTED_HIT =
@@ -198,8 +233,6 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("seijaku_issen_dash_spark", Particle.ELECTRIC_SPARK, 3, 0.10D, 0.14D, 0.10D, 0.03D);
     public static final SharedParticleDefinition SEIJAKU_ISSEN_SWEEP_ATTACK =
         new SharedParticleDefinition("seijaku_issen_sweep_attack", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-    public static final SharedParticleDefinition SEIJAKU_ISSEN_EXPLOSION =
-        new SharedParticleDefinition("seijaku_issen_explosion", Particle.EXPLOSION, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

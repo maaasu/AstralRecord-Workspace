@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2414",
+  "name": "&d三煌終刃",
+  "icon": "DRAGON_BREATH",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_trinity_edge"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,64 @@
+# design:
+#   motif: "天体 / 砕ける星"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_star_cleave
+type: SKILL
+implementationId: swordmaster_star_cleave
+name: "&e星砕き"
+description: "&7会心の一太刀から星の剣閃を咲かせる。"
+icon: GOLDEN_HOE
+lore:
+  - "&7前方{skill.range}mの扇形で最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7有効命中が会心になると、その敵を中心に半径{skill.burstRadius}mの星を放つ。"
+  - "&7星は最大{skill.maxTargets}体へ近接無属性{skill.burstRatio:percent}%の追加ダメージ。"
+  - "&7星の発生は発動1回につき1度だけ。星からさらに星は発生しない。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 24
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3, burstRatio: 0.15 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3, burstRatio: 0.15 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3, burstRatio: 0.15 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3, burstRatio: 0.15 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  range: 5
+  angle: 70
+  maxTargets: 5
+  damageRatio: 3.8
+  burstRatio: 1.4
+  burstRadius: 3
+tags:
+  - active
+  - melee
+  - offense

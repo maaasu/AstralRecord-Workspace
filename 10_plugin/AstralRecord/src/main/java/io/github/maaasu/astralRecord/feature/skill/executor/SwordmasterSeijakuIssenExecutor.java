@@ -64,22 +64,12 @@ public final class SwordmasterSeijakuIssenExecutor implements SkillExecutor {
             throw new SkillParameterException("counterTicks", "静寂一閃の構え時間は1〜20tickが必要です");
         }
         requirePositive(params, "counterDamageRatio");
-        requirePositive(params, "failureDamageRatio");
-        requirePositive(params, "failureEnergyCost");
-        requirePositive(params, "failureTravelDistance");
-        requirePositive(params, "failureHitRadius");
-        requirePositive(params, "explosionDamageRatio");
-        requirePositive(params, "explosionRadius");
         requirePositive(params, "counterSweepRange");
         if (params.getInt("counterSweepMaxTargets", 0) < 1) {
             throw new SkillParameterException("counterSweepMaxTargets", "静寂一閃の薙ぎ払い対象数は1以上が必要です");
         }
-        if (params.getInt("tackleHitCooldownMultiplier", 0) < 1) {
-            throw new SkillParameterException("tackleHitCooldownMultiplier", "静寂一閃の命中時クールタイム倍率は1以上が必要です");
-        }
-        double tackleReduction = params.getDouble("tackleDamageReductionRatio", -1.0D);
-        if (!Double.isFinite(tackleReduction) || tackleReduction < 0.0D || tackleReduction >= 1.0D) {
-            throw new SkillParameterException("tackleDamageReductionRatio", "静寂一閃のタックル被ダメージ軽減率は0以上1未満が必要です");
+        if (params.getInt("riposteWindowTicks", 0) < 1 || params.getInt("riposteWindowTicks", 0) > 200) {
+            throw new SkillParameterException("riposteWindowTicks", "剣気の受付時間は1〜200tickが必要です");
         }
         double recovery = params.getDouble("energyRecoveryRatio", 0.0D);
         if (!Double.isFinite(recovery) || recovery <= 0.0D || recovery > 1.0D) {

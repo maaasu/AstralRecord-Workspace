@@ -9,16 +9,15 @@ import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
-import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
-import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -41,16 +40,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-/** 静寂一閃の構え、被弾反撃、時間切れの飛び込み斬りを管理します。 */
+/** 静寂一閃のShift構え、被弾反撃、次の一手へつなぐ剣気を管理します。 */
 public final class SeijakuIssenSkillRuntimeService {
     public static final String SKILL_ID = "swordmaster_seijaku_issen";
     private static final String EXPIRY_SCOPE = SKILL_ID + ":expiry";
     private static final String HUD_SCOPE = SKILL_ID + ":hud";
-    private static final String DASH_SCOPE = SKILL_ID + ":dash";
     private static final String SWEEP_SCOPE = SKILL_ID + ":counter-sweep";
-    private static final int DASH_SCAN_TICKS = 10;
-    private static final double DASH_HORIZONTAL_VELOCITY = 1.5D;
-    private static final double DASH_VERTICAL_VELOCITY = 0.3D;
     private static final double SWEEP_START_ANGLE = 55.0D;
     private static final double SWEEP_END_ANGLE = -55.0D;
     private static final int SWEEP_FRAMES = 6;
@@ -59,15 +54,13 @@ public final class SeijakuIssenSkillRuntimeService {
     private final SkillService skillService;
     private final SkillCombatService combatService;
     private final SkillTargetingService targetingService;
-    private final SkillMovementService movementService;
     private final SkillEffectService effectService;
     private final SkillTaskService taskService;
-    private final StatusService statusService;
     private final PlayerHudService hudService;
     private final NamespacedKey slowModifierKey;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
     private final Map<UUID, CounterState> counters = new ConcurrentHashMap<>();
-    private final Map<UUID, DashState> dashes = new ConcurrentHashMap<>();
+    private final Map<UUID, RiposteWindow> riposteWindows = new ConcurrentHashMap<>();
 
     /**
      * 構えと反撃に必要な共有サービスで初期化します。
@@ -75,11 +68,9 @@ public final class SeijakuIssenSkillRuntimeService {
      * @param plugin 属性修飾キーを所有するプラグイン
      * @param skillService 通常攻撃クールタイムと詠唱状態の管理元
      * @param combatService 反撃とENG回復の適用元
-     * @param targetingService 飛び込み経路の対象検索元
-     * @param movementService 移動可否を確認する移動サービス
+     * @param targetingService 反撃の対象検索元
      * @param effectService 音と粒子の表示サービス
-     * @param taskService 構えと飛び込みの追跡タスク
-     * @param statusService ENG消費と現在値の管理元
+     * @param taskService 構えと横薙ぎの追跡タスク
      * @param hudService カウンター残り時間の表示先
      */
     public SeijakuIssenSkillRuntimeService(
@@ -87,19 +78,15 @@ public final class SeijakuIssenSkillRuntimeService {
             @NotNull SkillService skillService,
             @NotNull SkillCombatService combatService,
             @NotNull SkillTargetingService targetingService,
-            @NotNull SkillMovementService movementService,
             @NotNull SkillEffectService effectService,
             @NotNull SkillTaskService taskService,
-            @NotNull StatusService statusService,
             @NotNull PlayerHudService hudService
     ) {
         this.skillService = skillService;
         this.combatService = combatService;
         this.targetingService = targetingService;
-        this.movementService = movementService;
         this.effectService = effectService;
         this.taskService = taskService;
-        this.statusService = statusService;
         this.hudService = hudService;
         this.slowModifierKey = new NamespacedKey(plugin, "seijaku_issen_slow");
     }
@@ -114,17 +101,10 @@ public final class SeijakuIssenSkillRuntimeService {
         Configuration configuration = new Configuration(
                 params.getInt("counterTicks", 1),
                 params.getDouble("counterDamageRatio", 3.9D),
-                params.getDouble("failureDamageRatio", 0.1D),
-                params.getDouble("failureEnergyCost", 10.0D),
-                params.getDouble("failureTravelDistance", 10.0D),
-                params.getDouble("failureHitRadius", 2.0D),
                 params.getDouble("energyRecoveryRatio", 0.1D),
-                params.getDouble("explosionDamageRatio", 5.1D),
-                params.getDouble("explosionRadius", 3.0D),
                 params.getDouble("counterSweepRange", 5.5D),
                 params.getInt("counterSweepMaxTargets", 5),
-                params.getDouble("tackleDamageReductionRatio", 0.5D),
-                params.getInt("tackleHitCooldownMultiplier", 10)
+                params.getInt("riposteWindowTicks", 100)
         );
         UUID playerId = context.player().getBukkit().getUniqueId();
         configurations.computeIfAbsent(playerId, ignored -> new ConcurrentHashMap<>())
@@ -138,10 +118,10 @@ public final class SeijakuIssenSkillRuntimeService {
      */
     public void deactivate(@NotNull PassiveSkillContext context) {
         UUID playerId = context.player().getBukkit().getUniqueId();
+        riposteWindows.remove(playerId);
         Map<String, Configuration> playerConfigurations = configurations.get(playerId);
         if (playerConfigurations == null) {
             endCounter(playerId, true);
-            taskService.cancel(playerId, DASH_SCOPE);
             taskService.cancel(playerId, SWEEP_SCOPE);
             return;
         }
@@ -149,7 +129,6 @@ public final class SeijakuIssenSkillRuntimeService {
         if (playerConfigurations.isEmpty()) {
             configurations.remove(playerId, playerConfigurations);
             endCounter(playerId, true);
-            taskService.cancel(playerId, DASH_SCOPE);
             taskService.cancel(playerId, SWEEP_SCOPE);
         }
     }
@@ -165,7 +144,7 @@ public final class SeijakuIssenSkillRuntimeService {
     }
 
     /**
-     * 剣の通常攻撃を構えへ置換し、構え時間と移動低下を開始します。
+     * Shiftを押した剣の通常攻撃を構えへ置換し、構え時間と移動低下を開始します。
      *
      * @param astPlayer 発動者。剣の通常攻撃を開始できることが前提
      * @param attackSkillId 通常攻撃の表示用スキルID
@@ -182,8 +161,8 @@ public final class SeijakuIssenSkillRuntimeService {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         Configuration configuration = effectiveConfiguration(playerId);
-        if (configuration == null || !player.isOnline() || player.isDead()
-                || counters.containsKey(playerId) || dashes.containsKey(playerId)) {
+        if (configuration == null || !player.isOnline() || player.isDead() || !player.isSneaking()
+                || counters.containsKey(playerId)) {
             return false;
         }
         long expiresAtTick = (long) Bukkit.getCurrentTick() + configuration.counterTicks();
@@ -211,7 +190,7 @@ public final class SeijakuIssenSkillRuntimeService {
     }
 
     /**
-     * 構え中の直接攻撃を無効化して攻撃元へ反撃します。
+     * 構え中の直接攻撃を無効化して攻撃元へ反撃し、連携用の剣気を一つ保持します。
      *
      * @param victim 被弾者
      * @param attacker 攻撃元。特定できない場合はnull
@@ -241,32 +220,49 @@ public final class SeijakuIssenSkillRuntimeService {
         }
         finishCounter(playerId, state);
         Location counterTarget = attacker.location().clone();
+        riposteWindows.put(playerId, new RiposteWindow(
+                (long) Bukkit.getCurrentTick() + state.configuration().riposteWindowTicks(),
+                state.player().getBukkit().getWorld().getUID()));
         DamageResult firstHit = combatService.hit(victim, attacker, AttackType.MELEE, DamageElement.NONE,
                 state.configuration().counterDamageRatio());
         if (isSuccessfulHit(firstHit)) {
             combatService.recoverEnergyByMaxRatio(state.player(), state.configuration().energyRecoveryRatio());
         }
+        effectService.ring(state.player().getBukkit().getLocation().add(0.0D, 0.3D, 0.0D),
+                1.1D, 28, SharedParticleDefinitions.SWORDMASTER_GOLD);
         renderCounterHit(state.player().getBukkit(), counterTarget);
         startCounterSweep(state, counterTarget);
         return true;
     }
 
     /**
-     * タックルの移動判定中に受けるダメージ倍率を返します。
-     *
-     * @param victim 被弾者
-     * @return タックル中は0.5、通常時は1.0
+     * 非Shift通常攻撃へ戻す際に構えだけを解き、同じ入力の通常攻撃を許可します。
+     * 待機時間は通常攻撃が成功した経路で開始します。
+     * 同じ構えを維持したまま通常攻撃を併用することはできません。
+     * @param player 対象プレイヤー
      */
-    public double damageTakenMultiplier(@NotNull AstEntity victim) {
-        if (!victim.isPlayer()) {
-            return 1.0D;
-        }
-        DashState state = dashes.get(victim.id());
-        return state == null ? 1.0D : 1.0D - state.configuration().tackleDamageReductionRatio();
+    public void finishForNormalAttack(@NotNull AstPlayer player) {
+        endCounter(player.getBukkit().getUniqueId(), false);
     }
 
     /**
-     * 退出時に設定、構え、飛び込み判定を消去します。
+     * 同じワールドで成立した反撃の剣気を一度だけ消費します。
+     * メインスレッドから呼び、未成立・期限切れ・死亡時は消費しません。
+     *
+     * @param player 連携スキルの発動者
+     * @return 反撃後の有効な剣気を消費できた場合true
+     */
+    public boolean consumeRiposte(@NotNull AstPlayer player) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        RiposteWindow window = riposteWindows.remove(playerId);
+        return window != null && isActive(player) && player.getBukkit().isOnline()
+                && !player.getBukkit().isDead() && player.getStatusSnapshot().getCurrentHp() > 0.0D
+                && Bukkit.getCurrentTick() < window.expiresAtTick()
+                && player.getBukkit().getWorld().getUID().equals(window.worldId());
+    }
+
+    /**
+     * 退出時に設定、構え、剣気を消去します。
      *
      * @param playerId 退出するプレイヤーのUUID
      */
@@ -276,13 +272,13 @@ public final class SeijakuIssenSkillRuntimeService {
     }
 
     /**
-     * 死亡などの中断時に構えと飛び込みを消し、有効なパッシブ設定は保持します。
+     * 死亡などの中断時に構えと剣気を消し、有効なパッシブ設定は保持します。
      *
      * @param playerId 中断対象のプレイヤーUUID
      */
     public void interrupt(@NotNull UUID playerId) {
         endCounter(playerId, false);
-        taskService.cancel(playerId, DASH_SCOPE);
+        riposteWindows.remove(playerId);
         taskService.cancel(playerId, SWEEP_SCOPE);
     }
 
@@ -292,19 +288,18 @@ public final class SeijakuIssenSkillRuntimeService {
             endCounter(playerId, false);
         }
         for (UUID playerId : Set.copyOf(configurations.keySet())) {
-            taskService.cancel(playerId, DASH_SCOPE);
             taskService.cancel(playerId, SWEEP_SCOPE);
         }
-        dashes.clear();
+        riposteWindows.clear();
         configurations.clear();
     }
 
+    /** 時間満了時は移動や消費を行わず、構えの終了と通常攻撃の待機開始だけを行います。 */
     private void expireCounter(@NotNull UUID playerId, @NotNull CounterState state) {
         if (!counters.remove(playerId, state)) {
             return;
         }
-        CooldownWindow cooldown = finishCounter(playerId, state);
-        startFailureDash(state, cooldown);
+        finishCounter(playerId, state);
     }
 
     private void endCounter(@NotNull UUID playerId, boolean startCooldown) {
@@ -318,7 +313,8 @@ public final class SeijakuIssenSkillRuntimeService {
         }
     }
 
-    private @NotNull CooldownWindow finishCounter(@NotNull UUID playerId, @NotNull CounterState state) {
+    /** 構えのHUDと減速を解除し、解除時刻から通常攻撃の共通待機時間を開始します。 */
+    private void finishCounter(@NotNull UUID playerId, @NotNull CounterState state) {
         cleanupCounter(playerId, state);
         PlayerSkillCaster caster = new PlayerSkillCaster(state.player());
         long durationTicks = skillService.resolveAttackCooldownTicks(
@@ -326,7 +322,6 @@ public final class SeijakuIssenSkillRuntimeService {
         long startedAtMillis = System.currentTimeMillis();
         skillService.setAttackCooldownFromStart(
                 caster, state.attackSkillId(), durationTicks, startedAtMillis);
-        return new CooldownWindow(startedAtMillis, durationTicks);
     }
 
     private void cleanupCounter(@NotNull UUID playerId, @NotNull CounterState state) {
@@ -336,99 +331,6 @@ public final class SeijakuIssenSkillRuntimeService {
         hudService.clearPrimaryActionBarRendererIfSame(playerId, state.renderer());
         if (state.player().getBukkit().isOnline()) {
             hudService.refreshActionBar(state.player());
-        }
-    }
-
-    private void startFailureDash(@NotNull CounterState state, @NotNull CooldownWindow cooldown) {
-        AstPlayer astPlayer = state.player();
-        Player player = astPlayer.getBukkit();
-        Configuration configuration = state.configuration();
-        if (!player.isOnline() || player.isDead()
-                || statusService.getStatus(astPlayer).getCurrentEnergy() < configuration.failureEnergyCost()) {
-            return;
-        }
-        Vector direction = player.getEyeLocation().getDirection().setY(0.0D);
-        if (direction.lengthSquared() <= 1.0E-8D) {
-            return;
-        }
-        direction.normalize();
-        Vector launchVelocity = direction.clone().multiply(DASH_HORIZONTAL_VELOCITY)
-                .setY(DASH_VERTICAL_VELOCITY);
-        if (movementService.velocity(player, AstEntity.player(astPlayer), launchVelocity) == null) {
-            return;
-        }
-        statusService.consumeEnergy(astPlayer, configuration.failureEnergyCost());
-        UUID playerId = player.getUniqueId();
-        DashState dash = new DashState(state, cooldown, player.getWorld(), player.getLocation().clone());
-        dashes.put(playerId, dash);
-        taskService.repeat(playerId, DASH_SCOPE, 1L, 1L, DASH_SCAN_TICKS,
-                ignored -> scanDashFrame(playerId, dash),
-                () -> dashes.remove(playerId, dash));
-    }
-
-    private void scanDashFrame(@NotNull UUID playerId, @NotNull DashState dash) {
-        AstPlayer astPlayer = dash.counter.player();
-        Player player = astPlayer.getBukkit();
-        if (!player.isOnline() || player.getWorld() != dash.world) {
-            taskService.cancel(playerId, DASH_SCOPE);
-            return;
-        }
-        Location current = player.getLocation().clone();
-        Vector movement = current.toVector().subtract(dash.previous.toVector());
-        double distance = movement.length();
-        double remaining = dash.counter.configuration().failureTravelDistance() - dash.traveled;
-        if (distance > 1.0E-4D && remaining > 0.0D) {
-            double scanDistance = Math.min(distance, remaining);
-            Location scanOrigin = dash.previous.clone().add(0.0D, 1.0D, 0.0D);
-            for (AstEntity target : targetingService.inLine(player, scanOrigin, movement,
-                    scanDistance, dash.counter.configuration().failureHitRadius(), Integer.MAX_VALUE)) {
-                if (!dash.pathHitTargets.add(target.id())) {
-                    continue;
-                }
-                DamageResult hit = combatService.hit(AstEntity.player(astPlayer), target,
-                        AttackType.MELEE, DamageElement.NONE,
-                        dash.counter.configuration().failureDamageRatio());
-                if (isSuccessfulHit(hit)) {
-                    onDashHit(dash, target);
-                }
-                effectService.point(target.location().clone().add(0.0D, 1.0D, 0.0D),
-                        SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
-            }
-            dash.traveled += scanDistance;
-            effectService.point(current.clone().add(0.0D, 1.0D, 0.0D),
-                    SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_CRIT);
-            effectService.point(current.clone().add(0.0D, 0.5D, 0.0D),
-                    SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_SPARK);
-        }
-        dash.previous = current;
-        if (dash.traveled >= dash.counter.configuration().failureTravelDistance()) {
-            taskService.cancel(playerId, DASH_SCOPE);
-        }
-    }
-
-    private void onDashHit(@NotNull DashState dash, @NotNull AstEntity directTarget) {
-        Configuration configuration = dash.counter.configuration();
-        if (!dash.cooldownExtended) {
-            dash.cooldownExtended = true;
-            skillService.setAttackCooldownFromStart(
-                    new PlayerSkillCaster(dash.counter.player()),
-                    dash.counter.attackSkillId(),
-                    dash.cooldown.durationTicks() * configuration.tackleHitCooldownMultiplier(),
-                    dash.cooldown.startedAtMillis());
-        }
-        Location center = directTarget.location().clone().add(0.0D, 0.9D, 0.0D);
-        effectService.point(center, SharedParticleDefinitions.SEIJAKU_ISSEN_EXPLOSION);
-        effectService.ring(center, configuration.explosionRadius(), 32,
-                SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
-        effectService.sound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9F, 1.35F);
-        AstEntity attacker = AstEntity.player(dash.counter.player());
-        for (AstEntity target : targetingService.inSphere(
-                dash.counter.player().getBukkit(), center, configuration.explosionRadius(),
-                Integer.MAX_VALUE, true)) {
-            if (dash.explosionHitTargets.add(target.id())) {
-                combatService.hit(attacker, target, AttackType.MELEE, DamageElement.NONE,
-                        configuration.explosionDamageRatio());
-            }
         }
     }
 
@@ -511,7 +413,7 @@ public final class SeijakuIssenSkillRuntimeService {
         int filled = Math.clamp((int) Math.ceil(
                 remaining * 10.0D / state.configuration().counterTicks()), 0, 10);
         String bar = "■".repeat(filled) + "□".repeat(10 - filled);
-        return Component.text("カウンター [" + bar + "] " + remaining + "tick", NamedTextColor.AQUA);
+        return PlayerMsgResource.formatComponent(PlayerMsgId.P_7616.getId(), bar, remaining);
     }
 
     private void applySlow(@NotNull Player player) {
@@ -551,17 +453,10 @@ public final class SeijakuIssenSkillRuntimeService {
     private record Configuration(
             int counterTicks,
             double counterDamageRatio,
-            double failureDamageRatio,
-            double failureEnergyCost,
-            double failureTravelDistance,
-            double failureHitRadius,
             double energyRecoveryRatio,
-            double explosionDamageRatio,
-            double explosionRadius,
             double counterSweepRange,
             int counterSweepMaxTargets,
-            double tackleDamageReductionRatio,
-            int tackleHitCooldownMultiplier
+            int riposteWindowTicks
     ) {
     }
 
@@ -576,28 +471,6 @@ public final class SeijakuIssenSkillRuntimeService {
     ) {
     }
 
-    private record CooldownWindow(long startedAtMillis, long durationTicks) {
-    }
-
-    private static final class DashState {
-        private final CounterState counter;
-        private final CooldownWindow cooldown;
-        private final World world;
-        private final Set<UUID> pathHitTargets = new HashSet<>();
-        private final Set<UUID> explosionHitTargets = new HashSet<>();
-        private Location previous;
-        private double traveled;
-        private boolean cooldownExtended;
-
-        private DashState(CounterState counter, CooldownWindow cooldown, World world, Location previous) {
-            this.counter = counter;
-            this.cooldown = cooldown;
-            this.world = world;
-            this.previous = previous;
-        }
-
-        private Configuration configuration() {
-            return counter.configuration();
-        }
+    private record RiposteWindow(long expiresAtTick, @NotNull UUID worldId) {
     }
 }

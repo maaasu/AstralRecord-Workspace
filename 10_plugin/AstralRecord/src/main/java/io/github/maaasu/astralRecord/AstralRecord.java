@@ -1877,10 +1877,8 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             activeSkillServices.combat(),
             activeSkillServices.targeting(),
-            activeSkillServices.movement(),
             activeSkillServices.effects(),
             activeSkillServices.tasks(),
-            statusService,
             playerHudService
         );
         damageService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
@@ -1899,6 +1897,7 @@ public final class AstralRecord extends JavaPlugin {
             invulnerabilityVisualService,
             skillService,
             bindCircleRuntimeService,
+            seijakuIssenSkillRuntimeService,
             this
         )
             .forEach(skillService::registerExecutor);

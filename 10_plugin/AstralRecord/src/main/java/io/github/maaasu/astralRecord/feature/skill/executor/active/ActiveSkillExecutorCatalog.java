@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordmaster.SwordmasterSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
@@ -59,6 +61,7 @@ public final class ActiveSkillExecutorCatalog {
      * @param invulnerabilityVisualService 復活後の無敵表示サービス
      * @param skillService 回復成立時のクールタイム解除サービス
      * @param bindCircleRuntimeService バインドサークル拘束状態
+     * @param seijakuIssenSkillRuntimeService 静寂一閃の剣気を連携へ渡すサービス
      * @param plugin 設置中の円の独立 task を登録するプラグイン
      * @return 実装済みのexecutor一覧
      */
@@ -76,6 +79,7 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull InvulnerabilityVisualService invulnerabilityVisualService,
             @NotNull SkillService skillService,
             @NotNull BindCircleRuntimeService bindCircleRuntimeService,
+            @NotNull SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService,
             @NotNull Plugin plugin
     ) {
         List<SkillExecutor> executors = new ArrayList<>(43);
@@ -99,6 +103,7 @@ public final class ActiveSkillExecutorCatalog {
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));
         executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
+        executors.addAll(SwordmasterSkillExecutorCatalog.create(services, seijakuIssenSkillRuntimeService));
         return List.copyOf(executors);
     }
 }

@@ -1,0 +1,63 @@
+# design:
+#   motif: "剣術 / 旋風の円舞"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_blade_tempest
+type: SKILL
+implementationId: swordmaster_blade_tempest
+name: "&f旋風剣舞"
+description: "&7回転する剣閃で周囲を斬り刻む。"
+icon: STONECUTTER
+lore:
+  - "&7自分の周囲{skill.radius}mを{skill.intervalTicks}tick間隔で{skill.hitCount}回斬る。"
+  - "&7毎回最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7移動しながら使え、各斬撃の時点で範囲内の敵を選ぶ。"
+  - "&7会心が出るたび金色の剣閃が弾ける。"
+cooldownTicks: 180
+resourceType: ENERGY
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.1 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  radius: 4
+  maxTargets: 6
+  damageRatio: 1.5
+  hitCount: 4
+  intervalTicks: 4
+tags:
+  - active
+  - melee
+  - offense

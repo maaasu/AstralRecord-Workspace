@@ -1086,12 +1086,10 @@ public final class DamageService {
                 usesDefenseConversion(victim),
                 temporaryDefenseMultiplier(victim)
         );
-        double tackleDamageMultiplier = seijakuIssenSkillRuntimeService == null
-                ? 1.0D : seijakuIssenSkillRuntimeService.damageTakenMultiplier(victim);
         double postCalculationMultiplier = 1.0D;
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             postCalculationMultiplier = finalDamageMultiplier(attacker)
-                    * temporaryDamageMultiplier(attacker, victim) * tackleDamageMultiplier;
+                    * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {
                 postCalculationMultiplier *= conditionService.damageTakenMultiplier(victim)
                         * conditionService.damageDealtMultiplier(attacker);
@@ -1106,7 +1104,7 @@ public final class DamageService {
             double fixedHealthDamage = fixedHealthDamage(attacker);
             if (fixedHealthDamage > 0.0D) {
                 justDodgeDamage = calculated.withAddedFixedHealthDamage(
-                        fixedHealthDamage * tackleDamageMultiplier);
+                        fixedHealthDamage);
             }
         }
         if (justDodgeSkillRuntimeService != null
@@ -1131,15 +1129,15 @@ public final class DamageService {
         boolean shieldWasActive = hasActiveShield(victim);
         if (bastionStrikeSkillRuntimeService != null
                 && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier,
-                        shieldBreakRatio, tackleDamageMultiplier)
+                        shieldBreakRatio)
                 && bastionStrikeSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
             return new DamageResult(0.0D);
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier,
-                shieldBreakRatio, tackleDamageMultiplier);
+                shieldBreakRatio);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(
-                    fixedHealthDamage(attacker) * tackleDamageMultiplier);
+                    fixedHealthDamage(attacker));
         }
         double rawFixedHealthDamage = result.fixedHealthDamage();
         PaladinGuardianProtectRuntimeService.DamageShare protectionShare = null;
@@ -1413,65 +1411,63 @@ public final class DamageService {
         equipmentDurabilityService.consumeOnDamageTaken(victim, result);
     }
 
+    /** 有効シールドがある場合はHPを減らさず、換算したダメージをシールドへ反映します。 */
     private @NotNull DamageResult applyShieldDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
             double shieldBreakMultiplier,
-            @Nullable Double shieldBreakRatio,
-            double tackleDamageMultiplier
+            @Nullable Double shieldBreakRatio
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return result;
         }
 
         double currentShield = currentShield(victim);
-        double shieldDamage = tackleShieldDamage(attacker, victim, result, shieldBreakMultiplier,
-                shieldBreakRatio, currentShield, tackleDamageMultiplier);
+        double shieldDamage = calculateAppliedShieldDamage(attacker, victim, result, shieldBreakMultiplier,
+                shieldBreakRatio, currentShield);
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
         return DamageResult.shield(shieldDamage, shieldBroken, result);
     }
 
+    /** 同じシールド換算規則を使い、この攻撃でシールドが尽きるかを判定します。 */
     private boolean shieldWouldBreak(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
             double shieldBreakMultiplier,
-            @Nullable Double shieldBreakRatio,
-            double tackleDamageMultiplier
+            @Nullable Double shieldBreakRatio
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return false;
         }
         double currentShield = currentShield(victim);
-        double shieldDamage = tackleShieldDamage(attacker, victim, result, shieldBreakMultiplier,
-                shieldBreakRatio, currentShield, tackleDamageMultiplier);
+        double shieldDamage = calculateAppliedShieldDamage(attacker, victim, result, shieldBreakMultiplier,
+                shieldBreakRatio, currentShield);
         return currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
     }
 
-    /** タックル中はシールド換算前のダメージを復元してから最終シールド減少量を半減します。 */
-    private double tackleShieldDamage(
+    /** 通常のシールド換算または指定ブレイク比率を適用し、残量までに制限します。 */
+    private double calculateAppliedShieldDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
             double shieldBreakMultiplier,
             @Nullable Double shieldBreakRatio,
-            double currentShield,
-            double tackleDamageMultiplier
+            double currentShield
     ) {
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
-        double rawFinalDamage = result.finalDamage() / tackleDamageMultiplier;
         double rawShieldDamage = shieldBreakRatio == null
                 ? calculateShieldDamage(
-                        rawFinalDamage,
+                        result.finalDamage(),
                         victim.maxHealth(),
                         shieldBreak,
                         shieldBreakMultiplier,
                         Double.POSITIVE_INFINITY
                 )
                 : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, Double.POSITIVE_INFINITY);
-        return Math.min(currentShield, rawShieldDamage * tackleDamageMultiplier);
+        return Math.min(currentShield, rawShieldDamage);
     }
 
     /**

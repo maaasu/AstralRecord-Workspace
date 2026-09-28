@@ -1,0 +1,67 @@
+# design:
+#   motif: "剣術 / 紅蓮の疾走"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_crimson_drive
+type: SKILL
+implementationId: swordmaster_crimson_drive
+name: "&c紅蓮疾駆"
+description: "&7炎をまとい、敵陣を一気に駆け抜ける。"
+icon: FLINT_AND_STEEL
+lore:
+  - "&7前方{skill.range}mまで突進し、経路上の最大{skill.maxTargets}体を攻撃。"
+  - "&7近接火属性{skill.effectiveDamageRatio:percent}%、命中時{skill.conditionChance}%で燃焼。"
+  - "&7燃焼は{skill.conditionTicks:seconds}秒持続する。"
+  - "&7この突進の直接攻撃で敵を倒すと、次のtickから再使用できる。"
+  - "&7燃焼による撃破ではリセットせず、再使用にもENGとMPが必要。"
+  - "&7移動できない時は不発。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 18
+manaCost: 4
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  range: 6
+  hitRadius: 1.4
+  maxTargets: 6
+  damageRatio: 4
+  conditionChance: 50
+  conditionTicks: 80
+tags:
+  - active
+  - melee
+  - fire

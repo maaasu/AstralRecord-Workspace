@@ -1,0 +1,62 @@
+# design:
+#   motif: "剣術 / 疾風の抜刀"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_gale_reaper
+type: SKILL
+implementationId: swordmaster_gale_reaper
+name: "&b疾風抜刀"
+description: "&7敵を斬り抜け、次の獲物へつなぐ抜刀術。"
+icon: NETHERITE_HOE
+lore:
+  - "&7前方{skill.range}mまで斬り抜け、経路上の最大{skill.maxTargets}体を攻撃。"
+  - "&7近接無属性{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7この突進の直接攻撃で敵を倒すと、次のtickから再使用できる。"
+  - "&7連続発動でもリソースを消費し、障害物や足場不足で移動できない時は不発。"
+cooldownTicks: 100
+resourceType: ENERGY
+resourceCost: 16
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 1 }]
+params:
+  range: 7
+  hitRadius: 1.25
+  maxTargets: 6
+  damageRatio: 3.4
+tags:
+  - active
+  - melee
+  - offense

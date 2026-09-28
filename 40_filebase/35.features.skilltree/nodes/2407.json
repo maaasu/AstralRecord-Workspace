@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2407",
+  "name": "&d月影双斬",
+  "icon": "SOUL_TORCH",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_crescent_duet"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,63 @@
+# design:
+#   motif: "剣術 / 受け流しの返し刃"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_riposte
+type: SKILL
+implementationId: swordmaster_riposte
+name: "&b返し刃"
+description: "&7受け流した勢いを鋭い一撃へ返す。"
+icon: TINTED_GLASS
+lore:
+  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7静寂一閃の剣気が残っていれば消費し、威力を{skill.riposteMultiplier}倍にする。"
+  - "&7剣気は静寂一閃の反撃成立後に短時間だけ残り、明鏡止水と共有する。"
+  - "&7剣気を持たない時も通常の威力で発動できる。"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 26
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  range: 5.5
+  angle: 80
+  maxTargets: 6
+  damageRatio: 4
+  riposteMultiplier: 2
+tags:
+  - active
+  - melee
+  - offense

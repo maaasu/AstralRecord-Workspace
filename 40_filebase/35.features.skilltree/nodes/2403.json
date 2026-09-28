@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2403",
+  "name": "&b疾風抜刀",
+  "icon": "NETHERITE_HOE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_gale_reaper"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

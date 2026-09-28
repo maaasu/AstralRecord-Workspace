@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2404",
+  "name": "&c紅蓮疾駆",
+  "icon": "FLINT_AND_STEEL",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_crimson_drive"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2405",
+  "name": "&f旋風剣舞",
+  "icon": "STONECUTTER",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_blade_tempest"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,64 @@
+# design:
+#   motif: "気象 / 一筋の雷鳴"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_thunder_line
+type: SKILL
+implementationId: swordmaster_thunder_line
+name: "&e雷鳴一文字"
+description: "&7一直線の雷刃で敵の動きを乱す。"
+icon: REDSTONE_TORCH
+lore:
+  - "&7視線上{skill.range}mの最大{skill.maxTargets}体へ近接雷属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の感電を付与する。"
+  - "&7壁で剣閃が止まり、感電した敵には氷華円舞の追撃を狙える。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 18
+manaCost: 5
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  range: 8
+  hitRadius: 1
+  maxTargets: 5
+  damageRatio: 4
+  conditionChance: 70
+  conditionTicks: 100
+tags:
+  - active
+  - melee
+  - lightning

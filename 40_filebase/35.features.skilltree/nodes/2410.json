@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2410",
+  "name": "&a明鏡止水",
+  "icon": "CHORUS_FLOWER",
+  "tags": [
+    "resource",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_serene_mend"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2406",
+  "name": "&e星砕き",
+  "icon": "GOLDEN_HOE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_star_cleave"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

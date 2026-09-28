@@ -1,0 +1,65 @@
+# design:
+#   motif: "結晶 / 氷の花"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_frost_bloom
+type: SKILL
+implementationId: swordmaster_frost_bloom
+name: "&b氷華円舞"
+description: "&7氷の花で接近を遅らせ、感電を砕く。"
+icon: BLUE_ICE
+lore:
+  - "&7周囲{skill.radius}mの最大{skill.maxTargets}体へ近接氷属性{skill.effectiveDamageRatio:percent}%。"
+  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の冷気を付与する。"
+  - "&7攻撃前から感電していた敵へは、命中時さらに近接氷属性{skill.shockBonusRatio:percent}%。"
+  - "&7状態異常の耐性・無効化は共通の戦闘ルールに従う。"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 20
+manaCost: 6
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3, shockBonusRatio: 0.1 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3, shockBonusRatio: 0.1 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3, shockBonusRatio: 0.1 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3, shockBonusRatio: 0.1 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  radius: 4.5
+  maxTargets: 6
+  damageRatio: 3.2
+  shockBonusRatio: 1.6
+  conditionChance: 100
+  conditionTicks: 60
+tags:
+  - active
+  - melee
+  - ice

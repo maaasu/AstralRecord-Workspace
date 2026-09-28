@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2413",
+  "name": "&c焔花咲き",
+  "icon": "FIRE_CORAL_FAN",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_flame_lotus"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

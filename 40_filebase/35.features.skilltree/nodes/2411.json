@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2411",
+  "name": "&e雷鳴一文字",
+  "icon": "REDSTONE_TORCH",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordmaster_thunder_line"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordmaster"
+  }
+}

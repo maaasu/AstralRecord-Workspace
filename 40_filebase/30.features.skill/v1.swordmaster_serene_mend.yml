@@ -1,0 +1,50 @@
+# design:
+#   motif: "剣術 / 澄み渡る水鏡"
+#   progression: 2
+schemaVersion: 1
+id: swordmaster_serene_mend
+type: SKILL
+implementationId: swordmaster_serene_mend
+name: "&a明鏡止水"
+description: "&7呼吸を整え、反撃の余韻を活力へ変える。"
+icon: CHORUS_FLOWER
+lore:
+  - "&7自分の最大HPの{skill.healHpRatio:percent}%を回復する。"
+  - "&7静寂一閃の剣気が残っていれば消費し、最大HPの{skill.riposteHealHpRatio:percent}%を追加回復。"
+  - "&7剣気を消費した時はENGを{skill.energyRecovery}回復する。"
+  - "&7剣気は返し刃と共有。回復阻害中は回復しない。"
+cooldownTicks: 280
+resourceType: MANA
+resourceCost: 10
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 3, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 4, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 5, paramDeltas: { healHpRatio: 0.02 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  healHpRatio: 0.12
+  riposteHealHpRatio: 0.1
+  energyRecovery: 15
+tags:
+  - active
+  - support
