@@ -26,6 +26,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 /** API永続状態をキャッシュし、期限と発動通知を全チャンネルで同期します。 */
 public final class ChannelBoostService {
@@ -106,26 +107,34 @@ public final class ChannelBoostService {
         return lines;
     }
 
-    /** ネットワーク発動対象のみ、単独RPGのTABへ表示する行を返します。 */
+    /** ネットワーク表示対象のうち、有効なブーストがあるチャンネルだけをTABへ返します。 */
     public List<Component> tabRows() {
         List<Component> rows = new ArrayList<>();
         Instant now = Instant.now();
         state.channels().values().stream().filter(ChannelBoostState.Channel::networkBoostEnabled)
             .sorted(Comparator.comparing(ChannelBoostState.Channel::channelId))
-            .forEach(channel -> rows.add(Component.text(channel.displayName(), NamedTextColor.WHITE)
-                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
-                .append(tabBoost(channel.exp(), "EXP", NamedTextColor.GREEN, now))
-                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
-                .append(tabBoost(channel.drop(), "DROP", NamedTextColor.AQUA, now))));
+            .forEach(channel -> {
+                boolean expActive = channel.exp() != null && channel.exp().activeAt(now);
+                boolean dropActive = channel.drop() != null && channel.drop().activeAt(now);
+                if (!expActive && !dropActive) return;
+                Component row = Component.empty()
+                    .append(Component.text(channel.displayName(), NamedTextColor.WHITE, TextDecoration.BOLD))
+                    .append(Component.text("  ›  ", NamedTextColor.DARK_GRAY));
+                if (expActive) row = row.append(tabBoost(channel.exp(), "EXP", NamedTextColor.GREEN, now));
+                if (dropActive) {
+                    if (expActive) row = row.append(Component.text("   ·   ", NamedTextColor.DARK_GRAY));
+                    row = row.append(tabBoost(channel.drop(), "DROP", NamedTextColor.AQUA, now));
+                }
+                rows.add(row);
+            });
         return rows;
     }
 
+    /** 有効なブーストの倍率と期限までの残分数をTAB用に整形します。 */
     private static Component tabBoost(ChannelBoostState.Boost boost, String label, NamedTextColor color, Instant now) {
-        Component value = Component.text(label, color);
-        if (boost == null || !boost.activeAt(now)) return value.append(Component.text("—", color));
         long minutes = Math.max(1, (java.time.Duration.between(now, boost.expiresAt()).getSeconds() + 59) / 60);
-        return value.append(Component.text("×" + BigDecimal.valueOf(boost.multiplier()).stripTrailingZeros().toPlainString(), color))
-            .append(Component.text("[" + minutes + "分]", NamedTextColor.GRAY));
+        return Component.text(label + " ×" + BigDecimal.valueOf(boost.multiplier()).stripTrailingZeros().toPlainString(), color)
+            .append(Component.text("  残り" + minutes + "分", NamedTextColor.GRAY));
     }
 
     /** server-info用に倍率・残分数を表示します。 */

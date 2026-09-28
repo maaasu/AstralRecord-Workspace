@@ -25,7 +25,7 @@ final class ProxyTabDisplay {
         return render(serverAddress, ping, mspt, totalPlayers, List.of());
     }
 
-    /** ネットワーク発動対象チャンネルのブースト状況を性能表示の上へ追加します。 */
+    /** 有効なネットワークブーストを性能表示の上へ追加します。 */
     static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers,
                                List<Component> boostRows) {
         Component msptValue = mspt == null
@@ -43,7 +43,7 @@ final class ProxyTabDisplay {
             .build();
         if (!boostRows.isEmpty()) {
             footer = footer.append(Component.newline())
-                .append(Component.text("チャンネルブースト", NamedTextColor.YELLOW));
+                .append(Component.text("✦ ブースト発動中 ✦", NamedTextColor.GOLD));
             for (Component row : boostRows) footer = footer.append(Component.newline()).append(row);
             footer = footer.append(Component.newline())
                 .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));

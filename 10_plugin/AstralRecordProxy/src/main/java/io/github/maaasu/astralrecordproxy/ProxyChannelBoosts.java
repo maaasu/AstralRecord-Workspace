@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,7 +29,7 @@ final class ProxyChannelBoosts {
         return List.copyOf(lines);
     }
 
-    /** ネットワーク発動対象だけをTAB用に表示名と効果別の色で整形します。 */
+    /** ネットワーク表示対象のうち、有効なブーストがあるチャンネルだけをTAB用に整形します。 */
     static List<Component> tabRows(JsonObject snapshot, Instant now) {
         if (snapshot == null || !snapshot.has("channels") || !snapshot.get("channels").isJsonArray()) return List.of();
         List<JsonObject> enabled = new ArrayList<>();
@@ -41,28 +42,41 @@ final class ProxyChannelBoosts {
         enabled.sort(Comparator.comparing(channel -> channel.get("channelId").getAsString()));
         List<Component> rows = new ArrayList<>();
         for (JsonObject channel : enabled) {
+            JsonObject exp = activeBoost(channel, "exp", now);
+            JsonObject drop = activeBoost(channel, "drop", now);
+            if (exp == null && drop == null) continue;
             JsonElement name = channel.get("displayName");
             String displayName = name == null || name.isJsonNull() || name.getAsString().isBlank()
                 ? "チャンネル" : name.getAsString().trim();
-            rows.add(Component.text(displayName, NamedTextColor.WHITE)
-                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
-                .append(tabBoost(channel, "exp", "EXP", NamedTextColor.GREEN, now))
-                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
-                .append(tabBoost(channel, "drop", "DROP", NamedTextColor.AQUA, now)));
+            Component row = Component.empty()
+                .append(Component.text(displayName, NamedTextColor.WHITE, TextDecoration.BOLD))
+                .append(Component.text("  ›  ", NamedTextColor.DARK_GRAY));
+            if (exp != null) row = row.append(tabBoost(exp, "EXP", NamedTextColor.GREEN, now));
+            if (drop != null) {
+                if (exp != null) row = row.append(Component.text("   ·   ", NamedTextColor.DARK_GRAY));
+                row = row.append(tabBoost(drop, "DROP", NamedTextColor.AQUA, now));
+            }
+            rows.add(row);
         }
         return List.copyOf(rows);
     }
 
-    private static Component tabBoost(JsonObject channel, String key, String label, NamedTextColor color, Instant now) {
-        Component value = Component.text(label, color);
-        if (!channel.has(key) || channel.get(key).isJsonNull()) return value.append(Component.text("—", color));
+    /** 指定時刻に有効なブーストだけを返します。 */
+    private static JsonObject activeBoost(JsonObject channel, String key, Instant now) {
+        if (!channel.has(key) || channel.get(key).isJsonNull()) return null;
         JsonObject boost = channel.getAsJsonObject(key);
         Instant expiry = Instant.parse(boost.get("expiresAt").getAsString());
         double multiplier = boost.get("multiplier").getAsDouble();
-        if (!expiry.isAfter(now) || multiplier <= 1.0D) return value.append(Component.text("—", color));
+        return expiry.isAfter(now) && multiplier > 1.0D ? boost : null;
+    }
+
+    /** 有効なブーストの倍率と期限までの残分数をTAB用に整形します。 */
+    private static Component tabBoost(JsonObject boost, String label, NamedTextColor color, Instant now) {
+        Instant expiry = Instant.parse(boost.get("expiresAt").getAsString());
+        double multiplier = boost.get("multiplier").getAsDouble();
         long minutes = Math.max(1, (Duration.between(now, expiry).getSeconds() + 59) / 60);
-        return value.append(Component.text("×" + BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString(), color))
-            .append(Component.text("[" + minutes + "分]", NamedTextColor.GRAY));
+        return Component.text(label + " ×" + BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString(), color)
+            .append(Component.text("  残り" + minutes + "分", NamedTextColor.GRAY));
     }
 
     private static String boost(JsonObject channel, String key, Instant now) {

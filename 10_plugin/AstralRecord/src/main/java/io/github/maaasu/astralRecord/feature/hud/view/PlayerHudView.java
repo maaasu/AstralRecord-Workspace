@@ -596,7 +596,7 @@ public class PlayerHudView {
     }
 
     /**
-     * Proxyがヘッダーを所有しない場合のTABにネットワーク対象チャンネルのブーストと性能情報を表示します。
+     * Proxyがヘッダーを所有しない場合のTABに有効なネットワークブーストと性能情報を表示します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT（平均値）
@@ -616,7 +616,7 @@ public class PlayerHudView {
         var boosts = plugin == null ? null : plugin.getChannelBoostService();
         var boostRows = boosts == null ? List.<Component>of() : boosts.tabRows();
         if (!boostRows.isEmpty()) {
-            footer = Component.text("チャンネルブースト", NamedTextColor.YELLOW);
+            footer = Component.text("✦ ブースト発動中 ✦", NamedTextColor.GOLD);
             for (Component row : boostRows) footer = footer.append(Component.newline()).append(row);
         }
         if (showPerformanceInfo) {
