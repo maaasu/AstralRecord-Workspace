@@ -148,6 +148,7 @@ public class MobEntityController {
         }
 
         if (mob.isDead() || !mob.isValid()) {
+            mob.remove();
             return null;
         }
 
@@ -248,6 +249,15 @@ public class MobEntityController {
         return !entity.isDead() && (entity instanceof ArmorStand || entity.isValid());
     }
 
+    /**
+     * ブロック型 Mob の当たり判定と表示を生成し、両方をインスタンスへ紐付けます。
+     *
+     * <p>生成途中で失敗した場合は、生成済みの Entity をすべて削除します。</p>
+     *
+     * @param instance 紐付ける Mob インスタンス
+     * @param location スポーン位置
+     * @return 当たり判定用 Interaction。生成できない場合は {@code null}
+     */
     @Nullable
     private Entity spawnBlockDisplay(@NotNull MobInstance instance, @NotNull Location location) {
         World world = location.getWorld();
@@ -264,6 +274,7 @@ public class MobEntityController {
         }
 
         if (interaction.isDead() || !interaction.isValid()) {
+            interaction.remove();
             return null;
         }
 
@@ -277,6 +288,7 @@ public class MobEntityController {
         }
 
         if (display.isDead() || !display.isValid()) {
+            display.remove();
             interaction.remove();
             return null;
         }

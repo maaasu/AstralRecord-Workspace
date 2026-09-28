@@ -495,9 +495,17 @@ public final class DisplayTextService {
         return total;
     }
 
+    /**
+     * 管理中の TextDisplay を削除し、表示状態を初期化します。
+     *
+     * <p>生成直後などに {@code isValid()} が一時的に false を返しても、
+     * 実体への参照を失う前に削除を試みます。</p>
+     *
+     * @param state 削除対象の表示状態
+     */
     private void destroyEntity(@NotNull ManagedDisplayState state) {
         Entity entity = state.entity;
-        if (entity != null && entity.isValid()) {
+        if (entity != null) {
             entity.remove();
         }
         state.entity = null;
