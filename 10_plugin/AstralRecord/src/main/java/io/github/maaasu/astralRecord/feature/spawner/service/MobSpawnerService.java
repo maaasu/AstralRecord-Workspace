@@ -69,6 +69,7 @@ public class MobSpawnerService {
     private final MobSpawnerDefinitionRepository definitionRepository;
     private final MobSpawnerLocationRepository locationRepository;
     private final NamespacedKey spawnerIdKey;
+    private final NamespacedKey visualModeKey;
 
     private final Map<String, MobSpawnerDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, Integer> regionLevelByName = new HashMap<>();
@@ -104,6 +105,7 @@ public class MobSpawnerService {
         this.definitionRepository = definitionRepository;
         this.locationRepository = locationRepository;
         this.spawnerIdKey = new NamespacedKey(plugin, "mob_spawner_id");
+        this.visualModeKey = new NamespacedKey(plugin, "mob_spawner_visual_mode");
     }
 
     /**
@@ -429,6 +431,35 @@ public class MobSpawnerService {
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+    }
+
+    /**
+     * 管理者本人のモブスポナー表示モードを取得します。
+     *
+     * @param viewer 表示対象のプレイヤー
+     * @return 保存済みモード。未設定の場合は通常表示
+     */
+    public @NotNull MobSpawnerVisualMode getVisualMode(@NotNull Player viewer) {
+        Byte value = viewer.getPersistentDataContainer().get(visualModeKey, PersistentDataType.BYTE);
+        return MobSpawnerVisualMode.fromStoredValue(value);
+    }
+
+    /**
+     * 管理者本人のモブスポナー表示モードを保存し、現在の表示へ直ちに反映します。
+     * Bukkit メインスレッドから呼び出してください。
+     *
+     * @param viewer 表示設定を変更するプレイヤー
+     * @param mode 新しい表示モード
+     */
+    public void setVisualMode(@NotNull Player viewer, @NotNull MobSpawnerVisualMode mode) {
+        if (mode == MobSpawnerVisualMode.NORMAL) {
+            viewer.getPersistentDataContainer().remove(visualModeKey);
+        } else {
+            viewer.getPersistentDataContainer().set(visualModeKey, PersistentDataType.BYTE, mode.storedValue());
+        }
+        if (visualizer != null) {
+            visualizer.refresh();
+        }
     }
 
     private boolean hasSpawnerAdminPermission(@Nullable AstPlayer astPlayer) {

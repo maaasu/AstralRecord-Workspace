@@ -39,6 +39,8 @@ import io.github.maaasu.astralRecord.feature.menu.command.PlayerInfoCommand;
 import io.github.maaasu.astralRecord.feature.menu.command.PlayerInfoTabCompleter;
 import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
+import io.github.maaasu.astralRecord.feature.mob.command.MobSpawnerDisplayCommand;
+import io.github.maaasu.astralRecord.feature.mob.command.MobSpawnerDisplayTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
@@ -230,6 +232,7 @@ public class CommandRegister {
         cm.registerCommand("showitem", itemChatShareCommand, itemChatShareTabCompleter);
         cm.registerCommand("si", itemChatShareCommand, itemChatShareTabCompleter);
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
+        cm.registerCommand("mobspawnerdisplay", new MobSpawnerDisplayCommand(spawnerService), new MobSpawnerDisplayTabCompleter(spawnerService));
         cm.registerCommand("dummy", new TrainingDummyCommand(trainingDummyService, trainingDummyGui), new TrainingDummyTabCompleter(trainingDummyService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         WorldCommand worldCommand = new WorldCommand(worldService);

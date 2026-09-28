@@ -55,6 +55,13 @@ final class MobSpawnerVisualizer {
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
     }
 
+    /** 管理者の表示設定変更を次回周期を待たずに反映します。 */
+    void refresh() {
+        if (task != null) {
+            tick();
+        }
+    }
+
     void stop() {
         if (task != null) {
             task.cancel();
@@ -118,12 +125,15 @@ final class MobSpawnerVisualizer {
             );
             activeKeys.add(key);
             SpawnerVisual display = displays.computeIfAbsent(key, ignored -> createDisplay(spawnerLocation, location));
-            display.show(player);
-            particleDisplayService.spawnForViewer(
-                player,
-                location.clone().add(0.0D, 0.75D, 0.0D),
-                SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT
-            );
+            MobSpawnerVisualMode mode = spawnerService.getVisualMode(player);
+            display.show(player, mode);
+            if (mode == MobSpawnerVisualMode.NORMAL) {
+                particleDisplayService.spawnForViewer(
+                    player,
+                    location.clone().add(0.0D, 0.75D, 0.0D),
+                    SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT
+                );
+            }
         }
     }
 
@@ -131,7 +141,8 @@ final class MobSpawnerVisualizer {
         if (player.getWorld() != location.getWorld() || player.getLocation().distanceSquared(location) > VIEW_DISTANCE_SQ) {
             return false;
         }
-        return spawnerService.canViewSpawnerVisual(AstPlayerCache.get(player));
+        return spawnerService.canViewSpawnerVisual(AstPlayerCache.get(player))
+                && spawnerService.getVisualMode(player) != MobSpawnerVisualMode.OFF;
     }
 
     @NotNull
@@ -149,6 +160,7 @@ final class MobSpawnerVisualizer {
         private final SpawnerPacketDisplay.PacketEntity block;
         private final SpawnerPacketDisplay.PacketEntity text;
         private boolean spawned;
+        private boolean textSpawned;
         private int ageCycles;
 
         private SpawnerVisual(
@@ -159,16 +171,26 @@ final class MobSpawnerVisualizer {
             this.text = text;
         }
 
-        private void show(@NotNull Player player) {
+        private void show(@NotNull Player player, @NotNull MobSpawnerVisualMode mode) {
             if (!spawned || ageCycles >= RESPAWN_CYCLES) {
                 if (spawned) {
                     destroy(player);
                 }
                 block.spawn(player);
-                text.spawn(player);
+                if (mode == MobSpawnerVisualMode.NORMAL) {
+                    text.spawn(player);
+                    textSpawned = true;
+                }
                 spawned = true;
                 ageCycles = 0;
                 return;
+            }
+            if (mode == MobSpawnerVisualMode.NORMAL && !textSpawned) {
+                text.spawn(player);
+                textSpawned = true;
+            } else if (mode == MobSpawnerVisualMode.LIGHT && textSpawned) {
+                text.destroy(player);
+                textSpawned = false;
             }
             ageCycles++;
         }
@@ -179,9 +201,12 @@ final class MobSpawnerVisualizer {
             }
             if (player != null && player.isOnline()) {
                 block.destroy(player);
-                text.destroy(player);
+                if (textSpawned) {
+                    text.destroy(player);
+                }
             }
             spawned = false;
+            textSpawned = false;
             ageCycles = 0;
         }
     }
