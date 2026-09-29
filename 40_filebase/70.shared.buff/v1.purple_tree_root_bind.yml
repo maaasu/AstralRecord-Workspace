@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 根縛り"
+#   progression: 16
+schemaVersion: 1
+id: purple_tree_root_bind
+type: BUFF
+name: "&c根縛り"
+lore:
+  - "&7短時間、移動できなくなる。"
+durationTicks: 40
+isDebuff: true
+resetOnChallenge: true
+modifiers:
+  - status: MOVEMENT_SPEED
+    type: FINAL_SCALAR
+    value: -1.0

@@ -470,7 +470,7 @@ public class PlayerHudView {
     }
 
     /**
-     * サイドバーを描画し、設定が有効な場合は獲得順のバフを最大5件表示します。
+     * サイドバーを描画します。デバフを優先し、通常バフは表示設定が有効な場合に表示します。
      * 表示行数が15行を超えないよう、挑戦名と参加者を優先して任意情報・バフ・性能情報を調整します。
      *
      * @param player 対象プレイヤー
@@ -539,6 +539,13 @@ public class PlayerHudView {
         boolean showSkillTreePoints = skillTreeClassPointLabel != null;
         int baseLineCount = SIDEBAR_BASE_LINE_COUNT
                 + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
+        boolean hasDebuff = activeBuffs.stream().anyMatch(buff -> buff.getType().isDebuff());
+        int linesToReserve = hasDebuff
+                ? Math.max(0, baseLineCount + requiredChallengeLineCount + 1 - SIDEBAR_LINE_LIMIT)
+                : 0;
+        boolean hideGold = linesToReserve >= 1;
+        boolean hideClassExperience = linesToReserve >= 2;
+        baseLineCount -= (hideGold ? 1 : 0) + (hideClassExperience ? 1 : 0);
         List<String> buffLines = buildBuffLines(
                 activeBuffs,
                 showBuffInfo,
@@ -565,10 +572,14 @@ public class PlayerHudView {
         String classLevelText = ClassLevelDisplay.legacy(classLevel, classLevelMax);
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " " + classLevelText);
-        lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
-        lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
-                + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
+        if (!hideClassExperience) {
+            lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
+        }
+        if (!hideGold) {
+            lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                    + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
+                    + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
+        }
         if (showSkillTreePoints) {
             lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
                     + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
@@ -794,25 +805,30 @@ public class PlayerHudView {
             int challengeLineCount,
             int baseLineCount
     ) {
-        if (!showBuffInfo || activeBuffs.isEmpty()) {
+        List<ActiveBuff> visibleBuffs = activeBuffs.stream()
+                .filter(buff -> showBuffInfo || buff.getType().isDebuff())
+                .sorted(Comparator.comparing(buff -> !buff.getType().isDebuff()))
+                .toList();
+        if (visibleBuffs.isEmpty()) {
             return List.of();
         }
 
-        int availableEntries = Math.max(
-                0,
-                SIDEBAR_LINE_LIMIT - baseLineCount - challengeLineCount - 1
-        );
-        int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
+        int availableLines = Math.max(0, SIDEBAR_LINE_LIMIT - baseLineCount - challengeLineCount);
+        boolean showSeparator = availableLines >= 2;
+        int availableEntries = availableLines - (showSeparator ? 1 : 0);
+        int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, visibleBuffs.size()), availableEntries);
         if (displayCount == 0) {
             return List.of();
         }
 
         List<String> lines = new ArrayList<>(displayCount + 1);
-        lines.add(buildSeparator("buff"));
+        if (showSeparator) {
+            lines.add(buildSeparator("buff"));
+        }
         LocalDateTime now = LocalDateTime.now();
         for (int index = 0; index < displayCount; index++) {
-            ActiveBuff buff = activeBuffs.get(index);
-            int hiddenCount = index == displayCount - 1 ? activeBuffs.size() - displayCount : 0;
+            ActiveBuff buff = visibleBuffs.get(index);
+            int hiddenCount = index == displayCount - 1 ? visibleBuffs.size() - displayCount : 0;
             lines.add(formatBuffLine(buff, index + 1, hiddenCount, now));
         }
         return lines;

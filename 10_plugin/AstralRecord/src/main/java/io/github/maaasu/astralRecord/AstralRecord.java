@@ -1790,7 +1790,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new IluvatarFlameChargeMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new TwilightColossusGateSlamSkillExecutor(damageService, particleDisplayService));
         mobSkillRegistry.register(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));
-        PurpleTreeMobSkillExecutor.createAll(mobService, damageService, particleDisplayService)
+        PurpleTreeMobSkillExecutor.createAll(mobService, damageService, particleDisplayService, statusService)
                 .forEach(mobSkillRegistry::register);
         mobSkillService = new MobSkillService(mobService, mobSkillRegistry);
         mobSkillService.setConditionService(conditionService);

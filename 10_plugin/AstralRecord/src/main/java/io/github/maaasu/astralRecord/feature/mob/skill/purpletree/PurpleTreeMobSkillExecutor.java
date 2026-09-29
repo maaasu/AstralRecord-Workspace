@@ -12,6 +12,9 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -19,8 +22,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -37,32 +38,45 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
     private static final int WARNING_STEP_TICKS = 5;
     private static final int RING_POINTS = 32;
     private static final int PROJECTILE_LIFETIME_TICKS = 24;
+    private static final String ROOT_BIND_DEBUFF_ID = "purple_tree_root_bind";
 
     private final Kind kind;
     private final MobService mobService;
     private final DamageService damageService;
     private final ParticleDisplayService particles;
+    private final StatusService statusService;
 
-    /** 各攻撃を個別 ID の executor として構築します。 */
+    /**
+     * 各攻撃を個別 ID の executor として構築します。
+     *
+     * @param mobService Mob実体の参照先
+     * @param damageService ダメージ処理の参照先
+     * @param particles パーティクル表示の参照先
+     * @param statusService 根縛りデバフの付与先
+     * @return 登録するMob専用攻撃の一覧
+     */
     public static @NotNull List<MobSkillExecutor> createAll(
             @NotNull MobService mobService,
             @NotNull DamageService damageService,
-            @NotNull ParticleDisplayService particles
+            @NotNull ParticleDisplayService particles,
+            @NotNull StatusService statusService
     ) {
         List<MobSkillExecutor> result = new ArrayList<>();
         for (Kind kind : Kind.values()) {
-            result.add(new PurpleTreeMobSkillExecutor(kind, mobService, damageService, particles));
+            result.add(new PurpleTreeMobSkillExecutor(kind, mobService, damageService, particles, statusService));
         }
         return List.copyOf(result);
     }
 
     /** 依存先と担当する攻撃を固定します。 */
     private PurpleTreeMobSkillExecutor(Kind kind, MobService mobService,
-                                       DamageService damageService, ParticleDisplayService particles) {
+                                       DamageService damageService, ParticleDisplayService particles,
+                                       StatusService statusService) {
         this.kind = kind;
         this.mobService = mobService;
         this.damageService = damageService;
         this.particles = particles;
+        this.statusService = statusService;
     }
 
     @Override public @NotNull String id() { return kind.id; }
@@ -117,7 +131,10 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         scheduleArea(context.mob(), center, warning, () -> {
             for (Player player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 10, false, true));
+                    AstPlayer target = AstPlayerCache.get(player);
+                    if (target != null) {
+                        statusService.applyBuff(target, ROOT_BIND_DEBUFF_ID);
+                    }
                 }
             }
             burst(center, ringPoints(center, radius, 0.7D));
