@@ -42,6 +42,7 @@ import java.util.stream.Stream;
  */
 public final class BossFieldInstanceService {
     private static final long FAILED_FIELD_CLEANUP_RETRY_TICKS = 20L;
+    private static final long WORLD_LOAD_RETRY_DELAY_TICKS = 1L;
     private static final long WORLD_LOAD_SLOT_RELEASE_DELAY_TICKS = 1L;
 
     private final AstralRecord plugin;
@@ -227,6 +228,8 @@ public final class BossFieldInstanceService {
     /**
      * ワールド tick 外のメインスレッドで一時ワールドをロードし、必要チャンク準備へ進めます。
      *
+     * world tick 中またはロード枠使用中は次の tick へ延期し、同じ tick 内で再実行しません。
+     *
      * @param challenge 対象挑戦
      * @param worldData ボスフィールドのマスタ
      * @param prepared コピー済みフィールド情報
@@ -250,9 +253,10 @@ public final class BossFieldInstanceService {
         }
         if (Bukkit.isTickingWorlds() || !worldLoadSlotInUse.compareAndSet(false, true)) {
             try {
-                Bukkit.getScheduler().runTask(
+                Bukkit.getScheduler().runTaskLater(
                         plugin,
-                        () -> loadPreparedFieldWhenSafe(challenge, worldData, prepared, pending, result)
+                        () -> loadPreparedFieldWhenSafe(challenge, worldData, prepared, pending, result),
+                        WORLD_LOAD_RETRY_DELAY_TICKS
                 );
             } catch (RuntimeException ex) {
                 completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
