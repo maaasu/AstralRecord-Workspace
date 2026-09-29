@@ -69,7 +69,9 @@ public class MobSpawnerDefinitionRepository {
                 parseTimeWindows(yaml),
                 resolveMaterial(yaml.getString("itemMaterial")),
                 yaml.getLong("spawnIntervalTicks", 100L),
+                yaml.getDouble("spawnChancePercent", 100.0D),
                 yaml.getInt("spawnLimit.maxAlivePerSpawner", 8),
+                yaml.getInt("spawnLimit.maxAlivePerMob", 0),
                 yaml.getInt("spawnLimit.maxNearbyMobs", 18),
                 yaml.getInt("spawnLimit.spawnPerPlayer", 1)
         );

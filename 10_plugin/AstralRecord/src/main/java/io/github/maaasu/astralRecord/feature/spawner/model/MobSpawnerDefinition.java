@@ -16,7 +16,9 @@ import java.util.List;
  * @param timeWindows          スポーン可能時間帯
  * @param itemMaterial         管理者用スポナーアイテムの見た目 Material
  * @param spawnIntervalTicks   スポーン判定間隔
+ * @param spawnChancePercent   判定ごとの出現確率（百分率）
  * @param maxAlivePerSpawner   このスポナー由来で同時に存在できる最大数
+ * @param maxAlivePerMob       同一 Mob ID のサーバー内同時存在上限。0 は無制限
  * @param maxNearbyMobs        周辺全体の Mob 上限。他スポナーとの湧き過ぎ抑制に使います
  * @param spawnPerPlayer       プレイヤー 1 人あたりの目標スポーン数
  */
@@ -28,7 +30,9 @@ public record MobSpawnerDefinition(
         @NotNull List<MobSpawnerTimeWindow> timeWindows,
         @NotNull Material itemMaterial,
         long spawnIntervalTicks,
+        double spawnChancePercent,
         int maxAlivePerSpawner,
+        int maxAlivePerMob,
         int maxNearbyMobs,
         int spawnPerPlayer
 ) {
@@ -46,7 +50,10 @@ public record MobSpawnerDefinition(
             itemMaterial = Material.SPAWNER;
         }
         spawnIntervalTicks = Math.max(20L, spawnIntervalTicks);
+        spawnChancePercent = Double.isFinite(spawnChancePercent)
+                ? Math.clamp(spawnChancePercent, 0.0D, 100.0D) : 100.0D;
         maxAlivePerSpawner = Math.max(1, maxAlivePerSpawner);
+        maxAlivePerMob = Math.max(0, maxAlivePerMob);
         maxNearbyMobs = Math.max(maxAlivePerSpawner, maxNearbyMobs);
         spawnPerPlayer = Math.max(1, spawnPerPlayer);
     }

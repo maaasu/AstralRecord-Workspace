@@ -115,6 +115,8 @@ Mobが表示上装備するアイテムを指定します。すべて任意項�
 | `equipment.chestplate` | String | ×  | Null  | チェストプレート（Bukkit/Paper の標準 Material 名） |
 | `equipment.leggings`   | String | ×  | Null  | レギンス（Bukkit/Paper の標準 Material 名）     |
 | `equipment.boots`      | String | ×  | Null  | ブーツ（Bukkit/Paper の標準 Material 名）      |
+| `equipment.trim.material` | String | × | Null | 装備した防具に共通で付ける Armor Trim 素材。模様と両方指定する（例: `AMETHYST`） |
+| `equipment.trim.pattern` | String | × | Null | 装備した防具に共通で付ける Armor Trim 模様。素材と両方指定する（例: `SILENCE`） |
 
 ※ アイテムマスタの `ref: item:` 参照は使用しません。例: `mainHand: IRON_SWORD`
 

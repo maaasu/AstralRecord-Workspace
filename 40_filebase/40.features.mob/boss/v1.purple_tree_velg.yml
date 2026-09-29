@@ -1,0 +1,71 @@
+# design:
+#   motif: "植物 / 紫蝕の樹"
+#   progression: 16
+schemaVersion: 1
+id: purple_tree_velg
+type: MOB
+category: BOSS
+name: "&5&l紫蝕の樹守・ヴェルグ"
+level: 16
+entityType: SKELETON
+icon: NETHERITE_HOE
+lore:
+  - "&7この場所を守る樹守。近づいた相手をクワで迎え撃つ。"
+  - "&7刈り払いと根縛りを使い、追い詰められると攻撃範囲が広がる。"
+tags:
+  - boss
+  - undead
+  - humanoid
+  - melee
+  - magic
+equipment:
+  mainHand: NETHERITE_HOE
+  helmet: NETHERITE_HELMET
+  chestplate: NETHERITE_CHESTPLATE
+  leggings: NETHERITE_LEGGINGS
+  boots: NETHERITE_BOOTS
+  trim:
+    material: AMETHYST
+    pattern: SILENCE
+baseStats:
+  - status: MAX_HEALTH
+    value: 32768
+  - status: ATTACK
+    value: 890
+  - status: DEFENSE
+    value: 1026
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 88
+  - status: KNOCKBACK_RESISTANCE
+    value: 80
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 28
+    deaggroRange: 36
+    leashRange: 42
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.5
+      intervalTicks: 30
+    skills:
+      - id: mob_purple_tree_sweep
+        activationRange: 5.5
+        cooldownTicks: 110
+        castTimeTicks: 18
+      - id: mob_purple_tree_bind
+        activationRange: 11
+        cooldownTicks: 150
+        castTimeTicks: 24
+drops:
+  exp: 4400

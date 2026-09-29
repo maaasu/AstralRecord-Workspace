@@ -661,6 +661,12 @@ public class MobSpawnerService {
         if (alive >= desired || countNearbyMobs(origin, definition.radiusMeters()) >= definition.maxNearbyMobs()) {
             return false;
         }
+        if (!attempt.chanceChecked) {
+            attempt.chanceChecked = true;
+            if (ThreadLocalRandom.current().nextDouble(100.0D) >= definition.spawnChancePercent()) {
+                return false;
+            }
+        }
 
         if (attempt.search == null || attempt.world != origin.getWorld()) {
             attempt.world = origin.getWorld();
@@ -674,6 +680,11 @@ public class MobSpawnerService {
         if (entry == null) {
             return false;
         }
+        if (definition.maxAlivePerMob() > 0 && mobService.getInstances().stream()
+                .filter(instance -> instance.template().id().equals(entry.mobId()))
+                .count() >= definition.maxAlivePerMob()) {
+            return false;
+        }
         MobInstance instance = mobService.spawn(entry.mobId(), entry.level(), spawnLocation);
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
@@ -685,6 +696,7 @@ public class MobSpawnerService {
     /** 1配置につき1件だけ保持し、削除・再読込・停止時に破棄するスポーン待機状態です。 */
     private static final class SpawnAttempt {
         private final MobSpawnerLocation location;
+        private boolean chanceChecked;
         private World world;
         private MobSpawnLocationSearch search;
 
