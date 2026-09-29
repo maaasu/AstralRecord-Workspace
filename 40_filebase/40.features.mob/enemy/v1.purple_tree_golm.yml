@@ -1,0 +1,62 @@
+# design:
+#   motif: "工芸 / 守護像"
+#   progression: 16
+schemaVersion: 1
+id: purple_tree_golm
+type: MOB
+category: ENEMY
+name: "&7ゴルム"
+level: 16
+entityType: IRON_GOLEM
+variant:
+  scale: 0.67
+icon: IRON_BLOCK
+lore:
+  - "&7前に出て相手の進路を塞ぐゴーレム。"
+  - "&7突進と地砕きで周囲の相手を攻撃する。"
+tags:
+  - golem
+  - melee
+  - stone
+baseStats:
+  - status: MAX_HEALTH
+    value: 7680
+  - status: ATTACK
+    value: 742
+  - status: DEFENSE
+    value: 1115
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 75
+  - status: KNOCKBACK_RESISTANCE
+    value: 75
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 22
+    deaggroRange: 30
+    leashRange: 34
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 30
+    skills:
+      - id: mob_purple_tree_charge
+        activationRange: 9
+        cooldownTicks: 120
+        castTimeTicks: 20
+      - id: mob_purple_tree_slam
+        activationRange: 3.5
+        cooldownTicks: 100
+        castTimeTicks: 16
+drops:
+  exp: 160

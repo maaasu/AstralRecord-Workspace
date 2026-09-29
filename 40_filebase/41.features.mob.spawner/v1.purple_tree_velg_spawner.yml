@@ -1,0 +1,22 @@
+# design:
+#   motif: "植物 / 紫蝕の樹"
+#   progression: 16
+schemaVersion: 1
+id: purple_tree_velg_spawner
+type: MOB_SPAWNER
+radiusMeters: 18
+spawnMobs:
+  - mobId: mob:purple_tree_velg
+    level: 16
+    weight: 100
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 1200
+spawnChancePercent: 10.0
+spawnLimit:
+  maxAlivePerSpawner: 1
+  maxAlivePerMob: 1
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

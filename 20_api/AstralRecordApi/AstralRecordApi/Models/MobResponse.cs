@@ -142,6 +142,17 @@ public class MobEquipmentResponse
     public string? Leggings { get; init; }
 
     public string? Boots { get; init; }
+
+    /// <summary>装備した防具へ共通で適用する Armor Trim。</summary>
+    public MobArmorTrimResponse? Trim { get; init; }
+}
+
+/// <summary>Mob の表示防具に適用する装飾素材と模様。</summary>
+public class MobArmorTrimResponse
+{
+    public string? Material { get; init; }
+
+    public string? Pattern { get; init; }
 }
 
 /// <summary>Mob のステータス値（独自 StatusType ベース）。</summary>

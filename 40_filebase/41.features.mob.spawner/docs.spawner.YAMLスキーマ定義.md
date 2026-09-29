@@ -24,7 +24,9 @@ Mob スポナーの静的マスタ定義です。
 | `spawnTimes[].endTick` | Long | ○ | - | 終了 tick（0-23999）。開始より小さい場合は日跨ぎ |
 | `itemMaterial` | String | ○ | - | スポナーアイテムの見た目 Bukkit Material。ブロック Material を指定します |
 | `spawnIntervalTicks` | Long | × | `100` | スポーン判定間隔 |
+| `spawnChancePercent` | Double | × | `100.0` | 条件を満たした判定ごとの出現確率（0〜100%）。`spawnMobs[].weight` とは独立 |
 | `spawnLimit.maxAlivePerSpawner` | Integer | × | `8` | このスポナー由来の同時存在上限 |
+| `spawnLimit.maxAlivePerMob` | Integer | × | `0` | 選ばれた Mob ID のサーバー内同時存在上限。`0` は無制限。同じ Mob を複数配置した場合にも適用 |
 | `spawnLimit.maxNearbyMobs` | Integer | × | `18` | 他スポナー由来を含む周辺 Mob 上限 |
 | `spawnLimit.spawnPerPlayer` | Integer | × | `1` | 範囲内プレイヤー 1 人あたりの目標スポーン数。最大 6 人分まで加算 |
 

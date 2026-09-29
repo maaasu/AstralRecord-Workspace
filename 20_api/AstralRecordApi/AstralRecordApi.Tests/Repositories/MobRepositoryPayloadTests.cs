@@ -292,6 +292,36 @@ public class MobRepositoryPayloadTests
     }
 
     [Fact]
+    public void DeserializeLiteralJson_PreservesArmorTrimInApiResponse()
+    {
+        var mob = JsonSerializer.Deserialize<MobResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "trimmed_guard",
+              "type": "MOB",
+              "category": "BOSS",
+              "name": "trimmed guard",
+              "level": 16,
+              "entityType": "SKELETON",
+              "equipment": {
+                "helmet": "NETHERITE_HELMET",
+                "trim": { "material": "AMETHYST", "pattern": "SILENCE" }
+              },
+              "baseStats": []
+            }
+            """, MasterDataJsonOptions());
+
+        Assert.Equal("AMETHYST", mob?.Equipment?.Trim?.Material);
+        Assert.Equal("SILENCE", mob?.Equipment?.Trim?.Pattern);
+
+        using var responseJson = JsonDocument.Parse(JsonSerializer.Serialize(
+            mob, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var trim = responseJson.RootElement.GetProperty("equipment").GetProperty("trim");
+        Assert.Equal("AMETHYST", trim.GetProperty("material").GetString());
+        Assert.Equal("SILENCE", trim.GetProperty("pattern").GetString());
+    }
+
+    [Fact]
     public void DeserializeLiteralJson_PreservesMobLevelProfiles()
     {
         var mob = JsonSerializer.Deserialize<MobResponse>("""

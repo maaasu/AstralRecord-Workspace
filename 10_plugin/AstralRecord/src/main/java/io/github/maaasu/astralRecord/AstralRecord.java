@@ -142,6 +142,7 @@ import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.IluvatarFireS
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.IluvatarFlameChargeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MiddleEarthPiglinRushMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.mossshell.MossShellShellBashMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.purpletree.PurpleTreeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonArcherBowShotMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.savannawitch.SavannaWitchEmberBoltMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusGateSlamSkillExecutor;
@@ -1789,6 +1790,8 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new IluvatarFlameChargeMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new TwilightColossusGateSlamSkillExecutor(damageService, particleDisplayService));
         mobSkillRegistry.register(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));
+        PurpleTreeMobSkillExecutor.createAll(mobService, damageService, particleDisplayService)
+                .forEach(mobSkillRegistry::register);
         mobSkillService = new MobSkillService(mobService, mobSkillRegistry);
         mobSkillService.setConditionService(conditionService);
         bindCircleRuntimeService = new BindCircleRuntimeService(mobService, mobSkillService);

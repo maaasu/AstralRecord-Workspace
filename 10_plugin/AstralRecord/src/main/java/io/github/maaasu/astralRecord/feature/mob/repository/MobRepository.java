@@ -345,13 +345,17 @@ public class MobRepository {
     @NotNull
     private MobEquipmentConfig parseEquipment(@Nullable JsonObject obj) {
         if (obj == null) return MobEquipmentConfig.EMPTY;
+        JsonObject trim = obj.has("trim") && obj.get("trim").isJsonObject()
+                ? obj.getAsJsonObject("trim") : null;
         return new MobEquipmentConfig(
                 stripPrefix(optionalString(obj, "mainHand")),
                 stripPrefix(optionalString(obj, "offHand")),
                 stripPrefix(optionalString(obj, "helmet")),
                 stripPrefix(optionalString(obj, "chestplate")),
                 stripPrefix(optionalString(obj, "leggings")),
-                stripPrefix(optionalString(obj, "boots"))
+                stripPrefix(optionalString(obj, "boots")),
+                optionalString(trim, "material"),
+                optionalString(trim, "pattern")
         );
     }
 

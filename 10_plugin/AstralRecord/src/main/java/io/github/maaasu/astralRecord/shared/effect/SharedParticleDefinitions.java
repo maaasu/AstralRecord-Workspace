@@ -430,6 +430,25 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(153, 224, 124), 1.05F)
         );
+    public static final SharedParticleDefinition MOB_PURPLE_TREE_WARNING =
+        new SharedParticleDefinition("mob_purple_tree_warning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(176, 65, 238), 1.2F));
+    public static final SharedParticleDefinition MOB_PURPLE_TREE_IMPACT =
+        new SharedParticleDefinition("mob_purple_tree_impact", Particle.DUST, 3,
+            0.12D, 0.22D, 0.12D, 0.03D,
+            new Particle.DustOptions(Color.fromRGB(111, 27, 190), 1.7F));
+    public static final SharedParticleDefinition MOB_PURPLE_TREE_CHARGE =
+        new SharedParticleDefinition("mob_purple_tree_charge", Particle.DUST, 8,
+            0.35D, 0.35D, 0.35D, 0.02D,
+            new Particle.DustOptions(Color.fromRGB(95, 75, 114), 1.25F));
+    public static final SharedParticleDefinition MOB_PURPLE_TREE_BOLT =
+        new SharedParticleDefinition("mob_purple_tree_bolt", Particle.DUST, 6,
+            0.17D, 0.17D, 0.17D, 0.01D,
+            new Particle.DustOptions(Color.fromRGB(191, 110, 255), 1.35F));
+    public static final SharedParticleDefinition MOB_PURPLE_TREE_FLASH =
+        new SharedParticleDefinition("mob_purple_tree_flash", Particle.FLASH, 1,
+            0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition MOB_ERIVA_STARHORN_BLOOM =
         new SharedParticleDefinition(
             "mob_eriva_starhorn_bloom",

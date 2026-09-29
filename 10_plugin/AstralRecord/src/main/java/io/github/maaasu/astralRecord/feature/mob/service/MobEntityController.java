@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.papermc.paper.entity.LookAnchor;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Bukkit;
@@ -32,6 +34,10 @@ import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -47,6 +53,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -1069,6 +1076,7 @@ public class MobEntityController {
         }
     }
 
+    /** Mob の表示装備と任意の防具装飾を反映します。 */
     static void applyEquipment(
             @Nullable EntityEquipment equipment,
             @NotNull MobEquipmentConfig config
@@ -1079,19 +1087,53 @@ public class MobEntityController {
 
         setEquipmentItem(equipment::setItemInMainHand, config.mainHand());
         setEquipmentItem(equipment::setItemInOffHand, config.offHand());
-        setEquipmentItem(equipment::setHelmet, config.helmet());
-        setEquipmentItem(equipment::setChestplate, config.chestplate());
-        setEquipmentItem(equipment::setLeggings, config.leggings());
-        setEquipmentItem(equipment::setBoots, config.boots());
+        ArmorTrim trim = resolveArmorTrim(config);
+        setEquipmentItem(equipment::setHelmet, config.helmet(), trim);
+        setEquipmentItem(equipment::setChestplate, config.chestplate(), trim);
+        setEquipmentItem(equipment::setLeggings, config.leggings(), trim);
+        setEquipmentItem(equipment::setBoots, config.boots(), trim);
     }
 
+    /** 装飾のない手持ち装備を設定します。 */
     private static void setEquipmentItem(
             @NotNull Consumer<ItemStack> setter,
             @Nullable String rawMaterial
     ) {
+        setEquipmentItem(setter, rawMaterial, null);
+    }
+
+    /** 装備可能な防具には指定された Armor Trim を付けて設定します。 */
+    private static void setEquipmentItem(
+            @NotNull Consumer<ItemStack> setter,
+            @Nullable String rawMaterial,
+            @Nullable ArmorTrim trim
+    ) {
         Material material = resolveEquipmentMaterial(rawMaterial);
         if (material != null) {
-            setter.accept(new ItemStack(material));
+            ItemStack item = new ItemStack(material);
+            if (trim != null && item.getItemMeta() instanceof ArmorMeta armorMeta) {
+                armorMeta.setTrim(trim);
+                item.setItemMeta(armorMeta);
+            }
+            setter.accept(item);
+        }
+    }
+
+    /** 両方の装飾キーが有効な場合だけ Bukkit の Armor Trim を解決します。 */
+    @Nullable
+    private static ArmorTrim resolveArmorTrim(@NotNull MobEquipmentConfig config) {
+        if (config.trimMaterial() == null || config.trimMaterial().isBlank()
+                || config.trimPattern() == null || config.trimPattern().isBlank()) {
+            return null;
+        }
+        try {
+            TrimMaterial material = RegistryAccess.registryAccess().getRegistry(RegistryKey.TRIM_MATERIAL).get(
+                    NamespacedKey.minecraft(config.trimMaterial().trim().toLowerCase(Locale.ROOT)));
+            TrimPattern pattern = RegistryAccess.registryAccess().getRegistry(RegistryKey.TRIM_PATTERN).get(
+                    NamespacedKey.minecraft(config.trimPattern().trim().toLowerCase(Locale.ROOT)));
+            return material == null || pattern == null ? null : new ArmorTrim(material, pattern);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 

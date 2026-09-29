@@ -1,0 +1,59 @@
+# design:
+#   motif: "魔術 / 呪術師"
+#   progression: 16
+schemaVersion: 1
+id: purple_tree_melza
+type: MOB
+category: ENEMY
+name: "&5メルザ"
+level: 16
+entityType: SKELETON
+icon: DIAMOND_HELMET
+lore:
+  - "&7距離を取って戦う魔術師。"
+  - "&7呪弾と呪域で相手の移動を妨げる。"
+tags:
+  - undead
+  - humanoid
+  - magic
+equipment:
+  helmet: DIAMOND_HELMET
+baseStats:
+  - status: MAX_HEALTH
+    value: 4096
+  - status: ATTACK
+    value: 800
+  - status: MAGIC_ATTACK
+    value: 127
+  - status: DEFENSE
+    value: 669
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 9
+    skills:
+      - id: mob_purple_tree_bolt
+        activationRange: 16
+        cooldownTicks: 50
+        castTimeTicks: 12
+      - id: mob_purple_tree_curse
+        activationRange: 12
+        cooldownTicks: 110
+        castTimeTicks: 20
+drops:
+  exp: 160
