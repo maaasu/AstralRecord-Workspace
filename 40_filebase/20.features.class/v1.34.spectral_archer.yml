@@ -6,7 +6,7 @@ id: spectral_archer
 type: CLASS
 name: "&aスペクトラルアーチャー"
 order: 3.4
-shortName: "&aSPA"
+shortName: "&a&l&oSPA"
 description: "&7アクロバットな動きで敵を翻弄する射手。"
 icon: firework_rocket
 classGui: { slot: 40 }

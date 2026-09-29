@@ -6,7 +6,7 @@ id: arc_sage
 type: CLASS
 name: "&dアークセージ"
 order: 3.6
-shortName: "&dACS"
+shortName: "&d&l&oACS"
 description: "&7秘術で味方を支える賢者。"
 icon: diamond_shovel
 classGui: { slot: 42 }

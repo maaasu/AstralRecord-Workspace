@@ -6,7 +6,7 @@ id: paladin
 type: CLASS
 name: "&cパラディン"
 order: 2.1
-shortName: "&cPAL"
+shortName: "&c&lPAL"
 description: "&7守護と支援を担う聖騎士。"
 icon: SHIELD
 classGui: { slot: 28 }

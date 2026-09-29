@@ -6,7 +6,7 @@ id: wizard
 type: CLASS
 name: "&dウィザード"
 order: 2.5
-shortName: "&dWIZ"
+shortName: "&d&lWIZ"
 description: "&7魔法を操る攻撃魔術師。"
 icon: BLAZE_ROD
 classGui: { slot: 32 }

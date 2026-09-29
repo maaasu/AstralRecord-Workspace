@@ -6,7 +6,7 @@ id: astral_wizard
 type: CLASS
 name: "&dアストラルウィザード"
 order: 3.5
-shortName: "&dASW"
+shortName: "&d&l&oASW"
 description: "&7星の魔術を操る魔術師。"
 icon: breeze_rod
 classGui: { slot: 41 }

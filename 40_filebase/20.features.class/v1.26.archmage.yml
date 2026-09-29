@@ -6,7 +6,7 @@ id: archmage
 type: CLASS
 name: "&dアークメイジ"
 order: 2.6
-shortName: "&dAMG"
+shortName: "&d&lAMG"
 description: "&7広範囲の支援魔術師。"
 icon: GOLDEN_SHOVEL
 classGui: { slot: 33 }

@@ -6,7 +6,7 @@ id: phantom_archer
 type: CLASS
 name: "&aファントムアーチャー"
 order: 2.4
-shortName: "&aPHA"
+shortName: "&a&lPHA"
 description: "&7矢で弱体化を与える射手。"
 icon: crossbow
 classGui: { slot: 31 }

@@ -6,7 +6,7 @@ id: royal_crusader
 type: CLASS
 name: "&cロイヤルクルセイダー"
 order: 3.1
-shortName: "&cRCR"
+shortName: "&c&l&oRCR"
 description: "&7守護を極めた王国の聖騎士。"
 icon: NETHERITE_CHESTPLATE
 classGui: { slot: 37 }

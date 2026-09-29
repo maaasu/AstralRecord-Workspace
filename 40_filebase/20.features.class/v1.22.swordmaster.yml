@@ -6,7 +6,7 @@ id: swordmaster
 type: CLASS
 name: "&cソードマスター"
 order: 2.2
-shortName: "&cSTM"
+shortName: "&c&lSMT"
 description: "&7攻防を使い分ける剣の達人。"
 icon: IRON_SWORD
 classGui: { slot: 29 }

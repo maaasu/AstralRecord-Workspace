@@ -6,7 +6,7 @@ id: grandmaster
 type: CLASS
 name: "&cグランドマスター"
 order: 3.2
-shortName: "&cGMS"
+shortName: "&c&l&oGMS"
 description: "&7近接戦闘の天才。"
 icon: NETHERITE_SPEAR
 classGui: { slot: 38 }

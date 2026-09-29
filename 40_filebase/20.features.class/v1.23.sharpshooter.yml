@@ -6,7 +6,7 @@ id: sharpshooter
 type: CLASS
 name: "&aシャープシューター"
 order: 2.3
-shortName: "&aSHP"
+shortName: "&a&lSHP"
 description: "&7技を継承し、通常攻撃を変化させる射手。"
 icon: spectral_arrow
 classGui: { slot: 30 }
