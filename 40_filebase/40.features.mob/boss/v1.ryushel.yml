@@ -1,0 +1,68 @@
+# design:
+#   motif: "動物・植物 / 白い羊と白樺"
+#   progression: 20
+schemaVersion: 1
+id: ryushel
+type: MOB
+category: BOSS
+name: "&f&l白樺の花影・リュシェル"
+title: "&a-- 花影に紛れる森の羊 --"
+level: 20
+entityType: SHEEP
+variant:
+  age: ADULT
+  color: WHITE
+  scale: 1.25
+icon: WHITE_WOOL
+nameVisible: true
+lore:
+  - "&7白樺の樹皮を思わせる羊毛で身を守り、花影に紛れて攻撃をかわす。"
+  - "&7花影の跳躍後は羊毛が散り、防御と回避が短時間弱まる。"
+tags:
+  - forest
+  - boss
+  - beast
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 40000
+  - status: ATTACK
+    value: 1200
+  - status: DEFENSE
+    value: 2200
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 20
+  - status: MOVEMENT_SPEED
+    value: 118
+  - status: KNOCKBACK_RESISTANCE
+    value: 80
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 6
+    speed: 0.65
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.5
+      intervalTicks: 35
+    skills:
+      - id: mob_ryushel_flower_leap
+        activationRange: 8
+        cooldownTicks: 120
+        castTimeTicks: 20
+        params:
+          radius: 2.5
+          damageRatio: 0.75
+drops:
+  exp: 4000

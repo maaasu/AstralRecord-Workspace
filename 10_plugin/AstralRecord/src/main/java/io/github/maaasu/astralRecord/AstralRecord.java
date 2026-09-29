@@ -132,6 +132,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaStarhornGroveCircleMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.forestspider.ForestSpiderWebShotMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElChargeMobSkillExecutor;
@@ -1770,6 +1771,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         skillService.registerExecutor(weaponAttackSkillExecutor);
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
+        temporarySkillEffectService = new TemporarySkillEffectService();
         var mobSkillRegistry = new MobSkillRegistry();
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
         mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
@@ -1780,6 +1782,9 @@ public final class AstralRecord extends JavaPlugin {
             mobService, damageService, particleDisplayService
         );
         mobSkillRegistry.register(clayGuardLeapMobSkillExecutor);
+        mobSkillRegistry.register(new RyushelFlowerLeapMobSkillExecutor(
+            mobService, damageService, temporarySkillEffectService, particleDisplayService
+        ));
         mobSkillRegistry.register(new MiddleEarthPiglinRushMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new AllThingsElIceSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new SavannaWitchEmberBoltMobSkillExecutor(damageService, conditionService, mobProjectileService));
@@ -1805,11 +1810,11 @@ public final class AstralRecord extends JavaPlugin {
             clayGuardLeapMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             mobTauntService.clearMob(mobInstanceId);
             bossMechanicService.handleMobDestroyed(mobInstanceId);
+            temporarySkillEffectService.clear(mobInstanceId);
         });
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
         activeSkillTaskService = new SkillTaskService(this);
-        temporarySkillEffectService = new TemporarySkillEffectService();
         statusService.setChallengeBuffResetListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
             skillService.clearAllCooldowns(playerId);

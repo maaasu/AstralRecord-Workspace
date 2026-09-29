@@ -121,6 +121,29 @@ class TemporarySkillEffectServiceTest {
         assertEquals(1.0D, service.defenseMultiplier(entity), DELTA);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 防御力と回避率の一時倍率は同時に置換され、期限切れで両方戻る。
+     */
+    @Test
+    void defenseAndEvasionMultipliersExpireTogether() {
+        AtomicLong currentTimeMillis = new AtomicLong(1_000L);
+        TemporarySkillEffectService service = new TemporarySkillEffectService(currentTimeMillis::get);
+        AstEntity entity = entity(UUID.randomUUID());
+
+        service.applyDefenseAndEvasionMultipliers(entity.id(), "exposed", 80L, 0.6D, 0.15D);
+        service.applyDefenseAndEvasionMultipliers(entity.id(), "exposed", 80L, 0.5D, 0.2D);
+
+        assertEquals(0.5D, service.defenseMultiplier(entity), DELTA);
+        assertEquals(0.2D, service.evasionMultiplier(entity), DELTA);
+
+        currentTimeMillis.addAndGet(4_000L);
+
+        assertEquals(1.0D, service.defenseMultiplier(entity), DELTA);
+        assertEquals(1.0D, service.evasionMultiplier(entity), DELTA);
+    }
+
     private static AstEntity entity(UUID id) {
         AstEntity entity = mock(AstEntity.class);
         when(entity.id()).thenReturn(id);

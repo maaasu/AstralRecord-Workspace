@@ -46,6 +46,7 @@ public final class TemporarySkillEffectService {
                 incomingMultiplier,
                 outgoingMultiplier,
                 knockbackMultiplier,
+                1.0D,
                 1.0D
         );
     }
@@ -57,7 +58,8 @@ public final class TemporarySkillEffectService {
             double incomingMultiplier,
             double outgoingMultiplier,
             double knockbackMultiplier,
-            double defenseMultiplier
+            double defenseMultiplier,
+            double evasionMultiplier
     ) {
         long expiresAtMillis = currentTimeMillis.getAsLong() + Math.max(1L, durationTicks) * MILLIS_PER_TICK;
         modifiersByEntity.computeIfAbsent(entityId, ignored -> new ConcurrentHashMap<>())
@@ -66,6 +68,7 @@ public final class TemporarySkillEffectService {
                         Math.max(0.0D, outgoingMultiplier),
                         Math.max(0.0D, knockbackMultiplier),
                         Math.max(0.0D, defenseMultiplier),
+                        Math.max(0.0D, evasionMultiplier),
                         expiresAtMillis
                 ));
     }
@@ -90,7 +93,31 @@ public final class TemporarySkillEffectService {
         if (!Double.isFinite(defenseMultiplier) || defenseMultiplier < 0.0D) {
             throw new IllegalArgumentException("defenseMultiplier must be a finite non-negative number");
         }
-        apply(entityId, effectId, durationTicks, 1.0D, 1.0D, 1.0D, defenseMultiplier);
+        apply(entityId, effectId, durationTicks, 1.0D, 1.0D, 1.0D, defenseMultiplier, 1.0D);
+    }
+
+    /**
+     * 対象の防御力と回避率へ同じ有効期間の一時倍率を設定します。
+     *
+     * @param entityId 対象エンティティ UUID
+     * @param effectId 効果 ID。同じ ID の再付与は置き換える
+     * @param durationTicks 持続 tick
+     * @param defenseMultiplier 防御力倍率（0以上）
+     * @param evasionMultiplier 回避率倍率（0以上）
+     */
+    public void applyDefenseAndEvasionMultipliers(
+            @NotNull UUID entityId,
+            @NotNull String effectId,
+            long durationTicks,
+            double defenseMultiplier,
+            double evasionMultiplier
+    ) {
+        if (!Double.isFinite(defenseMultiplier) || defenseMultiplier < 0.0D
+                || !Double.isFinite(evasionMultiplier) || evasionMultiplier < 0.0D) {
+            throw new IllegalArgumentException("defense and evasion multipliers must be finite non-negative numbers");
+        }
+        apply(entityId, effectId, durationTicks, 1.0D, 1.0D, 1.0D,
+                defenseMultiplier, evasionMultiplier);
     }
 
     /** 対象へ適用する被ダメージ倍率を返します。 */
@@ -111,6 +138,11 @@ public final class TemporarySkillEffectService {
     /** 対象の防御力へ適用する一時倍率を返します。 */
     public double defenseMultiplier(@NotNull AstEntity target) {
         return multiplier(target.id(), Modifier::defenseMultiplier);
+    }
+
+    /** 対象の回避率へ適用する一時倍率を返します。 */
+    public double evasionMultiplier(@NotNull AstEntity target) {
+        return multiplier(target.id(), Modifier::evasionMultiplier);
     }
 
     /** 指定対象の全効果を解除します。 */
@@ -164,6 +196,7 @@ public final class TemporarySkillEffectService {
             double outgoingMultiplier,
             double knockbackMultiplier,
             double defenseMultiplier,
+            double evasionMultiplier,
             long expiresAtMillis
     ) {
     }

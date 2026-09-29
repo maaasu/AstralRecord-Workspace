@@ -165,7 +165,28 @@ public final class DamageCalculator {
             boolean defenseConversionActive,
             double victimDefenseMultiplier
     ) {
-        HitCheck hitCheck = checkHit(context, attackerAccuracyBonus);
+        return calculate(context, attackerAccuracyBonus, defenseConversionActive,
+                victimDefenseMultiplier, 1.0D);
+    }
+
+    /**
+     * 一時的な防御力・回避率倍率を適用してダメージを計算します。
+     *
+     * @param context ダメージ計算入力
+     * @param attackerAccuracyBonus この一撃だけ攻撃者の命中率へ加算する補正値（%ポイント）
+     * @param defenseConversionActive 被弾者の防御力へ攻撃力の20%を加算する場合は {@code true}
+     * @param victimDefenseMultiplier 被弾者の防御力へ適用する倍率
+     * @param victimEvasionMultiplier 被弾者の回避率へ適用する倍率
+     * @return 計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus,
+            boolean defenseConversionActive,
+            double victimDefenseMultiplier,
+            double victimEvasionMultiplier
+    ) {
+        HitCheck hitCheck = checkHit(context, attackerAccuracyBonus, victimEvasionMultiplier);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
         }
@@ -247,7 +268,8 @@ public final class DamageCalculator {
 
     private @NotNull HitCheck checkHit(
             @NotNull DamageContext context,
-            double attackerAccuracyBonus
+            double attackerAccuracyBonus,
+            double victimEvasionMultiplier
     ) {
         if (context.scaling() != DamageScaling.ATTACKER_STATUS
                 && context.scaling() != DamageScaling.EXTERNAL_ATTACK_POWER
@@ -267,6 +289,10 @@ public final class DamageCalculator {
         double evasion = context.victim().isManaged()
                 ? Math.max(0.0D, context.victim().statValue(StatusType.EVASION))
                 : 0.0D;
+        double normalizedEvasionMultiplier = Double.isFinite(victimEvasionMultiplier)
+                ? Math.max(0.0D, victimEvasionMultiplier)
+                : 1.0D;
+        evasion *= normalizedEvasionMultiplier;
         double hitChance = calculateHitChance(accuracy, evasion);
         boolean hit = hitChance >= 100.0D || hitRollSupplier.getAsDouble() < hitChance;
         return new HitCheck(hit, hitChance, accuracy, evasion);

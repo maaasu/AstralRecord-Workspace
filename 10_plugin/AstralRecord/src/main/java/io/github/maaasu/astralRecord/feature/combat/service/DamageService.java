@@ -1113,7 +1113,8 @@ public final class DamageService {
                 context,
                 attackerAccuracyBonus,
                 usesDefenseConversion(victim),
-                temporaryDefenseMultiplier(victim)
+                temporaryDefenseMultiplier(victim),
+                temporaryEvasionMultiplier(victim)
         );
         double postCalculationMultiplier = 1.0D;
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
@@ -1402,6 +1403,13 @@ public final class DamageService {
         return temporarySkillEffectService == null
                 ? 1.0D
                 : temporarySkillEffectService.defenseMultiplier(victim);
+    }
+
+    /** 被弾者へ適用されている一時回避率倍率を返します。 */
+    private double temporaryEvasionMultiplier(@NotNull AstEntity victim) {
+        return temporarySkillEffectService == null
+                ? 1.0D
+                : temporarySkillEffectService.evasionMultiplier(victim);
     }
 
     /**

@@ -98,4 +98,32 @@ class DamageCalculatorBreakdownTest {
         assertEquals(1, result.breakdown().elementResistances().size());
         assertEquals(DamageElement.FIRE, result.breakdown().elementResistances().getFirst().element());
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 一時回避率倍率は命中判定へ反映し、防御倍率とは独立して扱う。
+     */
+    @Test
+    void temporaryEvasionMultiplierChangesHitChance() {
+        DamageCalculator calculator = new DamageCalculator(() -> 80.0D);
+        AstEntity attacker = AstEntity.player(mock(AstPlayer.class), DesignTestFixtures.statusSnapshot(
+                Map.of(StatusType.ACCURACY, 95.0D, StatusType.ATTACK, 100.0D), 100.0D, 100.0D, 100.0D
+        ));
+        AstEntity victim = AstEntity.player(mock(AstPlayer.class), DesignTestFixtures.statusSnapshot(
+                Map.of(StatusType.EVASION, 20.0D), 100.0D, 100.0D, 100.0D
+        ));
+        DamageContext context = new DamageContext(
+                attacker, victim, 100.0D, AttackType.MELEE,
+                List.of(new DamageComponent(DamageElement.NONE, 1.0D)), DamageScaling.ATTACKER_STATUS
+        );
+
+        var normal = calculator.calculate(context, 0.0D, false, 1.0D, 1.0D);
+        var exposed = calculator.calculate(context, 0.0D, false, 1.0D, 0.15D);
+
+        assertEquals(75.0D, normal.hitChance(), 0.0001D);
+        assertEquals(20.0D, normal.evasion(), 0.0001D);
+        assertEquals(92.0D, exposed.hitChance(), 0.0001D);
+        assertEquals(3.0D, exposed.evasion(), 0.0001D);
+    }
 }
