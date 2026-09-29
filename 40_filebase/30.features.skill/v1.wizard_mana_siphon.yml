@@ -7,7 +7,7 @@ type: SKILL
 implementationId: wizard_mana_siphon
 name: "&bマナサイフォン"
 description: "&7敵への命中から魔力を回収する。"
-icon: CALIBRATED_SCULK_SENSOR
+icon: CLOSED_EYEBLOSSOM
 lore:
   - "&7前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
   - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"

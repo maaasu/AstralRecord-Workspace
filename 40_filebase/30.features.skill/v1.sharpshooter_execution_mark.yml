@@ -7,7 +7,7 @@ type: SKILL
 implementationId: sharpshooter_execution_mark
 name: "&c終局標的"
 description: "&7標的を軸にした射撃技。"
-icon: SCULK_CATALYST
+icon: BLACK_CANDLE
 lore:
   - "&7単体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7対象のHPが最大値の{skill.healthThreshold:percent}%以下なら倍率に{skill.bonusRatio:percent}%を加算。"

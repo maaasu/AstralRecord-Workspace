@@ -7,7 +7,7 @@ type: SKILL
 implementationId: archmage_orbital_volley
 name: "&dオービタルヴォレー"
 description: "&7星弾を敵へ分配して連撃する。"
-icon: SCULK_SENSOR
+icon: OPEN_EYEBLOSSOM
 lore:
   - "&7視点先の地表から半径{skill.radius}mにいる敵Mob最大4体を狙う。"
   - "&7無属性魔法攻撃倍率{skill.power:percent}%の星弾を2発放つ。"

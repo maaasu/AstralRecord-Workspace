@@ -294,7 +294,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ソードマスター専門枝
 
-ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status node、静寂一閃skill node `2402`、未配置の新規skill node `2403`〜`2418` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
+ソードマスターは共通剣技24node、剣聖48node、剣舞48nodeを使う。全120 status node、静寂一閃skill node `2402`、配置済みのskill node `2403`〜`2418` は `pointCost: 1`、`unlockCondition.classId: swordmaster` である。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -450,7 +450,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## シャープシューター専門枝
 
-シャープシューター用として共通射撃24node、Sniper 48node、Rapid 48node、未配置の属性矢強化12node（`2243`〜`2254`）、skill解放node 6個を定義する。全status nodeとskill nodeは `pointCost: 1`、`unlockCondition.classId: sharpshooter` とする。`2240` は `sharpshooter_inheritance_mastery` の使用許可を与え、共通射撃node `2120` から独立leafとして相対座標 `(-14.5, 0, -16.0)` に配置する。`2241`、`2242`、`2255`、`2257`、`2258` は使用許可だけを定義した未配置nodeとする。
+シャープシューターは共通射撃24、Sniper48、Rapid48、属性矢強化12の計132status nodeと、共用ヒールアローαを含む18skill nodeを配置する。全nodeは1CP、職業条件sharpshooter。追加12技能は末尾のTier2追加表に記載する。既存skill node `2240`、`2241`、`2242`、`2255`、`2257`、`2258`も配置済みとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -516,16 +516,16 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## アークメイジのスキルノード
 
-`2268`、`2389`、`2391`、`2392`、`2393`、`2394` はアークメイジ用の1CPノードとして定義し、現行の `starter` には配置しない。
+既存アークメイジskill node `2389`、`2391`〜`2395`は1CPでstarterへ配置済み。不死鳥との共鳴はスキルブック経由であり、削除済みnode `2268`を定義済みとして扱わない。追加10技能は末尾のTier2追加表に記載する。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
-| `skill-archmage-phoenix-resonance` | `2268` | `skill` / `archmage_phoenix_resonance` | `&6不死鳥との共鳴` | `PARROT_SPAWN_EGG` | `fire` |
 | `skill-archmage-celestial-circle` | `2389` | `skill` / `archmage_celestial_circle` | `&bセレスティアルサークル` | `LIGHT_BLUE_GLAZED_TERRACOTTA` | `astral` |
 | `skill-archmage-heal-circle` | `2391` | `skill` / `archmage_heal_circle` | `&aヒールサークル` | `CACTUS_FLOWER` | `health` |
-| `skill-archmage-bind-circle` | `2392` | `skill` / `archmage_bind_circle` | `&dバインドサークル` | `NETHER_WART_BLOCK` | `magic`, `control` |
+| `skill-archmage-bind-circle` | `2392` | `skill` / `archmage_bind_circle` | `&dバインドサークル` | `NETHER_WART_BLOCK` | `condition` |
 | `skill-archmage-clear-circle` | `2393` | `skill` / `archmage_clear_circle` | `&bクリアサークル` | `WILDFLOWERS` | `condition` |
 | `skill-archmage-astral-ray` | `2394` | `skill` / `archmage_astral_ray` | `&bアストラルレイ` | `PLAYER_HEAD` | `astral` |
+| `skill-archmage-reborn-protect-circle` | `2395` | `skill` / `archmage_reborn_protect_circle` | `&6リボーンプロテクトサークル` | `TOTEM_OF_UNDYING` | `health` |
 
 ## カタログの更新規約
 
@@ -598,7 +598,7 @@ ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG
 | `2437` | シャープシューター | 静眼狙撃 | `sharpshooter_steady_sight` | `SPYGLASS` |
 | `2438` | シャープシューター | 貫通線 | `sharpshooter_piercing_line` | `POINTED_DRIPSTONE` |
 | `2439` | シャープシューター | 破盾針 | `sharpshooter_shield_needle` | `COPPER_NUGGET` |
-| `2440` | シャープシューター | 終局標的 | `sharpshooter_execution_mark` | `SCULK_CATALYST` |
+| `2440` | シャープシューター | 終局標的 | `sharpshooter_execution_mark` | `BLACK_CANDLE` |
 | `2441` | シャープシューター | 火華弾 | `sharpshooter_ember_bloom` | `NETHER_WART` |
 | `2442` | シャープシューター | 霜貫矢 | `sharpshooter_frost_shard` | `PACKED_ICE` |
 | `2443` | シャープシューター | 熱冷交差 | `sharpshooter_thermal_break` | `ORANGE_GLAZED_TERRACOTTA` |
@@ -613,7 +613,7 @@ ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG
 | `2452` | ウィザード | トライアドコンバージェンス | `wizard_triad_convergence` | `PURPLE_GLAZED_TERRACOTTA` |
 | `2453` | ウィザード | アーケインランス | `wizard_arcane_lance` | `MEDIUM_AMETHYST_BUD` |
 | `2454` | ウィザード | アーケインオーバーロード | `wizard_arcane_overload` | `CRYING_OBSIDIAN` |
-| `2455` | ウィザード | マナサイフォン | `wizard_mana_siphon` | `CALIBRATED_SCULK_SENSOR` |
+| `2455` | ウィザード | マナサイフォン | `wizard_mana_siphon` | `CLOSED_EYEBLOSSOM` |
 | `2456` | ウィザード | プリズマティックダート | `wizard_prismatic_dart` | `MAGENTA_CANDLE` |
 | `2457` | ウィザード | マナヴェール | `wizard_mana_veil` | `PURPLE_CANDLE` |
 | `2458` | アークメイジ | イージスサークル | `archmage_aegis_circle` | `CALCITE` |
@@ -624,5 +624,5 @@ ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG
 | `2463` | アークメイジ | メテオサークル | `archmage_meteor_circle` | `SMOOTH_QUARTZ` |
 | `2464` | アークメイジ | スターフォール | `archmage_starfall` | `PRISMARINE_BRICKS` |
 | `2465` | アークメイジ | アストラルスピア | `archmage_astral_spear` | `LARGE_AMETHYST_BUD` |
-| `2466` | アークメイジ | オービタルヴォレー | `archmage_orbital_volley` | `SCULK_SENSOR` |
+| `2466` | アークメイジ | オービタルヴォレー | `archmage_orbital_volley` | `OPEN_EYEBLOSSOM` |
 | `2467` | アークメイジ | グラビティノヴァ | `archmage_gravity_nova` | `CHISELED_DEEPSLATE` |
