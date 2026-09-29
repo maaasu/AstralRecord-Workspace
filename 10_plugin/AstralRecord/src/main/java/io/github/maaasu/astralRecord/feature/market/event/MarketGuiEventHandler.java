@@ -73,7 +73,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private static final String MARKET_CURRENCY_ID = "gold";
     private static final int PAGE_SIZE = MarketGui.CONTENT_SLOT_COUNT;
     private static final int QUERY_PAGE_SIZE = PAGE_SIZE + 1;
-    private static final int EXPIRED_RETURN_PAGE_SIZE = 25;
     private static final long CANCEL_RECOVERY_INITIAL_DELAY_TICKS = 20L;
     private static final long CANCEL_RECOVERY_MAX_DELAY_TICKS = 600L;
     private static final long CANCEL_MUTATION_RETRY_WINDOW_NANOS = TimeUnit.SECONDS.toNanos(15L);
@@ -95,9 +94,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final Map<UUID, MarketListingCreateRecovery> listingCreateRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, MarketPurchaseRecovery> purchaseRecoveries = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> webPurchaseAccountsInFlight = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Long> expiredReturnRetryAfter = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> expiredReturnScanPage = new ConcurrentHashMap<>();
-    private final java.util.Set<UUID> expiredReturnCapacityNotified = ConcurrentHashMap.newKeySet();
     private @Nullable BukkitTask webPurchasePollTask;
     private volatile boolean closing;
 
@@ -223,13 +219,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         cancelRecoveries.values().forEach(this::stopCancelRecoveryForShutdown);
         listingCreateRecoveries.values().forEach(this::stopListingCreateRecoveryForShutdown);
         purchaseRecoveries.values().forEach(this::stopPurchaseRecoveryForShutdown);
-        expiredReturnRetryAfter.clear();
-        expiredReturnScanPage.clear();
-        expiredReturnCapacityNotified.clear();
         sessions.clear();
     }
 
-    /** オンライン中のWeb購入と期限切れ出品の返却を2秒ごとに同一アカウントの保存境界で処理します。 */
+    /** オンライン中のWeb購入要求を2秒ごとに取得し、同一アカウントの保存境界で処理します。 */
     public void startWebPurchasePolling() {
         if (webPurchasePollTask != null) return;
         webPurchasePollTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -241,25 +234,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
                         List<MarketWebPurchase> pending = marketService.findPendingWebPurchases(accountId);
-                        int expiredPage = expiredReturnScanPage.getOrDefault(accountId, 1);
-                        List<MarketListing> expired = pending.isEmpty()
-                            ? marketService.findListings(new MarketListingQuery(
-                                accountId, null, null, "EXPIRED", null, null, "listed_desc",
-                                expiredPage, EXPIRED_RETURN_PAGE_SIZE))
-                            : List.of();
                         Bukkit.getScheduler().runTask(plugin, () -> {
-                            if (closing || !player.isOnline() || AstPlayerCache.get(player) != astPlayer) {
+                            if (closing || !player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                                || pending.isEmpty()) {
                                 webPurchaseAccountsInFlight.remove(accountId);
                                 return;
                             }
-                            if (!pending.isEmpty()) {
-                                processWebPurchase(player, astPlayer, pending.getFirst());
-                            } else if (!expired.isEmpty()) {
-                                processExpiredReturn(player, astPlayer, expired, expiredPage);
-                            } else {
-                                expiredReturnScanPage.remove(accountId);
-                                webPurchaseAccountsInFlight.remove(accountId);
-                            }
+                            processWebPurchase(player, astPlayer, pending.getFirst());
                         });
                     } catch (RuntimeException failure) {
                         webPurchaseAccountsInFlight.remove(accountId);
@@ -267,55 +248,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 });
             }
         }, 40L, 40L);
-    }
-
-    /** 期限切れの escrow を容量確認後に返却し、確定まで保存境界を保持します。 */
-    private void processExpiredReturn(
-        @NotNull Player player, @NotNull AstPlayer astPlayer,
-        @NotNull List<MarketListing> candidates, int page
-    ) {
-        UUID accountId = astPlayer.getAccount().getUuid();
-        long now = System.currentTimeMillis();
-        MarketListing selected = null;
-        for (MarketListing candidate : candidates) {
-            if (expiredReturnRetryAfter.getOrDefault(candidate.listingId(), 0L) > now) continue;
-            if (canReturnListingToInventory(astPlayer, candidate)) {
-                selected = candidate;
-                break;
-            }
-            expiredReturnRetryAfter.put(candidate.listingId(), now + 30_000L);
-            if (expiredReturnCapacityNotified.add(accountId)) {
-                messageService.send(player, PlayerMsgId.P_6314);
-            }
-        }
-        if (selected == null) {
-            expiredReturnScanPage.put(accountId,
-                candidates.size() == EXPIRED_RETURN_PAGE_SIZE ? page + 1 : 1);
-            webPurchaseAccountsInFlight.remove(accountId);
-            return;
-        }
-        expiredReturnScanPage.put(accountId, 1);
-        MarketListing listing = selected;
-        MarketCancelRequest request = new MarketCancelRequest(
-            accountId, "expired_return", cancelIdempotencyKey(listing.listingId()), accountId);
-        inventorySaveCoordinator.prepareExternalOperationAfterSave(accountId)
-            .thenCompose(prepared -> beginPreparedCancellation(
-                player.getUniqueId(), astPlayer, listing, request, prepared))
-            .whenComplete((result, failure) -> {
-                webPurchaseAccountsInFlight.remove(accountId);
-                if (failure != null || result == null || result.inventoryCapacityInsufficient()) {
-                    expiredReturnRetryAfter.put(listing.listingId(), System.currentTimeMillis() + 30_000L);
-                    return;
-                }
-                expiredReturnRetryAfter.remove(listing.listingId());
-                expiredReturnCapacityNotified.remove(accountId);
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (!closing && player.isOnline() && AstPlayerCache.get(player) == astPlayer) {
-                        inventoryService.refreshManagedInventoryUi(astPlayer);
-                        messageService.send(player, PlayerMsgId.P_6301);
-                    }
-                });
-            });
     }
 
     /** 保存済みbaselineを保持し、応答喪失時も同じ購入要求を再送して正本へ追従します。 */
@@ -554,6 +486,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
         session.selectedListing = listing;
         session.screen = MarketScreen.CANCEL_CONFIRM;
+        session.cancelConfirmExpired = listing.isExpired();
         marketGui.openCancelConfirm(player, session.sessionId, listing);
         GuiSound.SELECT.play(player);
     }
@@ -816,9 +749,15 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (!session.cancelConfirmExpired && session.selectedListing.isExpired()) {
+            session.cancelConfirmExpired = true;
+            marketGui.openCancelConfirm(player, session.sessionId, session.selectedListing);
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !canReturnListingToInventory(astPlayer, session.selectedListing)) {
-            messageService.send(player, PlayerMsgId.P_6308);
+            messageService.send(player, session.selectedListing.isExpired()
+                ? PlayerMsgId.P_6315 : PlayerMsgId.P_6308);
             GuiSound.DENY.play(player);
             return;
         }
@@ -1486,7 +1425,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         marketGui.openLoading(player, session.sessionId);
         MarketCancelRequest request = new MarketCancelRequest(
             accountId,
-            "player_cancel",
+            listing.isExpired() ? "expired_claim" : "player_cancel",
             cancelIdempotencyKey(listing.listingId()),
             accountId
         );
@@ -1497,6 +1436,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             playerId,
             session,
             requestVersion,
+            listing.isExpired(),
             result,
             throwable
         ));
@@ -1548,6 +1488,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull UUID playerId,
         @NotNull MarketSession session,
         long requestVersion,
+        boolean expiredClaim,
         @Nullable CancelListingResult result,
         @Nullable Throwable throwable
     ) {
@@ -1579,12 +1520,12 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     return;
                 }
                 if (result.inventoryCapacityInsufficient()) {
-                    messageService.send(player, PlayerMsgId.P_6308);
+                    messageService.send(player, expiredClaim ? PlayerMsgId.P_6315 : PlayerMsgId.P_6308);
                     GuiSound.DENY.play(player);
                     openListings(player, true, session.page);
                     return;
                 }
-                messageService.send(player, PlayerMsgId.P_6301);
+                messageService.send(player, result.expiredClaim() ? PlayerMsgId.P_6314 : PlayerMsgId.P_6301);
                 GuiSound.SUCCESS.play(player);
                 openListings(player, true, session.page);
             });
@@ -1629,7 +1570,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     canceled.affectedInventoryEntryIds(),
                     baseline
                 );
-                return CancelListingResult.completed();
+                return CancelListingResult.completed(canceled);
             }
         ).whenComplete((result, throwable) -> {
             recovery.finishAttempt();
@@ -2231,18 +2172,20 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         private List<MarketListing> listings = List.of();
         private @Nullable MarketAccountSummary summary;
         private @Nullable MarketListing selectedListing;
+        private boolean cancelConfirmExpired;
         private @Nullable MarketListingDraft draft;
         private long purchaseQuantity = 1L;
     }
 
     /** 取消の事前保存後に確認した容量不足を、外部 API 未呼出の正常完了として返します。 */
-    private record CancelListingResult(boolean inventoryCapacityInsufficient) {
+    private record CancelListingResult(boolean inventoryCapacityInsufficient, boolean expiredClaim) {
         private static @NotNull CancelListingResult capacityFailure() {
-            return new CancelListingResult(true);
+            return new CancelListingResult(true, false);
         }
 
-        private static @NotNull CancelListingResult completed() {
-            return new CancelListingResult(false);
+        private static @NotNull CancelListingResult completed(@NotNull MarketListing listing) {
+            return new CancelListingResult(false, listing.isExpired()
+                || "EXPIRED_AFTER_PARTIAL_SALE".equalsIgnoreCase(listing.statusReason()));
         }
     }
 

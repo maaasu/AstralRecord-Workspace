@@ -279,7 +279,9 @@ public final class MarketGui {
         @NotNull UUID sessionId,
         @NotNull MarketListing listing
     ) {
-        Inventory inventory = create(viewer, sessionId, MarketScreen.CANCEL_CONFIRM, DIALOG_SIZE, "マーケット: 取り下げ確認");
+        boolean expired = listing.isExpired();
+        Inventory inventory = create(viewer, sessionId, MarketScreen.CANCEL_CONFIRM, DIALOG_SIZE,
+            expired ? "マーケット: 期限切れ品の受取" : "マーケット: 取り下げ確認");
         fill(inventory);
         inventory.setItem(ITEM_SLOT, listingItem(listing, true));
         inventory.setItem(BACK_SLOT, GuiItems.backButton(
@@ -287,9 +289,13 @@ public final class MarketGui {
         ));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.ORANGE_CONCRETE,
-            "出品を取り下げる",
+            expired ? "未売却品を受け取る" : "出品を取り下げる",
             NamedTextColor.GOLD,
-            List.of(
+            expired ? List.of(
+                "掲載期限に達したため出品を取り下げました。",
+                "未売却分はマーケットで保管しています。",
+                "所持品に空きがあれば受け取れます。"
+            ) : List.of(
                 "未売却分のアイテムは所持品へ返却されます。",
                 "所持品に収まらない場合は取り下げできません。",
                 "売上がある場合は、続けて売上を受け取ってください。"
@@ -450,14 +456,22 @@ public final class MarketGui {
         ));
         lore.add(Component.text("出品日時: " + DATE_TIME_FORMAT.format(listing.listedAt()), NamedTextColor.GRAY));
         if (ownListing) {
-            lore.add(Component.text("状態: " + displayStatus(listing.status()), statusColor(listing.status())));
+            boolean expired = listing.isExpired();
+            lore.add(Component.text("状態: " + (expired ? "期限切れ" : displayStatus(listing.status())),
+                expired ? NamedTextColor.YELLOW : statusColor(listing.status())));
+            if (expired) {
+                lore.add(Component.text("取り下げ理由: 掲載期限に達したため", NamedTextColor.YELLOW));
+                lore.add(Component.text("未売却品はマーケットで保管中", NamedTextColor.GRAY));
+            } else if ("EXPIRED_AFTER_PARTIAL_SALE".equalsIgnoreCase(listing.statusReason())) {
+                lore.add(Component.text("未売却分の取り下げ理由: 掲載期限切れ", NamedTextColor.YELLOW));
+            }
             if (listing.pendingProceeds() > 0L) {
                 lore.add(Component.text(
                     "受取待ち売上: " + format(listing.pendingProceeds()) + " Gold",
                     NamedTextColor.GOLD
                 ));
             }
-            lore.add(Component.text(ownListingAction(listing), NamedTextColor.GRAY));
+            lore.add(Component.text(ownListingAction(listing, expired), NamedTextColor.GRAY));
         } else {
             lore.add(Component.text("クリックして購入確認へ進みます。", NamedTextColor.GREEN));
         }
@@ -586,11 +600,11 @@ public final class MarketGui {
         return status.equalsIgnoreCase("ACTIVE") ? NamedTextColor.GREEN : NamedTextColor.YELLOW;
     }
 
-    private static @NotNull String ownListingAction(@NotNull MarketListing listing) {
+    private static @NotNull String ownListingAction(@NotNull MarketListing listing, boolean expired) {
         if (listing.status().equalsIgnoreCase("SOLD")) {
             return "クリックして売上を受け取ります。";
         }
-        if (listing.status().equalsIgnoreCase("EXPIRED")) {
+        if (expired) {
             return "クリックして未売却品を受け取ります。";
         }
         if (listing.status().equalsIgnoreCase("ACTIVE") || listing.status().equalsIgnoreCase("SUSPENDED")) {

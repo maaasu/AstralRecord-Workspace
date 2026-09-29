@@ -43,4 +43,13 @@ public record MarketListing(
     List<UUID> sourceInventoryEntryIds,
     List<UUID> affectedInventoryEntryIds
 ) {
+    /**
+     * API の状態更新や一覧 cache より先に期限へ達した出品も期限切れとして扱います。
+     *
+     * @return 保存済み状態または現在時刻から期限切れと判断できる場合は true
+     */
+    public boolean isExpired() {
+        return "EXPIRED".equalsIgnoreCase(status)
+            || ("ACTIVE".equalsIgnoreCase(status) && expiresAt != null && !expiresAt.isAfter(Instant.now()));
+    }
 }
