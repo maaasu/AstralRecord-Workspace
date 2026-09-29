@@ -161,6 +161,96 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal(500, await harness.TotalGoldAsync(buyer.AccountId));
         Assert.Empty(await harness.DbContext.PlayerMailDeliveries.ToListAsync());
     }
+
+    [Fact]
+    public async Task ExpiredListing_IsHiddenBeforeSweep_AndEscrowIsReturnedOnce()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceId = await harness.AddStackEntryAsync(quantity: 3);
+        var created = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceId, quantity: 3));
+        Assert.True(created.Succeeded);
+        var row = await harness.DbContext.MarketListings.SingleAsync(x => x.ListingId == created.Value!.ListingId);
+        row.ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
+        await harness.DbContext.SaveChangesAsync();
+
+        Assert.Empty(await harness.Repository.GetListingsAsync(new MarketListingQuery { Status = "ACTIVE" }));
+        Assert.Equal(1, await harness.Repository.MarkExpiredListingsAsync(CancellationToken.None));
+        Assert.Equal(0, await harness.Repository.MarkExpiredListingsAsync(CancellationToken.None));
+        Assert.True((await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(x => x.InventoryEntryId == sourceId)).IsDeleted);
+        Assert.Equal(0, (await harness.Repository.GetAccountSummaryAsync(harness.AccountId))!.UsedListingSlotCount);
+        var pending = await harness.Repository.GetListingsAsync(new MarketListingQuery
+        {
+            SellerAccountId = harness.AccountId, Status = "EXPIRED",
+        });
+        Assert.Equal(created.Value!.ListingId, Assert.Single(pending).ListingId);
+
+        var request = new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId, IdempotencyKey = "expired-return",
+            Reason = "expired_return", UpdatedBy = harness.AccountId,
+        };
+        var returned = await harness.Repository.CancelListingAsync(created.Value.ListingId, request);
+        Assert.True(returned.Succeeded);
+        Assert.Equal("EXPIRED", returned.Value!.Status);
+        Assert.Equal(0, returned.Value.RemainingQuantity);
+        Assert.Equal(3, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(x => x.InventoryEntryId == sourceId)).Quantity);
+        Assert.Empty(await harness.Repository.GetListingsAsync(new MarketListingQuery
+        {
+            SellerAccountId = harness.AccountId, Status = "EXPIRED",
+        }));
+        var replay = await harness.Repository.CancelListingAsync(created.Value.ListingId, request);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(returned.Value.Version, replay.Value!.Version);
+    }
+
+    [Fact]
+    public async Task ExpiredPartialListing_ReturnsRemainderAndKeepsProceedsClaimable()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceId = await harness.AddStackEntryAsync(quantity: 5);
+        var created = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceId, quantity: 5));
+        Assert.True(created.Succeeded);
+        await harness.AddGoldInventoryAsync(harness.AccountId, 0);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var purchase = await harness.Repository.PurchaseListingAsync(created.Value!.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId, Quantity = 2,
+                IdempotencyKey = "expiry-partial-purchase", UpdatedBy = buyer.AccountId,
+            });
+        Assert.True(purchase.Succeeded);
+        var row = await harness.DbContext.MarketListings.SingleAsync(x => x.ListingId == created.Value.ListingId);
+        row.ExpiresAt = DateTime.UtcNow.AddSeconds(-1);
+        await harness.DbContext.SaveChangesAsync();
+
+        Assert.Equal(1, await harness.Repository.MarkExpiredListingsAsync(CancellationToken.None));
+        Assert.Equal(0, (await harness.Repository.GetAccountSummaryAsync(harness.AccountId))!.UsedListingSlotCount);
+        var returned = await harness.Repository.CancelListingAsync(created.Value.ListingId,
+            new MarketCancelRequest
+            {
+                SellerAccountId = harness.AccountId, IdempotencyKey = "expiry-partial-return",
+                Reason = "expired_return", UpdatedBy = harness.AccountId,
+            });
+        Assert.True(returned.Succeeded);
+        Assert.Equal("SOLD", returned.Value!.Status);
+        Assert.Equal("EXPIRED_AFTER_PARTIAL_SALE", returned.Value.StatusReason);
+        Assert.Equal(200, returned.Value.PendingProceeds);
+        Assert.Equal(0, (await harness.Repository.GetAccountSummaryAsync(harness.AccountId))!.UsedListingSlotCount);
+        Assert.Equal(3, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(x => x.InventoryEntryId == sourceId)).Quantity);
+        var claim = await harness.Repository.ClaimProceedsAsync(created.Value.ListingId,
+            new MarketProceedsClaimRequest
+            {
+                SellerAccountId = harness.AccountId, IdempotencyKey = "expiry-partial-claim",
+                UpdatedBy = harness.AccountId,
+            });
+        Assert.True(claim.Succeeded);
+        Assert.Equal(200, claim.Value!.Amount);
+    }
     [Fact]
     public async Task GetTradeHistory_FiltersAndPagesNewestTransactionsWithBothAccounts()
     {

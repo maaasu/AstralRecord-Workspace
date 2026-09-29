@@ -6,6 +6,8 @@ public interface IMarketRepository
 {
     Task<IReadOnlyList<MarketListingResponse>> GetListingsAsync(MarketListingQuery query);
 
+    Task<int> MarkExpiredListingsAsync(CancellationToken cancellationToken);
+
     Task<MarketTradeHistoryPageResponse> GetTradeHistoryAsync(MarketTradeHistoryQuery query);
 
     Task<MarketListingResponse?> GetListingAsync(Guid listingId);

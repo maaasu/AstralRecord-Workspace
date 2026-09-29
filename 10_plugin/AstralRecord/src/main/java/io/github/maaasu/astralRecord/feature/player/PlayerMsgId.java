@@ -1202,6 +1202,8 @@ public enum PlayerMsgId {
     P_6312(6312),
     /** 購入の確定結果と所持品への反映を確認中。 */
     P_6313(6313),
+    /** 期限切れ出品の返却待ち。 */
+    P_6314(6314),
     // endregion
 
     // region /feature/webauth 6400-6409

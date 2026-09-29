@@ -82,6 +82,7 @@ public sealed class MarketControllerTradeHistoryTests
         }
 
         public Task<IReadOnlyList<MarketListingResponse>> GetListingsAsync(MarketListingQuery query) => throw new NotSupportedException();
+        public Task<int> MarkExpiredListingsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<MarketListingResponse?> GetListingAsync(Guid listingId) => throw new NotSupportedException();
         public Task<MarketAccountSummaryResponse?> GetAccountSummaryAsync(Guid accountId) => throw new NotSupportedException();
         public Task<MarketOperationResult<MarketListingResponse>> CreateListingAsync(MarketListingCreateRequest request) => throw new NotSupportedException();

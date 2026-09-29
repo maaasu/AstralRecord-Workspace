@@ -590,6 +590,9 @@ public final class MarketGui {
         if (listing.status().equalsIgnoreCase("SOLD")) {
             return "クリックして売上を受け取ります。";
         }
+        if (listing.status().equalsIgnoreCase("EXPIRED")) {
+            return "クリックして未売却品を受け取ります。";
+        }
         if (listing.status().equalsIgnoreCase("ACTIVE") || listing.status().equalsIgnoreCase("SUSPENDED")) {
             return "クリックして取り下げます。";
         }

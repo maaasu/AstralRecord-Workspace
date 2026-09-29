@@ -65,7 +65,7 @@ public class MarketRepository {
     public @NotNull List<MarketListing> findListings(@NotNull MarketListingQuery query) {
         String queryString = query.toQueryString();
         String path = "/api/market/listings?" + queryString;
-        return cached(listingListCache, queryString, LIST_TTL, () -> {
+        List<MarketListing> listings = cached(listingListCache, queryString, LIST_TTL, () -> {
             JsonArray array = getJsonArray(path);
             List<MarketListing> result = new ArrayList<>();
             for (var element : array) {
@@ -77,6 +77,11 @@ public class MarketRepository {
             }
             return List.copyOf(result);
         });
+        if (!"ACTIVE".equalsIgnoreCase(query.status())) return listings;
+        Instant now = Instant.now();
+        return listings.stream()
+            .filter(listing -> listing.expiresAt() != null && listing.expiresAt().isAfter(now))
+            .toList();
     }
 
     /**
@@ -282,7 +287,7 @@ public class MarketRepository {
         ensureReplayableMutationStatus(response, 200, "POST " + path);
         MarketListing listing = parseCancelListing(response.body(), listingId, request.sellerAccountId(), "POST " + path);
         invalidateSeller(listing.sellerAccountId());
-        if (listing.status().equalsIgnoreCase("CANCELED")) {
+        if (listing.status().equalsIgnoreCase("CANCELED") || listing.status().equalsIgnoreCase("EXPIRED")) {
             listingCache.remove(listingId);
         } else {
             listingCache.put(listingId, MarketCacheEntry.of(listing, DETAIL_TTL));
@@ -306,7 +311,14 @@ public class MarketRepository {
             return Optional.empty();
         }
         ensureReplayableMutationStatus(response, 200, "GET " + path);
-        return Optional.of(parseCancelListing(response.body(), listingId, sellerAccountId, "GET " + path));
+        MarketListing listing = parseCancelListing(response.body(), listingId, sellerAccountId, "GET " + path);
+        invalidateSeller(sellerAccountId);
+        if (listing.status().equalsIgnoreCase("CANCELED") || listing.status().equalsIgnoreCase("EXPIRED")) {
+            listingCache.remove(listingId);
+        } else {
+            listingCache.put(listingId, MarketCacheEntry.of(listing, DETAIL_TTL));
+        }
+        return Optional.of(listing);
     }
 
     /**
@@ -562,7 +574,9 @@ public class MarketRepository {
             MarketListing listing = parseListing(object);
             if (!listing.listingId().equals(expectedListingId)
                 || !listing.sellerAccountId().equals(expectedSellerAccountId)
-                || !(listing.status().equalsIgnoreCase("CANCELED") || listing.status().equalsIgnoreCase("SOLD"))
+                || !(listing.status().equalsIgnoreCase("CANCELED")
+                    || listing.status().equalsIgnoreCase("EXPIRED")
+                    || listing.status().equalsIgnoreCase("SOLD"))
                 || listing.canceledAt() == null
                 || !listing.affectedInventoryEntryIds().equals(affectedEntryIds)) {
                 throw new IllegalStateException("Market cancel acknowledgement does not match request");

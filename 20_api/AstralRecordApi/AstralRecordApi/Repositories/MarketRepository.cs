@@ -127,6 +127,13 @@ public class MarketRepository(
 
         if (!string.Equals(status, "ALL", StringComparison.OrdinalIgnoreCase))
             listings = listings.Where(listing => listing.Status == status);
+        if (string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            var now = DateTime.UtcNow;
+            listings = listings.Where(listing => listing.ExpiresAt > now);
+        }
+        if (string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+            listings = listings.Where(listing => listing.RemainingQuantity > 0);
         if (query.SellerAccountId.HasValue)
             listings = listings.Where(listing => listing.SellerAccountId == query.SellerAccountId.Value);
         if (!string.IsNullOrWhiteSpace(query.ItemCategory))
@@ -176,6 +183,27 @@ public class MarketRepository(
                     ? equipmentInstances.GetValueOrDefault(listing.InstanceId.Value)
                     : null))
             .ToList();
+    }
+
+    /// <summary>期限を過ぎた出品を購入対象から外します。未売却品は返却可能になるまで escrow に保持します。</summary>
+    public async Task<int> MarkExpiredListingsAsync(CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var ids = await dbContext.MarketListings.AsNoTracking()
+            .Where(listing => !listing.IsDeleted && listing.Status == "ACTIVE" && listing.ExpiresAt <= now)
+            .OrderBy(listing => listing.ExpiresAt)
+            .Select(listing => listing.ListingId)
+            .Take(100)
+            .ToArrayAsync(cancellationToken);
+        if (ids.Length == 0) return 0;
+        return await dbContext.MarketListings
+            .Where(listing => ids.Contains(listing.ListingId)
+                && !listing.IsDeleted && listing.Status == "ACTIVE" && listing.ExpiresAt <= now)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(listing => listing.Status, "EXPIRED")
+                .SetProperty(listing => listing.StatusReason, "EXPIRED_RETURN_PENDING")
+                .SetProperty(listing => listing.UpdatedAt, now)
+                .SetProperty(listing => listing.Version, listing => listing.Version + 1), cancellationToken);
     }
 
     public async Task<MarketTradeHistoryPageResponse> GetTradeHistoryAsync(
@@ -802,8 +830,11 @@ public class MarketRepository(
             }
             if (listing.IsDeleted)
                 return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
-            if (listing.Status is not ("ACTIVE" or "SUSPENDED"))
+            if (listing.Status is not ("ACTIVE" or "SUSPENDED" or "EXPIRED"))
                 return await RollbackFailureAsync(400, "market.cancel_invalid_status", "Listing cannot be canceled.");
+
+            var expired = listing.Status == "EXPIRED"
+                || (listing.Status == "ACTIVE" && listing.ExpiresAt <= DateTime.UtcNow);
 
             var sellerAccount = await GetSellerAccountAsync(listing.SellerAccountId) ?? SellerAccountIdentity.Empty;
             var sources = await GetListingSourcesAsync(listing.ListingId);
@@ -821,13 +852,14 @@ public class MarketRepository(
             if (pendingProceeds > 0L)
             {
                 listing.Status = "SOLD";
-                listing.StatusReason = request.Reason ?? "CANCELED_AFTER_PARTIAL_SALE";
+                listing.StatusReason = expired ? "EXPIRED_AFTER_PARTIAL_SALE"
+                    : request.Reason ?? "CANCELED_AFTER_PARTIAL_SALE";
                 listing.SoldAt = now;
             }
             else
             {
-                listing.Status = "CANCELED";
-                listing.StatusReason = request.Reason;
+                listing.Status = expired ? "EXPIRED" : "CANCELED";
+                listing.StatusReason = expired ? "EXPIRED" : request.Reason;
                 listing.IsDeleted = true;
             }
             listing.CanceledAt = now;
@@ -1749,7 +1781,7 @@ public class MarketRepository(
             && !listing.IsDeleted
             && (listing.Status == "ACTIVE"
                 || listing.Status == "SUSPENDED"
-                || listing.Status == "SOLD"));
+                || (listing.Status == "SOLD" && listing.StatusReason != "EXPIRED_AFTER_PARTIAL_SALE")));
     }
 
     /// <summary>
@@ -1764,7 +1796,9 @@ public class MarketRepository(
           AND listing.[is_deleted] = 0
           AND (listing.[status] = 'ACTIVE'
                OR listing.[status] = 'SUSPENDED'
-               OR listing.[status] = 'SOLD')
+               OR (listing.[status] = 'SOLD'
+                   AND (listing.[status_reason] IS NULL
+                        OR listing.[status_reason] <> 'EXPIRED_AFTER_PARTIAL_SALE')))
         """;
 
     private async Task<int> CountExpansionListingSlotsAsync(Guid accountId, bool forUpdate = false)
@@ -2058,7 +2092,7 @@ public class MarketRepository(
             || listing.CancelRequestHash.Length != 64
             || replay.ListingId != listing.ListingId
             || replay.SellerAccountId != listing.SellerAccountId
-            || replay.Status is not ("CANCELED" or "SOLD")
+            || replay.Status is not ("CANCELED" or "EXPIRED" or "SOLD")
             || replay.CanceledAt is null
             || replay.AffectedInventoryEntryIds is null
             || replay.AffectedInventoryEntryIds.Count == 0
