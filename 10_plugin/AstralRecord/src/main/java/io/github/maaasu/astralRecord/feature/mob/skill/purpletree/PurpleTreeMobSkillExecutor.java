@@ -96,7 +96,6 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         Vector facing = direction.normalize();
         List<Location> warning = fanPoints(center, facing, radius);
         scheduleArea(context.mob(), center, warning, () -> {
-            burst(center, warning);
             for (Player player : playersNear(center, radius)) {
                 Vector relative = player.getLocation().toVector().subtract(center.toVector()).setY(0);
                 if (relative.lengthSquared() <= radius * radius
@@ -104,6 +103,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                     damage(context.mob(), player, AttackType.MELEE, 0.95D);
                 }
             }
+            burst(center, warning);
         });
         center.getWorld().playSound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.2F, 0.65F);
         return true;
@@ -115,12 +115,12 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = phaseRadius(context.mob(), 2.1D);
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            burst(center, ringPoints(center, radius, 0.7D));
             for (Player player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 10, false, true));
                 }
             }
+            burst(center, ringPoints(center, radius, 0.7D));
         });
         center.getWorld().playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0F, 0.6F);
         return true;
@@ -165,9 +165,12 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                 RayTraceResult hit = target.getBoundingBox().expand(0.35D)
                         .rayTrace(rayOrigin.toVector(), movement, movement.length());
                 if (hit != null) {
-                    damage(mob, target, AttackType.MELEE, 0.9D);
-                    target.setVelocity(direction.clone().multiply(1.0D).setY(0.35D));
-                    finish();
+                    try {
+                        damage(mob, target, AttackType.MELEE, 0.9D);
+                        target.setVelocity(direction.clone().multiply(1.0D).setY(0.35D));
+                    } finally {
+                        finish();
+                    }
                 }
             }
 
@@ -184,12 +187,12 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = 3.0D;
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            burst(center, ringPoints(center, radius, 0.8D));
             for (Player player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
                     damage(context.mob(), player, AttackType.MELEE, 0.75D);
                 }
             }
+            burst(center, ringPoints(center, radius, 0.8D));
         });
         center.getWorld().playSound(center, Sound.ENTITY_IRON_GOLEM_ATTACK, 1.1F, 0.5F);
         return true;
@@ -222,13 +225,15 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                         : player.getHitPosition().distance(position.toVector());
                 if (player != null && playerDistance <= blockDistance) {
                     position = player.getHitPosition().toLocation(origin.getWorld());
-                    burst(position, ringPoints(position, 0.7D, 0));
+                    cancel();
                     damage(context.mob(), context.target(), AttackType.MAGIC, 0.7D);
-                    cancel(); return;
+                    burst(position, ringPoints(position, 0.7D, 0));
+                    return;
                 }
                 if (block != null) {
+                    cancel();
                     burst(block.getHitPosition().toLocation(origin.getWorld()), List.of());
-                    cancel(); return;
+                    return;
                 }
                 position.add(movement);
                 particles.spawnForNearbyViewers(position, SharedParticleDefinitions.MOB_PURPLE_TREE_BOLT);
@@ -243,12 +248,12 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = 2.6D;
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            burst(center, ringPoints(center, radius, 1.0D));
             for (Player player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
                     damage(context.mob(), player, AttackType.MAGIC, 0.8D);
                 }
             }
+            burst(center, ringPoints(center, radius, 1.0D));
         });
         center.getWorld().playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0F, 0.75F);
         return true;
@@ -266,7 +271,9 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                 }
                 elapsed += WARNING_STEP_TICKS;
                 if (elapsed >= WARNING_TICKS) {
-                    impact.run(); cancel(); return;
+                    cancel();
+                    impact.run();
+                    return;
                 }
                 particles.spawnForNearbyViewers(center, warning, SharedParticleDefinitions.MOB_PURPLE_TREE_WARNING);
             }
@@ -295,11 +302,15 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
     private List<Location> fanPoints(Location center, Vector facing, double radius) {
         List<Location> points = new ArrayList<>();
         double angle = Math.atan2(facing.getZ(), facing.getX());
-        for (double distance = 1.5D; distance <= radius; distance += 1.5D) {
+        for (double distance = 1.5D; ; distance += 1.5D) {
+            double arcRadius = Math.min(distance, radius);
             for (int degree = -60; degree <= 60; degree += 10) {
                 double direction = angle + Math.toRadians(degree);
-                points.add(center.clone().add(Math.cos(direction) * distance, 0.15D,
-                        Math.sin(direction) * distance));
+                points.add(center.clone().add(Math.cos(direction) * arcRadius, 0.15D,
+                        Math.sin(direction) * arcRadius));
+            }
+            if (arcRadius >= radius) {
+                break;
             }
         }
         return points;

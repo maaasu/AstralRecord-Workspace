@@ -448,7 +448,7 @@ public final class SharedParticleDefinitions {
             new Particle.DustOptions(Color.fromRGB(191, 110, 255), 1.35F));
     public static final SharedParticleDefinition MOB_PURPLE_TREE_FLASH =
         new SharedParticleDefinition("mob_purple_tree_flash", Particle.FLASH, 1,
-            0.0D, 0.0D, 0.0D, 0.0D);
+            0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
     public static final SharedParticleDefinition MOB_ERIVA_STARHORN_BLOOM =
         new SharedParticleDefinition(
             "mob_eriva_starhorn_bloom",
