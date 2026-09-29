@@ -51,6 +51,7 @@ public class PlayerHudService {
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private DungeonService dungeonService;
+    private Function<AstPlayer, Component> swordSpiritRenderer = ignored -> Component.empty();
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
     private AstralRecord plugin;
@@ -106,6 +107,14 @@ public class PlayerHudService {
     /** @param runtime アクションバーへ不死鳥リソースを表示する状態サービス */
     public void setArchmagePhoenixRuntimeService(@NotNull ArchmagePhoenixRuntimeService runtime) {
         this.archmagePhoenixRuntimeService = runtime;
+    }
+
+    /**
+     * 通常のHP/MP表示へ付加する剣気表示を設定します。
+     * @param renderer 表示対象から剣気の個数・強化段階を返す処理
+     */
+    public void setSwordSpiritRenderer(@NotNull Function<AstPlayer, Component> renderer) {
+        this.swordSpiritRenderer = renderer;
     }
 
     /** @param dungeonService ダンジョン Sidebar 情報の参照先 */
@@ -436,7 +445,8 @@ public class PlayerHudService {
             statusService.getShieldDisplayCapacity(astPlayer),
             phoenix.active(),
             phoenix.current(),
-            phoenix.maximum()
+            phoenix.maximum(),
+            swordSpiritRenderer.apply(astPlayer)
         );
     }
 

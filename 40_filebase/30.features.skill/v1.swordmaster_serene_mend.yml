@@ -6,13 +6,14 @@ id: swordmaster_serene_mend
 type: SKILL
 implementationId: swordmaster_serene_mend
 name: "&a明鏡止水"
-description: "&7呼吸を整え、反撃の余韻を活力へ変える。"
+description: "&7呼吸を整え、剣気と活力を蓄える。"
 icon: CHORUS_FLOWER
 lore:
   - "&7自分の最大HPの{skill.healHpRatio:percent}%を回復する。"
-  - "&7静寂一閃の剣気が残っていれば消費し、最大HPの{skill.riposteHealHpRatio:percent}%を追加回復。"
-  - "&7剣気を消費した時はENGを{skill.energyRecovery}回復する。"
-  - "&7剣気は返し刃・リヴェンジアクセルと共有。回復阻害中は回復しない。"
+  - "&7静寂一閃をバインド中、剣気を{skill.riposteGain}つ蓄積する。剣気は消費しない。"
+  - "&7発動前から剣気があれば、最大HPの{skill.riposteHealHpRatio:percent}%を追加回復し、ENGを{skill.energyRecovery}回復する。"
+  - "&7HP満タン・回復阻害中も剣気の蓄積は行う。回復阻害中は回復しない。"
+  - "&7剣気の個数と、カウンター成功で上がる強化段階はHUDで確認できる。"
 cooldownTicks: 280
 resourceType: MANA
 resourceCost: 10
@@ -45,6 +46,7 @@ params:
   healHpRatio: 0.12
   riposteHealHpRatio: 0.1
   energyRecovery: 15
+  riposteGain: 1
 tags:
   - active
   - support

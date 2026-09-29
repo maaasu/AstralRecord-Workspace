@@ -10,9 +10,10 @@ description: "&7受け流した勢いを鋭い一撃へ返す。"
 icon: TINTED_GLASS
 lore:
   - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気が残っていれば消費し、威力を{skill.riposteMultiplier}倍にする。"
-  - "&7剣気は静寂一閃の反撃成立後に短時間だけ残り、明鏡止水・リヴェンジアクセルと共有する。"
+  - "&7静寂一閃の剣気があれば1つ消費し、威力を{skill.riposteMultiplier}倍にする。"
+  - "&7剣気は明鏡止水で蓄積し、リヴェンジアクセルと共有する。"
   - "&7剣気を持たない時も通常の威力で発動できる。"
+  - "&7剣気が1つ以上残ればカウンターの強化段階を維持し、使い切ると解除する。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 26

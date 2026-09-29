@@ -1832,6 +1832,8 @@ public enum PlayerMsgId {
     P_7615(7615),
     /** 静寂一閃の構え残り時間。 */
     P_7616(7616),
+    /** 剣気の個数・強化段階と反撃の追加威力。 */
+    P_7617(7617),
     ;
 
     private final String id;

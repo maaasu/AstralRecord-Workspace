@@ -10,15 +10,20 @@ description: "&7剣の構えから攻撃を受け流し、鋭く反撃する。"
 icon: DIAMOND_SWORD
 lore:
   - "&7Shiftを押した剣の通常攻撃を{skill.counterTicks}tickのカウンター構えに変える。"
-  - "&7構え中の移動速度は70%低下し、残り時間をアクションバーへ表示する。"
-  - "&7ダメージが0の直接攻撃も無効化し、攻撃者へ近接無属性{skill.counterDamageRatio:percent}%で反撃する。"
+  - "&7構え中は移動速度が70%低下し、残り時間をアクションバーへ表示する。"
+  - "&7ダメージ0を含む直接攻撃を無効化し、攻撃者へ近接無属性{skill.counterDamageRatio:percent}%で反撃する。"
   - "&7続けて前方{skill.counterSweepRange}m・最大{skill.counterSweepMaxTargets}体へ同倍率で横薙ぎする。"
   - "&7最初の反撃が命中した場合だけ最大ENGの10%を回復する。"
   - "&7反撃・時間切れ時から剣通常攻撃のクールタイムを開始する。"
   - "&7Shiftを押さずに攻撃すると構えを解き、同じ入力で通常攻撃する。"
   - "&7時間切れ時はその場で構えを解き、突進やENG消費は発生しない。"
-  - "&7反撃成立後{skill.riposteWindowTicks:seconds}秒間、連携技を一度だけ強化する剣気を得る。"
-  - "&7剣気は返し刃・明鏡止水・リヴェンジアクセルで共有する。"
+  - "&7明鏡止水だけで剣気を貯められる。上限は{skill.maxRiposteStacks}。"
+  - "&7剣気1つにつき、反撃と横薙ぎの威力が{skill.counterDamageBonusPerStack:percent}%増える。"
+  - "&7剣気を所持してカウンターに成功すると、強化が1段階上がる（最大{skill.maxRiposteEmpowerment}段階）。"
+  - "&7強化1段階につき、さらに{skill.counterEmpowermentBonus:percent}%加算。今回の反撃と横薙ぎから適用する。"
+  - "&7カウンターで剣気の個数は増減しない。個数・強化・追加威力をHUDに表示する。"
+  - "&7剣気と強化は時間では消えず、剣気を使い切ると強化も消える。"
+  - "&7死亡・退出・世界移動・転職・バインド解除・チャレンジ初期化で両方解除する。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 0
@@ -47,7 +52,10 @@ params:
   energyRecoveryRatio: 0.1
   counterSweepRange: 5.5
   counterSweepMaxTargets: 5
-  riposteWindowTicks: 100
+  maxRiposteStacks: 5
+  counterDamageBonusPerStack: 0.1
+  maxRiposteEmpowerment: 3
+  counterEmpowermentBonus: 0.1
 tags:
   - passive
   - melee

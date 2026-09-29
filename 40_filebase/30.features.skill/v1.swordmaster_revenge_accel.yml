@@ -10,10 +10,11 @@ description: "&7反撃の勢いを、新たな踏み込みへ変える。"
 icon: RAISER_ARMOR_TRIM_SMITHING_TEMPLATE
 lore:
   - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気があれば消費し、威力が{skill.riposteMultiplier}倍になる。"
+  - "&7静寂一閃の剣気があれば1つ消費し、威力が{skill.riposteMultiplier}倍になる。"
   - "&7剣気で強化した一撃が命中すると、疾風抜刀と紅蓮疾駆のクールタイムを解除。"
   - "&7自身のクールタイムは残り、再使用した突進もリソースを消費する。"
-  - "&7剣気は返し刃・明鏡止水と共有。空振りでは突進を再使用可能にしない。"
+  - "&7剣気は明鏡止水で蓄積し、返し刃と共有。空振りでは突進を再使用可能にしない。"
+  - "&7剣気が1つ以上残ればカウンターの強化段階を維持し、使い切ると解除する。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 24

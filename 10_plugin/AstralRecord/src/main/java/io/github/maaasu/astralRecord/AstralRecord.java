@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord;
 
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+
 import io.github.maaasu.astralRecord.core.CommandRegister;
 import io.github.maaasu.astralRecord.core.event.EventManager;
 import io.github.maaasu.astralRecord.feature.adventurerecord.event.AdventureRecordGuiEventHandler;
@@ -1111,7 +1113,24 @@ public final class AstralRecord extends JavaPlugin {
         PassiveSkillService passiveSkillService,
         GuideService guideService
     ) {
+        configureClassChangeGuideIntegration(playerClassService, passiveSkillService, guideService, player -> { });
+    }
+
+    /**
+     * 職業固有状態を解除してから、パッシブ再評価とガイド進捗通知を実行します。
+     * @param playerClassService 職業変更通知元
+     * @param passiveSkillService パッシブ状態の再評価先
+     * @param guideService ガイド進捗の通知先
+     * @param cleanup 職業変更時に一時状態を破棄する処理
+     */
+    static void configureClassChangeGuideIntegration(
+        PlayerClassService playerClassService,
+        PassiveSkillService passiveSkillService,
+        GuideService guideService,
+        java.util.function.Consumer<AstPlayer> cleanup
+    ) {
         playerClassService.setClassChangeListener(player -> {
+            cleanup.accept(player);
             PhantomArcherCastLifecycle.clearOwner(player.getBukkit().getUniqueId());
             passiveSkillService.reconcileNow(player);
             guideService.recordCondition(player, GuideConditionType.CLASS_CHANGED, player.getClassId());
@@ -1822,6 +1841,9 @@ public final class AstralRecord extends JavaPlugin {
             skillService.clearAllCooldowns(playerId);
             temporarySkillEffectService.clear(playerId);
             meditationSkillRuntimeService.interrupt(playerId);
+            if (seijakuIssenSkillRuntimeService != null) {
+                seijakuIssenSkillRuntimeService.interrupt(playerId);
+            }
         });
         mobKnockbackService.setAdditionalKnockbackMultiplier(
             temporarySkillEffectService::knockbackMultiplier
@@ -1833,9 +1855,6 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService
         );
         playerDeathService.setDeathStartedListener(playerId -> {
-            if (seijakuIssenSkillRuntimeService != null) {
-                seijakuIssenSkillRuntimeService.interrupt(playerId);
-            }
             activeSkillLifecycleService.clearAll(playerId);
             archmagePhoenixRuntimeService.onPlayerDeath(playerId);
         });
@@ -1891,6 +1910,8 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillServices.tasks(),
             playerHudService
         );
+        activeSkillLifecycleService.setAdditionalCleanup(seijakuIssenSkillRuntimeService::interrupt);
+        playerHudService.setSwordSpiritRenderer(seijakuIssenSkillRuntimeService::spiritActionBar);
         damageService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         skillService.registerExecutor(new SwordmasterSeijakuIssenExecutor(seijakuIssenSkillRuntimeService));
         ActiveSkillExecutorCatalog.create(
@@ -2021,7 +2042,8 @@ public final class AstralRecord extends JavaPlugin {
             (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );
         configureWeaponSkillGuideIntegration(skillService, inventoryService, guideService);
-        configureClassChangeGuideIntegration(playerClassService, passiveSkillService, guideService);
+        configureClassChangeGuideIntegration(playerClassService, passiveSkillService, guideService,
+            player -> seijakuIssenSkillRuntimeService.interrupt(player.getBukkit().getUniqueId()));
         damageService.setPlayerDamageListener(
             player -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );

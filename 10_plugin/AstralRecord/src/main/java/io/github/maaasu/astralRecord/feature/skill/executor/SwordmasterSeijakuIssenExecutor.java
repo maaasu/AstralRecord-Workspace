@@ -68,8 +68,22 @@ public final class SwordmasterSeijakuIssenExecutor implements SkillExecutor {
         if (params.getInt("counterSweepMaxTargets", 0) < 1) {
             throw new SkillParameterException("counterSweepMaxTargets", "静寂一閃の薙ぎ払い対象数は1以上が必要です");
         }
-        if (params.getInt("riposteWindowTicks", 0) < 1 || params.getInt("riposteWindowTicks", 0) > 200) {
-            throw new SkillParameterException("riposteWindowTicks", "剣気の受付時間は1〜200tickが必要です");
+        double maximum = params.getDouble("maxRiposteStacks", 5.0D);
+        if (!Double.isFinite(maximum) || maximum < 1.0D || maximum > 10.0D || maximum != Math.rint(maximum)) {
+            throw new SkillParameterException("maxRiposteStacks", "剣気の上限は1〜10の整数が必要です");
+        }
+        double bonus = params.getDouble("counterDamageBonusPerStack", 0.1D);
+        if (!Double.isFinite(bonus) || bonus <= 0.0D || bonus > 1.0D) {
+            throw new SkillParameterException("counterDamageBonusPerStack", "剣気1つの反撃強化率は0より大きく1以下が必要です");
+        }
+        double empowerment = params.getDouble("maxRiposteEmpowerment", 3.0D);
+        if (!Double.isFinite(empowerment) || empowerment < 1.0D || empowerment > 10.0D
+                || empowerment != Math.rint(empowerment)) {
+            throw new SkillParameterException("maxRiposteEmpowerment", "剣気の強化上限は1〜10の整数が必要です");
+        }
+        double empowermentBonus = params.getDouble("counterEmpowermentBonus", 0.1D);
+        if (!Double.isFinite(empowermentBonus) || empowermentBonus <= 0.0D || empowermentBonus > 1.0D) {
+            throw new SkillParameterException("counterEmpowermentBonus", "剣気の強化率は0より大きく1以下が必要です");
         }
         double recovery = params.getDouble("energyRecoveryRatio", 0.0D);
         if (!Double.isFinite(recovery) || recovery <= 0.0D || recovery > 1.0D) {

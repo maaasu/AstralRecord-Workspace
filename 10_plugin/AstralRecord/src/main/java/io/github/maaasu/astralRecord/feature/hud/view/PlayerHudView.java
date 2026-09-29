@@ -195,6 +195,42 @@ public class PlayerHudView {
         double currentPhoenix,
         double maximumPhoenix
     ) {
+        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, currentDps,
+                showGuard, currentGuard, maximumGuard, shieldDisplayCapacity,
+                showPhoenix, currentPhoenix, maximumPhoenix, Component.empty());
+    }
+
+    /**
+     * 既存のリソースに職業固有の追加表示を添えて描画します。
+     * @param player 表示対象
+     * @param snapshot 現在ステータス
+     * @param activeConditions 状態異常
+     * @param shieldRechargeState シールド回復状態
+     * @param currentDps 直近DPS
+     * @param showGuard ガード表示可否
+     * @param currentGuard 現在ガード
+     * @param maximumGuard 最大ガード
+     * @param shieldDisplayCapacity シールド表示上限
+     * @param showPhoenix 不死鳥表示可否
+     * @param currentPhoenix 現在不死鳥リソース
+     * @param maximumPhoenix 最大不死鳥リソース
+     * @param additionalResource 職業固有の表示。表示しない場合は空Component
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions,
+        ShieldRechargeState shieldRechargeState,
+        double currentDps,
+        boolean showGuard,
+        double currentGuard,
+        double maximumGuard,
+        double shieldDisplayCapacity,
+        boolean showPhoenix,
+        double currentPhoenix,
+        double maximumPhoenix,
+        Component additionalResource
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
@@ -207,6 +243,7 @@ public class PlayerHudView {
             .append(guardActionText(showGuard, currentGuard, maximumGuard))
             .append(showPhoenix && currentPhoenix > 0.0D
                     ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
+            .append(additionalResource)
             .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
             .append(conditionActionText(activeConditions))
             .append(dpsActionText(currentDps)));
