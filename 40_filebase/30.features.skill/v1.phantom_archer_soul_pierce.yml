@@ -1,0 +1,69 @@
+# design:
+#   motif: "霊魂 / 貫通する矢"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_soul_pierce
+type: SKILL
+implementationId: phantom_archer_soul_pierce
+name: "&5ソウルピアース"
+description: "&7弱った敵を貫く霊矢を放つ。"
+icon: SCULK_CATALYST
+lore:
+  - "&7射程{skill.range}mへ細い貫通霊矢を放ち、最大{skill.maxHits}体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7衰弱か盲目の敵への倍率はさらに{skill.conditionBonusRatio:percent}%増える。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 21
+manaCost: 12
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  range: 18
+  damageRatio: 1.5
+  projectileSpeed: 2.0
+  projectileHitRadius: 0.35
+  maxHits: 4
+  conditionBonusRatio: 0.4
+tags:
+  - active
+  - ranged
+  - bow

@@ -1,0 +1,66 @@
+# design:
+#   motif: "霧 / 退避"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_mist_retreat
+type: SKILL
+implementationId: phantom_archer_mist_retreat
+name: "&5ミストリトリート"
+description: "&7霧を残して素早く後退する。"
+icon: LIGHT_GRAY_DYE
+lore:
+  - "&7安全判定を通して後退し、成功すると{skill.durationTicks:seconds}秒間回避率を{skill.evasionMultiplier}倍にする。"
+  - "&7後退できない場合は回避効果を得ない。通常ドッジの無敵時間は変更しない。"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 18
+manaCost: 8
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 3, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 4, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 5, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 6, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 7, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 8, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 9, paramDeltas: { evasionMultiplier: 0.04 } }
+  - { level: 10, paramDeltas: { evasionMultiplier: 0.04 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  backstepVelocity: 1.4
+  durationTicks: 60
+  evasionMultiplier: 1.4
+tags:
+  - active
+  - support
+  - mobility

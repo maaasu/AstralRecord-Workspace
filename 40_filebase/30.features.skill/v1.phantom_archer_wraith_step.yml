@@ -1,0 +1,32 @@
+# design:
+#   motif: "亡霊 / 足取り"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_wraith_step
+type: SKILL
+implementationId: status_passive
+name: "&5レイスステップ"
+description: "&7危険を避けて身軽に動く。"
+icon: PALE_OAK_LEAVES
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7回避率を5ポイント増やし、ENG消費を8%軽減する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: true
+params:
+  modifiers:
+    - { status: EVASION, type: FLAT, value: 5 }
+    - { status: ENERGY_COST_REDUCTION, type: FLAT, value: 8 }
+tags:
+  - passive
+  - ranged

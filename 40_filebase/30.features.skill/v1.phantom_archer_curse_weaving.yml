@@ -1,0 +1,33 @@
+# design:
+#   motif: "呪いの浸透 / 持続"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_curse_weaving
+type: SKILL
+implementationId: status_passive
+name: "&5カースウィービング"
+description: "&7状態異常を長く深く刻む。"
+icon: SCULK_VEIN
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7衰弱・盲目の基礎付与率をそれぞれ1.15倍にし、付与する状態異常の持続を10%延長する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: true
+params:
+  modifiers:
+    - { status: WEAKNESS_APPLY_CHANCE, type: FLAT, value: 15 }
+    - { status: BLINDNESS_APPLY_CHANCE, type: FLAT, value: 15 }
+    - { status: CONDITION_DURATION_INCREASE, type: FLAT, value: 10 }
+tags:
+  - passive
+  - ranged

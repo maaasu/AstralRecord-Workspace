@@ -21,6 +21,15 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    public static final SharedParticleDefinition PHANTOM_ARCHER_TRAIL =
+        new SharedParticleDefinition("phantom_archer_trail", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(94, 57, 148), 0.75F));
+    public static final SharedParticleDefinition PHANTOM_ARCHER_IMPACT =
+        new SharedParticleDefinition("phantom_archer_impact", Particle.SOUL, 5, 0.16D, 0.22D, 0.16D, 0.01D);
+    public static final SharedParticleDefinition PHANTOM_ARCHER_SENTRY =
+        new SharedParticleDefinition("phantom_archer_sentry", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(135, 185, 210), 0.85F));
+
     public static final SharedParticleDefinition SKILL_ASTRAL_RAY_VIOLET =
         new SharedParticleDefinition("skill_astral_ray_violet", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(170, 110, 255), 0.85F));

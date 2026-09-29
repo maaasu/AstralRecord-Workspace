@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolySmiteRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardEmulateSparkExecutor;
@@ -86,6 +87,7 @@ public final class ActiveSkillExecutorCatalog {
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
+        executors.addAll(PhantomArcherSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
         executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
         executors.add(new ArchmageHealCircleExecutor(services, skillService));

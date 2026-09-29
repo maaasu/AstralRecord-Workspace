@@ -1,0 +1,32 @@
+# design:
+#   motif: "幻影 / 調律"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_spectral_attunement
+type: SKILL
+implementationId: status_passive
+name: "&5スペクトラルアチューンメント"
+description: "&7幻影の技を軽やかに巡らせる。"
+icon: CALIBRATED_SCULK_SENSOR
+lore:
+  - "&7パッシブスロットへのバインド中のみ有効。"
+  - "&7スキルのクールダウンを5%、MP消費を8%軽減する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: true
+params:
+  modifiers:
+    - { status: COOLDOWN_REDUCTION, type: FLAT, value: 5 }
+    - { status: MANA_COST_REDUCTION, type: FLAT, value: 8 }
+tags:
+  - passive
+  - ranged

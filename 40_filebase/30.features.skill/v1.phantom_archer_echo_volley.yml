@@ -1,0 +1,70 @@
+# design:
+#   motif: "残響 / 連射"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_echo_volley
+type: SKILL
+implementationId: phantom_archer_echo_volley
+name: "&5エコーボレー"
+description: "&7残響する細い霊矢を連続で放つ。"
+icon: SCULK_SHRIEKER
+lore:
+  - "&7発動時の照準方向へ{skill.shotCount}本の細い霊矢を{skill.shotIntervalTicks}ティック間隔で放つ。"
+  - "&7各矢は射程{skill.range}mで最大{skill.maxHits}体を貫き、間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 24
+manaCost: 15
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.07 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  range: 17
+  damageRatio: 0.7
+  projectileSpeed: 2.0
+  projectileHitRadius: 0.28
+  maxHits: 3
+  shotCount: 4
+  shotIntervalTicks: 6
+tags:
+  - active
+  - ranged
+  - bow
