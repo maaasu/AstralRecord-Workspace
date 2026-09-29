@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -133,6 +134,12 @@ public final class BossMechanicService {
     private static final double SUNBIRD_TACKLE_DESTINATION_RADIUS = 9.0D;
     private static final double SUNBIRD_TACKLE_HALF_WIDTH = 1.5D;
     private static final long SUNBIRD_TACKLE_TELEGRAPH_TICKS = 10L;
+    private static final double CHARON_RIVER_LENGTH = 13.0D;
+    private static final double CHARON_RIVER_HALF_WIDTH = 2.0D;
+    private static final double CHARON_TOLL_RADIUS = 3.5D;
+    private static final double CHARON_LANTERN_DANGER_RADIUS = 9.0D;
+    private static final double CHARON_LANTERN_SAFE_RADIUS = 2.5D;
+    private static final long CHARON_RECOVERY_TICKS = 40L;
 
     private final JavaPlugin plugin;
     private final MobService mobService;
@@ -214,6 +221,7 @@ public final class BossMechanicService {
         if (runtime != null) {
             destroySummons(runtime);
             cleanupAldaExposure(bossInstanceId, runtime);
+            clearCharonRecovery(runtime);
         }
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
@@ -244,6 +252,7 @@ public final class BossMechanicService {
         for (BossRuntime runtime : runtimes.values()) {
             destroySummons(runtime);
             cleanupAldaExposure(runtime.bossInstanceId, runtime);
+            clearCharonRecovery(runtime);
         }
         runtimes.clear();
     }
@@ -280,6 +289,21 @@ public final class BossMechanicService {
                     boss.currentShield()
                 )
             );
+            if (BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())) {
+                if (!isCharonEngaged(boss, entity)
+                    || !conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    clearCharonRecovery(runtime);
+                    removePendingForBoss(boss.instanceId());
+                    continue;
+                }
+                if (runtime.recoveryUntilTick > 0L) {
+                    if (clockTicks < runtime.recoveryUntilTick) {
+                        continue;
+                    }
+                    clearCharonRecovery(runtime);
+                }
+            }
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
             if (!conditionService.canRunAi(AstEntity.mob(boss))
                 || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
@@ -325,6 +349,7 @@ public final class BossMechanicService {
             }
             destroySummons(entry.getValue());
             cleanupAldaExposure(entry.getKey(), entry.getValue());
+            clearCharonRecovery(entry.getValue());
             finishBirdMeteorCharge(entry.getKey());
             removePendingForBoss(entry.getKey());
             iterator.remove();
@@ -518,10 +543,13 @@ public final class BossMechanicService {
                 && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
                 && (!conditionService.canRunAi(AstEntity.mob(boss))
                     || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId())));
+            boolean charonDisengaged = boss != null && entity != null
+                && BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())
+                && !isCharonEngaged(boss, entity);
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
                 || entity.getWorld() != pending.anchor().getWorld()
                 || noManagedTarget
-                || mechanicBlocked) {
+                || mechanicBlocked || charonDisengaged) {
                 removePendingVisuals(pending);
                 releaseScriptedAction(pending);
                 iterator.remove();
@@ -1100,6 +1128,15 @@ public final class BossMechanicService {
         Location targetLocation = primaryTarget.getLocation();
         Vector direction = horizontalDirection(bossLocation, targetLocation, entity.getFacing().getDirection());
         long telegraphTicks = telegraphTicks(mechanic);
+        if (mechanic == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
+            boss.scriptedAction(true);
+            addPending(boss, mechanic, targetLocation, direction, telegraphTicks);
+            return true;
+        }
+        if (mechanic == BossMechanicProfile.Mechanic.CHARON_TOLL) {
+            addPending(boss, mechanic, targetLocation, direction, telegraphTicks);
+            return true;
+        }
         if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
             boss.scriptedAction(true);
             addPending(boss, mechanic, bossLocation, direction, telegraphTicks);
@@ -1322,6 +1359,9 @@ public final class BossMechanicService {
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
             case SUNBIRD_BIRD_METEOR -> SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS;
             case SUNBIRD_RETURN_TACKLE -> SUNBIRD_TACKLE_TELEGRAPH_TICKS;
+            case CHARON_RIVER -> 35L;
+            case CHARON_TOLL -> 40L;
+            case CHARON_LANTERN -> 70L;
         };
     }
 
@@ -1560,6 +1600,23 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.MOB_GRANBAL_ROOT
             );
             case GRANBAL_PETAL_BURST -> renderGranbalPetalTelegraph(pending);
+            case CHARON_RIVER -> renderLane(
+                pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
+                SharedParticleDefinitions.BOSS_MECHANIC_PORTAL
+            );
+            case CHARON_TOLL -> renderCircle(
+                pending.anchor(), CHARON_TOLL_RADIUS, SharedParticleDefinitions.BOSS_MECHANIC_SPARK, 32
+            );
+            case CHARON_LANTERN -> {
+                renderCircle(
+                    pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 48
+                );
+                renderCircle(
+                    pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 28
+                );
+            }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
             );
@@ -1591,6 +1648,29 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
             );
         }
+        if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_RIVER
+            || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL
+            || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
+            renderCharonCountdown(pending);
+        }
+    }
+
+    /**
+     * 予兆の残り時間を、攻撃中心の上空で縮む魂炎の輪として表示します。
+     *
+     * @param pending カロンの未発動予兆
+     */
+    private void renderCharonCountdown(@NotNull PendingMechanic pending) {
+        double remaining = Math.clamp(
+            (double) (pending.executeAtTick() - clockTicks) / telegraphTicks(pending.mechanic()),
+            0.0D, 1.0D
+        );
+        renderCircle(
+            pending.anchor().clone().add(0.0D, 1.8D, 0.0D),
+            0.3D + remaining * 1.2D,
+            SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE,
+            16
+        );
     }
 
     /**
@@ -1651,6 +1731,22 @@ public final class BossMechanicService {
                 GRANBAL_ROOT_FAN_DAMAGE_RATIO, GRANBAL_ROOT_FAN_PUSH_STRENGTH
             );
             case GRANBAL_PETAL_BURST -> damageGranbalPetalBurst(boss, pending);
+            case CHARON_RIVER -> damageLine(
+                boss, pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
+                AttackType.MAGIC, DamageElement.NONE, 0.68D, 0.35D
+            );
+            case CHARON_TOLL -> damageCircle(
+                boss, pending.anchor(), 0.0D, CHARON_TOLL_RADIUS,
+                AttackType.MAGIC, DamageElement.NONE, 0.62D, 0.0D
+            );
+            case CHARON_LANTERN -> {
+                damageCharonLantern(boss, pending.anchor());
+                BossRuntime runtime = runtimes.get(boss.instanceId());
+                if (runtime != null) {
+                    runtime.recoveryUntilTick = clockTicks + CHARON_RECOVERY_TICKS;
+                    runtime.nextActionTick = Math.max(runtime.nextActionTick, runtime.recoveryUntilTick + 20L);
+                }
+            }
             case SUNBIRD_SOLAR_FLARE -> damageCircle(
                 boss, pending.anchor(), 0.0D, SUNBIRD_FLARE_RADIUS,
                 AttackType.MAGIC, DamageElement.FIRE, 0.65D, 0.75D
@@ -1681,6 +1777,24 @@ public final class BossMechanicService {
             }
         }
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
+    }
+
+    /**
+     * 魂灯の青い円周上を含む安全域を除き、危険円内だけを攻撃します。
+     *
+     * @param boss ダメージ発生元
+     * @param center 詠唱開始時の対象地点
+     */
+    private void damageCharonLantern(@NotNull MobInstance boss, @NotNull Location center) {
+        double safeSquared = CHARON_LANTERN_SAFE_RADIUS * CHARON_LANTERN_SAFE_RADIUS;
+        double dangerSquared = CHARON_LANTERN_DANGER_RADIUS * CHARON_LANTERN_DANGER_RADIUS;
+        for (Player player : nearbyManagedPlayers(center, CHARON_LANTERN_DANGER_RADIUS)) {
+            double distanceSquared = horizontalDistanceSquared(player.getLocation(), center);
+            if (distanceSquared <= safeSquared || distanceSquared > dangerSquared) {
+                continue;
+            }
+            damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, 1.0D);
+        }
     }
 
     /**
@@ -2538,6 +2652,24 @@ public final class BossMechanicService {
                 granbalPetalImpactLocations(pending),
                 SharedParticleDefinitions.MOB_GRANBAL_IMPACT
             );
+            case CHARON_RIVER -> renderLane(
+                pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
+                SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
+            );
+            case CHARON_TOLL -> renderCircle(
+                pending.anchor(), CHARON_TOLL_RADIUS,
+                SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 32
+            );
+            case CHARON_LANTERN -> {
+                renderCircle(
+                    pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 48
+                );
+                renderCircle(
+                    pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 28
+                );
+            }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 32
             );
@@ -2675,14 +2807,49 @@ public final class BossMechanicService {
     private void releaseScriptedAction(@NotNull PendingMechanic pending) {
         if (pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
             && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
-            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE) {
+            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
+            && pending.mechanic() != BossMechanicProfile.Mechanic.CHARON_LANTERN) {
             return;
         }
         MobInstance boss = mobService.getInstance(pending.bossInstanceId());
         if (pending.mechanic() == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
             finishBirdMeteor(pending.bossInstanceId());
         }
-        if (boss != null) {
+        BossRuntime runtime = runtimes.get(pending.bossInstanceId());
+        if (boss != null && (runtime == null || runtime.recoveryUntilTick <= clockTicks)) {
+            boss.scriptedAction(false);
+        }
+    }
+
+    /**
+     * 追跡と有効な対象が残る間だけ、カロンの予兆を継続します。
+     *
+     * @param boss カロンのMob個体
+     * @param entity Bukkit実体
+     * @return 対象が同じworldの管理対象Playerとして有効ならtrue
+     */
+    private boolean isCharonEngaged(@NotNull MobInstance boss, @NotNull Entity entity) {
+        if (boss.state() != MobState.AGGRO && boss.state() != MobState.COMBAT) {
+            return false;
+        }
+        UUID targetId = boss.targetId();
+        if (targetId == null) {
+            return false;
+        }
+        Player target = Bukkit.getPlayer(targetId);
+        return target != null && target.isValid() && target.getWorld() == entity.getWorld()
+            && nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).contains(target);
+    }
+
+    /**
+     * 魂灯後の攻撃停止を解除し、Mob AIへ制御を戻します。
+     *
+     * @param runtime カロンの実行状態
+     */
+    private void clearCharonRecovery(@NotNull BossRuntime runtime) {
+        runtime.recoveryUntilTick = 0L;
+        MobInstance boss = mobService.getInstance(runtime.bossInstanceId);
+        if (boss != null && BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())) {
             boss.scriptedAction(false);
         }
     }
@@ -2888,6 +3055,7 @@ public final class BossMechanicService {
         private boolean finalPhaseTriggered;
         private double observedShield;
         private long exposureUntilTick;
+        private long recoveryUntilTick;
         private boolean exposureWasGlowing;
         private List<UUID> exposureDisplayEntityIds = List.of();
         private final Set<UUID> summonedMobIds = new LinkedHashSet<>();

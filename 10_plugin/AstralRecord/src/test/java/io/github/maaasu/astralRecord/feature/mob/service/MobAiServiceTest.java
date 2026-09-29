@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -53,6 +54,38 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MobAiServiceTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 拘束中のCOMBAT Mobは専用行動中に通常攻撃せず、専用行動の解除後には通常攻撃を再開する。
+     */
+    @Test
+    void boundMobPausesNormalAttackDuringScriptedAction() {
+        MobService mobService = mock(MobService.class);
+        MobCombatService combatService = mock(MobCombatService.class);
+        BindCircleRuntimeService bindCircle = mock(BindCircleRuntimeService.class);
+        World world = mock(World.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(), enemyTemplate(), new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.state(MobState.COMBAT);
+        instance.scriptedAction(true);
+        when(mobService.getInstances()).thenReturn(List.of(instance));
+        when(mobService.syncLocation(instance)).thenReturn(true);
+        when(bindCircle.isBound(instance.instanceId())).thenReturn(true);
+        MobAiService aiService = new MobAiService(
+                mobService, combatService, mock(MobSkillService.class),
+                null, null, null, null, bindCircle
+        );
+
+        aiService.tick();
+        verify(combatService, never()).tickCombat(eq(instance), anyLong());
+
+        instance.scriptedAction(false);
+        aiService.tick();
+        verify(combatService).tickCombat(eq(instance), anyLong());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md

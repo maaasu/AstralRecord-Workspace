@@ -15,6 +15,7 @@ final class BossMechanicProfile {
     static final String MIDGARD_SAVANNA_SUNBIRD = "midgard_savanna_sunbird";
     static final String FORGOTTEN_ALDA_COLOSSUS = "forgotten_alda_colossus";
     static final String GREAT_TREE_GUARDIAN_GRANBAL = "great_tree_guardian_granbal";
+    static final String CHARON_FERRYMAN = "charon_ferryman";
 
     private static final Map<String, BossMechanicProfile> PROFILES = Map.of(
         TWILIGHT_COLOSSUS,
@@ -59,6 +60,16 @@ final class BossMechanicProfile {
             ),
             List.of(120L, 105L, 90L),
             List.of(0.70D, 0.35D)
+        ),
+        CHARON_FERRYMAN,
+        new BossMechanicProfile(
+            List.of(
+                List.of(Mechanic.CHARON_RIVER, Mechanic.CHARON_TOLL, Mechanic.CHARON_LANTERN),
+                List.of(Mechanic.CHARON_RIVER, Mechanic.CHARON_TOLL, Mechanic.CHARON_RIVER, Mechanic.CHARON_LANTERN),
+                List.of(Mechanic.CHARON_RIVER, Mechanic.CHARON_LANTERN, Mechanic.CHARON_TOLL)
+            ),
+            List.of(120L, 100L, 85L),
+            List.of(0.60D, 0.30D)
         ),
         GREAT_TREE_GUARDIAN_GRANBAL,
         new BossMechanicProfile(
@@ -128,6 +139,9 @@ final class BossMechanicProfile {
         ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP,
         GRANBAL_ROOT_FAN,
         GRANBAL_PETAL_BURST,
+        CHARON_RIVER,
+        CHARON_TOLL,
+        CHARON_LANTERN,
         SUNBIRD_SOLAR_FLARE,
         SUNBIRD_SUNSTRIKE,
         SUNBIRD_SOLAR_BEAM,

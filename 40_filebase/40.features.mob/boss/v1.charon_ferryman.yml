@@ -1,0 +1,73 @@
+# design:
+#   motif: "ギリシア神話 / 冥河の渡し守"
+#   progression: 20
+schemaVersion: 1
+id: charon_ferryman
+type: MOB
+category: BOSS
+name: "&5&l冥河の渡し守カロン"
+title: "&8-- 魂を運ぶ舟頭 --"
+level: 20
+entityType: BOGGED
+icon: BOGGED_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7魂灯を掲げ、渡し賃を求める冥河の舟頭。"
+  - "&7冥河は横へ避け、魂灯が灯れば青い輪の内側へ集え。"
+tags:
+  - boss
+  - undead
+  - skeleton
+  - humanoid
+  - melee
+  - magic
+equipment:
+  mainHand: NETHERITE_SHOVEL
+  offHand: SOUL_LANTERN
+  helmet: NETHERITE_HELMET
+  chestplate: NETHERITE_CHESTPLATE
+  leggings: NETHERITE_LEGGINGS
+  boots: NETHERITE_BOOTS
+  trim:
+    material: AMETHYST
+    pattern: SILENCE
+baseStats:
+  - status: MAX_HEALTH
+    value: 64000
+  - status: ATTACK
+    value: 1391
+  - status: DEFENSE
+    value: 1603
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 86
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 28
+    deaggroRange: 38
+    leashRange: 42
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.8
+      intervalTicks: 30
+drops:
+  exp: 6000
+  items:
+    - itemId:
+        ref: item:10a00092
+      rate: 100.0
+      amount: 1
+      luckAffected: true
+      hidden: false

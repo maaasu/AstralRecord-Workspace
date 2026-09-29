@@ -234,7 +234,8 @@ public class MobAiService {
                     instance.completeShieldRechargeIfReady(System.currentTimeMillis());
                     if (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(instance.instanceId())) {
                         mobService.stopPathfinding(instance);
-                        if (instance.state() == MobState.COMBAT
+                        if (!instance.scriptedAction()
+                                && instance.state() == MobState.COMBAT
                                 && (conditionService == null || conditionService.canAttack(AstEntity.mob(instance)))) {
                             mobCombatService.tickCombat(instance, internalTick);
                         }

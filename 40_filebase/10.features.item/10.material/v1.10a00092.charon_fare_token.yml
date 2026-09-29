@@ -1,0 +1,15 @@
+# design:
+#   motif: "ギリシア神話 / 冥河の渡し賃"
+#   progression: 20
+schemaVersion: 1
+id: 10a00092
+category: material
+name: "&5冥河の渡し賃"
+icon: NAUTILUS_SHELL
+rarity: RARE
+maxStack: 64
+saleValue: 400
+lore:
+  - "&7渡し守が残した、魂灯の光を帯びた古い硬貨。"
+unTradeable: false
+unSellable: false
