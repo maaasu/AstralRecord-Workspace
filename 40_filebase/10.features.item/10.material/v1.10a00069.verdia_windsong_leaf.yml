@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 風に鳴る草"
+#   progression: 20
+schemaVersion: 1
+id: 10a00069
+category: material
+name: "&f風歌草の葉"
+icon: FERN
+rarity: COMMON
+maxStack: 64
+lore:
+  - "&7風を受けると、かすかな歌声のように鳴る葉。"

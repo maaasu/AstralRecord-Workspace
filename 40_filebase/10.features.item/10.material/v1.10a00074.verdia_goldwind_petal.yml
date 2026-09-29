@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 金色の花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00074
+category: material
+name: "&a金風花の花びら"
+icon: SUNFLOWER
+rarity: UNCOMMON
+maxStack: 64
+lore:
+  - "&7風に合わせて金色の光を返す花びら。"

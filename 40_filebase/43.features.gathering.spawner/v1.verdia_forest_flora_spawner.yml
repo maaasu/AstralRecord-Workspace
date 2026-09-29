@@ -1,0 +1,31 @@
+# design:
+#   motif: "地形 / 木かげの森"
+#   progression: 20
+schemaVersion: 1
+id: verdia_forest_flora_spawner
+type: GATHERING_SPAWNER
+radiusMeters: 18
+spawnGatherings:
+  - gatheringId: gathering:verdia_shade_grass
+    weight: 35
+  - gatheringId: gathering:verdia_dew_moss
+    weight: 35
+  - gatheringId: gathering:verdia_forestlight_mushroom
+    weight: 24
+  - gatheringId: gathering:verdia_flowerguard_bush
+    weight: 5
+  - gatheringId: gathering:verdia_earthheart_flower
+    weight: 1
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 80
+spawnLimit:
+  maxAlivePerSpawner: 10
+  maxNearbyGatherings: 30
+  spawnPerPlayer: 2
+requiredBaseBlocks:
+  - GRASS_BLOCK
+  - DIRT
+  - MOSS_BLOCK

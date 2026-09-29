@@ -1,0 +1,34 @@
+# design:
+#   motif: "植物 / 木かげの草"
+#   progression: 20
+schemaVersion: 1
+id: verdia_shade_grass
+type: GATHERING
+category: HARVESTING
+name: "&f木かげ草"
+level: 1
+maxHealth: 9
+displayBlock: AZALEA_LEAVES
+displayScale:
+  x: 0.8
+  y: 0.8
+  z: 0.8
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.0
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.95
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00071
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 花を守る茂み"
+#   progression: 21
+schemaVersion: 1
+id: 10a00081
+category: material
+name: "&d花守りの種"
+icon: PITCHER_POD
+rarity: EPIC
+maxStack: 64
+lore:
+  - "&7花守りの茂みの奥で静かに育った種。"

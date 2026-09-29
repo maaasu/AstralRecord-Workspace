@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 木かげの草"
+#   progression: 20
+schemaVersion: 1
+id: 10a00071
+category: material
+name: "&f木かげ草の葉"
+icon: OAK_LEAVES
+rarity: COMMON
+maxStack: 64
+lore:
+  - "&7深い木かげでも青さを失わない葉。"

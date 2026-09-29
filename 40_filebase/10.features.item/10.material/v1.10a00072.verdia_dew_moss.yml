@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 水を含む苔"
+#   progression: 20
+schemaVersion: 1
+id: 10a00072
+category: material
+name: "&f森しずくごけ"
+icon: MOSS_BLOCK
+rarity: COMMON
+maxStack: 64
+lore:
+  - "&7森の水気をたっぷり含んだやわらかな苔。"

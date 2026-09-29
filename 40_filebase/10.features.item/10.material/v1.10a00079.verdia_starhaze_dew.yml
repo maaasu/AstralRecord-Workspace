@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 星のような花"
+#   progression: 21
+schemaVersion: 1
+id: 10a00079
+category: material
+name: "&d星かすみのしずく"
+icon: AMETHYST_SHARD
+rarity: EPIC
+maxStack: 64
+lore:
+  - "&7星かすみ花の中心に、まれに宿る光のしずく。"

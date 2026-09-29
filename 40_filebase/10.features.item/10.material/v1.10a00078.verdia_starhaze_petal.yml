@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 星のような花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00078
+category: material
+name: "&b星かすみの花びら"
+icon: ALLIUM
+rarity: RARE
+maxStack: 64
+lore:
+  - "&7小さな光がかすみのように重なる花びら。"

@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 花を守る茂み"
+#   progression: 20
+schemaVersion: 1
+id: 10a00080
+category: material
+name: "&b花守りの葉"
+icon: FLOWERING_AZALEA_LEAVES
+rarity: RARE
+maxStack: 64
+lore:
+  - "&7周りの花を包むように広がる厚い葉。"

@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 陽だまりの花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00070
+category: material
+name: "&f陽だまりの花びら"
+icon: DANDELION
+rarity: COMMON
+maxStack: 64
+lore:
+  - "&7日差しを受け、やわらかな光を残す花びら。"

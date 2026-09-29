@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 大地の花"
+#   progression: 21
+schemaVersion: 1
+id: 10a00085
+category: material
+name: "&6大地の命玉"
+icon: HEART_OF_THE_SEA
+rarity: LEGENDARY
+maxStack: 64
+lore:
+  - "&7大地の心花にごくまれに宿る、命の光を帯びた玉。"

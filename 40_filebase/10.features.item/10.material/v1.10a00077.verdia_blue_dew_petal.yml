@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 青い水滴"
+#   progression: 20
+schemaVersion: 1
+id: 10a00077
+category: material
+name: "&a青しずくの花びら"
+icon: BLUE_ORCHID
+rarity: UNCOMMON
+maxStack: 64
+lore:
+  - "&7水のしずくを閉じ込めたような青い花びら。"

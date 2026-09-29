@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 泉辺の花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00082
+category: material
+name: "&b泉うた花の花びら"
+icon: PINK_PETALS
+rarity: RARE
+maxStack: 64
+lore:
+  - "&7水音に合わせて淡く色を変える花びら。"

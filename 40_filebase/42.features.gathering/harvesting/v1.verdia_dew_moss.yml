@@ -1,0 +1,34 @@
+# design:
+#   motif: "植物 / 水を含む苔"
+#   progression: 20
+schemaVersion: 1
+id: verdia_dew_moss
+type: GATHERING
+category: HARVESTING
+name: "&f森しずくごけ"
+level: 1
+maxHealth: 10
+displayBlock: MOSS_BLOCK
+displayScale:
+  x: 0.7
+  y: 0.5
+  z: 0.7
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.0
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.95
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00072
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

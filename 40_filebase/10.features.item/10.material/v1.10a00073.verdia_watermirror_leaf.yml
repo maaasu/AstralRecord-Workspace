@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 水面の草"
+#   progression: 20
+schemaVersion: 1
+id: 10a00073
+category: material
+name: "&f水鏡草の葉"
+icon: LILY_PAD
+rarity: COMMON
+maxStack: 64
+lore:
+  - "&7水面の光を映す、つやのある葉。"

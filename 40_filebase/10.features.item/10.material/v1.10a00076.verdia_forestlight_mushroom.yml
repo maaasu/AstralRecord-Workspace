@@ -1,0 +1,12 @@
+# design:
+#   motif: "菌類 / 光る茸"
+#   progression: 20
+schemaVersion: 1
+id: 10a00076
+category: material
+name: "&a森灯り茸"
+icon: SHROOMLIGHT
+rarity: UNCOMMON
+maxStack: 64
+lore:
+  - "&7木々の下でほのかに灯る小さな茸。"

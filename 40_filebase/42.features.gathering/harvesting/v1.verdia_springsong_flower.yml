@@ -1,0 +1,39 @@
+# design:
+#   motif: "植物 / 泉辺の花"
+#   progression: 20
+schemaVersion: 1
+id: verdia_springsong_flower
+type: GATHERING
+category: HARVESTING
+name: "&b泉うた花"
+level: 2
+maxHealth: 25
+displayBlock: PINK_TULIP
+displayScale:
+  x: 0.9
+  y: 0.95
+  z: 0.9
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.0
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.95
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00082
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false
+    - itemId: item:10a00083
+      rate: 12.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

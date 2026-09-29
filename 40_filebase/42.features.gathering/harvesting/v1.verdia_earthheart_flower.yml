@@ -1,0 +1,39 @@
+# design:
+#   motif: "植物 / 大地の花"
+#   progression: 20
+schemaVersion: 1
+id: verdia_earthheart_flower
+type: GATHERING
+category: HARVESTING
+name: "&6大地の心花"
+level: 2
+maxHealth: 32
+displayBlock: SPORE_BLOSSOM
+displayScale:
+  x: 1.15
+  y: 1.1
+  z: 1.15
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.0
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.95
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00084
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false
+    - itemId: item:10a00085
+      rate: 5.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

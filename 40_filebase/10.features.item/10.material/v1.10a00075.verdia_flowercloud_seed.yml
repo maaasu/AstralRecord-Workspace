@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 雲のような花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00075
+category: material
+name: "&a花くも草の種"
+icon: TORCHFLOWER_SEEDS
+rarity: UNCOMMON
+maxStack: 64
+lore:
+  - "&7空へ舞う綿毛の中で育った軽い種。"

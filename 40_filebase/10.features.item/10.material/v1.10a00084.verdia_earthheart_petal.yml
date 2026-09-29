@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 大地の花"
+#   progression: 20
+schemaVersion: 1
+id: 10a00084
+category: material
+name: "&d大地の心花びら"
+icon: SPORE_BLOSSOM
+rarity: EPIC
+maxStack: 64
+lore:
+  - "&7豊かな土の息づかいを感じる大きな花びら。"

@@ -1,0 +1,12 @@
+# design:
+#   motif: "植物 / 泉辺の花"
+#   progression: 21
+schemaVersion: 1
+id: 10a00083
+category: material
+name: "&d泉うたの玉"
+icon: PRISMARINE_CRYSTALS
+rarity: EPIC
+maxStack: 64
+lore:
+  - "&7泉うた花にまれに結ぶ、澄んだ光の玉。"
