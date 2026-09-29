@@ -1,0 +1,44 @@
+# design:
+#   motif: "鉱物 / 星の光を宿す石"
+#   progression: 20
+schemaVersion: 1
+id: verdia_cave_starheart_vein
+type: GATHERING
+category: MINING
+name: "&6星の心石の鉱脈"
+level: 2
+maxHealth: 50
+displayBlock: DIAMOND_ORE
+displayScale:
+  x: 0.9
+  y: 0.9
+  z: 0.9
+requiredToolTags:
+  - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.75
+    pitch: 0.9
+  break:
+    sound: block.stone.break
+    volume: 0.85
+    pitch: 0.85
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00010
+      rate: 100.0
+      amount: "2~4"
+      luckAffected: true
+      hidden: false
+    - itemId: item:10a00090
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false
+    - itemId: item:10a00091
+      rate: 1.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

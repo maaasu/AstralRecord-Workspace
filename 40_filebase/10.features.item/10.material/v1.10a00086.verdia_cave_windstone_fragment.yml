@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 風の通る岩"
+#   progression: 20
+schemaVersion: 1
+id: 10a00086
+category: material
+name: "&f風鳴り石のかけら"
+icon: ANDESITE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7風が通る穴を持つ、軽い灰色の石片。"
+unTradeable: false
+unSellable: false

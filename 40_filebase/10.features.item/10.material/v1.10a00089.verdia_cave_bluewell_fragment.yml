@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 青い鉱石"
+#   progression: 20
+schemaVersion: 1
+id: 10a00089
+category: material
+name: "&a青泉石のかけら"
+icon: LAPIS_LAZULI
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7泉の水を映したような青い鉱石のかけら。"
+unTradeable: false
+unSellable: false

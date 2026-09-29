@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 密度の高い石炭"
+#   progression: 20
+schemaVersion: 1
+id: 10a00088
+category: material
+name: "&a黒ひかり石炭"
+icon: COAL
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 15
+lore:
+  - "&7洞窟の石炭より密度が高く、黒い面に細い光が走る。"
+unTradeable: false
+unSellable: false

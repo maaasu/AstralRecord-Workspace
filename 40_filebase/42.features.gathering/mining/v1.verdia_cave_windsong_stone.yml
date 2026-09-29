@@ -1,0 +1,39 @@
+# design:
+#   motif: "鉱物 / 風の通る岩"
+#   progression: 20
+schemaVersion: 1
+id: verdia_cave_windsong_stone
+type: GATHERING
+category: MINING
+name: "&7風鳴り石の露頭"
+level: 2
+maxHealth: 22
+displayBlock: ANDESITE
+displayScale:
+  x: 0.9
+  y: 0.9
+  z: 0.9
+requiredToolTags:
+  - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.75
+    pitch: 0.9
+  break:
+    sound: block.stone.break
+    volume: 0.85
+    pitch: 0.85
+drops:
+  exp: 0
+  items:
+    - itemId: item:10a00010
+      rate: 100.0
+      amount: "2~4"
+      luckAffected: true
+      hidden: false
+    - itemId: item:10a00086
+      rate: 100.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

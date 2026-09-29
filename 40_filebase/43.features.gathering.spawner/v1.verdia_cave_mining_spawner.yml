@@ -1,0 +1,35 @@
+# design:
+#   motif: "地形 / 森に面した洞窟"
+#   progression: 20
+schemaVersion: 1
+id: verdia_cave_mining_spawner
+type: GATHERING_SPAWNER
+radiusMeters: 10
+spawnGatherings:
+  - gatheringId: gathering:verdia_cave_windsong_stone
+    weight: 38
+  - gatheringId: gathering:verdia_cave_mossroot_rock
+    weight: 27
+  - gatheringId: gathering:verdia_cave_darklight_vein
+    weight: 20
+  - gatheringId: gathering:verdia_cave_bluewell_vein
+    weight: 13
+  - gatheringId: gathering:verdia_cave_starheart_vein
+    weight: 2
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 80
+spawnLimit:
+  maxAlivePerSpawner: 10
+  maxNearbyGatherings: 24
+  spawnPerPlayer: 3
+requiredBaseBlocks:
+  - STONE
+  - ANDESITE
+  - TUFF
+  - COBBLESTONE
+  - DEEPSLATE
+  - MOSSY_COBBLESTONE
+  - CALCITE

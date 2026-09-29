@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 星の光を宿す石"
+#   progression: 20
+schemaVersion: 1
+id: 10a00090
+category: material
+name: "&b星の心石のかけら"
+icon: DIAMOND
+rarity: RARE
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7内側に小さな星のような光が見える石片。"
+unTradeable: false
+unSellable: false

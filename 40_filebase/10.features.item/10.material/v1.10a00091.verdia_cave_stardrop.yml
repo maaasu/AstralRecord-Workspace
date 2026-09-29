@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 星の光を宿す石"
+#   progression: 21
+schemaVersion: 1
+id: 10a00091
+category: material
+name: "&6星のしずく"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMThhN2M4OTI0MWQxNDMzN2I4MzcxY2U2ZTdlNDZkYTYyZGZlYzQ0ZWUzMjUzYWYyZmZhNDVhNmNiOGEwMTJjIn19fQ==
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7星の心石の奥にごくまれに結ぶ、小さな光の玉。"
+unTradeable: false
+unSellable: false

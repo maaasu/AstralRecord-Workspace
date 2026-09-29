@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 苔を含む岩"
+#   progression: 20
+schemaVersion: 1
+id: 10a00087
+category: material
+name: "&fこけ根岩のかけら"
+icon: MOSSY_COBBLESTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7細い苔の根が入り込んだ、緑がかった石片。"
+unTradeable: false
+unSellable: false
