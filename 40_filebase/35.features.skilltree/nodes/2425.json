@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2425",
+  "name": "&5ソウルピアース",
+  "icon": "SCULK_CATALYST",
+  "tags": [
+    "offense",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "phantom_archer_soul_pierce"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

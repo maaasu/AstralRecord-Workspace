@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2431",
+  "name": "&5スペクトラルアチューンメント",
+  "icon": "CALIBRATED_SCULK_SENSOR",
+  "tags": [
+    "resource",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "phantom_archer_spectral_attunement"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

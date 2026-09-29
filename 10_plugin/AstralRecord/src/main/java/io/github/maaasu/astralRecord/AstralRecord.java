@@ -266,6 +266,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffServic
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardBurnMeteorStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherCastLifecycle;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
@@ -1103,7 +1104,7 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * クラス変更後のガイド進捗通知を接続します。
+     * クラス変更後に旧職の幻影効果を解除し、パッシブ再計算とガイド進捗通知を接続します。
      */
     static void configureClassChangeGuideIntegration(
         PlayerClassService playerClassService,
@@ -1111,6 +1112,7 @@ public final class AstralRecord extends JavaPlugin {
         GuideService guideService
     ) {
         playerClassService.setClassChangeListener(player -> {
+            PhantomArcherCastLifecycle.clearOwner(player.getBukkit().getUniqueId());
             passiveSkillService.reconcileNow(player);
             guideService.recordCondition(player, GuideConditionType.CLASS_CHANGED, player.getClassId());
         });
@@ -3235,6 +3237,7 @@ public final class AstralRecord extends JavaPlugin {
                     throw failure;
                 }
                 skillTreeService.finishMasterDataPublication();
+                PhantomArcherCastLifecycle.clearAll();
             } finally {
                 skillTreeService.endMasterDataPublication();
             }

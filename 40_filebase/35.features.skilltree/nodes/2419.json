@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2419",
+  "name": "&fブラストアロー",
+  "icon": "FIREWORK_ROCKET",
+  "tags": [
+    "offense",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "adventurer_blast_arrow"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

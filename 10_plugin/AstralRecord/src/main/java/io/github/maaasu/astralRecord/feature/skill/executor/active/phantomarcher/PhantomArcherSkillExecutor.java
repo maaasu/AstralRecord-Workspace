@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor {
     private static final String PREFIX = "phantom_archer_";
     private static final Map<UUID, String> SENTRY_SCOPES = new ConcurrentHashMap<>();
+    private static final Map<UUID, PhantomArcherCastLifecycle.Cast> RETREATS = new ConcurrentHashMap<>();
     private final String action;
 
     /**
@@ -90,19 +91,39 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
     /** {@inheritDoc} */
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
+        PhantomArcherCastLifecycle.Cast cast = PhantomArcherCastLifecycle.begin(context, lifetimeTicks(context.params()));
+        try {
+            return switch (action) {
+                case "shadow_stitch" -> projectile(context, cast, ConditionType.WEAKNESS, false, false);
+                case "soul_pierce" -> projectile(context, cast, null, true, false);
+                case "dread_bloom" -> projectile(context, cast, ConditionType.BLINDNESS, false, true);
+                case "spectral_sentry" -> sentry(context, cast);
+                case "echo_volley" -> volley(context, cast);
+                case "mist_retreat" -> retreat(context, cast);
+                default -> throw new IllegalStateException("validated action missing");
+            };
+        } catch (RuntimeException failure) {
+            cast.close();
+            throw failure;
+        }
+    }
+
+    /** 最後の発射と弾の最大飛翔時間を含め、旧定義の命中を無効化するまでのtickを求めます。 */
+    private long lifetimeTicks(SkillParamReader params) {
+        long flightTicks = (long) Math.ceil(Math.max(params.getDouble("range", 0.0D),
+                params.getDouble("targetRadius", 0.0D)) / params.getDouble("projectileSpeed", 1.0D)) + 3L;
         return switch (action) {
-            case "shadow_stitch" -> projectile(context, ConditionType.WEAKNESS, false, false);
-            case "soul_pierce" -> projectile(context, null, true, false);
-            case "dread_bloom" -> projectile(context, ConditionType.BLINDNESS, false, true);
-            case "spectral_sentry" -> sentry(context);
-            case "echo_volley" -> volley(context);
-            case "mist_retreat" -> retreat(context);
-            default -> throw new IllegalStateException("validated action missing");
+            case "spectral_sentry" -> 1L + 5L * params.getInt("shotIntervalTicks", 20) + flightTicks;
+            case "echo_volley" -> 1L + (params.getInt("shotCount", 4) - 1L)
+                    * params.getInt("shotIntervalTicks", 6) + flightTicks;
+            case "mist_retreat" -> params.getInt("durationTicks", 60);
+            default -> flightTicks;
         };
     }
 
     /** 共通仮想弾で単体・貫通・着弾範囲を処理します。 */
-    private SkillCastResult projectile(PlayerActiveSkillContext context, ConditionType condition,
+    private SkillCastResult projectile(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast,
+                                       ConditionType condition,
                                        boolean piercing, boolean area) {
         SkillParamReader p = context.params();
         Location origin = context.eyeLocation();
@@ -111,38 +132,40 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
         context.services().effects().sound(origin, Sound.ENTITY_ARROW_SHOOT, 0.8F, 0.7F);
         context.services().projectiles().launchWithTermination(context.player(), origin, direction, spec,
                 (target, impact) -> {
+                    if (!cast.active()) return;
                     if (area) {
-                        bloom(context, impact, p);
+                        bloom(context, cast, impact, p);
                     } else {
                         double ratio = p.getDouble("damageRatio", 1.0D);
                         if (piercing && (context.services().combat().hasCondition(target, ConditionType.WEAKNESS)
                                 || context.services().combat().hasCondition(target, ConditionType.BLINDNESS))) {
                             ratio *= 1.0D + p.getDouble("conditionBonusRatio", 0.0D);
                         }
-                        hit(context, target, ratio, condition == null ? new ActiveSkillCondition[0]
+                        hit(context, cast, target, ratio, condition == null ? new ActiveSkillCondition[0]
                                 : new ActiveSkillCondition[] {condition(p, condition)});
                     }
                 }, termination -> {
-                    if (area && termination.type() == SkillProjectileTermination.Type.BLOCK) {
-                        bloom(context, termination.location(), p);
+                    if (cast.active() && area && termination.type() == SkillProjectileTermination.Type.BLOCK) {
+                        bloom(context, cast, termination.location(), p);
                     }
                 });
         return context.success();
     }
 
     /** 着弾地点から見える管理Mobだけへ盲目を伴う範囲攻撃を適用します。 */
-    private void bloom(PlayerActiveSkillContext context, Location impact, SkillParamReader p) {
+    private void bloom(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast,
+                       Location impact, SkillParamReader p) {
         double radius = p.getDouble("impactRadius", 3.0D);
         context.services().effects().ring(impact, radius, 28, SharedParticleDefinitions.PHANTOM_ARCHER_TRAIL);
         context.services().effects().sound(impact, Sound.ENTITY_PHANTOM_FLAP, 0.9F, 0.65F);
         for (AstEntity target : context.services().targeting().inSphere(
                 context.player(), impact, radius, p.getInt("maxTargets", 5), true)) {
-            hit(context, target, p.getDouble("damageRatio", 1.0D), condition(p, ConditionType.BLINDNESS));
+            hit(context, cast, target, p.getDouble("damageRatio", 1.0D), condition(p, ConditionType.BLINDNESS));
         }
     }
 
     /** 六射だけ維持する幻影の弓を1人1個のタスクとして配置します。 */
-    private SkillCastResult sentry(PlayerActiveSkillContext context) {
+    private SkillCastResult sentry(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast) {
         SkillParamReader p = context.params();
         UUID owner = context.player().getUniqueId();
         Location eye = context.eyeLocation();
@@ -162,12 +185,14 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
             display.setTransformation(new Transformation(new Vector3f(0.0F, 0.0F, 0.0F),
                     new Quaternionf(), new Vector3f(1.25F, 1.25F, 1.25F), new Quaternionf()));
         });
+        cast.onClose(() -> { if (bow.isValid()) bow.remove(); });
         String scope = PREFIX + "sentry:" + UUID.randomUUID();
         String previous = SENTRY_SCOPES.put(owner, scope);
         if (previous != null) context.services().tasks().cancel(owner, previous);
+        cast.trackScope(scope);
         context.services().effects().line(eye, center, 0.5D, SharedParticleDefinitions.PHANTOM_ARCHER_TRAIL);
         context.services().tasks().repeat(owner, scope, 1L, p.getInt("shotIntervalTicks", 20), 6, index -> {
-            if (!active(context, world) || !scope.equals(SENTRY_SCOPES.get(owner))) {
+            if (!cast.active() || !active(context, world) || !scope.equals(SENTRY_SCOPES.get(owner))) {
                 context.services().tasks().cancel(owner, scope);
                 return;
             }
@@ -184,7 +209,7 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
                             p.getDouble("projectileSpeed", 1.8D), p.getDouble("projectileHitRadius", 0.35D),
                             false, 1, SharedParticleDefinitions.PHANTOM_ARCHER_TRAIL,
                             SharedParticleDefinitions.PHANTOM_ARCHER_IMPACT),
-                    (victim, ignored) -> hit(context, victim, p.getDouble("damageRatio", 0.8D)), ignored -> { });
+                    (victim, ignored) -> hit(context, cast, victim, p.getDouble("damageRatio", 0.8D)), ignored -> { });
             context.services().effects().sound(center, Sound.ENTITY_ARROW_SHOOT, 0.6F, 1.25F);
         }, () -> {
             SENTRY_SCOPES.remove(owner, scope);
@@ -194,21 +219,22 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
     }
 
     /** 発動時の視点を固定し、間隔を空けて細い貫通弾を放ちます。 */
-    private SkillCastResult volley(PlayerActiveSkillContext context) {
+    private SkillCastResult volley(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast) {
         SkillParamReader p = context.params();
         Location origin = context.eyeLocation();
         Vector direction = context.direction();
         World world = origin.getWorld();
         UUID owner = context.player().getUniqueId();
         String scope = PREFIX + "echo:" + UUID.randomUUID();
+        cast.trackScope(scope);
         context.services().tasks().repeat(owner, scope, 1L, p.getInt("shotIntervalTicks", 6),
                 p.getInt("shotCount", 4), index -> {
-                    if (!active(context, world)) {
+                    if (!cast.active() || !active(context, world)) {
                         context.services().tasks().cancel(owner, scope);
                         return;
                     }
                     context.services().projectiles().launch(context.player(), origin, direction, spec(p, true),
-                            (target, ignored) -> hit(context, target, p.getDouble("damageRatio", 0.7D)),
+                            (target, ignored) -> hit(context, cast, target, p.getDouble("damageRatio", 0.7D)),
                             ignored -> { });
                     context.services().effects().sound(origin, Sound.ENTITY_ARROW_SHOOT, 0.6F, 1.6F);
                 });
@@ -216,11 +242,22 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
     }
 
     /** 既存移動可否判定を通して後退し、短い回避率倍率を設定します。 */
-    private SkillCastResult retreat(PlayerActiveSkillContext context) {
+    private SkillCastResult retreat(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast) {
         SkillParamReader p = context.params();
         Vector moved = context.services().movement().backstepVelocity(context.player(), context.attacker(),
                 p.getDouble("backstepVelocity", 1.4D));
-        if (moved == null) return context.success();
+        if (moved == null) {
+            cast.close();
+            return context.success();
+        }
+        UUID owner = context.player().getUniqueId();
+        PhantomArcherCastLifecycle.Cast previous = RETREATS.remove(owner);
+        if (previous != null) previous.close();
+        RETREATS.put(owner, cast);
+        cast.onClose(() -> {
+            if (RETREATS.remove(owner, cast))
+                context.services().temporaryEffects().clear(owner, PREFIX + "mist_retreat");
+        });
         context.services().temporaryEffects().applyDefenseAndEvasionMultipliers(context.player().getUniqueId(),
                 PREFIX + "mist_retreat", p.getInt("durationTicks", 60), 1.0D,
                 p.getDouble("evasionMultiplier", 1.4D));
@@ -238,9 +275,11 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
     }
 
     /** スキル定義付きの共通命中を適用します。状態異常は有効命中時だけ付与されます。 */
-    private void hit(PlayerActiveSkillContext context, AstEntity target, double ratio,
+    private void hit(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast,
+                     AstEntity target, double ratio,
                      ActiveSkillCondition... conditions) {
-        if (!target.isMob() || target.currentHealth() <= 0.0D
+        if (!cast.active() || !active(context, target.location().getWorld())
+                || !target.isMob() || target.currentHealth() <= 0.0D
                 || target.location().getWorld() != context.player().getWorld()) return;
         context.services().combat().hit(context.source().skill(), context.attacker(), target,
                 AttackType.RANGED, DamageElement.NONE, ratio, conditions);

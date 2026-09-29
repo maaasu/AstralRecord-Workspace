@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2428",
+  "name": "&5エコーボレー",
+  "icon": "SCULK_SHRIEKER",
+  "tags": [
+    "offense",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "phantom_archer_echo_volley"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}

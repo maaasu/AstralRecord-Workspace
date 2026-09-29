@@ -9,7 +9,7 @@ name: "&5ミストリトリート"
 description: "&7霧を残して素早く後退する。"
 icon: LIGHT_GRAY_DYE
 lore:
-  - "&7安全判定を通して後退し、成功すると{skill.durationTicks:seconds}秒間回避率を{skill.evasionMultiplier}倍にする。"
+  - "&7移動可能なとき後退し、{skill.durationTicks:seconds}秒間回避率を{skill.evasionMultiplier}倍にする。"
   - "&7後退できない場合は回避効果を得ない。通常ドッジの無敵時間は変更しない。"
 cooldownTicks: 140
 resourceType: ENERGY

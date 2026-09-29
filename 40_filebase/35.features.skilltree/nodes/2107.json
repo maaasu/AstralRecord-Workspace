@@ -2,13 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "2107",
-  "name": "&d双魂の星環",
-  "icon": "AMETHYST_SHARD",
+  "name": "&d霊弓循環の星環",
+  "icon": "AMETHYST_CLUSTER",
   "tags": [
     "status",
     "primary",
     "dexterity",
-    "intelligence",
+    "resource",
+    "mana",
     "astral",
     "dark"
   ],
@@ -23,9 +24,9 @@
     },
     {
       "type": "status",
-      "status": "INTELLIGENCE",
-      "modifierType": "SCALAR",
-      "value": 0.01
+      "status": "MANA_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1.5
     }
   ],
   "unlockCondition": {
