@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2447",
+  "name": "&a制圧雨",
+  "icon": "OCHRE_FROGLIGHT",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_suppressive_rain"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

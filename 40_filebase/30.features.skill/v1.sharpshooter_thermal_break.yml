@@ -1,0 +1,43 @@
+# design:
+#   motif: "火氷 / 温度差"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_thermal_break
+type: SKILL
+implementationId: sharpshooter_thermal_break
+name: "&d熱冷交差"
+description: "&7温度差を軸にした射撃技。"
+icon: ORANGE_GLAZED_TERRACOTTA
+lore:
+  - "&7単体へ火と氷を半分ずつ合わせた{skill.effectiveDamageRatio:percent}%の間接ダメージ。"
+  - "&7炎上または凍結中なら合計倍率に{skill.statusBonusRatio:percent}%を加算。"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 26
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.10 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 1.2
+  statusBonusRatio: 0.9
+  range: 18
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

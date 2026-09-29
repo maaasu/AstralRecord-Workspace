@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2440",
+  "name": "&c終局標的",
+  "icon": "SCULK_CATALYST",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_execution_mark"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

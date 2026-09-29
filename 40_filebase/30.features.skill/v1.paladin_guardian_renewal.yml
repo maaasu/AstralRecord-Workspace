@@ -1,0 +1,39 @@
+# design:
+#   motif: "生物 / 甲羅の再生"
+#   progression: 2
+schemaVersion: 1
+id: paladin_guardian_renewal
+type: SKILL
+implementationId: paladin_guardian_renewal
+name: "&fガーディアンリニューアル"
+description: "&7受け止めた力を生命へ戻し、守護を続ける。"
+icon: TURTLE_SCUTE
+lore:
+  - "&7自身の最大HPの{skill.healHpRatio:percent}%を即時回復する。"
+  - "&7ガードコンバートのバインドとガード残量が必要。"
+  - "&7支援力・回復増加・回復阻害の影響を受ける。"
+cooldownTicks: 360
+resourceType: GUARD
+resourceCost: 8
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 3, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 4, paramDeltas: { healHpRatio: 0.02 } }
+  - { level: 5, paramDeltas: { healHpRatio: 0.02 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00002, 70a00004, 70a00005, 70a00006, 70a00007, 70a00008, 70a00009, 70a00010, 70a00011]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.beacon.activate
+params:
+  healHpRatio: 0.08
+tags:
+  - active
+  - support

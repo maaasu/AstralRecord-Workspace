@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2435",
+  "name": "&fガーディアンブルワーク",
+  "icon": "IRON_DOOR",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_guardian_bulwark"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

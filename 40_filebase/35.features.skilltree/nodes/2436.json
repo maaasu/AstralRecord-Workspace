@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2436",
+  "name": "&fガーディアンリニューアル",
+  "icon": "TURTLE_SCUTE",
+  "tags": [
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_guardian_renewal"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

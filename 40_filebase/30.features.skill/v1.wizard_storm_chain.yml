@@ -1,0 +1,44 @@
+# design:
+#   motif: "元素魔術 / ストームチェイン"
+#   progression: 2
+schemaVersion: 1
+id: wizard_storm_chain
+type: SKILL
+implementationId: wizard_storm_chain
+name: "&eストームチェイン"
+description: "&7敵から敵へ雷をつなぎ感電を広げる。"
+icon: LIGHTNING_ROD
+lore:
+  - "&7前方{skill.range}mの最初の敵から周囲{skill.chainRadius}mへ連鎖。"
+  - "&7最大{skill.maxTargets}体へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
+  - "&7同じ敵には一度だけ命中し、壁は越えない。"
+  - "&7{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の感電を付与。"
+cooldownTicks: 140
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 8
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.2 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00017]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic, lightning]
+params:
+  range: 16
+  hitRadius: 0.5
+  maxTargets: 4
+  chainRadius: 4
+  damageRatio: 2
+  conditionChance: 70
+  conditionTicks: 120

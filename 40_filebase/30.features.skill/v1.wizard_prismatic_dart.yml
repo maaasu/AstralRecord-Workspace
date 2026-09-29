@@ -1,0 +1,41 @@
+# design:
+#   motif: "元素魔術 / プリズマティックダート"
+#   progression: 2
+schemaVersion: 1
+id: wizard_prismatic_dart
+type: SKILL
+implementationId: wizard_prismatic_dart
+name: "&dプリズマティックダート"
+description: "&7小さな魔力弾でプリズムを駆動する。"
+icon: MAGENTA_CANDLE
+lore:
+  - "&7前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
+  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7自分のエレメンタルプリズムに先に触れると吸収される。"
+  - "&7吸収時は直撃せず、プリズム自身の倍率と弾数で追撃する。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 20
+castTimeTicks: 6
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.15 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.15 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00017]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic, prism]
+params:
+  range: 16
+  hitRadius: 0.3
+  projectileSpeed: 1.6
+  damageRatio: 1.4

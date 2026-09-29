@@ -1,0 +1,41 @@
+# design:
+#   motif: "城郭 / 城門"
+#   progression: 2
+schemaVersion: 1
+id: paladin_guardian_bulwark
+type: SKILL
+implementationId: paladin_guardian_bulwark
+name: "&fガーディアンブルワーク"
+description: "&7攻めを抑えて盾を構え、危険な一撃を受け止める。"
+icon: IRON_DOOR
+lore:
+  - "&7{skill.durationTicks:seconds}秒間、自身の被ダメージを{skill.incomingMultiplier}倍にする。"
+  - "&7構え中は自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
+  - "&7ガードコンバートのバインドとガード残量が必要。同じ技能の効果は重複しない。"
+cooldownTicks: 240
+resourceType: GUARD
+resourceCost: 8
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 3, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 4, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 5, paramDeltas: { incomingMultiplier: -0.05 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00002, 70a00004, 70a00005, 70a00006, 70a00007, 70a00008, 70a00009, 70a00010, 70a00011]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.beacon.activate
+params:
+  durationTicks: 60
+  incomingMultiplier: 0.75
+  outgoingMultiplier: 0.8
+tags:
+  - active
+  - support

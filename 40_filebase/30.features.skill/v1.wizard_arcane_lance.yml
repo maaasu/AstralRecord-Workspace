@@ -1,0 +1,40 @@
+# design:
+#   motif: "元素魔術 / アーケインランス"
+#   progression: 2
+schemaVersion: 1
+id: wizard_arcane_lance
+type: SKILL
+implementationId: wizard_arcane_lance
+name: "&dアーケインランス"
+description: "&7詠唱した魔力を細い貫通光線へ変える。"
+icon: MEDIUM_AMETHYST_BUD
+lore:
+  - "&7前方{skill.range}mの最大{skill.maxTargets}体を細い光線で貫く。"
+  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7状態異常を付与せず、壁は貫通しない。"
+cooldownTicks: 120
+resourceType: MANA
+resourceCost: 32
+castTimeTicks: 16
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.3 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.3 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00017]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic]
+params:
+  range: 20
+  hitRadius: 0.3
+  maxTargets: 3
+  damageRatio: 3.2

@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2454",
+  "name": "&5アーケインオーバーロード",
+  "icon": "CRYING_OBSIDIAN",
+  "tags": [
+    "offense",
+    "mana"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_arcane_overload"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

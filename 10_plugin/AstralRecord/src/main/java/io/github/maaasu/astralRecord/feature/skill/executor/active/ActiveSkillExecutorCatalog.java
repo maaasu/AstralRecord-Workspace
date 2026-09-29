@@ -3,15 +3,10 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordmaster.SwordmasterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageHealCircleExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageClearCircleExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageRebornProtectCircleExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageAstralRayExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageBindCircleExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinSkillExecutorCatalog;
@@ -21,11 +16,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.Palad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardEmulateSparkExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardSelfHealExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalPrismExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardElementalBallExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
@@ -83,24 +74,16 @@ public final class ActiveSkillExecutorCatalog {
             @NotNull SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService,
             @NotNull Plugin plugin
     ) {
-        List<SkillExecutor> executors = new ArrayList<>(43);
+        List<SkillExecutor> executors = new ArrayList<>();
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(SharpshooterSkillExecutorCatalog.create(services));
         executors.addAll(PhantomArcherSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
-        executors.add(new ArchmageCelestialCircleExecutor(services, archmageCelestialCircleRuntimeService));
-        executors.add(new ArchmageHealCircleExecutor(services, skillService));
-        executors.add(new ArchmageClearCircleExecutor(services));
-        executors.add(new ArchmageRebornProtectCircleExecutor(services, playerDeathService,
-                bossChallengeService, dungeonService, invulnerabilityVisualService, statusService));
-        executors.add(new ArchmageAstralRayExecutor(services));
-        executors.add(new WizardMeteorExecutor(services));
-        executors.add(new WizardEmulateSparkExecutor(services));
-        executors.add(new WizardSelfHealExecutor(services));
-        executors.add(new WizardElementalPrismExecutor(services));
-        executors.add(new WizardElementalBallExecutor(services));
-        executors.add(new ArchmageBindCircleExecutor(services, bindCircleRuntimeService, plugin));
+        executors.addAll(ArchmageSkillExecutorCatalog.create(services, archmageCelestialCircleRuntimeService,
+                skillService, playerDeathService, bossChallengeService, dungeonService,
+                invulnerabilityVisualService, statusService, bindCircleRuntimeService, plugin));
+        executors.addAll(WizardSkillExecutorCatalog.create(services, statusService));
         executors.addAll(PaladinSkillExecutorCatalog.create(
                 services, paladinHolyFieldRuntimeService, paladinHolySmiteRuntimeService, statusService, partyService,
                 paladinGuardianProtectRuntimeService, playerDeathService));

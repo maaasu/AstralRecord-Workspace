@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2441",
+  "name": "&6火華弾",
+  "icon": "NETHER_WART",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_ember_bloom"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

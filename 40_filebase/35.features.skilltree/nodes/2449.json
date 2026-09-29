@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2449",
+  "name": "&6シンダーランス",
+  "icon": "ORANGE_CANDLE",
+  "tags": [
+    "offense",
+    "fire"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_cinder_lance"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

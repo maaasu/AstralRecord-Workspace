@@ -1,0 +1,45 @@
+# design:
+#   motif: "氷片 / 貫通"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_frost_shard
+type: SKILL
+implementationId: sharpshooter_frost_shard
+name: "&b霜貫矢"
+description: "&7貫通を軸にした射撃技。"
+icon: PACKED_ICE
+lore:
+  - "&7最大{skill.maxHits}体を貫通し、各対象へ氷属性{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7有効命中時に{skill.conditionChance}%で{skill.conditionTicks:seconds}秒冷気。"
+cooldownTicks: 180
+resourceType: MANA
+resourceCost: 27
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 0.9
+  maxHits: 3
+  conditionChance: 45
+  conditionTicks: 100
+  range: 21
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.55
+tags:
+  - active
+  - ranged
+  - bow

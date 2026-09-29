@@ -1,0 +1,45 @@
+# design:
+#   motif: "祈り / 安息"
+#   progression: 2
+schemaVersion: 1
+id: paladin_holy_reprieve
+type: SKILL
+implementationId: paladin_holy_reprieve
+name: "&fホーリーリプリーヴ"
+description: "&7盾の加護を癒やしに変え、聖域の仲間を立て直す。"
+icon: WHITE_CANDLE
+lore:
+  - "&7半径{skill.radius}m・上下{skill.height}mの自身と同一パーティーを即時回復する。"
+  - "&7基礎回復量は{skill.healAmount}＋発動者の最大Shieldの{skill.shieldHealRatio:percent}%。"
+  - "&7自分のホーリーフィールド内から使うと回復量が{skill.fieldMultiplier}倍。"
+  - "&7壁越しと死亡中の味方は対象外。支援力・回復増加・回復阻害の影響を受ける。"
+cooldownTicks: 280
+resourceType: MANA
+resourceCost: 24
+castTimeTicks: 10
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { healAmount: 8, shieldHealRatio: 0.025 } }
+  - { level: 3, paramDeltas: { healAmount: 8, shieldHealRatio: 0.025 } }
+  - { level: 4, paramDeltas: { healAmount: 8, shieldHealRatio: 0.025 } }
+  - { level: 5, paramDeltas: { healAmount: 8, shieldHealRatio: 0.025 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00002, 70a00004, 70a00005, 70a00006, 70a00007, 70a00008, 70a00009, 70a00010, 70a00011, 70a00012, 70a00013, 70a00014, 70a00015, 70a00016]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.beacon.activate
+params:
+  radius: 8
+  height: 4
+  healAmount: 32
+  shieldHealRatio: 0.15
+  fieldMultiplier: 1.5
+tags:
+  - active
+  - support
+  - holy_knight

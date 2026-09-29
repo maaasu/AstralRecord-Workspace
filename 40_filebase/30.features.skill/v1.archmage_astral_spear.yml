@@ -1,0 +1,37 @@
+# design:
+#   motif: "星界 / 星槍"
+#   progression: 2
+schemaVersion: 1
+id: archmage_astral_spear
+type: SKILL
+implementationId: archmage_astral_spear
+name: "&bアストラルスピア"
+description: "&7星界の槍で一点を貫く。"
+icon: LARGE_AMETHYST_BUD
+lore:
+  - "&7視点先の地表から半径{skill.radius}mにいる最も近い敵Mob1体を攻撃する。"
+  - "&7無属性魔法攻撃倍率は{skill.power:percent}%。"
+  - "&7発動時の自身の魔法陣1つにつき倍率が30%増加する（最大3陣）。"
+cooldownTicks: 180
+resourceType: MANA
+resourceCost: 65
+castTimeTicks: 8
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.2 } }
+  - { level: 3, paramDeltas: { power: 0.2 } }
+  - { level: 4, paramDeltas: { power: 0.2 } }
+  - { level: 5, paramDeltas: { power: 0.2 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 18
+  radius: 2
+  power: 2
+tags:
+  - active
+  - magic
+  - ranged

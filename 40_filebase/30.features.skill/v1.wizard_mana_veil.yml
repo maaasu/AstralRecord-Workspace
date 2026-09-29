@@ -1,0 +1,39 @@
+# design:
+#   motif: "元素魔術 / マナヴェール"
+#   progression: 2
+schemaVersion: 1
+id: wizard_mana_veil
+type: SKILL
+implementationId: wizard_mana_veil
+name: "&bマナヴェール"
+description: "&7攻勢を抑えて身を守る魔力の薄衣。"
+icon: PURPLE_CANDLE
+lore:
+  - "&7{skill.durationTicks:seconds}秒間、自身の被ダメージが{skill.incomingMultiplier}倍。"
+  - "&7同じ間、自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
+  - "&7重複発動では同じ効果を置き換える。"
+cooldownTicks: 360
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 3, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 4, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 5, paramDeltas: { incomingMultiplier: -0.05 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic, support]
+params:
+  durationTicks: 60
+  incomingMultiplier: 0.8
+  outgoingMultiplier: 0.8

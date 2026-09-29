@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2458",
+  "name": "&bイージスサークル",
+  "icon": "CALCITE",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_aegis_circle"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

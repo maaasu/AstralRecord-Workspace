@@ -21,13 +21,13 @@ requiredLevel: 1
 maxLevel: 5
 levels:
   - level: 2
-    paramDeltas: { damageRatio: 0.20 }
+    paramDeltas: { damageRatio: 0.30 }
   - level: 3
-    paramDeltas: { damageRatio: 0.20 }
+    paramDeltas: { damageRatio: 0.30 }
   - level: 4
-    paramDeltas: { damageRatio: 0.20 }
+    paramDeltas: { damageRatio: 0.30 }
   - level: 5
-    paramDeltas: { damageRatio: 0.20 }
+    paramDeltas: { damageRatio: 0.30 }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
@@ -69,11 +69,11 @@ tags:
 # behavior:
 #   target: "詠唱完了時の視線を射程16mまでBlockへ照射し、命中面の手前を着弾地点に固定する。Blockがなければ最大射程の地点を使う。"
 #   visual: "Block命中面に関係なく着弾まで水平な赤橙の魔法陣を表示する。隕石は発動ごとに方位と鉛直からの角度を変え、斜め上空から60tickで着弾する。BlockDisplayと粒子は着弾または中断時に破棄する。"
-#   impact: "着弾時に爆発粒子を表示し、半径5mの管理対象MobへMAGIC/FIREの基礎倍率605%（Lv.5は685%）を1回与える。命中ごとに25%で5秒の燃焼を付与する。地形破壊とPvPは発生しない。"
+#   impact: "着弾時に爆発粒子を表示し、半径5mの管理対象MobへMAGIC/FIREの基礎倍率420%（Lv.5は540%）を1回与える。命中ごとに25%で5秒の燃焼を付与する。地形破壊とPvPは発生しない。"
 params:
   range: 16.0
   radius: 5.0
-  damageRatio: 6.05
+  damageRatio: 4.20
   burningChance: 25.0
   burningDurationTicks: 100
   impactDelayTicks: 60

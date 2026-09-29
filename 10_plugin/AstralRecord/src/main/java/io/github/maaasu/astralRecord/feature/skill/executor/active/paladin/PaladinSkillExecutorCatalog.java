@@ -25,7 +25,7 @@ public final class PaladinSkillExecutorCatalog {
      * @param partyService パーティーメンバーを解決するサービス
      * @param guardianProtectRuntimeService ガーディアンプロテクトの肩代わり状態サービス
      * @param playerDeathService custom死亡状態サービス
-     * @return 10個の executor
+     * @return 14個の executor
      */
     public static @NotNull List<SkillExecutor> create(
             @NotNull ActiveSkillServices services,
@@ -48,7 +48,11 @@ public final class PaladinSkillExecutorCatalog {
                 new PaladinGuardianProtectExecutor(
                         services, guardianProtectRuntimeService, partyService, playerDeathService
                 ),
-                new PaladinGuardianChainExecutor(services)
+                new PaladinGuardianChainExecutor(services),
+                new PaladinBlessedLanceExecutor(services, holyFieldRuntimeService),
+                new PaladinHolyReprieveExecutor(services, holyFieldRuntimeService, partyService),
+                new PaladinGuardianBulwarkExecutor(services),
+                new PaladinGuardianRenewalExecutor(services)
         );
     }
 }

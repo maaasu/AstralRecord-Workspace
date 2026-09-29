@@ -1,0 +1,43 @@
+# design:
+#   motif: "精密 / 継承観測"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_steady_sight
+type: SKILL
+implementationId: sharpshooter_steady_sight
+name: "&e静眼狙撃"
+description: "&7継承観測を軸にした射撃技。"
+icon: SPYGLASS
+lore:
+  - "&7単体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7継承バフ所持中は倍率に{skill.bonusRatio:percent}%を加算。"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 18
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.10 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.10 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 2.3
+  bonusRatio: 0.8
+  range: 24
+  projectileSpeed: 2
+  projectileHitRadius: 0.45
+tags:
+  - active
+  - ranged
+  - bow

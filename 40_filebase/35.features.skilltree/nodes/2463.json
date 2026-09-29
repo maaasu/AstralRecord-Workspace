@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2463",
+  "name": "&6メテオサークル",
+  "icon": "SMOOTH_QUARTZ",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_meteor_circle"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

@@ -81,6 +81,16 @@ public final class InheritanceBuffService {
     }
 
     /**
+     * 継承の心得を有効にしたまま、新規射撃の継承増幅を使えるか判定します。
+     * 既存の残存バフ照会は変更せず、バインド解除中の増幅だけを抑止します。
+     * @param player メインスレッドで判定する発動者
+     * @return 心得が有効かつ有効期間内の継承バフが存在すればtrue
+     */
+    public boolean canUseInheritanceBonus(@NotNull AstPlayer player) {
+        return isActive(player) && hasActiveInheritanceBuff(player);
+    }
+
+    /**
      * 有効な継承の心得に定義された元スキルのバフを付与・更新します。
      * @param context 成功した元スキルのレベル・シジル反映済みcontext
      * @param effect 通常攻撃の着弾位置で実行する元スキル効果（再付与は行わない）

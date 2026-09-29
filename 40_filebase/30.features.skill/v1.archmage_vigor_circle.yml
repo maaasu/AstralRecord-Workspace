@@ -1,0 +1,39 @@
+# design:
+#   motif: "星界 / 活力紋"
+#   progression: 2
+schemaVersion: 1
+id: archmage_vigor_circle
+type: SKILL
+implementationId: archmage_vigor_circle
+name: "&eヴィガーサークル"
+description: "&7仲間の行動力を満たす星界の陣を築く。"
+icon: PURPUR_PILLAR
+lore:
+  - "&7視点先の地表に半径{skill.radius}mの活力陣を置く。"
+  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大ENGの{skill.power:percent}%を毎秒回復する。"
+  - "&7位置を維持する仲間の継続行動を支える。"
+cooldownTicks: 300
+resourceType: MANA
+resourceCost: 60
+castTimeTicks: 10
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.01 } }
+  - { level: 3, paramDeltas: { power: 0.01 } }
+  - { level: 4, paramDeltas: { power: 0.01 } }
+  - { level: 5, paramDeltas: { power: 0.01 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 3
+  power: 0.05
+  durationTicks: 140
+  pulseTicks: 20
+tags:
+  - active
+  - magic
+  - support

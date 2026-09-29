@@ -1,0 +1,42 @@
+# design:
+#   motif: "元素魔術 / トライアドコンバージェンス"
+#   progression: 2
+schemaVersion: 1
+id: wizard_triad_convergence
+type: SKILL
+implementationId: wizard_triad_convergence
+name: "&dトライアドコンバージェンス"
+description: "&7三属性の状態異常を収束させて敵を砕く。"
+icon: PURPLE_GLAZED_TERRACOTTA
+lore:
+  - "&7視線先{skill.range}mの地表、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
+  - "&7火・氷・雷それぞれ魔法攻撃力{skill.effectiveDamageRatio:percent}%の一撃。"
+  - "&7敵の燃焼・冷気・感電1種ごとに倍率を{skill.conditionBonusRatio:percent}%加算。"
+  - "&7状態異常は消費しない。"
+cooldownTicks: 200
+resourceType: MANA
+resourceCost: 48
+castTimeTicks: 16
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.1 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00017]
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic, fire, ice, lightning]
+params:
+  range: 16
+  radius: 3
+  maxTargets: 5
+  damageRatio: 1.2
+  conditionBonusRatio: 0.25

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2433",
+  "name": "&fブレストランス",
+  "icon": "QUARTZ_PILLAR",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_blessed_lance"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

@@ -50,7 +50,7 @@ public final class WizardElementalPrismExecutor extends PlayerActiveSkillExecuto
                 context,
                 base,
                 params.getDouble("radius", 6.0D),
-                params.getDouble("damageRatio", 0.60D),
+                params.getDouble("damageRatio", 0.40D),
                 params.getInt("maxTargets", 5),
                 params.getInt("projectileCount", 5),
                 params.getInt("durationTicks", 7200),

@@ -1,0 +1,38 @@
+# design:
+#   motif: "星界 / 斥力紋"
+#   progression: 2
+schemaVersion: 1
+id: archmage_repulsion_circle
+type: SKILL
+implementationId: archmage_repulsion_circle
+name: "&dリパルションサークル"
+description: "&7敵を外周へ押し戻す防衛の陣を置く。"
+icon: BUDDING_AMETHYST
+lore:
+  - "&7視点先の地表に半径{skill.radius}mの斥力陣を置く。"
+  - "&7{skill.durationTicks:seconds}秒間、範囲内の敵Mob最大8体を{skill.pulseTicks}tickごとに外へ押し出す。"
+  - "&7押し出しの強さは{skill.power}。"
+cooldownTicks: 340
+resourceType: MANA
+resourceCost: 70
+castTimeTicks: 12
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.05 } }
+  - { level: 3, paramDeltas: { power: 0.05 } }
+  - { level: 4, paramDeltas: { power: 0.05 } }
+  - { level: 5, paramDeltas: { power: 0.05 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 3
+  power: 0.5
+  durationTicks: 120
+  pulseTicks: 30
+tags:
+  - active
+  - magic

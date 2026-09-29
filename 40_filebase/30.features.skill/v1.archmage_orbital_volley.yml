@@ -1,0 +1,37 @@
+# design:
+#   motif: "星界 / 軌道星弾"
+#   progression: 2
+schemaVersion: 1
+id: archmage_orbital_volley
+type: SKILL
+implementationId: archmage_orbital_volley
+name: "&dオービタルヴォレー"
+description: "&7星弾を敵へ分配して連撃する。"
+icon: SCULK_SENSOR
+lore:
+  - "&7視点先の地表から半径{skill.radius}mにいる敵Mob最大4体を狙う。"
+  - "&7無属性魔法攻撃倍率{skill.power:percent}%の星弾を2発放つ。"
+  - "&7発動時の自身の魔法陣1つにつき1発追加する（最大3陣）。"
+cooldownTicks: 260
+resourceType: MANA
+resourceCost: 85
+castTimeTicks: 14
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.075 } }
+  - { level: 3, paramDeltas: { power: 0.075 } }
+  - { level: 4, paramDeltas: { power: 0.075 } }
+  - { level: 5, paramDeltas: { power: 0.075 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 18
+  radius: 4
+  power: 0.75
+tags:
+  - active
+  - magic
+  - ranged

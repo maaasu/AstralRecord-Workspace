@@ -21,10 +21,10 @@ castTimeTicks: 20
 requiredLevel: 1
 maxLevel: 5
 levels:
-  - { level: 2, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
-  - { level: 3, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
-  - { level: 4, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
-  - { level: 5, paramDeltas: { radius: 1.0, damageRatio: 0.10 } }
+  - { level: 2, paramDeltas: { radius: 1.0, damageRatio: 0.05 } }
+  - { level: 3, paramDeltas: { radius: 1.0, damageRatio: 0.05 } }
+  - { level: 4, paramDeltas: { radius: 1.0, damageRatio: 0.05 } }
+  - { level: 5, paramDeltas: { radius: 1.0, damageRatio: 0.05 } }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
@@ -65,7 +65,7 @@ tags:
 params:
   placementRange: 3.0
   radius: 6.0
-  damageRatio: 0.60
+  damageRatio: 0.40
   maxTargets: 5
   projectileCount: 5
   durationTicks: 7200

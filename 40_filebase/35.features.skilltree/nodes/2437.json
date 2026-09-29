@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2437",
+  "name": "&e静眼狙撃",
+  "icon": "SPYGLASS",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_steady_sight"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

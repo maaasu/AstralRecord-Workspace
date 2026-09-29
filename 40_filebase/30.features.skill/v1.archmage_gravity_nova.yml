@@ -1,0 +1,36 @@
+# design:
+#   motif: "星界 / 重力爆発"
+#   progression: 2
+schemaVersion: 1
+id: archmage_gravity_nova
+type: SKILL
+implementationId: archmage_gravity_nova
+name: "&5グラビティノヴァ"
+description: "&7星界の爆発で敵を押し戻す。"
+icon: CHISELED_DEEPSLATE
+lore:
+  - "&7視点先の地表を中心に敵Mob最大8体へ無属性魔法攻撃する。"
+  - "&7攻撃倍率は{skill.power:percent}%で、命中した敵を押し戻す。"
+  - "&7基本半径{skill.radius}m。発動時の自身の魔法陣1つにつき0.75m拡大する（最大3陣）。"
+cooldownTicks: 300
+resourceType: MANA
+resourceCost: 90
+castTimeTicks: 16
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.1 } }
+  - { level: 3, paramDeltas: { power: 0.1 } }
+  - { level: 4, paramDeltas: { power: 0.1 } }
+  - { level: 5, paramDeltas: { power: 0.1 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 2.5
+  power: 1.2
+tags:
+  - active
+  - magic

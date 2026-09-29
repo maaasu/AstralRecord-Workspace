@@ -1,0 +1,44 @@
+# design:
+#   motif: "処刑 / 標的"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_execution_mark
+type: SKILL
+implementationId: sharpshooter_execution_mark
+name: "&c終局標的"
+description: "&7標的を軸にした射撃技。"
+icon: SCULK_CATALYST
+lore:
+  - "&7単体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7対象のHPが最大値の{skill.healthThreshold:percent}%以下なら倍率に{skill.bonusRatio:percent}%を加算。"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 26
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.12 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.12 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.12 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.12 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 1.6
+  bonusRatio: 1
+  healthThreshold: 0.35
+  range: 22
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.55
+tags:
+  - active
+  - ranged
+  - bow

@@ -1,0 +1,47 @@
+# design:
+#   motif: "雨矢 / 制圧"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_suppressive_rain
+type: SKILL
+implementationId: sharpshooter_suppressive_rain
+name: "&a制圧雨"
+description: "&7制圧を軸にした射撃技。"
+icon: OCHRE_FROGLIGHT
+lore:
+  - "&7視線先の地面の半径{skill.radius}mを{skill.pulseCount}回攻撃。"
+  - "&7各回で最大{skill.maxTargets}体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7攻撃間隔は{skill.pulseIntervalTicks}ティック。"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 24
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.06 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.06 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.06 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.06 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 0.65
+  radius: 3
+  maxTargets: 6
+  pulseCount: 3
+  pulseIntervalTicks: 8
+  range: 20
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

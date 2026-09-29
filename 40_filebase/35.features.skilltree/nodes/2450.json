@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2450",
+  "name": "&bライムノヴァ",
+  "icon": "BLUE_CANDLE",
+  "tags": [
+    "offense",
+    "ice"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_rime_nova"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

@@ -1,0 +1,39 @@
+# design:
+#   motif: "星界 / 守護紋"
+#   progression: 2
+schemaVersion: 1
+id: archmage_aegis_circle
+type: SKILL
+implementationId: archmage_aegis_circle
+name: "&bイージスサークル"
+description: "&7守護の陣で仲間のシールドを補う。"
+icon: CALCITE
+lore:
+  - "&7視点先の地表に半径{skill.radius}mの守護陣を置く。"
+  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大シールドの{skill.power:percent}%を毎秒補充する。"
+  - "&7シールド上限がないプレイヤーには効果がない。"
+cooldownTicks: 240
+resourceType: MANA
+resourceCost: 50
+castTimeTicks: 10
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.01 } }
+  - { level: 3, paramDeltas: { power: 0.01 } }
+  - { level: 4, paramDeltas: { power: 0.01 } }
+  - { level: 5, paramDeltas: { power: 0.01 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 3
+  power: 0.08
+  durationTicks: 160
+  pulseTicks: 20
+tags:
+  - active
+  - magic
+  - support

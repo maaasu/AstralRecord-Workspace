@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2452",
+  "name": "&dトライアドコンバージェンス",
+  "icon": "PURPLE_GLAZED_TERRACOTTA",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_triad_convergence"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

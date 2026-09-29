@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2444",
+  "name": "&b氷結陣",
+  "icon": "SNOW_BLOCK",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "sharpshooter_glacial_trap"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "sharpshooter"
+  }
+}

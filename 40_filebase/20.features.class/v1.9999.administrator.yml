@@ -96,6 +96,73 @@ usableSkills:
   - skill:hunter_build_up
   - skill:mage_heal_aura
   - skill:mage_arcane_flow
+  - skill:archmage_aegis_circle
+  - skill:archmage_astral_ray
+  - skill:archmage_astral_spear
+  - skill:archmage_bind_circle
+  - skill:archmage_celestial_circle
+  - skill:archmage_clear_circle
+  - skill:archmage_gravity_nova
+  - skill:archmage_heal_circle
+  - skill:archmage_meteor_circle
+  - skill:archmage_orbital_volley
+  - skill:archmage_phoenix_resonance
+  - skill:archmage_reborn_protect_circle
+  - skill:archmage_renewal_circle
+  - skill:archmage_repulsion_circle
+  - skill:archmage_starfall
+  - skill:archmage_stasis_circle
+  - skill:archmage_vigor_circle
+  - skill:paladin_blessed_lance
+  - skill:paladin_defense_conversion
+  - skill:paladin_divine_chaser
+  - skill:paladin_fortress
+  - skill:paladin_guard_convert
+  - skill:paladin_guardian_bulwark
+  - skill:paladin_guardian_chain
+  - skill:paladin_guardian_protect
+  - skill:paladin_guardian_renewal
+  - skill:paladin_holy_control
+  - skill:paladin_holy_field
+  - skill:paladin_holy_reprieve
+  - skill:paladin_holy_smash
+  - skill:paladin_holy_smite
+  - skill:paladin_shield
+  - skill:paladin_shield_bash
+  - skill:paladin_shield_impact
+  - skill:sharpshooter_ember_bloom
+  - skill:sharpshooter_execution_mark
+  - skill:sharpshooter_fire_arrow
+  - skill:sharpshooter_frost_shard
+  - skill:sharpshooter_glacial_trap
+  - skill:sharpshooter_ice_arrow
+  - skill:sharpshooter_inheritance_mastery
+  - skill:sharpshooter_phantom_shot
+  - skill:sharpshooter_piercing_line
+  - skill:sharpshooter_relentless_volley
+  - skill:sharpshooter_ricochet_arrow
+  - skill:sharpshooter_shield_needle
+  - skill:sharpshooter_split_arrow
+  - skill:sharpshooter_spreading_ambition
+  - skill:sharpshooter_steady_sight
+  - skill:sharpshooter_suppressive_rain
+  - skill:sharpshooter_thermal_break
+  - skill:wizard_arcane_lance
+  - skill:wizard_arcane_overload
+  - skill:wizard_burn_meteor_strike
+  - skill:wizard_cinder_lance
+  - skill:wizard_elemental_prism
+  - skill:wizard_emulate_spark
+  - skill:wizard_lightning_strike
+  - skill:wizard_mana_siphon
+  - skill:wizard_mana_veil
+  - skill:wizard_meteor
+  - skill:wizard_prism_condition
+  - skill:wizard_prismatic_dart
+  - skill:wizard_rime_nova
+  - skill:wizard_self_heal
+  - skill:wizard_storm_chain
+  - skill:wizard_triad_convergence
 tags:
   - administrator
   - command-only

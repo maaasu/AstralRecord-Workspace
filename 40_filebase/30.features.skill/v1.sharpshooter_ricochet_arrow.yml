@@ -1,0 +1,46 @@
+# design:
+#   motif: "反跳 / 連鎖"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_ricochet_arrow
+type: SKILL
+implementationId: sharpshooter_ricochet_arrow
+name: "&e反跳矢"
+description: "&7連鎖を軸にした射撃技。"
+icon: SMALL_AMETHYST_BUD
+lore:
+  - "&7単体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7命中後、半径{skill.bounceRadius}m内の別の敵へ最大{skill.bounceCount}回反跳する。"
+  - "&7反跳ごとに倍率を{skill.bounceDecay:percent}%へ減衰。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 22
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 1.2
+  bounceRadius: 5
+  bounceCount: 2
+  bounceDecay: 0.7
+  range: 19
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

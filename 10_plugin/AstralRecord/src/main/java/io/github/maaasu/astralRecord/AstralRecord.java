@@ -261,6 +261,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerQuickShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterFireArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterBuildSupport;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterIceArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterPhantomShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter.SharpshooterSpreadingAmbitionExecutor;
@@ -1979,6 +1980,11 @@ public final class AstralRecord extends JavaPlugin {
         var inheritanceBuffService = new InheritanceBuffService(
             skillService, passiveSkillService, statusService, activeSkillTaskService);
         weaponAttackSkillExecutor.setInheritanceBuffService(inheritanceBuffService);
+        for (var executor : skillService.registry().executors()) {
+            if (executor instanceof SharpshooterBuildSupport sharpshooter) {
+                sharpshooter.setInheritanceBuffService(inheritanceBuffService);
+            }
+        }
         var arrowRainExecutor = skillService.registry().getExecutor(
             HunterArrowRainExecutor.ID);
         if (arrowRainExecutor instanceof HunterArrowRainExecutor arrowRain) {

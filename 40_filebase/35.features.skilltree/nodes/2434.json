@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2434",
+  "name": "&fホーリーリプリーヴ",
+  "icon": "WHITE_CANDLE",
+  "tags": [
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_holy_reprieve"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
+}

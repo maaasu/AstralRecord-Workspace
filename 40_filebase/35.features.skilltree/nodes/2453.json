@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2453",
+  "name": "&dアーケインランス",
+  "icon": "MEDIUM_AMETHYST_BUD",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_arcane_lance"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

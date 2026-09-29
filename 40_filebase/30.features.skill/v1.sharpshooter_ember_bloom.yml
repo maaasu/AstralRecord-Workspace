@@ -1,0 +1,47 @@
+# design:
+#   motif: "火花 / 延焼"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_ember_bloom
+type: SKILL
+implementationId: sharpshooter_ember_bloom
+name: "&6火華弾"
+description: "&7延焼を軸にした射撃技。"
+icon: NETHER_WART
+lore:
+  - "&7直撃へ火属性{skill.effectiveDamageRatio:percent}%、周囲へその半分のダメージ。"
+  - "&7半径{skill.radius}mの最大{skill.maxTargets}体へ広がる。"
+  - "&7有効命中時に{skill.conditionChance}%で{skill.conditionTicks:seconds}秒炎上。"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 27
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 1
+  radius: 2.5
+  maxTargets: 5
+  conditionChance: 35
+  conditionTicks: 100
+  range: 18
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

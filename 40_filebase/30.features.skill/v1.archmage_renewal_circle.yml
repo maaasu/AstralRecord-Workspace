@@ -1,0 +1,39 @@
+# design:
+#   motif: "星界 / 再生紋"
+#   progression: 2
+schemaVersion: 1
+id: archmage_renewal_circle
+type: SKILL
+implementationId: archmage_renewal_circle
+name: "&aリニューアルサークル"
+description: "&7仲間が留まる場所に再生の陣を築く。"
+icon: CHISELED_QUARTZ_BLOCK
+lore:
+  - "&7視点先の地表に半径{skill.radius}mの再生陣を置く。"
+  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大HPの{skill.power:percent}%を毎秒回復する。"
+  - "&7陣を離れると回復は止まる。"
+cooldownTicks: 260
+resourceType: MANA
+resourceCost: 55
+castTimeTicks: 10
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.005 } }
+  - { level: 3, paramDeltas: { power: 0.005 } }
+  - { level: 4, paramDeltas: { power: 0.005 } }
+  - { level: 5, paramDeltas: { power: 0.005 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 3
+  power: 0.03
+  durationTicks: 120
+  pulseTicks: 20
+tags:
+  - active
+  - magic
+  - support

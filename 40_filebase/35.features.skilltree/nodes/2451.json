@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2451",
+  "name": "&eストームチェイン",
+  "icon": "LIGHTNING_ROD",
+  "tags": [
+    "offense",
+    "lightning"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_storm_chain"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

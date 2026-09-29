@@ -1,0 +1,44 @@
+# design:
+#   motif: "散開 / 分岐"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_split_arrow
+type: SKILL
+implementationId: sharpshooter_split_arrow
+name: "&a分岐矢"
+description: "&7分岐を軸にした射撃技。"
+icon: PINK_GLAZED_TERRACOTTA
+lore:
+  - "&7前方の全角{skill.spreadAngle}度へ{skill.projectileCount}本を放つ。"
+  - "&7各矢は間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+cooldownTicks: 180
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 0.9
+  projectileCount: 3
+  spreadAngle: 16
+  range: 20
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

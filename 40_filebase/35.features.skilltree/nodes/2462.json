@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2462",
+  "name": "&dリパルションサークル",
+  "icon": "BUDDING_AMETHYST",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_repulsion_circle"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

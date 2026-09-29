@@ -81,7 +81,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 16.0D);
         double radius = params.getDouble("radius", 5.0D);
-        double damageRatio = params.getDouble("damageRatio", 6.05D);
+        double damageRatio = params.getDouble("damageRatio", 4.20D);
         int delayTicks = params.getInt("impactDelayTicks", 60);
         MeteorTarget target = impactTarget(context, range);
         ActiveSkillCondition burning = new ActiveSkillCondition(
@@ -142,7 +142,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         summon(services, caster.getBukkit(), AstEntity.player(caster),
                 new MeteorTarget(impact.clone()),
                 maxLevelParam(meteorDefinition, params, "radius", 5.0D),
-                maxLevelParam(meteorDefinition, params, "damageRatio", 6.05D),
+                maxLevelParam(meteorDefinition, params, "damageRatio", 4.20D),
                 (int) Math.round(maxLevelParam(meteorDefinition, params, "impactDelayTicks", 60.0D)),
                 1.0D, burning);
     }

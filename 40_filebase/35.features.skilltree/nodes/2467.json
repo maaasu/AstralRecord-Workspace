@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2467",
+  "name": "&5グラビティノヴァ",
+  "icon": "CHISELED_DEEPSLATE",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_gravity_nova"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

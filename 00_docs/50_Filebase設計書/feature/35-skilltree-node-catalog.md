@@ -584,3 +584,45 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-archmage-21-notable`（攻撃） | `2401` | PHOENIX_EXTRA_ATTACK_COUNT `FLAT +2` + CRITICAL_RATE `FLAT +2` | `&6鳳凰連撃の極星` | `FIRE_CHARGE` | `status`, `offense`, `fire`, `astral` |
 
 ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG消費20のブリンクは14となる。バフ持続群 `2293`〜`2298` と `2335`〜`2340` は全取得で80%増加。`2396`〜`2400` は全取得で攻撃速度+50%・会心率+10ポイント、`2401` は不死鳥の追加攻撃回数+2回・会心率+2ポイントとなる。クリティカルと無属性ダメージは後半の攻撃群にまとめ、会心時のメテオ発動効果そのものは定義しない。
+
+## Tier2職の追加ビルド技能
+
+既存職業枝から接続する35個のskill node。各1CPで、職業条件とskill masterの習得素材を維持する。
+
+| nodeId | 職業 | スキル | skill ID | icon |
+|:--|:--|:--|:--|:--|
+| `2433` | パラディン | ブレストランス | `paladin_blessed_lance` | `QUARTZ_PILLAR` |
+| `2434` | パラディン | ホーリーリプリーヴ | `paladin_holy_reprieve` | `WHITE_CANDLE` |
+| `2435` | パラディン | ガーディアンブルワーク | `paladin_guardian_bulwark` | `IRON_DOOR` |
+| `2436` | パラディン | ガーディアンリニューアル | `paladin_guardian_renewal` | `TURTLE_SCUTE` |
+| `2437` | シャープシューター | 静眼狙撃 | `sharpshooter_steady_sight` | `SPYGLASS` |
+| `2438` | シャープシューター | 貫通線 | `sharpshooter_piercing_line` | `POINTED_DRIPSTONE` |
+| `2439` | シャープシューター | 破盾針 | `sharpshooter_shield_needle` | `COPPER_NUGGET` |
+| `2440` | シャープシューター | 終局標的 | `sharpshooter_execution_mark` | `SCULK_CATALYST` |
+| `2441` | シャープシューター | 火華弾 | `sharpshooter_ember_bloom` | `NETHER_WART` |
+| `2442` | シャープシューター | 霜貫矢 | `sharpshooter_frost_shard` | `PACKED_ICE` |
+| `2443` | シャープシューター | 熱冷交差 | `sharpshooter_thermal_break` | `ORANGE_GLAZED_TERRACOTTA` |
+| `2444` | シャープシューター | 氷結陣 | `sharpshooter_glacial_trap` | `SNOW_BLOCK` |
+| `2445` | シャープシューター | 分岐矢 | `sharpshooter_split_arrow` | `PINK_GLAZED_TERRACOTTA` |
+| `2446` | シャープシューター | 反跳矢 | `sharpshooter_ricochet_arrow` | `SMALL_AMETHYST_BUD` |
+| `2447` | シャープシューター | 制圧雨 | `sharpshooter_suppressive_rain` | `OCHRE_FROGLIGHT` |
+| `2448` | シャープシューター | 無尽連射 | `sharpshooter_relentless_volley` | `REDSTONE_LAMP` |
+| `2449` | ウィザード | シンダーランス | `wizard_cinder_lance` | `ORANGE_CANDLE` |
+| `2450` | ウィザード | ライムノヴァ | `wizard_rime_nova` | `BLUE_CANDLE` |
+| `2451` | ウィザード | ストームチェイン | `wizard_storm_chain` | `LIGHTNING_ROD` |
+| `2452` | ウィザード | トライアドコンバージェンス | `wizard_triad_convergence` | `PURPLE_GLAZED_TERRACOTTA` |
+| `2453` | ウィザード | アーケインランス | `wizard_arcane_lance` | `MEDIUM_AMETHYST_BUD` |
+| `2454` | ウィザード | アーケインオーバーロード | `wizard_arcane_overload` | `CRYING_OBSIDIAN` |
+| `2455` | ウィザード | マナサイフォン | `wizard_mana_siphon` | `CALIBRATED_SCULK_SENSOR` |
+| `2456` | ウィザード | プリズマティックダート | `wizard_prismatic_dart` | `MAGENTA_CANDLE` |
+| `2457` | ウィザード | マナヴェール | `wizard_mana_veil` | `PURPLE_CANDLE` |
+| `2458` | アークメイジ | イージスサークル | `archmage_aegis_circle` | `CALCITE` |
+| `2459` | アークメイジ | リニューアルサークル | `archmage_renewal_circle` | `CHISELED_QUARTZ_BLOCK` |
+| `2460` | アークメイジ | ヴィガーサークル | `archmage_vigor_circle` | `PURPUR_PILLAR` |
+| `2461` | アークメイジ | ステイシスサークル | `archmage_stasis_circle` | `BLUE_STAINED_GLASS_PANE` |
+| `2462` | アークメイジ | リパルションサークル | `archmage_repulsion_circle` | `BUDDING_AMETHYST` |
+| `2463` | アークメイジ | メテオサークル | `archmage_meteor_circle` | `SMOOTH_QUARTZ` |
+| `2464` | アークメイジ | スターフォール | `archmage_starfall` | `PRISMARINE_BRICKS` |
+| `2465` | アークメイジ | アストラルスピア | `archmage_astral_spear` | `LARGE_AMETHYST_BUD` |
+| `2466` | アークメイジ | オービタルヴォレー | `archmage_orbital_volley` | `SCULK_SENSOR` |
+| `2467` | アークメイジ | グラビティノヴァ | `archmage_gravity_nova` | `CHISELED_DEEPSLATE` |

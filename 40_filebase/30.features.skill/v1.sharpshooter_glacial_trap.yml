@@ -1,0 +1,47 @@
+# design:
+#   motif: "氷域 / 凍結"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_glacial_trap
+type: SKILL
+implementationId: sharpshooter_glacial_trap
+name: "&b氷結陣"
+description: "&7凍結を軸にした射撃技。"
+icon: SNOW_BLOCK
+lore:
+  - "&7視線先の地面へ予兆を置き、12ティック後に半径{skill.radius}mを攻撃。"
+  - "&7最大{skill.maxTargets}体へ氷属性{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7有効命中時に{skill.conditionChance}%で{skill.conditionTicks:seconds}秒凍結。"
+cooldownTicks: 240
+resourceType: MANA
+resourceCost: 32
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 0.9
+  radius: 3
+  maxTargets: 5
+  conditionChance: 35
+  conditionTicks: 40
+  range: 16
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

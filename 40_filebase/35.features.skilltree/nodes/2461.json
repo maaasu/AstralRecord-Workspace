@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2461",
+  "name": "&dステイシスサークル",
+  "icon": "BLUE_STAINED_GLASS_PANE",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_stasis_circle"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

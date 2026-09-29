@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2464",
+  "name": "&bスターフォール",
+  "icon": "PRISMARINE_BRICKS",
+  "tags": [
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "archmage_starfall"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "archmage"
+  }
+}

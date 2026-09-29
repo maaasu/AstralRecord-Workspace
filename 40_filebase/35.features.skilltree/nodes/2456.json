@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2456",
+  "name": "&dプリズマティックダート",
+  "icon": "MAGENTA_CANDLE",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_prismatic_dart"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

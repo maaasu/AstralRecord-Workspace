@@ -72,6 +72,10 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         if (params.getInt("projectileCount", 0) < 1) {
             throw new SkillParameterException("projectileCount", "イミュレートスパークの弾数は1以上が必要です");
         }
+        double maxHits = params.getDouble("maxHitsPerTarget", Double.NaN);
+        if (!Double.isFinite(maxHits) || maxHits < 1.0D || maxHits > 9.0D || maxHits != Math.rint(maxHits)) {
+            throw new SkillParameterException("maxHitsPerTarget", "同一対象への攻撃回数は1〜9の整数が必要です");
+        }
         if (params.getInt("durationTicks", 0) < 1) {
             throw new SkillParameterException("durationTicks", "イミュレートスパークの持続tickは1以上が必要です");
         }
@@ -92,10 +96,11 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
-        double damageRatio = params.getDouble("damageRatio", 1.15D);
+        double damageRatio = params.getDouble("damageRatio", 0.75D);
         int projectileCount = params.getInt("projectileCount", 1);
+        int maxHitsPerTarget = params.getInt("maxHitsPerTarget", 4);
         int durationTicks = params.getInt("durationTicks", 30);
-        double speedPerTick = params.getDouble("projectileSpeedPerSecond", 12.0D) / 20.0D;
+        double speedPerTick = params.getDouble("projectileSpeedPerSecond", 15.0D) / 20.0D;
         double hitRadius = params.getDouble("projectileHitRadius", 0.35D);
         double bounceSpeed = Math.sqrt(
                 2.0D * GRAVITY_PER_TICK_SQUARED
@@ -126,7 +131,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         }
         SparkCast cast = new SparkCast(
                 context.attacker(), origin, sparks, durationTicks, speedPerTick,
-                hitRadius, bounceSpeed, damageRatio, shocked
+                hitRadius, bounceSpeed, damageRatio, maxHitsPerTarget, shocked
         );
         UUID casterId = context.player().getUniqueId();
         SparkRuntime runtime = runtimes.get(casterId);
@@ -263,10 +268,14 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                     collisionDistance, cast.hitRadius, 1, blockHit == null
             ).stream().findFirst().orElse(null);
             if (targetHit != null) {
-                runtime.services.combat().hit(
-                        cast.attacker, targetHit.target(), AttackType.MAGIC, DamageElement.LIGHTNING,
-                        cast.damageRatio, cast.shocked
-                );
+                int attempts = cast.targetAttempts.getOrDefault(targetHit.target().id(), 0);
+                if (attempts < cast.maxHitsPerTarget) {
+                    cast.targetAttempts.put(targetHit.target().id(), attempts + 1);
+                    runtime.services.combat().hit(
+                            cast.attacker, targetHit.target(), AttackType.MAGIC, DamageElement.LIGHTNING,
+                            cast.damageRatio, cast.shocked
+                    );
+                }
                 runtime.services.effects().point(
                         targetHit.location(), SharedParticleDefinitions.WIZARD_EMULATE_SPARK
                 );
@@ -383,6 +392,8 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
         private final double hitRadius;
         private final double bounceSpeed;
         private final double damageRatio;
+        private final int maxHitsPerTarget;
+        private final Map<UUID, Integer> targetAttempts = new HashMap<>();
         private final ActiveSkillCondition shocked;
         private int elapsedTicks;
 
@@ -397,6 +408,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
          * @param hitRadius 命中半径
          * @param bounceSpeed 地面からの上向き初速度
          * @param damageRatio 一発の魔法攻撃倍率
+         * @param maxHitsPerTarget 同一発動から同一対象への攻撃判定上限。回避時も一回と数えます
          * @param shocked 命中時の感電条件
          */
         private SparkCast(
@@ -408,6 +420,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                 double hitRadius,
                 double bounceSpeed,
                 double damageRatio,
+                int maxHitsPerTarget,
                 @NotNull ActiveSkillCondition shocked
         ) {
             this.attacker = attacker;
@@ -418,6 +431,7 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
             this.hitRadius = hitRadius;
             this.bounceSpeed = bounceSpeed;
             this.damageRatio = damageRatio;
+            this.maxHitsPerTarget = maxHitsPerTarget;
             this.shocked = shocked;
         }
 

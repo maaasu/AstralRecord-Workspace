@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2455",
+  "name": "&bマナサイフォン",
+  "icon": "CALIBRATED_SCULK_SENSOR",
+  "tags": [
+    "resource",
+    "mana"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_mana_siphon"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

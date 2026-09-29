@@ -1,0 +1,46 @@
+# design:
+#   motif: "連射 / 継承連動"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_relentless_volley
+type: SKILL
+implementationId: sharpshooter_relentless_volley
+name: "&5無尽連射"
+description: "&7継承連動を軸にした射撃技。"
+icon: REDSTONE_LAMP
+lore:
+  - "&7{skill.pulseIntervalTicks}ティック間隔で{skill.pulseCount}発を連射。"
+  - "&7各弾は間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7継承バフ所持中は各弾の倍率に{skill.bonusRatio:percent}%を加算。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 24
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.07 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.07 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00017
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+params:
+  damageRatio: 0.75
+  bonusRatio: 0.15
+  pulseCount: 4
+  pulseIntervalTicks: 4
+  range: 18
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.6
+tags:
+  - active
+  - ranged
+  - bow

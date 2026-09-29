@@ -1,0 +1,42 @@
+# design:
+#   motif: "元素魔術 / マナサイフォン"
+#   progression: 2
+schemaVersion: 1
+id: wizard_mana_siphon
+type: SKILL
+implementationId: wizard_mana_siphon
+name: "&bマナサイフォン"
+description: "&7敵への命中から魔力を回収する。"
+icon: CALIBRATED_SCULK_SENSOR
+lore:
+  - "&7前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
+  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7HPかシールドへダメージを与えるとMPを{skill.manaRecovery}回復。"
+  - "&7回収は1発動につき1回。回避・完全防御・空振りでは回復しない。"
+cooldownTicks: 200
+resourceType: MANA
+resourceCost: 10
+castTimeTicks: 10
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.15, manaRecovery: 4 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.15, manaRecovery: 4 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.15, manaRecovery: 4 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.15, manaRecovery: 4 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00017]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: block.amethyst_block.chime
+tags: [active, magic]
+params:
+  range: 14
+  hitRadius: 0.35
+  projectileSpeed: 1.2
+  damageRatio: 1.2
+  manaRecovery: 20

@@ -22,7 +22,19 @@ public final class SharpshooterSkillExecutorCatalog {
                 new SharpshooterFireArrowExecutor(services),
                 new SharpshooterIceArrowExecutor(services),
                 new SharpshooterSpreadingAmbitionExecutor(services),
-                new SharpshooterPhantomShotExecutor(services)
+                new SharpshooterPhantomShotExecutor(services),
+                new SharpshooterSteadySightExecutor(services),
+                new SharpshooterPiercingLineExecutor(services),
+                new SharpshooterShieldNeedleExecutor(services),
+                new SharpshooterExecutionMarkExecutor(services),
+                new SharpshooterEmberBloomExecutor(services),
+                new SharpshooterFrostShardExecutor(services),
+                new SharpshooterThermalBreakExecutor(services),
+                new SharpshooterGlacialTrapExecutor(services),
+                new SharpshooterSplitArrowExecutor(services),
+                new SharpshooterRicochetArrowExecutor(services),
+                new SharpshooterSuppressiveRainExecutor(services),
+                new SharpshooterRelentlessVolleyExecutor(services)
         );
     }
 }

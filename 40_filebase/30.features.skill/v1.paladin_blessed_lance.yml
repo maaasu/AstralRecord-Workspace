@@ -1,0 +1,46 @@
+# design:
+#   motif: "騎士道 / 聖槍"
+#   progression: 2
+schemaVersion: 1
+id: paladin_blessed_lance
+type: SKILL
+implementationId: paladin_blessed_lance
+name: "&fブレストランス"
+description: "&7聖域から光の槍を放ち、守りの陣を攻勢へ転じる。"
+icon: QUARTZ_PILLAR
+lore:
+  - "&7前方{skill.range}mを貫く光で、最大{skill.maxTargets}体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7自分のホーリーフィールド内で放つと倍率が{skill.fieldMultiplier}倍になる。"
+  - "&7壁を貫通せず、ディバインチェイサーの追撃対象となる。"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 18
+manaCost: 8
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.2 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.2 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: [70a00001, 70a00002, 70a00004, 70a00005, 70a00006, 70a00007, 70a00008, 70a00009, 70a00010, 70a00011, 70a00017, 70a00018, 70a00019, 70a00020, 70a00021, 70a00022, 70a00023, 70a00024, 70a00025, 70a00026]
+learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+onCast:
+  sound: entity.player.attack.sweep
+params:
+  range: 7
+  hitRadius: 0.7
+  maxTargets: 4
+  damageRatio: 1.8
+  fieldMultiplier: 1.35
+tags:
+  - active
+  - melee
+  - offense
+  - holy_knight

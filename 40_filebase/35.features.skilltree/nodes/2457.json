@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2457",
+  "name": "&bマナヴェール",
+  "icon": "PURPLE_CANDLE",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "wizard_mana_veil"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "wizard"
+  }
+}

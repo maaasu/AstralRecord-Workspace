@@ -1,0 +1,37 @@
+# design:
+#   motif: "星界 / 星雨"
+#   progression: 2
+schemaVersion: 1
+id: archmage_starfall
+type: SKILL
+implementationId: archmage_starfall
+name: "&bスターフォール"
+description: "&7既存の陣と共鳴する星の範囲攻撃。"
+icon: PRISMARINE_BRICKS
+lore:
+  - "&7視点先の地表を中心に半径{skill.radius}mの敵Mob最大6体を攻撃する。"
+  - "&7無属性魔法攻撃倍率は{skill.power:percent}%。"
+  - "&7発動時の自身の魔法陣1つにつき倍率が20%増加する（最大3陣）。"
+cooldownTicks: 220
+resourceType: MANA
+resourceCost: 70
+castTimeTicks: 12
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { power: 0.12 } }
+  - { level: 3, paramDeltas: { power: 0.12 } }
+  - { level: 4, paramDeltas: { power: 0.12 } }
+  - { level: 5, paramDeltas: { power: 0.12 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 5 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 10 }]
+params:
+  range: 16
+  radius: 3
+  power: 1.4
+tags:
+  - active
+  - magic
+  - ranged
