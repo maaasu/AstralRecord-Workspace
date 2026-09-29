@@ -64,12 +64,14 @@ data class StatusSnapshot(
     }
 
     /**
-     * 現在HP/MP/エネルギーを更新した新しいスナップショットを返します。
+     * 現在HP/MP/エネルギーとShieldを更新した新しいスナップショットを返します。
+     * Shieldが変更されない場合は、通常の最大Shieldを超える一時Shieldも維持します。
      *
      * @param hp     新しい現在HP
      * @param mp     新しい現在MP
      * @param energy 新しい現在エネルギー（省略時は現在値を維持）
-     * @return 更新後（上限クランプ済み）の [StatusSnapshot]
+     * @param shield 新しい現在Shield（省略時は現在値を維持）
+     * @return HP/MP/エネルギーと変更されたShieldを上限へ丸めた [StatusSnapshot]
      */
     @JvmOverloads
     fun withCurrentValues(
@@ -79,8 +81,9 @@ data class StatusSnapshot(
         shield: Double = currentShield,
     ): StatusSnapshot {
         val clamped = copy(currentHp = hp, currentMp = mp, currentEnergy = energy, currentShield = shield).clampCurrentValues()
-        val shieldChangedAt = if (clamped.currentShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
-        return clamped.copy(shieldChangedAtMs = shieldChangedAt)
+        val updatedShield = if (shield == currentShield) currentShield else clamped.currentShield
+        val shieldChangedAt = if (updatedShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
+        return clamped.copy(currentShield = updatedShield, shieldChangedAtMs = shieldChangedAt)
     }
 
     /**
@@ -90,7 +93,9 @@ data class StatusSnapshot(
      * @return 上限下限へクランプ済みの [StatusSnapshot]
      */
     fun withCurrentShield(shield: Double): StatusSnapshot {
-        return withCurrentValues(currentHp, currentMp, currentEnergy, shield)
+        val clamped = copy(currentShield = shield).clampCurrentValues()
+        val shieldChangedAt = if (clamped.currentShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
+        return clamped.copy(shieldChangedAtMs = shieldChangedAt)
     }
 
     /**
