@@ -1,0 +1,12 @@
+# design:
+#   motif: "音楽 / 白鐘"
+#   progression: 50
+schemaVersion: 1
+id: paladin_bell_50_weapon
+name: '&6白鐘の巡礼・50級装具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 13.6

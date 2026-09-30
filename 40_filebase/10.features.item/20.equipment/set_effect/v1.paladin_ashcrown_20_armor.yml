@@ -1,0 +1,17 @@
+# design:
+#   motif: "工芸 / 灰冠"
+#   progression: 20
+schemaVersion: 1
+id: paladin_ashcrown_20_armor
+name: '&6灰冠の誓剣・20級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: STRENGTH
+    type: FLAT
+    value: 8
+- count: 4
+  stats:
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 1.2

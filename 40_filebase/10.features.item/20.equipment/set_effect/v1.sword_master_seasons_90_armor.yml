@@ -1,0 +1,17 @@
+# design:
+#   motif: "気象 / 四季"
+#   progression: 90
+schemaVersion: 1
+id: sword_master_seasons_90_armor
+name: '&6四季の巡礼・90級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 24
+- count: 4
+  stats:
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 4.5

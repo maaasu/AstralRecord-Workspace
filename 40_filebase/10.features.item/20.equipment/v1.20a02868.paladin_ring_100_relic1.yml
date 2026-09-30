@@ -1,0 +1,295 @@
+# design:
+#   motif: "工芸 / 封環"
+#   progression: 100
+schemaVersion: 1
+id: 20a02868
+category: equipment
+name: '&6再環の裁定者の遺章・原型'
+icon: NETHER_STAR
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 4990
+lore:
+- '&7再環の裁定者の遺章・原型。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 100
+  tag: RELIC
+  stats:
+  - status: COOLDOWN_REDUCTION
+    type: FLAT
+    value: 1.02
+  - status: ENERGY_COST_REDUCTION
+    type: FLAT
+    value: 1.5
+  durability:
+    max: 550
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease: []
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 26
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 27
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 28
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 29
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 30
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 31
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 32
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 33
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 34
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 35
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 36
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 37
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 38
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 39
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 40
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 41
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 42
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 43
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 44
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 45
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 46
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 47
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 48
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 49
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 50
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 51
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 52
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 53
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 54
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 55
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 56
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 57
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 58
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 59
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+    - level: 60
+      statIncrease: []
+      successRate: 0.1
+      failAction: NONE
+  transcendence:
+  - name: 継承
+    rank: 1
+    requiredEnhanceLevel: 20
+    requiredMaterials:
+    - itemId: 10a02002
+      amount: 3
+    requiredCurrency: 25000
+    overrides:
+      name: '&d終環の審判の裁定者の遺章'
+      enhance:
+        maxLevel: 40
+  - name: 完成
+    rank: 2
+    requiredEnhanceLevel: 40
+    requiredMaterials:
+    - itemId: 10a02003
+      amount: 5
+    requiredCurrency: 50000
+    overrides:
+      name: '&6終環の審判の裁定者の遺章・完成'
+      enhance:
+        maxLevel: 60

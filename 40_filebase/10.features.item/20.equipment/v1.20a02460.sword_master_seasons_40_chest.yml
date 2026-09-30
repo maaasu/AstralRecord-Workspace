@@ -1,0 +1,298 @@
+# design:
+#   motif: "気象 / 四季"
+#   progression: 40
+schemaVersion: 1
+id: 20a02460
+category: equipment
+name: '&6風輪の巡礼胴衣'
+icon: IRON_CHESTPLATE
+rarity: EPIC
+maxStack: 1
+saleValue: 1000
+lore:
+- '&7風輪の巡礼胴衣。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 40
+  setId: sword_master_seasons_40_armor
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 164.4
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 105.52
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 569.76
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 1.86
+  durability:
+    max: 310
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.13
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.31
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.13
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.13
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.31
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.13
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.06
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2.05
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.32
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.12
+      successRate: 0.05
+      failAction: NONE

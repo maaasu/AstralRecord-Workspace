@@ -1,0 +1,168 @@
+# design:
+#   motif: "天体 / 月蝕"
+#   progression: 15
+schemaVersion: 1
+id: 20a02149
+category: equipment
+name: '&6薄月の夜行脚衣'
+icon: IRON_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 140
+lore:
+- '&7薄月の夜行脚衣。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 15
+  setId: sword_master_judgment_15_armor
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 39.6
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 22.24
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 167.84
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 2.7
+  durability:
+    max: 210
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.55
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.55
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.55
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.19
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.55
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.19
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 0.99
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.56
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 4.2
+      successRate: 0.05
+      failAction: NONE

@@ -1,0 +1,476 @@
+# design:
+#   motif: "天体 / 月蝕"
+#   progression: 100
+schemaVersion: 1
+id: 20a02278
+category: equipment
+name: '&6宵裁の月鏡首飾り'
+icon: HEART_OF_THE_SEA
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 4990
+lore:
+- '&7宵裁の月鏡首飾り。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 100
+  tag: AMULET
+  setId: sword_master_judgment_100_weapon
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 87.33
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 2.4
+  durability:
+    max: 550
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 31
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 32
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 33
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 34
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 35
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 36
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 37
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 38
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.2
+      failAction: NONE
+    - level: 39
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 40
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.2
+      failAction: NONE
+    - level: 41
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 42
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 43
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 44
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 45
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 46
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 47
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 48
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 49
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 50
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 51
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 52
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 53
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 54
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 55
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 56
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 57
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 58
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+    - level: 59
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.88
+      successRate: 0.1
+      failAction: NONE
+    - level: 60
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.87
+      successRate: 0.1
+      failAction: NONE
+  transcendence:
+  - name: 継承
+    rank: 1
+    requiredEnhanceLevel: 20
+    requiredMaterials:
+    - itemId: 10a02000
+      amount: 3
+    requiredCurrency: 25000
+    overrides:
+      name: '&d明鏡の月鏡首飾り'
+      enhance:
+        maxLevel: 40
+  - name: 完成
+    rank: 2
+    requiredEnhanceLevel: 40
+    requiredMaterials:
+    - itemId: 10a02001
+      amount: 5
+    requiredCurrency: 50000
+    overrides:
+      name: '&6終月の月鏡首飾り'
+      enhance:
+        maxLevel: 60

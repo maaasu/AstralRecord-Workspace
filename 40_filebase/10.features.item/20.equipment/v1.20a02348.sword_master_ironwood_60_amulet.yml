@@ -1,0 +1,208 @@
+# design:
+#   motif: "植物 / 鉄樹"
+#   progression: 60
+schemaVersion: 1
+id: 20a02348
+category: equipment
+name: '&6守誓の誓約首飾り'
+icon: HEART_OF_THE_SEA
+rarity: EPIC
+maxStack: 1
+saleValue: 1380
+lore:
+- '&7守誓の誓約首飾り。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 60
+  tag: AMULET
+  setId: sword_master_ironwood_60_weapon
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 210.24
+  - status: HEALING_INCREASE
+    type: FLAT
+    value: 2.4
+  durability:
+    max: 390
+    consume: 1
+  enhance:
+    maxLevel: 25
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.11
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      successRate: 0.2
+      failAction: NONE

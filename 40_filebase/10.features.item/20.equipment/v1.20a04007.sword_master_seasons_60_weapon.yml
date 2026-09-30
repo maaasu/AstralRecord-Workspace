@@ -1,0 +1,292 @@
+# design:
+#   motif: "気象 / 四季"
+#   progression: 60
+schemaVersion: 1
+id: 20a04007
+category: equipment
+name: '&6巡季の環剣'
+icon: IRON_SWORD
+rarity: EPIC
+maxStack: 1
+saleValue: 3870
+lore:
+- '&7巡季の環剣。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  requiredLevel: 60
+  handType: ONE
+  tag: SWORD
+  setId: sword_master_seasons_60_weapon
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 570.0
+  - status: MAX_MANA
+    type: FLAT
+    value: 19.2
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 3.18
+  durability:
+    max: 390
+    consume: 1
+  enhance:
+    maxLevel: 25
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 5.7
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+  requiredClasses:
+  - classId: swordmaster
+    level: 1
+  - classId: grandmaster
+    level: 1

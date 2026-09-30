@@ -1,0 +1,430 @@
+# design:
+#   motif: "工芸 / 封環"
+#   progression: 90
+schemaVersion: 1
+id: 20a02858
+category: equipment
+name: '&6再環の封環盾'
+icon: SHIELD
+rarity: EPIC
+maxStack: 1
+saleValue: 7660
+lore:
+- '&7再環の封環盾。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SUBWEAPON
+  requiredLevel: 90
+  setId: paladin_ring_90_weapon
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 470.48
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 316.56
+  - status: MAX_SHIELD
+    type: FLAT
+    value: 1072.88
+  durability:
+    max: 510
+    consume: 1
+  enhance:
+    maxLevel: 30
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.93
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.95
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.93
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.95
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.63
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.92
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2.64
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 8.94
+      successRate: 0.2
+      failAction: NONE
+  requiredClasses:
+  - classId: paladin
+    level: 1
+  - classId: royal_crusader
+    level: 1

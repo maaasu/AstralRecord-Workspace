@@ -1,0 +1,173 @@
+# design:
+#   motif: "鳥類 / 燕"
+#   progression: 50
+schemaVersion: 1
+id: 20a02037
+category: equipment
+name: '&6陽帆の朝鐘首飾り'
+icon: HEART_OF_THE_SEA
+rarity: EPIC
+maxStack: 1
+saleValue: 880
+lore:
+- '&7陽帆の朝鐘首飾り。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 50
+  tag: AMULET
+  setId: sword_master_swallow_50_weapon
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 24.16
+  - status: ATTACK_SPEED
+    type: FLAT
+    value: 1.44
+  durability:
+    max: 350
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.31
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.31
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.31
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.31
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE

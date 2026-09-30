@@ -1,0 +1,287 @@
+# design:
+#   motif: "音楽 / 白鐘"
+#   progression: 60
+schemaVersion: 1
+id: 20a02641
+category: equipment
+name: '&6慈鐘の祈鐘槌'
+icon: IRON_AXE
+rarity: EPIC
+maxStack: 1
+saleValue: 3870
+lore:
+- '&7慈鐘の祈鐘槌。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  requiredLevel: 60
+  handType: ONE
+  tag: HAMMER
+  setId: paladin_bell_60_weapon
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 314.72
+  - status: MAX_MANA
+    type: FLAT
+    value: 54.32
+  - status: SUPPORT_POWER
+    type: FLAT
+    value: 6.0
+  durability:
+    max: 390
+    consume: 1
+  enhance:
+    maxLevel: 25
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.14
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.55
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3.15
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.54
+      successRate: 0.05
+      failAction: NONE

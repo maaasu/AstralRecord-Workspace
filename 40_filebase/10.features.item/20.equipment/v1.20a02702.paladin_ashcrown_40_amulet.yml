@@ -1,0 +1,235 @@
+# design:
+#   motif: "工芸 / 灰冠"
+#   progression: 40
+schemaVersion: 1
+id: 20a02702
+category: equipment
+name: '&6焼誓の灰冠の護符'
+icon: HEART_OF_THE_SEA
+rarity: EPIC
+maxStack: 1
+saleValue: 500
+lore:
+- '&7焼誓の灰冠の護符。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 40
+  tag: AMULET
+  stats:
+  - status: MELEE_DEFENSE
+    type: FLAT
+    value: 123.12
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 82.32
+  - status: STRENGTH
+    type: FLAT
+    value: 3.0
+  durability:
+    max: 310
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.02
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.02
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 1.54
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.03
+      successRate: 0.05
+      failAction: NONE

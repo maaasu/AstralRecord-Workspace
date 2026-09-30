@@ -1,0 +1,12 @@
+# design:
+#   motif: "工芸 / 灰冠"
+#   progression: 80
+schemaVersion: 1
+id: paladin_ashcrown_80_weapon
+name: '&6灰冠の誓剣・80級装具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 28.4

@@ -1,0 +1,17 @@
+# design:
+#   motif: "音楽 / 白鐘"
+#   progression: 60
+schemaVersion: 1
+id: paladin_bell_60_armor
+name: '&6白鐘の巡礼・60級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 17
+- count: 4
+  stats:
+  - status: SUPPORT_POWER
+    type: FLAT
+    value: 3.1

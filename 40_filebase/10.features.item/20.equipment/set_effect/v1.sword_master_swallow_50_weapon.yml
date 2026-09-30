@@ -1,0 +1,17 @@
+# design:
+#   motif: "鳥類 / 燕"
+#   progression: 50
+schemaVersion: 1
+id: sword_master_swallow_50_weapon
+name: '&6黎明の燕・50級装具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 18.7
+- count: 3
+  stats:
+  - status: NORMAL_ATTACK_DAMAGE_INCREASE
+    type: FLAT
+    value: 2.2

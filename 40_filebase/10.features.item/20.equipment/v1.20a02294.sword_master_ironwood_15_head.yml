@@ -1,0 +1,168 @@
+# design:
+#   motif: "植物 / 鉄樹"
+#   progression: 15
+schemaVersion: 1
+id: 20a02294
+category: equipment
+name: '&6芽鉄の根鉢兜'
+icon: IRON_HELMET
+rarity: RARE
+maxStack: 1
+saleValue: 110
+lore:
+- '&7芽鉄の根鉢兜。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 15
+  setId: sword_master_ironwood_15_armor
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 46.72
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 23.6
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 107.52
+  - status: HP_REGEN
+    type: FLAT
+    value: 0.45
+  durability:
+    max: 210
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.16
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.68
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.16
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.68
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.17
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.59
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.69
+      successRate: 0.05
+      failAction: NONE

@@ -1,0 +1,198 @@
+# design:
+#   motif: "工芸 / 封環"
+#   progression: 20
+schemaVersion: 1
+id: 20a02783
+category: equipment
+name: '&6銅輪の裁定甲'
+icon: IRON_CHESTPLATE
+rarity: RARE
+maxStack: 1
+saleValue: 230
+lore:
+- '&7銅輪の裁定甲。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 20
+  setId: paladin_ring_20_armor
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 364.96
+  - status: DEFENSE
+    type: FLAT
+    value: 99.44
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 42.64
+  - status: MAX_SHIELD
+    type: FLAT
+    value: 79.52
+  durability:
+    max: 230
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.13
+      - status: DEFENSE
+        type: FLAT
+        value: 2.48
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.06
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.98
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.13
+      - status: DEFENSE
+        type: FLAT
+        value: 2.48
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.06
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.13
+      - status: DEFENSE
+        type: FLAT
+        value: 2.48
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.06
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.98
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.13
+      - status: DEFENSE
+        type: FLAT
+        value: 2.48
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.06
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9.12
+      - status: DEFENSE
+        type: FLAT
+        value: 2.49
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.07
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 1.99
+      successRate: 0.05
+      failAction: NONE

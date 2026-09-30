@@ -1,0 +1,281 @@
+# design:
+#   motif: "工芸 / 灰冠"
+#   progression: 30
+schemaVersion: 1
+id: 20a02698
+category: equipment
+name: '&6灰冠の誓王鎧'
+icon: IRON_CHESTPLATE
+rarity: RARE
+maxStack: 1
+saleValue: 370
+lore:
+- '&7灰冠の誓王鎧。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 30
+  setId: paladin_ashcrown_30_armor
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 460.8
+  - status: DEFENSE
+    type: FLAT
+    value: 118.64
+  - status: MELEE_DEFENSE
+    type: FLAT
+    value: 170.24
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 115.04
+  - status: STRENGTH
+    type: FLAT
+    value: 3.0
+  durability:
+    max: 270
+    consume: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.97
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.83
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.91
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.97
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.83
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.91
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.97
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.83
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.91
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.97
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.83
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.91
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7.68
+      - status: DEFENSE
+        type: FLAT
+        value: 1.98
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 2.84
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1.92
+      successRate: 0.05
+      failAction: NONE

@@ -1,0 +1,172 @@
+# design:
+#   motif: "植物 / 鉄樹"
+#   progression: 50
+schemaVersion: 1
+id: 20a02338
+category: equipment
+name: '&6城壁の誓剣片'
+icon: NETHER_STAR
+rarity: EPIC
+maxStack: 1
+saleValue: 880
+lore:
+- '&7城壁の誓剣片。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 50
+  tag: RELIC
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 12.08
+  - status: COOLDOWN_REDUCTION
+    type: FLAT
+    value: 1.44
+  durability:
+    max: 350
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.16
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.16
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 0.15
+      successRate: 0.05
+      failAction: NONE

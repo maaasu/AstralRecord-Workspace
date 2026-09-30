@@ -1,0 +1,17 @@
+# design:
+#   motif: "工芸 / 封環"
+#   progression: 30
+schemaVersion: 1
+id: paladin_ring_30_armor
+name: '&6環輪の審判・30級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_ENERGY
+    type: FLAT
+    value: 11
+- count: 4
+  stats:
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 1.7

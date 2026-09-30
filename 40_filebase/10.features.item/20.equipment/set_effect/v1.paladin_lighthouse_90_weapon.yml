@@ -1,0 +1,12 @@
+# design:
+#   motif: "航海 / 灯台"
+#   progression: 90
+schemaVersion: 1
+id: paladin_lighthouse_90_weapon
+name: '&6不落の灯台・90級装具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 34.4

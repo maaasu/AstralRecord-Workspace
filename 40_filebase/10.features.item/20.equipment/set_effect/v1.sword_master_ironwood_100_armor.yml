@@ -1,0 +1,17 @@
+# design:
+#   motif: "植物 / 鉄樹"
+#   progression: 100
+schemaVersion: 1
+id: sword_master_ironwood_100_armor
+name: '&6守誓の鉄樹・100級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 442
+- count: 4
+  stats:
+  - status: HEALING_INCREASE
+    type: FLAT
+    value: 5.0

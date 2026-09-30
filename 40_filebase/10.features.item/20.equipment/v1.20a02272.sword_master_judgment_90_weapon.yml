@@ -1,0 +1,252 @@
+# design:
+#   motif: "天体 / 月蝕"
+#   progression: 90
+schemaVersion: 1
+id: 20a02272
+category: equipment
+name: '&6断罪の裁定剣'
+icon: IRON_SWORD
+rarity: EPIC
+maxStack: 1
+saleValue: 10720
+lore:
+- '&7断罪の裁定剣。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  requiredLevel: 90
+  handType: ONE
+  tag: SWORD
+  setId: sword_master_judgment_90_weapon
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 1261.36
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 4.2
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 6
+  durability:
+    max: 510
+    consume: 1
+  enhance:
+    maxLevel: 30
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.52
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.52
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.52
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.52
+      successRate: 0.05
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 10.51
+      successRate: 0.05
+      failAction: NONE
+  requiredClasses:
+  - classId: swordmaster
+    level: 1
+  - classId: grandmaster
+    level: 1

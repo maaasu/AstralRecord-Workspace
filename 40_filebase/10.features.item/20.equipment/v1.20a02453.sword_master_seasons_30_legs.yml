@@ -1,0 +1,278 @@
+# design:
+#   motif: "気象 / 四季"
+#   progression: 30
+schemaVersion: 1
+id: 20a02453
+category: equipment
+name: '&6秋霜の季節脚衣'
+icon: IRON_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 310
+lore:
+- '&7秋霜の季節脚衣。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 30
+  setId: sword_master_seasons_30_armor
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 91.6
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 57.04
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 325.6
+  - status: MAX_MANA
+    type: FLAT
+    value: 11.2
+  durability:
+    max: 270
+    consume: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.52
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.42
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.18
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.52
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.42
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.18
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.52
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.96
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.42
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.18
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.52
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.42
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.18
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.52
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.42
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.18
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1.53
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.95
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 5.43
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.19
+      successRate: 0.05
+      failAction: NONE

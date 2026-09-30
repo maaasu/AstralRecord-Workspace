@@ -1,0 +1,300 @@
+# design:
+#   motif: "航海 / 灯台"
+#   progression: 50
+schemaVersion: 1
+id: 20a02535
+category: equipment
+name: '&6嵐守の航路盾'
+icon: SHIELD
+rarity: EPIC
+maxStack: 1
+saleValue: 1750
+lore:
+- '&7嵐守の航路盾。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SUBWEAPON
+  requiredLevel: 50
+  setId: paladin_lighthouse_50_weapon
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 246.96
+  - status: MELEE_DEFENSE
+    type: FLAT
+    value: 272.64
+  - status: MAX_SHIELD
+    type: FLAT
+    value: 622.72
+  durability:
+    max: 350
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.4
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.4
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.4
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.4
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.08
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.79
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 3.09
+      - status: MELEE_DEFENSE
+        type: FLAT
+        value: 3.41
+      - status: MAX_SHIELD
+        type: FLAT
+        value: 7.78
+      successRate: 0.05
+      failAction: NONE
+  requiredClasses:
+  - classId: paladin
+    level: 1
+  - classId: royal_crusader
+    level: 1

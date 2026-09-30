@@ -1,0 +1,17 @@
+# design:
+#   motif: "航海 / 灯台"
+#   progression: 40
+schemaVersion: 1
+id: paladin_lighthouse_40_armor
+name: '&6不落の灯台・40級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 162
+- count: 4
+  stats:
+  - status: HEALING_INCREASE
+    type: FLAT
+    value: 2.2

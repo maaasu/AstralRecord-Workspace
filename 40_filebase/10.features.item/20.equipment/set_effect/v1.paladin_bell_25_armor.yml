@@ -1,0 +1,17 @@
+# design:
+#   motif: "音楽 / 白鐘"
+#   progression: 25
+schemaVersion: 1
+id: paladin_bell_25_armor
+name: '&6白鐘の巡礼・25級防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 10
+- count: 4
+  stats:
+  - status: SUPPORT_POWER
+    type: FLAT
+    value: 1.5
