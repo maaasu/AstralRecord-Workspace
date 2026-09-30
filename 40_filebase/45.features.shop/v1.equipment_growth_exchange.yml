@@ -1,6 +1,6 @@
 # design:
 #   motif: "工芸 / 装備の再鍛錬"
-#   progression: 20
+#   progression: 16
 schemaVersion: 1
 id: equipment_growth_exchange
 type: SHOP

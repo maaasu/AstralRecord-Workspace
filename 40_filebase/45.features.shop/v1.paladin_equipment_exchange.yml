@@ -1,6 +1,6 @@
 # design:
 #   motif: "交易 / 装備交換"
-#   progression: 15
+#   progression: 16
 schemaVersion: 1
 id: paladin_equipment_exchange
 type: SHOP

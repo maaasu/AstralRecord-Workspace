@@ -1,6 +1,6 @@
 # design:
 #   motif: "交易 / 射手装備"
-#   progression: 15
+#   progression: 16
 schemaVersion: 1
 id: phantom_archer_equipment_exchange
 type: SHOP
