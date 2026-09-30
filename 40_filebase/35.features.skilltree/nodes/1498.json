@@ -2,12 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1498",
-  "name": "&d旅人の英知",
+  "name": "&d星詠みの連星",
   "icon": "ENCHANTED_BOOK",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "intelligence",
+    "resource",
+    "mana",
+    "astral"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -16,10 +19,13 @@
       "type": "status",
       "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 41
-  }
+  ]
 }

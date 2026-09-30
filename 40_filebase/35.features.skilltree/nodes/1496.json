@@ -1,25 +1,30 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1496",
+  "name": "&d銀矢の連星",
+  "icon": "ARROW",
+  "tags": [
+    "status",
+    "primary",
+    "dexterity",
+    "agility",
+    "wind"
+  ],
   "pointType": "PP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "SUPPORT_POWER",
+      "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 4.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 50
-  },
-  "nodeId": "1496",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shared",
-    "core"
-  ],
-  "name": "&d旅人の極星",
-  "icon": "NETHER_STAR"
+  ]
 }

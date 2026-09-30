@@ -1,0 +1,44 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2515",
+  "name": "&d闘志の連星",
+  "icon": "FIRE_CHARGE",
+  "tags": [
+    "status",
+    "offense",
+    "primary",
+    "strength",
+    "dexterity",
+    "intelligence",
+    "ember"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ]
+}

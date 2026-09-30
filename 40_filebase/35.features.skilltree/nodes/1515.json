@@ -2,24 +2,29 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1515",
-  "name": "&d旅人の叡智",
-  "icon": "ENCHANTED_BOOK",
+  "name": "&d大樹の連星",
+  "icon": "OAK_SAPLING",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "resource",
+    "health",
+    "durability"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "INTELLIGENCE",
+      "status": "VITALITY",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 52
-  }
+  ]
 }

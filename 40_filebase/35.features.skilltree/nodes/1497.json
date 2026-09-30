@@ -2,24 +2,29 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1497",
-  "name": "&d旅人の技巧",
-  "icon": "ARROW",
+  "name": "&d大樹の連星",
+  "icon": "OAK_SAPLING",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "resource",
+    "health",
+    "durability"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEXTERITY",
+      "status": "VITALITY",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 41
-  }
+  ]
 }

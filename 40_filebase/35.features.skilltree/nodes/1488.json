@@ -1,25 +1,31 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1488",
+  "name": "&d星詠みの連星",
+  "icon": "ENCHANTED_BOOK",
+  "tags": [
+    "status",
+    "primary",
+    "intelligence",
+    "resource",
+    "mana",
+    "astral"
+  ],
   "pointType": "PP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "DEFENSE",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 10
-  },
-  "nodeId": "1488",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shared",
-    "core"
-  ],
-  "name": "&d旅人の護り",
-  "icon": "SHIELD"
+  ]
 }

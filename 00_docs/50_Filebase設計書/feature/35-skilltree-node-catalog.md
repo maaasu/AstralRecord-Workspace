@@ -88,9 +88,11 @@ PPノードは、1PPあたりの選択価値を確保するため、次の複数
 | `status-pp-defense-notable` | `1082` | `VITALITY / FLAT / 8` + `MAX_HEALTH / FLAT / 75` + `DEFENSE / FLAT / 7` + `MAGIC_DEFENSE / FLAT / 7` + `HP_REGEN / FLAT / 1` | `&d不壊の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `primary`, `durability`, `defense`, `health`, `stone` |
 | `status-pp-west-astral` | `1059`, `1063`, `1067`, `1071` | `INTELLIGENCE / FLAT / 3` + `MAX_MANA / FLAT / 25` | `&d星詠みの連星` | `ENCHANTED_BOOK` | `status`, `primary`, `intelligence`, `resource`, `mana`, `astral` |
 | `status-pp-west-azure` | `1075`, `1079` | `INTELLIGENCE / FLAT / 4` + `MAX_MANA / FLAT / 29` + `MP_REGEN / FLAT / 1` | `&d蒼泉の連星` | `AMETHYST_SHARD` | `status`, `primary`, `intelligence`, `resource`, `mana`, `azure` |
-| `status-pp-resource-notable` | `1083` | `MAX_HEALTH / FLAT / 40` + `MAX_MANA / FLAT / 60` + `MAX_ENERGY / FLAT / 20` + `HP_REGEN / FLAT / 0.5` + `MP_REGEN / FLAT / 0.8` + `ENERGY_REGEN / FLAT / 2` | `&d循環の極星` | `END_CRYSTAL` | `status`, `resource`, `health`, `mana`, `energy`, `azure` |
+| `status-pp-resource-notable` | `1083` | `MAX_HEALTH / FLAT / 40` + `MAX_MANA / FLAT / 60` + `MAX_ENERGY / FLAT / 20` + `HP_REGEN / FLAT / 1` + `MP_REGEN / FLAT / 1` + `ENERGY_REGEN / FLAT / 2` | `&d循環の極星` | `END_CRYSTAL` | `status`, `resource`, `health`, `mana`, `energy`, `azure` |
 
 PPの通常・強化パッケージは1PP、各方向のnotableは2PPとします。通常・強化・notableに `playerLevel` 条件は設定せず、接続経路とPP残高で進行を制御します。ノード固有の `lore` は定義しません。
+
+外周PP `1488`〜`1504`、`1511`〜`1521` と直線延長PP `2468`〜`2539` は、上表の紅蓮（`1056`）、銀矢（`1057`）、大樹（`1058`）、星詠み（`1059`）、闘志（`1072`）、蒼穹（`1073`）、玄岩（`1074`）、蒼泉（`1075`）をこの順で循環して再利用します。各方向25nodeの先頭は北が紅蓮、東が銀矢、南が大樹、西が星詠みです。いずれも1PPで表示名・アイコン・タグ・効果を元パッケージと一致させ、職業・プレイヤーレベル条件を持ちません。PP全体は135node・132PPです。循環の極星のHP/MP自然回復は、共有statusの整数表示で`+0`にならないよう各`+1`とします。
 
 ## ソードマン専門円環
 
@@ -364,7 +366,6 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-swordmaster-sword-dance-finale` | `1769`〜`1773` | ATTACK_SPEED `FLAT +1`、SKILL_DAMAGE_INCREASE `FLAT +0.5` | `&c剣舞の星環` | `REDSTONE` | `status`, `offense`, `agility` |
 | `status-swordmaster-sword-dance-finale-notable` | `1774` | ATTACK_SPEED `FLAT +4`、SKILL_DAMAGE_INCREASE `FLAT +3`、MOVEMENT_SPEED `FLAT +3` | `&6終演の極星` | `NETHERITE_SWORD` | `status`, `offense`, `agility` |
 
-`1488`〜`1521` は `classId` を持たない汎用PP nodeで、既存の有料PP 32と組み合わせて60PPの消費先を作る。各nodeは1PPで、playerLevel条件は10〜55。`1511`からは攻撃・防御、HP・知力、機動・Shield、命中・回復、STR・魔法防御の2択枝へ分かれる。
 
 ## ファントムアーチャー専門枝
 

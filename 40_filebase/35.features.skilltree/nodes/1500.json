@@ -2,24 +2,36 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1500",
-  "name": "&d旅人の幸運",
-  "icon": "EMERALD",
+  "name": "&d蒼穹の連星",
+  "icon": "ENDER_PEARL",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "resource",
+    "energy",
+    "agility",
+    "wind"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "LUCK",
+      "status": "AGILITY",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 45
-  }
+  ]
 }

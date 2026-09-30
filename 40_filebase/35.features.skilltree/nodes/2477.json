@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2477",
+  "name": "&d紅蓮の連星",
+  "icon": "BLAZE_POWDER",
+  "tags": [
+    "status",
+    "offense",
+    "primary",
+    "strength",
+    "ember"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ]
+}

@@ -2,24 +2,30 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1504",
-  "name": "&d旅人の征途",
-  "icon": "IRON_SWORD",
+  "name": "&d星詠みの連星",
+  "icon": "ENCHANTED_BOOK",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "intelligence",
+    "resource",
+    "mana",
+    "astral"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 2.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 50
-  }
+  ]
 }

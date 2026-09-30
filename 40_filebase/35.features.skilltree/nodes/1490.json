@@ -1,25 +1,37 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1490",
+  "name": "&d蒼穹の連星",
+  "icon": "ENDER_PEARL",
+  "tags": [
+    "status",
+    "primary",
+    "resource",
+    "energy",
+    "agility",
+    "wind"
+  ],
   "pointType": "PP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_MANA",
+      "status": "AGILITY",
       "modifierType": "FLAT",
-      "value": 12.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 20
-  },
-  "nodeId": "1490",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shared",
-    "core"
-  ],
-  "name": "&d旅人の泉",
-  "icon": "AMETHYST_SHARD"
+  ]
 }

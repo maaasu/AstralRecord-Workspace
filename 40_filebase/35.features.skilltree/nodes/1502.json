@@ -2,24 +2,29 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1502",
-  "name": "&d旅人の還流",
-  "icon": "PRISMARINE_CRYSTALS",
+  "name": "&d銀矢の連星",
+  "icon": "ARROW",
   "tags": [
     "status",
-    "shared",
-    "core"
+    "primary",
+    "dexterity",
+    "agility",
+    "wind"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MP_REGEN",
+      "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 1.0
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 50
-  }
+  ]
 }

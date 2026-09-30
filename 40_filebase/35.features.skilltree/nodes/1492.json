@@ -1,25 +1,37 @@
 {
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1492",
+  "name": "&d蒼泉の連星",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "primary",
+    "intelligence",
+    "resource",
+    "mana",
+    "azure"
+  ],
   "pointType": "PP",
+  "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_ENERGY",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 8.0
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 29
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 30
-  },
-  "nodeId": "1492",
-  "pointCost": 1,
-  "$schema": "../schemas/node.v1.schema.json",
-  "schemaVersion": 1,
-  "tags": [
-    "status",
-    "shared",
-    "core"
-  ],
-  "name": "&d旅人の備え",
-  "icon": "ENDER_PEARL"
+  ]
 }

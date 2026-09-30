@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2537",
+  "name": "&d銀矢の連星",
+  "icon": "ARROW",
+  "tags": [
+    "status",
+    "primary",
+    "dexterity",
+    "agility",
+    "wind"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ]
+}
