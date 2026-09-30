@@ -1,0 +1,17 @@
+# design:
+#   motif: "葬送 / 弔糸"
+#   progression: 30
+schemaVersion: 1
+id: phantom_archer_a_30_armor_set
+name: '&d弔糸 Lv30 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: DEXTERITY
+    type: FLAT
+    value: 1
+- count: 4
+  stats:
+  - status: RANGED_DEFENSE_PENETRATION_RATE
+    type: FLAT
+    value: 1

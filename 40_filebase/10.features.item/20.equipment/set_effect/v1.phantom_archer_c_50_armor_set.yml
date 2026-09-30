@@ -1,0 +1,17 @@
+# design:
+#   motif: "音楽 / 残響"
+#   progression: 50
+schemaVersion: 1
+id: phantom_archer_c_50_armor_set
+name: '&d残響 Lv50 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_ENERGY
+    type: FLAT
+    value: 10
+- count: 4
+  stats:
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 2

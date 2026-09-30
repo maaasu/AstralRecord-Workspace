@@ -1,0 +1,17 @@
+# design:
+#   motif: "天体観測 / 静星"
+#   progression: 80
+schemaVersion: 1
+id: sharpshooter_a_80_focus_set
+name: '&d静星 Lv80 射手セット'
+pieces:
+- count: 2
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 35
+- count: 3
+  stats:
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 3

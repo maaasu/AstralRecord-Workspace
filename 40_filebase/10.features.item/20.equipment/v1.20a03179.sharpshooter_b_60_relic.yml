@@ -1,0 +1,159 @@
+# design:
+#   motif: "火山と氷河 / 燠雪"
+#   progression: 60
+schemaVersion: 1
+id: 20a03179
+category: equipment
+name: '&f凍炎の二季暦'
+icon: PRISMARINE_SHARD
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7燠雪の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 60
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 4
+  - status: FIRE_PENETRATION
+    type: FLAT
+    value: 3
+  - status: ICE_PENETRATION
+    type: FLAT
+    value: 3
+  enhance:
+    maxLevel: 30
+    levels:
+    - level: 1
+      statIncrease: []
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 22
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 23
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 24
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 25
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 26
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 27
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 28
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 29
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.5
+      failAction: NONE

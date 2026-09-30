@@ -1,0 +1,178 @@
+# design:
+#   motif: "音楽 / 残響"
+#   progression: 80
+schemaVersion: 1
+id: 20a03630
+category: equipment
+name: '&f残音弓〈未完奏〉'
+icon: BOW
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7残響の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: BOW
+  requiredLevel: 80
+  setId: phantom_archer_c_80_focus_set
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 710
+  - status: DEXTERITY
+    type: FLAT
+    value: 14
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 5
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 10
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 23
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 24
+      successRate: 0.05
+      failAction: NONE

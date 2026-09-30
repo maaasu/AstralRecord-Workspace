@@ -1,0 +1,17 @@
+# design:
+#   motif: "天体観測 / 静星"
+#   progression: 70
+schemaVersion: 1
+id: sharpshooter_a_70_armor_set
+name: '&d静星 Lv70 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: DEXTERITY
+    type: FLAT
+    value: 3
+- count: 4
+  stats:
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 3

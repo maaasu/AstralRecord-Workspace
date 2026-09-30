@@ -1,0 +1,15 @@
+# design:
+#   motif: "灯台 / 帰航"
+#   progression: 100
+schemaVersion: 1
+id: 10a03005
+category: material
+name: '&d彼岸の共鳴片'
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 0
+lore:
+- '&7装備の状態変化に用いる共鳴片。'
+unTradeable: false
+unSellable: true

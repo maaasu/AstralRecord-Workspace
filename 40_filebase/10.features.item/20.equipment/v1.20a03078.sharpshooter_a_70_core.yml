@@ -1,0 +1,183 @@
+# design:
+#   motif: "天体観測 / 静星"
+#   progression: 70
+schemaVersion: 1
+id: 20a03078
+category: equipment
+name: '&f分光の星盤核'
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7静星の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: CORE
+  requiredLevel: 70
+  setId: sharpshooter_a_70_focus_set
+  stats:
+  - status: MAX_ENERGY
+    type: FLAT
+    value: 7
+  - status: RANGED_DEFENSE_PENETRATION_RATE
+    type: FLAT
+    value: 4
+  - status: ACCURACY
+    type: FLAT
+    value: 2
+  enhance:
+    maxLevel: 35
+    levels:
+    - level: 1
+      statIncrease: []
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_ENERGY
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 22
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 23
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MAX_ENERGY
+        type: FLAT
+        value: 1
+      successRate: 0.5
+      failAction: NONE
+    - level: 25
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 26
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 27
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 28
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 29
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 30
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 31
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 32
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 33
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 34
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 35
+      statIncrease:
+      - status: MAX_ENERGY
+        type: FLAT
+        value: 1
+      successRate: 0.5
+      failAction: NONE

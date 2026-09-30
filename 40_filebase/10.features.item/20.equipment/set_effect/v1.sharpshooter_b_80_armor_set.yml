@@ -1,0 +1,20 @@
+# design:
+#   motif: "火山と氷河 / 燠雪"
+#   progression: 80
+schemaVersion: 1
+id: sharpshooter_b_80_armor_set
+name: '&d燠雪 Lv80 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 16
+- count: 4
+  stats:
+  - status: FIRE_DAMAGE_INCREASE
+    type: FLAT
+    value: 3
+  - status: ICE_DAMAGE_INCREASE
+    type: FLAT
+    value: 3

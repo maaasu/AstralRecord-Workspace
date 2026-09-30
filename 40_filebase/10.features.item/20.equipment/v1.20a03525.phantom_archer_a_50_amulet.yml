@@ -1,0 +1,111 @@
+# design:
+#   motif: "葬送 / 弔糸"
+#   progression: 50
+schemaVersion: 1
+id: 20a03525
+category: equipment
+name: '&f埋葬・名札のアミュレット'
+icon: NAME_TAG
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7弔糸の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 50
+  setId: phantom_archer_a_50_focus_set
+  stats:
+  - status: DEXTERITY
+    type: FLAT
+    value: 5
+  - status: CONDITION_DURATION_INCREASE
+    type: FLAT
+    value: 5
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease: []
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease: []
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease: []
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease: []
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease: []
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease: []
+      successRate: 0.05
+      failAction: NONE

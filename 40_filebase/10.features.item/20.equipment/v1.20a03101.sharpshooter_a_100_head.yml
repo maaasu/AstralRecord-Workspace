@@ -1,0 +1,658 @@
+# design:
+#   motif: "天体観測 / 静星"
+#   progression: 100
+schemaVersion: 1
+id: 20a03101
+category: equipment
+name: '&f天頂の観測帽'
+icon: LEATHER_HELMET
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 0
+lore:
+- '&7静星の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+appearance:
+  color: '#596788'
+equipment:
+  slot: HEAD
+  requiredLevel: 100
+  setId: sharpshooter_a_100_armor_set
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 771
+  - status: DEFENSE
+    type: FLAT
+    value: 256
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 3
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 19
+      - status: DEFENSE
+        type: FLAT
+        value: 6
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: DEFENSE
+        type: FLAT
+        value: 7
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 31
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 32
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 33
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 34
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 35
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 36
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 37
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 38
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 39
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 40
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 41
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 42
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 43
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 44
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 45
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 46
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 47
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 48
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 49
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 50
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 51
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 52
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 53
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 54
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 55
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 56
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 57
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 58
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      successRate: 0.5
+      failAction: NONE
+    - level: 59
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 9
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 60
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+  transcendence:
+  - name: 共鳴
+    rank: 1
+    requiredEnhanceLevel: 20
+    requiredMaterials:
+    - itemId: 10a03000
+      amount: 2
+    requiredCurrency: 25000
+    overrides:
+      name: '&d共鳴・天頂の観測帽'
+      enhance:
+        maxLevel: 40
+  - name: 真銘
+    rank: 2
+    requiredEnhanceLevel: 40
+    requiredMaterials:
+    - itemId: 10a03000
+      amount: 4
+    requiredCurrency: 75000
+    overrides:
+      name: '&6真銘・天頂の観測帽'
+      enhance:
+        maxLevel: 60

@@ -1,0 +1,168 @@
+# design:
+#   motif: "音楽 / 残響"
+#   progression: 15
+schemaVersion: 1
+id: 20a03602
+category: equipment
+name: '&f調律の奏者のコート'
+icon: LEATHER_CHESTPLATE
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+- '&7残響の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+appearance:
+  color: '#6B946F'
+equipment:
+  slot: CHEST
+  requiredLevel: 15
+  setId: phantom_archer_c_15_armor_set
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 114
+  - status: DEFENSE
+    type: FLAT
+    value: 39
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 25
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 0.5
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 7
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 8
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE

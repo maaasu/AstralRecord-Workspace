@@ -1,0 +1,17 @@
+# design:
+#   motif: "葬送 / 弔糸"
+#   progression: 80
+schemaVersion: 1
+id: phantom_archer_a_80_focus_set
+name: '&d弔糸 Lv80 射手セット'
+pieces:
+- count: 2
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 35
+- count: 3
+  stats:
+  - status: CONDITION_DURATION_INCREASE
+    type: FLAT
+    value: 3

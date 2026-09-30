@@ -1,0 +1,310 @@
+# design:
+#   motif: "天体観測 / 静星"
+#   progression: 80
+schemaVersion: 1
+id: 20a03089
+category: equipment
+name: '&f薄明の観測手記'
+icon: BOOK
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7静星の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 80
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 192
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 2
+  enhance:
+    maxLevel: 40
+    levels:
+    - level: 1
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 31
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 32
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 33
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 34
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 35
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 36
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 37
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 38
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 39
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 40
+      statIncrease:
+      - status: RANGED_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE

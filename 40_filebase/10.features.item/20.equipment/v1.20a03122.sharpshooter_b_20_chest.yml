@@ -1,0 +1,165 @@
+# design:
+#   motif: "火山と氷河 / 燠雪"
+#   progression: 20
+schemaVersion: 1
+id: 20a03122
+category: equipment
+name: '&f霜火の耐熱外套'
+icon: LEATHER_CHESTPLATE
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+- '&7燠雪の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+appearance:
+  color: '#8D5960'
+equipment:
+  slot: CHEST
+  requiredLevel: 20
+  setId: sharpshooter_b_20_armor_set
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 210
+  - status: DEFENSE
+    type: FLAT
+    value: 63
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 102
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 11
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 11
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 11
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 11
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 10
+      - status: DEFENSE
+        type: FLAT
+        value: 3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 11
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 5
+      successRate: 0.05
+      failAction: NONE

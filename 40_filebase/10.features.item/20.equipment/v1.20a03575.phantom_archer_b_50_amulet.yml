@@ -1,0 +1,170 @@
+# design:
+#   motif: "灯台 / 帰航"
+#   progression: 50
+schemaVersion: 1
+id: 20a03575
+category: equipment
+name: '&f灯火・灯芯のアミュレット'
+icon: SOUL_TORCH
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7彼岸の装備。'
+- '&7装備の強化で基礎能力が成長する。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 50
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 42
+  - status: MANA_COST_REDUCTION
+    type: FLAT
+    value: 3
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE

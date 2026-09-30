@@ -1,0 +1,4534 @@
+# design:
+#   motif: "交易 / 射手装備"
+#   progression: 15
+schemaVersion: 1
+id: sharpshooter_equipment_exchange
+type: SHOP
+name: '&6シャープシューター装備交換所'
+mode: EXCHANGE
+access: PUBLIC
+items:
+- id: 20a03040
+  itemId:
+    ref: item:20a03040
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 0
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03050
+  itemId:
+    ref: item:20a03050
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 1
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03060
+  itemId:
+    ref: item:20a03060
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 2
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03070
+  itemId:
+    ref: item:20a03070
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 3
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03080
+  itemId:
+    ref: item:20a03080
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 4
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03090
+  itemId:
+    ref: item:20a03090
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 5
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03100
+  itemId:
+    ref: item:20a03100
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 6
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03001
+  itemId:
+    ref: item:20a03001
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 7
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03002
+  itemId:
+    ref: item:20a03002
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 8
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03003
+  itemId:
+    ref: item:20a03003
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 9
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03004
+  itemId:
+    ref: item:20a03004
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 10
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03011
+  itemId:
+    ref: item:20a03011
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 11
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03012
+  itemId:
+    ref: item:20a03012
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 12
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03013
+  itemId:
+    ref: item:20a03013
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 13
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03014
+  itemId:
+    ref: item:20a03014
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 14
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03021
+  itemId:
+    ref: item:20a03021
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 15
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03022
+  itemId:
+    ref: item:20a03022
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 16
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03023
+  itemId:
+    ref: item:20a03023
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 17
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03024
+  itemId:
+    ref: item:20a03024
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 18
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03031
+  itemId:
+    ref: item:20a03031
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 19
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03032
+  itemId:
+    ref: item:20a03032
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 20
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03033
+  itemId:
+    ref: item:20a03033
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 21
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03034
+  itemId:
+    ref: item:20a03034
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 22
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03041
+  itemId:
+    ref: item:20a03041
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 23
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03042
+  itemId:
+    ref: item:20a03042
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 24
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03043
+  itemId:
+    ref: item:20a03043
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 25
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03044
+  itemId:
+    ref: item:20a03044
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 26
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03051
+  itemId:
+    ref: item:20a03051
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 27
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03052
+  itemId:
+    ref: item:20a03052
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 0
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03053
+  itemId:
+    ref: item:20a03053
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 1
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03054
+  itemId:
+    ref: item:20a03054
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 2
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03061
+  itemId:
+    ref: item:20a03061
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 3
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03062
+  itemId:
+    ref: item:20a03062
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 4
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03063
+  itemId:
+    ref: item:20a03063
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 5
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03064
+  itemId:
+    ref: item:20a03064
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 6
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03071
+  itemId:
+    ref: item:20a03071
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 7
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03072
+  itemId:
+    ref: item:20a03072
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 8
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03073
+  itemId:
+    ref: item:20a03073
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 9
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03074
+  itemId:
+    ref: item:20a03074
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 10
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03081
+  itemId:
+    ref: item:20a03081
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 11
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03082
+  itemId:
+    ref: item:20a03082
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 12
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03083
+  itemId:
+    ref: item:20a03083
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 13
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03084
+  itemId:
+    ref: item:20a03084
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 14
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03091
+  itemId:
+    ref: item:20a03091
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 15
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03092
+  itemId:
+    ref: item:20a03092
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 16
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03093
+  itemId:
+    ref: item:20a03093
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 17
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03094
+  itemId:
+    ref: item:20a03094
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 18
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03101
+  itemId:
+    ref: item:20a03101
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 19
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03102
+  itemId:
+    ref: item:20a03102
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 20
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03103
+  itemId:
+    ref: item:20a03103
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 21
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03104
+  itemId:
+    ref: item:20a03104
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 22
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03045
+  itemId:
+    ref: item:20a03045
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 23
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03046
+  itemId:
+    ref: item:20a03046
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 24
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03047
+  itemId:
+    ref: item:20a03047
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 25
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03048
+  itemId:
+    ref: item:20a03048
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 26
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03049
+  itemId:
+    ref: item:20a03049
+  category: equipment
+  amount: 1
+  page: 2
+  slot: 27
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03055
+  itemId:
+    ref: item:20a03055
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 0
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03056
+  itemId:
+    ref: item:20a03056
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 1
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03057
+  itemId:
+    ref: item:20a03057
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 2
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03058
+  itemId:
+    ref: item:20a03058
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 3
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03059
+  itemId:
+    ref: item:20a03059
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 4
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03065
+  itemId:
+    ref: item:20a03065
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 5
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03066
+  itemId:
+    ref: item:20a03066
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 6
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03067
+  itemId:
+    ref: item:20a03067
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 7
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03068
+  itemId:
+    ref: item:20a03068
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 8
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03069
+  itemId:
+    ref: item:20a03069
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 9
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03075
+  itemId:
+    ref: item:20a03075
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 10
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03076
+  itemId:
+    ref: item:20a03076
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 11
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03077
+  itemId:
+    ref: item:20a03077
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 12
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03078
+  itemId:
+    ref: item:20a03078
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 13
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03079
+  itemId:
+    ref: item:20a03079
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 14
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03085
+  itemId:
+    ref: item:20a03085
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 15
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03086
+  itemId:
+    ref: item:20a03086
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 16
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03087
+  itemId:
+    ref: item:20a03087
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 17
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03088
+  itemId:
+    ref: item:20a03088
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 18
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03089
+  itemId:
+    ref: item:20a03089
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 19
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03095
+  itemId:
+    ref: item:20a03095
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 20
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03096
+  itemId:
+    ref: item:20a03096
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 21
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03097
+  itemId:
+    ref: item:20a03097
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 22
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03098
+  itemId:
+    ref: item:20a03098
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 23
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03099
+  itemId:
+    ref: item:20a03099
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 24
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03105
+  itemId:
+    ref: item:20a03105
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 25
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03106
+  itemId:
+    ref: item:20a03106
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 26
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03107
+  itemId:
+    ref: item:20a03107
+  category: equipment
+  amount: 1
+  page: 3
+  slot: 27
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03108
+  itemId:
+    ref: item:20a03108
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 0
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03109
+  itemId:
+    ref: item:20a03109
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 1
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03150
+  itemId:
+    ref: item:20a03150
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 2
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03160
+  itemId:
+    ref: item:20a03160
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 3
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03170
+  itemId:
+    ref: item:20a03170
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 4
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03180
+  itemId:
+    ref: item:20a03180
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 5
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03190
+  itemId:
+    ref: item:20a03190
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 6
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03200
+  itemId:
+    ref: item:20a03200
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 7
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03210
+  itemId:
+    ref: item:20a03210
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 8
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03111
+  itemId:
+    ref: item:20a03111
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 9
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03112
+  itemId:
+    ref: item:20a03112
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 10
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03113
+  itemId:
+    ref: item:20a03113
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 11
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03114
+  itemId:
+    ref: item:20a03114
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 12
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03121
+  itemId:
+    ref: item:20a03121
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 13
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03122
+  itemId:
+    ref: item:20a03122
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 14
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03123
+  itemId:
+    ref: item:20a03123
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 15
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03124
+  itemId:
+    ref: item:20a03124
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 16
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03131
+  itemId:
+    ref: item:20a03131
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 17
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03132
+  itemId:
+    ref: item:20a03132
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 18
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03133
+  itemId:
+    ref: item:20a03133
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 19
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03134
+  itemId:
+    ref: item:20a03134
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 20
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03141
+  itemId:
+    ref: item:20a03141
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 21
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03142
+  itemId:
+    ref: item:20a03142
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 22
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03143
+  itemId:
+    ref: item:20a03143
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 23
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03144
+  itemId:
+    ref: item:20a03144
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 24
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03151
+  itemId:
+    ref: item:20a03151
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 25
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03152
+  itemId:
+    ref: item:20a03152
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 26
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03153
+  itemId:
+    ref: item:20a03153
+  category: equipment
+  amount: 1
+  page: 4
+  slot: 27
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03154
+  itemId:
+    ref: item:20a03154
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 0
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03161
+  itemId:
+    ref: item:20a03161
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 1
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03162
+  itemId:
+    ref: item:20a03162
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 2
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03163
+  itemId:
+    ref: item:20a03163
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 3
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03164
+  itemId:
+    ref: item:20a03164
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 4
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03171
+  itemId:
+    ref: item:20a03171
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 5
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03172
+  itemId:
+    ref: item:20a03172
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 6
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03173
+  itemId:
+    ref: item:20a03173
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 7
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03174
+  itemId:
+    ref: item:20a03174
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 8
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03181
+  itemId:
+    ref: item:20a03181
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 9
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03182
+  itemId:
+    ref: item:20a03182
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 10
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03183
+  itemId:
+    ref: item:20a03183
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 11
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03184
+  itemId:
+    ref: item:20a03184
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 12
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03191
+  itemId:
+    ref: item:20a03191
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 13
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03192
+  itemId:
+    ref: item:20a03192
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 14
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03193
+  itemId:
+    ref: item:20a03193
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 15
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03194
+  itemId:
+    ref: item:20a03194
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 16
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03201
+  itemId:
+    ref: item:20a03201
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 17
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03202
+  itemId:
+    ref: item:20a03202
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 18
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03203
+  itemId:
+    ref: item:20a03203
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 19
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03204
+  itemId:
+    ref: item:20a03204
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 20
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03211
+  itemId:
+    ref: item:20a03211
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 21
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03212
+  itemId:
+    ref: item:20a03212
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 22
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03213
+  itemId:
+    ref: item:20a03213
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 23
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03214
+  itemId:
+    ref: item:20a03214
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 24
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03155
+  itemId:
+    ref: item:20a03155
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 25
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03156
+  itemId:
+    ref: item:20a03156
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 26
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03157
+  itemId:
+    ref: item:20a03157
+  category: equipment
+  amount: 1
+  page: 5
+  slot: 27
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03158
+  itemId:
+    ref: item:20a03158
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 0
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03159
+  itemId:
+    ref: item:20a03159
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 1
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03165
+  itemId:
+    ref: item:20a03165
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 2
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03166
+  itemId:
+    ref: item:20a03166
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 3
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03167
+  itemId:
+    ref: item:20a03167
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 4
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03168
+  itemId:
+    ref: item:20a03168
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 5
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03169
+  itemId:
+    ref: item:20a03169
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 6
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03175
+  itemId:
+    ref: item:20a03175
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 7
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03176
+  itemId:
+    ref: item:20a03176
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 8
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03177
+  itemId:
+    ref: item:20a03177
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 9
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03178
+  itemId:
+    ref: item:20a03178
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 10
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03179
+  itemId:
+    ref: item:20a03179
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 11
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03185
+  itemId:
+    ref: item:20a03185
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 12
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03186
+  itemId:
+    ref: item:20a03186
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 13
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03187
+  itemId:
+    ref: item:20a03187
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 14
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03188
+  itemId:
+    ref: item:20a03188
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 15
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03189
+  itemId:
+    ref: item:20a03189
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 16
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03195
+  itemId:
+    ref: item:20a03195
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 17
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03196
+  itemId:
+    ref: item:20a03196
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 18
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03197
+  itemId:
+    ref: item:20a03197
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 19
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03198
+  itemId:
+    ref: item:20a03198
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 20
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03199
+  itemId:
+    ref: item:20a03199
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 21
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03205
+  itemId:
+    ref: item:20a03205
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 22
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03206
+  itemId:
+    ref: item:20a03206
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 23
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03207
+  itemId:
+    ref: item:20a03207
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 24
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03208
+  itemId:
+    ref: item:20a03208
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 25
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03209
+  itemId:
+    ref: item:20a03209
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 26
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03215
+  itemId:
+    ref: item:20a03215
+  category: equipment
+  amount: 1
+  page: 6
+  slot: 27
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03216
+  itemId:
+    ref: item:20a03216
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 0
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03217
+  itemId:
+    ref: item:20a03217
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 1
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03218
+  itemId:
+    ref: item:20a03218
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 2
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03219
+  itemId:
+    ref: item:20a03219
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 3
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03260
+  itemId:
+    ref: item:20a03260
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 4
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03270
+  itemId:
+    ref: item:20a03270
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 5
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03280
+  itemId:
+    ref: item:20a03280
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 6
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03290
+  itemId:
+    ref: item:20a03290
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 7
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03300
+  itemId:
+    ref: item:20a03300
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 8
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03310
+  itemId:
+    ref: item:20a03310
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 9
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03320
+  itemId:
+    ref: item:20a03320
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 10
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03221
+  itemId:
+    ref: item:20a03221
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 11
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03222
+  itemId:
+    ref: item:20a03222
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 12
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03223
+  itemId:
+    ref: item:20a03223
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 13
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03224
+  itemId:
+    ref: item:20a03224
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 14
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03231
+  itemId:
+    ref: item:20a03231
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 15
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03232
+  itemId:
+    ref: item:20a03232
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 16
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03233
+  itemId:
+    ref: item:20a03233
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 17
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03234
+  itemId:
+    ref: item:20a03234
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 18
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03241
+  itemId:
+    ref: item:20a03241
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 19
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03242
+  itemId:
+    ref: item:20a03242
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 20
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03243
+  itemId:
+    ref: item:20a03243
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 21
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03244
+  itemId:
+    ref: item:20a03244
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 22
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03251
+  itemId:
+    ref: item:20a03251
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 23
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03252
+  itemId:
+    ref: item:20a03252
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 24
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03253
+  itemId:
+    ref: item:20a03253
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 25
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03254
+  itemId:
+    ref: item:20a03254
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 26
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03261
+  itemId:
+    ref: item:20a03261
+  category: equipment
+  amount: 1
+  page: 7
+  slot: 27
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03262
+  itemId:
+    ref: item:20a03262
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 0
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03263
+  itemId:
+    ref: item:20a03263
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 1
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03264
+  itemId:
+    ref: item:20a03264
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 2
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03271
+  itemId:
+    ref: item:20a03271
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 3
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03272
+  itemId:
+    ref: item:20a03272
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 4
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03273
+  itemId:
+    ref: item:20a03273
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 5
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03274
+  itemId:
+    ref: item:20a03274
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 6
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03281
+  itemId:
+    ref: item:20a03281
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 7
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03282
+  itemId:
+    ref: item:20a03282
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 8
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03283
+  itemId:
+    ref: item:20a03283
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 9
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03284
+  itemId:
+    ref: item:20a03284
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 10
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03291
+  itemId:
+    ref: item:20a03291
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 11
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03292
+  itemId:
+    ref: item:20a03292
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 12
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03293
+  itemId:
+    ref: item:20a03293
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 13
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03294
+  itemId:
+    ref: item:20a03294
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 14
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03301
+  itemId:
+    ref: item:20a03301
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 15
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03302
+  itemId:
+    ref: item:20a03302
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 16
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03303
+  itemId:
+    ref: item:20a03303
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 17
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03304
+  itemId:
+    ref: item:20a03304
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 18
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03311
+  itemId:
+    ref: item:20a03311
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 19
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03312
+  itemId:
+    ref: item:20a03312
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 20
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03313
+  itemId:
+    ref: item:20a03313
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 21
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03314
+  itemId:
+    ref: item:20a03314
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 22
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03321
+  itemId:
+    ref: item:20a03321
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 23
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03322
+  itemId:
+    ref: item:20a03322
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 24
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03323
+  itemId:
+    ref: item:20a03323
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 25
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03324
+  itemId:
+    ref: item:20a03324
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 26
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03265
+  itemId:
+    ref: item:20a03265
+  category: equipment
+  amount: 1
+  page: 8
+  slot: 27
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03266
+  itemId:
+    ref: item:20a03266
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 0
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03267
+  itemId:
+    ref: item:20a03267
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 1
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03268
+  itemId:
+    ref: item:20a03268
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 2
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03269
+  itemId:
+    ref: item:20a03269
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 3
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03275
+  itemId:
+    ref: item:20a03275
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 4
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03276
+  itemId:
+    ref: item:20a03276
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 5
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03277
+  itemId:
+    ref: item:20a03277
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 6
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03278
+  itemId:
+    ref: item:20a03278
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 7
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03279
+  itemId:
+    ref: item:20a03279
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 8
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03285
+  itemId:
+    ref: item:20a03285
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 9
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03286
+  itemId:
+    ref: item:20a03286
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 10
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03287
+  itemId:
+    ref: item:20a03287
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 11
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03288
+  itemId:
+    ref: item:20a03288
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 12
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03289
+  itemId:
+    ref: item:20a03289
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 13
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03295
+  itemId:
+    ref: item:20a03295
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 14
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03296
+  itemId:
+    ref: item:20a03296
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 15
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03297
+  itemId:
+    ref: item:20a03297
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 16
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03298
+  itemId:
+    ref: item:20a03298
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 17
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03299
+  itemId:
+    ref: item:20a03299
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 18
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03305
+  itemId:
+    ref: item:20a03305
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 19
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03306
+  itemId:
+    ref: item:20a03306
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 20
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03307
+  itemId:
+    ref: item:20a03307
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 21
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03308
+  itemId:
+    ref: item:20a03308
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 22
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03309
+  itemId:
+    ref: item:20a03309
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 23
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03315
+  itemId:
+    ref: item:20a03315
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 24
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03316
+  itemId:
+    ref: item:20a03316
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 25
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03317
+  itemId:
+    ref: item:20a03317
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 26
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03318
+  itemId:
+    ref: item:20a03318
+  category: equipment
+  amount: 1
+  page: 9
+  slot: 27
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03319
+  itemId:
+    ref: item:20a03319
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 0
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03325
+  itemId:
+    ref: item:20a03325
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 1
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03326
+  itemId:
+    ref: item:20a03326
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 2
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03327
+  itemId:
+    ref: item:20a03327
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 3
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03328
+  itemId:
+    ref: item:20a03328
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 4
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03329
+  itemId:
+    ref: item:20a03329
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 5
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03370
+  itemId:
+    ref: item:20a03370
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 6
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03380
+  itemId:
+    ref: item:20a03380
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 7
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03390
+  itemId:
+    ref: item:20a03390
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 8
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03400
+  itemId:
+    ref: item:20a03400
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 9
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03410
+  itemId:
+    ref: item:20a03410
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 10
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03420
+  itemId:
+    ref: item:20a03420
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 11
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03430
+  itemId:
+    ref: item:20a03430
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 12
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 20a03331
+  itemId:
+    ref: item:20a03331
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 13
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03332
+  itemId:
+    ref: item:20a03332
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 14
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03333
+  itemId:
+    ref: item:20a03333
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 15
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03334
+  itemId:
+    ref: item:20a03334
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 16
+  priceGold: 2000
+  requiredItems:
+  - itemId:
+      ref: item:10a00007
+    category: material
+    amount: 4
+- id: 20a03341
+  itemId:
+    ref: item:20a03341
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 17
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03342
+  itemId:
+    ref: item:20a03342
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 18
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03343
+  itemId:
+    ref: item:20a03343
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 19
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03344
+  itemId:
+    ref: item:20a03344
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 20
+  priceGold: 3000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03351
+  itemId:
+    ref: item:20a03351
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 21
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03352
+  itemId:
+    ref: item:20a03352
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 22
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03353
+  itemId:
+    ref: item:20a03353
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 23
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03354
+  itemId:
+    ref: item:20a03354
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 24
+  priceGold: 4000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03361
+  itemId:
+    ref: item:20a03361
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 25
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03362
+  itemId:
+    ref: item:20a03362
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 26
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03363
+  itemId:
+    ref: item:20a03363
+  category: equipment
+  amount: 1
+  page: 10
+  slot: 27
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03364
+  itemId:
+    ref: item:20a03364
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 0
+  priceGold: 6000
+  requiredItems:
+  - itemId:
+      ref: item:10a00064
+    category: material
+    amount: 4
+- id: 20a03371
+  itemId:
+    ref: item:20a03371
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 1
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03372
+  itemId:
+    ref: item:20a03372
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 2
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03373
+  itemId:
+    ref: item:20a03373
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 3
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03374
+  itemId:
+    ref: item:20a03374
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 4
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03381
+  itemId:
+    ref: item:20a03381
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 5
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03382
+  itemId:
+    ref: item:20a03382
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 6
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03383
+  itemId:
+    ref: item:20a03383
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 7
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03384
+  itemId:
+    ref: item:20a03384
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 8
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03391
+  itemId:
+    ref: item:20a03391
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 9
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03392
+  itemId:
+    ref: item:20a03392
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 10
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03393
+  itemId:
+    ref: item:20a03393
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 11
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03394
+  itemId:
+    ref: item:20a03394
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 12
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03401
+  itemId:
+    ref: item:20a03401
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 13
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03402
+  itemId:
+    ref: item:20a03402
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 14
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03403
+  itemId:
+    ref: item:20a03403
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 15
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03404
+  itemId:
+    ref: item:20a03404
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 16
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 4
+- id: 20a03411
+  itemId:
+    ref: item:20a03411
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 17
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03412
+  itemId:
+    ref: item:20a03412
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 18
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03413
+  itemId:
+    ref: item:20a03413
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 19
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03414
+  itemId:
+    ref: item:20a03414
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 20
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03421
+  itemId:
+    ref: item:20a03421
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 21
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03422
+  itemId:
+    ref: item:20a03422
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 22
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03423
+  itemId:
+    ref: item:20a03423
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 23
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03424
+  itemId:
+    ref: item:20a03424
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 24
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03431
+  itemId:
+    ref: item:20a03431
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 25
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03432
+  itemId:
+    ref: item:20a03432
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 26
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03433
+  itemId:
+    ref: item:20a03433
+  category: equipment
+  amount: 1
+  page: 11
+  slot: 27
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03434
+  itemId:
+    ref: item:20a03434
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 0
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 6
+- id: 20a03375
+  itemId:
+    ref: item:20a03375
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 1
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03376
+  itemId:
+    ref: item:20a03376
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 2
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03377
+  itemId:
+    ref: item:20a03377
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 3
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03378
+  itemId:
+    ref: item:20a03378
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 4
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03379
+  itemId:
+    ref: item:20a03379
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 5
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03385
+  itemId:
+    ref: item:20a03385
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 6
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03386
+  itemId:
+    ref: item:20a03386
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 7
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03387
+  itemId:
+    ref: item:20a03387
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 8
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03388
+  itemId:
+    ref: item:20a03388
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 9
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03389
+  itemId:
+    ref: item:20a03389
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 10
+  priceGold: 20000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03395
+  itemId:
+    ref: item:20a03395
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 11
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03396
+  itemId:
+    ref: item:20a03396
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 12
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03397
+  itemId:
+    ref: item:20a03397
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 13
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03398
+  itemId:
+    ref: item:20a03398
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 14
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03399
+  itemId:
+    ref: item:20a03399
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 15
+  priceGold: 35000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03405
+  itemId:
+    ref: item:20a03405
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 16
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03406
+  itemId:
+    ref: item:20a03406
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 17
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03407
+  itemId:
+    ref: item:20a03407
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 18
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03408
+  itemId:
+    ref: item:20a03408
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 19
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03409
+  itemId:
+    ref: item:20a03409
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 20
+  priceGold: 50000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 3
+- id: 20a03415
+  itemId:
+    ref: item:20a03415
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 21
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03416
+  itemId:
+    ref: item:20a03416
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 22
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03417
+  itemId:
+    ref: item:20a03417
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 23
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03418
+  itemId:
+    ref: item:20a03418
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 24
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03419
+  itemId:
+    ref: item:20a03419
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 25
+  priceGold: 65000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03425
+  itemId:
+    ref: item:20a03425
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 26
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03426
+  itemId:
+    ref: item:20a03426
+  category: equipment
+  amount: 1
+  page: 12
+  slot: 27
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03427
+  itemId:
+    ref: item:20a03427
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 0
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03428
+  itemId:
+    ref: item:20a03428
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 1
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03429
+  itemId:
+    ref: item:20a03429
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 2
+  priceGold: 80000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03435
+  itemId:
+    ref: item:20a03435
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 3
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03436
+  itemId:
+    ref: item:20a03436
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 4
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03437
+  itemId:
+    ref: item:20a03437
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 5
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03438
+  itemId:
+    ref: item:20a03438
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 6
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 20a03439
+  itemId:
+    ref: item:20a03439
+  category: equipment
+  amount: 1
+  page: 13
+  slot: 7
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 5
+- id: 10a03000
+  itemId:
+    ref: item:10a03000
+  category: material
+  amount: 1
+  page: 13
+  slot: 8
+  priceGold: 25000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 10a03001
+  itemId:
+    ref: item:10a03001
+  category: material
+  amount: 1
+  page: 13
+  slot: 9
+  priceGold: 25000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 10a03002
+  itemId:
+    ref: item:10a03002
+  category: material
+  amount: 1
+  page: 13
+  slot: 10
+  priceGold: 25000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8
+- id: 10a03003
+  itemId:
+    ref: item:10a03003
+  category: material
+  amount: 1
+  page: 13
+  slot: 11
+  priceGold: 25000
+  requiredItems:
+  - itemId:
+      ref: item:10a00086
+    category: material
+    amount: 8

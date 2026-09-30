@@ -1,0 +1,17 @@
+# design:
+#   motif: "霧 / 渡し場"
+#   progression: 15
+schemaVersion: 1
+id: phantom_archer_d_15_armor_set
+name: '&d霧渡 Lv15 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 37
+- count: 4
+  stats:
+  - status: EVASION
+    type: FLAT
+    value: 1

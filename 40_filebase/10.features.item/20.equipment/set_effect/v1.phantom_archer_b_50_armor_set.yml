@@ -1,0 +1,17 @@
+# design:
+#   motif: "灯台 / 帰航"
+#   progression: 50
+schemaVersion: 1
+id: phantom_archer_b_50_armor_set
+name: '&d彼岸 Lv50 防具セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 10
+- count: 4
+  stats:
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 2

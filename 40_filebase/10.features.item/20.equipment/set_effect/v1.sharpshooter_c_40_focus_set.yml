@@ -1,0 +1,17 @@
+# design:
+#   motif: "風と書簡 / 継承"
+#   progression: 40
+schemaVersion: 1
+id: sharpshooter_c_40_focus_set
+name: '&d風渡 Lv40 射手セット'
+pieces:
+- count: 2
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 12
+- count: 3
+  stats:
+  - status: NORMAL_ATTACK_DAMAGE_INCREASE
+    type: FLAT
+    value: 2
