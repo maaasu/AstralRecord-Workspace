@@ -611,6 +611,27 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task MarketPriceQuote_UnevenHistoryKeepsMedianAndQuartileRange()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        foreach (var price in new long[] { 100, 20, 40, 10, 30 })
+            await AddPriceHistoryAsync(harness, "material", "market_material", 1, "legacy-signature", price);
+        var service = new MarketPriceService(harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, 1)));
+
+        var quote = await service.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material", ItemId = "market_material", Quantity = 1,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal("MEDIUM", quote.Confidence);
+        Assert.Equal(30, quote.ReferenceUnitPrice);
+        Assert.Equal(12, quote.AllowedMinUnitPrice);
+        Assert.Equal(100, quote.AllowedMaxUnitPrice);
+    }
+
+    [Fact]
     public async Task MarketPriceQuote_ZeroSellValueWithoutHistoryHasTradableReferenceBand()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

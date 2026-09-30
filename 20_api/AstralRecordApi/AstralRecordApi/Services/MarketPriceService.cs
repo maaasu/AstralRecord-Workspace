@@ -24,17 +24,18 @@ public class MarketPriceService(
         var now = DateTime.UtcNow;
         var valuation = await BuildValuationAsync(request, item);
         var sample = await FindMarketSampleAsync(request, valuation.Signature, now);
+        var sortedPrices = sample.Prices.Order().ToArray();
         var sellPrice = Math.Max(0, item.SaleValue);
         var suggestedUnitPrice = Math.Max(sellPrice, ApplyValuationFactor(sellPrice, valuation.RollQualityScore));
-        var referenceUnitPrice = sample.Prices.Count > 0
-            ? Median(sample.Prices)
+        var referenceUnitPrice = sortedPrices.Length > 0
+            ? Median(sortedPrices)
             : null;
 
         // 個体条件が異なる item 単位の履歴は参考価格に留め、件数だけで出品制限を有効にしない。
         var confidence = request.InstanceId.HasValue && sample.Scope == "ITEM_ONLY"
             ? "LOW"
             : ResolveConfidence(sample.Prices.Count);
-        var allowed = ResolveAllowedRange(sellPrice, suggestedUnitPrice, sample.Prices, confidence);
+        var allowed = ResolveAllowedRange(sellPrice, suggestedUnitPrice, sortedPrices, confidence);
         var judgement = ResolveJudgement(request.UnitPrice, sellPrice);
 
         return new MarketPriceQuoteResponse
@@ -185,19 +186,19 @@ public class MarketPriceService(
     private static (long Min, long Max) ResolveAllowedRange(
         long sellPrice,
         long suggestedPrice,
-        IReadOnlyList<long> prices,
+        IReadOnlyList<long> sortedPrices,
         string confidence
     )
     {
         // 参考帯を出品可能な単価に揃え、履歴や売値が 0 の場合も逆順にしない。
         var minimumTradablePrice = sellPrice + 1L;
-        if (prices.Count == 0 || confidence == "LOW")
+        if (sortedPrices.Count == 0 || confidence == "LOW")
             return (minimumTradablePrice,
                 Math.Max(minimumTradablePrice, Math.Max(sellPrice * 50L, suggestedPrice * 5L)));
 
-        var median = Median(prices) ?? suggestedPrice;
-        var p25 = Percentile(prices, 0.25m);
-        var p75 = Percentile(prices, 0.75m);
+        var median = Median(sortedPrices) ?? suggestedPrice;
+        var p25 = Percentile(sortedPrices, 0.25m);
+        var p75 = Percentile(sortedPrices, 0.75m);
         var iqr = p75 - p25;
 
         if (confidence == "HIGH")
@@ -221,33 +222,31 @@ public class MarketPriceService(
         return "ALLOW";
     }
 
-    private static long? Median(IReadOnlyList<long> values)
+    private static long? Median(IReadOnlyList<long> sortedValues)
     {
-        if (values.Count == 0)
+        if (sortedValues.Count == 0)
             return null;
 
-        var sorted = values.Order().ToArray();
-        var middle = sorted.Length / 2;
-        return sorted.Length % 2 == 0
-            ? (long)(((decimal)sorted[middle - 1] + sorted[middle]) / 2m)
-            : sorted[middle];
+        var middle = sortedValues.Count / 2;
+        return sortedValues.Count % 2 == 0
+            ? (long)(((decimal)sortedValues[middle - 1] + sortedValues[middle]) / 2m)
+            : sortedValues[middle];
     }
 
-    private static decimal Percentile(IReadOnlyList<long> values, decimal percentile)
+    private static decimal Percentile(IReadOnlyList<long> sortedValues, decimal percentile)
     {
-        var sorted = values.Order().Select(value => (decimal)value).ToArray();
-        if (sorted.Length == 0)
+        if (sortedValues.Count == 0)
             return 0m;
-        if (sorted.Length == 1)
-            return sorted[0];
+        if (sortedValues.Count == 1)
+            return sortedValues[0];
 
-        var index = (sorted.Length - 1) * percentile;
+        var index = (sortedValues.Count - 1) * percentile;
         var lower = (int)Math.Floor(index);
         var upper = (int)Math.Ceiling(index);
         if (lower == upper)
-            return sorted[lower];
+            return sortedValues[lower];
 
-        return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+        return sortedValues[lower] + ((decimal)sortedValues[upper] - sortedValues[lower]) * (index - lower);
     }
 
     private static decimal? Average(decimal? left, decimal? right)

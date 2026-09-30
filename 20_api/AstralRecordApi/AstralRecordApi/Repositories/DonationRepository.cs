@@ -199,9 +199,14 @@ public sealed class DonationRepository(ManagementDbContext management, AstralRec
             .Select(x => new { x.Uuid, x.CreatedAt }).ToListAsync();
         var approvals = await Requests.AsNoTracking().Where(x => x.UserUuid == ledger.UserUuid && x.Status == DonationRules.Approved)
             .OrderBy(x => x.ApprovedThroughAmount).ToListAsync();
+        var accountIds = accounts.Select(account => account.Uuid).ToArray();
+        var grantedThrough = await Grants.AsNoTracking().Where(grant => accountIds.Contains(grant.AccountUuid))
+            .GroupBy(grant => grant.AccountUuid)
+            .Select(group => new { AccountUuid = group.Key, ThroughAmount = group.Max(grant => grant.ThroughAmount) })
+            .ToDictionaryAsync(group => group.AccountUuid, group => group.ThroughAmount);
         foreach (var account in accounts)
         {
-            var through = await Grants.Where(x => x.AccountUuid == account.Uuid).MaxAsync(x => (long?)x.ThroughAmount) ?? 0;
+            var through = grantedThrough.GetValueOrDefault(account.Uuid);
             // 新規アカウントは作成以前の承認分を累計メールにまとめる。
             if (through == 0)
             {
