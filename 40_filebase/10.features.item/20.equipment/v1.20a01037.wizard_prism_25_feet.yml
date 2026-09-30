@@ -1,0 +1,236 @@
+# design:
+#   motif: "光学 / 虹庭"
+#   progression: 25
+schemaVersion: 1
+id: 20a01037
+category: equipment
+name: 虹苗の庭師の靴
+icon: LEATHER_BOOTS
+appearance:
+  color: '#6E9B79'
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7虹庭の力を宿す装備。'
+- '&7必要プレイヤーLv25。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: FEET
+  requiredLevel: 25
+  setId: wizard_prism_25_armor
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 114.9
+  - status: DEFENSE
+    type: FLAT
+    value: 34.4
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 28.9
+  - status: MOVEMENT_SPEED
+    type: FLAT
+    value: 0.9
+  durability:
+    max: 500
+    consume: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.3
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 1.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE

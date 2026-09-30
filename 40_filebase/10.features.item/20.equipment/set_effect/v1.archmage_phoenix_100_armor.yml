@@ -1,0 +1,17 @@
+# design:
+#   motif: "神話 / 不死鳥の継火"
+#   progression: 100
+schemaVersion: 1
+id: archmage_phoenix_100_armor
+name: '&d継火・100セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 195.5
+- count: 4
+  stats:
+  - status: SUPPORT_POWER
+    type: FLAT
+    value: 5

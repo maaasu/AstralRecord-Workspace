@@ -1,0 +1,15 @@
+# design:
+#   motif: "神話 / 不死鳥の灰"
+#   progression: 100
+schemaVersion: 1
+id: 10a01003
+category: material
+name: '&6不滅の暁灰'
+icon: BLAZE_POWDER
+rarity: EPIC
+maxStack: 64
+saleValue: 0
+lore:
+- '&7装備の状態変化に使う素材。'
+unTradeable: false
+unSellable: true

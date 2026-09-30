@@ -1,0 +1,12 @@
+# design:
+#   motif: "天体 / 星炉"
+#   progression: 100
+schemaVersion: 1
+id: wizard_fire_100_focus
+name: '&d星暦院・落星・100セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 51

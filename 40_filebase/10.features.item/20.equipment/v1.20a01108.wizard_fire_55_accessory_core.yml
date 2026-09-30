@@ -1,0 +1,173 @@
+# design:
+#   motif: "天体 / 星炉"
+#   progression: 55
+schemaVersion: 1
+id: 20a01108
+category: equipment
+name: 落星の日蝕の炉核
+icon: MAGMA_CREAM
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7星炉の力を宿す装備。'
+- '&7必要プレイヤーLv55。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 55
+  tag: CORE
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 31
+  - status: FIRE_DAMAGE_INCREASE
+    type: FLAT
+    value: 2.4
+  durability:
+    max: 620
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.4
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.4
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE

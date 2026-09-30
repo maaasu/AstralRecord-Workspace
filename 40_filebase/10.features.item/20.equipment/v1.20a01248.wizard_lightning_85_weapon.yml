@@ -1,0 +1,231 @@
+# design:
+#   motif: "気象 / 雷路"
+#   progression: 85
+schemaVersion: 1
+id: 20a01248
+category: equipment
+name: 配達待ちの導雷杖
+icon: BLAZE_ROD
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7雷路の力を宿す装備。'
+- '&7必要プレイヤーLv85。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: WEAPON
+  requiredLevel: 85
+  handType: ONE
+  tag: WAND
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 894.9
+  - status: INTELLIGENCE
+    type: FLAT
+    value: 9
+  - status: LIGHTNING_DAMAGE_INCREASE
+    type: FLAT
+    value: 7.2
+  durability:
+    max: 740
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 8.9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 9
+      - status: INTELLIGENCE
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE

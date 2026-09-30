@@ -1,0 +1,12 @@
+# design:
+#   motif: "工芸 / 沈黙時計"
+#   progression: 100
+schemaVersion: 1
+id: wizard_arcane_100_focus
+name: '&d星暦院・沈黙時計・100セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 51

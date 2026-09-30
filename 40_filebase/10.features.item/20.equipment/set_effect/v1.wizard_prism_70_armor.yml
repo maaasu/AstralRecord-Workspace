@@ -1,0 +1,17 @@
+# design:
+#   motif: "光学 / 虹庭"
+#   progression: 70
+schemaVersion: 1
+id: wizard_prism_70_armor
+name: '&d星暦院・虹庭・70セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 97.5
+- count: 4
+  stats:
+  - status: SKILL_DAMAGE_INCREASE
+    type: FLAT
+    value: 3

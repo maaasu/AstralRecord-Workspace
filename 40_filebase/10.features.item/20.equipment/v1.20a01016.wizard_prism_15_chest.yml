@@ -1,0 +1,201 @@
+# design:
+#   motif: "光学 / 虹庭"
+#   progression: 15
+schemaVersion: 1
+id: 20a01016
+category: equipment
+name: 硝子芽の分光ローブ
+icon: LEATHER_CHESTPLATE
+appearance:
+  color: '#6E9B79'
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+- '&7虹庭の力を宿す装備。'
+- '&7必要プレイヤーLv15。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: CHEST
+  requiredLevel: 15
+  setId: wizard_prism_15_armor
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 203.5
+  - status: DEFENSE
+    type: FLAT
+    value: 60.1
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 49.1
+  - status: MAX_MANA
+    type: FLAT
+    value: 36
+  durability:
+    max: 460
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.4
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 2.1
+      - status: DEFENSE
+        type: FLAT
+        value: 0.6
+      - status: MAGIC_DEFENSE
+        type: FLAT
+        value: 0.5
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.4
+      successRate: 0.05
+      failAction: NONE

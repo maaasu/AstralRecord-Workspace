@@ -1,0 +1,173 @@
+# design:
+#   motif: "光学 / 虹庭"
+#   progression: 55
+schemaVersion: 1
+id: 20a01141
+category: equipment
+name: 三彩の庭核
+icon: BEACON
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7虹庭の力を宿す装備。'
+- '&7必要プレイヤーLv55。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 55
+  tag: CORE
+  stats:
+  - status: MANA_COST_REDUCTION
+    type: FLAT
+    value: 2.4
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 18.6
+  durability:
+    max: 620
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE

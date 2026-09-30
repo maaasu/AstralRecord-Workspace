@@ -1,0 +1,17 @@
+# design:
+#   motif: "気象 / 冬の記録"
+#   progression: 70
+schemaVersion: 1
+id: wizard_ice_70_armor
+name: '&d星暦院・冬暦・70セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 97.5
+- count: 4
+  stats:
+  - status: ICE_DAMAGE_INCREASE
+    type: FLAT
+    value: 3

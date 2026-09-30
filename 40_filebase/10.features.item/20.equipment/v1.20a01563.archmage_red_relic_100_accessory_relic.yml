@@ -1,0 +1,479 @@
+# design:
+#   motif: "神話 / 不死鳥の継火"
+#   progression: 100
+schemaVersion: 1
+id: 20a01563
+category: equipment
+name: 不落の名残瓶
+icon: GLASS_BOTTLE
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 0
+lore:
+- '&7不死鳥の継火の力を宿す装備。'
+- '&7必要プレイヤーLv100。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 100
+  tag: RELIC
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 13.3
+  - status: WEAKNESS_APPLY_CHANCE
+    type: FLAT
+    value: 1.2
+  - status: CONDITION_DURATION_INCREASE
+    type: FLAT
+    value: 2.5
+  durability:
+    max: 800
+    consume: 1
+  enhance:
+    maxLevel: 20
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 31
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 32
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 33
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 34
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 35
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 36
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 37
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 38
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 39
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 40
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 41
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 42
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 43
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 44
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 45
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 46
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 47
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 48
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 49
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 50
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 51
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 52
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 53
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 54
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 55
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 56
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 57
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 58
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 59
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 60
+      statIncrease:
+      - status: MAGIC_ATTACK
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+  transcendence:
+  - name: 再鋳
+    rank: 1
+    requiredEnhanceLevel: 20
+    requiredMaterials:
+    - itemId: 10a01002
+      amount: 10
+    requiredCurrency: 300000
+    overrides:
+      name: 再鋳・不落の名残瓶
+      enhance:
+        maxLevel: 40
+  - name: 完成
+    rank: 2
+    requiredEnhanceLevel: 40
+    requiredMaterials:
+    - itemId: 10a01003
+      amount: 10
+    requiredCurrency: 600000
+    overrides:
+      name: 完成・不落の名残瓶
+      enhance:
+        maxLevel: 60

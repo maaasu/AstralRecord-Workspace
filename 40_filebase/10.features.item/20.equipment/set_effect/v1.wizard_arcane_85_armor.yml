@@ -1,0 +1,17 @@
+# design:
+#   motif: "工芸 / 沈黙時計"
+#   progression: 85
+schemaVersion: 1
+id: wizard_arcane_85_armor
+name: '&d星暦院・沈黙時計・85セット'
+pieces:
+- count: 2
+  stats:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 130
+- count: 4
+  stats:
+  - status: NONE_DAMAGE_INCREASE
+    type: FLAT
+    value: 4

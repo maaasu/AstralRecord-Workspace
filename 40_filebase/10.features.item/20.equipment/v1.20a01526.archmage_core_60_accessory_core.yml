@@ -1,0 +1,273 @@
+# design:
+#   motif: "神話 / 不死鳥の継火"
+#   progression: 60
+schemaVersion: 1
+id: 20a01526
+category: equipment
+name: 双翼の脈動核
+icon: FIRE_CHARGE
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+- '&7不死鳥の継火の力を宿す装備。'
+- '&7必要プレイヤーLv60。'
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  requiredLevel: 60
+  tag: CORE
+  stats:
+  - status: MAX_MANA
+    type: FLAT
+    value: 26.9
+  - status: MP_REGEN
+    type: FLAT
+    value: 1.5
+  - status: MANA_COST_REDUCTION
+    type: FLAT
+    value: 0.8
+  durability:
+    max: 640
+    consume: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      - status: MP_REGEN
+        type: FLAT
+        value: 0.1
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      - status: MP_REGEN
+        type: FLAT
+        value: 0.1
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      - status: MP_REGEN
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      - status: MP_REGEN
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.2
+      successRate: 0.2
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      successRate: 0.2
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MAX_MANA
+        type: FLAT
+        value: 0.3
+      - status: MP_REGEN
+        type: FLAT
+        value: 0.1
+      successRate: 0.2
+      failAction: NONE
+  transcendence:
+  - name: 再鋳
+    rank: 1
+    requiredEnhanceLevel: 15
+    requiredMaterials:
+    - itemId: 10a01002
+      amount: 6
+    requiredCurrency: 66000
+    overrides:
+      name: 再鋳・双翼の脈動核
+      enhance:
+        maxLevel: 30
