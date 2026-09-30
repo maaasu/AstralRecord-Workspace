@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.command;
 
+import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -10,19 +11,23 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 
-/** 管理者本人のモブスポナー管理表示を切り替えるコマンドです。 */
+/** 管理者本人の Mob・採集スポナー管理表示を切り替えるコマンドです。 */
 public final class MobSpawnerDisplayCommand extends AstCommand {
     private final MobSpawnerService spawnerService;
+    private final GatheringSpawnerService gatheringSpawnerService;
 
     /**
      * コマンドを初期化します。
      *
      * @param spawnerService モブスポナーサービス
+     * @param gatheringSpawnerService 採集スポナーサービス
      */
-    public MobSpawnerDisplayCommand(@NotNull MobSpawnerService spawnerService) {
-        super("mobspawnerdisplay", "モブスポナー管理表示を切り替えます。",
+    public MobSpawnerDisplayCommand(@NotNull MobSpawnerService spawnerService,
+                                   @NotNull GatheringSpawnerService gatheringSpawnerService) {
+        super("mobspawnerdisplay", "モブ・採集スポナー管理表示を切り替えます。",
                 "/mobspawnerdisplay <normal|light|off>", true, PERMISSION_NONE);
         this.spawnerService = spawnerService;
+        this.gatheringSpawnerService = gatheringSpawnerService;
     }
 
     /**
@@ -51,6 +56,7 @@ public final class MobSpawnerDisplayCommand extends AstCommand {
         }
 
         spawnerService.setVisualMode(player.getBukkit(), mode);
+        gatheringSpawnerService.refreshVisuals();
         PlayerMsgId messageId = switch (mode) {
             case NORMAL -> PlayerMsgId.P_5735;
             case LIGHT -> PlayerMsgId.P_5736;

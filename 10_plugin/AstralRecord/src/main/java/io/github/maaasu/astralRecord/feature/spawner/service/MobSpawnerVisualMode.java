@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
+import org.bukkit.NamespacedKey;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/** 管理者に送るモブスポナー表示の種類です。 */
+/** 管理者に送る Mob・採集スポナー共通の表示設定です。 */
 public enum MobSpawnerVisualMode {
     NORMAL((byte) 0),
     LIGHT((byte) 1),
@@ -12,6 +15,16 @@ public enum MobSpawnerVisualMode {
 
     MobSpawnerVisualMode(byte storedValue) {
         this.storedValue = storedValue;
+    }
+
+    /**
+     * 既存の保存キーを両スポナー種別で共有します。
+     *
+     * @param plugin キーの名前空間を所有するプラグイン
+     * @return 表示モードの PDC キー
+     */
+    public static @NotNull NamespacedKey storageKey(@NotNull Plugin plugin) {
+        return new NamespacedKey(plugin, "mob_spawner_visual_mode");
     }
 
     /**

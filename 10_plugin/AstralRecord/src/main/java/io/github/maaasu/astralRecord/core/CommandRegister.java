@@ -232,7 +232,7 @@ public class CommandRegister {
         cm.registerCommand("showitem", itemChatShareCommand, itemChatShareTabCompleter);
         cm.registerCommand("si", itemChatShareCommand, itemChatShareTabCompleter);
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
-        cm.registerCommand("mobspawnerdisplay", new MobSpawnerDisplayCommand(spawnerService), new MobSpawnerDisplayTabCompleter(spawnerService));
+        cm.registerCommand("mobspawnerdisplay", new MobSpawnerDisplayCommand(spawnerService, gatheringSpawnerService), new MobSpawnerDisplayTabCompleter(spawnerService));
         cm.registerCommand("dummy", new TrainingDummyCommand(trainingDummyService, trainingDummyGui), new TrainingDummyTabCompleter(trainingDummyService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         WorldCommand worldCommand = new WorldCommand(worldService);

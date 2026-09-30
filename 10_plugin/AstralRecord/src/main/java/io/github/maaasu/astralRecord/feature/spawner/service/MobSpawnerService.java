@@ -102,7 +102,7 @@ public class MobSpawnerService {
         this.definitionRepository = definitionRepository;
         this.locationRepository = locationRepository;
         this.spawnerIdKey = new NamespacedKey(plugin, "mob_spawner_id");
-        this.visualModeKey = new NamespacedKey(plugin, "mob_spawner_visual_mode");
+        this.visualModeKey = MobSpawnerVisualMode.storageKey(plugin);
     }
 
     /**
@@ -434,7 +434,7 @@ public class MobSpawnerService {
     }
 
     /**
-     * 管理者本人のモブスポナー表示モードを取得します。
+     * 管理者本人の Mob・採集スポナー共通の表示モードを取得します。
      *
      * @param viewer 表示対象のプレイヤー
      * @return 保存済みモード。未設定の場合は通常表示
@@ -445,7 +445,7 @@ public class MobSpawnerService {
     }
 
     /**
-     * 管理者本人のモブスポナー表示モードを保存し、現在の表示へ直ちに反映します。
+     * 管理者本人の共通表示モードを保存し、Mob スポナー表示へ直ちに反映します。
      * Bukkit メインスレッドから呼び出してください。
      *
      * @param viewer 表示設定を変更するプレイヤー

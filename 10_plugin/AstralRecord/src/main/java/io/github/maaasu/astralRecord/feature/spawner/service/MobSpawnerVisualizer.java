@@ -1,213 +1,51 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import org.bukkit.Material;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Collection;
 
-/**
- * AccountMode.ADMIN の viewer にだけスポナー位置と出現対象名を表示します。表示可否は user.permission に依存しません。
- */
-final class MobSpawnerVisualizer {
-
-    private static final long INTERVAL_TICKS = 40L;
-    private static final int RESPAWN_CYCLES = 5;
-    private static final float BLOCK_SCALE = 0.75F;
-    private static final float TEXT_SCALE = 0.8F;
-    private static final double VIEW_DISTANCE_SQ = 64.0D * 64.0D;
-
-    private final Plugin plugin;
+/** Mob スポナーの配置と表示内容を共通の管理表示へ渡します。 */
+final class MobSpawnerVisualizer extends SpawnerVisualizer<MobSpawnerLocation> {
     private final MobSpawnerService spawnerService;
-    private final ParticleDisplayService particleDisplayService;
-    private final SpawnerPacketDisplay packetDisplay = new SpawnerPacketDisplay();
-    private final Map<ViewerSpawnerKey, SpawnerVisual> displays = new HashMap<>();
-    private BukkitTask task;
 
-    MobSpawnerVisualizer(
-        @NotNull Plugin plugin,
-        @NotNull MobSpawnerService spawnerService,
-        @NotNull ParticleDisplayService particleDisplayService
-    ) {
-        this.plugin = plugin;
+    MobSpawnerVisualizer(@NotNull Plugin plugin, @NotNull MobSpawnerService spawnerService,
+                         @NotNull ParticleDisplayService particleDisplayService) {
+        super(plugin, particleDisplayService);
         this.spawnerService = spawnerService;
-        this.particleDisplayService = particleDisplayService;
     }
 
-    void start() {
-        if (task != null) {
-            return;
-        }
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
+    @Override
+    protected @NotNull Collection<MobSpawnerLocation> locations() {
+        return spawnerService.getLocations();
     }
 
-    /** 管理者の表示設定変更を次回周期を待たずに反映します。 */
-    void refresh() {
-        if (task != null) {
-            tick();
-        }
+    @Override
+    protected @Nullable Location location(@NotNull MobSpawnerLocation spawner) {
+        return spawner.toLocation();
     }
 
-    void stop() {
-        if (task != null) {
-            task.cancel();
-            task = null;
-        }
-        for (Map.Entry<ViewerSpawnerKey, SpawnerVisual> entry : displays.entrySet()) {
-            Player player = plugin.getServer().getPlayer(entry.getKey().viewerId());
-            entry.getValue().destroy(player);
-        }
-        displays.clear();
+    @Override
+    protected @NotNull String key(@NotNull MobSpawnerLocation spawner) {
+        return spawner.locationKey() + ":" + spawner.spawnerId();
     }
 
-    private void tick() {
-        Set<ViewerSpawnerKey> activeKeys = new HashSet<>();
-        for (MobSpawnerLocation spawnerLocation : spawnerService.getLocations()) {
-            Location location = spawnerLocation.toLocation();
-            if (location == null || location.getWorld() == null) {
-                continue;
-            }
-            updateViewers(spawnerLocation, location, activeKeys);
-        }
-
-        displays.entrySet().removeIf(entry -> {
-            if (activeKeys.contains(entry.getKey())) {
-                return false;
-            }
-            Player player = plugin.getServer().getPlayer(entry.getKey().viewerId());
-            entry.getValue().destroy(player);
-            return true;
-        });
+    @Override
+    protected @NotNull Material material(@NotNull MobSpawnerLocation spawner) {
+        return spawnerService.getDisplayMaterial(spawner.spawnerId());
     }
 
-    @NotNull
-    private SpawnerVisual createDisplay(@NotNull MobSpawnerLocation spawnerLocation, @NotNull Location location) {
-        SpawnerPacketDisplay.PacketEntity block = packetDisplay.block(
-                location.clone().add(0.0D, 0.05D, 0.0D),
-                spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()),
-                new Vector3f(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE)
-        );
-        SpawnerPacketDisplay.PacketEntity text = packetDisplay.text(
-                location.clone().add(0.0D, 1.35D, 0.0D),
-                label(spawnerLocation),
-                TEXT_SCALE
-        );
-        return new SpawnerVisual(block, text);
-    }
-
-    private void updateViewers(
-            @NotNull MobSpawnerLocation spawnerLocation,
-            @NotNull Location location,
-            @NotNull Set<ViewerSpawnerKey> activeKeys
-    ) {
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (!isVisibleTo(player, location)) {
-                continue;
-            }
-            ViewerSpawnerKey key = new ViewerSpawnerKey(
-                    player.getUniqueId(),
-                    spawnerLocation.locationKey(),
-                    spawnerLocation.spawnerId()
-            );
-            activeKeys.add(key);
-            SpawnerVisual display = displays.computeIfAbsent(key, ignored -> createDisplay(spawnerLocation, location));
-            MobSpawnerVisualMode mode = spawnerService.getVisualMode(player);
-            display.show(player, mode);
-            if (mode == MobSpawnerVisualMode.NORMAL) {
-                particleDisplayService.spawnForViewer(
-                    player,
-                    location.clone().add(0.0D, 0.75D, 0.0D),
-                    SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT
-                );
-            }
-        }
-    }
-
-    private boolean isVisibleTo(@NotNull Player player, @NotNull Location location) {
-        if (player.getWorld() != location.getWorld() || player.getLocation().distanceSquared(location) > VIEW_DISTANCE_SQ) {
-            return false;
-        }
-        return spawnerService.canViewSpawnerVisual(AstPlayerCache.get(player))
-                && spawnerService.getVisualMode(player) != MobSpawnerVisualMode.OFF;
-    }
-
-    @NotNull
-    private Component label(@NotNull MobSpawnerLocation spawnerLocation) {
-        return PlayerMsgResource.formatComponent(
-                PlayerMsgId.P_5730.getId(),
-                spawnerService.getSpawnerDisplayName(spawnerLocation.spawnerId())
-        );
-    }
-
-    private record ViewerSpawnerKey(@NotNull UUID viewerId, @NotNull String locationKey, @NotNull String spawnerId) {
-    }
-
-    private static final class SpawnerVisual {
-        private final SpawnerPacketDisplay.PacketEntity block;
-        private final SpawnerPacketDisplay.PacketEntity text;
-        private boolean spawned;
-        private boolean textSpawned;
-        private int ageCycles;
-
-        private SpawnerVisual(
-                @NotNull SpawnerPacketDisplay.PacketEntity block,
-                @NotNull SpawnerPacketDisplay.PacketEntity text
-        ) {
-            this.block = block;
-            this.text = text;
-        }
-
-        private void show(@NotNull Player player, @NotNull MobSpawnerVisualMode mode) {
-            if (!spawned || ageCycles >= RESPAWN_CYCLES) {
-                if (spawned) {
-                    destroy(player);
-                }
-                block.spawn(player);
-                if (mode == MobSpawnerVisualMode.NORMAL) {
-                    text.spawn(player);
-                    textSpawned = true;
-                }
-                spawned = true;
-                ageCycles = 0;
-                return;
-            }
-            if (mode == MobSpawnerVisualMode.NORMAL && !textSpawned) {
-                text.spawn(player);
-                textSpawned = true;
-            } else if (mode == MobSpawnerVisualMode.LIGHT && textSpawned) {
-                text.destroy(player);
-                textSpawned = false;
-            }
-            ageCycles++;
-        }
-
-        private void destroy(Player player) {
-            if (!spawned) {
-                return;
-            }
-            if (player != null && player.isOnline()) {
-                block.destroy(player);
-                if (textSpawned) {
-                    text.destroy(player);
-                }
-            }
-            spawned = false;
-            textSpawned = false;
-            ageCycles = 0;
-        }
+    @Override
+    protected @NotNull Component label(@NotNull MobSpawnerLocation spawner) {
+        return PlayerMsgResource.formatComponent(PlayerMsgId.P_5730.getId(),
+            spawnerService.getSpawnerDisplayName(spawner.spawnerId()));
     }
 }

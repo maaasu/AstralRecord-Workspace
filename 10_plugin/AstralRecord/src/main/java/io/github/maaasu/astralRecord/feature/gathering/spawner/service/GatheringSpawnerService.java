@@ -137,6 +137,13 @@ public class GatheringSpawnerService {
         this.particleDisplayService = particleDisplayService;
     }
 
+    /** 同期スレッドから、保存済みの共通表示モードを採集スポナー表示へ即時反映します。 */
+    public void refreshVisuals() {
+        if (visualizer != null) {
+            visualizer.refresh();
+        }
+    }
+
     public void stop() {
         if (task != null) {
             task.cancel();

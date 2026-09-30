@@ -151,11 +151,20 @@ public final class SpawnerPacketDisplay {
         }
     }
 
-    private void send(@NotNull Player player, @NotNull PacketContainer packet) {
+    /**
+     * 同期スレッドから packet を送り、失敗時は原因例外と対象をログへ記録します。
+     *
+     * @param player 送信先のオンライン viewer
+     * @param packet 送信する表示 packet
+     * @return packet 送信に成功した場合は true
+     */
+    private boolean send(@NotNull Player player, @NotNull PacketContainer packet) {
         try {
             protocolManager.sendServerPacket(player, packet);
+            return true;
         } catch (RuntimeException exception) {
-            Logger.log(LogId.W_9000, "spawner_packet:" + packet.getType().name(), player.getWorld().getName(), exception.getClass().getSimpleName());
+            Logger.log(LogId.W_9011, exception, packet.getType().name(), player.getWorld().getName());
+            return false;
         }
     }
 
@@ -172,7 +181,13 @@ public final class SpawnerPacketDisplay {
             this.metadata = List.copyOf(metadata);
         }
 
-        public void spawn(@NotNull Player player) {
+        /**
+         * 同期スレッドから entity と metadata を送信します。途中失敗時は部分的な表示を破棄します。
+         *
+         * @param player 表示を送るオンライン viewer
+         * @return 両 packet の送信に成功した場合は true。失敗時は呼び出し側で再試行できます。
+         */
+        public boolean spawn(@NotNull Player player) {
             PacketContainer spawn = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
             spawn.getIntegers().writeSafely(0, entityId);
             spawn.getUUIDs().writeSafely(0, uuid);
@@ -180,19 +195,32 @@ public final class SpawnerPacketDisplay {
             spawn.getDoubles().writeSafely(0, location.getX());
             spawn.getDoubles().writeSafely(1, location.getY());
             spawn.getDoubles().writeSafely(2, location.getZ());
-            send(player, spawn);
+            if (!send(player, spawn)) {
+                destroy(player);
+                return false;
+            }
 
             PacketContainer metadataPacket = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
             metadataPacket.getIntegers().writeSafely(0, entityId);
             metadataPacket.getDataValueCollectionModifier().writeSafely(0, metadata);
-            send(player, metadataPacket);
+            if (!send(player, metadataPacket)) {
+                destroy(player);
+                return false;
+            }
+            return true;
         }
 
-        public void destroy(@NotNull Player player) {
+        /**
+         * 同期スレッドから表示を破棄します。失敗時は呼び出し側で同じ entity ID を保持してください。
+         *
+         * @param player 表示を破棄するオンライン viewer
+         * @return 破棄 packet の送信に成功した場合は true
+         */
+        public boolean destroy(@NotNull Player player) {
             PacketContainer destroy = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
             destroy.getIntLists().writeSafely(0, List.of(entityId));
             destroy.getIntegerArrays().writeSafely(0, new int[]{entityId});
-            send(player, destroy);
+            return send(player, destroy);
         }
     }
 }
