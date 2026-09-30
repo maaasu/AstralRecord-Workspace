@@ -1275,6 +1275,10 @@ public enum PlayerMsgId {
     P_6538(6538),
     /** 管理者の挑戦リーダー位置テレポート失敗 */
     P_6539(6539),
+    /** カロンのHP60%大渡航の予兆BossBar。 */
+    P_6540(6540),
+    /** カロンのHP30%魂灯裁定の予兆BossBar。 */
+    P_6541(6541),
     // endregion
 
     // region /feature/quest 6600-6619

@@ -304,6 +304,18 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_EXPLOSION =
         new SharedParticleDefinition("boss_mechanic_explosion", Particle.EXPLOSION, 2, 0.18D, 0.18D, 0.18D, 0.0D);
+    /** カロンの河道・柱間ビーム・魂灯裁定の危険予兆です。 */
+    public static final SharedParticleDefinition CHARON_DANGER =
+        new SharedParticleDefinition("charon_danger", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(180, 65, 235), 1.35F));
+    /** 発射した魂柱ビームと大渡航の河道を明るく表示します。 */
+    public static final SharedParticleDefinition CHARON_BEAM =
+        new SharedParticleDefinition("charon_beam", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(225, 160, 255), 1.8F));
+    /** 魂灯裁定で現在有効な安全灯を示す青色の輪です。 */
+    public static final SharedParticleDefinition CHARON_SAFE_LIGHT =
+        new SharedParticleDefinition("charon_safe_light", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 235, 255), 1.3F));
     public static final SharedParticleDefinition SUNBIRD_SOLAR_DUST =
         new SharedParticleDefinition(
             "sunbird_solar_dust",

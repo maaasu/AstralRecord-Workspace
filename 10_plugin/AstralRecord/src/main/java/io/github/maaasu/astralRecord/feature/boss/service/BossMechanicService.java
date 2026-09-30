@@ -147,6 +147,7 @@ public final class BossMechanicService {
     private final DungeonService dungeonService;
     private final ConditionService conditionService;
     private final ParticleDisplayService particleDisplayService;
+    private final CharonRitualController charonRitualController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -182,6 +183,12 @@ public final class BossMechanicService {
         this.dungeonService = dungeonService;
         this.conditionService = conditionService;
         this.particleDisplayService = particleDisplayService;
+        this.charonRitualController = new CharonRitualController(
+            mobService,
+            particleDisplayService,
+            center -> nearbyManagedPlayers(center, TARGET_RANGE),
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
+        );
     }
 
     /**
@@ -225,6 +232,7 @@ public final class BossMechanicService {
         }
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
+        charonRitualController.clear(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -255,6 +263,7 @@ public final class BossMechanicService {
             clearCharonRecovery(runtime);
         }
         runtimes.clear();
+        charonRitualController.clearAll();
     }
 
     /**
@@ -295,6 +304,10 @@ public final class BossMechanicService {
                     || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
                     clearCharonRecovery(runtime);
                     removePendingForBoss(boss.instanceId());
+                    charonRitualController.clear(boss.instanceId());
+                    continue;
+                }
+                if (charonRitualController.tick(boss, entity, clockTicks)) {
                     continue;
                 }
                 if (runtime.recoveryUntilTick > 0L) {
@@ -318,7 +331,9 @@ public final class BossMechanicService {
 
             processAldaShieldBreak(boss, entity, runtime);
             if (observedPhase > runtime.phase) {
-                runtime.phase = observedPhase;
+                // 一撃で60%・30%を跨いでも、カロンの2つの儀式を順番に開始する。
+                runtime.phase = BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())
+                    ? runtime.phase + 1 : observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
             }
             processBirdMeteorCharge(boss);
@@ -326,6 +341,14 @@ public final class BossMechanicService {
             processSunbirdArena(boss, entity, runtime);
             processSunbirdTeleport(boss, entity, runtime);
             if (boss.scriptedAction() || clockTicks < runtime.nextActionTick) {
+                continue;
+            }
+
+            if (BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())
+                && charonRitualController.summonDue(boss.instanceId(), clockTicks)
+                && pendingMechanics.stream().noneMatch(pending -> pending.bossInstanceId().equals(boss.instanceId()))
+                && charonRitualController.startPillars(boss, entity, clockTicks)) {
+                runtime.nextActionTick = clockTicks + 80L;
                 continue;
             }
 
@@ -350,6 +373,7 @@ public final class BossMechanicService {
             destroySummons(entry.getValue());
             cleanupAldaExposure(entry.getKey(), entry.getValue());
             clearCharonRecovery(entry.getValue());
+            charonRitualController.clear(entry.getKey());
             finishBirdMeteorCharge(entry.getKey());
             removePendingForBoss(entry.getKey());
             iterator.remove();
@@ -797,6 +821,7 @@ public final class BossMechanicService {
      * ボスのHPフェーズ遷移に伴う固有ギミックとシールド再展開を処理します。
      *
      * <p>サンバードの30%境界ではバードメテオの事前チャージを開始して終了し、シールドを増加・再展開しません。
+     * カロンはHP60%・30%それぞれの境界儀式を開始します。
      * それ以外の対象では、有効なシールドを現在の表示容量まで再展開した後、フェーズ固有の演出を処理します。</p>
      *
      * <p>呼び出し元はメインスレッド上で、{@code runtime.phase} を更新済みの状態で実行する必要があります。
@@ -823,6 +848,14 @@ public final class BossMechanicService {
             startBirdMeteorCharge(boss, anchor);
             runtime.nextActionTick = clockTicks + SUNBIRD_BIRD_METEOR_CHARGE_TICKS
                 + SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS + 20L;
+            return;
+        }
+
+        if (BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())) {
+            removePendingForBoss(boss.instanceId());
+            clearCharonRecovery(runtime);
+            charonRitualController.startPhase(boss, entity, runtime.phase, clockTicks);
+            runtime.nextActionTick = clockTicks + 20L;
             return;
         }
 
