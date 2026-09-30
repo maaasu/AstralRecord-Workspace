@@ -154,15 +154,16 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
     private void PurgeExpiredPresence()
     {
         var cutoff = timeProvider.GetUtcNow().UtcDateTime - PresenceTtl;
+        // Remove only the observed expired value; a concurrent heartbeat may have replaced it.
         foreach (var pair in players)
         {
             if (pair.Value.LastSeenUtc < cutoff)
-                players.TryRemove(pair.Key, out _);
+                ((ICollection<KeyValuePair<Guid, NetworkPlayerPresenceResponse>>)players).Remove(pair);
         }
         foreach (var pair in servers)
         {
             if (pair.Value.LastSeenUtc < cutoff)
-                servers.TryRemove(pair.Key, out _);
+                ((ICollection<KeyValuePair<string, NetworkServerPresenceResponse>>)servers).Remove(pair);
         }
     }
 
