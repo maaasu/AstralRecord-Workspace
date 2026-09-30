@@ -151,7 +151,7 @@ public sealed partial class SkillTreeOperationRepository
                 }
                 if (!newNodes.TryGetValue(row.NodeId, out var target) || !positions.Contains(row.NodeId)
                     || target.GetProperty("pointType").GetString() != kind || target.GetProperty("pointCost").GetInt32() != cost
-                    || !MigrationUnlockConditionsMatch(oldNode.GetProperty("unlockCondition"), target.GetProperty("unlockCondition"))) return null;
+                    || !MigrationUnlockConditionsMatch(kind, oldNode.GetProperty("unlockCondition"), target.GetProperty("unlockCondition"))) return null;
                 if (kind == "CLASS_POINT" && cost > 0)
                 {
                     if (consumedClassId is null || !newRoot.TryGetProperty("classes", out var classes)
@@ -186,10 +186,10 @@ public sealed partial class SkillTreeOperationRepository
     }
 
     /// <summary>
-    /// 解放条件の表示名だけを比較対象から除く。職業ID・必要レベルと未知の条件項目は維持比較し、
-    /// 将来追加された条件を表示用項目とみなして無条件に許容しない。
+    /// 解放条件の表示名と、PPノードの必要レベルを完全に撤廃する変更だけを比較対象から除く。
+    /// 職業ID・その他の必要レベル変更・未知の条件項目は維持比較する。
     /// </summary>
-    private static bool MigrationUnlockConditionsMatch(JsonElement source, JsonElement target)
+    private static bool MigrationUnlockConditionsMatch(string? pointType, JsonElement source, JsonElement target)
     {
         if (source.ValueKind != JsonValueKind.Object || target.ValueKind != JsonValueKind.Object) return false;
         var oldConditions = source.EnumerateObject()
@@ -198,7 +198,13 @@ public sealed partial class SkillTreeOperationRepository
         var newConditions = target.EnumerateObject()
             .Where(property => property.Name != "classDisplayName")
             .ToDictionary(property => property.Name, property => property.Value, StringComparer.Ordinal);
+        var removedPassiveLevel = pointType == "PASSIVE_POINT"
+            && oldConditions.TryGetValue("playerLevel", out var oldLevel)
+            && newConditions.TryGetValue("playerLevel", out var newLevel)
+            && oldLevel.ValueKind == JsonValueKind.Number && oldLevel.TryGetInt32(out var previous) && previous > 0
+            && newLevel.ValueKind == JsonValueKind.Number && newLevel.TryGetInt32(out var current) && current == 0;
         return oldConditions.Count == newConditions.Count && oldConditions.All(property =>
-            newConditions.TryGetValue(property.Key, out var value) && JsonElement.DeepEquals(property.Value, value));
+            newConditions.TryGetValue(property.Key, out var value)
+            && (removedPassiveLevel && property.Key == "playerLevel" || JsonElement.DeepEquals(property.Value, value)));
     }
 }

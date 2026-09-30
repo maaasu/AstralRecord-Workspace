@@ -1,5 +1,6 @@
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -47,6 +48,52 @@ public sealed class SkillTreeLoginPatchTests
         Assert.Empty(await f.Db.SkillTreeServerPlayerViews.ToArrayAsync());
         Assert.True(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server, f.Boot, target, f.Session, f.Token));
         Assert.False(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server, f.Boot, f.Generation, f.Session, f.Token));
+    }
+
+    [Fact]
+    public async Task LoginPatchRetainsUnlockedPassiveNodeWhenItsLevelRequirementIsRemoved()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        await f.CloseAsync();
+        var oldSnapshot = JsonNode.Parse(f.Canonical)!;
+        oldSnapshot["nodes"]![1]!["unlockCondition"]!["playerLevel"] = 10;
+        var oldCanonical = oldSnapshot.ToJsonString();
+        var oldGeneration = SkillTreeOperationRepositoryTests.Hash(oldCanonical);
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, Registration(f, oldCanonical, 2)));
+        var state = await f.Db.AccountSkillTreeStates.SingleAsync();
+        state.DefinitionGenerationId = oldGeneration;
+        f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
+            NodeId = "gain", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            CreatedBy = f.User, UpdatedBy = f.User,
+        });
+        await f.Db.SaveChangesAsync();
+        Assert.Equal(1, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,
+            new() { DefinitionGenerationId = oldGeneration }))?.PatchVersion);
+
+        var newCanonical = f.Canonical.Replace("\"classes\":{}", "\"classes\":{},\"name\":\"next\"");
+        var newGeneration = SkillTreeOperationRepositoryTests.Hash(newCanonical);
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, Registration(f, newCanonical, 3)));
+        Assert.Equal(2, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,
+            new() { DefinitionGenerationId = newGeneration }))?.PatchVersion);
+        f.Session = Guid.NewGuid();
+        f.Token = SkillTreeOperationRepositoryTests.Hash(f.Session.ToString());
+        Assert.True(await f.Repository.AcquireAccountSessionAsync(f.Server, f.Account, new()
+        {
+            ServerSessionId = f.Boot, AccountSessionId = f.Session, AccountLeaseToken = f.Token,
+            DefinitionGenerationId = newGeneration,
+        }));
+        Assert.Equal("UPDATE_REQUIRED", (await f.Repository.PrepareLoginPatchAsync(
+            f.Server, f.Account, Request(f, newGeneration)))?.Status);
+        Assert.Equal("APPLIED", (await f.Repository.PrepareLoginPatchAsync(
+            f.Server, f.Account, Request(f, newGeneration, true)))?.Status);
+        f.Db.ChangeTracker.Clear();
+        var saved = await f.Db.AccountSkillTreeStates.SingleAsync();
+        Assert.Equal(newGeneration, saved.DefinitionGenerationId);
+        Assert.Equal(2, saved.Version);
+        Assert.Equal(new[] { "gain", "root" }, await f.Db.AccountSkillTreeUnlockedNodes
+            .OrderBy(node => node.NodeId).Select(node => node.NodeId).ToArrayAsync());
     }
 
     [Fact]

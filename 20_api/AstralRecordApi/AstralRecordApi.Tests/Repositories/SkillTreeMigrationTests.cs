@@ -55,6 +55,57 @@ public sealed class SkillTreeMigrationTests
     }
 
     [Theory]
+    [InlineData(10, 0, true)]
+    [InlineData(10, 5, false)]
+    [InlineData(0, 10, false)]
+    [InlineData(10, 11, false)]
+    public void RetainedPassiveNodeOnlyAllowsRemovingPlayerLevelRequirement(int oldLevel, int newLevel, bool allowed)
+    {
+        var source = JsonNode.Parse(AdditiveCanonical)!;
+        source["nodes"]![1]!["unlockCondition"]!["playerLevel"] = oldLevel;
+        var target = source.DeepClone();
+        target["nodes"]![1]!["unlockCondition"]!["playerLevel"] = newLevel;
+        AccountSkillTreeUnlockedNodeEntity[] unlocked =
+        [
+            new() { NodeId = "root" },
+            new() { NodeId = "gain" },
+        ];
+
+        var result = SkillTreeOperationRepository.ValidateRetirementMigration(
+            source.ToJsonString(), target.ToJsonString(), unlocked, []);
+
+        if (allowed) Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<SkillTreeMigrationRefund>>(result));
+        else Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData("classId")]
+    [InlineData("pointType")]
+    [InlineData("pointCost")]
+    [InlineData("unknownCondition")]
+    [InlineData("disconnected")]
+    public void RemovingPassiveLevelDoesNotAllowOtherProgressContractChanges(string change)
+    {
+        var source = JsonNode.Parse(AdditiveCanonical)!;
+        source["nodes"]![1]!["unlockCondition"]!["playerLevel"] = 10;
+        var target = source.DeepClone();
+        target["nodes"]![1]!["unlockCondition"]!["playerLevel"] = 0;
+        switch (change)
+        {
+            case "classId": target["nodes"]![1]!["unlockCondition"]!["classId"] = "other"; break;
+            case "pointType": target["nodes"]![1]!["pointType"] = "CLASS_POINT"; break;
+            case "pointCost": target["nodes"]![1]!["pointCost"] = 3; break;
+            case "unknownCondition": target["nodes"]![1]!["unlockCondition"]!["futureRequirement"] = true; break;
+            case "disconnected": target["edges"] = new JsonArray(); break;
+            default: throw new ArgumentOutOfRangeException(nameof(change));
+        }
+
+        Assert.Null(SkillTreeOperationRepository.ValidateRetirementMigration(
+            source.ToJsonString(), target.ToJsonString(),
+            [new() { NodeId = "root" }, new() { NodeId = "gain" }], []));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RetirementIsPreviewedThenAppliedAndReplayedWithoutExtraVersion(bool legacy)
