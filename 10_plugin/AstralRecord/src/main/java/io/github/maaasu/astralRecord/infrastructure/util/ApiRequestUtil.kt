@@ -141,8 +141,15 @@ object ApiRequestUtil {
         }
     }
 
+    /**
+     * URI の host 表記から開発用のローカル・プライベート endpoint を判定します。
+     * IPv6 リテラルは [URI.host] が角括弧付きで返すため、ループバックの両表記を受け入れます。
+     *
+     * @param host [URI.host] から取得した小文字のホスト名
+     * @return ローカルまたはプライベート endpoint の場合は true
+     */
     private fun isLocalOrPrivateHost(host: String): Boolean {
-        if (host == "localhost" || host.endsWith(".localhost") || host == "::1") {
+        if (host == "localhost" || host.endsWith(".localhost") || host == "::1" || host == "[::1]") {
             return true
         }
         val parts = host.split('.')

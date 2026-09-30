@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -210,9 +211,9 @@ public abstract class AstTabCompleter implements TabCompleter {
             return completions;
         }
 
-        String currentInput = args[args.length - 1].toLowerCase();
+        String currentInput = args[args.length - 1].toLowerCase(Locale.ROOT);
         return completions.stream()
-                .filter(completion -> completion.toLowerCase().startsWith(currentInput))
+                .filter(completion -> completion.toLowerCase(Locale.ROOT).startsWith(currentInput))
                 .collect(Collectors.toList());
     }
 
