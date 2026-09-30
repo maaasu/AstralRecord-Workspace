@@ -2374,7 +2374,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new BaseWorldGatewayEventHandler(this, overworldTeleportService, overworldTeleportGuiEventHandler),
+            new BaseWorldGatewayEventHandler(this, worldService),
             getServer().getPluginManager()
         );
         var baseWorldSpawnTeleportEventHandler = new BaseWorldSpawnTeleportEventHandler(

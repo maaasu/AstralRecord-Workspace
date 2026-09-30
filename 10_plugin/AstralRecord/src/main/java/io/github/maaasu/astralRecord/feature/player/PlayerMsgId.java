@@ -886,6 +886,14 @@ public enum PlayerMsgId {
      * 転送先ワールドの必要アイテムを所持していない。
      */
     P_5777(5777),
+    /**
+     * ゲートから拠点スポーンへ退避後、スニークによる転送先選択を案内する。
+     */
+    P_5778(5778),
+    /**
+     * ゲートから拠点スポーンへの退避失敗。
+     */
+    P_5779(5779),
     // endregion
 
     // region /feature/player/service/PlayerRegionService.java 5780-5789
