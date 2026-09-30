@@ -97,3 +97,11 @@ export function settleDraft(changes, draftOperationId, result) {
         return { changes: [], needsReview: false };
     return { changes, needsReview: changes.length > 0 };
 }
+
+// A repeated directional click is a no-op; the opposite direction removes an unsent change.
+export function directNodeChanges(changes, node, action, sourceClassId = null) {
+    if (!node || !['UNLOCK', 'RELOCK'].includes(action)) return changes;
+    if (Boolean(node.isUnlocked) === (action === 'UNLOCK')) return changes;
+    if (changes.some(change => change.nodeId === node.nodeId)) return changes.filter(change => change.nodeId !== node.nodeId);
+    return [...changes, { action, nodeId: node.nodeId, sourceClassId: action === 'UNLOCK' && node.requiresCpSourceSelection ? sourceClassId : null }];
+}

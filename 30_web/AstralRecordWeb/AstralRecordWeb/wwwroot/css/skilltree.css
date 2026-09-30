@@ -1,4 +1,12 @@
 /* Read-only constellation map, gilded nodes and a grimoire-style detail panel. */
+.ar-tree-preferences { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem 1rem; padding: .5rem 0; color: #c6bccf; font-size: .75rem; flex-shrink: 0; }
+.ar-tree-preferences label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; }
+.ar-tree-preferences input { accent-color: #d9b97c; }
+.ar-tree-preferences input[type="range"] { width: 90px; }
+.ar-tree-preferences output { min-width: 3ch; }
+.ar-tree-preferences > span { font-size: .7rem; }
+.ar-tree-preferences [data-editor-feedback]:empty { display: none; }
+.ar-tree-preferences [data-editor-feedback] { color: #f0ce98; }
 .ar-tree-sanctum {
     --tree-gold: #d9b97c;
     --tree-light: #f7e3b4;

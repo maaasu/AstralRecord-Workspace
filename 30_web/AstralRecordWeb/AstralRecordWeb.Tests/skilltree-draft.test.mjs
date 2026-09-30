@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDraft, searchNodes, draftContext, settleDraft } from '../AstralRecordWeb/wwwroot/js/skilltree-draft.mjs';
+import { createDraft, searchNodes, draftContext, settleDraft, directNodeChanges } from '../AstralRecordWeb/wwwroot/js/skilltree-draft.mjs';
 
 const node = (nodeId, values = {}) => ({ nodeId, name: nodeId, pointType: 'PP', pointCost: 3, isConditionMet: true, displayEffects: [], ...values });
 const state = () => ({ generationId: 'generation', stateRevision: 1, canEdit: true, relockGoldCost: 100,
@@ -8,6 +8,31 @@ const state = () => ({ generationId: 'generation', stateRevision: 1, canEdit: tr
     points: { pp: 10, earnedPp: 10, spentPp: 0, gold: 500, classes: [{ classId: 'swordsman', className: '剣士', availableCp: 8, earnedCp: 8, spentCp: 0 }] },
     tree: { rootNodeId: 'root', nodes: [node('root', { isUnlocked: true, isEffectiveUnlocked: true, pointCost: 0 }), node('a'), node('b', { pointType: 'CP', pointCost: 4, cpSourceClassId: 'swordsman', cpSources: [{ classId: 'swordsman', availableCp: 8 }] })],
         edges: [{ sourceNodeId: 'root', targetNodeId: 'a' }, { sourceNodeId: 'a', targetNodeId: 'b' }] } });
+
+test('directional clicks are idempotent and undo an opposite unsent change', () => {
+    const before = state(), empty = [], a = before.tree.nodes[1];
+    assert.equal(directNodeChanges(empty, a, 'RELOCK'), empty);
+    const unlock = directNodeChanges(empty, a, 'UNLOCK');
+    const preview = createDraft(before, unlock).tree.nodes[1];
+    assert.equal(directNodeChanges(unlock, preview, 'UNLOCK'), unlock);
+    assert.deepEqual(directNodeChanges(unlock, preview, 'RELOCK'), []);
+    const root = before.tree.nodes[0], relock = directNodeChanges([], root, 'RELOCK');
+    assert.deepEqual(directNodeChanges(relock, createDraft(before, relock).tree.nodes[0], 'UNLOCK'), []);
+});
+
+test('direct actions still require CP choice, connected routes and sufficient funds', () => {
+    const before = state();
+    const unlockA = directNodeChanges([], before.tree.nodes[1], 'UNLOCK');
+    const both = directNodeChanges(unlockA, createDraft(before, unlockA).tree.nodes[2], 'UNLOCK');
+    assert.equal(createDraft(before, both).error, '');
+    const withoutA = directNodeChanges(both, createDraft(before, both).tree.nodes[1], 'RELOCK');
+    assert.ok(createDraft(before, withoutA).error);
+    before.tree.nodes[1] = node('a', { pointType: 'CP', requiresCpSourceSelection: true, cpSources: [{ classId: 'swordsman' }] });
+    assert.ok(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK')).error);
+    assert.equal(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK', 'swordsman')).error, '');
+    before.points.classes[0].spentCp = 8;
+    assert.ok(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK', 'swordsman')).error);
+});
 test('ordered multi-node draft uses preceding unlock and keeps confirmed state unchanged', () => {
     const before = state(), original = structuredClone(before);
     const draft = createDraft(before, [{ action: 'UNLOCK', nodeId: 'a' }, { action: 'UNLOCK', nodeId: 'b' }]);

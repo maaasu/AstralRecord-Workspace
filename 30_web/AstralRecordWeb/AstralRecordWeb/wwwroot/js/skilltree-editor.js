@@ -1,5 +1,6 @@
 import { initializeViewer } from './skilltree-viewer.js';
-import { createDraft, draftContext, settleDraft } from './skilltree-draft.mjs';
+import { createDraft, draftContext, settleDraft, directNodeChanges } from './skilltree-draft.mjs';
+import { loadPreferences, savePreferences, createTreeSound } from './skilltree-preferences.mjs';
 
 const editor = document.querySelector('[data-skilltree-editor]');
 if (editor?.querySelector('[data-editor-state]')) startEditor(editor);
@@ -16,7 +17,31 @@ function startEditor(editor) {
     const terminal = new Set(['APPLIED', 'RECONFIRMATION_REQUIRED', 'FAILED', 'CANCELED', 'EXPIRED']);
     const labels = { PENDING_ONLINE: '適用待ち', PENDING_OFFLINE: '適用待ち（次回参加時に検証）', CLAIMED: '適用待ち（サーバーで確認中）', APPLIED: '適用済み', RECONFIRMATION_REQUIRED: '再確認が必要', FAILED: '失敗', CANCELED: '取消済み', EXPIRED: '期限切れ・再確認が必要' };
     const q = selector => editor.querySelector(selector);
-    const text = (selector, value) => { const el = q(selector); if (el) el.textContent = value ?? ''; };
+    const text = (selector, value) => { const el = q(selector), next = value ?? ''; if (el && el.textContent !== next) el.textContent = next; };
+    const preferences = loadPreferences(), sound = createTreeSound(preferences);
+    let audibleOperationId = null, lastCpView = '', draftInputKey = '';
+    const soundedResults = new Set();
+    const renderPreferences = () => {
+        q('[data-editor-sound]').checked = preferences.sound;
+        q('[data-editor-volume]').value = String(preferences.volume);
+        text('[data-editor-volume-label]', `${preferences.volume}%`);
+        q('[data-editor-direct-click]').checked = preferences.directClick;
+    };
+    renderPreferences();
+    editor.addEventListener('pointerdown', () => sound.arm(), { capture: true });
+    editor.addEventListener('keydown', () => sound.arm(), { capture: true });
+    editor.addEventListener('change', event => {
+        if (event.target.matches('[data-editor-sound]')) preferences.sound = event.target.checked;
+        else if (event.target.matches('[data-editor-direct-click]')) preferences.directClick = event.target.checked;
+        else return;
+        savePreferences(preferences); sound.update(); sound.arm();
+        if (event.target.matches('[data-editor-sound]')) sound.play('accepted');
+    });
+    editor.addEventListener('input', event => {
+        if (!event.target.matches('[data-editor-volume]')) return;
+        preferences.volume = Number(event.target.value);
+        savePreferences(preferences); sound.update(); sound.arm(); renderPreferences();
+    });
     const number = value => Number.isFinite(value) ? value.toLocaleString('ja-JP') : '—';
     const delta = (before, after) => Number.isFinite(before) && Number.isFinite(after) && after !== before ? `（${after > before ? '+' : ''}${number(after - before)}）` : '';
     const endpoint = (handler, extra = {}) => {
@@ -56,8 +81,13 @@ function startEditor(editor) {
         replacement.querySelector('[data-tree-json]').textContent = JSON.stringify(draft.tree);
         viewer.dispose?.(); viewer.replaceWith(replacement); viewer = replacement;
         initializeViewer(viewer, viewState);
+        renderPreferences();
     };
-    const rebuildDraft = () => { draft = createDraft(state, changes); syncTree(); };
+    const rebuildDraft = () => {
+        const key = JSON.stringify([state.tree, state.points, state.relockGoldCost, changes]);
+        if (key === draftInputKey) return;
+        draftInputKey = key; draft = createDraft(state, changes); syncTree();
+    };
     const renderSelection = () => {
         const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
         if (!node) return;
@@ -100,6 +130,9 @@ function startEditor(editor) {
         text('[data-editor-pp-after]', changes.length ? `変更後 ${number(after.pp)} PP ${delta(before.pp, after.pp)}` : '変更なし');
         text('[data-editor-gold]', number(before.gold));
         text('[data-editor-gold-after]', draft.goldCost ? `必要 ${number(draft.goldCost)} Gold ／ 変更後 ${number(after.gold)}` : '解除費用なし');
+        const cpView = JSON.stringify([before.classes, after.classes, changes.length > 0]);
+        if (cpView !== lastCpView) {
+        lastCpView = cpView;
         const cp = q('[data-editor-cp]'); cp.replaceChildren();
         for (const item of before.classes ?? []) {
             const planned = after.classes?.find(c => c.classId === item.classId)?.availableCp;
@@ -109,6 +142,7 @@ function startEditor(editor) {
             badge.append(label, value, preview); cp.append(badge);
         }
         if (!cp.childElementCount) cp.textContent = '残高を確認できません';
+        }
         text('[data-editor-status]', unknownSubmission ? '適用結果を確認中' : needsReview ? operation?.status === 'CANCELED' ? '取消済み・変更案を再確認' : '再確認が必要' : operation ? (labels[operation.status] ?? '再確認が必要') + (operation.changes?.length ? `（${operation.changes.length}件）` : '') : '編集中');
         text('[data-editor-draft-count]', changes.length ? `変更案 ${changes.length} 件` : '変更なし');
         text('[data-editor-reason]', reason() || draft.error || (operation && terminal.has(operation.status) ? operation.reason : '') || (needsReview ? operation?.status === 'CANCELED' ? '要求を取り消しました。未適用の変更案を再確認すると、編集を続けられます。' : '最新の残高・条件・状態で変更案を再確認してください。' : ''));
@@ -126,6 +160,7 @@ function startEditor(editor) {
         refreshing = true;
         try {
             const next = await request('State');
+            if (viewer.isInteracting?.()) return false;
             const nextContext = draftContext(next);
             if (changes.length && nextContext !== baseline) { needsReview = true; invalidateConfirmation(); }
             state = next; lastRead = Date.now();
@@ -136,6 +171,12 @@ function startEditor(editor) {
         finally { refreshing = false; }
     };
     const acceptOperation = async result => {
+        if (result.operationId === audibleOperationId) {
+            const cue = result.status === 'APPLIED' ? 'applied' : result.status === 'CANCELED' ? 'undo'
+                : terminal.has(result.status) ? 'error' : 'accepted';
+            const key = `${result.operationId}:${cue}`;
+            if (!soundedResults.has(key)) { soundedResults.add(key); sound.play(cue); }
+        }
         operation = result; unknownSubmission = null;
         if (terminal.has(result.status)) {
             forget();
@@ -172,7 +213,34 @@ function startEditor(editor) {
         q('[data-editor-confirm]').hidden = false;
         q('[data-editor-confirm-send]').focus();
     };
-    editor.addEventListener('skilltree:select', event => { selectedId = event.detail.nodeId; sourceClassId = ''; renderSelection(); });
+    const applyChanges = (next, cue) => {
+        const candidate = createDraft(state, next);
+        if (candidate.error) { text('[data-editor-operation-reason]', candidate.error); text('[data-editor-feedback]', candidate.error); sound.play('error'); return false; }
+        if (!changes.length) baseline = draftContext(state);
+        changes = next; operation = null; draftOperationId = null; invalidateConfirmation(); rebuildDraft(); render();
+        text('[data-editor-feedback]', '変更案を更新しました。確認後にまとめて送信できます。');
+        sound.play(cue); return true;
+    };
+    editor.addEventListener('skilltree:select', event => { if (selectedId !== event.detail.nodeId) sourceClassId = ''; selectedId = event.detail.nodeId; renderSelection(); });
+    editor.addEventListener('skilltree:action', event => {
+        if (!preferences.directClick) return;
+        event.preventDefault();
+        const { nodeId, action } = event.detail;
+        viewer.selectNode?.(nodeId, false);
+        if (busy() || reason() || needsReview || draft.error) {
+            text('[data-editor-feedback]', reason() || (busy() ? '適用結果の確認が終わるまでお待ちください。' : '変更案を最新の状態で再確認してください。'));
+            sound.play('error'); return;
+        }
+        const node = draft.tree.nodes.find(n => n.nodeId === nodeId);
+        const next = directNodeChanges(changes, node, action, sourceClassId || null);
+        if (next === changes) return;
+        if (next.length > changes.length && action === 'UNLOCK' && node.requiresCpSourceSelection && node.pointCost > 0 && !sourceClassId) {
+            viewer.selectNode?.(nodeId, true);
+            text('[data-editor-feedback]', '詳細で消費するクラスのCPを選択してから、解放してください。');
+            q('[data-editor-source]').focus(); sound.play('error'); return;
+        }
+        applyChanges(next, next.length < changes.length ? 'undo' : action === 'UNLOCK' ? 'unlock' : 'relock');
+    });
     editor.addEventListener('change', event => { if (event.target.matches('[data-editor-source]')) { sourceClassId = event.target.value; renderSelection(); } });
     editor.addEventListener('click', async event => {
         const button = event.target.closest('button'); if (!button || button.disabled) return;
@@ -181,15 +249,13 @@ function startEditor(editor) {
             const node = draft.tree.nodes.find(n => n.nodeId === selectedId); if (!node) return;
             const index = changes.findIndex(change => change.nodeId === selectedId);
             const next = index >= 0 ? changes.filter((_, i) => i !== index) : [...changes, { action: node.isUnlocked ? 'RELOCK' : 'UNLOCK', nodeId: node.nodeId, sourceClassId: !node.isUnlocked && node.requiresCpSourceSelection ? sourceClassId || null : null }];
-            const candidate = createDraft(state, next);
-            if (candidate.error) { text('[data-editor-operation-reason]', candidate.error); return; }
-            if (!changes.length) baseline = draftContext(state);
-            changes = next; operation = null; draftOperationId = null; invalidateConfirmation(); rebuildDraft(); render();
+            applyChanges(next, index >= 0 ? 'undo' : node.isUnlocked ? 'relock' : 'unlock');
         }
         if (button.matches('[data-editor-undo], [data-editor-clear]') && !busy()) {
             changes = button.matches('[data-editor-clear]') ? [] : changes.slice(0, -1);
             if (!changes.length) { needsReview = false; baseline = draftContext(state); }
             invalidateConfirmation(); rebuildDraft(); render();
+            text('[data-editor-feedback]', '変更案を戻しました。'); sound.play('undo');
         }
         if (button.matches('[data-editor-review]') && !busy() && !draft.error) { needsReview = false; baseline = draftContext(state); operation = null; draftOperationId = null; render(); }
         if (button.matches('[data-editor-batch-review]')) showConfirmation();
@@ -210,10 +276,11 @@ function startEditor(editor) {
             const payload = { operationId: crypto.randomUUID(), targetServerId: state.connection?.serverId,
                 expectedDefinitionGenerationId: state.generationId, expectedPlayerStateVersion: state.stateRevision,
                 action: 'BATCH', nodeId: 'batch', changes: captured.changes };
+            audibleOperationId = payload.operationId;
             unknownSubmission = payload; draftOperationId = payload.operationId; remember(payload);
             try { await acceptOperation(await request('Operation', 'POST', payload)); }
             catch (error) {
-                if (['400', '401', '403', '404', '409'].includes(error.message)) { operation = { operationId: payload.operationId, status: 'RECONFIRMATION_REQUIRED' }; unknownSubmission = null; forget(); needsReview = true; }
+                if (['400', '401', '403', '404', '409'].includes(error.message)) { operation = { operationId: payload.operationId, status: 'RECONFIRMATION_REQUIRED' }; unknownSubmission = null; forget(); needsReview = true; sound.play('error'); }
                 else await pollOperation();
             }
             finally { submitting = false; render(); }
@@ -226,8 +293,8 @@ function startEditor(editor) {
     rebuildDraft(); render();
     if (unknownSubmission || operation) pollOperation();
     setInterval(async () => {
-        if (document.hidden || submitting || viewer.classList.contains('is-panning')) return;
-        render(); await refresh();
+        if (document.hidden || submitting || viewer.isInteracting?.()) return;
+        await refresh();
         if (unknownSubmission || operation && !terminal.has(operation.status)) await pollOperation();
     }, 5000);
 }
