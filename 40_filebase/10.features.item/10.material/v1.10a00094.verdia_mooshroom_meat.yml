@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 茸牛"
+#   progression: 20
+schemaVersion: 1
+id: 10a00094
+category: material
+name: '&aヴェルディア茸牛の肉'
+icon: BEEF
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 120
+lore:
+  - '&7香草や茸と合わせて料理に使う新鮮な肉。'
+unTradeable: false
+unSellable: false

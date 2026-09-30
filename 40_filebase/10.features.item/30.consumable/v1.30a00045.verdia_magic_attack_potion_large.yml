@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 21
+schemaVersion: 1
+id: 30a00045
+category: consumable
+name: '&aヴェルディア魔法攻撃力ポーション【大】'
+icon: POTION
+rarity: EPIC
+maxStack: 64
+saleValue: 1
+lore:
+  - '&7魔法攻撃力だけを120秒間、30%上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+unTradeable: false
+unSellable: false
+appearance:
+  color: '#AF6ADF'
+  potionType: AWKWARD
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: enchant
+    amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 100
+  effects:
+    - type: BUFF
+      buffId:
+        ref: buff:potion_magic_attack_large
+      rate: 100

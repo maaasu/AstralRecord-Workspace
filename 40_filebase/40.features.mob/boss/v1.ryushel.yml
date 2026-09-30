@@ -5,7 +5,7 @@ schemaVersion: 1
 id: ryushel
 type: MOB
 category: BOSS
-name: "&f&l白樺の花影・リュシェル"
+name: "&f&l白樺の花影・リュシェル Lv.20"
 title: "&a-- 花影に紛れる森の羊 --"
 level: 20
 entityType: SHEEP

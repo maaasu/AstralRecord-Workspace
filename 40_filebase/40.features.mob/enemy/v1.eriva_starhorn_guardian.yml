@@ -5,7 +5,7 @@ schemaVersion: 1
 id: eriva_starhorn_guardian
 type: MOB
 category: ENEMY
-name: "&a星角の森守"
+name: "&a星角の森守 Lv.15"
 level: 15
 entityType: GOAT
 icon: GOAT_HORN

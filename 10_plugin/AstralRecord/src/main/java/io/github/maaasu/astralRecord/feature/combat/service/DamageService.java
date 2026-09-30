@@ -1550,6 +1550,16 @@ public final class DamageService {
         return Math.min(Math.max(0.0D, currentShield), calculated);
     }
 
+    /**
+     * ダメージ結果をHP・シールド・報酬用の攻撃記録へ反映します。
+     * ターゲット設定のないMobは、被弾しても敵対状態へ遷移しません。
+     *
+     * @param attacker 攻撃者。環境ダメージでは {@code null}
+     * @param victim 被弾者
+     * @param result 適用するダメージ結果
+     * @param attackType ノックバックに使う攻撃種別
+     * @param knockback ノックバックを適用するか
+     */
     private void applyDamageResult(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
@@ -1664,7 +1674,7 @@ public final class DamageService {
                             effectiveHealthDamage + result.shieldDamage()
                     );
                 }
-                if (mob.state() == MobState.IDLE) {
+                if (mob.template().targeting() != null && mob.state() == MobState.IDLE) {
                     mob.state(MobState.AGGRO);
                     mob.targetId(attacker.id());
                 }
@@ -1711,6 +1721,13 @@ public final class DamageService {
         );
     }
 
+    /**
+     * シールド被害を報酬用の攻撃記録へ加算し、ターゲット設定のあるMobだけを敵対させます。
+     *
+     * @param attacker 攻撃者。プレイヤー以外は記録しません
+     * @param victim 被弾者。Mob以外は記録しません
+     * @param shieldDamage 適用済みのシールドダメージ
+     */
     private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {
         if (attacker == null || !attacker.isPlayer() || !victim.isMob() || victim.mob() == null) {
             return;
@@ -1724,7 +1741,7 @@ public final class DamageService {
         var mob = victim.mob();
         mob.threatTable().add(attacker.id(), shieldDamage);
         mob.lastAttackerUuid(attacker.id());
-        if (mob.state() == MobState.IDLE) {
+        if (mob.template().targeting() != null && mob.state() == MobState.IDLE) {
             mob.state(MobState.AGGRO);
             mob.targetId(attacker.id());
         }

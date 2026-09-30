@@ -5,7 +5,7 @@ schemaVersion: 1
 id: purple_tree_golm
 type: MOB
 category: ENEMY
-name: "&7ゴルム"
+name: "&7ゴルム Lv.16"
 level: 16
 entityType: IRON_GOLEM
 variant:

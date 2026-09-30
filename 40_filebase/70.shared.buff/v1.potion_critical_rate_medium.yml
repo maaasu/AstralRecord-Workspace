@@ -1,0 +1,19 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 20
+schemaVersion: 1
+id: potion_critical_rate_medium
+type: BUFF
+name: '&a会心率強化【中】'
+lore:
+  - '&7会心率だけを120秒間、6ポイント上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+durationTicks: 2400
+isDebuff: false
+resetOnChallenge: false
+stackGroup: potion_critical_rate
+modifiers:
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 6

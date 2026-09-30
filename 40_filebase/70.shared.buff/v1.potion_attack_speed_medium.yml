@@ -1,0 +1,19 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 20
+schemaVersion: 1
+id: potion_attack_speed_medium
+type: BUFF
+name: '&a攻撃速度強化【中】'
+lore:
+  - '&7攻撃速度だけを120秒間、10ポイント上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+durationTicks: 2400
+isDebuff: false
+resetOnChallenge: false
+stackGroup: potion_attack_speed
+modifiers:
+  - status: ATTACK_SPEED
+    type: FLAT
+    value: 10

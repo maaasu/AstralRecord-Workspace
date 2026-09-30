@@ -32,3 +32,145 @@ items:
           ref: item:10a00015
         category: material
         amount: 2
+  - id: 30a00025
+    itemId:
+      ref: item:30a00025
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 8
+    requiredItems:
+      - itemId:
+          ref: item:10a00093
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00070
+        category: material
+        amount: 2
+  - id: 30a00026
+    itemId:
+      ref: item:30a00026
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 12
+    requiredItems:
+      - itemId:
+          ref: item:10a00094
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00076
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00071
+        category: material
+        amount: 3
+  - id: 30a00027
+    itemId:
+      ref: item:30a00027
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 12
+    requiredItems:
+      - itemId:
+          ref: item:10a00067
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00074
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00070
+        category: material
+        amount: 3
+  - id: 30a00028
+    itemId:
+      ref: item:30a00028
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 5
+    priceGold: 6
+    requiredItems:
+      - itemId:
+          ref: item:10a00076
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00070
+        category: material
+        amount: 2
+  - id: 30a00029
+    itemId:
+      ref: item:30a00029
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 8
+    requiredItems:
+      - itemId:
+          ref: item:10a00075
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00070
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 2
+  - id: 30a00030
+    itemId:
+      ref: item:30a00030
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 35
+    requiredItems:
+      - itemId:
+          ref: item:10a00093
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00094
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00067
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00076
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00075
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:10a00074
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:10a00078
+        category: material
+        amount: 1

@@ -1,0 +1,39 @@
+# design:
+#   motif: "動物 / 牛"
+#   progression: 20
+schemaVersion: 1
+id: verdia_cow
+type: MOB
+category: ENEMY
+name: '&aヴェルディア・草原牛 Lv.20'
+level: 20
+entityType: COW
+variant:
+  age: ADULT
+icon: BEEF
+lore:
+  - '&7静かに草を食み、攻撃を受けても反撃しない。'
+tags:
+  - beast
+  - grassland
+baseStats:
+  - status: MAX_HEALTH
+    value: 8000
+  - status: DEFENSE
+    value: 1394
+  - status: MOVEMENT_SPEED
+    value: 90
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.7
+drops:
+  exp: 0
+  items:
+    - itemId:
+        ref: item:10a00093
+      rate: 100.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false

@@ -1,0 +1,19 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 20
+schemaVersion: 1
+id: potion_movement_speed_small
+type: BUFF
+name: '&a移動速度強化【小】'
+lore:
+  - '&7移動速度だけを120秒間、5%上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+durationTicks: 2400
+isDebuff: false
+resetOnChallenge: false
+stackGroup: potion_movement_speed
+modifiers:
+  - status: MOVEMENT_SPEED
+    type: FINAL_SCALAR
+    value: 0.05

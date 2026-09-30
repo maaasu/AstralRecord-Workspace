@@ -5,7 +5,7 @@ schemaVersion: 1
 id: purple_tree_melza
 type: MOB
 category: ENEMY
-name: "&5メルザ"
+name: "&5メルザ Lv.16"
 level: 16
 entityType: SKELETON
 icon: DIAMOND_HELMET

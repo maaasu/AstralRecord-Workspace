@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 20
+schemaVersion: 1
+id: 30a00056
+category: consumable
+name: '&aヴェルディア攻撃速度ポーション【中】'
+icon: POTION
+rarity: RARE
+maxStack: 64
+saleValue: 1
+lore:
+  - '&7攻撃速度だけを120秒間、10ポイント上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+unTradeable: false
+unSellable: false
+appearance:
+  color: '#71D4AC'
+  potionType: AWKWARD
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: enchant
+    amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 100
+  effects:
+    - type: BUFF
+      buffId:
+        ref: buff:potion_attack_speed_medium
+      rate: 100

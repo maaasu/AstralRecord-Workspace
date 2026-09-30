@@ -5,7 +5,7 @@ schemaVersion: 1
 id: purple_tree_velg
 type: MOB
 category: BOSS
-name: "&5&l紫蝕の樹守・ヴェルグ"
+name: "&5&l紫蝕の樹守・ヴェルグ Lv.16"
 level: 16
 entityType: SKELETON
 icon: NETHERITE_HOE

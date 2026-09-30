@@ -1,0 +1,30 @@
+# design:
+#   motif: "料理 / 肉と花の香草"
+#   progression: 20
+schemaVersion: 1
+id: 30a00029
+category: consumable
+name: '&a花くも種の花びらパン'
+icon: BREAD
+rarity: UNCOMMON
+maxStack: 16
+saleValue: 1
+lore:
+  - '&7花くも草の種を挽き、陽だまりの花びらを練り込んだパン。'
+  - '&7エネルギーを60回復する。'
+unTradeable: false
+unSellable: false
+consumable:
+  onUse:
+    usingSound: entity.generic.eat
+    sound: block.note_block.chime
+    effect: happy_villager
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 10
+  effects:
+    - type: RECOVER
+      status: ENERGY
+      value: 60
+      isPercent: false
+      rate: 100

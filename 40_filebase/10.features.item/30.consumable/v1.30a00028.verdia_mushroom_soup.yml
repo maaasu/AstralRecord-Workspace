@@ -1,0 +1,30 @@
+# design:
+#   motif: "料理 / 肉と花の香草"
+#   progression: 20
+schemaVersion: 1
+id: 30a00028
+category: consumable
+name: '&f森灯り茸の香草スープ'
+icon: MUSHROOM_STEW
+rarity: COMMON
+maxStack: 16
+saleValue: 1
+lore:
+  - '&7森灯り茸と採集した香草だけで作る温かなスープ。'
+  - '&7エネルギーを45回復する。'
+unTradeable: false
+unSellable: false
+consumable:
+  onUse:
+    usingSound: entity.generic.eat
+    sound: block.note_block.chime
+    effect: happy_villager
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 10
+  effects:
+    - type: RECOVER
+      status: ENERGY
+      value: 45
+      isPercent: false
+      rate: 100

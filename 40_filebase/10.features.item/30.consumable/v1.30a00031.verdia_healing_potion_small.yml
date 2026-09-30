@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 草花の回復薬"
+#   progression: 20
+schemaVersion: 1
+id: 30a00031
+category: consumable
+name: '&bヴェルディアHP回復ポーション【小】'
+icon: POTION
+rarity: COMMON
+maxStack: 64
+saleValue: 1
+lore:
+  - '&7採集した草葉と花びらを調合した回復薬。'
+  - '&7最大HPの20%を回復する。'
+unTradeable: false
+unSellable: false
+appearance:
+  color: '#E85B67'
+  potionType: HEALING
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: heart
+    amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 100
+  effects:
+    - type: RECOVER
+      status: HP
+      value: 0.2
+      isPercent: true
+      rate: 100

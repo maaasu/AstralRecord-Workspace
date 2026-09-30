@@ -1,0 +1,19 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 21
+schemaVersion: 1
+id: potion_attack_large
+type: BUFF
+name: '&a攻撃力強化【大】'
+lore:
+  - '&7攻撃力だけを120秒間、30%上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+durationTicks: 2400
+isDebuff: false
+resetOnChallenge: false
+stackGroup: potion_attack
+modifiers:
+  - status: ATTACK
+    type: FINAL_SCALAR
+    value: 0.3

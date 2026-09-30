@@ -1,0 +1,21 @@
+# design:
+#   motif: "動物 / 牛"
+#   progression: 20
+schemaVersion: 1
+id: verdia_cow_lv20_spawner
+type: MOB_SPAWNER
+region: ヴェルディア草原
+radiusMeters: 18
+spawnMobs:
+  - mobId: mob:verdia_cow
+    level: 20
+    weight: 100
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

@@ -1,0 +1,30 @@
+# design:
+#   motif: "料理 / 肉と花の香草"
+#   progression: 21
+schemaVersion: 1
+id: 30a00030
+category: consumable
+name: '&b豊穣の三種肉煮込み'
+icon: SUSPICIOUS_STEW
+rarity: RARE
+maxStack: 16
+saleValue: 1
+lore:
+  - '&7牛・茸牛・上質グラスボアの肉を茸と花の香草で煮込んだ料理。'
+  - '&7エネルギーを110回復する。'
+unTradeable: false
+unSellable: false
+consumable:
+  onUse:
+    usingSound: entity.generic.eat
+    sound: block.note_block.chime
+    effect: happy_villager
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 10
+  effects:
+    - type: RECOVER
+      status: ENERGY
+      value: 110
+      isPercent: false
+      rate: 100

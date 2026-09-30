@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: verdia_forest_flora_spawner
 type: GATHERING_SPAWNER
-radiusMeters: 18
+radiusMeters: 48
 spawnGatherings:
   - gatheringId: gathering:verdia_shade_grass
     weight: 35
@@ -20,11 +20,11 @@ spawnTimes:
   - startTick: 0
     endTick: 23999
 itemMaterial: SPAWNER
-spawnIntervalTicks: 80
+spawnIntervalTicks: 20
 spawnLimit:
-  maxAlivePerSpawner: 10
-  maxNearbyGatherings: 30
-  spawnPerPlayer: 2
+  maxAlivePerSpawner: 60
+  maxNearbyGatherings: 180
+  spawnPerPlayer: 12
 requiredBaseBlocks:
   - GRASS_BLOCK
   - DIRT

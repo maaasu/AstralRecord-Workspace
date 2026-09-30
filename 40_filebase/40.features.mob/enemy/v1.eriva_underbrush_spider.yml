@@ -5,7 +5,7 @@ schemaVersion: 1
 id: eriva_underbrush_spider
 type: MOB
 category: ENEMY
-name: "&2下草の狩人"
+name: "&2下草の狩人 Lv.15"
 level: 15
 entityType: SPIDER
 icon: SPIDER_SPAWN_EGG

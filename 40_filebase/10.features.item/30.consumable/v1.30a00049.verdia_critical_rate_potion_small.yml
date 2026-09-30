@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 20
+schemaVersion: 1
+id: 30a00049
+category: consumable
+name: '&aヴェルディア会心率ポーション【小】'
+icon: POTION
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 1
+lore:
+  - '&7会心率だけを120秒間、3ポイント上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+unTradeable: false
+unSellable: false
+appearance:
+  color: '#E0BD4C'
+  potionType: AWKWARD
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: enchant
+    amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 100
+  effects:
+    - type: BUFF
+      buffId:
+        ref: buff:potion_critical_rate_small
+      rate: 100

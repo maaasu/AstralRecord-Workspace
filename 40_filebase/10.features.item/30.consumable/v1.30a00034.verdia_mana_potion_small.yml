@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 草花の回復薬"
+#   progression: 20
+schemaVersion: 1
+id: 30a00034
+category: consumable
+name: '&bヴェルディアMP回復ポーション【小】'
+icon: POTION
+rarity: COMMON
+maxStack: 64
+saleValue: 1
+lore:
+  - '&7採集した草葉と花びらを調合した回復薬。'
+  - '&7最大MPの25%を回復する。'
+unTradeable: false
+unSellable: false
+appearance:
+  color: '#6486F0'
+  potionType: SWIFTNESS
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: witch
+    amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 100
+  effects:
+    - type: RECOVER
+      status: MP
+      value: 0.25
+      isPercent: true
+      rate: 100

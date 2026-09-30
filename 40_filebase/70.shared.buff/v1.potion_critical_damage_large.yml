@@ -1,0 +1,19 @@
+# design:
+#   motif: "錬金術 / 草花の能力強化薬"
+#   progression: 21
+schemaVersion: 1
+id: potion_critical_damage_large
+type: BUFF
+name: '&a会心ダメージ強化【大】'
+lore:
+  - '&7会心ダメージだけを120秒間、30ポイント上昇させる。'
+  - '&7同じ能力のポーションは、後から使った効果で置き換わる。'
+  - '&7異なる能力のポーションとは併用できる。'
+durationTicks: 2400
+isDebuff: false
+resetOnChallenge: false
+stackGroup: potion_critical_damage
+modifiers:
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 30

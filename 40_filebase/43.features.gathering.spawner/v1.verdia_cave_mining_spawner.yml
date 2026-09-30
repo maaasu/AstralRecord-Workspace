@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: verdia_cave_mining_spawner
 type: GATHERING_SPAWNER
-radiusMeters: 10
+radiusMeters: 32
 spawnGatherings:
   - gatheringId: gathering:verdia_cave_windsong_stone
     weight: 38
@@ -20,11 +20,11 @@ spawnTimes:
   - startTick: 0
     endTick: 23999
 itemMaterial: SPAWNER
-spawnIntervalTicks: 80
+spawnIntervalTicks: 20
 spawnLimit:
-  maxAlivePerSpawner: 10
-  maxNearbyGatherings: 24
-  spawnPerPlayer: 3
+  maxAlivePerSpawner: 60
+  maxNearbyGatherings: 144
+  spawnPerPlayer: 18
 requiredBaseBlocks:
   - STONE
   - ANDESITE

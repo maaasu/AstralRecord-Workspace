@@ -1,0 +1,30 @@
+# design:
+#   motif: "料理 / 肉と花の香草"
+#   progression: 20
+schemaVersion: 1
+id: 30a00027
+category: consumable
+name: '&a上質グラスボアの金風串'
+icon: COOKED_PORKCHOP
+rarity: UNCOMMON
+maxStack: 16
+saleValue: 1
+lore:
+  - '&7上質なグラスボア肉を金風花と陽だまりの花びらで仕上げた串。'
+  - '&7エネルギーを70回復する。'
+unTradeable: false
+unSellable: false
+consumable:
+  onUse:
+    usingSound: entity.generic.eat
+    sound: block.note_block.chime
+    effect: happy_villager
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 10
+  effects:
+    - type: RECOVER
+      status: ENERGY
+      value: 70
+      isPercent: false
+      rate: 100

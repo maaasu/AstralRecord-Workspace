@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 牛"
+#   progression: 20
+schemaVersion: 1
+id: 10a00093
+category: material
+name: '&fヴェルディア牛の肉'
+icon: BEEF
+rarity: COMMON
+maxStack: 64
+saleValue: 80
+lore:
+  - '&7香草や茸と合わせて料理に使う新鮮な肉。'
+unTradeable: false
+unSellable: false
