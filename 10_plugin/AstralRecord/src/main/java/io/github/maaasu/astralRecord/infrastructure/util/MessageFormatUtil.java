@@ -1,11 +1,13 @@
 package io.github.maaasu.astralRecord.infrastructure.util;
 
 import java.text.MessageFormat;
+import java.util.regex.Pattern;
 
 /**
  * メッセージのフォーマット処理を提供するユーティリティクラス。
  */
 public final class MessageFormatUtil {
+    private static final Pattern MESSAGE_FORMAT_PLACEHOLDER = Pattern.compile("(?s).*\\{[0-9]+}.*");
 
     private MessageFormatUtil() {
         // utility class
@@ -28,7 +30,7 @@ public final class MessageFormatUtil {
         }
         try {
             // {0}, {1}, ... 形式のプレースホルダーが含まれている場合は MessageFormat を使用
-            if (message.matches("(?s).*\\{[0-9]+}.*")) {
+            if (MESSAGE_FORMAT_PLACEHOLDER.matcher(message).matches()) {
                 return MessageFormat.format(message, args);
             }
             // それ以外の場合は String.format を使用（%s など）
