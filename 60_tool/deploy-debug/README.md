@@ -51,7 +51,7 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 ## 入口の整理
 
 - `01`：有効なAPI/Web/Plugin/Filebaseを従来どおりビルド・配置し、Dev起動待ちと世代移行まで実行。
-- `02`：`01 -PluginOnly` のショートカット。従来どおりPluginテストを省略。Filebase/seedは実行しない。
+- `02`：`01 -PluginOnly` のショートカット。既定ではPluginテストを省略し、`-TestMode` で変更できる。Filebase/seedは実行しない。
 - `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動または稼働中Pluginの再読込を待ち、移行。稼働中利用ではプレイヤー入場と他の自動書込を止める。
 - `10`：リリース管理API/Webの専用入口を維持。Dev更新の停止待ち・移行を混ぜない。
 
@@ -65,6 +65,35 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 ```
 
 停止・入場制限を別の自動化が確認済みの場合だけ、`-ServersStopped -AdmissionClosed` で開始時の対話を省略できます。停止を検知・実行するフラグではありません。
+
+## Pluginテストの実行範囲
+
+01/02に `-TestMode All|Selected|Skip` を指定できます。未指定時は従来どおり01が `All`、02が `Skip` です。API/Webなどの処理範囲は変わりません。
+
+| モード | 動作 |
+|---|---|
+| `All` | Pluginの全テストをコンパイル・実行 |
+| `Selected` | テストソースをコンパイルし、`-Tests` に指定したテストだけ実行 |
+| `Skip` | テストのコンパイル・実行を両方省略 |
+
+```powershell
+# 全テストを実行して更新
+.\60_tool\01-deploy-debug.bat -TestMode All
+# 指定テストだけを実行してPluginを更新（カンマ区切り、クラス名のワイルドカードも可）
+.\60_tool\02-deploy-debug-plugin-only.bat -TestMode Selected -Tests "ClassRepositoryTest,SkillPermissionServiceTest"
+# テストを省略して更新
+.\60_tool\01-deploy-debug.bat -TestMode Skip
+# 02でも明示すれば全テストを実行
+.\60_tool\02-deploy-debug-plugin-only.bat -TestMode All
+# 実行前にモード・対象だけ確認（ビルド・配置なし）
+.\60_tool\01-deploy-debug.bat -Plan -TestMode Selected -Tests "*RepositoryTest"
+```
+
+`-Tests` は `Selected` の場合だけ必須です。クラス名、パッケージ付きクラス名、`*` / `?`、`ClassTest#method`（複数メソッドは `+` 区切り）を指定できます。正規表現や `!` による除外は扱いません。空要素、不正な組合せ、Pluginをビルドしないモードでの指定は副作用の前に拒否します。指定全体に一致するテストがなければビルド失敗となり、配置しません。複数パターンのうち一部だけが一致する場合は、一致したテストを実行します。変更の影響からテストを自動選択する機能ではありません。
+
+全モードで `clean package` と配置後の生成物削除を維持します。`Skip` でも本体のコンパイルとJAR生成は省略せず、過去のclassやリソースを再利用しません。クリーンビルドの省略やビルドキャッシュは導入していません。
+
+再開時も同じテストモード・指定を使用してください。テスト条件は実行記録の識別値に含め、条件が異なる未完了runの再利用を拒否します。未指定と従来の既定値を明示した場合は同じ条件として扱い、従来の未完了runも再開できます。
 
 ## 失敗時
 
@@ -81,3 +110,5 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 ## 検証
 
 `tests/dev-update-entry.tests.ps1` は一時fixtureの偽ビルドbackendと、実際の配布処理を使って入口のモード・対象制限を検証します。起動待ち・seed・失敗再開は `../maintenance/tests/update-workflow.tests.ps1` のmock APIで検証します。本番環境は操作しません。
+
+`tests/plugin-test-selection.tests.ps1` は一時fixtureと偽Mavenを使って実backendの3モード・引数・既定値・再開条件を検証し、ビルド失敗時に古いJARを配置しないことを確認します。両テストともPowerShell 7で実行し、Mavenの実ビルドや実サーバーへの配置は行いません。

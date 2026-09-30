@@ -7,6 +7,8 @@ param(
     [switch]$ReleaseManagementOnly,
     [switch]$PreflightOnly,
     [switch]$Plan,
+    [ValidateSet('All','Selected','Skip')][string]$TestMode,
+    [string]$Tests,
     [ValidateSet('Auto','Restart','Restore')][string]$Recovery='Auto',
     [switch]$RecoveryChecked,
     [switch]$ServersStopped,
@@ -17,6 +19,10 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 try {
+    . (Join-Path $PSScriptRoot 'PluginTestSelection.ps1')
+    $testSelection=Resolve-PluginTestSelection -TestMode $TestMode -Tests $Tests -PluginOnly:$PluginOnly `
+        -TestsSpecified:($PSBoundParameters.ContainsKey('Tests')) `
+        -NoPlugin:($MasterDataOnly -or $ReleaseManagementOnly -or $PreflightOnly)
     if (!$ConfigPath) {
         $localPath=Join-Path $PSScriptRoot 'deploy-debug.local.json'
         $ConfigPath=if (Test-Path -LiteralPath $localPath) { $localPath } else { Join-Path $PSScriptRoot 'deploy-debug.config.json' }
@@ -41,6 +47,7 @@ try {
     . (Join-Path $PSScriptRoot '../maintenance/SkillTreeMigration.ps1')
     . (Join-Path $PSScriptRoot '../maintenance/UpdateWorkflow.ps1')
     $config=Get-Content -Raw -Encoding UTF8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
+    if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }
     if (!$config.ContainsKey('devWorkflow')) { throw 'Add devWorkflow to the deployment config. See deploy-debug/README.md for one-time setup.' }
     $workflow=$config.devWorkflow
     $migration=$workflow.migration
@@ -65,6 +72,10 @@ try {
     foreach ($root in $roots) { if (Test-MaintenanceOverlap $workflow.runRoot $root) { throw 'Workflow runRoot overlaps deployment/source data.' } }
     if ($Plan) {
         Write-Host "Dev update mode: $mode"
+        if ($config.plugin.enabled -and !$MasterDataOnly) {
+            Write-Host "Plugin tests: $($testSelection.Mode); build: clean package"
+            if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
+        }
         Write-Host "Target runtime: $($normalized.ServerIds[0]); explicit accounts: $($normalized.AccountIds.Count); users (all characters): $($normalized.AccountUserIds.Count)"
         Write-Host "API endpoint: $($normalized.BaseUrl)"
         Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
@@ -78,13 +89,17 @@ try {
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0
     }
-    $fingerprint=Get-SkillTreeMigrationSha256 ((Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash + '|' + $mode)
+    $fingerprint=Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $testSelection
     $deployAction={
         param($RunDirectory)
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
         $arguments+=@('-WorkflowRunDirectory',$RunDirectory,'-WorkflowFingerprint',$fingerprint)
         if ($PluginOnly) { $arguments+='-PluginOnly' }
         if ($MasterDataOnly) { $arguments+='-MasterDataOnly' }
+        if ($config.plugin.enabled -and !$MasterDataOnly) {
+            $arguments+=@('-TestMode',$testSelection.Mode)
+            if ($testSelection.Tests) { $arguments+=@('-Tests',$testSelection.Tests) }
+        }
         $log=Join-Path $RunDirectory 'dev-deploy.log'
         & powershell.exe @arguments 2>&1 | Tee-Object -FilePath $log | Out-Host
         if ($LASTEXITCODE -ne 0) {

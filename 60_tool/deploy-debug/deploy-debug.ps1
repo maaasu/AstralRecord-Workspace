@@ -4,6 +4,8 @@ param(
     [switch]$MasterDataOnly,
     [switch]$ReleaseManagementOnly,
     [switch]$PreflightOnly,
+    [ValidateSet('All','Selected','Skip')][string]$TestMode,
+    [string]$Tests,
     [string]$ConfigPath,
     [string]$WorkflowRunDirectory,
     [string]$WorkflowFingerprint
@@ -13,6 +15,10 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptDir 'PluginTestSelection.ps1')
+$testSelection = Resolve-PluginTestSelection -TestMode $TestMode -Tests $Tests -PluginOnly:$PluginOnly `
+    -TestsSpecified:($PSBoundParameters.ContainsKey('Tests')) `
+    -NoPlugin:($MasterDataOnly -or $ReleaseManagementOnly -or $PreflightOnly)
 if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
     $ConfigPath = Join-Path $scriptDir "deploy-debug.config.json"
 }
@@ -434,7 +440,7 @@ function Invoke-HistoryDatabaseMigrations {
 function Build-Plugin {
     param(
         $Component,
-        [switch]$SkipTests
+        $TestSelection
     )
 
     Assert-PathExists -Label "Plugin project path" -Path $Component.projectPath
@@ -443,10 +449,12 @@ function Build-Plugin {
     Write-Step "Normalizing plugin source encodings (UTF-8 no BOM)"
     & $encodingNormalizerPath -RootPath (Join-Path $Component.projectPath "src\main\java")
 
-    $mavenArguments = @("clean", "package")
-    if ($SkipTests) {
-        $mavenArguments = @("-Dmaven.test.skip=true") + $mavenArguments
+    $mavenArguments = $TestSelection.MavenArguments
+    if ($TestSelection.Mode -eq 'Skip') {
         Write-Step "Building plugin without compiling or running tests"
+    }
+    elseif ($TestSelection.Mode -eq 'Selected') {
+        Write-Step "Building plugin with selected tests: $($TestSelection.Tests)"
     }
     else {
         Write-Step "Building plugin with tests"
@@ -637,6 +645,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath)) {
 }
 
 $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }
 
 if ($PluginOnly) {
     $config.api.enabled = $false
@@ -697,10 +706,7 @@ try {
             throw 'Dev workflow state does not match this deployment.'
         }
         $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
-        $fingerprintText=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash+'|'+$mode
-        $algorithm=[Security.Cryptography.SHA256]::Create()
-        try { $actualFingerprint=[BitConverter]::ToString($algorithm.ComputeHash([Text.Encoding]::UTF8.GetBytes($fingerprintText))).Replace('-','').ToLowerInvariant() }
-        finally { $algorithm.Dispose() }
+        $actualFingerprint=Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $testSelection
         if ($actualFingerprint -cne $WorkflowFingerprint) { throw 'Deployment configuration changed before the backend started.' }
     }
     Write-DevDeploymentProgress $progressStage 'Running'
@@ -714,7 +720,7 @@ try {
     }
 
     if ($config.plugin.enabled) {
-        Build-Plugin -Component $config.plugin -SkipTests:$PluginOnly
+        Build-Plugin -Component $config.plugin -TestSelection $testSelection
     }
 
     if ($config.api.enabled) {

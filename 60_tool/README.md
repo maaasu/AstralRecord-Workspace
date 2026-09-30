@@ -112,7 +112,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 2. 直下の番号付き bat を実行します。
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
 
-`01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
+`01-deploy-debug.bat` は既定で Plugin の全テストを含めてビルドします。`02-deploy-debug-plugin-only.bat` は既定でテストのコンパイル・実行を省略します。どちらも `-TestMode All|Selected|Skip` で切り替えられ、`Selected` では `-Tests "ClassRepositoryTest,SkillPermissionServiceTest"` のように対象を指定します。全モードでクリーンビルドを維持します。詳細と `-Plan` による事前確認は [Dev更新のテスト設定](deploy-debug/README.md#pluginテストの実行範囲) を参照してください。
 
 `01-deploy-debug.bat` と `10-release-management-deploy.bat` は API を有効にしている場合、API/Webを停止・配置する前にゲーム用 `db-migrate`、HistoryDB用migration、ManagementDB専用migrationを順に実行します。どれかの適用・スキーマ検査に失敗した場合、IIS停止、`app_offline.htm`、バイナリコピーを行わずに配置を中止します。`02-deploy-debug-plugin-only.bat` では API とDB migrationを実行しません。個別にゲーム用migrationだけを実行する場合は `13-db-migrate.bat`、ManagementDBだけを実行する場合は `14-management-db-migrate.bat`、HistoryDBだけを実行する場合は `15-history-db-migrate.bat` を使用します。各runnerはmanifestに明示されたmigrationだけを対象にし、DB再構築や既存データの削除は行いません。
 
