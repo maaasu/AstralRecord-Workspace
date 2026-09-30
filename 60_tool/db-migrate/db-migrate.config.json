@@ -1386,6 +1386,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "20260930_skilltree_login_patch",
+      "fileName": "20260930_skilltree_login_patch.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "skilltree_definition_generation",
+        "primaryKey": "PK_skilltree_definition_generation",
+        "columns": [
+          {
+            "name": "patch_version",
+            "sqlType": "bigint",
+            "isNullable": true
+          },
+          { "name": "introduced_after_patch_version", "sqlType": "bigint", "isNullable": false }
+        ],
+        "checkConstraints": [
+          "CK_skilltree_definition_generation_patch",
+          "CK_skilltree_definition_generation_introduced"
+        ],
+        "indexes": [
+          "UX_skilltree_definition_generation_patch"
+        ]
+      }
     }
   ]
 }

@@ -50,9 +50,11 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         if (runtime is not null && runtime.ServerSessionId == request.ServerSessionId
             && (request.PublicationRevision < runtime.PublicationRevision
                 || request.PublicationRevision == runtime.PublicationRevision && runtime.DefinitionGenerationId != request.DefinitionGenerationId)) return null;
+        var patchCatalog = await ReadPatchCatalogForUpdateAsync();
         var generation = await dbContext.SkillTreeDefinitionGenerations.FindAsync(request.DefinitionGenerationId);
         if (generation is null)
-            dbContext.SkillTreeDefinitionGenerations.Add(new() { DefinitionGenerationId = request.DefinitionGenerationId, CanonicalSnapshotJson = request.CanonicalSnapshotJson, CreatedAtUtc = DateTime.UtcNow });
+            dbContext.SkillTreeDefinitionGenerations.Add(new() { DefinitionGenerationId = request.DefinitionGenerationId, CanonicalSnapshotJson = request.CanonicalSnapshotJson,
+                CreatedAtUtc = DateTime.UtcNow, IntroducedAfterPatchVersion = patchCatalog.Select(x => x.PatchVersion ?? 0).DefaultIfEmpty(0).Max() });
         else if (generation.CanonicalSnapshotJson != request.CanonicalSnapshotJson) return null;
         if (runtime is null)
         {

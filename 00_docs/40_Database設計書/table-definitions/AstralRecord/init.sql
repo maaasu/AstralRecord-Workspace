@@ -637,10 +637,16 @@ CREATE TABLE [dbo].[skilltree_definition_generation] (
     [definition_generation_id] NVARCHAR(64) NOT NULL,
     [canonical_snapshot_json] NVARCHAR(MAX) NOT NULL,
     [created_at_utc] DATETIME2(3) NOT NULL,
+    [patch_version] BIGINT NULL,
+    [introduced_after_patch_version] BIGINT NOT NULL CONSTRAINT [DF_skilltree_definition_generation_introduced] DEFAULT(0),
+    CONSTRAINT [CK_skilltree_definition_generation_introduced] CHECK ([introduced_after_patch_version] >= 0),
+    CONSTRAINT [CK_skilltree_definition_generation_patch] CHECK ([patch_version] >= 0),
     CONSTRAINT [PK_skilltree_definition_generation] PRIMARY KEY CLUSTERED ([definition_generation_id]),
     CONSTRAINT [CK_skilltree_definition_generation_id] CHECK (LEN([definition_generation_id]) = 64),
     CONSTRAINT [CK_skilltree_definition_generation_snapshot_json] CHECK (ISJSON([canonical_snapshot_json]) = 1)
 );
+GO
+CREATE UNIQUE INDEX [UX_skilltree_definition_generation_patch] ON [dbo].[skilltree_definition_generation] ([patch_version]) WHERE [patch_version] > 0;
 GO
 
 -- skilltree_server_runtime

@@ -230,6 +230,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(x => x.DefinitionGenerationId).HasColumnName("definition_generation_id").HasMaxLength(64);
             entity.Property(x => x.CanonicalSnapshotJson).HasColumnName("canonical_snapshot_json");
             entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(x => x.PatchVersion).HasColumnName("patch_version");
+            entity.Property(x => x.IntroducedAfterPatchVersion).HasColumnName("introduced_after_patch_version");
+            entity.HasIndex(x => x.PatchVersion).IsUnique().HasFilter("[patch_version] > 0")
+                .HasDatabaseName("UX_skilltree_definition_generation_patch");
         });
         modelBuilder.Entity<SkillTreeServerRuntimeEntity>(entity =>
         {

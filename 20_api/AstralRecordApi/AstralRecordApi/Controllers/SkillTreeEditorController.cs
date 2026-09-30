@@ -43,6 +43,23 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
             : string.IsNullOrWhiteSpace(serverId) ? BadRequest()
             : await repository.GetServerRuntimeAsync(serverId) is { } result ? Ok(result) : NotFound();
 
+    /// <summary>起動確認した定義を公開します。キャラクターは更新せず、同一定義の公開番号を維持します。</summary>
+    [HttpPost("runtime/servers/{serverId}/patches/publish")]
+    public async Task<IActionResult> PublishPatch(string serverId, [FromQuery(Name = "server_session_id")] Guid sessionId,
+        [FromBody] SkillTreePatchPublishRequest request)
+        => !HasMigrationCredential() ? Unauthorized()
+            : !ValidServer(serverId) || sessionId == Guid.Empty || !ValidHash(request.DefinitionGenerationId) ? BadRequest()
+            : await repository.PublishPatchAsync(serverId, sessionId, request) is { } result ? Ok(result) : Conflict();
+
+    /// <summary>参加処理の所有者がパッチ適用の要否を確認し、保持可能な進行だけを新しい公開定義へ更新します。</summary>
+    [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/login-patch")]
+    public async Task<IActionResult> PrepareLoginPatch(string serverId, Guid accountId, [FromBody] SkillTreeLoginPatchRequest request)
+        => !HasRuntimeCredential() ? Unauthorized()
+            : !ValidServer(serverId) || accountId == Guid.Empty || !ValidHash(request.DefinitionGenerationId)
+                || request.ServerSessionId == Guid.Empty || request.AccountSessionId == Guid.Empty
+                || !ValidHash(request.AccountLeaseToken) || request.ExpectedStateVersion < 0 ? BadRequest()
+            : await repository.PrepareLoginPatchAsync(serverId, accountId, request) is { } result ? Ok(result) : Conflict();
+
     /// <summary>運用者が移行前に、保存済みの不変な定義スナップショットを確認する。</summary>
     [HttpGet("runtime/definitions/{generationId}")]
     public async Task<IActionResult> GetDefinition(string generationId)

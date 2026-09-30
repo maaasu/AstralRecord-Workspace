@@ -4,6 +4,8 @@ namespace AstralRecordApi.Repositories;
 
 public interface ISkillTreeOperationRepository
 {
+    Task<SkillTreePatchPublishResponse?> PublishPatchAsync(string serverId, Guid sessionId, SkillTreePatchPublishRequest request);
+    Task<SkillTreeLoginPatchResponse?> PrepareLoginPatchAsync(string serverId, Guid accountId, SkillTreeLoginPatchRequest request);
     Task<bool> RequiresRuntimeAuthorityAsync(Guid accountId);
     Task<SkillTreeServerRuntimeResponse?> RegisterServerAsync(string serverId, SkillTreeServerRegistrationRequest request);
     Task<string?> GetDefinitionAsync(string generationId);

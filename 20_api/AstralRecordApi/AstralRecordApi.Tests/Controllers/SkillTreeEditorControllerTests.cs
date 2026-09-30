@@ -10,6 +10,29 @@ namespace AstralRecordApi.Tests.Controllers;
 public sealed class SkillTreeEditorControllerTests
 {
     [Fact]
+    public async Task PatchPublicationAndLoginRequireDifferentCredentials()
+    {
+        await using var fixture = await Repositories.SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var controller = CreateController(fixture);
+        var publish = new SkillTreePatchPublishRequest { DefinitionGenerationId = fixture.Generation };
+        var login = new SkillTreeLoginPatchRequest
+        {
+            ServerSessionId = fixture.Boot, AccountSessionId = fixture.Session,
+            AccountLeaseToken = fixture.Token, DefinitionGenerationId = fixture.Generation,
+        };
+        Assert.IsType<UnauthorizedResult>(await controller.PublishPatch(fixture.Server, fixture.Boot, publish));
+        controller.Request.Headers["X-SkillTree-Runtime-Key"] = "runtime-secret";
+        Assert.IsType<UnauthorizedResult>(await controller.PublishPatch(fixture.Server, fixture.Boot, publish));
+        controller.Request.Headers.Remove("X-SkillTree-Runtime-Key");
+        controller.Request.Headers["X-SkillTree-Migration-Key"] = "migration-secret";
+        Assert.IsType<OkObjectResult>(await controller.PublishPatch(fixture.Server, fixture.Boot, publish));
+        Assert.IsType<UnauthorizedResult>(await controller.PrepareLoginPatch(fixture.Server, fixture.Account, login));
+        controller.Request.Headers["X-SkillTree-Runtime-Key"] = "runtime-secret";
+        // 既にプレイ中のsessionはruntimeキーを持っていても移行に使えない。
+        Assert.IsType<ConflictResult>(await controller.PrepareLoginPatch(fixture.Server, fixture.Account, login));
+    }
+
+    [Fact]
     public async Task MigrationEndpointsRequireDedicatedCredential()
     {
         await using var fixture = await Repositories.SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
