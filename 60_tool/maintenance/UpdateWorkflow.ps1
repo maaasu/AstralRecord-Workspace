@@ -72,8 +72,8 @@ function Assert-UpdateWorkflowInputs {
         if (Test-MaintenanceOverlap $runRoot $serverRoot) { throw 'Workflow runRoot overlaps a server root or source directory.' }
     }
 
-    $normalizedMigration = ConvertTo-SkillTreeMigrationConfig $MigrationConfig
-    if (!$normalizedMigration.Enabled) { throw 'migration.enabled must be true for the update workflow.' }
+    $normalizedMigration = ConvertTo-SkillTreeRuntimeConfig $MigrationConfig
+    if (!$normalizedMigration.Enabled) { throw 'migration.enabled must be true for patch publication in the update workflow.' }
     $credentials=Get-SkillTreeMigrationCredentials $normalizedMigration
     return [pscustomobject]@{ RunRoot=$runRoot; Migration=$normalizedMigration; ApiKey=$credentials.ApiKey; MigrationKey=$credentials.MigrationKey }
 }
@@ -307,7 +307,7 @@ function Invoke-UpdateWorkflow {
         if ($PrepareRunAction) {
             $preparedFingerprint=& $PrepareRunAction $runDirectory
             if ($preparedFingerprint -isnot [string] -or $preparedFingerprint -cnotmatch '^[0-9a-f]{64}$') { throw 'Run preparation must return a SHA-256 fingerprint.' }
-            if ($state -and $state.ContainsKey('runPreparationFingerprint') -and $state.runPreparationFingerprint -cne $preparedFingerprint) {
+            if ($state -and $state.Contains('runPreparationFingerprint') -and $state.runPreparationFingerprint -cne $preparedFingerprint) {
                 throw 'Deployment selections changed within this run.'
             }
         }
@@ -332,7 +332,9 @@ function Invoke-UpdateWorkflow {
         if ($state.status -eq 'Completed') {
             # Recover a crash between the run-state write and the active-pointer write.
             $active.status='Completed'; Save-UpdateWorkflowJson $active $activePath
-            return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; MigrationResult=(Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $runDirectory 'skilltree-migration-result.json') | ConvertFrom-Json -Depth 40) }
+            $publicationPath=Join-Path $runDirectory 'patch-publication-result.json'
+            $publication=if (Test-Path -LiteralPath $publicationPath) { Get-Content -Raw -Encoding UTF8 -LiteralPath $publicationPath | ConvertFrom-Json } else { $null }
+            return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; PatchPublicationResult=$publication }
         }
         if ($state.status -in @('Deploying','DeploymentFailed')) {
             Write-MaintenanceDiagnostic 'deployment.evidence.check' @{status=$state.status}
@@ -342,7 +344,7 @@ function Invoke-UpdateWorkflow {
         if ($state.status -eq 'AwaitingDeployment') {
             $runningModeAvailable = [bool]$AllowSameSessionPublication
             foreach ($serverId in $validated.Migration.ServerIds) {
-                $baseline = if ($state.ContainsKey('baselineRuntimes')) { $state.baselineRuntimes[$serverId] } else { $null }
+                $baseline = if ($state.Contains('baselineRuntimes')) { $state.baselineRuntimes[$serverId] } else { $null }
                 if (!$baseline -or !$baseline.Ready -or $null -eq $baseline.PublicationRevision) {
                     $runningModeAvailable = $false
                     break
@@ -384,7 +386,7 @@ function Invoke-UpdateWorkflow {
             $state.status='WaitingForStartup'; $state.deployedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
         }
         # Child Deploy owns run.lock while copying. Acquire it only after that child exits,
-        # and keep it through startup/migration so advanced Restore cannot race this workflow.
+        # and keep it through startup/publication so advanced Restore cannot race this workflow.
         $runLock=[IO.File]::Open((Join-Path $runDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
         if ($Label -eq 'Dev' -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
             throw 'Dev deployment completion marker is missing. Recovery is required.'
@@ -400,7 +402,7 @@ function Invoke-UpdateWorkflow {
             if ($WorkflowConfig.seedMasterData -and $state.seedStatus -ne 'SUCCEEDED') {
                 Write-MaintenanceDiagnostic 'seed.begin'
                 $seed = Invoke-UpdateWorkflowRequest $HttpInvoker 'POST' "$($validated.Migration.BaseUrl)/api/master-data/seed?mode=diff" @{ 'X-Api-Key'=$validated.ApiKey } $null
-                if ($seed.StatusCode -ne 200 -or (Get-UpdateWorkflowValue $seed.Body 'status') -cne 'SUCCEEDED') { throw 'Master data seed did not succeed; startup waiting and migration are stopped.' }
+                if ($seed.StatusCode -ne 200 -or (Get-UpdateWorkflowValue $seed.Body 'status') -cne 'SUCCEEDED') { throw 'Master data seed did not succeed; startup waiting and patch publication are stopped.' }
                 $state.seedStatus='SUCCEEDED'; $state.seededAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
                 Write-MaintenanceDiagnostic 'seed.end'
             }
@@ -410,7 +412,7 @@ function Invoke-UpdateWorkflow {
                 Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
             }
             Write-MaintenanceDiagnostic 'startup.wait.begin'
-            $baselineRuntimes = if ($state.ContainsKey('baselineRuntimes')) { $state.baselineRuntimes } else { $null }
+            $baselineRuntimes = if ($state.Contains('baselineRuntimes')) { $state.baselineRuntimes } else { $null }
             if ($null -eq $baselineRuntimes) {
                 $baselineRuntimes = [ordered]@{}
                 foreach ($serverId in $validated.Migration.ServerIds) {
@@ -422,54 +424,52 @@ function Invoke-UpdateWorkflow {
                 -AllowSameSessionPublication:$AllowSameSessionPublication -Invoker $HttpInvoker -Headers $headers `
                 -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
                 -SleepAction $SleepAction
-            $state.deployedRuntimes=@($runtimes); $state.status='ReadyForMigration'; Save-UpdateWorkflowJson $state $statePath
+            $state.deployedRuntimes=@($runtimes); $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
             Write-MaintenanceDiagnostic 'startup.wait.end'
         }
-        if ($state.status -eq 'ReadyForMigration') {
-            $marker = Join-Path $runDirectory 'migration-commit-started.json'
-            if (!(Test-Path -LiteralPath $marker -PathType Leaf)) { Save-UpdateWorkflowJson @{ startedAtUtc=[DateTime]::UtcNow.ToString('o') } $marker }
-            $state.status='Migrating'; Save-UpdateWorkflowJson $state $statePath
+        # An old workflow may already have sent player changes. Preserve those operation IDs,
+        # but complete/retry them only through the dedicated, explicitly invoked bulk tool.
+        if ($state.status -in @('ReadyForMigration','Migrating')) {
+            if (Test-UpdateWorkflowMigrationEvidence $runDirectory) {
+                $legacyResultPath=Join-Path $runDirectory 'skilltree-migration-result.json'
+                $legacyResult=if (Test-Path -LiteralPath $legacyResultPath) { Get-Content -Raw -Encoding UTF8 -LiteralPath $legacyResultPath | ConvertFrom-Json } else { $null }
+                if (!$legacyResult -or $legacyResult.Status -cne 'APPLIED') {
+                    throw "以前のプレイヤー一括更新が未完了です。17-player-patch-migration.bat に同じ -ConfigPath と -RunDirectory `"$runDirectory`" を指定して確認・再開してください。01/16では一括更新を実行しません。"
+                }
+            }
+            $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
         }
-        if ($state.status -eq 'Migrating') {
-            # Re-read immediately before the irreversible commit path. The migration helper also
-            # verifies this exact set before it enumerates candidates.
+        if ($state.status -eq 'PublishingPatch') {
+            # Only publish after every configured server agrees. No account enumeration or
+            # player-data write is performed by this workflow, including on a retry.
             $expectedRuntimes = @(Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers -AllowRestart)
-            $restarted = @($expectedRuntimes | Where-Object {
-                $runtime=$_
-                @($state.deployedRuntimes | Where-Object { $_.ServerId -ceq $runtime.ServerId -and $_.ServerSessionId -eq $runtime.ServerSessionId }).Count -ne 1
-            }).Count -gt 0
-            if ($restarted) {
-                if (!(Test-Path -LiteralPath (Join-Path $runDirectory 'skilltree-migration-state.json'))) { throw 'Server restarted, but migration state is missing. Recovery requires manual inspection.' }
-                Write-Host '同一定義でのサーバー再起動を検出しました。移行未送信・保存状態の一致を確認して引き継ぎます。'
-                Write-MaintenanceDiagnostic 'runtime.restart.detected' @{runtimes=$expectedRuntimes}
-            }
-            # The workflow transport exposes HTTP status (404 means offline); migration consumes JSON bodies.
-            $workflowTransport=$HttpInvoker
-            $migrationTransport={
-                param($Method,$Uri,$Headers,$Body)
-                $response=Invoke-UpdateWorkflowRequest $workflowTransport $Method $Uri $Headers $Body
-                if ($response.StatusCode -ne 200) { throw 'Migration API returned an unsuccessful status.' }
-                return $response.Body
-            }
+            $target=$expectedRuntimes[0]
+            $uri="$($validated.Migration.BaseUrl)/api/skilltree/runtime/servers/$([Uri]::EscapeDataString($target.ServerId))/patches/publish?server_session_id=$($target.ServerSessionId)"
             try {
-                Write-MaintenanceDiagnostic 'migration.begin'
-                $migrationResult = Invoke-SkillTreeMigration -Config $MigrationConfig -RunDirectory $runDirectory -Commit -ExpectedRuntimes $expectedRuntimes -HttpInvoker $migrationTransport -AllowRuntimeSessionRefresh
-                Write-MaintenanceDiagnostic 'migration.end'
+                Write-MaintenanceDiagnostic 'patch.publish.begin'
+                $response=Invoke-UpdateWorkflowRequest $HttpInvoker 'POST' $uri $headers @{definitionGenerationId=$target.DefinitionGenerationId}
+                if ($response.StatusCode -ne 200) { throw 'Patch publication was rejected.' }
+                $publishedGeneration=Get-UpdateWorkflowValue $response.Body 'definitionGenerationId'
+                $publishedVersion=Get-UpdateWorkflowValue $response.Body 'patchVersion'
+                $patchVersion=0L
+                if ($publishedGeneration -cne $target.DefinitionGenerationId -or
+                    ![long]::TryParse([string]$publishedVersion,[Globalization.NumberStyles]::Integer,[Globalization.CultureInfo]::InvariantCulture,[ref]$patchVersion) -or $patchVersion -lt 1) {
+                    throw 'Patch publication response did not match the requested generation or a valid patch version.'
+                }
+                $publication=[pscustomobject]@{definitionGenerationId=$publishedGeneration;patchVersion=$patchVersion}
+                Save-UpdateWorkflowJson $publication (Join-Path $runDirectory 'patch-publication-result.json')
+                Write-MaintenanceDiagnostic 'patch.publish.end' @{patchVersion=$patchVersion}
             }
             catch {
-                Write-MaintenanceDiagnostic 'migration.failed' -Failure $_
-                throw 'Skill tree migration did not complete. The active run and persisted operation IDs were retained for a same-run retry.'
+                Write-MaintenanceDiagnostic 'patch.publish.failed' -Failure $_
+                throw 'Patch publication did not complete. The active run was retained; retry with the same configuration. No player data was changed by this workflow.'
             }
-            if ($migrationResult.Status -cne 'APPLIED') { throw 'Skill tree migration did not report APPLIED.' }
             $null=Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $expectedRuntimes $HttpInvoker $headers
-            if ($restarted) {
-                Copy-Item -LiteralPath $statePath -Destination ($statePath + '.before-runtime-refresh-' + [Guid]::NewGuid().ToString('N')) -ErrorAction Stop
-                $state.deployedRuntimes=@($expectedRuntimes)
-            }
+            $state.deployedRuntimes=@($expectedRuntimes)
             $state.status='Completed'; $state.completedAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
             $active.status='Completed'; $active.completedAtUtc=$state.completedAtUtc; Save-UpdateWorkflowJson $active $activePath
-            Write-Host "$Label update workflow completed."
-            return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; MigrationResult=$migrationResult }
+            Write-Host "$Label update workflow completed. パッチ $patchVersion を公開しました。各プレイヤーの更新は次回ログイン時に行います。"
+            return [pscustomobject]@{ Status='COMPLETED'; RunDirectory=$runDirectory; PatchPublicationResult=$publication }
         }
         throw "Unsupported workflow status '$($state.status)'."
     } catch {

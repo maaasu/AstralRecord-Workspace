@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "migration": {
+    "enabled": false,
+    "baseUrl": "https://device_server:444",
+    "allowPrivateApiInsecureTls": false,
+    "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
+    "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
+    "apiSettingsPath": "",
+    "serverIds": ["channel1", "channel2"],
+    "scope": "AllCandidates",
+    "accountIds": [],
+    "accountUserIds": []
+  }
+}

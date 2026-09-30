@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Workflow','Plan','Deploy','MigratePreview','MigrateCommit','Restore')]
+    [ValidateSet('Workflow','Plan','Deploy','Restore')]
     [string]$Phase = 'Workflow',
     [string]$ConfigPath = (Join-Path $PSScriptRoot 'maintenance.local.json'),
     [string]$RunDirectory,
@@ -27,10 +27,10 @@ try {
     if ($config.migration.enabled -isnot [bool]) { throw 'Migration enabled must be boolean.' }
     if ($config.migration.enabled) {
         . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
-        $normalizedMigration = ConvertTo-SkillTreeMigrationConfig $config.migration
+        $normalizedMigration = ConvertTo-SkillTreeRuntimeConfig $config.migration
     }
     if ($Phase -eq 'Workflow') {
-        if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable migration before using the guided maintenance workflow.' }
+        if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable patch publication in migration before using the guided maintenance workflow.' }
         . (Join-Path $PSScriptRoot 'UpdateWorkflow.ps1')
         $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
         $workflow=$config.workflow
@@ -84,7 +84,7 @@ try {
         $plan = @(Get-MaintenancePlan $config)
         foreach ($op in $plan) { Write-Host "$($op.kind): $($op.source) -> $($op.destination)" }
         Write-Host "Distribution targets: $($plan.Count)"
-        Write-Host "Migration enabled: $($config.migration.enabled); scope: $($config.migration.scope)"
+        Write-Host "Patch publication enabled: $($config.migration.enabled). Player data is updated at login; bulk migration is available only through 17-player-patch-migration.bat."
         if ($config.migration.enabled) {
             Write-Host "API endpoint: $($normalizedMigration.BaseUrl)"
             Write-Host "Private-IP-only TLS verification bypass: $($normalizedMigration.AllowPrivateApiInsecureTls)"
@@ -95,11 +95,10 @@ try {
         exit 0
     }
     if ($Phase -in @('Deploy','Restore') -and !$ServersStopped) { throw 'Stop affected source/destination servers and automatic writers first, then specify -ServersStopped.' }
-    if ($Phase -in @('MigratePreview','MigrateCommit') -and !$AdmissionClosed) { throw 'Keep players offline and admission closed, then specify -AdmissionClosed.' }
-    if (!$RunDirectory) { throw '-RunDirectory is required; reuse it for the same release and migration retries.' }
+    if (!$RunDirectory) { throw '-RunDirectory is required; reuse it for deployment recovery.' }
     $RunDirectory = Get-MaintenanceAbsolutePath $RunDirectory
     Assert-MaintenanceNetworkRunBoundary $config $RunDirectory
-    # Keep run outputs separate from every configured server, including migration-only runs.
+    # Keep run outputs separate from every configured server.
     foreach ($server in $config.servers) {
         if ($server.enabled) {
             $root = Get-MaintenanceAbsolutePath $server.rootPath
@@ -142,24 +141,11 @@ try {
     switch ($Phase) {
         Deploy {
             Invoke-MaintenanceDeploy $config $RunDirectory
-            Write-Host 'Distribution complete. Keep admission closed. Finish API master updates before startup and migration.'
+            Write-Host 'Distribution complete. Keep admission closed. Finish API master updates before startup and patch publication.'
         }
         Restore {
             Restore-MaintenanceDeployment $RunDirectory
             Write-Host 'Files restored. Backups and displaced artifacts were retained. Check server state before opening admission.'
-        }
-        default {
-            if (!$config.migration.enabled) { throw 'Migration is disabled in this configuration.' }
-            $deployment = Join-Path $RunDirectory 'deployment.json'
-            if (Test-Path -LiteralPath $deployment) {
-                $journal = Get-Content -Raw -Encoding utf8 -LiteralPath $deployment | ConvertFrom-Json -AsHashtable
-                if ($journal.status -ne 'Deployed') { throw 'Distribution is incomplete or restored; migration is blocked.' }
-            }
-            if ($Phase -eq 'MigrateCommit') {
-                Write-MaintenanceJson @{ startedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'migration-commit-started.json')
-            }
-            . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
-            Invoke-SkillTreeMigration -Config $config.migration -RunDirectory $RunDirectory -Commit:($Phase -eq 'MigrateCommit')
         }
     }
     Write-Host "Run records: $RunDirectory"

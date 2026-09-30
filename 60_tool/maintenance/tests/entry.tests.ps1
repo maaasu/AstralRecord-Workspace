@@ -39,6 +39,8 @@ try {
     Check-Exit @('-ConfigPath',$configPath,'-Phase','Deploy','-RunDirectory',$run,'-ServersStopped') $true
     Check-Exit @('-ConfigPath',$configPath,'-Phase','MigrateCommit','-RunDirectory',$run) $false
     Check-Exit @('-ConfigPath',$configPath,'-Phase','MigrateCommit','-RunDirectory',$run,'-AdmissionClosed') $false
+    Check-Exit @('-ConfigPath',$configPath,'-Phase','MigratePreview','-RunDirectory',$run,'-AdmissionClosed') $false
+    if (Test-Path -LiteralPath (Join-Path $run 'migration-commit-started.json')) { throw '16 must never create a player migration marker.' }
     Check-Exit @('-ConfigPath',$configPath,'-Phase','Restore','-RunDirectory',$run,'-ServersStopped') $true
     if ([IO.File]::ReadAllText("$channel/plugins/AstralRecord.jar") -ne 'old') { throw 'Entry restore failed.' }
     $config.migration.scope='AllCandidates'

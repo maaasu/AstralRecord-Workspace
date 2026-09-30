@@ -74,7 +74,7 @@ function Get-SkillTreeTlsRequestOptions {
     return @{SkipCertificateCheck=$true;NoProxy=$true}
 }
 
-function ConvertTo-SkillTreeMigrationConfig {
+function ConvertTo-SkillTreeRuntimeConfig {
     param([Parameter(Mandatory)] $Config)
 
     $enabled = Get-SkillTreeMigrationValue $Config 'enabled'
@@ -105,6 +105,17 @@ function ConvertTo-SkillTreeMigrationConfig {
     $serverIds = @($serverIdsValue | ForEach-Object { Get-SkillTreeMigrationRequiredString $_ 'serverIds[]' })
     if ($serverIds.Count -eq 0 -or $serverIds.Count -ne @($serverIds | Select-Object -Unique).Count) { throw 'serverIds must be a non-empty array without duplicates.' }
 
+    return [pscustomobject][ordered]@{
+        Enabled=$enabled; BaseUrl=$uri.AbsoluteUri.TrimEnd('/'); ApiKeyEnvironmentVariable=$apiEnvironment
+        MigrationKeyEnvironmentVariable=$migrationEnvironment; ServerIds=$serverIds
+        ApiSettingsPath=$apiSettingsPath; AllowPrivateApiInsecureTls=$allowPrivateTls
+    }
+}
+
+function ConvertTo-SkillTreeMigrationConfig {
+    param([Parameter(Mandatory)] $Config)
+
+    $connection=ConvertTo-SkillTreeRuntimeConfig $Config
     $scope = Get-SkillTreeMigrationRequiredString (Get-SkillTreeMigrationValue $Config 'scope') 'scope'
     if ($scope -notin @('ExplicitAccounts', 'AllCandidates')) { throw "scope must be ExplicitAccounts or AllCandidates." }
     $accountIdsValue = Get-SkillTreeMigrationValue $Config 'accountIds'
@@ -128,10 +139,10 @@ function ConvertTo-SkillTreeMigrationConfig {
     if ($scope -eq 'ExplicitAccounts' -and $accountIds.Count -eq 0 -and $userIds.Count -eq 0) { throw 'ExplicitAccounts requires accountIds or accountUserIds.' }
 
     return [pscustomobject][ordered]@{
-        Enabled = $enabled; BaseUrl = $uri.AbsoluteUri.TrimEnd('/'); ApiKeyEnvironmentVariable = $apiEnvironment
-        MigrationKeyEnvironmentVariable = $migrationEnvironment; ServerIds = $serverIds; Scope = $scope; AccountIds = $accountIds
-        ApiSettingsPath=$apiSettingsPath; AccountUserIds=$userIds
-        AllowPrivateApiInsecureTls=$allowPrivateTls
+        Enabled=$connection.Enabled; BaseUrl=$connection.BaseUrl; ApiKeyEnvironmentVariable=$connection.ApiKeyEnvironmentVariable
+        MigrationKeyEnvironmentVariable=$connection.MigrationKeyEnvironmentVariable; ServerIds=$connection.ServerIds; Scope=$scope; AccountIds=$accountIds
+        ApiSettingsPath=$connection.ApiSettingsPath; AccountUserIds=$userIds
+        AllowPrivateApiInsecureTls=$connection.AllowPrivateApiInsecureTls
     }
 }
 
@@ -417,7 +428,7 @@ function Invoke-SkillTreeMigration {
     foreach ($record in @($state.Records)) {
         if ($record.CommitStatus -eq 'APPLIED') { continue }
         if ($record.CommitStatus -eq 'REQUESTED') {
-            if (!$Commit) { throw 'An unknown COMMIT result remains. Use MigrateCommit with the same RunDirectory to resolve it.' }
+            if (!$Commit) { throw 'An unknown COMMIT result remains. Use 17-player-patch-migration.bat -Phase Commit with the same RunDirectory to resolve it.' }
             # The API may already have changed state. Its persisted operation receipt is authoritative.
             continue
         }

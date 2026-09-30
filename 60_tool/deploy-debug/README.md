@@ -6,14 +6,14 @@
 2. `01-deploy-debug.bat` を実行し、停止・入場制限の確認に応答する。
 3. バッチがビルド・配置・必要なseedを終えると、Devの起動案内を表示して待機する。
 4. Devを起動する。まだ入室しない。
-5. 新しい起動sessionのready、スキルツリー世代を確認し、設定した開発アカウントだけを自動移行する。
+5. 新しい起動sessionのready、スキルツリー世代を確認し、その設定をパッチとして公開する。プレイヤーの一括更新は行わない。
 6. バッチの完了表示を確認して入室する。
 
-JARコピーだけでは完了扱いにしません。API障害、起動待ちタイムアウト、世代不一致、移行拒否は非0終了です。サーバーを強制起動したり入場制限を自動解除したりしません。
+JARコピーだけでは完了扱いにしません。API障害、起動待ちタイムアウト、世代不一致、公開拒否は非0終了です。サーバーを強制起動したり入場制限を自動解除したりしません。各プレイヤーの更新は次回ログイン時に行います。
 
 ## 03で稼働中のDevを使う
 
-03はFilebase同期とAPI seedの後、Dev Pluginの再読込処理とactivation試行が終了したことをruntimeの`publicationRevision`で確認します。個別activation失敗はPlugin既存仕様に従い警告扱いとなるため、この確認だけでworld/NPC等の全activation成功を保証するものではありません。Devのプロセスsessionが変わらなくても、seed後にrevisionが進み、runtimeがreadyかつ安定していれば世代移行へ進みます。マスタの変更でスキルツリー世代IDが変わる場合も、その新世代を確認します。
+03はFilebase同期とAPI seedの後、Dev Pluginの再読込処理とactivation試行が終了したことをruntimeの`publicationRevision`で確認します。個別activation失敗はPlugin既存仕様に従い警告扱いとなるため、この確認だけでworld/NPC等の全activation成功を保証するものではありません。Devのプロセスsessionが変わらなくても、seed後にrevisionが進み、runtimeがreadyかつ安定していればパッチ公開へ進みます。マスタの変更でスキルツリー世代IDが変わる場合も、その新世代を確認します。
 
 この運用には、APIの`publicationRevision`応答と、再読込ごとにそのrevisionを再登録するPluginが必要です。先に更新後のAPIとPluginを配置して一度起動してください。Plugin設定の`masterData.autoReload.enabled`も有効にします。それ以降の03ではDevの再起動は不要です。再読込が確認できない場合は完了扱いにならず、待機タイムアウトになります。
 
@@ -31,7 +31,7 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 
 既存の `deploy-debug.config.json` に `devWorkflow` を追加しています。必要ならこのファイルを `deploy-debug.local.json` にコピーしてください。localが存在する場合はそちらが優先されます。明示の `-ConfigPath` も使用できます。配置先・API/Webの有効無効は既存設定を引き継ぎます。DevのJARとマスタだけなら `api.enabled` / `web.enabled` をfalseにして設定します。
 
-`devWorkflow.migration.serverIds` に実際のDevの `api.serverId` を1つ設定します。対象は `accountIds` の **アカウントUUID**、または `accountUserIds` の **ユーザーUUID配下の全アカウント** で指定できます。ユーザー指定では新しい実行ごとにAPIからキャラクター一覧を取得し、途中再試行では同じ対象集合を保持します。`ExplicitAccounts` 固定で、全DB候補を移行する `AllCandidates` はDev入口では拒否します。DBの再構築は不要です。
+`devWorkflow.migration.serverIds` に実際のDevの `api.serverId` を1つ設定します。接続設定の名前は互換性のため `migration` のままですが、用途は起動確認とパッチ公開です。`scope`・`accountIds`・`accountUserIds` は不要です。以前の設定に残っていても、一括更新やキャラクター一覧取得には使用しません。DBの再構築は不要です。
 
 `baseUrl` と、共通APIキー・専用migrationキーを取得する環境変数名も設定します。キーは環境変数へ安全に設定し、JSONやログへ実値を保存しません。HTTPS証明書は通常の信頼設定を使用します。Devとチャンネルで同じAPI/マスターDBを共有している場合、APIマスタ更新の影響も共有する点は従来どおりです。
 
@@ -46,14 +46,15 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 | `pollIntervalSeconds` | 起動確認の間隔。既定設定は5秒 |
 | `seedMasterData` | Filebase同期後にAPIのdiff seedを実行。PluginOnlyでは省略 |
 
-初期設定のserverIds/accountIdsは空です。推測で実データを移行しないため、設定が揃うまでは配置前に停止します。共通APIキーとmigrationキーは異なる値にします。
+初期設定のserverIdsは空です。対象サーバーを推測で決めないため、設定が揃うまでは配置前に停止します。共通APIキーとmigrationキーは異なる値にします。Devで公開したパッチは同じAPI・DBを使う他チャンネルにも影響し、古い設定のチャンネルへの参加が制限されます。Devと本番を別の公開段階に保つ場合はAPI・DBを分離してください。
 
 ## 入口の整理
 
-- `01`：有効なAPI/Web/Plugin/Filebaseを従来どおりビルド・配置し、Dev起動待ちと世代移行まで実行。
+- `01`：有効なAPI/Web/Plugin/Filebaseを従来どおりビルド・配置し、Dev起動待ちとパッチ公開まで実行。
 - `02`：`01 -PluginOnly` のショートカット。既定ではPluginテストを省略し、`-TestMode` で変更できる。Filebase/seedは実行しない。
-- `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動または稼働中Pluginの再読込を待ち、移行。稼働中利用ではプレイヤー入場と他の自動書込を止める。
-- `10`：リリース管理API/Webの専用入口を維持。Dev更新の停止待ち・移行を混ぜない。
+- `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動または稼働中Pluginの再読込を待ち、パッチ公開。稼働中利用ではプレイヤー入場と他の自動書込を止める。
+- `10`：リリース管理API/Webの専用入口を維持。Dev更新の停止待ち・公開登録を混ぜない。
+- `17`：大きな仕様変更・復旧用のプレイヤー一括更新。通常更新とは別の [専用手順](../player-patch-migration/README.md)。
 
 `03` の設定元は旧 `master-data-reload.config.json` から01と同じdeploy-debug設定へ統合しました。旧PowerShellは詳細操作用に残しています。旧 `-Mode rebuild` は日常入口には引き継がず、通常はdiff seedだけを使用します。
 
@@ -97,15 +98,15 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 
 ## 失敗時
 
-同じバッチ・設定・モードで再実行すると、未完了の実行記録を再利用します。配置成功後なら再ビルド・再コピーをせず、seed/起動待ち/移行から再開します。起動待ち中はDevを起動し、移行中の失敗ではDevを再起動せずに再実行してください。COMMITの結果不明でも同じoperation IDを使います。
+同じバッチ・設定・モードで再実行すると、未完了の実行記録を再利用します。配置成功後なら再ビルド・再コピーをせず、seed/起動待ち/パッチ公開から再開します。起動待ち中はDevを起動してください。公開要求の結果が不明でも、同じ設定世代への再送では同じパッチ番号を使います。
 
 配布失敗時も01自身が復旧を案内します。新形式の `dev-deployment-progress.json` は子backendが `run.lock` を保持してBuild/Database/Files/Completedの境界を副作用の前に保存します。隔離Build段階の失敗をbackendが記録済みなら旧runを自動保全して新規実行、Database/Files・実行中のまま中断・旧形式の記録なら確認メニューを表示します。強制終了では外部ビルド子プロセスが残る可能性があるため、Running記録だけで自動再ビルドしません。DB・配置先の整合と必要な外部復旧を確認済みの場合だけ `1` と `RECOVERY-CHECKED` を入力してください。この操作はDBや配置先のロールバックではありません。非対話では `-Recovery Restart -RecoveryChecked -ServersStopped -AdmissionClosed` を使用します。世代移行記録のあるrunは破棄できません。詳細は [失敗時の自己復旧](../maintenance/README.md#失敗時の自己復旧) を参照してください。
 
-すでにDevを再起動してしまった場合も、同一定義世代・移行全件COMMIT未送信・保存状態不変を再確認できれば、01が旧記録を保全して新しい起動sessionへ引き継ぎます。Minecraftからはログアウトを維持してください。移行送信済み、定義変更、保存状態変更は自動解除しません。詳細は [メンテナンス運用](../maintenance/README.md#メンテナンス運用) を参照してください。
+公開待ちでDevを再起動した場合、確認済みと同じ設定世代でreadyなら新しい起動sessionへ引き継いで公開を再試行します。旧版の一括更新が未完了のrunは17に同じ設定・runを指定して完了させてから01を再開します。詳細は [メンテナンス運用](../maintenance/README.md#メンテナンス運用) を参照してください。
 
 配置完了を確認できない場合は上記の自己復旧判定に従います。DB更新・外部配置が始まっている、またはその有無が不明な実行は、状態確認なしにやり直しません。旧Devデプロイ処理自体をトランザクション化したわけではありません。同じrunを継続する場合の設定・モード変更は拒否し、安全な新規実行または確認済みRestartへ切り替えた場合だけ新しい設定を使用します。
 
-実行記録、ログ、履歴は自動削除しません。設定完了後の日常操作に `-Phase` や `-RunDirectory` の入力は不要です。破壊的な世代変更や非空legacyの承認は自動で行わず、通常の互換性検証に失敗した場合のみ管理対応が必要です。
+実行記録、ログ、履歴は自動削除しません。設定完了後の日常操作に `-Phase` や `-RunDirectory` の入力は不要です。プレイヤーの取得内容を維持できない変更では、ログイン時の更新を保留して管理対応が必要になります。17も破壊的な変更や非空legacyの承認は自動で行いません。
 
 ## 検証
 

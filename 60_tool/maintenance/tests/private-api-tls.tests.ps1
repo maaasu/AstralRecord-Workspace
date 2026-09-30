@@ -56,6 +56,7 @@ try {
             $payload=$runtime
         } elseif ($Uri -match '/runtime/definitions/') { $payload=@{nodes=@();positions=@();edges=@()} }
         elseif ($Uri -match 'migration-candidates') { $payload=@{runtime=$runtime;page=1;pageSize=100;totalCount=0;items=@()} }
+        elseif ($Uri -match '/patches/publish\?server_session_id=') { $payload=@{definitionGenerationId=$script:generation;patchVersion=1} }
         else { throw 'Unexpected fixture route.' }
         return @{StatusCode=200;Content=($payload | ConvertTo-Json -Depth 10 -Compress)}
     }

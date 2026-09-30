@@ -51,9 +51,9 @@ try {
     if (!$config.ContainsKey('devWorkflow')) { throw 'Add devWorkflow to the deployment config. See deploy-debug/README.md for one-time setup.' }
     $workflow=$config.devWorkflow
     $migration=$workflow.migration
-    $normalized=ConvertTo-SkillTreeMigrationConfig $migration
-    if (!$normalized.Enabled -or $normalized.Scope -ne 'ExplicitAccounts' -or $normalized.ServerIds.Count -ne 1) {
-        throw 'Dev workflow requires enabled migration, one Dev serverId, and ExplicitAccounts. AllCandidates is not allowed.'
+    $normalized=ConvertTo-SkillTreeRuntimeConfig $migration
+    if (!$normalized.Enabled -or $normalized.ServerIds.Count -ne 1) {
+        throw 'Dev workflow requires enabled patch publication and one Dev serverId in devWorkflow.migration.'
     }
     if (!$workflow.runRoot) { $workflow.runRoot=Join-Path ([IO.Path]::GetDirectoryName($ConfigPath)) 'runs' }
     $workflow.runRoot=Get-MaintenanceAbsolutePath $workflow.runRoot
@@ -76,15 +76,15 @@ try {
             Write-Host "Plugin tests: $($testSelection.Mode); build: clean package"
             if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
         }
-        Write-Host "Target runtime: $($normalized.ServerIds[0]); explicit accounts: $($normalized.AccountIds.Count); users (all characters): $($normalized.AccountUserIds.Count)"
+        Write-Host "Target runtime: $($normalized.ServerIds[0]); register the current patch after startup. Player data is updated at login."
         Write-Host "API endpoint: $($normalized.BaseUrl)"
         Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
         if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
         else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
         if ($MasterDataOnly -and $workflow.seedMasterData) {
-            Write-Host 'Stopped Dev or running Dev with admission closed -> sync Filebase -> seed -> wait for a new session or completed hot reload -> migrate -> complete.'
+            Write-Host 'Stopped Dev or running Dev with admission closed -> sync Filebase -> seed -> wait for a new session or completed hot reload -> publish patch -> complete.'
         } else {
-            Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> migrate -> complete.'
+            Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> publish patch -> complete.'
         }
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0

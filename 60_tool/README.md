@@ -6,9 +6,9 @@
 
 | 番号 | bat | 用途 |
 | --- | --- | --- |
-| 01 | `01-deploy-debug.bat` | [Dev更新](deploy-debug/README.md)：配置→手動起動待ち→開発アカウント世代移行まで一括実行 |
+| 01 | `01-deploy-debug.bat` | [Dev更新](deploy-debug/README.md)：配置→手動起動待ち→パッチ公開。プレイヤー更新はログイン時 |
 | 02 | `02-deploy-debug-plugin-only.bat` | 01のPlugin限定ショートカット（従来どおりテスト省略） |
-| 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動または稼働中再読込待ち→移行） |
+| 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動または稼働中再読込待ち→パッチ公開） |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
 | 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
 | 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
@@ -21,7 +21,8 @@
 | 13 | `13-db-migrate.bat` | 既存DBへ宣言済みの本番 migration を冪等適用し、必要スキーマを検査 |
 | 14 | `14-management-db-migrate.bat` | ManagementDB の明示登録済み migration を非破壊で適用・検査 |
 | 15 | `15-history-db-migrate.bat` | HistoryDB の明示登録済み migration を非破壊で適用・検査 |
-| 16 | `16-maintenance.bat` | [本番メンテナンス](maintenance/README.md)：配布→手動起動待ち→対象アカウント世代移行まで一括実行 |
+| 16 | `16-maintenance.bat` | [メンテナンス配布](maintenance/README.md)：Dev/Buildのファイル配布→手動起動待ち→パッチ公開 |
+| 17 | `17-player-patch-migration.bat` | [プレイヤー一括更新](player-patch-migration/README.md)：大きな仕様変更・復旧用の事前確認と明示反映 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -44,6 +45,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 13-db-migrate.bat
 ├─ 14-management-db-migrate.bat
 ├─ 15-history-db-migrate.bat
+├─ 16-maintenance.bat
+├─ 17-player-patch-migration.bat
 ├─ generate-status-types.ps1
 ├─ generate-tag-types.ps1
 ├─ deploy-debug/
@@ -52,6 +55,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 │  ├─ normalize-source-encoding.ps1
 │  └─ tests/
 │     └─ release-management-preflight.integration.ps1
+├─ maintenance/                # 16の配布・起動確認・パッチ公開
+├─ player-patch-migration/     # 17の手動一括更新
 ├─ astralarchitect-deploy/
 │  ├─ astralarchitect-deploy.ps1
 │  ├─ astralarchitect-deploy.config.json
@@ -102,7 +107,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 ## 使用方法
 
-01/02/03/16はPowerShell 7で実行します。通常のPATHに `pwsh` がない場合は、Git管理外の `60_tool/powershell7.local.json` に `{"executablePath":"C:\\path\\to\\pwsh.exe"}` を指定できます。共通bootstrapが既存の実行ファイルを直接使い、OSのPATH変更や新しいインストールは行いません。指定した実行ファイルを削除・移動した場合は参照先を更新してください。
+01/02/03/16/17はPowerShell 7で実行します。通常のPATHに `pwsh` がない場合は、Git管理外の `60_tool/powershell7.local.json` に `{"executablePath":"C:\\path\\to\\pwsh.exe"}` を指定できます。共通bootstrapが既存の実行ファイルを直接使い、OSのPATH変更や新しいインストールは行いません。指定した実行ファイルを削除・移動した場合は参照先を更新してください。
 
 `ManagementDB` はプレイヤー識別と運営情報を長期保持するDBで、ゲームDBリセット・再構築の対象外です。`db-rebuild` とゲーム用 `db-migrate` は、接続設定が `ManagementDB` または旧 `WebSiteDB` を指している場合も処理を拒否します。管理DBのスキーマ更新は専用の非破壊migrationで行います。
 
@@ -153,9 +158,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tes
 
 共有タグカタログを変更した後は`08-generate-tag-types.bat`を実行します。生成漏れと全filebaseの未定義・用途違いタグだけを検査する場合は`08-generate-tag-types.bat -Check`を使用できます。
 
-日常の入口は01（Dev更新）、16（本番メンテナンス）、05（エディタ）です。02/03は01へのショートカット、その他は専用開発・管理操作として扱います。01/16はサーバー停止・起動を運用者が行い、起動後の待機と世代移行をバッチが継続します。03はAPIとPluginを更新済みでマスタ自動再読込が有効なら、Devを稼働させたまま再読込完了を待てます。詳細は各手順を参照してください。
+日常の入口は01（Dev更新）、16（メンテナンス配布）、05（エディタ）です。02/03は01へのショートカット、その他は専用開発・管理操作として扱います。01/16はサーバー停止・起動を運用者が行い、起動後の待機とパッチ公開をバッチが継続します。プレイヤーはログイン時に必要な更新を行います。全員分の一括更新は17だけで明示実行し、01/02/03/16には含めません。03はAPIとPluginを更新済みでマスタ自動再読込が有効なら、Devを稼働させたまま再読込完了を待てます。詳細は各手順を参照してください。
 
-03も01と同じ `deploy-debug.config.json` / `deploy-debug.local.json` を使用します。初回のDevアカウント・接続設定は [Dev更新手順](deploy-debug/README.md) を参照してください。以下は旧 `master-data-reload.ps1` を直接使う詳細操作の設定であり、03の設定ではありません。
+03も01と同じ `deploy-debug.config.json` / `deploy-debug.local.json` を使用します。初回のDevサーバー・接続設定は [Dev更新手順](deploy-debug/README.md) を参照してください。以下は旧 `master-data-reload.ps1` を直接使う詳細操作の設定であり、03の設定ではありません。
 
 旧Master data reloadスクリプトの実行前には `ASTRALRECORD_API_KEY` を設定してください。
 

@@ -1,8 +1,13 @@
 # Invoked only while the guided workflow owns workflow.lock.
-function Get-UpdateWorkflowRecoveryDecision([string]$RunDirectory, [string]$Label, [string]$Fingerprint) {
+function Test-UpdateWorkflowMigrationEvidence([string]$RunDirectory) {
     foreach ($name in @('migration-commit-started.json','skilltree-migration-state.json','skilltree-migration-result.json','skilltree-migration-targets.json')) {
-        if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { throw '移行記録があります。新規実行へ切り替えず、同じrunの世代移行を再開してください。' }
+        if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $true }
     }
+    return $false
+}
+
+function Get-UpdateWorkflowRecoveryDecision([string]$RunDirectory, [string]$Label, [string]$Fingerprint) {
+    if (Test-UpdateWorkflowMigrationEvidence $RunDirectory) { throw '移行記録があります。新規実行へ切り替えず、17-player-patch-migration.bat に同じ設定と実行記録先を指定して再開してください。' }
     if ($Label -eq 'Dev') {
         if (Test-Path -LiteralPath (Join-Path $RunDirectory 'deploy-action-success.json') -PathType Leaf) { return @{kind='Resume';reason='Dev配置完了済みです。再配布せず再開します。'} }
         $path=Join-Path $RunDirectory 'dev-deployment-progress.json'

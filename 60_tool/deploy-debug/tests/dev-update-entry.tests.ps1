@@ -25,11 +25,11 @@ if ($WorkflowFingerprint) {
 @{pluginOnly=[bool]$PluginOnly;masterDataOnly=[bool]$MasterDataOnly;release=[bool]$ReleaseManagementOnly;preflight=[bool]$PreflightOnly;testMode=$TestMode;tests=$Tests;fingerprint=$WorkflowFingerprint} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path $ConfigPath) 'backend-result.json')
 '@
     Write-TestFile (Join-Path $fixture 'maintenance/UpdateWorkflow.ps1') @'
-function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked,$PrepareRunAction) {
+function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked,$PrepareRunAction,$RestoreAction,[switch]$ServerAlreadyRunning,[switch]$AutomaticWritersStopped,[switch]$AllowSameSessionPublication) {
     $run=Join-Path $WorkflowConfig.runRoot ([guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $run -Force | Out-Null
+    @{label=$Label;servers=$MigrationConfig.serverIds;seed=$WorkflowConfig.seedMasterData;roots=$ServerRoots} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkflowConfig.runRoot 'entry-result.json')
     if ($PrepareRunAction) { $null=& $PrepareRunAction $run }
-    @{label=$Label;scope=$MigrationConfig.scope;seed=$WorkflowConfig.seedMasterData;roots=$ServerRoots} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkflowConfig.runRoot 'entry-result.json')
     & $DeployAction $run
     if (!(Test-Path -LiteralPath (Join-Path $run 'deploy-action-success.json')) -and !(Test-Path -LiteralPath (Join-Path $run 'deployment.json'))) { throw 'Deployment completion was not journaled.' }
 }
@@ -38,7 +38,7 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
     Write-TestFile "$dev/plugins/AstralRecord.jar" 'new jar'
     Write-TestFile "$channel/plugins/AstralRecord.jar" 'old jar'
     Write-TestFile "$fixture/source/config.yml" 'fixture'
-    $migration=@{enabled=$true;baseUrl='http://127.0.0.1:1';apiKeyEnvironmentVariable='TEST_API';migrationKeyEnvironmentVariable='TEST_MIG';serverIds=@('dev');scope='ExplicitAccounts';accountIds=@([guid]::NewGuid().ToString())}
+    $migration=@{enabled=$true;baseUrl='http://127.0.0.1:1';apiKeyEnvironmentVariable='TEST_API';migrationKeyEnvironmentVariable='TEST_MIG';serverIds=@('dev')}
     $config=@{devWorkflow=@{runRoot="$fixture/dev-runs";startupTimeoutSeconds=10;pollIntervalSeconds=1;seedMasterData=$true;migration=$migration};plugin=@{enabled=$true;deployPath="$dev/plugins"};fileDatabase=@{enabled=$true;sourcePath="$fixture/source";deployPath="$fixture/filebase"};api=@{enabled=$false};web=@{enabled=$false}}
     $configPath=Join-Path $fixture 'dev.json'
     $config | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $configPath
@@ -55,7 +55,7 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
         $expectedTestMode=if ($mode -eq 'PluginOnly') { 'Skip' } elseif ($mode -eq 'Full') { 'All' } else { '' }
         Assert ($result.testMode -ceq $expectedTestMode) 'Default test mode changed.'
         $workflow=Get-Content -Raw -LiteralPath "$fixture/dev-runs/entry-result.json" | ConvertFrom-Json
-        Assert ($workflow.scope -eq 'ExplicitAccounts' -and $workflow.label -eq 'Dev') 'Dev target scope changed.'
+        Assert ($workflow.servers[0] -eq 'dev' -and $workflow.label -eq 'Dev') 'Dev target server changed.'
         Assert ($workflow.seed -eq ($mode -ne 'PluginOnly')) 'Wrong seed selection.'
     }
     foreach ($case in @(
@@ -90,7 +90,7 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
     $config.devWorkflow.migration.scope='AllCandidates'
     $config | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $configPath
     & pwsh -NoProfile -File $entry -ConfigPath $configPath -Plan
-    Assert ($LASTEXITCODE -ne 0) 'Dev AllCandidates must be rejected.'
+    Assert ($LASTEXITCODE -eq 0) 'Legacy scope must not enable bulk migration or block patch publication.'
     & pwsh -NoProfile -File $entry -ConfigPath $configPath -ReleaseManagementOnly -PreflightOnly
     Assert ($LASTEXITCODE -eq 0) 'Release preflight must bypass Dev workflow.'
     $result=Get-Content -Raw -LiteralPath "$fixture/backend-result.json" | ConvertFrom-Json
@@ -101,5 +101,5 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
     & pwsh -NoProfile -File "$fixture/maintenance/maintenance.ps1" -ConfigPath $channelPath -ServersStopped -AdmissionClosed -WorldCopy Skip -NetworkPlugins Skip
     Assert ($LASTEXITCODE -eq 0) 'Default maintenance phase must execute workflow.'
     Assert ((Get-Content -Raw -LiteralPath "$channel/plugins/AstralRecord.jar") -eq 'new jar') 'Workflow did not run real distribution.'
-    Write-Host "PASS: Dev/test modes, selection validation, cross-process fingerprints, startup routing, migration scope, channel workflow, release preflight. Evidence: $fixture"
+    Write-Host "PASS: Dev/test modes, selection validation, cross-process fingerprints, startup routing without account settings, channel workflow, release preflight. Evidence: $fixture"
 } finally { Stop-Transcript | Out-Null }

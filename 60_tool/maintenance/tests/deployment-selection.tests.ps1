@@ -77,6 +77,9 @@ try {
     $active=Get-Content -Raw -Encoding UTF8 -LiteralPath "$workflowRoot/active-run.json" | ConvertFrom-Json
     $savedRun=Join-Path $workflowRoot $active.relativeRunDirectory
     Write-MaintenanceJson @{schemaVersion=1;worldCopy='Include';networkPlugins='Skip'} "$savedRun/deployment-selection.json"
+    # Supply completed-deployment evidence so resume reaches the selection guard;
+    # an interrupted deployment without a journal correctly stops at recovery first.
+    Write-MaintenanceJson @{version=1;status='Deployed';operations=@()} "$savedRun/deployment.json"
     $arguments.PrepareRunAction={param($RunDirectory) $picked=Resolve-MaintenanceDeploymentSelection $RunDirectory; Get-SkillTreeMigrationSha256 ($picked.worldCopy+'|'+$picked.networkPlugins)}
     Reject {Invoke-UpdateWorkflow @arguments} 'selections changed'
     Assert ($script:apiCalls -eq 1 -and $script:deployCalls -eq 1) 'changed persisted selection blocked before API/deploy'

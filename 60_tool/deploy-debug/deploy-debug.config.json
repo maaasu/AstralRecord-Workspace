@@ -11,10 +11,7 @@
       "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
       "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
       "apiSettingsPath": "",
-      "serverIds": [],
-      "scope": "ExplicitAccounts",
-      "accountIds": [],
-      "accountUserIds": []
+      "serverIds": []
     }
   },
   "iis": {
