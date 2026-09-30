@@ -9,6 +9,7 @@ Equipment 側の `setId` でこのファイルの `id` を参照することで�
 
 | キー                        | 型            | 必須 | デフォルト | 説明                                                                        |
 |:--------------------------|:-------------|:--:|:------|:--------------------------------------------------------------------------|
+| `schemaVersion`           | Integer      | ○  | -     | API Seederが全マスタに要求するスキーマ版。現在は `1`。 |
 | `id`                      | String       | ○  | -     | セット効果ID。Equipment の `setId` から参照される（架空例: `example_guardian_set`）。カテゴリ関係なく同ID禁止。 |
 | `name`                    | String       | ○  | -     | セット名称。ゲーム内UIに表示される（例: `"&6鉄の戦士セット"`）。                                     |
 | `pieces[]`                | List         | ○  | -     | セット装着数ごとの効果定義リスト。`count` の昇順で定義することを推奨。                                   |
@@ -39,6 +40,7 @@ Equipment 側からセット効果を参照する場合は `setId` に ID を直
 ### 例1: 2段階のセット効果を持つ架空のガーディアンセット
 
 ```yaml
+schemaVersion: 1
 id: example_guardian_set
 name: "&6ガーディアンセット例"
 pieces:
@@ -66,6 +68,7 @@ pieces:
 ### 例2: 3段階セット効果
 
 ```yaml
+schemaVersion: 1
 id: example_shadow_set
 name: "&5シャドウセット例"
 pieces:

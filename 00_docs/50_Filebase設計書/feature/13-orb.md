@@ -38,3 +38,10 @@ Orb は、通常プレイヤーインベントリからクリックして装備�
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\40.orb\docs.orb.YAMLスキーマ定義.md`
 - 共通 enchant: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
 - equipment: `E:\AstralRecord-Workspace\40_filebase\10.features.item\20.equipment\docs.equipment.YAMLスキーマ定義.md`
+
+
+## 状態変化後の防具・アクセサリ強化
+
+`40a00018`（上位イージスのオーブ）は `HEAD` / `CHEST` / `LEGS` / `FEET`、`40a00019`（上位フレイヤのオーブ）は `ACCESSORY` を対象とし、両方とも `rank: 2` / `rankMode: AT_MOST` で状態ランク0～2を強化できます。成功率と失敗時の動作は装備の次レベル定義に従います。元のイージス・フレイヤと同じ神話・用途の上位品なので、アイコンは元オーブのテクスチャを継承します。
+
+公開交換所 `equipment_growth_exchange` は、上位武器・防具・アクセサリ強化オーブを各種の通常強化オーブ3個と1,000 Goldで交換し、上位状態変化オーブをスキルジェム原石（無印）50個と10,000 Goldで交換します。`/shop equipment_growth_exchange` から利用できます。防具・アクセサリの上位品は売却不可です。

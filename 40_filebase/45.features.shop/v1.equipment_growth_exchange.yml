@@ -1,0 +1,62 @@
+# design:
+#   motif: "工芸 / 装備の再鍛錬"
+#   progression: 20
+schemaVersion: 1
+id: equipment_growth_exchange
+type: SHOP
+name: '&6装備育成の交換所'
+mode: EXCHANGE
+access: PUBLIC
+items:
+- id: 40a00017
+  itemId:
+    ref: item:40a00017
+  category: orb
+  amount: 1
+  page: 1
+  slot: 0
+  priceGold: 1000
+  requiredItems:
+  - itemId:
+      ref: item:40a00003
+    category: orb
+    amount: 3
+- id: 40a00018
+  itemId:
+    ref: item:40a00018
+  category: orb
+  amount: 1
+  page: 1
+  slot: 1
+  priceGold: 1000
+  requiredItems:
+  - itemId:
+      ref: item:40a00001
+    category: orb
+    amount: 3
+- id: 40a00019
+  itemId:
+    ref: item:40a00019
+  category: orb
+  amount: 1
+  page: 1
+  slot: 2
+  priceGold: 1000
+  requiredItems:
+  - itemId:
+      ref: item:40a00002
+    category: orb
+    amount: 3
+- id: 40a00016
+  itemId:
+    ref: item:40a00016
+  category: orb
+  amount: 1
+  page: 1
+  slot: 3
+  priceGold: 10000
+  requiredItems:
+  - itemId:
+      ref: item:10a00019
+    category: material
+    amount: 50
