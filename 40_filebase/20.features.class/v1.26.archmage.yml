@@ -12,7 +12,7 @@ icon: GOLDEN_SHOVEL
 classGui: { slot: 33 }
 adminChangeOnly: true
 role: SUPPORT
-maxLevel: 100
+maxLevel: 125
 unlockLevel: 15
 unlockClassLevel:
   - class: mage

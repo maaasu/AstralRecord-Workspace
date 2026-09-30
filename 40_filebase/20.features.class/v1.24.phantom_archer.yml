@@ -12,7 +12,7 @@ icon: crossbow
 classGui: { slot: 31 }
 adminChangeOnly: true
 role: DEALER
-maxLevel: 100
+maxLevel: 125
 unlockLevel: 15
 unlockClassLevel:
   - class: hunter
