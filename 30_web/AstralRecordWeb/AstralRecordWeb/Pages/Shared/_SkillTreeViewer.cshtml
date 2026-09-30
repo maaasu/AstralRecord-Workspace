@@ -30,6 +30,16 @@
                         </section>
                     </div>
                 }
+                @if (editable)
+                {
+                    <div class="ar-tree-preferences" role="group" aria-label="スキルツリーの操作とサウンド設定">
+                        <label><input type="checkbox" data-editor-sound checked /> サウンドON</label>
+                        <label>音量 <input type="range" min="0" max="100" step="5" value="35" data-editor-volume /><output data-editor-volume-label>35%</output></label>
+                        <label><input type="checkbox" data-editor-direct-click aria-describedby="tree-direct-click-help" /> クリックで解放・解除</label>
+                        <span id="tree-direct-click-help">ON：左クリックで解放、右クリックで解除を変更案へ追加。確定は「変更内容を確認」から。</span>
+                        <span data-editor-feedback role="status" aria-live="polite"></span>
+                    </div>
+                }
                 <div class="ar-tree-toolbar">
                     <form class="ar-tree-search" data-tree-search role="search" aria-label="スキルツリー内のノード検索">
                         <label class="visually-hidden" for="tree-search">名前・ステータス・スキルを検索</label>
