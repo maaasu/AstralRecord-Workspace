@@ -27,7 +27,7 @@ public class SkillTreePlayerStateRepository {
         return load(accountId, null, null, null, null);
     }
 
-    /** 処理権限と実ロード世代を提示し、旧Pluginや不一致世代への状態公開を拒否する。 */
+    /** 処理権限と実ロード世代を提示し、旧Pluginや不一致世代への状態公開を拒否する。不存在 account の 404 も拒否する。 */
     public SkillTreePlayerState load(UUID accountId, String serverId, UUID bootId,
             SkillTreeRuntimeRepository.AccountSession session, String generation) {
         String path = "/api/account-skilltree/" + accountId;
@@ -41,7 +41,7 @@ public class SkillTreePlayerStateRepository {
                     .send(request, HttpResponse.BodyHandlers.ofString());
             return switch (response.statusCode()) {
                 case 200 -> parse(accountId, JsonParser.parseString(response.body()).getAsJsonObject());
-                case 404 -> new SkillTreePlayerState(accountId, List.of());
+                case 404 -> throw new SkillTreeCompatibilityException("Skill tree account does not exist");
                 case 409 -> throw new SkillTreeCompatibilityException("Skill tree definition or account session is incompatible");
                 default -> throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             };

@@ -38,6 +38,24 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -88,6 +106,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, PendingPlayerStateRecovery> pendingPlayerStateRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
+    private final Set<JoinAttempt> patchApplyingAttempts = ConcurrentHashMap.newKeySet();
     private final Map<UUID, BukkitTask> initialGuideTitleTasks = new ConcurrentHashMap<>();
     private final Object joinLoadQueueLock = new Object();
     private final ArrayDeque<QueuedJoinLoad> queuedJoinLoads = new ArrayDeque<>();
@@ -549,6 +568,114 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             event.setDamage(0.0D);
             event.setCancelled(true);
         }
+    }
+
+    /** ロード中は直接攻撃以外の環境ダメージも含めてHPの変化を防ぎます。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
+    }
+
+    /** ロード中のブロックとエンティティへの操作を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingInteract(PlayerInteractEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のエンティティへの右クリックを遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingEntityInteract(PlayerInteractEntityEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のブロック破壊を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingBlockBreak(BlockBreakEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のブロック設置を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingBlockPlace(BlockPlaceEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のインベントリクリックを遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingInventoryClick(InventoryClickEvent event) {
+        if (event.getWhoClicked() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
+    }
+
+    /** ロード中のインベントリドラッグを遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingInventoryDrag(InventoryDragEvent event) {
+        if (event.getWhoClicked() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
+    }
+
+    /** ロード中のアイテム投棄を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingDrop(PlayerDropItemEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のアイテム取得を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingPickup(EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
+    }
+
+    /** ロード中のアイテム消費を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingConsume(PlayerItemConsumeEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のホットバー切替を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingHeldSlot(PlayerItemHeldEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中の持ち手切替を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingSwapHands(PlayerSwapHandItemsEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のコマンド実行を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingCommand(PlayerCommandPreprocessEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のバケツ放出を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingBucketEmpty(PlayerBucketEmptyEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中のバケツ採取を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingBucketFill(PlayerBucketFillEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中の釣りを遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingFish(PlayerFishEvent event) {
+        if (isJoinLoading(event.getPlayer())) event.setCancelled(true);
+    }
+
+    /** ロード中の弓の発射を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingBow(EntityShootBowEvent event) {
+        if (event.getEntity() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
+    }
+
+    /** ロード中に発射された投射物を遮断します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLoadingProjectile(ProjectileLaunchEvent event) {
+        if (event.getEntity().getShooter() instanceof Player player && isJoinLoading(player)) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -1108,6 +1235,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         if (!joinAttempts.remove(attempt.playerUuid(), attempt)) {
             return;
         }
+        patchApplyingAttempts.remove(attempt);
         releaseJoinLoad(attempt);
         LoadingControl loadingControl = loadingControls.remove(attempt.playerUuid());
         // 退出済みでも、この試行が変更した Player 自体から解除する。再接続先には触れない。
@@ -1132,6 +1260,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
      */
     public void stop() {
         joinAttempts.clear();
+        patchApplyingAttempts.clear();
         synchronized (joinLoadQueueLock) {
             queuedJoinLoads.clear();
             activeJoinLoads.clear();
@@ -1156,12 +1285,14 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         long maxDelayMillis = ConfigProperties.getInstance().getPlayerJoinSkillTreeRetryMaxDelayMillis();
         for (int attemptNumber = 1; attemptNumber <= maxAttempts && isJoinLoading(attempt); attemptNumber++) {
             try {
-                return skillTreeService.loadInitialPlayerState(accountId, userId);
+                return skillTreeService.loadInitialPlayerState(accountId, userId,
+                    () -> notifyPatchApplying(attempt));
             } catch (RuntimeException e) {
-                if (e instanceof io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException) {
+                if (e instanceof io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException compatibility) {
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (isJoinLoading(attempt)) {
-                            attempt.player().kick(PlayerMsgResource.formatComponent(PlayerMsgId.P_9050.getId()));
+                            PlayerMsgId reason = compatibility.isOutdatedChannel() ? PlayerMsgId.P_9051 : PlayerMsgId.P_9050;
+                            attempt.player().kick(PlayerMsgResource.formatComponent(reason.getId()));
                             finishJoinLoading(attempt, false);
                         }
                     });
@@ -1319,10 +1450,37 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             return;
         }
         player.showTitle(Title.title(
-            PlayerMsgResource.formatComponent(PlayerMsgId.P_5073.getId()),
-            PlayerMsgResource.formatComponent(PlayerMsgId.P_5071.getId()),
+            PlayerMsgResource.formatComponent((patchApplyingAttempts.contains(attempt) ? PlayerMsgId.P_5086 : PlayerMsgId.P_5073).getId()),
+            PlayerMsgResource.formatComponent((patchApplyingAttempts.contains(attempt) ? PlayerMsgId.P_5085 : PlayerMsgId.P_5071).getId()),
             Title.Times.times(Duration.ZERO, Duration.ofSeconds(6), Duration.ofMillis(500))
         ));
+    }
+
+    /** パッチ確定前にメインスレッドで表示を切り替え、通知完了後にAPI確定処理へ進めます。 */
+    private void notifyPatchApplying(JoinAttempt attempt) {
+        CompletableFuture<Void> notified = new CompletableFuture<>();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            try {
+                if (!isJoinLoading(attempt) || !attempt.player().isOnline()) {
+                    notified.completeExceptionally(new IllegalStateException("Join ended before skill tree login patch"));
+                    return;
+                }
+                patchApplyingAttempts.add(attempt);
+                PlayerMessageService.getInstance().send(attempt.player(), PlayerMsgId.P_5085);
+                showJoinLoadingTitle(attempt);
+                notified.complete(null);
+            } catch (RuntimeException failure) {
+                notified.completeExceptionally(failure);
+            }
+        });
+        try {
+            notified.get(10, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Skill tree login patch notification interrupted", interrupted);
+        } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException failure) {
+            throw new IllegalStateException("Skill tree login patch notification failed", failure);
+        }
     }
 
     private void startInitialGuideTitle(@NotNull AstPlayer astPlayer) {

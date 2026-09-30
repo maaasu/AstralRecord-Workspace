@@ -1680,22 +1680,71 @@ public class SkillTreeService {
      * 呼び出し元は Bukkit メインスレッド外で実行し、戻り値は
      * {@link #applyInitialPlayerState(SkillTreePlayerState)} でメインスレッドから反映してください。
      *
-     * 現在のマスター構造と不整合な状態は、API側で空状態への置換と補償メール配信を
-     * 同一トランザクションとして確定する。
+     * runtime session 取得後、通常読込より前にAPIで公開パッチを照合・必要時に確定する。
+     * 移行不能な状態は保持して参加を拒否する。構造破損の既存補修はパッチ照合後に行う。
      *
      * @param accountId 読み込み対象アカウント UUID
      * @param userId 補償メール配信対象ユーザー UUID
+     * @param onPatchRequired パッチ確定前に呼ぶ通知処理。Bukkit 操作は呼出側でメインスレッドへ移す
      * @return 保持中の未保存状態、または検証済みのAPI / DB読込状態
      * @throws RuntimeException 読み込みまたは補修APIの呼び出しに失敗した場合
      */
     public @NotNull SkillTreePlayerState loadInitialPlayerState(
             @NotNull UUID accountId,
-            @NotNull UUID userId
+            @NotNull UUID userId,
+            @NotNull Runnable onPatchRequired
     ) {
         SkillTreePlayerState retained = retainInitialPlayerState(accountId);
-        if (retained != null) return retained;
+        if (retained != null) {
+            if (retained.definitionGenerationId() == null && !retained.unlockedNodeIds().isEmpty()) {
+                throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                        "Retained legacy skill tree state has no definition generation.");
+            }
+            if (retained.definitionGenerationId() != null
+                    && !definitionGenerationId.equals(retained.definitionGenerationId())) {
+                throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                        "Retained skill tree state belongs to a different definition generation.");
+            }
+            SkillTreeRuntimeRepository.AccountSession retainedSession = runtimeAccountSessions.get(accountId);
+            if (retainedSession == null
+                    || !definitionGenerationId.equals(runtimeAccountDefinitionGenerations.get(accountId))) {
+                throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                        "Retained skill tree state has no current runtime session.");
+            }
+            // API の所有権・保存世代だけを照合する。未保存の進行は API の旧snapshotで上書きしない。
+            playerStateRepository.load(accountId, ConfigProperties.getInstance().getApiServerId(),
+                    runtimeServerSessionId, retainedSession, definitionGenerationId);
+            return retained;
+        }
         try {
         acquireRuntimeAccount(accountId);
+        SkillTreeRuntimeRepository.AccountSession accountSession = runtimeAccountSessions.get(accountId);
+        String serverId = ConfigProperties.getInstance().getApiServerId();
+        SkillTreeRuntimeRepository.LoginPatchResult patch = runtimeRepository.loginPatch(
+                serverId, runtimeServerSessionId, accountId, accountSession, definitionGenerationId, false, 0);
+        if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.UPDATE_REQUIRED
+                && !definitionGenerationId.equals(patch.definitionGenerationId())) {
+            throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                    "Skill tree login patch target does not match this server.");
+        }
+        if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.UPDATE_REQUIRED) {
+            onPatchRequired.run();
+            patch = runtimeRepository.loginPatch(serverId, runtimeServerSessionId, accountId,
+                    accountSession, definitionGenerationId, true, patch.stateVersion());
+        }
+        if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.CHANNEL_OUTDATED) {
+            throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                    "Skill tree channel is older than the published definition.", true);
+        }
+        if (patch.status() != SkillTreeRuntimeRepository.LoginPatchStatus.CURRENT
+                && patch.status() != SkillTreeRuntimeRepository.LoginPatchStatus.APPLIED) {
+            throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                    "Skill tree login patch rejected: " + patch.status());
+        }
+        if (!definitionGenerationId.equals(patch.definitionGenerationId())) {
+            throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                    "Skill tree login patch target does not match this server.");
+        }
         SkillTreePlayerState loadedState = playerStateRepository.load(accountId, ConfigProperties.getInstance().getApiServerId(), runtimeServerSessionId, runtimeAccountSessions.get(accountId), definitionGenerationId);
         if (!loadedState.unlockedNodeIds().isEmpty()
                 && (loadedState.definitionGenerationId() == null || loadedState.definitionGenerationId().isBlank())) {

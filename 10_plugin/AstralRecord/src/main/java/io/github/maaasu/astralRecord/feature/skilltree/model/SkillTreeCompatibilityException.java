@@ -3,6 +3,20 @@ package io.github.maaasu.astralRecord.feature.skilltree.model;
 /** 構造破損ではなく、参加先の世代・互換性が合わないため状態を保持する。 */
 public final class SkillTreeCompatibilityException extends IllegalStateException {
     private static final long serialVersionUID = 1L;
-    /** 内部診断用の理由を保持する。プレイヤー通知は共通の更新待ち文言を使用する。 */
-    public SkillTreeCompatibilityException(String message) { super(message); }
+    private final boolean outdatedChannel;
+    /** 内部診断用の理由を保持する。プレイヤー通知は通常の更新待ち文言を使用する。 */
+    public SkillTreeCompatibilityException(String message) { this(message, false); }
+
+    /**
+     * 参加先が公開済み最新版より古いことを区別して保持する。
+     * @param message 内部診断用の理由
+     * @param outdatedChannel 古いチャンネルへの参加拒否なら true
+     */
+    public SkillTreeCompatibilityException(String message, boolean outdatedChannel) {
+        super(message);
+        this.outdatedChannel = outdatedChannel;
+    }
+
+    /** @return 参加先が公開済み最新版より古い場合は true */
+    public boolean isOutdatedChannel() { return outdatedChannel; }
 }

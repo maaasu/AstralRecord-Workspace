@@ -55,6 +55,16 @@ public final class SkillTreeRuntimeRepository {
     public record ClaimedOperation(@NotNull String leaseToken, @NotNull Operation operation) {
     }
 
+    /** ログイン時の保存状態と公開済み定義の照合結果。 */
+    public enum LoginPatchStatus {
+        CURRENT, UPDATE_REQUIRED, APPLIED, CHANNEL_OUTDATED, UNPUBLISHED, INCOMPATIBLE, LEGACY_REQUIRES_REPAIR
+    }
+
+    /** preview または apply の結果。UPDATE_REQUIRED の stateVersion は apply の楽観的ロックに使う。 */
+    public record LoginPatchResult(@NotNull LoginPatchStatus status, @NotNull String definitionGenerationId,
+                                   int stateVersion) {
+    }
+
     public boolean isConfigured() {
         return !ConfigProperties.getInstance().getApiSkillTreeRuntimeKey().isBlank();
     }
@@ -185,6 +195,40 @@ public final class SkillTreeRuntimeRepository {
         addAccountSession(body, session);
         try { send("POST", path(serverId) + "/accounts/" + accountId + "/sessions", body, 200); return true; }
         catch (InventoryApiException failure) { if (failure.getStatusCode() == 409) return false; throw failure; }
+    }
+
+    /**
+     * 現在のアカウント session でログイン時パッチを照合・適用します。通常の状態読込より先に呼びます。
+     *
+     * @param serverId 実行 backend 識別子
+     * @param bootId 現在の Plugin 起動 session
+     * @param accountId 対象アカウント
+     * @param session 現ログインの account session
+     * @param generationId このサーバーがロードした定義世代
+     * @param apply true の場合だけ UPDATE_REQUIRED のパッチを確定する
+     * @param expectedStateVersion preview で返された状態版。preview 時は使用しない
+     * @return 公開定義と保存状態の照合結果
+     * @throws RuntimeException API 通信失敗または不正な応答
+     */
+    public @NotNull LoginPatchResult loginPatch(String serverId, UUID bootId, UUID accountId,
+                                                AccountSession session, String generationId,
+                                                boolean apply, int expectedStateVersion) {
+        JsonObject body = new JsonObject();
+        body.addProperty("serverSessionId", bootId.toString());
+        addAccountSession(body, session);
+        body.addProperty("definitionGenerationId", generationId);
+        body.addProperty("apply", apply);
+        if (apply) body.addProperty("expectedStateVersion", expectedStateVersion);
+        JsonObject response = send("POST", path(serverId) + "/accounts/" + accountId + "/login-patch", body, 200)
+                .getAsJsonObject();
+        try {
+            return new LoginPatchResult(
+                    LoginPatchStatus.valueOf(response.get("status").getAsString()),
+                    response.get("definitionGenerationId").getAsString(),
+                    response.get("stateVersion").getAsInt());
+        } catch (RuntimeException invalid) {
+            throw new IllegalStateException("Invalid skill tree login patch response", invalid);
+        }
     }
 
     /** 退出保存の完了後に同じsessionだけを閉じ、検証済みの最終viewをオフライン案の基準に残す。 */

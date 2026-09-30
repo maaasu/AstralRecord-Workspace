@@ -107,7 +107,7 @@ public enum PlayerMsgId {
     P_5079(5079),
     // endregion
 
-    // region /feature/player/event/PlayerJoinEventHandler.java 5083-5084
+    // region /feature/player/event/PlayerJoinEventHandler.java 5083-5086
     /**
      * 本サーバーの利用規約確認を促す参加時案内。
      */
@@ -116,6 +116,10 @@ public enum PlayerMsgId {
      * 同一IPに登録済みの他ユーザーがいる場合の監視案内。
      */
     P_5084(5084),
+    /** ログイン時に新しいスキルツリーパッチを適用している間の案内。 */
+    P_5085(5085),
+    /** 新しいスキルツリーパッチを適用している間の title。 */
+    P_5086(5086),
     // endregion
 
     // region /feature/player/death 5080-5089
@@ -1808,6 +1812,8 @@ public enum PlayerMsgId {
     // endregion
     /** スキルツリー定義と保存済み状態の世代不一致により、データを保持して再参加を保留する。 */
     P_9050(9050),
+    /** 更新前のチャンネルへ参加しようとしたプレイヤーへの拒否案内。 */
+    P_9051(9051),
     /** アカウント特典通知。 */
     P_7600(7600),
     /** アカウント特典通知。 */
