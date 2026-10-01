@@ -16,6 +16,7 @@ builder.Services.AddSingleton<PluginConfigService>();
 builder.Services.AddSingleton<SkillMasterCatalog>();
 builder.Services.AddSingleton<MasterTagCatalog>();
 builder.Services.AddSingleton<WorkspaceMutationGate>();
+builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 {
     var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EditorOptions>>().Value;
@@ -51,6 +52,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 if (staticFilesRoot is not null)
     app.UseEditorStaticFiles(staticFilesRoot);
 app.MapEditorEndpoints();
+app.MapMasterAnalyticsEndpoints();
 app.MapFallback(async context =>
 {
     if (staticFilesRoot is null)
