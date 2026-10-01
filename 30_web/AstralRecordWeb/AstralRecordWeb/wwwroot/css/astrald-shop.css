@@ -1,0 +1,51 @@
+.ar-shop-page .ar-portal-heading { align-items: center; }
+.ar-shop-page .ar-portal-sub { max-width: 52rem; }
+.ar-shop-account { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem 2.5rem; padding: 1.3rem 1.5rem; border: 1px solid #71c9d269; border-radius: 16px; background: linear-gradient(110deg, #18334b, #122334 65%, #23334a); }
+.ar-shop-account > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: .45rem; }
+.ar-shop-account-label { display: block; flex-basis: 100%; color: #9ec2d0; font-size: .75rem; letter-spacing: .04em; }
+.ar-shop-account strong { color: #f4fbfd; font-size: 1.35rem; }
+.ar-shop-account a { margin-left: auto; color: #a8e8e4; text-decoration: underline; text-underline-offset: 3px; }
+.ar-shop-account-note { color: var(--ar-text-muted); font-size: .75rem; margin: .7rem 0 1.5rem; }
+.ar-shop-nav { display: flex; flex-wrap: wrap; gap: .7rem; margin: 2rem 0 2.2rem; }
+.ar-shop-nav a { display: inline-flex; align-items: center; gap: .75rem; padding: .7rem 1rem; border: 1px solid #91c9e24d; border-radius: 999px; color: #ecf7fb; background: #182a3c; text-decoration: none; }
+.ar-shop-nav a span:last-child { color: #9fcbd5; font-size: .75rem; }
+.ar-shop-nav a:hover, .ar-shop-nav a:focus-visible { border-color: #8ae3db; background: #214356; }
+.ar-shop-section { scroll-margin-top: 6rem; margin: 2.4rem 0 3rem; }
+.ar-shop-section-heading { margin-bottom: 1rem; }
+.ar-shop-section-heading h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); margin: .2rem 0; }
+.ar-shop-section-heading p:last-child { color: var(--ar-text-muted); margin: .4rem 0 0; }
+.ar-shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+.ar-shop-card { --shop-accent: #8ae3db; position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid #91c9e245; border-top: 3px solid var(--shop-accent); border-radius: 14px; padding: 1.2rem; background: #101d2de8; }
+.ar-shop-card--vip { --shop-accent: #d7b9ff; }
+.ar-shop-card--exp { --shop-accent: #8dd8ff; }
+.ar-shop-card--drop { --shop-accent: #a8e7ad; }
+.ar-shop-card--special { --shop-accent: #f6ca75; background: linear-gradient(145deg, #282635, #162132); }
+.ar-shop-card-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+.ar-shop-kind { display: inline-block; border: 1px solid currentColor; border-radius: 5px; padding: .18rem .48rem; color: var(--shop-accent); font-size: .7rem; font-weight: 700; letter-spacing: .05em; }
+.ar-shop-effect { color: var(--shop-accent); font-size: .9rem; }
+.ar-shop-card-heading { display: flex; justify-content: space-between; align-items: start; gap: .7rem; }
+.ar-shop-card h3 { overflow-wrap: anywhere; font-size: 1rem; line-height: 1.6; margin: 0; }
+.ar-shop-help { position: relative; flex: none; }
+.ar-shop-help summary { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 1px solid #a8d6df; border-radius: 50%; color: #d7f7fa; cursor: pointer; font-size: .9rem; font-weight: 700; list-style: none; }
+.ar-shop-help summary::-webkit-details-marker { display: none; }
+.ar-shop-help summary:hover, .ar-shop-help summary:focus-visible, .ar-shop-help[open] summary { background: #2b5663; outline-offset: 2px; }
+.ar-shop-help-content { position: absolute; z-index: 5; top: 2.1rem; right: 0; width: min(20rem, calc(100vw - 3rem)); padding: 1rem; border: 1px solid #83b8c7; border-radius: 10px; background: #203447; box-shadow: 0 12px 28px #0008; font-size: .78rem; line-height: 1.6; }
+.ar-shop-help-content strong { display: block; color: #d9f8fa; margin-bottom: .5rem; }
+.ar-shop-help-content p { margin: 0 0 .55rem; }
+.ar-shop-help-content p:last-child { margin-bottom: 0; }
+.ar-shop-duration { color: #b6c7d3; font-size: .78rem; margin: .65rem 0 0; }
+.ar-shop-purchase { margin-top: auto; padding-top: 1.1rem; }
+.ar-shop-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: .25rem; border-top: 1px solid #91c9e230; padding-top: .75rem; margin-bottom: .85rem; color: #c9dce4; font-size: .78rem; }
+.ar-shop-price strong { color: #fff1bb; font-size: 1.25rem; margin-left: .3rem; }
+.ar-shop-card form { display: grid; gap: .65rem; }
+.ar-shop-card .form-label { font-size: .78rem; margin: 0; }
+.ar-shop-card .form-select { margin: 0; }
+.ar-shop-card .btn { width: 100%; }
+.ar-shop-card .btn:disabled { opacity: .5; cursor: not-allowed; }
+.ar-shop-unavailable { color: #ffd392; font-size: .78rem; line-height: 1.5; margin: 0 0 .5rem; }
+@media (max-width: 767px) {
+    .ar-shop-account { align-items: start; flex-direction: column; gap: .8rem; }
+    .ar-shop-account a { margin-left: 0; }
+    .ar-shop-nav a { flex: 1 1 auto; justify-content: center; }
+    .ar-shop-help-content { right: -1rem; }
+}

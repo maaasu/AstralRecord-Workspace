@@ -26,6 +26,9 @@ public sealed class PaidServicesTests
         Assert.Contains("現在の冒険者", html);
         Assert.Contains("1,200", html);
         Assert.Contains("経験値ブースト", html);
+        Assert.Contains("type=\"hidden\" name=\"ChannelId\" value=\"channel-1\"", html);
+        Assert.DoesNotContain("<select", html);
+        Assert.Contains("詳しい説明", html);
         Assert.DoesNotContain("商品一覧を取得できません", html);
         Assert.DoesNotContain("古いアカウント", html);
         var operationId = Guid.NewGuid();
@@ -94,15 +97,58 @@ public sealed class PaidServicesTests
     }
 
     [Fact]
-    public async Task ActiveSameKindBoost_DisablesTargetChannelInCatalog()
+    public async Task SingleChannel_HidesSelector_AndBlocksPurchaseWhileSameKindBoostIsActive()
     {
         var api = new PaidHandler { ActiveExpBoost = true };
         await using var factory = new PaidFactory(api);
         using var client = Client(factory);
         await Login(client);
         var html = WebUtility.HtmlDecode(await client.GetStringAsync("/AstraldShop"));
+        Assert.Contains("type=\"hidden\" name=\"ChannelId\" value=\"channel-1\"", html);
+        Assert.DoesNotContain("<select", html);
+        Assert.Contains("同種ブーストが発動中", html);
+        Assert.Matches("<button[^>]*type=\"submit\"[^>]*disabled", html);
+    }
+
+    [Fact]
+    public async Task MultipleChannels_ShowSelector_AndDisableOnlyActiveChannel()
+    {
+        var api = new PaidHandler { MultipleChannels = true, ActiveExpBoost = true };
+        await using var factory = new PaidFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/AstraldShop"));
+        Assert.Contains("<select", html);
         Assert.Matches("<option[^>]*value=\"channel-1\"[^>]*disabled", html);
-        Assert.Contains("同種ブースト中", html);
+        Assert.Contains("value=\"channel-2\"", html);
+        Assert.DoesNotContain("type=\"hidden\" name=\"ChannelId\"", html);
+    }
+
+    [Fact]
+    public async Task NoChannels_ShowsUnavailableInsteadOfPurchaseForm()
+    {
+        var api = new PaidHandler { NoChannels = true };
+        await using var factory = new PaidFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/AstraldShop"));
+        Assert.Contains("対象チャンネルを取得できないため、現在購入できません", html);
+        Assert.DoesNotContain("name=\"ItemId\"", html);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task SpecialBoost_DisablesPurchaseWhenEitherBoostIsActive(bool expActive, bool dropActive)
+    {
+        var api = new PaidHandler { SpecialOffer = true, ActiveExpBoost = expActive, ActiveDropBoost = dropActive };
+        await using var factory = new PaidFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/AstraldShop"));
+        Assert.Contains("EXP・ドロップ同時ブースト", html);
+        Assert.Contains("同種ブーストが発動中", html);
+        Assert.Matches("<button[^>]*type=\"submit\"[^>]*disabled", html);
     }
 
     [Fact]
@@ -163,6 +209,10 @@ public sealed class PaidServicesTests
         public bool Admin { get; set; }
         public bool AllowClaim { get; set; } = true;
         public bool ActiveExpBoost { get; set; }
+        public bool ActiveDropBoost { get; set; }
+        public bool MultipleChannels { get; set; }
+        public bool NoChannels { get; set; }
+        public bool SpecialOffer { get; set; }
         public string? RejectionReason { get; set; }
         public int Purchases { get; private set; }
         public int Claims { get; private set; }
@@ -189,10 +239,19 @@ public sealed class PaidServicesTests
                 accounts = new[] { new { accountId = OldAccount, accountName = "古いアカウント", slotIndex = 0, playerLevel = 1, classId = "class", className = "戦士" } },
             });
             if (path == "/api/web/account-benefits") return Json(new { accountId = CurrentAccount, instancePriorityUses = 5, vipTier = "DONER", remainingDays = 2, paidAstraldBalance = 1200L });
-            if (path == "/api/web/astrald-shop/catalog") return Json(new { items = new[] { new { itemId = "30a00014", name = "経験値ブースト", pricePaidAstrald = 500, effectType = "CHANNEL_EXP_BOOST", effectValue = 1.1, durationSeconds = 3600, requiresChannel = true } }, channels = new[] { new { channelId = "channel-1", displayName = "チャンネル1" } } });
+            if (path == "/api/web/astrald-shop/catalog")
+            {
+                var channels = NoChannels ? Array.Empty<object>() : MultipleChannels
+                    ? new object[] { new { channelId = "channel-1", displayName = "チャンネル1" }, new { channelId = "channel-2", displayName = "チャンネル2" } }
+                    : new object[] { new { channelId = "channel-1", displayName = "チャンネル1" } };
+                return SpecialOffer
+                    ? Json(new { items = new[] { new { itemId = "30a00024", name = "スペシャルブーストチケット", pricePaidAstrald = 10000, effectType = "CHANNEL_SPECIAL_BOOST", effectValue = 2.0, durationSeconds = 3600, requiresChannel = true } }, channels })
+                    : Json(new { items = new[] { new { itemId = "30a00014", name = "経験値ブースト", pricePaidAstrald = 500, effectType = "CHANNEL_EXP_BOOST", effectValue = 1.1, durationSeconds = 3600, requiresChannel = true } }, channels });
+            }
             if (path == "/api/item") return Json(new[] { new { id = "99a00021", category = "currency", name = "&b有償アストラルド" }, new { id = "material", category = "material", name = "&a旅の素材" } });
-            if (path == "/api/channel-boosts") return Json(new { eventCursor = 1, channels = ActiveExpBoost
-                ? new object[] { new { channelId = "channel-1", exp = new { multiplier = 1.5, expiresAt = DateTimeOffset.UtcNow.AddHours(1) } } }
+            if (path == "/api/channel-boosts") return Json(new { eventCursor = 1, channels = ActiveExpBoost || ActiveDropBoost
+                ? new object[] { new { channelId = "channel-1", exp = ActiveExpBoost ? new { multiplier = 1.5, expiresAt = DateTimeOffset.UtcNow.AddHours(1) } : null,
+                    drop = ActiveDropBoost ? new { multiplier = 1.5, expiresAt = DateTimeOffset.UtcNow.AddHours(1) } : null } }
                 : Array.Empty<object>() });
             if (path == "/api/web/astrald-shop/purchases" && request.Method == HttpMethod.Post)
             {

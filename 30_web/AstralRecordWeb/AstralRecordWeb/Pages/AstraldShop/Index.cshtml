@@ -1,44 +1,124 @@
 @page
 @model AstralRecordWeb.Pages.AstraldShop.IndexModel
-@{ ViewData["Title"] = "有償アストラルドショップ"; }
-<section class="ar-portal"><div class="container">
-    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">アカウント特典</p><h1>有償アストラルドショップ</h1><p class="ar-portal-sub">現在のアカウントの有償アストラルドで特典を購入できます。購入した効果は直接適用され、ゲーム内メールでの受取操作はありません。</p></div><a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
+@using AstralRecordWeb.Models
+@{
+    ViewData["Title"] = "有償アストラルドショップ";
+}
+<section class="ar-portal ar-shop-page"><div class="container">
+    <header class="ar-portal-heading">
+        <div>
+            <p class="ar-portal-eyebrow">アカウント特典</p>
+            <h1>有償アストラルドショップ</h1>
+            <p class="ar-portal-sub">優先接続回数、VIP特典、チャンネルブーストを購入できます。効果は現在のアカウントまたは対象チャンネルへ直接適用され、ゲーム内メールでの受取操作はありません。</p>
+        </div>
+        <a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a>
+    </header>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
     @if (Model.PurchaseResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.AstraldShop.IndexModel.PurchaseStatus(result)</div> }
     @if (Model.Account is { } account)
     {
-        <section class="ar-panel"><h2>購入先</h2><p><strong>@account.AccountName</strong>（スロット @account.SlotIndex）</p><p>この画面を開いている間にゲーム内の選択アカウントが変わった場合は購入を受け付けません。</p>
-            @if (Model.Benefits?.PaidAstraldBalance is { } balance) { <p>有償アストラルド残高: <strong>@balance.ToString("N0")</strong></p> }
-            else { <p>有償アストラルド残高を確認できません。購入前に再読み込みしてください。</p> }
-            <p><a asp-page="/MyPage">マイページで特典を確認する →</a></p>
+        <section class="ar-shop-account" aria-label="購入先と残高">
+            <div><span class="ar-shop-account-label">購入先アカウント</span><strong>@account.AccountName</strong><span>スロット @account.SlotIndex</span></div>
+            <div><span class="ar-shop-account-label">有償アストラルド残高</span>
+                @if (Model.Benefits?.PaidAstraldBalance is { } balance) { <strong>@balance.ToString("N0")</strong> }
+                else { <strong>確認できません</strong> }
+            </div>
+            <a asp-page="/MyPage">現在の特典を確認する →</a>
         </section>
+        <p class="ar-shop-account-note">ゲーム内で選択中のアカウントが変わった場合、購入は受け付けません。残高を確認できない間も購入できません。</p>
     }
     @if (Model.Catalog is { } catalog && Model.Account is { } selectedAccount)
     {
-        <section class="ar-panel"><h2>商品</h2><p>チャンネルブーストは選んだチャンネルで購入と同時に発動します。同じ種類の効果が有効な間は重複購入できません。EXP・DROP同時ブーストは両方とも無効な場合に限ります。</p>
-            @if (catalog.Items.Count == 0) { <p>現在購入できる商品はありません。</p> }
-            else { <div class="row g-3">
-                @foreach (var item in catalog.Items)
+        @if (catalog.Items.Count == 0)
+        {
+            <section class="ar-panel"><h2>商品</h2><p>現在購入できる商品はありません。</p></section>
+        }
+        else
+        {
+            var groups = new[]
+            {
+                new { Id = "priority", Label = "インスタンス優先接続", Description = "ボス・ダンジョンの待機時に使う優先予約の回数を追加します。", Items = catalog.Items.Where(x => x.EffectType == "INSTANCE_PRIORITY").OrderBy(x => x.EffectValue).ToArray() },
+                new { Id = "vip", Label = "VIP特典", Description = "期間中の追加接続枠など、アカウントに適用する特典です。", Items = catalog.Items.Where(x => x.EffectType is "VIP_DONER" or "VIP_ASTRALDER").OrderBy(x => x.PricePaidAstrald).ToArray() },
+                new { Id = "special", Label = "EXP・ドロップ同時ブースト", Description = "対象チャンネルのEXPとドロップを同時に強化します。", Items = catalog.Items.Where(x => x.EffectType == "CHANNEL_SPECIAL_BOOST").OrderBy(x => x.EffectValue).ToArray() },
+                new { Id = "exp", Label = "EXPブースト", Description = "対象チャンネルのEXP獲得量増加率を強化します。倍率ごとに比較できます。", Items = catalog.Items.Where(x => x.EffectType == "CHANNEL_EXP_BOOST").OrderBy(x => x.EffectValue).ToArray() },
+                new { Id = "drop", Label = "ドロップブースト", Description = "対象チャンネルのドロップ増加率を強化します。倍率ごとに比較できます。", Items = catalog.Items.Where(x => x.EffectType == "CHANNEL_DROP_BOOST").OrderBy(x => x.EffectValue).ToArray() },
+            };
+            <nav class="ar-shop-nav" aria-label="商品カテゴリ">
+                @foreach (var group in groups.Where(x => x.Items.Length > 0))
                 {
-                    <div class="col-md-6"><article class="ar-panel h-100"><h3>@item.Name</h3><p>消費: <strong>@item.PricePaidAstrald.ToString("N0") 有償アストラルド</strong></p>
-                        @if (item.DurationSeconds is > 0) { <p>有効時間: @TimeSpan.FromSeconds(item.DurationSeconds.Value).TotalHours.ToString("0.#") 時間</p> }
-                        @if (item.RequiresChannel && catalog.Channels.Count == 0) { <p>対象チャンネルを取得できないため、現在購入できません。</p> }
-                        else
-                        {
-                            <form method="post" asp-page-handler="Purchase" data-single-submit>
-                                <input type="hidden" name="AccountId" value="@selectedAccount.AccountId" /><input type="hidden" name="OperationId" value="@Guid.NewGuid()" /><input type="hidden" name="ItemId" value="@item.ItemId" /><input type="hidden" name="ExpectedPricePaidAstrald" value="@item.PricePaidAstrald" />
-                                @if (item.RequiresChannel)
-                                {
-                                    <label class="form-label" for="channel-@item.ItemId">発動するチャンネル</label>
-                                    <select class="form-select mb-3" id="channel-@item.ItemId" name="ChannelId" required><option value="">選択してください</option>@foreach (var channel in catalog.Channels) { <option value="@channel.ChannelId" disabled="@Model.IsChannelBlocked(item, channel.ChannelId)">@channel.DisplayName@(Model.IsChannelBlocked(item, channel.ChannelId) ? "（同種ブースト中）" : "")</option> }</select>
-                                }
-                                <button class="btn ar-btn-primary" type="submit" @(Model.Benefits?.PaidAstraldBalance is null ? "disabled" : null)>購入して直接適用</button>
-                            </form>
-                        }
-                    </article></div>
+                    <a href="#@group.Id"><span>@group.Label</span><span>@group.Items.Length 種類</span></a>
                 }
-            </div> }
-        </section>
+            </nav>
+            @foreach (var group in groups.Where(x => x.Items.Length > 0))
+            {
+                <section class="ar-shop-section" id="@group.Id" aria-labelledby="@group.Id-title">
+                    <header class="ar-shop-section-heading"><div><p class="ar-portal-eyebrow">@group.Items.Length 種類</p><h2 id="@group.Id-title">@group.Label</h2><p>@group.Description</p></div></header>
+                    <div class="ar-shop-grid">
+                        @foreach (var item in group.Items)
+                        {
+                            var singleChannel = item.RequiresChannel && catalog.Channels.Count == 1 ? catalog.Channels[0] : null;
+                            var channelBlocked = singleChannel is not null && Model.IsChannelBlocked(item, singleChannel.ChannelId);
+                            var allChannelsBlocked = item.RequiresChannel && catalog.Channels.Count > 0 && catalog.Channels.All(x => Model.IsChannelBlocked(item, x.ChannelId));
+                            var kind = item.EffectType switch
+                            {
+                                "INSTANCE_PRIORITY" => "priority",
+                                "VIP_DONER" or "VIP_ASTRALDER" => "vip",
+                                "CHANNEL_EXP_BOOST" => "exp",
+                                "CHANNEL_DROP_BOOST" => "drop",
+                                "CHANNEL_SPECIAL_BOOST" => "special",
+                                _ => "other",
+                            };
+                            var badge = item.EffectType switch
+                            {
+                                "INSTANCE_PRIORITY" => "優先",
+                                "VIP_DONER" => "DONER",
+                                "VIP_ASTRALDER" => "ASTRALDER",
+                                "CHANNEL_EXP_BOOST" => "EXP",
+                                "CHANNEL_DROP_BOOST" => "DROP",
+                                "CHANNEL_SPECIAL_BOOST" => "EXP + DROP",
+                                _ => "特典",
+                            };
+                            <article class="ar-shop-card ar-shop-card--@kind">
+                                <div class="ar-shop-card-top"><span class="ar-shop-kind">@badge</span><strong class="ar-shop-effect">@AstralRecordWeb.Pages.AstraldShop.IndexModel.OfferSummary(item)</strong></div>
+                                <div class="ar-shop-card-heading"><h3>@item.Name</h3>
+                                    <details class="ar-shop-help"><summary aria-label="@item.Name の詳しい説明" title="詳しい説明">?</summary><div class="ar-shop-help-content"><strong>この特典について</strong>@foreach (var line in AstralRecordWeb.Pages.AstraldShop.IndexModel.OfferDetails(item)) { <p>@line</p> }</div></details>
+                                </div>
+                                @if (item.DurationSeconds is > 0) { <p class="ar-shop-duration">有効時間 @TimeSpan.FromSeconds(item.DurationSeconds.Value).TotalHours.ToString("0.#") 時間</p> }
+                                <div class="ar-shop-purchase">
+                                    <p class="ar-shop-price"><span>消費</span><strong>@item.PricePaidAstrald.ToString("N0")</strong><span>有償アストラルド</span></p>
+                                    @if (item.RequiresChannel && catalog.Channels.Count == 0)
+                                    {
+                                        <p class="ar-shop-unavailable">対象チャンネルを取得できないため、現在購入できません。</p>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Purchase" data-single-submit>
+                                            <input type="hidden" name="AccountId" value="@selectedAccount.AccountId" />
+                                            <input type="hidden" name="OperationId" value="@Guid.NewGuid()" />
+                                            <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                            <input type="hidden" name="ExpectedPricePaidAstrald" value="@item.PricePaidAstrald" />
+                                            @if (singleChannel is not null)
+                                            {
+                                                <input type="hidden" name="ChannelId" value="@singleChannel.ChannelId" />
+                                                @if (channelBlocked) { <p class="ar-shop-unavailable">同種ブーストが発動中です。終了後に購入できます。</p> }
+                                            }
+                                            else if (item.RequiresChannel)
+                                            {
+                                                <label class="form-label" for="channel-@item.ItemId">発動するチャンネル</label>
+                                                <select class="form-select" id="channel-@item.ItemId" name="ChannelId" required><option value="">選択してください</option>@foreach (var channel in catalog.Channels) { <option value="@channel.ChannelId" disabled="@Model.IsChannelBlocked(item, channel.ChannelId)">@channel.DisplayName@(Model.IsChannelBlocked(item, channel.ChannelId) ? "（同種ブースト中）" : "")</option> }</select>
+                                                @if (allChannelsBlocked) { <p class="ar-shop-unavailable">すべての対象チャンネルで同種ブーストが発動中です。</p> }
+                                            }
+                                            <button class="btn ar-btn-primary" type="submit" disabled="@(Model.Benefits?.PaidAstraldBalance is null || channelBlocked || allChannelsBlocked)">購入して直接適用</button>
+                                        </form>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+        }
     }
 </div></section>
+@section Styles { <link rel="stylesheet" href="~/css/astrald-shop.css" asp-append-version="true" /> }
 @section Scripts { <script src="~/js/paid-services.js" asp-append-version="true"></script> }

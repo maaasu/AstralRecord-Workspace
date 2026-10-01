@@ -11,6 +11,39 @@ namespace AstralRecordWeb.Pages.AstraldShop;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class IndexModel(PaidServicesApiClient paid, PlayerProfileApiClient profiles) : PageModel
 {
+    public static string OfferSummary(AstraldShopItem item) => item.EffectType switch
+    {
+        "INSTANCE_PRIORITY" => $"優先予約 {item.EffectValue:0} 回分",
+        "VIP_DONER" or "VIP_ASTRALDER" => $"VIP特典 {item.EffectValue:0} 日分",
+        "CHANNEL_EXP_BOOST" => $"EXP {item.EffectValue:0.#} 倍",
+        "CHANNEL_DROP_BOOST" => $"ドロップ {item.EffectValue:0.#} 倍",
+        "CHANNEL_SPECIAL_BOOST" => $"EXP・ドロップ {item.EffectValue:0.#} 倍",
+        _ => item.Name,
+    };
+
+    public static IReadOnlyList<string> OfferDetails(AstraldShopItem item) => item.EffectType switch
+    {
+        "INSTANCE_PRIORITY" =>
+        ["ボス・ダンジョンのインスタンスで待機が発生した際、リーダー本人の回数を1回消費して優先予約します。",
+         "通常枠ですぐに入れる場合は回数を消費しません。購入した回数は現在のアカウントに加算されます。"],
+        "VIP_DONER" =>
+        ["有効期間中、各チャンネルのVIP追加接続枠とDONER専用チャンネルを利用でき、アカウント名が水色になります。",
+         "期間は現在のアカウントに加算されます。ASTRALDERも有効な場合はそちらが優先され、DONER期間はその後に適用されます。"],
+        "VIP_ASTRALDER" =>
+        ["有効期間中、各チャンネルのVIP追加接続枠とDONER専用チャンネルを利用でき、アカウント名が金色・太字になります。",
+         "期間は現在のアカウントに加算されます。ログインした日は優先接続回数を1回、日本時間で1日1回加算します。未ログイン日の分は繰り越されません。"],
+        "CHANNEL_EXP_BOOST" =>
+        ["選んだチャンネル内の全プレイヤーのEXP獲得量増加率の最終値に表示倍率を掛けます。効果は1時間です。",
+         "同じチャンネルでEXPブーストが有効な間は購入できません。ドロップブーストとは併用できます。"],
+        "CHANNEL_DROP_BOOST" =>
+        ["選んだチャンネル内の全プレイヤーのドロップ増加率の最終値に表示倍率を掛けます。効果は1時間です。",
+         "同じチャンネルでドロップブーストが有効な間は購入できません。EXPブーストとは併用できます。"],
+        "CHANNEL_SPECIAL_BOOST" =>
+        ["選んだチャンネル内の全プレイヤーのEXP獲得量増加率とドロップ増加率の最終値の両方に表示倍率を掛けます。効果は1時間です。",
+         "同じチャンネルでEXP・ドロップのどちらかが有効な間は購入できません。"],
+        _ => [],
+    };
+
     public AstraldShopCatalog? Catalog { get; private set; }
     public WebPlayerAccountProfileResponse? Account { get; private set; }
     public AccountBenefits? Benefits { get; private set; }
