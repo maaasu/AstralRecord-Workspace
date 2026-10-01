@@ -29,6 +29,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["item"] = "アイテム共通", ["material"] = "素材", ["equipment"] = "装備", ["consumable"] = "消耗品",
         ["orb"] = "オーブ", ["bundle"] = "バンドル", ["rune"] = "ルーン", ["sigil"] = "シジル",
         ["currency"] = "通貨", ["set_effect"] = "セット効果", ["class"] = "クラス", ["skill"] = "スキル",
+        ["pet"] = "ペット", ["pet_egg"] = "ペットの卵",
         ["skilltree"] = "スキルツリー", ["mail"] = "メール", ["guide"] = "ガイド", ["enchant"] = "エンチャント",
         ["mob"] = "モブ", ["enemy"] = "敵", ["boss"] = "ボス", ["npc"] = "NPC", ["spawner"] = "スポナー",
         ["gathering"] = "採集", ["shop"] = "ショップ", ["quest"] = "クエスト", ["quest_board"] = "クエスト掲示板",
@@ -76,7 +77,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         {
             var raw = await File.ReadAllTextAsync(document, Encoding.UTF8, token);
             documents.Add(new(paths.Relative(document), raw.Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal))?.TrimStart('#', ' ', '\r') ?? Path.GetFileName(document)));
-            foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
+            if (category != "55.features.pet")
+                foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
         }
         var schemas = new List<MasterDataSchema>();
         var schemaDirectories = new HashSet<string>(MasterDataPaths.Comparer) { directory, Path.Combine(directory, "schemas") };
@@ -93,6 +95,9 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             }
             catch (System.Text.Json.JsonException) { /* malformed schema remains available in the file list */ }
         }
+        if (category == "55.features.pet")
+            foreach (var schema in schemas)
+                foreach (var field in SchemaFields(schema.Schema, schema.Path)) fields[field.Path] = field;
         var templates = new List<MasterDataTemplate>();
         foreach (var path in ownFiles.Where(path => !path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)).Take(3))
             templates.Add(new(paths.Relative(path), await File.ReadAllTextAsync(path, Encoding.UTF8, token)));
@@ -109,8 +114,31 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     public static string? ItemCode(string category)
     {
         var parts = (OperatingSystem.IsWindows() ? category.ToLowerInvariant() : category).Split('/');
-        return parts.Length == 2 && parts[0] == "10.features.item" && Regex.IsMatch(parts[1], "^(10|20|30|40|50|60|70|99)\\.[a-z_]+$")
+        return parts.Length == 2 && parts[0] == "10.features.item" && Regex.IsMatch(parts[1], "^(10|20|30|40|50|60|70|80|81|99)\\.[a-z_]+$")
             ? parts[1][..2] : null;
+    }
+
+    private static IEnumerable<MasterDataField> SchemaFields(JsonNode schema, string source, string pointer = "")
+    {
+        if (schema is not JsonObject definition) yield break;
+        var required = (definition["required"] as JsonArray)?.Select(JsonValueReader.String).ToHashSet(StringComparer.Ordinal) ?? [];
+        if (definition["properties"] is JsonObject properties)
+            foreach (var (key, value) in properties)
+            {
+                if (value is not JsonObject child) continue;
+                var path = pointer + "/" + MasterDataValidation.Escape(key);
+                var type = JsonValueReader.String(child["type"]) ?? (child["enum"] is JsonArray ? "string"
+                    : child["const"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number ? "integer" : "string");
+                yield return new(path, path, JsonValueReader.String(child["title"]) ?? Labels.GetValueOrDefault(key) ?? key,
+                    type, required.Contains(key), JsonValueReader.String(child["description"]) ?? "", null, source,
+                    child["enum"]?.DeepClone() as JsonArray,
+                    JsonValueReader.String(child["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null);
+                foreach (var nested in SchemaFields(child, source, path)) yield return nested;
+            }
+        if (definition["items"] is JsonObject item)
+            foreach (var field in SchemaFields(item, source, pointer + "/*")) yield return field;
+        if (definition["additionalProperties"] is JsonObject dictionary)
+            foreach (var field in SchemaFields(dictionary, source, pointer + "/*")) yield return field;
     }
 
     public static IEnumerable<MasterDataField> ParseFields(string raw, string source, string category)

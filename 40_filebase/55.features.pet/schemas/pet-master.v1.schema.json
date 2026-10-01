@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "AstralRecord pet master v1",
+  "title": "AstralRecord ペットマスター v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,10 +12,12 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 1,
+      "title": "スキーマバージョン"
     },
     "id": {
-      "const": "pets"
+      "const": "pets",
+      "title": "ID"
     },
     "rules": {
       "type": "object",
@@ -42,17 +44,20 @@
         "maxLevel": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 100
+          "maximum": 100,
+          "title": "最大成長度"
         },
         "wildMaxTier": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 10
+          "maximum": 10,
+          "title": "野生の最大ティア"
         },
         "breedMaxTier": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 10
+          "maximum": 10,
+          "title": "配合の最大ティア"
         },
         "skillSlotLevels": {
           "type": "array",
@@ -62,30 +67,41 @@
             "maximum": 100
           },
           "minItems": 3,
-          "maxItems": 3
+          "maxItems": 3,
+          "title": "スキル枠の解放成長度",
+          "description": "3枠の解放成長度を昇順で指定する。最初の枠は成長度1。"
         },
         "breedMinLevel": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 100
+          "maximum": 100,
+          "title": "配合に必要な成長度",
+          "description": "2枠目の解放成長度以上にする。"
         },
         "breedCooldownHours": {
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "title": "配合の待機時間（時間）",
+          "description": "両親に設定する待機時間。API契約に合わせ正の整数時間。"
         },
         "mutationChance": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "title": "上位ティアへ変異する確率"
         },
         "wildPotentialChance": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "title": "野生で潜在能力を持つ確率",
+          "description": "各ステータスについて独立抽選する確率。"
         },
         "potentialGrowthMultiplier": {
           "type": "number",
-          "minimum": 1
+          "minimum": 1,
+          "title": "潜在能力の成長倍率",
+          "description": "成長増分だけを2倍にする。基礎個体値には適用しない。"
         },
         "potentialCountWeights": {
           "type": "array",
@@ -94,25 +110,34 @@
             "minimum": 0
           },
           "minItems": 3,
-          "maxItems": 3
+          "maxItems": 3,
+          "title": "潜在数の継承抽選重み",
+          "description": "親の多い潜在数から−1個・維持・＋1個の順。整数の重みを指定する。"
         },
         "maleChance": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "title": "オスの確率"
         },
         "eggDropChance": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "title": "卵のドロップ確率",
+          "description": "敵討伐1回に対する確率。0.0001は0.01%。"
         },
         "reviveOrbItemId": {
           "type": "string",
-          "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+          "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+          "title": "復活オーブのアイテム参照",
+          "description": "item:参照。orb.effect.typeがPET_REVIVEのオーブに限定する。"
         },
         "facilityId": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "title": "ペット施設のNPC ID",
+          "description": "NPCマスターのid。guiのtype: PET_CENTERを持つ施設に限定する。"
         },
         "breedMaterials": {
           "type": "array",
@@ -126,15 +151,19 @@
             "properties": {
               "itemId": {
                 "type": "string",
-                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+                "title": "素材のアイテム参照",
+                "description": "item:参照。素材カテゴリのマスターを指定する。"
               },
               "quantity": {
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "title": "必要数量"
               }
             }
           },
-          "minItems": 0
+          "minItems": 0,
+          "title": "配合で消費する素材"
         },
         "reviveMaterials": {
           "type": "array",
@@ -148,17 +177,22 @@
             "properties": {
               "itemId": {
                 "type": "string",
-                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+                "title": "素材のアイテム参照",
+                "description": "item:参照。素材カテゴリのマスターを指定する。"
               },
               "quantity": {
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "title": "必要数量"
               }
             }
           },
-          "minItems": 0
+          "minItems": 0,
+          "title": "施設復活で消費する素材"
         }
-      }
+      },
+      "title": "ペット共通ルール"
     },
     "experience": {
       "type": "object",
@@ -177,19 +211,23 @@
       "properties": {
         "base": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "title": "必要経験値の基本値"
         },
         "quadratic": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "title": "成長度二乗の経験値係数"
         },
         "tierInterval": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "title": "節目加算の成長度間隔"
         },
         "tierBonus": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "title": "節目の経験値加算"
         },
         "wave": {
           "type": "array",
@@ -197,26 +235,33 @@
             "type": "integer",
             "minimum": 0
           },
-          "minItems": 1
+          "minItems": 1,
+          "title": "周期的な経験値加算"
         },
         "milestoneInterval": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "title": "大きな節目の成長度間隔"
         },
         "milestoneBase": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "title": "大きな節目の基本加算"
         },
         "milestoneLinear": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "title": "大きな節目の成長度係数"
         },
         "activityRate": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "title": "活動経験値の付与比率",
+          "description": "召喚・生存中の実活動の経験値比率。時間経過だけでは成長しない。"
         }
-      }
+      },
+      "title": "必要経験値の成長曲線"
     },
     "species": {
       "type": "array",
@@ -243,30 +288,38 @@
               "wolf",
               "cat",
               "chicken"
-            ]
+            ],
+            "title": "ID"
           },
           "displayName": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "title": "種類の表示名"
           },
           "entityType": {
             "enum": [
               "WOLF",
               "CAT",
               "CHICKEN"
-            ]
+            ],
+            "title": "Minecraftのエンティティ種別"
           },
           "eggItemId": {
             "type": "string",
-            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+            "title": "卵のアイテム参照",
+            "description": "item:参照。81.pet_eggカテゴリの数量1個体アイテム。"
           },
           "petItemId": {
             "type": "string",
-            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+            "title": "孵化後ペットのアイテム参照",
+            "description": "item:参照。80.petカテゴリの数量1個体アイテム。"
           },
           "dropWeight": {
             "type": "number",
-            "exclusiveMinimum": 0
+            "exclusiveMinimum": 0,
+            "title": "卵の種類抽選重み"
           },
           "names": {
             "type": "array",
@@ -275,17 +328,23 @@
               "minLength": 1
             },
             "minItems": 50,
-            "uniqueItems": true
+            "uniqueItems": true,
+            "title": "ランダム名前候補",
+            "description": "孵化時に名前を抽選する。50個以上、種類内で重複しない。"
           },
           "sizeMin": {
             "type": "number",
             "minimum": 0.0625,
-            "maximum": 16
+            "maximum": 16,
+            "title": "外見サイズの下限",
+            "description": "外見倍率の下限。能力へ補正を付けない。"
           },
           "sizeMax": {
             "type": "number",
             "minimum": 0.0625,
-            "maximum": 16
+            "maximum": 16,
+            "title": "外見サイズの上限",
+            "description": "外見倍率の上限。下限以上にする。"
           },
           "hatchMaterials": {
             "type": "array",
@@ -299,15 +358,19 @@
               "properties": {
                 "itemId": {
                   "type": "string",
-                  "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+                  "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$",
+                  "title": "素材のアイテム参照",
+                  "description": "item:参照。素材カテゴリのマスターを指定する。"
                 },
                 "quantity": {
                   "type": "integer",
-                  "minimum": 1
+                  "minimum": 1,
+                  "title": "必要数量"
                 }
               }
             },
-            "minItems": 1
+            "minItems": 1,
+            "title": "孵化で消費する素材"
           },
           "stats": {
             "type": "object",
@@ -347,48 +410,66 @@
                         "tier": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 10
+                          "maximum": 10,
+                          "title": "ティア"
                         },
                         "min": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の下限"
                         },
                         "max": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の上限"
                         },
                         "weight": {
                           "type": "number",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "抽選重み",
+                          "description": "候補の相対的な抽選重み。"
                         }
                       }
                     },
                     "minItems": 11,
-                    "maxItems": 11
+                    "maxItems": 11,
+                    "title": "個体値のティア定義",
+                    "description": "T0〜T10の11段階。範囲を重複させず上位ほど高い値にする。"
                   },
                   "valueWeightPower": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "低い個体値の抽選重み指数",
+                    "description": "整数値vの抽選重みは(max−v+1)^指数。低い値ほど出やすい。"
                   },
                   "growthPerLevel": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "成長度ごとの能力増分",
+                    "description": "現在値=基礎個体値+増分×(成長度−1)×潜在倍率。"
                   },
                   "inheritanceMin": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の下限",
+                    "description": "主人の参照ステータスへの係数。個体値と1対1の百分率にはしない。"
                   },
                   "inheritanceMax": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の上限",
+                    "description": "継承係数の上限。下限以上にする。"
                   },
                   "scale": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "exclusiveMinimum": 0,
+                    "title": "継承係数の飽和定数",
+                    "description": "個体能力/(scale+個体能力)による飽和式の正の調整定数。"
                   }
-                }
+                },
+                "title": "生命力"
               },
               "POWER": {
                 "type": "object",
@@ -417,48 +498,66 @@
                         "tier": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 10
+                          "maximum": 10,
+                          "title": "ティア"
                         },
                         "min": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の下限"
                         },
                         "max": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の上限"
                         },
                         "weight": {
                           "type": "number",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "抽選重み",
+                          "description": "候補の相対的な抽選重み。"
                         }
                       }
                     },
                     "minItems": 11,
-                    "maxItems": 11
+                    "maxItems": 11,
+                    "title": "個体値のティア定義",
+                    "description": "T0〜T10の11段階。範囲を重複させず上位ほど高い値にする。"
                   },
                   "valueWeightPower": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "低い個体値の抽選重み指数",
+                    "description": "整数値vの抽選重みは(max−v+1)^指数。低い値ほど出やすい。"
                   },
                   "growthPerLevel": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "成長度ごとの能力増分",
+                    "description": "現在値=基礎個体値+増分×(成長度−1)×潜在倍率。"
                   },
                   "inheritanceMin": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の下限",
+                    "description": "主人の参照ステータスへの係数。個体値と1対1の百分率にはしない。"
                   },
                   "inheritanceMax": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の上限",
+                    "description": "継承係数の上限。下限以上にする。"
                   },
                   "scale": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "exclusiveMinimum": 0,
+                    "title": "継承係数の飽和定数",
+                    "description": "個体能力/(scale+個体能力)による飽和式の正の調整定数。"
                   }
-                }
+                },
+                "title": "攻撃力"
               },
               "DEFENSE": {
                 "type": "object",
@@ -487,48 +586,66 @@
                         "tier": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 10
+                          "maximum": 10,
+                          "title": "ティア"
                         },
                         "min": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の下限"
                         },
                         "max": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の上限"
                         },
                         "weight": {
                           "type": "number",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "抽選重み",
+                          "description": "候補の相対的な抽選重み。"
                         }
                       }
                     },
                     "minItems": 11,
-                    "maxItems": 11
+                    "maxItems": 11,
+                    "title": "個体値のティア定義",
+                    "description": "T0〜T10の11段階。範囲を重複させず上位ほど高い値にする。"
                   },
                   "valueWeightPower": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "低い個体値の抽選重み指数",
+                    "description": "整数値vの抽選重みは(max−v+1)^指数。低い値ほど出やすい。"
                   },
                   "growthPerLevel": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "成長度ごとの能力増分",
+                    "description": "現在値=基礎個体値+増分×(成長度−1)×潜在倍率。"
                   },
                   "inheritanceMin": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の下限",
+                    "description": "主人の参照ステータスへの係数。個体値と1対1の百分率にはしない。"
                   },
                   "inheritanceMax": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の上限",
+                    "description": "継承係数の上限。下限以上にする。"
                   },
                   "scale": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "exclusiveMinimum": 0,
+                    "title": "継承係数の飽和定数",
+                    "description": "個体能力/(scale+個体能力)による飽和式の正の調整定数。"
                   }
-                }
+                },
+                "title": "防御力"
               },
               "EVASION": {
                 "type": "object",
@@ -557,48 +674,66 @@
                         "tier": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 10
+                          "maximum": 10,
+                          "title": "ティア"
                         },
                         "min": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の下限"
                         },
                         "max": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の上限"
                         },
                         "weight": {
                           "type": "number",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "抽選重み",
+                          "description": "候補の相対的な抽選重み。"
                         }
                       }
                     },
                     "minItems": 11,
-                    "maxItems": 11
+                    "maxItems": 11,
+                    "title": "個体値のティア定義",
+                    "description": "T0〜T10の11段階。範囲を重複させず上位ほど高い値にする。"
                   },
                   "valueWeightPower": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "低い個体値の抽選重み指数",
+                    "description": "整数値vの抽選重みは(max−v+1)^指数。低い値ほど出やすい。"
                   },
                   "growthPerLevel": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "成長度ごとの能力増分",
+                    "description": "現在値=基礎個体値+増分×(成長度−1)×潜在倍率。"
                   },
                   "inheritanceMin": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の下限",
+                    "description": "主人の参照ステータスへの係数。個体値と1対1の百分率にはしない。"
                   },
                   "inheritanceMax": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の上限",
+                    "description": "継承係数の上限。下限以上にする。"
                   },
                   "scale": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "exclusiveMinimum": 0,
+                    "title": "継承係数の飽和定数",
+                    "description": "個体能力/(scale+個体能力)による飽和式の正の調整定数。"
                   }
-                }
+                },
+                "title": "回避力"
               },
               "SUPPORT": {
                 "type": "object",
@@ -627,50 +762,70 @@
                         "tier": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 10
+                          "maximum": 10,
+                          "title": "ティア"
                         },
                         "min": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の下限"
                         },
                         "max": {
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "個体値の上限"
                         },
                         "weight": {
                           "type": "number",
-                          "minimum": 0
+                          "minimum": 0,
+                          "title": "抽選重み",
+                          "description": "候補の相対的な抽選重み。"
                         }
                       }
                     },
                     "minItems": 11,
-                    "maxItems": 11
+                    "maxItems": 11,
+                    "title": "個体値のティア定義",
+                    "description": "T0〜T10の11段階。範囲を重複させず上位ほど高い値にする。"
                   },
                   "valueWeightPower": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "低い個体値の抽選重み指数",
+                    "description": "整数値vの抽選重みは(max−v+1)^指数。低い値ほど出やすい。"
                   },
                   "growthPerLevel": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "title": "成長度ごとの能力増分",
+                    "description": "現在値=基礎個体値+増分×(成長度−1)×潜在倍率。"
                   },
                   "inheritanceMin": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の下限",
+                    "description": "主人の参照ステータスへの係数。個体値と1対1の百分率にはしない。"
                   },
                   "inheritanceMax": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1
+                    "maximum": 1,
+                    "title": "主人からの継承係数の上限",
+                    "description": "継承係数の上限。下限以上にする。"
                   },
                   "scale": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "exclusiveMinimum": 0,
+                    "title": "継承係数の飽和定数",
+                    "description": "個体能力/(scale+個体能力)による飽和式の正の調整定数。"
                   }
-                }
+                },
+                "title": "支援力"
               }
-            }
+            },
+            "title": "独立した個体ステータス",
+            "description": "五つの遺伝項目。それぞれ独立したティアと潜在能力を持つ。"
           },
           "skills": {
             "type": "array",
@@ -694,27 +849,33 @@
               "properties": {
                 "id": {
                   "type": "string",
-                  "pattern": "^[a-z][a-z0-9_]*$"
+                  "pattern": "^[a-z][a-z0-9_]*$",
+                  "title": "ID"
                 },
                 "name": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "title": "スキル名"
                 },
                 "tier": {
                   "type": "integer",
                   "minimum": 0,
-                  "maximum": 3
+                  "maximum": 3,
+                  "title": "ティア"
                 },
                 "weight": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "exclusiveMinimum": 0,
+                  "title": "抽選重み",
+                  "description": "候補の相対的な抽選重み。"
                 },
                 "trigger": {
                   "enum": [
                     "OWNER_HIT",
                     "OWNER_DODGE",
                     "PERIODIC"
-                  ]
+                  ],
+                  "title": "発動の起点"
                 },
                 "effect": {
                   "enum": [
@@ -733,39 +894,49 @@
                     "HEAL_ENERGY",
                     "ENERGY_SAVING",
                     "HEAL_ALL"
-                  ]
+                  ],
+                  "title": "効果の種別"
                 },
                 "cooldownSeconds": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "exclusiveMinimum": 0,
+                  "title": "発動待機時間（秒）"
                 },
                 "value": {
                   "type": "number",
-                  "minimum": 0
+                  "minimum": 0,
+                  "title": "効果の倍率・割合",
+                  "description": "5%は0.05、追撃120%は1.2。効果型で意味が異なる。"
                 },
                 "chance": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 1
+                  "maximum": 1,
+                  "title": "発動確率"
                 },
                 "durationSeconds": {
                   "type": "number",
-                  "minimum": 0
+                  "minimum": 0,
+                  "title": "持続時間（秒）"
                 },
                 "hitCount": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 10
+                  "maximum": 10,
+                  "title": "連撃回数"
                 },
                 "attackCount": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 100
+                  "maximum": 100,
+                  "title": "発動に必要な主人の命中回数"
                 }
               }
             },
             "minItems": 8,
-            "maxItems": 8
+            "maxItems": 8,
+            "title": "習得スキル候補",
+            "description": "各種類8スキル、T0〜T3を各2個。個体は最大3枠だけ習得する。"
           },
           "basicAttack": {
             "type": "object",
@@ -778,22 +949,28 @@
             "properties": {
               "damageRatio": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0,
+                "title": "ペット攻撃力への倍率"
               },
               "cooldownSeconds": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0,
+                "title": "発動待機時間（秒）"
               },
               "range": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0,
+                "title": "基本追撃の距離"
               }
-            }
+            },
+            "title": "スキル枠を使わない基本追撃",
+            "description": "犬と猫の種族行動。スキル枠を消費せず、個体クールダウンを保存する。"
           }
         }
       },
       "minItems": 3,
-      "maxItems": 3
+      "maxItems": 3,
+      "title": "ペットの種類"
     }
   }
 }

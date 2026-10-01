@@ -122,7 +122,8 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = /\/\d+$/.test(path) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
-  return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={metadata?.reference ?? parentReference} />
+  return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={metadata?.reference ?? parentReference}
+    referencePrefix={typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined} />
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
@@ -215,9 +216,12 @@ function NumberEditor({ value, kind, path, onChange, onInvalid }: { value: numbe
   }} />{error && <small className="error-message">{error}</small>}</div>
 }
 
-function StringEditor({ value, path, onChange, references, referenceKind }: { value: string; path: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string }) {
+function StringEditor({ value, path, onChange, references, referenceKind, referencePrefix }: { value: string; path: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string }) {
   const listId = useId()
-  const candidates = referenceKind ? [...new Map(references.filter((entry) => entry.kind === referenceKind).map((entry) => [entry.value, entry])).values()] : []
+  const candidates = referenceKind ? [...new Map(references.filter((entry) => entry.kind === referenceKind).map((entry) => {
+    const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
+    return [candidate.value, candidate] as const
+  })).values()] : []
   const search = value.toLocaleLowerCase()
   const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || entry.label?.toLocaleLowerCase().includes(search)).slice(0, 100)
   return <div>{value.includes('\n') ? <textarea aria-label={path || '/'} rows={Math.min(12, value.split('\n').length + 1)} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}

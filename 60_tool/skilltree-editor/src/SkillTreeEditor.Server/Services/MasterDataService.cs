@@ -137,6 +137,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         await using var mutation = await EnterMutationAsync(token);
         var full = RequireWritable(path);
         if (path.Equals("config.yml", MasterDataPaths.Comparison)) throw new UnauthorizedAccessException("Filebase の設定ファイルは削除できません。");
+        if (path.Equals(PetMasterValidation.MasterPath, MasterDataPaths.Comparison)) throw new UnauthorizedAccessException("単一ペットマスターは削除できません。フォームまたは原稿で更新してください。");
         var source = await ReadAsync(path, token);
         RequireRevision(source, revision);
         var references = await ReferencesAsync(path, token);

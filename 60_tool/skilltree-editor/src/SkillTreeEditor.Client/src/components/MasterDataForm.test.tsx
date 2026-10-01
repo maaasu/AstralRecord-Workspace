@@ -17,6 +17,19 @@ function Editable({ initial, metadata = fields }: { initial: JsonValue; metadata
 }
 
 describe('master form', () => {
+  it('uses pet schema Japanese labels and item reference prefixes without dropping unknown draft fields', () => {
+    const onChange = vi.fn()
+    const schema = { type: 'object', properties: { eggItemId: { type: 'string', title: '卵のアイテム参照', pattern: '^item:[0-9]{2}[a-z][0-9]{5}$' }, AlienKey: { type: 'object' } } }
+    render(<MasterDataForm value={{ eggItemId: 'item:81a00001', AlienKey: { CustomFlag: 4 } }} schema={schema}
+      fields={[{ path: '/eggItemId', key: 'eggItemId', label: '卵', type: 'string', required: true, description: '', reference: 'item' }]}
+      references={[{ path: '81.pet_egg/wolf.yml', pointer: '/id', value: '81a00001', kind: 'item', label: '犬の卵' }]} onChange={onChange} />)
+    expect(screen.getByText('卵のアイテム参照')).toBeInTheDocument()
+    expect(document.querySelector('option[value="item:81a00001"]')).toHaveTextContent('犬の卵')
+    expect(screen.getByRole('textbox', { name: '/AlienKey/CustomFlag' })).toHaveValue('4')
+    fireEvent.change(screen.getByRole('combobox', { name: '/eggItemId' }), { target: { value: 'item:81a00002' } })
+    expect(onChange).toHaveBeenLastCalledWith({ eggItemId: 'item:81a00002', AlienKey: { CustomFlag: 4 } })
+  })
+
   it('resolves wildcard definitions without mixing unrelated nested keys', () => {
     expect(fieldForPath(fields, '/skills/2/params/damage')?.label).toBe('ダメージ')
     expect(fieldForPath(fields, '/other/name')).toBeUndefined()
