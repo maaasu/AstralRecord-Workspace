@@ -1,16 +1,18 @@
-# AstralRecord Skill Tree Editor
+# AstralRecord Master Data Editor
 
-スキルツリーのノードマスター、配置・接続構造、Plugin の表示設定を編集する開発者専用ローカル Web アプリです。`30_web` には依存せず、ASP.NET Core がワークスペース内の JSON / YAML を直接扱います。
+Filebase の YAML / JSON マスターと、スキルツリーのノード・配置・接続構造、Plugin の表示設定を編集する開発者専用ローカル Web アプリです。日本語フォーム、原稿編集、装備比較、クラス成長グラフを同じアプリで使えます。`30_web` には依存せず、ASP.NET Core がワークスペース内のファイルを直接扱います。既存の起動バッチ・プロジェクト名・配置先は `skilltree-editor` のままです。
 
 ## 管理対象
 
 | 種別 | パス |
 | --- | --- |
+| Filebase マスター・設定 | `40_filebase/**/*.yml` / `*.yaml` / `*.json`（保護対象を除く） |
+| 日本語フォームの定義元（読取） | 各カテゴリの `docs.*.YAMLスキーマ定義.md` と JSON Schema |
 | ノードマスター | `40_filebase/35.features.skilltree/nodes/*.json` |
 | 配置・接続構造 | `40_filebase/35.features.skilltree/structures/*.json` |
-| JSON Schema | `40_filebase/35.features.skilltree/schemas/*.schema.json` |
-| 表示シミュレーション用クラス階層（読取専用） | `40_filebase/20.features.class/*.yml` |
-| スキル表示情報・候補（読取専用） | `40_filebase/30.features.skill/**/*.yml` |
+| JSON Schema（読取専用） | `40_filebase/**/*.schema.json` |
+| スキルツリー表示シミュレーション用クラス階層 | `40_filebase/20.features.class/*.yml` |
+| スキル表示情報・候補 | `40_filebase/30.features.skill/**/*.yml` |
 | ステータス表示情報・候補（生成元） | `40_filebase/75.shared.status/v1.status_types.yml` |
 | タグ表示情報・候補・保存時検証（生成元） | `40_filebase/76.shared.tag/v1.tags.yml` |
 | nodeId採番high-water | `40_filebase/35.features.skilltree/node-id-sequence.json` |
@@ -19,6 +21,33 @@
 | Minecraftアイコンキャッシュ | `60_tool/skilltree-editor/.cache/minecraft-icons/` |
 
 ノード ID は `node-id-sequence.json` のhigh-waterと既存最大値を照合して1000から自動採番され、作成後は変更できません。採番値はノードJSONより先に永続化し、削除しても戻さないため再利用されません（書込み失敗時の欠番は許容）。構造の X / Z をキャンバス座標、Y を配置インスペクターで編集します。edge は無向として扱い、保存時に端点を正規化します。
+
+## Filebase マスターの編集
+
+上部の「Filebase マスター」で、アイテム、クラス、スキル、モブ、スポナー、採集、ショップ、クエスト、ワールド、バフ、ドロップ報酬、レシピ、共有カタログなどのファイルを選びます。「スキルツリー」へ切り替えると従来のキャンバス編集を使えます。切替時も編集中の内容は保持されます。
+
+- 左のカテゴリ・サブフォルダ・名前 / ID / パス検索・YAML / JSON 形式で一覧を絞り込みます。50件ごとのページ表示です。
+- 「日本語フォーム」は定義書の項目名・説明・型・必須条件と元のキーを併記します。ネストした Map、配列の追加・削除・順序変更、定義済み任意項目の追加、自由形式のキーと型の追加にも対応します。
+- `implementationId`、RPC、固有 `params` のキーや参照 ID は元の表記で扱います。フォームで未定義のキーも保持し、「原稿 YAML / JSON」でコメントを含む全原稿を編集できます。元のYAMLの解析に失敗していても、原稿から修復できます。
+- 「＋ 新規」は既存ファイルの原稿テンプレート、JSON Schema の必須項目生成、直接入力から作成します。「原稿を読込」でローカルのファイルを編集中の原稿または新規ファイルへ取り込めます。読込だけでは保存しません。
+- 「保存済みファイルを複製」は保存済み原稿を新規ファイルの下書きにします。アイテムはID・ファイル名を自動採番でき、他のマスターは原稿内のIDと保存先を新しいものへ変更してから作成します。同じIDや保存先への作成は検証で拒否します。
+- アイテムは `10.material` / `20.equipment` などのカテゴリに合わせて ID と `v<schemaVersion>.<id>.<slug>.yml` を自動生成します。通常の英字は `a` から繰り上げ、`z` はデバッグ用として別に指定します。クラスは `schemaVersion` / `order` / `id` からファイル名を生成できます。採番と保存先は作成成功時に確定します。
+- 「差分」で保存済み原稿と編集中の原稿を比較し、「検証」でエラー箇所を確認してから明示保存します。Ctrl+S は保存、ツールバーの矢印はUndo / Redoです。未保存のファイル切替・ページ終了には確認が入ります。
+- 「参照一覧」は検出した参照元ファイルと項目を表示し、参照元へ移動できます。ID入力には既存マスターの名前付き候補を表示します。参照されているファイルは削除を拒否します。
+- 「現在の原稿を書出」は未保存の変更を含む原稿、「保存済みを書出」はディスク上の原稿をダウンロードします。「このカテゴリの定義書」から定義資料のMarkdown原稿を確認できます。
+
+`*.schema.json` と `node-id-sequence.json` は読取専用です。Schemaの更新はリポジトリの変更として行い、定義と既存マスターを検証してください。ノードの新規作成・複製は自動採番を維持するため「スキルツリー」で行います。既存ファイルの `id` / `nodeId` / `structureId` は保存時に変更できません。IDの変更は新規ファイルとして作成し、参照元も整合させてください。
+
+マスター保存は構文、定義書から読み取った型・必須、適用できるJSON Schema、カテゴリ・ID・ファイル名、同じマスター種別のID重複を検証します。スキルツリーには既存の構造検証も適用します。参照検出と汎用定義書の検証は、Plugin / API の全実装固有条件を代替するものではありません。運用へ反映するときは既存のFilebase検証・デプロイ・再読込も行ってください。
+
+## 装備比較とクラス成長グラフ
+
+「比較・成長グラフ」は保存済みマスターを使います。マスター変更後は「マスター再読込」で反映します。
+
+- 「装備を比較」は要求プレイヤーLvの中心と前後幅、スロット、装備タグ、名前 / IDで絞り、下限〜上限の比較表とステータスの棒グラフを表示します。チェックした装備だけの比較とCSV出力に対応します。
+- 強化Lvの差分を累積し、Plugin と同じく FLAT は加算、基礎 SCALAR は最後の定義を採用します。累積した強化 SCALAR があれば基礎 SCALAR を上書きし、FLAT に乗算します。SCALARだけのステータスは補正を持ちません。個体の乱数、エンチャント、ルーン、セット、超越、装備可否は比較計算に含めません。
+- 「クラス成長」はアカウントUUID、開始プレイヤーLv、開始クラスLv、表示上限、比較する職業（最大12件）を指定して計算します。プレイヤーLvに対するクラスLv・累積クラスEXP・クラスのステータス補正を切り替え、指定Lvの数値表とCSVも確認できます。
+- プレイヤー必要経験値のUUID由来の差、クラスの `expRate` / `maxLevel`、`baseStats` / `growthPerLevel` を反映します。通常育成・転生なし、開始Lv到達直後から同じEXPをプレイヤーと1職へ加算する仮定です。職業ごとの線は独立した育成シナリオで、転職条件や過去の育成履歴を含みません。「計算の根拠と前提」で式とPluginソースの対応を確認できます。
 
 ## 必要環境
 
@@ -139,7 +168,10 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 ## 保存とバックアップ
 
-- JSONはノード・構造・配置・edge・effect・採番メタデータごとの固定された意味順にキーを並べ、未知の追加キーは辞書順に安定化します。UTF-8（BOMなし）、2スペースインデント、LF、末尾改行ありです。同一内容の再保存はファイルを書き換えません。
+- マスターの原稿保存は入力したキー順・コメント・改行を保持してUTF-8（BOMなし）で保存します。同内容は書き換えません。更新・削除前の原稿は `.backups/master-data/` へ保存します。
+- YAMLフォームで構造が変わらず値だけを変更した場合は、元の原稿へ値を反映してコメント・順序・改行を保持します。キーや配列要素の追加などで全体を再生成する場合は、元のコメントを先頭へ移したことを画面に警告します。差分を確認し、コメントの位置を維持したい場合は原稿で編集してください。
+- マスターの更新・複製・削除は読込時のSHA-256 revisionを照合します。他のエディタや外部編集による変更があれば409で拒否するので、再読込して差分を確認してください。workspace共通の排他と同一ディレクトリへの原子的なファイル置換を使用します。
+- スキルツリー画面で保存するJSONはノード・構造・配置・edge・effect・採番メタデータごとの固定された意味順にキーを並べ、未知の追加キーは辞書順に安定化します。UTF-8（BOMなし）、2スペースインデント、LF、末尾改行ありです。同一内容の再保存はファイルを書き換えません。
 - node / structure / Plugin設定の更新はworkspace共通の排他内で再読込・検証・保存するため、並行リクエストや複数Editorプロセスがノード削除と構造保存を競合させても未知nodeId参照を正本へ残しません。
 - 既存JSON、削除対象JSON、`config.yml` は変更前に `.backups/<category>/<filename>.<timestamp>.bak` へコピーします。
 - nodeId採番時はWindows/Linux共通のファイル排他内でhigh-waterと既存ノードを再読込し、`node-id-sequence.json` を `.backups/node-id-sequence/` へ退避してから原子的にhigh-waterを進め、その後ノードJSONを作成します。複数Editorプロセスから同じworkspaceを開いてもhigh-waterを巻き戻しません。
@@ -183,6 +215,12 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 ソース側 `config.yml` の変更は既存のPlugin data folderへ自動コピーされません。表示ワールド・構造・中心座標を変えた場合は、稼働環境の `plugins/AstralRecord/config.yml` もデプロイまたは同期してからリロードしてください。エディタが稼働サーバーの設定へ直接書き込むことはありません。
 
 JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合はPluginロード時にも行われます。ステータス候補は共有ステータスカタログと`.\60_tool\generate-status-types.ps1`、タグ候補は共有タグカタログと`.\60_tool\generate-tag-types.ps1`で更新してください。タグ生成では全filebaseの未定義タグと用途不一致も検査します。`/masterdata reload` が返すエラーを修正してから運用へ反映してください。
+
+## 定義変更時の保守
+
+マスターのキー・型・必須・列挙・参照・命名、読込・変換、装備比較やレベル成長式を変更した場合は、定義とこのサイトを同じ変更で整合させます。対象スキルから [Filebase 編集サイトの同期規則](../../.codex/skills/_shared/filebase-editor-sync.md) を読み、影響するServer / Clientと検証を確認してください。
+
+定義書やJSON Schemaから生成する項目は、元資料の変更と「一覧と定義メタデータを再読込」で反映を確認します。特殊な候補・参照・検証・採番は `MasterDataCatalog` / `MasterDataValidation` / `MasterDataService`、画面は `MasterDataForm` / `MasterDataEditor`、計算は `MasterAnalyticsService` / `masterAnalytics.ts` を更新します。個別マスターの性能値・名前・説明文を既存契約内で調整するだけなら、動的反映を確認し、重複した定義をサイトのコードへ追加しません。
 
 ## トラブルシューティング
 

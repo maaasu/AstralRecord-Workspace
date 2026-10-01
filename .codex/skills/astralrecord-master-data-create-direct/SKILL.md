@@ -33,7 +33,7 @@ description: AstralRecord の 40_filebase に、ユーザーが指定したマ�
 1. `git status --short --branch` とステージ済み差分を確認し、現在のブランチが `develop` であること、別の直接の編集担当が動作中でないこと、既存差分を今回分と安全に分離できることを確認する。
 2. 対象を確定する。ユーザーが絶対パスを指定した場合はその配下だけを対象にする。パスがない場合は `40_filebase` 内のカテゴリと ID を検索して候補を絞る。
 3. `AGENTS.md`、`40_filebase\AGENTS.md`、`00_docs\50_Filebase設計書\README.md`、対象カテゴリの `feature\<category>.md`、YAML スキーマ、近隣の既存 YAML を読む。既存契約内のデータ変更であることを確認し、契約変更が必要なら統合入口へ切り替える。新規データでは `モチーフ選定ガイド.md` と `作成時チェックリスト.md` も読む。
-4. 既存 ID を `40_filebase/**/*.yml` で検索する。新規 ID は既存規則に合わせた小文字 snake_case とし、参照先 ID・カテゴリ・schemaVersion・ファイル名を既存例に合わせる。
+4. 既存 ID を `40_filebase/**/*.yml` で検索する。新規 ID とファイル名は対象カテゴリの定義・採番規則に従う。アイテム ID はカテゴリ番号2桁 + 英字1桁 + 連番5桁、ファイル名は `v<schemaVersion>.<id>.<管理用slug>.yml` とする（`10.features.item/docs.item.YAMLスキーマ定義.md`）。参照先 ID・カテゴリ・schemaVersion も確認する。
 5. 依頼された範囲だけを編集する。既存ファイルの記載順・コメント・フォーマットを保ち、参照は `ref: item:<id>` など対象スキーマの形式にする。未対応の実装機能を YAML だけで発明しない。
 6. 変更後に YAML を再読込して、ID 重複・必須キー・参照先・スロット/行/列など対象スキーマ固有の制約を確認する。可能なら Python の `yaml.safe_load`、必ず `git diff --check` を使う。
 7. `git status --short --branch` と差分を再確認する。`git add .` / `git add -A` は使わず、依頼対象の絶対パスまたは明示的な相対パスだけをステージする。ステージ済み差分を確認してからコミットする。
