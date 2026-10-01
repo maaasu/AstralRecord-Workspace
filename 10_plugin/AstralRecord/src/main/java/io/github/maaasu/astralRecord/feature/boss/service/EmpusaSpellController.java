@@ -437,6 +437,10 @@ final class EmpusaSpellController {
         int count = cast.spell.ritual ? 16 : 12;
         for (int index = 0; index < count; index++) {
             Location position = displayPosition(cast, bossLocation, 0L, index);
+            if (!loaded(position)) {
+                cast.displays.add(null);
+                continue;
+            }
             Material block = index % 3 == 0 ? Material.COPPER_BLOCK : accent;
             float size = index >= 12 ? 0.32F : index >= 8 ? 0.25F : 0.38F;
             BlockDisplay display = position.getWorld().spawn(position, BlockDisplay.class);
@@ -460,9 +464,12 @@ final class EmpusaSpellController {
     /** 5tickごとに所有する表示だけを移動し、魔導環と破片へ回転・浮遊を与えます。 */
     private static void moveDisplays(@NotNull Cast cast, @NotNull Location bossLocation, long tick) {
         for (int index = 0; index < cast.displays.size(); index++) {
-            Entity display = Bukkit.getEntity(cast.displays.get(index));
+            UUID id = cast.displays.get(index);
+            Location position = displayPosition(cast, bossLocation, tick, index);
+            if (id == null || !loaded(position)) continue;
+            Entity display = Bukkit.getEntity(id);
             if (display instanceof BlockDisplay block && display.isValid()) {
-                block.teleport(displayPosition(cast, bossLocation, tick, index));
+                block.teleport(position);
                 Transformation prior = block.getTransformation();
                 block.setTransformation(new Transformation(prior.getTranslation(),
                     new Quaternionf().rotateY((float) (tick * 0.035D + index * 0.3D)),
@@ -491,9 +498,16 @@ final class EmpusaSpellController {
     /** 詠唱終了・キャンセルで一時BlockDisplayをすべて回収します。 */
     private static void removeDisplays(@NotNull List<UUID> ids) {
         for (UUID id : ids) {
+            if (id == null) continue;
             Entity entity = Bukkit.getEntity(id);
             if (entity != null) entity.remove();
         }
+    }
+
+    /** 装飾のために未読込chunkを生成しません。 */
+    private static boolean loaded(@NotNull Location location) {
+        World world = location.getWorld();
+        return world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4);
     }
 
     /** 現在の詠唱だけを表示し、離れた人をBarから外します。 */
