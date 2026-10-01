@@ -245,6 +245,33 @@ public class StatusService {
         return merged;
     }
 
+    /**
+     * 指定バフだけを計算入力から除いたステータスを取得します。
+     * 主人依存の召喚個体が、自身の付与したバフを再び継承して増幅することを防ぎます。
+     * Bukkit メインスレッドで呼び出し、計算の成否によらず元のバフ一覧を復元します。
+     * プレイヤー本体のスナップショット、現在リソース、移動速度、インベントリを変更しません。
+     *
+     * @param player 読み込み・ステータス初期化済みのプレイヤー
+     * @param excluded 計算入力から除外するバフの判定
+     * @return バフ除外後の能力値と、元の現在リソースを持つ独立スナップショット
+     */
+    public @NotNull StatusSnapshot getStatusExcludingBuffs(@NotNull AstPlayer player,
+                                                          @NotNull Predicate<ActiveBuff> excluded) {
+        List<ActiveBuff> original = List.copyOf(player.getActiveBuffs());
+        if (original.stream().noneMatch(excluded)) return player.getStatusSnapshot();
+        StatusSnapshot current = player.getStatusSnapshot();
+        player.getActiveBuffs().removeIf(excluded);
+        try {
+            StatusSnapshot computed = createSnapshot(player);
+            return new StatusSnapshot(computed.getValues(), current.getCurrentHp(), current.getCurrentMp(),
+                    current.getCurrentEnergy(), current.getCurrentShield(), current.getShieldChangedAtMs(),
+                    computed.getCalculatedAt());
+        } finally {
+            player.getActiveBuffs().clear();
+            player.getActiveBuffs().addAll(original);
+        }
+    }
+
     private void applyMovementSpeed(
         @NotNull AstPlayer player,
         @NotNull StatusSnapshot snapshot

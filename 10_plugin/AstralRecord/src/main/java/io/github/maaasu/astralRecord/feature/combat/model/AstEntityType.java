@@ -11,6 +11,9 @@ public enum AstEntityType {
     /** AstralRecord の独自 Mob インスタンス。 */
     MOB,
 
+    /** プレイヤーに所有される召喚中ペット。 */
+    PET,
+
     /** AstPlayer / MobInstance へ解決できない Bukkit エンティティ。 */
     BUKKIT
 }

@@ -194,8 +194,7 @@ public final class RyushelFlowerLeapMobSkillExecutor implements MobSkillExecutor
         world.playSound(landing, Sound.ENTITY_SHEEP_SHEAR, 1.0F, 0.9F);
         for (Entity entity : world.getNearbyEntities(landing, radius, 2.0D, radius)) {
             var victim = damageService.resolveEntity(entity);
-            if (!victim.isPlayer() || victim.player() == null
-                    || !AccountModeGuard.isGameplayPlayer(victim.player())
+            if (!damageService.isMobCombatTarget(entity)
                     || horizontalDistanceSquared(entity.getLocation(), landing) > radius * radius) {
                 continue;
             }

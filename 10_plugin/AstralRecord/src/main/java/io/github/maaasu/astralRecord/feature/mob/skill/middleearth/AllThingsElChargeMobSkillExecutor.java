@@ -78,7 +78,7 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
             long holdTicks
     ) {
         Entity entity = mobService.entityController().getEntity(caster);
-        if (entity == null || entity.isDead() || remainingCharges <= 0 || !context.target().isOnline()
+        if (entity == null || entity.isDead() || remainingCharges <= 0 || !damageService.isMobCombatTarget(context.target())
                 || context.target().isDead() || entity.getWorld() != context.target().getWorld()) {
             caster.scriptedAction(false);
             return;
@@ -93,7 +93,7 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
             public void run() {
                 Entity activeEntity = mobService.entityController().getEntity(caster);
                 if (activeEntity == null || activeEntity.isDead()
-                        || !MiddleEarthRushMotion.isTargetAvailable(activeEntity, context.target(), targetSnapshot)) {
+                        || !MiddleEarthRushMotion.isTargetAvailable(activeEntity, context.target(), targetSnapshot, damageService)) {
                     cancel();
                     caster.scriptedAction(false);
                     return;

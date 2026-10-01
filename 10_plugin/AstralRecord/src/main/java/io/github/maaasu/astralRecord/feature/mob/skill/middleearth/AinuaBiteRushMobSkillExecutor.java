@@ -98,10 +98,10 @@ public final class AinuaBiteRushMobSkillExecutor implements MobSkillExecutor {
             public void run() {
                 MobInstance active = mobService.getInstance(context.mob().instanceId());
                 Entity entity = active == context.mob() ? mobService.entityController().getEntity(active) : null;
-                if (entity == null || entity.isDead() || !context.target().isOnline() || context.target().isDead()
+                if (entity == null || entity.isDead() || !damageService.isMobCombatTarget(context.target()) || context.target().isDead()
                         || entity.getWorld() != context.target().getWorld()
                         || context.target().getUniqueId() == null
-                        || !AccountModeGuard.isGameplayPlayer(context.target())) {
+                        || !damageService.isMobCombatTarget(context.target())) {
                     complete();
                     return;
                 }

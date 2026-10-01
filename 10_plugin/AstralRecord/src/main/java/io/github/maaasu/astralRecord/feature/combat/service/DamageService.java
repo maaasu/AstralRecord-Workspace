@@ -44,6 +44,7 @@ import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -107,6 +108,7 @@ public final class DamageService {
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
+    private PetRuntimeService petRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
     private MobPlayerDamageListener mobPlayerDamageListener = (mob, victim, damage, lethal) -> { };
@@ -376,6 +378,9 @@ public final class DamageService {
         this.mobPlayerDamageListener = listener;
     }
 
+    /** @param runtime 召喚ペットの HP、味方判定、追撃の連携先。null で連携解除 */
+    public void setPetRuntimeService(@Nullable PetRuntimeService runtime) { this.petRuntimeService = runtime; }
+
     /**
      * プレイヤーに適用された HP 回復の実量を、設定に応じて表示とメッセージへ反映します。
      *
@@ -481,9 +486,11 @@ public final class DamageService {
             return;
         }
 
-        if (attacker.isMob() && victim.isPlayer()) {
+        if (attacker.isMob() && (victim.isPlayer() || victim.isPet())) {
             return;
         }
+
+        if (attacker.isPet()) return;
 
         if (attacker.isManaged()) {
             attack(attacker, victim, AttackType.MELEE);
@@ -834,7 +841,7 @@ public final class DamageService {
         if (!canApplyPlayerDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
-        if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
+        if (dungeonService != null && !dungeonService.canApplyCombatDamage(permissionEntity(attacker), permissionEntity(victim))) {
             return new DamageResult(0.0D);
         }
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
@@ -871,15 +878,27 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim
     ) {
-        if (attacker == null || !attacker.isPlayer() || !victim.isPlayer()) {
+        if (!isActivePet(victim) || attacker != null && !isActivePet(attacker)) {
+            return false;
+        }
+        if (attacker == null || attacker.combatOwner() == null || victim.combatOwner() == null) {
             return true;
         }
-        AstPlayer attackerPlayer = attacker.player();
-        AstPlayer victimPlayer = victim.player();
+        AstPlayer attackerPlayer = attacker.combatOwner();
+        AstPlayer victimPlayer = victim.combatOwner();
+        if (attackerPlayer.getBukkit().getUniqueId().equals(victimPlayer.getBukkit().getUniqueId())) return false;
         return attackerPlayer != null
                 && victimPlayer != null
                 && attackerPlayer.isPvpEnabled()
                 && victimPlayer.isPvpEnabled();
+    }
+
+    /** ペットの場合だけ、召喚と所有者の生存・通常アカウント状態を検証します。 */
+    private boolean isActivePet(@NotNull AstEntity entity) {
+        if (!entity.isPet()) return true;
+        var pet = entity.pet();
+        return !pet.dead() && pet.entity().isValid() && pet.owner().getBukkit().isOnline()
+                && !isPlayerDead(pet.owner().getBukkit().getUniqueId()) && AccountModeGuard.isGameplayPlayer(pet.owner());
     }
 
     /**
@@ -894,6 +913,11 @@ public final class DamageService {
             if (shooter instanceof Entity shooterEntity) {
                 return resolveEntity(shooterEntity);
             }
+        }
+
+        if (petRuntimeService != null) {
+            var pet = petRuntimeService.resolve(entity);
+            if (pet != null) return AstEntity.pet(pet);
         }
 
         if (entity instanceof Player player) {
@@ -912,6 +936,51 @@ public final class DamageService {
         }
 
         return AstEntity.bukkit(entity);
+    }
+
+    /** ダンジョン参加権限はペットの所有者で検証し、戦闘能力と HP はペット自身を使います。 */
+    private @Nullable AstEntity permissionEntity(@Nullable AstEntity entity) {
+        return entity != null && entity.isPet() ? AstEntity.player(entity.pet().owner()) : entity;
+    }
+
+    /**
+     * Mob の攻撃候補にできるプレイヤーまたは召喚ペットを判定します。
+     * @param entity 攻撃候補
+     * @return 通常アカウントの生存中主人に属し、独自 HP も残る場合 true
+     */
+    public boolean isMobCombatTarget(@NotNull Entity entity) {
+        if (!entity.isValid() || entity.isDead()) return false;
+        AstEntity target = resolveEntity(entity);
+        AstPlayer owner = target.combatOwner();
+        return owner != null && owner.getBukkit().isOnline() && AccountModeGuard.isGameplayPlayer(owner)
+                && !isPlayerDead(owner.getBukkit().getUniqueId()) && target.currentHealth() > 0.0D;
+    }
+
+    /**
+     * 敵の範囲攻撃・飛び道具が共有する味方陣営の候補を取得します。
+     * @param origin 判定中心
+     * @param horizontalRadius 水平方向の候補半径
+     * @param verticalRadius 垂直方向の候補半径
+     * @return 有効なプレイヤーと召喚ペット。敵・NPC は含みません
+     */
+    public @NotNull List<LivingEntity> mobCombatTargets(@NotNull Location origin, double horizontalRadius,
+                                                       double verticalRadius) {
+        if (origin.getWorld() == null) return List.of();
+        return origin.getWorld().getNearbyEntities(origin, horizontalRadius, verticalRadius, horizontalRadius)
+                .stream().filter(LivingEntity.class::isInstance).map(LivingEntity.class::cast)
+                .filter(this::isMobCombatTarget).toList();
+    }
+
+    /**
+     * World 全体を対象とする既存 Mob スキルの候補にペットを追加します。
+     * @param world 判定対象の World
+     * @return 有効なプレイヤーとペット
+     */
+    public @NotNull List<LivingEntity> mobCombatTargets(@NotNull World world) {
+        List<LivingEntity> targets = new ArrayList<>();
+        targets.addAll(world.getPlayers().stream().filter(this::isMobCombatTarget).toList());
+        if (petRuntimeService != null) targets.addAll(petRuntimeService.targets(new Location(world, 0, 0, 0), Double.MAX_VALUE));
+        return targets;
     }
 
     /**
@@ -1078,7 +1147,7 @@ public final class DamageService {
         if (!canApplyPlayerDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
-        if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
+        if (dungeonService != null && !dungeonService.canApplyCombatDamage(permissionEntity(attacker), permissionEntity(victim))) {
             return new DamageResult(0.0D);
         }
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
@@ -1124,6 +1193,7 @@ public final class DamageService {
                 postCalculationMultiplier *= conditionService.damageTakenMultiplier(victim)
                         * conditionService.damageDealtMultiplier(attacker);
             }
+            if (petRuntimeService != null) postCalculationMultiplier *= petRuntimeService.damageTakenMultiplier(victim);
             calculated = calculated.withFinalDamage(calculated.finalDamage() * postCalculationMultiplier);
         }
         DamageResult justDodgeDamage = calculated;
@@ -1206,6 +1276,7 @@ public final class DamageService {
         double victimCurrentHealthBefore = victim.currentHealth();
         double victimMaxHealth = victim.maxHealth();
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
+        if (petRuntimeService != null) petRuntimeService.onDamage(attacker, victim, result, source);
         if (archmagePhoenixRuntimeService != null
                 && isDirectDamage(source)
                 && !result.evaded()
@@ -1403,9 +1474,10 @@ public final class DamageService {
 
     /** 被弾者へ適用されている一時防御倍率を返します。 */
     private double temporaryDefenseMultiplier(@NotNull AstEntity victim) {
-        return temporarySkillEffectService == null
+        double existing = temporarySkillEffectService == null
                 ? 1.0D
                 : temporarySkillEffectService.defenseMultiplier(victim);
+        return existing * (petRuntimeService == null ? 1.0D : petRuntimeService.defenseMultiplier(victim));
     }
 
     /** 被弾者へ適用されている一時回避率倍率を返します。 */
@@ -1428,6 +1500,7 @@ public final class DamageService {
         if (attacker == null || !attacker.isManaged()) {
             return 1.0D;
         }
+        if (attacker.isPet()) return 1.0D;
         if (attacker.isMob() && attacker.mob() != null) {
             double templateMultiplier = Math.max(
                     0.0D,
@@ -1638,6 +1711,11 @@ public final class DamageService {
             return;
         }
 
+        if (victim.isPet()) {
+            victim.pet().damage(result.finalDamage());
+            return;
+        }
+
         if (!victim.isMob()) {
             return;
         }
@@ -1663,17 +1741,21 @@ public final class DamageService {
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);
         }
-        if (attacker != null && attacker.isPlayer()) {
-            if (isPlayerDead(attacker.id())) {
+        if (attacker != null && attacker.combatOwner() != null) {
+            AstPlayer owner = attacker.combatOwner();
+            UUID ownerId = owner.getBukkit().getUniqueId();
+            if (isPlayerDead(ownerId)) {
                 return;
             }
-            if (attacker.player() != null && AccountModeGuard.isGameplayPlayer(attacker.player())) {
+            if (AccountModeGuard.isGameplayPlayer(owner)) {
                 mob.threatTable().add(attacker.id(), result.finalDamage());
-                mob.lastAttackerUuid(attacker.id());
+                // ペット死亡後にも報酬受取人を解決できるよう主人の参加記録を残します。
+                if (attacker.isPet()) mob.threatTable().add(ownerId, Math.ulp(1.0D));
+                mob.lastAttackerUuid(ownerId);
                 if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
                     bossChallengeService.recordBossDamage(
                             mob.instanceId(),
-                            attacker.id(),
+                            ownerId,
                             effectiveHealthDamage + result.shieldDamage()
                     );
                 }
@@ -1732,18 +1814,21 @@ public final class DamageService {
      * @param shieldDamage 適用済みのシールドダメージ
      */
     private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {
-        if (attacker == null || !attacker.isPlayer() || !victim.isMob() || victim.mob() == null) {
+        if (attacker == null || attacker.combatOwner() == null || !victim.isMob() || victim.mob() == null) {
             return;
         }
-        if (isPlayerDead(attacker.id())) {
+        AstPlayer owner = attacker.combatOwner();
+        UUID ownerId = owner.getBukkit().getUniqueId();
+        if (isPlayerDead(ownerId)) {
             return;
         }
-        if (attacker.player() == null || !AccountModeGuard.isGameplayPlayer(attacker.player())) {
+        if (!AccountModeGuard.isGameplayPlayer(owner)) {
             return;
         }
         var mob = victim.mob();
         mob.threatTable().add(attacker.id(), shieldDamage);
-        mob.lastAttackerUuid(attacker.id());
+        if (attacker.isPet()) mob.threatTable().add(ownerId, Math.ulp(1.0D));
+        mob.lastAttackerUuid(ownerId);
         if (mob.template().targeting() != null && mob.state() == MobState.IDLE) {
             mob.state(MobState.AGGRO);
             mob.targetId(attacker.id());
@@ -2121,7 +2206,7 @@ public final class DamageService {
         if (result.finalDamage() <= 0.0D) {
             return 0.0D;
         }
-        if (victim.isPlayer()) {
+        if (victim.isPlayer() || victim.isPet()) {
             return Math.min(Math.max(0.0D, victim.currentHealth()), result.finalDamage());
         }
         if (victim.isMob() && victim.mob() != null) {

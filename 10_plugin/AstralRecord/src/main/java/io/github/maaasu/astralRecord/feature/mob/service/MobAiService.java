@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -515,7 +516,7 @@ public class MobAiService {
             return;
         }
 
-        Player target = resolveChaseTarget(instance);
+        LivingEntity target = resolveChaseTarget(instance);
         if (target == null) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
@@ -569,7 +570,7 @@ public class MobAiService {
      * @param instance 対象 Mob
      */
     private void tickCombatHold(@NotNull MobInstance instance) {
-        Player target = resolveChaseTarget(instance);
+        LivingEntity target = resolveChaseTarget(instance);
         if (target == null) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
@@ -612,7 +613,8 @@ public class MobAiService {
         castCombatSkill(instance, target);
     }
 
-    private void castCombatSkill(@NotNull MobInstance instance, @NotNull Player target) {
+    /** プレイヤーまたはペットを標的に、マスターで定義した Mob スキルを実行します。 */
+    private void castCombatSkill(@NotNull MobInstance instance, @NotNull LivingEntity target) {
         if (conditionService != null) {
             AstEntity caster = AstEntity.mob(instance);
             if (!conditionService.canAttack(caster) || !conditionService.canCastSkill(caster)) {
@@ -669,59 +671,11 @@ public class MobAiService {
      * Mob のターゲットを選定して {@link MobInstance#targetId(UUID)} に設定します。
      *
      * @param instance 対象 Mob
-     * @return 選定されたプレイヤー。候補なしなら {@code null}
+     * @return 選定されたプレイヤーまたはペット。候補なしなら {@code null}
      */
     @Nullable
-    private Player selectTarget(@NotNull MobInstance instance) {
-        MobTemplate template = instance.template();
-        MobTargetingConfig targeting = template.targeting();
-        if (targeting == null || template.category() == MobCategory.NPC) {
-            instance.targetId(null);
-            return null;
-        }
-        if (targeting.retaliateOnly() && instance.targetId() == null) {
-            return null;
-        }
-
-        double aggroSq = targeting.aggroRange() * targeting.aggroRange();
-        Location loc = instance.currentLocation();
-        if (targeting.retaliateOnly()) {
-            UUID topId = instance.threatTable().top();
-            Player top = topId == null ? null : Bukkit.getPlayer(topId);
-            if (top == null || !isActiveTargetPlayer(top) || top.getWorld() != loc.getWorld()
-                    || top.getLocation().distanceSquared(loc) > aggroSq) {
-                instance.targetId(null);
-                return null;
-            }
-            instance.targetId(top.getUniqueId());
-            return top;
-        }
-        List<Player> candidates = new ArrayList<>();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!isActiveTargetPlayer(player)) continue;
-            if (player.getWorld() != loc.getWorld()) continue;
-            if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
-            candidates.add(player);
-        }
-
-        if (candidates.isEmpty()) {
-            instance.targetId(null);
-            return null;
-        }
-
-        Player chosen = switch (targeting.strategy()) {
-            case NEAREST -> nearest(candidates, loc);
-            case HIGHEST_THREAT -> {
-                UUID top = instance.threatTable().top();
-                Player player = top == null ? null : Bukkit.getPlayer(top);
-                yield player != null && candidates.contains(player) ? player : nearest(candidates, loc);
-            }
-            case RANDOM -> candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-            case LOWEST_HP -> lowestHp(candidates);
-        };
-
-        instance.targetId(chosen == null ? null : chosen.getUniqueId());
-        return chosen;
+    private LivingEntity selectTarget(@NotNull MobInstance instance) {
+        return mobCombatService.selectTarget(instance);
     }
 
     /**
@@ -733,7 +687,7 @@ public class MobAiService {
      * @return 追跡対象。存在しなければ {@code null}
      */
     @Nullable
-    private Player resolveChaseTarget(@NotNull MobInstance instance) {
+    private LivingEntity resolveChaseTarget(@NotNull MobInstance instance) {
         UUID taunterId = tauntService == null ? null : tauntService.activeTaunter(instance);
         if (taunterId != null) {
             Player taunter = Bukkit.getPlayer(taunterId);
@@ -748,8 +702,8 @@ public class MobAiService {
         MobTargetingConfig targeting = instance.template().targeting();
         UUID targetId = instance.targetId();
         if (targeting != null && targetId != null) {
-            Player current = Bukkit.getPlayer(targetId);
-            if (current != null && isActiveTargetPlayer(current) && current.getWorld() == instance.currentLocation().getWorld()) {
+            LivingEntity current = mobCombatService.resolveTarget(targetId);
+            if (current != null && current.getWorld() == instance.currentLocation().getWorld()) {
                 double deaggroSq = targeting.deaggroRange() * targeting.deaggroRange();
                 if (current.getLocation().distanceSquared(instance.currentLocation()) <= deaggroSq) {
                     return current;
@@ -881,7 +835,7 @@ public class MobAiService {
 
     private boolean isWithinCurrentSkillActivationRange(
             @NotNull MobInstance instance,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             double fallbackRange
     ) {
         MobCombatConfig combat = instance.template().combat();

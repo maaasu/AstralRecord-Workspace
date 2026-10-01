@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
@@ -13,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -34,6 +36,10 @@ public final class MobSkillService {
     private final Map<UUID, Map<String, Long>> cooldownUntilByMob = new HashMap<>();
     private final Map<UUID, BukkitTask> castingTasks = new HashMap<>();
     private @Nullable ConditionService conditionService;
+    private @Nullable DamageService damageService;
+
+    /** @param damageService プレイヤーと召喚ペットの有効標的判定に使用する共通サービス */
+    public void setDamageService(@Nullable DamageService damageService) { this.damageService = damageService; }
 
     /** Mob サービスとMob専用レジストリを指定して構築します。 */
     public MobSkillService(@NotNull MobService mobService, @NotNull MobSkillRegistry registry) {
@@ -73,7 +79,7 @@ public final class MobSkillService {
     public boolean isWithinActivationRange(
             @NotNull MobInstance instance,
             @NotNull MobSkillBinding binding,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             double fallbackRange
     ) {
         MobSkillExecutor executor = registry.find(binding.id());
@@ -100,7 +106,7 @@ public final class MobSkillService {
     public boolean tryCast(
             @NotNull MobInstance instance,
             @NotNull MobSkillBinding binding,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             long serverTick
     ) {
         MobSkillExecutor executor = registry.find(binding.id());
@@ -195,7 +201,7 @@ public final class MobSkillService {
             @Override
             public void run() {
                 MobInstance active = mobService.getInstance(instance.instanceId());
-                if (active != instance || active.state() == MobState.DEAD || !context.target().isOnline()
+                if (active != instance || active.state() == MobState.DEAD || !context.target().isValid()
                         || !isGameplayTargetPlayer(context.target())) {
                     finish();
                     return;
@@ -225,8 +231,9 @@ public final class MobSkillService {
         return cooldownUntilByMob.getOrDefault(mobInstanceId, Map.of()).getOrDefault(skillId, Long.MIN_VALUE) > serverTick;
     }
 
-    private boolean isGameplayTargetPlayer(@NotNull Player player) {
-        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
+    private boolean isGameplayTargetPlayer(@NotNull LivingEntity entity) {
+        return damageService != null ? damageService.isMobCombatTarget(entity)
+                : entity instanceof Player player && player.isOnline() && AccountModeGuard.isGameplayPlayer(player);
     }
 
     private void startCooldown(@NotNull UUID mobInstanceId, @NotNull String skillId, long serverTick, long cooldownTicks) {
@@ -236,7 +243,7 @@ public final class MobSkillService {
 
     private boolean isWithinActivationRange(
             @NotNull MobInstance instance,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             double activationRange,
             boolean allowsVerticalTargeting
     ) {

@@ -30,6 +30,7 @@ public final class AstEntity {
     private final MobInstance mob;
     private final Entity bukkitEntity;
     private final StatusSnapshot playerStatusOverride;
+    private PetCombatActor pet;
 
     private AstEntity(
             @NotNull AstEntityType type,
@@ -90,6 +91,26 @@ public final class AstEntity {
     }
 
     /**
+     * 召喚中ペットを独自戦闘の対象にします。
+     * @param pet 所有者と独自 HP を持つペット
+     * @return ペット用戦闘エンティティ
+     */
+    public static @NotNull AstEntity pet(@NotNull PetCombatActor pet) {
+        AstEntity entity = new AstEntity(AstEntityType.PET, null, null, pet.entity(), null);
+        entity.pet = pet;
+        return entity;
+    }
+
+    /** @return ペットの場合 true */
+    public boolean isPet() { return type == AstEntityType.PET; }
+
+    /** @return ペット。別種別なら null */
+    public @Nullable PetCombatActor pet() { return pet; }
+
+    /** @return プレイヤーまたはペットの所有者。敵 Mob などの場合 null */
+    public @Nullable AstPlayer combatOwner() { return isPlayer() ? player : isPet() ? pet.owner() : null; }
+
+    /**
      * エンティティ種別を返します。
      *
      * @return エンティティ種別
@@ -104,7 +125,7 @@ public final class AstEntity {
      * @return AstPlayer または MobInstance の場合は true
      */
     public boolean isManaged() {
-        return type == AstEntityType.PLAYER || type == AstEntityType.MOB;
+        return type == AstEntityType.PLAYER || type == AstEntityType.MOB || type == AstEntityType.PET;
     }
 
     /**
@@ -134,6 +155,7 @@ public final class AstEntity {
         return switch (type) {
             case PLAYER -> player.getBukkit().getUniqueId();
             case MOB -> mob.instanceId();
+            case PET -> pet.entity().getUniqueId();
             case BUKKIT -> bukkitEntity.getUniqueId();
         };
     }
@@ -147,6 +169,7 @@ public final class AstEntity {
         return switch (type) {
             case PLAYER -> player.getBukkit().getName();
             case MOB -> ColorCodeUtil.toLegacyText(mob.template().displayName(), mob.template().id());
+            case PET -> pet.entity().getName();
             case BUKKIT -> bukkitEntity.getName();
         };
     }
@@ -160,6 +183,7 @@ public final class AstEntity {
         return switch (type) {
             case PLAYER -> player.getBukkit().getLocation();
             case MOB -> mob.currentLocation();
+            case PET -> pet.entity().getLocation();
             case BUKKIT -> bukkitEntity.getLocation();
         };
     }
@@ -176,6 +200,7 @@ public final class AstEntity {
             case MOB -> statusType == StatusType.MAX_HEALTH
                     ? mob.maxHealth()
                     : mob.template().statValue(statusType.name(), 0.0D);
+            case PET -> pet.statValue(statusType);
             case BUKKIT -> 0.0D;
         };
     }
@@ -189,6 +214,7 @@ public final class AstEntity {
         return switch (type) {
             case PLAYER -> playerStatus().getCurrentHp();
             case MOB -> mob.currentHealth();
+            case PET -> pet.currentHealth();
             case BUKKIT -> bukkitEntity instanceof Damageable damageable ? damageable.getHealth() : 0.0D;
         };
     }
@@ -202,6 +228,7 @@ public final class AstEntity {
         return switch (type) {
             case PLAYER -> playerStatus().getMaxValue(StatusType.MAX_HEALTH);
             case MOB -> mob.maxHealth();
+            case PET -> pet.maxHealth();
             case BUKKIT -> {
                 if (bukkitEntity instanceof LivingEntity livingEntity
                         && livingEntity.getAttribute(Attribute.MAX_HEALTH) != null) {

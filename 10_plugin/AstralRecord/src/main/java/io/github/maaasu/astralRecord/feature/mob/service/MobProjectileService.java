@@ -20,6 +20,8 @@ import org.bukkit.Location;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.block.BlockFace;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -37,7 +39,7 @@ import java.util.UUID;
 /**
  * Mob スキル専用の見える飛び道具を処理します。
  *
- * <p>Bukkit の矢 Entity は使わず、毎 tick の線分とプレイヤー hitbox の交差で命中を判定します。
+ * <p>Bukkit の矢 Entity は使わず、毎 tick の線分とプレイヤー・ペットの hitbox の交差で命中を判定します。
  * したがって発射後にプレイヤーが移動すれば避けられ、壁に遮られ、通常攻撃の即時ダメージにはなりません。</p>
  */
 public final class MobProjectileService {
@@ -48,7 +50,7 @@ public final class MobProjectileService {
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, List<BukkitTask>> tasksByCaster = new HashMap<>();
 
-    private record ProjectileImpact(@NotNull Location location, Player player) { }
+    private record ProjectileImpact(@NotNull Location location, LivingEntity target) { }
 
     /** Mob の存続確認と表示に使うサービスを指定して構築します。 */
     public MobProjectileService(@NotNull MobService mobService, @NotNull ParticleDisplayService particleDisplayService) {
@@ -92,13 +94,13 @@ public final class MobProjectileService {
                     return;
                 }
                 Location next = position.clone().add(velocity);
-                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius), damageService);
                 if (impact != null) {
                     particleDisplayService.spawnForNearbyViewers(impact.location(), SharedParticleDefinitions.SKILL_HUNTER_IMPACT);
-                    if (impact.player() != null) {
+                    if (impact.target() != null) {
                         damageService.attack(
                                 AstEntity.mob(caster),
-                                damageService.resolveEntity(impact.player()),
+                                damageService.resolveEntity(impact.target()),
                                 AttackType.RANGED,
                                 List.of(new DamageComponent(DamageElement.NONE, damageRatio)),
                                 DamageSource.SKILL
@@ -162,13 +164,13 @@ public final class MobProjectileService {
                     return;
                 }
                 Location next = position.clone().add(velocity);
-                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius), damageService);
                 if (impact != null) {
                     particleDisplayService.spawnForNearbyViewers(
                             impact.location(), SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_IMPACT
                     );
-                    if (impact.player() != null) {
-                        var target = damageService.resolveEntity(impact.player());
+                    if (impact.target() != null) {
+                        var target = damageService.resolveEntity(impact.target());
                         var result = damageService.attack(
                                 AstEntity.mob(caster), target, AttackType.RANGED,
                                 List.of(new DamageComponent(DamageElement.NONE, damageRatio)), DamageSource.SKILL
@@ -293,10 +295,10 @@ public final class MobProjectileService {
                     return;
                 }
                 Location next = position.clone().add(velocity);
-                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
-                if (impact != null && impact.player() != null) {
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius), damageService);
+                if (impact != null && impact.target() != null) {
                     particleDisplayService.spawnForNearbyViewers(impact.location(), impactParticle);
-                    var target = damageService.resolveEntity(impact.player());
+                    var target = damageService.resolveEntity(impact.target());
                     var result = damageService.attack(
                             AstEntity.mob(caster), target, AttackType.MAGIC,
                             List.of(new DamageComponent(damageElement, damageRatio)), DamageSource.SKILL
@@ -397,8 +399,9 @@ public final class MobProjectileService {
                     finish();
                     return;
                 }
-                Player target = Bukkit.getPlayer(targetId);
-                if (target == null || !target.isOnline() || target.isDead() || !isGameplayTargetPlayer(target)) {
+                Entity rawTarget = Bukkit.getEntity(targetId);
+                LivingEntity target = rawTarget instanceof LivingEntity living ? living : null;
+                if (target == null || !damageService.isMobCombatTarget(target)) {
                     finish();
                     return;
                 }
@@ -409,11 +412,11 @@ public final class MobProjectileService {
                             .normalize().multiply(projectileSpeed);
                 }
                 Location next = position.clone().add(velocity);
-                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius), damageService);
                 if (impact != null) {
                     particleDisplayService.spawnForNearbyViewers(impact.location(), SharedParticleDefinitions.SKILL_MAGE_FIRE);
-                    if (impact.player() != null) {
-                        var victim = damageService.resolveEntity(impact.player());
+                    if (impact.target() != null) {
+                        var victim = damageService.resolveEntity(impact.target());
                         var result = damageService.attack(
                                 AstEntity.mob(caster), victim, AttackType.MAGIC,
                                 List.of(new DamageComponent(DamageElement.FIRE, damageRatio)), DamageSource.SKILL
@@ -454,8 +457,8 @@ public final class MobProjectileService {
         }
     }
 
-    private ProjectileImpact firstImpact(@NotNull Location from, @NotNull Location to, double hitRadius) {
-        Player player = firstHitPlayer(from, to, hitRadius);
+    private ProjectileImpact firstImpact(@NotNull Location from, @NotNull Location to, double hitRadius, @NotNull DamageService damageService) {
+        LivingEntity player = firstHitPlayer(from, to, hitRadius, damageService);
         double playerDistance = player == null ? Double.POSITIVE_INFINITY : rayDistance(from, to, player.getBoundingBox().expand(hitRadius));
         RayTraceResult blockHit = from.getWorld().rayTraceBlocks(from, to.toVector().subtract(from.toVector()), from.distance(to));
         double blockDistance = blockHit == null ? Double.POSITIVE_INFINITY : blockHit.getHitPosition().distance(from.toVector());
@@ -471,14 +474,12 @@ public final class MobProjectileService {
         return new ProjectileImpact(blockHit.getHitPosition().toLocation(from.getWorld()), null);
     }
 
-    private Player firstHitPlayer(@NotNull Location from, @NotNull Location to, double hitRadius) {
+    private LivingEntity firstHitPlayer(@NotNull Location from, @NotNull Location to, double hitRadius, @NotNull DamageService damageService) {
         World world = from.getWorld();
-        Player result = null;
+        LivingEntity result = null;
         double closest = Double.POSITIVE_INFINITY;
-        for (Player player : world.getPlayers()) {
-            if (!player.isOnline() || player.isDead() || !isGameplayTargetPlayer(player)) {
-                continue;
-            }
+        double range = from.distance(to) + hitRadius + 3.0D;
+        for (LivingEntity player : damageService.mobCombatTargets(from, range, range)) {
             double distance = rayDistance(from, to, player.getBoundingBox().expand(hitRadius));
             if (distance < closest) {
                 closest = distance;
