@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.player.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.network.NetworkChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -350,6 +351,7 @@ public final class PlayerMessageService {
     /**
      * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
      * 発言者ラベルにはTABと同じクラスレベル・VIP色を使う。
+     * ホバー内のランダムステータス範囲行は受信者のロード済み設定に従って表示する。
      *
      * @param sender 送信者
      * @param itemName チャットへ表示し、クリック時にコピーする装飾なしのアイテム名
@@ -361,16 +363,21 @@ public final class PlayerMessageService {
         @NotNull ItemStack itemTooltip
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(sender);
-        Component component = PlayerMsgResource.formatPlainComponent(
+        Component prefix = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5941.getId()
-        ).append(Component.space()).append(playerLabel(sender, astPlayer)).append(Component.text(": ", NamedTextColor.WHITE)).append(
-            Component.text(itemName)
-                .hoverEvent(itemTooltip.asHoverEvent())
-                .clickEvent(ClickEvent.copyToClipboard(itemName))
-        );
+        ).append(Component.space()).append(playerLabel(sender, astPlayer)).append(Component.text(": ", NamedTextColor.WHITE));
+        AstralRecord plugin = AstralRecord.getInstance();
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
-                recipient.sendMessage(component);
+                ItemStack tooltip = itemTooltip;
+                if (itemTooltip.hasItemMeta() && (plugin == null || plugin.getPlayerSettingService() == null
+                    || !plugin.getPlayerSettingService().isRandomStatusRangeDisplayEnabled(recipient.getUniqueId()))) {
+                    tooltip = itemTooltip.clone();
+                    ItemStackFactory.hideRandomStatusRangeLore(tooltip);
+                }
+                recipient.sendMessage(prefix.append(Component.text(itemName)
+                    .hoverEvent(tooltip.asHoverEvent())
+                    .clickEvent(ClickEvent.copyToClipboard(itemName))));
             }
         }
     }

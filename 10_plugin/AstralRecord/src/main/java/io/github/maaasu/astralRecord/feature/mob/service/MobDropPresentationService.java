@@ -407,6 +407,7 @@ public final class MobDropPresentationService {
     /**
      * ドロップ通知を送信し、アイテム名に表示用 ItemStack の説明ホバーを付けます。
      * レアドロップでは獲得本人に名前なしの通知を送り、他プレイヤー向けには獲得者名を含めます。
+     * ランダムステータス範囲行は通知受信者のロード済み設定に従って表示します。
      *
      * @param viewer 通知の受信プレイヤー
      * @param dropRecipient アイテムを獲得したプレイヤー
@@ -455,6 +456,9 @@ public final class MobDropPresentationService {
         }
 
         ItemStack tooltip = itemStackFactory.createDisplay(item.model(), item.amount());
+        if (!playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId())) {
+            ItemStackFactory.hideRandomStatusRangeLore(tooltip);
+        }
         Component itemNameComponent = LEGACY.deserialize(
             ColorCodeUtil.translateAlternateColorCodes(itemName)
         ).hoverEvent(tooltip.asHoverEvent());

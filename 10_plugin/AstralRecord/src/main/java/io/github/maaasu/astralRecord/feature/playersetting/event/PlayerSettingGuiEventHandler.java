@@ -238,7 +238,8 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
             itemStackPacketAdapter.refreshEquipmentView(player);
         }
         boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->
-            persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+            (persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+                || persisted.key() == PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY)
                 && !persisted.result().staleSession()
         );
         if (actionRingHoldSelectSynchronized) {

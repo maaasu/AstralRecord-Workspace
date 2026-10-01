@@ -146,6 +146,8 @@ public class ItemStackFactory {
     private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
 
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
+    /** 範囲行を通常の説明文と区別する内部マーカー。表示文字列には含めません。 */
+    private static final String RANDOM_STATUS_RANGE_MARKER = "astralrecord:random_status_range";
     private static final int DURABILITY_BAR_LENGTH = 20;
     private static final String DURABILITY_BAR_CHAR = "|";
     private static final double DURABILITY_DARK_GREEN_THRESHOLD = 0.75D;
@@ -402,9 +404,7 @@ public class ItemStackFactory {
         var loreStrings = buildLoreForEquipmentInstance(
                 model, instance, hookshotLoaded, metadataJson, equippedSetCounts);
         meta.lore(loreStrings.stream()
-                .map(ColorCodeUtil::translateAlternateColorCodes)
-                .map(LEGACY_SERIALIZER::deserialize)
-                .map(c -> (Component) c)
+                .map(ItemStackFactory::toLoreComponent)
                 .toList());
 
         if (model.getCustomModelData() != null) {
@@ -691,9 +691,7 @@ public class ItemStackFactory {
         // --- Lore 構築 ---
         var loreStrings = buildLore(model);
         meta.lore(loreStrings.stream()
-                .map(ColorCodeUtil::translateAlternateColorCodes)
-                .map(LEGACY_SERIALIZER::deserialize)
-                .map(c -> (Component) c)
+                .map(ItemStackFactory::toLoreComponent)
                 .toList());
 
         // --- custom_model_data（リソースパック側のモデル切り替え用） ---
@@ -1599,7 +1597,7 @@ public class ItemStackFactory {
 
     /**
      * 装備マスタに指定された min/max の乱数範囲を Lore 用に整形します。
-     * 強化加算値は含めず、乱数指定がない場合は空文字列を返します。
+     * 強化加算値は含めず、乱数指定がない場合は null を返します。
      *
      * @param statDefinition 装備マスタのステータス定義
      * @param baseMin        装備インスタンスに保存された下限値
@@ -1618,7 +1616,7 @@ public class ItemStackFactory {
         return min + "～" + max;
     }
 
-    /** ステータスの主値と補足情報を、読みやすい複数行の Lore として追加します。 */
+    /** ステータスの主値と補足情報を追加し、乱数範囲行に表示制御用の内部マーカーを付けます。 */
     private void appendStatLore(
             @NotNull List<String> lore,
             @NotNull String statColor,
@@ -1631,8 +1629,40 @@ public class ItemStackFactory {
                 + (enhanceValue == null ? "" : ColorCodeUtil.YELLOW + " [" + enhanceValue
                         + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"));
         if (randomRange != null) {
-            lore.add(ColorCodeUtil.GRAY + "   └" + randomRange);
+            lore.add(RANDOM_STATUS_RANGE_MARKER + ColorCodeUtil.GRAY + "   └" + randomRange);
         }
+    }
+
+    /** 内部マーカーを表示文字列から除き、範囲行だけを Component の insertion 属性で識別します。 */
+    private static @NotNull Component toLoreComponent(@NotNull String line) {
+        boolean randomRange = line.startsWith(RANDOM_STATUS_RANGE_MARKER);
+        String visibleLine = randomRange ? line.substring(RANDOM_STATUS_RANGE_MARKER.length()) : line;
+        Component component = LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(visibleLine));
+        return randomRange ? component.insertion(RANDOM_STATUS_RANGE_MARKER) : component;
+    }
+
+    /**
+     * 送信コピーから、ファクトリが生成したランダムステータス範囲行だけを除去します。
+     * 主値・強化値・通常の説明文は維持します。共有のサーバー側 ItemStack へは適用しないでください。
+     *
+     * @param item 受信者専用の送信コピー
+     * @return 範囲行を除去して ItemMeta を変更した場合は {@code true}
+     */
+    public static boolean hideRandomStatusRangeLore(@NotNull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = meta == null ? null : meta.lore();
+        if (lore == null || lore.isEmpty()) {
+            return false;
+        }
+        List<Component> visibleLore = lore.stream()
+                .filter(line -> !RANDOM_STATUS_RANGE_MARKER.equals(line.insertion()))
+                .toList();
+        if (visibleLore.size() == lore.size()) {
+            return false;
+        }
+        meta.lore(visibleLore);
+        item.setItemMeta(meta);
+        return true;
     }
 
     /** 指定値が min~max の乱数範囲表現か判定します。 */

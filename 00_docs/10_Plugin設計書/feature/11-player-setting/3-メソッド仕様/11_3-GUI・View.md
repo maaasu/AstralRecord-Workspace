@@ -5,7 +5,7 @@
 クラス名: `PlayerSettingGui`
 物理名: `open`, `refresh`
 
-54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24`、4 行目の `29〜33`、5 行目の `38` に配置する。
+54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24`、4 行目の `29〜33`、5 行目の `38〜39` に配置する。
 
 | slot | key / 操作 |
 |---:|---|
@@ -20,6 +20,7 @@
 | 32 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
 | 33 | `SKILL_TREE_COMPACT_DISPLAY`（`BOOK` icon） |
 | 38 | `NIGHT_VISION`（`SPYGLASS` icon） |
+| 39 | `RANDOM_STATUS_RANGE_DISPLAY`（`COMPARATOR` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 
@@ -28,6 +29,8 @@
 `ACTION_RING_HOLD_SELECT` は既定 `false` で、`true` のときだけ右クリック長押し選択を使う。保存後は inventory を再送し、選択中 hotbar 主武器だけをクライアント専用トライデント表示へ直ちに切り替える。ホットバースロット切り替え時も選択中 slot の表示を再同期する。
 
 `NIGHT_VISION` は既定 `false` で、`true` のときだけ無期限・粒子なしの暗視効果を付与する。`false` へ変更した場合は暗視効果を除去する。
+
+`RANDOM_STATUS_RANGE_DISPLAY` は既定 `false`。GUI の draft を閉じて反映した後、inventory を再送して装備ステータス直下の灰色の乱数範囲行を切り替える。`/setting random_status_range_display <on|off>` からも変更でき、同様に inventory を再送する。
 
 ## 2. GUI 識別・slot 解決
 

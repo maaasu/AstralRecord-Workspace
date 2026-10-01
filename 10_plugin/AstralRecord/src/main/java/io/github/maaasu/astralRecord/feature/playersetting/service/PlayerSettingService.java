@@ -186,6 +186,17 @@ public final class PlayerSettingService {
         return cachedBooleanSetting(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, false);
     }
 
+    /**
+     * ランダムステータスの範囲行を表示するかを、ロード済み設定だけから返します。
+     * パケット送信スレッドから呼び出しても API I/O は発生しません。
+     *
+     * @param userId 設定を所有するユーザー UUID
+     * @return 表示が有効なら {@code true}。cache 未読込または型不正時は {@code false}
+     */
+    public boolean isRandomStatusRangeDisplayEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, false);
+    }
+
     /** Bukkit 操作時は cache と dirty state だけを即時更新する。 */
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request, long token) {
         UUID accountId = rememberOnlineAccount(request.userId());

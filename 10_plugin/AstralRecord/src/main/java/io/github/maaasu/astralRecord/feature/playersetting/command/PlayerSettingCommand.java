@@ -93,7 +93,8 @@ public final class PlayerSettingCommand extends AstCommand {
         if (key == PlayerSettingKey.ARMOR_DISPLAY) {
             plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
         }
-        if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
+        if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+            || key == PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY) {
             player.getBukkit().updateInventory();
         }
         if (key == PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY) {

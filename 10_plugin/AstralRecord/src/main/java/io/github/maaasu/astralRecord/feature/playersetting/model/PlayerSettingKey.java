@@ -22,6 +22,7 @@ public enum PlayerSettingKey {
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
     NIGHT_VISION("NIGHT_VISION", "ナイトビジョン", false),
+    RANDOM_STATUS_RANGE_DISPLAY("RANDOM_STATUS_RANGE_DISPLAY", "ランダムステータス範囲表示", false),
     ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
     ACTION_RING_HOLD_SELECT("ACTION_RING_HOLD_SELECT", "アクションリング長押し選択", false),
     SKILL_TREE_COMPACT_DISPLAY("SKILL_TREE_COMPACT_DISPLAY", "スキルツリーノード簡易表示", false),

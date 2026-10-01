@@ -169,6 +169,9 @@ public class ItemStackPacketAdapter {
                 boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
                     viewer.getUniqueId()
                 );
+                boolean randomStatusRangeDisplayEnabled = playerSettingService.isRandomStatusRangeDisplayEnabled(
+                    viewer.getUniqueId()
+                );
                 boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
                     viewer.getUniqueId()
                 ) && actionRingHoldEligibleSnapshots.getOrDefault(viewer.getUniqueId(), false);
@@ -187,7 +190,8 @@ public class ItemStackPacketAdapter {
                             selectedHotbarSlot
                         ),
                         permittedSkillIds,
-                        bedrockViewer
+                        bedrockViewer,
+                        randomStatusRangeDisplayEnabled
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
@@ -196,7 +200,8 @@ public class ItemStackPacketAdapter {
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
                         permittedSkillIds,
-                        bedrockViewer
+                        bedrockViewer,
+                        randomStatusRangeDisplayEnabled
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -205,7 +210,8 @@ public class ItemStackPacketAdapter {
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
                         permittedSkillIds,
-                        bedrockViewer
+                        bedrockViewer,
+                        randomStatusRangeDisplayEnabled
                     );
                 }
             }
@@ -320,20 +326,23 @@ public class ItemStackPacketAdapter {
      * @param virtualTrident 選択中の主武器を長押し入力用トライデントとして表示する場合は {@code true}
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
         boolean virtualTrident,
         @Nullable Set<String> permittedSkillIds,
-        boolean bedrockViewer
+        boolean bedrockViewer,
+        boolean randomStatusRangeDisplayEnabled
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
             return;
         }
 
-        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer);
+        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+            randomStatusRangeDisplayEnabled);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -348,6 +357,7 @@ public class ItemStackPacketAdapter {
      * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
@@ -355,8 +365,12 @@ public class ItemStackPacketAdapter {
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
         @Nullable Set<String> permittedSkillIds,
-        boolean bedrockViewer
+        boolean bedrockViewer,
+        boolean randomStatusRangeDisplayEnabled
     ) {
+        // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
+        handleSetSlot(packet, armorDisplayEnabled, false, permittedSkillIds, bedrockViewer,
+            randomStatusRangeDisplayEnabled);
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
@@ -374,7 +388,8 @@ public class ItemStackPacketAdapter {
                 playerInventoryHotbarSlot(packet, i),
                 selectedHotbarSlot
             );
-            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer);
+            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+                randomStatusRangeDisplayEnabled);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -396,6 +411,7 @@ public class ItemStackPacketAdapter {
      * @param selectedHotbarSlot 受信者が選択中の hotbar slot
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      */
     private void handleEntityEquipment(
         @NotNull PacketEvent event,
@@ -403,7 +419,8 @@ public class ItemStackPacketAdapter {
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
         @Nullable Set<String> permittedSkillIds,
-        boolean bedrockViewer
+        boolean bedrockViewer,
+        boolean randomStatusRangeDisplayEnabled
     ) {
         PacketContainer packet = event.getPacket();
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
@@ -429,7 +446,8 @@ public class ItemStackPacketAdapter {
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer) != null) {
+                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+                    randomStatusRangeDisplayEnabled) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -525,6 +543,28 @@ public class ItemStackPacketAdapter {
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer
     ) {
+        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer, false);
+    }
+
+    /**
+     * 受信者の設定に従ってアイコンとランダムステータス範囲行を送信コピーへ反映します。
+     *
+     * @param original サーバー側 ItemStack。変更しません
+     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
+     * @param virtualTrident 長押し入力用トライデントとして表示する場合は {@code true}
+     * @param permittedSkillIds 受信者が使用可能なスキル ID
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
+     * @return 変換済みコピー。変換不要の場合は {@code null}
+     */
+    private ItemStack replaceIcon(
+        @NotNull ItemStack original,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident,
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer,
+        boolean randomStatusRangeDisplayEnabled
+    ) {
         var iconName = ItemStackFactory.getIconName(original);
         var iconTexture = ItemStackFactory.getIconTexture(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
@@ -539,7 +579,11 @@ public class ItemStackPacketAdapter {
             && customModelData == null
             && appearanceColor == null
             && potionType == null) {
-            return null;
+            if (randomStatusRangeDisplayEnabled || ItemStackFactory.getAstralItemId(original) == null) {
+                return null;
+            }
+            ItemStack loreCopy = original.clone();
+            return ItemStackFactory.hideRandomStatusRangeLore(loreCopy) ? loreCopy : null;
         }
 
         ItemStack replaced = original.clone();
@@ -564,6 +608,9 @@ public class ItemStackPacketAdapter {
 
         modified |= applyHookshotChargedIcon(replaced, hookshotLoaded);
         modified |= ItemStackFactory.hideBundleContentsTooltip(replaced);
+        if (!randomStatusRangeDisplayEnabled) {
+            modified |= ItemStackFactory.hideRandomStatusRangeLore(replaced);
+        }
 
         if (customModelData != null) {
             var meta = replaced.getItemMeta();
@@ -855,7 +902,8 @@ public class ItemStackPacketAdapter {
                 armorDisplayEnabled,
                 virtualTrident,
                 permittedSkillSnapshots.getOrDefault(viewer.getUniqueId(), Set.of()),
-                bedrockViewer
+                bedrockViewer,
+                playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId())
             );
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
