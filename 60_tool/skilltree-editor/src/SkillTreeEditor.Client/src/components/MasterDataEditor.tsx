@@ -37,6 +37,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const [createMode, setCreateMode] = useState<'new' | 'copy' | 'import' | null>(null)
   const [importText, setImportText] = useState('')
   const [showReferences, setShowReferences] = useState(false)
+  const [referenceQuery, setReferenceQuery] = useState('')
+  const [referencePage, setReferencePage] = useState(0)
   const [documentation, setDocumentation] = useState<{ path: string; raw: string } | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
   const operationId = useRef(0)
@@ -63,7 +65,10 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       && (!subdirectory || entry.path.startsWith(`${subdirectory}/`))
       && (!search || [entry.path, entry.id, entry.name].some((value) => value?.toLocaleLowerCase().includes(search))))
   }, [files, categoryId, format, query, subdirectory])
-  const subdirectories = useMemo(() => [...new Set(files.filter((entry) => !categoryId || entry.category === categoryId).map((entry) => entry.path.slice(0, entry.path.lastIndexOf('/'))))].sort(), [files, categoryId])
+  const subdirectories = useMemo(() => [...new Set(files.filter((entry) => !categoryId || entry.category === categoryId).filter((entry) => entry.path.includes('/')).map((entry) => entry.path.slice(0, entry.path.lastIndexOf('/'))))].sort(), [files, categoryId])
+  const filteredReferences = useMemo(() => references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${entry.label ?? ''}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())), [references, referenceQuery])
+  const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
+  const currentReferencePage = Math.min(referencePage, referencePages - 1)
   useEffect(() => { setPage(0) }, [categoryId, format, query, subdirectory])
   const pageCount = Math.max(1, Math.ceil(visibleFiles.length / 50))
   const currentPage = Math.min(page, pageCount - 1)
@@ -238,7 +243,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
         <div className="master-secondary-toolbar"><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { if (allowDiscard()) { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') } }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" onClick={() => setShowReferences((current) => !current)}>参照一覧 ({references.length})</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
         {readOnly && <p className="master-muted">このファイルは閲覧専用です。Schemaや採番情報の変更は、実装・定義書と同期して管理します。</p>}
         {nodeDocument && <p className="master-muted">ノードの新規作成・複製は専用スキルツリーで自動採番します。{onOpenSkillTree && <button className="button subtle" onClick={onOpenSkillTree}>スキルツリーを開く</button>}</p>}
-        {showReferences && <details open className="master-references"><summary>このファイルを参照している項目</summary><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{references.map((entry, index) => <tr key={index}><td>{entry.kind}</td><td><code>{entry.value}</code> {entry.label}</td><td><button className="text-button" disabled={busy} onClick={() => void loadDocument(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table>{!references.length && <p className="master-muted">検出された参照元はありません。</p>}</details>}
+        {showReferences && <details open className="master-references"><summary>このファイルを参照している項目</summary><label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label><p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{entry.kind}</td><td><code>{entry.value}</code> {entry.label}</td><td><button className="text-button" disabled={busy} onClick={() => void loadDocument(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div>{!references.length && <p className="master-muted">検出された参照元はありません。</p>}</details>}
         {Boolean(documentCategory?.documents.length) && <details className="master-doc-links"><summary>このカテゴリの定義書</summary>{documentCategory?.documents.map((entry) => <button className="button subtle" key={entry.path} disabled={busy} onClick={() => { void masterDataApi.documentation(entry.path).then(setDocumentation).catch(showError) }}>{entry.title}</button>)}</details>}
         {draft.source === 'raw' ? <><p className="master-muted">固有名詞・追加キーを含む全原稿を編集できます。YAMLのコメントは直接編集できます。</p><textarea className="master-raw" aria-label="マスター原稿" disabled={busy} readOnly={readOnly} spellCheck={false} value={draft.raw} onChange={(event) => { history.record({ raw: event.target.value, content: null, source: 'raw' }); setReport(null) }} onKeyDown={(event) => {
           if (readOnly) return
