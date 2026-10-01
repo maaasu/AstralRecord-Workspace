@@ -19,11 +19,12 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
             var name = MasterDataValidation.Text(obj?["name"]);
+            var icon = obj?["icon"] is JsonValue iconValue && iconValue.TryGetValue<string>(out var material) ? material : null;
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             var info = new FileInfo(file);
             result.Add(new(document.Path, paths.Relative(info.DirectoryName!), document.Format, id, name,
                 info.Length, info.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
-                MasterDataPaths.IsReadOnly(document.Path)));
+                MasterDataPaths.IsReadOnly(document.Path), icon));
         }
         return result;
     }

@@ -269,6 +269,52 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Theory]
+    [InlineData("10.features.item/10.material/v1.10a00001.sample.yml", "id: 10a00001\nname: 素材\nicon: NETHER_STAR\n", "10a00001", "素材", "NETHER_STAR", "yaml")]
+    [InlineData("35.features.skilltree/nodes/1000.json", "{\"nodeId\":\"1000\",\"name\":\"ノード\",\"icon\":\"minecraft:nether_star\"}", "1000", "ノード", "minecraft:nether_star", "json")]
+    public async Task ListIncludesRootStringIconAndPreservesSummaryMetadata(string path, string raw, string id, string name, string icon, string format)
+    {
+        Write(path, raw);
+        var document = await _service.ReadAsync(path, CancellationToken.None);
+        var summary = Assert.Single(await _service.ListAsync(null, id, CancellationToken.None));
+        var file = new FileInfo(_paths.Resolve(path));
+
+        Assert.Equal(path, summary.Path);
+        Assert.Equal(path[..path.LastIndexOf('/')], summary.Category);
+        Assert.Equal(format, summary.Format);
+        Assert.Equal(id, summary.Id);
+        Assert.Equal(name, summary.Name);
+        Assert.Equal(icon, summary.Icon);
+        Assert.Equal(file.Length, summary.Size);
+        Assert.Equal(file.LastWriteTimeUtc, summary.ModifiedUtc);
+        Assert.Equal(document.Revision, summary.Revision);
+        Assert.Null(summary.ParseError);
+        Assert.False(summary.ReadOnly);
+    }
+
+    [Theory]
+    [InlineData("yml", "id: sample\n")]
+    [InlineData("json", "{\"id\":\"sample\"}")]
+    [InlineData("yml", "id: sample\nicon: null\n")]
+    [InlineData("json", "{\"id\":\"sample\",\"icon\":null}")]
+    [InlineData("yml", "id: sample\nicon: 12\n")]
+    [InlineData("json", "{\"id\":\"sample\",\"icon\":12}")]
+    [InlineData("yml", "id: sample\nicon: false\n")]
+    [InlineData("json", "{\"id\":\"sample\",\"icon\":false}")]
+    [InlineData("yml", "id: sample\nicon: [NETHER_STAR]\n")]
+    [InlineData("json", "{\"id\":\"sample\",\"icon\":[\"NETHER_STAR\"]}")]
+    [InlineData("yml", "id: sample\nicon: {material: NETHER_STAR}\n")]
+    [InlineData("json", "{\"id\":\"sample\",\"icon\":{\"material\":\"NETHER_STAR\"}}")]
+    public async Task ListReturnsNullForAbsentOrNonStringIcon(string extension, string raw)
+    {
+        Write("test/sample." + extension, raw);
+        var summary = Assert.Single(await _service.ListAsync("test", "", CancellationToken.None));
+
+        Assert.Equal("sample", summary.Id);
+        Assert.Null(summary.Icon);
+        Assert.Null(summary.ParseError);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]

@@ -7,7 +7,7 @@ public sealed record MasterDataReport(bool IsValid, IReadOnlyList<MasterDataIssu
 public sealed record MasterDataDocument(string Path, string Format, string Raw, string Revision,
     JsonNode? Content, IReadOnlyList<MasterDataIssue> Issues, bool ReadOnly = false);
 public sealed record MasterDataFile(string Path, string Category, string Format, string? Id, string? Name,
-    long Size, DateTimeOffset ModifiedUtc, string Revision, string? ParseError, bool ReadOnly);
+    long Size, DateTimeOffset ModifiedUtc, string Revision, string? ParseError, bool ReadOnly, string? Icon = null);
 public sealed record MasterDataField(string Path, string Key, string Label, string Type, bool Required,
     string Description, string? Default, string Source, JsonArray? Enum = null, string? Reference = null);
 public sealed record MasterDataSource(string Path, string Title);
