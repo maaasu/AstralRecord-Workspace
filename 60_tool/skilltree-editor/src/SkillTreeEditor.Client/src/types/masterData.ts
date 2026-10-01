@@ -40,6 +40,7 @@ export interface MasterFileSummary {
   revision: string
   parseError?: string | null
   readOnly?: boolean
+  icon?: string | null
 }
 
 export interface MasterDocument {

@@ -202,10 +202,16 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 ## Minecraftアイコン
 
-- アイコン画像は[MC Icons API](https://mc-icons.com/api)の `download/{id}/thumb` からASP.NET Core経由で取得します。`50_resourcepack` は参照しません。
+- Filebase一覧に保存済みの `icon` の画像を表示します。ファイル見出しではフォームの編集中の値をプレビューし、原稿モードでは保存済みのアイコンを表示します。
+- 日本語フォームの `icon` には編集中の値のプレビューを表示し、「画像一覧から選択」で画像とMaterial IDを並べた選択ダイアログを開きます。ID検索、48件ごとのページ切替、選択中表示に対応します。
+- スキルツリーのノード編集フォームと配置インスペクターでも同じ選択ダイアログを使えます。選択は編集中の原稿へ反映し、ファイルへの反映には従来どおり保存操作が必要です。
+- キャンセル・Escapeでは値を変更しません。自由入力も可能です。「画像を再読込」は取得に失敗した画像の再試行に使います。
+
+- アイコン画像は[MC Icons API](https://mc-icons.com/api)の `download/{id}/thumb` からASP.NET Core経由で取得します。取得できない場合は、[mc-assets のMinecraft 1.21.11固定版](https://github.com/Owen1212055/mc-assets/blob/551e4a68f23a59eecc84a310902f7e10864945f9/README.md) のゲーム内在庫表示画像を使用します。固定版の `item-assets/{MATERIAL}.png` は256×256のネイティブ描画で、現行の候補1,505件すべてに対応するファイルがあります。`50_resourcepack` は参照しません。
 - `NETHER_STAR` や `minecraft:nether_star` はMC Icons用の `nether_star` に正規化され、初回取得後は `.cache/minecraft-icons/` のPNGを利用します。キャッシュはGit管理対象外です。
-- 外部サービスへ接続できない、またはMaterialに対応する画像がない場合も編集は継続でき、画面には `?` を表示します。接続を復旧してからヘッダーまたはインスペクターの「アイコン再読込」を押してください。
-- 取得元を差し替える場合は `appsettings.json` の `SkillTreeEditor:MinecraftIconsBaseUrl` を変更します。互換先には同じ `download/{id}/thumb` 形式とPNG応答が必要です。
+- 両方の取得先へ接続できない、またはMaterialに対応する画像がない場合も編集は継続でき、画面には `?` を表示します。取得済みの画像はローカルキャッシュから表示できます。接続を復旧してから「画像を再読込」を押してください。
+- 主取得元は `appsettings.json` の `SkillTreeEditor:MinecraftIconsBaseUrl`、代替取得元は `SkillTreeEditor:MinecraftIconsFallbackBaseUrl` で設定します。主取得元は `download/{id}/thumb`、代替取得元は大文字の `{MATERIAL}.png` とPNG応答が必要です。代替URLを空にすると代替取得を無効化します。
+- PaperのMaterial候補を更新するときは、代替画像の固定コミットも同じMinecraft版へ合わせて更新し、追加候補の画像を確認してください。
 - 完全に取り直す場合はEditorを停止し、`.cache/minecraft-icons/` 内の対象PNGを削除してから再起動します。ノードマスターや構造JSONには影響しません。
 
 ## デプロイとリロード

@@ -17,6 +17,12 @@ function Editable({ initial, metadata = fields }: { initial: JsonValue; metadata
 }
 
 describe('master form', () => {
+  it('previews a material icon without changing unknown fields during free text edits', () => {
+    render(<Editable initial={{ icon: 'iron_ingot', params: { AlienRPC: 'keep' } }} metadata={[]} />)
+    expect(screen.getByRole('img', { name: '素材アイコン: iron_ingot' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('combobox', { name: '/icon' }), { target: { value: 'BOOK' } })
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ icon: 'BOOK', params: { AlienRPC: 'keep' } })
+  })
   it('uses pet schema Japanese labels and item reference prefixes without dropping unknown draft fields', () => {
     const onChange = vi.fn()
     const schema = { type: 'object', properties: { eggItemId: { type: 'string', title: '卵のアイテム参照', pattern: '^item:[0-9]{2}[a-z][0-9]{5}$' }, AlienKey: { type: 'object' } } }

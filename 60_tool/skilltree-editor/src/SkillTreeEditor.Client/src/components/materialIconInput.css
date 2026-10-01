@@ -1,0 +1,14 @@
+.material-icon-input { display: flex; align-items: start; gap: 10px; min-width: 0; }
+.material-icon-input-preview { flex: 0 0 auto; }
+.material-icon-input .material-field-icon { width: 58px; height: 58px; padding: 5px; }
+.material-icon-input-controls { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.material-icon-input-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.material-picker-loading { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; color: var(--text); background: #05070bd9; }
+.material-picker-loading-panel { padding: 24px; background: #141c29; border: 1px solid var(--line-bright); border-radius: 8px; }
+.material-node-form-lock { margin: 0; padding: 0; border: 0; min-width: 0; }
+.master-file-identity { align-items: center; gap: 9px !important; }
+.master-file-identity .master-list-icon { width: 34px; height: 34px; padding: 3px; }
+.master-file-identity strong { flex: 1; min-width: 0; }
+.master-document-header .master-header-icon { width: 42px; height: 42px; padding: 4px; }
+.master-document-header > div { flex: 1; min-width: 0; }
+@media (max-width: 550px) { .material-icon-input .material-field-icon { width: 44px; height: 44px; } }

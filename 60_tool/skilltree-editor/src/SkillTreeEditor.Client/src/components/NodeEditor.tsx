@@ -78,13 +78,14 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDuplicate, 
             <p className="muted">nodeId: {isNew ? '保存時に自動採番（1000以上）' : String(draft.nodeId)}</p>
             <p className="muted">iconは入力中にPaper {MINECRAFT_MATERIAL_VERSION}のMaterial候補を表示します。</p>
           </div>
-          <button className="icon-button" onClick={onCancel} aria-label="閉じる">×</button>
+          <button className="icon-button" onClick={onCancel} aria-label="閉じる" disabled={saving}>×</button>
         </header>
         <div className="tab-row">
           <button className={mode === 'form' ? 'tab active' : 'tab'} onClick={() => setMode('form')}>スキーマフォーム</button>
           <button className={mode === 'raw' ? 'tab active' : 'tab'} onClick={() => setMode('raw')}>Raw JSON</button>
         </div>
         <div className="modal-body">
+          <fieldset className="material-node-form-lock" disabled={saving}>
           <label className="schema-field schema-selector">
             <span>JSON Schema<small>既存ノードは文書内の $schema から自動選択します。</small></span>
             <select
@@ -124,6 +125,7 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDuplicate, 
               {parseError && <p className="error-message">{parseError}</p>}
             </>
           )}
+          </fieldset>
         </div>
         <footer className="modal-footer">
           {!isNew && onDelete && (

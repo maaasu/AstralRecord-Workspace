@@ -1,5 +1,6 @@
 import type { FieldSuggestion, FieldSuggestionValue, JsonObject, JsonValue } from '../types/editor'
 import { SuggestionInput } from './SuggestionInput'
+import { MaterialIconInput } from './MaterialIconInput'
 
 interface SchemaFormProps {
   schema: JsonObject
@@ -179,6 +180,9 @@ export function SchemaForm({
   }
 
   const suggestions = suggestionsForPath(suggestionsByPath, path)
+  if (path === '/icon') return <MaterialIconInput value={typeof value === 'string' ? value : ''} onChange={onChange}
+    disabled={disabledPaths.has(path)} suggestions={suggestions.length ? suggestions.filter((suggestion): suggestion is string => typeof suggestion === 'string') : undefined}
+    placeholder={resolved.description ? String(resolved.description) : undefined} />
   const labeledSuggestions = suggestions.filter(isLabeledSuggestion)
   if (labeledSuggestions.length > 0) {
     const currentValue = typeof value === 'string' ? value : ''
