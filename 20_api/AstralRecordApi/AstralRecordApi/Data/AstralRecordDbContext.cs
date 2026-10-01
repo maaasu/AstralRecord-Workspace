@@ -16,6 +16,9 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
+    public DbSet<PetInstanceEntity> PetInstances => Set<PetInstanceEntity>();
+    public DbSet<AccountPetStateEntity> AccountPetStates => Set<AccountPetStateEntity>();
+    public DbSet<PetOperationEntity> PetOperations => Set<PetOperationEntity>();
     public DbSet<EquipmentInstanceEntity> EquipmentInstances => Set<EquipmentInstanceEntity>();
     public DbSet<EquipmentLoadoutEntity> EquipmentLoadouts => Set<EquipmentLoadoutEntity>();
     public DbSet<EquipmentLoadoutSlotEntity> EquipmentLoadoutSlots => Set<EquipmentLoadoutSlotEntity>();
@@ -67,6 +70,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        PetMapping.Configure(modelBuilder);
         modelBuilder.Entity<WebMailCurrencyClaimEntity>(entity =>
         {
             entity.ToTable("web_mail_currency_claim", "dbo");

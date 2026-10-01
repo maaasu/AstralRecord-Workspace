@@ -16,6 +16,43 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public class MarketRepositoryEquipmentListingTests
 {
+    /// <summary>39-pet契約: 出品入口でも出自と装備状態を検証し、野生のWeb購入は本人限定メールへ移す。</summary>
+    [Theory]
+    [InlineData("WILD", false, true)]
+    [InlineData("BRED", false, false)]
+    [InlineData("WILD", true, false)]
+    public async Task CreateListing_PetOriginAndEquippedGuardAndWebMailOwnership(string origin, bool equipped, bool succeeds)
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var source = await harness.DbContext.InventoryEntries.SingleAsync(e => e.InventoryEntryId == harness.EquipmentEntryId);
+        var pet = new PetInstanceEntity { InstanceId = Guid.NewGuid(), AccountId = harness.AccountId,
+            SpeciesId = "wolf", ItemId = "market_pet", Origin = origin };
+        harness.DbContext.PetInstances.Add(pet);
+        source.InstanceId = pet.InstanceId; source.InstanceType = "PET"; source.ItemCategory = "pet"; source.ItemId = pet.ItemId;
+        if (equipped) harness.DbContext.AccountPetStates.Add(new() { AccountId = harness.AccountId, EquippedPetId = pet.InstanceId });
+        await harness.DbContext.SaveChangesAsync();
+        var request = harness.CreateRequest(); request.InstanceId = pet.InstanceId;
+        request.InstanceType = "PET"; request.ItemCategory = "pet"; request.ItemId = pet.ItemId;
+        var listing = await harness.Repository.CreateListingAsync(request);
+        Assert.Equal(succeeds, listing.Succeeded);
+        if (!succeeds)
+        {
+            Assert.False((await harness.DbContext.InventoryEntries.AsNoTracking().SingleAsync(e => e.InventoryEntryId == source.InventoryEntryId)).IsDeleted);
+            return;
+        }
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var actor = await harness.DbContext.Accounts.Where(a => a.Uuid == buyer.AccountId).Select(a => a.UserId).SingleAsync();
+        var purchase = await harness.Repository.CreateWebPurchaseAsync(listing.Value!.ListingId, actor,
+            new() { OperationId = Guid.NewGuid(), BuyerAccountId = buyer.AccountId, Quantity = 1 });
+        Assert.True(purchase.Succeeded);
+        Assert.Equal("COMPLETED", purchase.Value!.Status);
+        Assert.Equal(buyer.AccountId, (await harness.DbContext.PetInstances.AsNoTracking().SingleAsync(p => p.InstanceId == pet.InstanceId)).AccountId);
+        var mail = System.Text.Json.JsonSerializer.Deserialize<MailResponse>((await harness.DbContext.PlayerMailDeliveries.AsNoTracking().SingleAsync()).PayloadJson,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Equal("pet", Assert.Single(mail.Rewards).Category);
+        Assert.Equal(pet.InstanceId, mail.Rewards[0].InstanceId);
+    }
+
     [Fact]
     public async Task WebPurchase_OfflineCreatesMailWithoutBagItem_AndReplayDoesNotChargeTwice()
     {
@@ -2358,6 +2395,9 @@ public class MarketRepositoryEquipmentListingTests
         {
             SchemaVersion = 1, Id = itemId, Category = "equipment",
             Name = "Market Sword", Icon = "DIAMOND_SWORD", Rarity = "RARE",
+        } : itemId == "market_pet" ? new ItemResponse
+        {
+            SchemaVersion = 1, Id = itemId, Category = "pet", Name = "Wolf", Icon = "WOLF_SPAWN_EGG", Rarity = "EPIC",
         } : null;
     }
 

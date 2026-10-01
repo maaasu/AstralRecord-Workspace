@@ -150,6 +150,13 @@ public sealed class PlayerStateSnapshotRepository(
         if (equipmentById is null)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Equipment is listed on the market.");
 
+        var requestedPetIds = request.Inventories.SelectMany(i => i.Entries)
+            .Where(e => AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(e.InstanceType) && e.InstanceId.HasValue)
+            .Select(e => e.InstanceId!.Value).Distinct().ToArray();
+        var petById = requestedPetIds.Length == 0 ? new Dictionary<Guid, PetInstanceEntity>()
+            : await dbContext.PetInstances.Where(p => requestedPetIds.Contains(p.InstanceId) && p.AccountId == request.AccountId && !p.IsDeleted)
+                .ToDictionaryAsync(p => p.InstanceId);
+
         var inventoriesById = accountInventories.ToDictionary(inventory => inventory.InventoryId);
         foreach (var snapshot in request.Inventories.Where(snapshot => snapshot.IsNew))
         {
@@ -295,7 +302,7 @@ public sealed class PlayerStateSnapshotRepository(
                     entriesById.Add(entry.InventoryEntryId, entry);
                 }
 
-                var itemId = ResolveEntryItemId(entrySnapshot, request.AccountId, equipmentById);
+                var itemId = ResolveEntryItemId(entrySnapshot, request.AccountId, equipmentById, petById);
                 if (itemId is null)
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory equipment entry does not match owned equipment.");
 
@@ -1195,9 +1202,10 @@ public sealed class PlayerStateSnapshotRepository(
         {
             if (reward.Amount != 1 || reward.InstanceId == Guid.Empty)
                 return null;
+            var instanceType = reward.Category switch { "pet" => "PET", "pet_egg" => "PET_EGG", _ => "EQUIPMENT" };
             var matches = request.Inventories.SelectMany(inventory => inventory.Entries)
                 .Count(entry => entry.InstanceId == reward.InstanceId
-                    && string.Equals(entry.InstanceType, "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(entry.InstanceType, instanceType, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(entry.ItemId, reward.ItemId, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(entry.ItemCategory, reward.Category, StringComparison.OrdinalIgnoreCase)
                     && entry.Quantity == 1);
@@ -1215,9 +1223,12 @@ public sealed class PlayerStateSnapshotRepository(
             }
             if (matches != 1
                 || activeEntryIds.Count != 1
-                || !await dbContext.EquipmentInstances.AnyAsync(instance =>
+                || (instanceType == "EQUIPMENT" ? !await dbContext.EquipmentInstances.AnyAsync(instance =>
                     instance.EquipmentInstanceId == reward.InstanceId && instance.AccountId == request.AccountId
-                    && !instance.IsDeleted))
+                    && !instance.IsDeleted) : !await dbContext.PetInstances.AnyAsync(instance =>
+                        instance.InstanceId == reward.InstanceId && instance.AccountId == request.AccountId && !instance.IsDeleted
+                        && instance.Origin == "WILD" && instance.ItemId == reward.ItemId
+                        && instance.IsEgg == (instanceType == "PET_EGG"))))
                 return null;
         }
 
@@ -1862,8 +1873,15 @@ public sealed class PlayerStateSnapshotRepository(
     private static string? ResolveEntryItemId(
         PlayerStateInventoryEntrySnapshot entry,
         Guid accountId,
-        IReadOnlyDictionary<Guid, EquipmentInstanceEntity> equipmentById)
+        IReadOnlyDictionary<Guid, EquipmentInstanceEntity> equipmentById,
+        IReadOnlyDictionary<Guid, PetInstanceEntity> petById)
     {
+        if (AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(entry.InstanceType))
+            return entry.InstanceId.HasValue && petById.TryGetValue(entry.InstanceId.Value, out var pet)
+                && pet.AccountId == accountId && !pet.IsDeleted && entry.Quantity == 1
+                && entry.ItemCategory == (pet.IsEgg ? "pet_egg" : "pet")
+                && AstralRecordApi.Utilities.PetInstanceAccess.Matches(pet, entry.InstanceType, entry.ItemId) ? pet.ItemId : null;
+        if (entry.ItemCategory is "pet" or "pet_egg") return null;
         if (string.IsNullOrWhiteSpace(entry.InstanceType) || !entry.InstanceId.HasValue)
             return entry.ItemId;
         if (!string.Equals(entry.InstanceType.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase))
@@ -2041,7 +2059,8 @@ public sealed class PlayerStateSnapshotRepository(
             && ValidText(entry.ItemCategory, 30)
             && (entry.ItemId is null || entry.ItemId.Length <= 100)
             && ((string.IsNullOrWhiteSpace(entry.InstanceType) && !entry.InstanceId.HasValue && !string.IsNullOrWhiteSpace(entry.ItemId))
-                || (string.Equals(entry.InstanceType?.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                || ((string.Equals(entry.InstanceType?.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                        || AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(entry.InstanceType))
                     && entry.InstanceId.HasValue && entry.InstanceId != Guid.Empty && entry.Quantity == 1));
 
     /// <summary>

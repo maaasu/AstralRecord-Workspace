@@ -245,6 +245,12 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
             equipment.UpdatedAt = now;
             equipment.UpdatedBy = updatedBy;
         }
+        else if (AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(source.InstanceType))
+        {
+            var failure = await AstralRecordApi.Utilities.PetInstanceAccess.TransferAsync(dbContext, source.InstanceId.Value,
+                source.InstanceType, source.ItemId, sourceAccountId, destinationBag.AccountId, updatedBy, now);
+            if (failure is not null) return TradeOperationResult<bool>.Failure(409, "trade." + failure, "Pet transfer is unavailable.");
+        }
         else
         {
             return TradeOperationResult<bool>.Failure(400, "trade.instance_type_invalid", "Trade instance type is invalid.");

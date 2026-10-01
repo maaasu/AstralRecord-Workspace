@@ -1165,6 +1165,14 @@ public class MarketRepository(
             return MarketOperationResult<bool>.Success(true);
         }
 
+        if (AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(instanceType))
+        {
+            if (hasActiveListing) return MarketOperationResult<bool>.Failure(409, "market.instance_already_listed", "Instance is already listed.");
+            var failure = await AstralRecordApi.Utilities.PetInstanceAccess.TransferAsync(dbContext, instanceId, instanceType, request.ItemId,
+                request.SellerAccountId, request.SellerAccountId, request.CreatedBy, DateTime.UtcNow);
+            return failure is null ? MarketOperationResult<bool>.Success(true)
+                : MarketOperationResult<bool>.Failure(409, "market." + failure, "Pet listing is unavailable.");
+        }
         return MarketOperationResult<bool>.Failure(400, "market.unsupported_instance_type", "Unsupported instance type.");
     }
 
@@ -1393,13 +1401,20 @@ public class MarketRepository(
         if (!listing.InstanceId.HasValue)
             return MarketOperationResult<IReadOnlyList<Guid>>.Success([]);
         if (quantity != 1 || listing.SourceInventoryEntryId is not { } sourceId
-            || !KeyComparer.Equals(listing.InstanceType, "EQUIPMENT"))
+            || (!KeyComparer.Equals(listing.InstanceType, "EQUIPMENT") && !AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(listing.InstanceType)))
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 409, "market.mail_instance_invalid", "Listed instance cannot be delivered by mail.");
         var source = await FindInventoryEntryForUpdateAsync(sourceId, includeDeleted: true);
         if (source is null || !source.IsDeleted || source.InstanceId != listing.InstanceId)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 409, "market.escrow_not_found", "Listed instance is not held in escrow.");
+        if (AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(listing.InstanceType))
+        {
+            var failure = await AstralRecordApi.Utilities.PetInstanceAccess.TransferAsync(dbContext, listing.InstanceId.Value,
+                listing.InstanceType, listing.ItemId, listing.SellerAccountId, buyerAccountId, updatedBy, DateTime.UtcNow);
+            return failure is null ? MarketOperationResult<IReadOnlyList<Guid>>.Success([])
+                : MarketOperationResult<IReadOnlyList<Guid>>.Failure(409, "market." + failure, "Pet delivery is unavailable.");
+        }
         var equipment = await FindEquipmentForUpdateAsync(listing.InstanceId.Value);
         if (equipment is null || equipment.AccountId != listing.SellerAccountId)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
@@ -1449,6 +1464,12 @@ public class MarketRepository(
                 equipment.AccountId = buyerAccountId;
                 equipment.UpdatedAt = DateTime.UtcNow;
                 equipment.UpdatedBy = updatedBy;
+            }
+            else if (AstralRecordApi.Utilities.PetInstanceAccess.IsPetType(listing.InstanceType))
+            {
+                var failure = await AstralRecordApi.Utilities.PetInstanceAccess.TransferAsync(dbContext, listing.InstanceId.Value,
+                    listing.InstanceType, listing.ItemId, listing.SellerAccountId, buyerAccountId, updatedBy, DateTime.UtcNow);
+                if (failure is not null) return MarketOperationResult<IReadOnlyList<Guid>>.Failure(409, "market." + failure, "Pet delivery is unavailable.");
             }
             else
             {
