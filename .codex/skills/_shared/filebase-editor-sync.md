@@ -19,11 +19,11 @@
 | 変更内容 | 確認・更新先 |
 |:--|:--|
 | カテゴリ、フィールド説明・型・必須・列挙、初期値、候補 | `src/SkillTreeEditor.Server/Services/MasterDataCatalog.cs`。定義から動的生成される項目は元資料を修正し、反映結果を確認する。特殊規則だけコードも更新する |
-| 保存先・ID・ファイル名・参照・保存時の制約 | `src/SkillTreeEditor.Server/Services/MasterDataPaths.cs`、`MasterDataService.cs`、`MasterDataValidation.cs`、`MasterDataCodec.cs` |
-| Server / Client のデータ契約 | `src/SkillTreeEditor.Server/Models/MasterDataContracts.cs`、`Endpoints/MasterDataEndpoints.cs`、`src/SkillTreeEditor.Client/src/types/masterData.ts`、`api/masterDataApi.ts` |
-| 再帰フォーム、型表示、日本語説明、候補入力、原稿編集・差分 | `src/SkillTreeEditor.Client/src/components/MasterDataForm.tsx`、`MasterDataEditor.tsx`、`MasterDataDiff.tsx` |
-| 装備比較・レベル成長グラフ | `src/SkillTreeEditor.Server/Services/MasterAnalyticsService.cs`、`src/SkillTreeEditor.Client/src/data/masterAnalytics.ts`、`components/MasterAnalytics.tsx` |
-| スキルツリー固有の Schema・ノード・配置・効果 | `src/SkillTreeEditor.Server/Services/SchemaCatalog.cs`、`ValidationService.cs` と対応する Client の `SchemaForm.tsx`、`NodeEditor.tsx`、`src/data/`、`src/state/` |
+| 保存先・ID・ファイル名・参照・保存時の制約 | `src/SkillTreeEditor.Server/Services/` 配下の `MasterDataPaths.cs`、`MasterDataService.cs`、`MasterDataValidation.cs`、`MasterDataCodec.cs` |
+| Server / Client のデータ契約 | `src/SkillTreeEditor.Server/Models/MasterDataContracts.cs`、`src/SkillTreeEditor.Server/Endpoints/MasterDataEndpoints.cs`、`src/SkillTreeEditor.Client/src/types/masterData.ts`、`src/SkillTreeEditor.Client/src/api/masterDataApi.ts` |
+| 再帰フォーム、型表示、日本語説明、候補入力、原稿編集・差分 | `src/SkillTreeEditor.Client/src/components/` 配下の `MasterDataForm.tsx`、`MasterDataEditor.tsx`、`MasterDataDiff.tsx` |
+| 装備比較・レベル成長グラフ | `src/SkillTreeEditor.Server/Services/MasterAnalyticsService.cs`、`src/SkillTreeEditor.Client/src/data/masterAnalytics.ts`、`src/SkillTreeEditor.Client/src/components/MasterAnalytics.tsx` |
+| スキルツリー固有の Schema・ノード・配置・効果 | `src/SkillTreeEditor.Server/Services/` 配下の `SchemaCatalog.cs`、`ValidationService.cs` と、`src/SkillTreeEditor.Client/src/components/` 配下の `SchemaForm.tsx`、`NodeEditor.tsx`、`src/SkillTreeEditor.Client/src/data/`、`src/SkillTreeEditor.Client/src/state/` |
 
 画面の固定キー、項目説明、数値 / 文字列などの型表示は日本語で説明する。保存するキー・ID・参照・列挙値は元の表記を保つ。`implementationId`、RPC、実装固有 `params` の名前などは無理に翻訳せず、確認できる型・意味だけ説明する。不明な自由形式項目を既知の構造と決めつけたり、保存時に削除したりしない。
 

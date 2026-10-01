@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(EditorHostOptions.Create(args));
 
 builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(EditorOptions.SectionName));
 builder.Services.AddProblemDetails();
+builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddSingleton<WorkspacePaths>();
 builder.Services.AddSingleton<BackupService>();
 builder.Services.AddSingleton<FilebaseRepository>();
@@ -16,7 +17,6 @@ builder.Services.AddSingleton<PluginConfigService>();
 builder.Services.AddSingleton<SkillMasterCatalog>();
 builder.Services.AddSingleton<MasterTagCatalog>();
 builder.Services.AddSingleton<WorkspaceMutationGate>();
-builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 {
     var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EditorOptions>>().Value;
@@ -27,6 +27,7 @@ builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 
 var app = builder.Build();
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
+app.MapMasterAnalyticsEndpoints();
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
@@ -52,7 +53,6 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 if (staticFilesRoot is not null)
     app.UseEditorStaticFiles(staticFilesRoot);
 app.MapEditorEndpoints();
-app.MapMasterAnalyticsEndpoints();
 app.MapFallback(async context =>
 {
     if (staticFilesRoot is null)
