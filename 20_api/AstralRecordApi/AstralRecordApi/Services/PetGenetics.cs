@@ -70,7 +70,7 @@ public static class PetGenetics
 
     public static void Grow(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details, long experience, Random random)
     {
-        details.Experience = checked(details.Experience + experience);
+        details.Experience = checked(details.Experience + checked((long)Math.Floor(experience * master.Experience.ActivityRate)));
         while (details.Level < master.Rules.MaxLevel)
         {
             var required = RequiredExperience(master.Experience, details.Level);

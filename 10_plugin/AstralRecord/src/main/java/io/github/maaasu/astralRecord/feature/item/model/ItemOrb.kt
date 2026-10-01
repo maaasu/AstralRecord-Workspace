@@ -33,6 +33,7 @@ enum class ItemOrbEffectType {
     RUNE_DETACH,
     SIGIL_ATTACH,
     SIGIL_DETACH,
+    PET_REVIVE,
     ;
 
     companion object {

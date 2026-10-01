@@ -239,6 +239,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         if (handleEquipmentMenuNavigationClick(event, topInventory, player)) {
             return;
         }
+        if(event.getRawSlot()==io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView.PET_SLOT){
+            saveEquipmentMenuSnapshot(player,topInventory);
+            var petGui=AstralRecord.getInstance().getPetGui();if(petGui!=null)petGui.open(player);
+            return;
+        }
         if (!menuView.isEquipmentItemSlot(event.getRawSlot())) {
             GuiSound.DENY.play(player);
             return;

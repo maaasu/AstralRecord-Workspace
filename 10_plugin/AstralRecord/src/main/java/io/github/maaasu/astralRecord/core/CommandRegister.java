@@ -224,6 +224,7 @@ public class CommandRegister {
         cm.registerCommand("c", currencyCommand);
         cm.registerCommand("gold", currencyCommand);
         cm.registerCommand("sell", new SellCommand());
+        cm.registerCommand("pet", new io.github.maaasu.astralRecord.feature.pet.command.PetCommand());
         cm.registerCommand("storage", new StorageCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         ItemChatShareService itemChatShareService = new ItemChatShareService();

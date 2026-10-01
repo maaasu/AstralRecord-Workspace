@@ -56,7 +56,7 @@ public final class ItemReferenceResolver {
         return new ItemReference(
             itemId,
             category,
-            ItemStackFactory.getEquipmentInstanceId(itemStack)
+            instanceId(itemStack)
         );
     }
 
@@ -83,7 +83,7 @@ public final class ItemReferenceResolver {
         return new ItemReference(
             itemId,
             category,
-            ItemStackFactory.getEquipmentInstanceId(itemStack)
+            instanceId(itemStack)
         );
     }
 
@@ -127,10 +127,15 @@ public final class ItemReferenceResolver {
      * @return 解決できた装備インスタンス。装備参照でない場合や見つからない場合は null
      */
     public @Nullable EquipmentInstance resolveEquipmentInstance(@Nullable ItemReference reference) {
-        if (reference == null || !reference.hasEquipmentInstanceId()) {
+        if (reference == null || !reference.hasEquipmentInstanceId() || !reference.category().equalsIgnoreCase(io.github.maaasu.astralRecord.feature.item.model.ItemCategory.EQUIPMENT.getApiValue())) {
             return null;
         }
         return itemService.findEquipmentInstanceById(reference.equipmentInstanceId());
+    }
+
+    private @Nullable String instanceId(ItemStack stack){
+        java.util.UUID pet=io.github.maaasu.astralRecord.feature.pet.view.PetItemView.instanceId(stack);
+        return pet==null?ItemStackFactory.getEquipmentInstanceId(stack):pet.toString();
     }
 
     private @Nullable ItemModel resolveItemModel(@NotNull String itemId, @Nullable String category) {

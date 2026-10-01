@@ -1410,6 +1410,235 @@
           "UX_skilltree_definition_generation_patch"
         ]
       }
+    },
+    {
+      "id": "20261001_pet",
+      "fileName": "20261001_pet.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "pet_instance",
+        "primaryKey": "PK_pet_instance",
+        "columns": [
+          {
+            "name": "instance_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "account_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "species_id",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 128
+          },
+          {
+            "name": "item_id",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 200
+          },
+          {
+            "name": "is_egg",
+            "sqlType": "bit",
+            "isNullable": false,
+            "maxLengthBytes": 1
+          },
+          {
+            "name": "origin",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "details_json",
+            "sqlType": "nvarchar",
+            "isNullable": false,
+            "maxLengthBytes": -1
+          },
+          {
+            "name": "male_parent_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": true,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "female_parent_id",
+            "sqlType": "uniqueidentifier",
+            "isNullable": true,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "version",
+            "sqlType": "bigint",
+            "isNullable": false,
+            "maxLengthBytes": 8
+          },
+          {
+            "name": "created_at",
+            "sqlType": "datetime2",
+            "isNullable": false
+          },
+          {
+            "name": "updated_at",
+            "sqlType": "datetime2",
+            "isNullable": false
+          },
+          {
+            "name": "created_by",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "updated_by",
+            "sqlType": "uniqueidentifier",
+            "isNullable": false,
+            "maxLengthBytes": 16
+          },
+          {
+            "name": "is_deleted",
+            "sqlType": "bit",
+            "isNullable": false,
+            "maxLengthBytes": 1
+          }
+        ],
+        "checkConstraints": [
+          "CK_pet_instance_origin",
+          "CK_pet_instance_details_json",
+          "CK_pet_instance_version",
+          "CK_pet_instance_parent_pair"
+        ],
+        "indexes": [
+          "IX_pet_instance_owner"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "IX_pet_instance_owner",
+            "columns": [
+              "account_id",
+              "is_deleted"
+            ]
+          }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "account_pet_state",
+          "primaryKey": "PK_account_pet_state",
+          "columns": [
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "equipped_pet_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": true,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "updated_at",
+              "sqlType": "datetime2",
+              "isNullable": false
+            },
+            {
+              "name": "updated_by",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            }
+          ],
+          "checkConstraints": [],
+          "indexes": []
+        },
+        {
+          "schema": "dbo",
+          "table": "pet_operation",
+          "primaryKey": "PK_pet_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "isNullable": false,
+              "maxLengthBytes": 16
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "char",
+              "isNullable": false,
+              "maxLengthBytes": 64
+            },
+            {
+              "name": "response_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "affected_entry_ids_json",
+              "sqlType": "nvarchar",
+              "isNullable": false,
+              "maxLengthBytes": -1
+            },
+            {
+              "name": "completed_at",
+              "sqlType": "datetime2",
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_pet_operation_json"
+          ],
+          "indexes": [
+            "IX_pet_operation_owner_completed"
+          ],
+          "indexDefinitions": [
+            {
+              "name": "IX_pet_operation_owner_completed",
+              "columns": [
+                "account_id",
+                "completed_at"
+              ]
+            }
+          ]
+        },
+        {
+          "schema": "dbo",
+          "table": "inventory_entry",
+          "primaryKey": "PK_inventory_entry",
+          "columns": [],
+          "checkConstraints": [
+            "CK_inventory_entry_pet_quantity"
+          ],
+          "indexes": [
+            "UX_inventory_entry_pet_instance"
+          ],
+          "indexDefinitions": [
+            {
+              "name": "UX_inventory_entry_pet_instance",
+              "columns": [
+                "instance_id"
+              ],
+              "isUnique": true
+            }
+          ]
+        }
+      ]
     }
   ]
 }

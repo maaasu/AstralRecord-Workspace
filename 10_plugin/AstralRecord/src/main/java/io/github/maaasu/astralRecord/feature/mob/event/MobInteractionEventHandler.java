@@ -245,6 +245,10 @@ public final class MobInteractionEventHandler
         String rawType = action.params().get("type");
         String type = rawType == null ? "" : rawType.trim().toUpperCase(Locale.ROOT);
         switch (type) {
+            case "PET_CENTER" -> {
+                var gui=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetGui();
+                if(gui!=null)gui.openFromNpc(player,instance);
+            }
             case "SHOP" -> openShop(player, action);
             case "QUEST", "QUEST_BOARD" -> openQuestBoard(player, instance, action);
             case "SELL" -> {

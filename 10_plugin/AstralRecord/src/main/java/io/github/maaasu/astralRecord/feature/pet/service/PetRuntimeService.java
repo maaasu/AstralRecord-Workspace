@@ -151,6 +151,16 @@ public final class PetRuntimeService implements Listener {
         removePetBuffs(owner);
     }
 
+    /**
+     * 主人と召喚個体が実際に活動できるかをメインスレッドで照合します。
+     * @param owner 読み込み済みの主人
+     * @return 生存・オンライン・ゲームプレイモードの召喚個体がいる場合true
+     */
+    public boolean hasActivePet(AstPlayer owner){
+        Session session=byOwner.get(owner.getBukkit().getUniqueId());
+        return session!=null&&session.active();
+    }
+
     /** 全ペットの状態をキャッシュへ反映し、召喚と更新タスクを停止します。 */
     public void stop() {
         if (task != null) { task.cancel(); task = null; }
@@ -226,7 +236,12 @@ public final class PetRuntimeService implements Listener {
         if (recipients.isEmpty() || species.isEmpty()
                 || ThreadLocalRandom.current().nextDouble() >= bridge.eggDropChance()) return;
         AstPlayer recipient = recipients.get(ThreadLocalRandom.current().nextInt(recipients.size()));
-        bridge.awardEgg(recipient, species.get(ThreadLocalRandom.current().nextInt(species.size())), mob.instanceId());
+        double total=species.stream().mapToDouble(bridge::eggWeight).sum();
+        if(!Double.isFinite(total)||total<=0)return;
+        double draw=ThreadLocalRandom.current().nextDouble(total);
+        String selected=species.get(species.size()-1);
+        for(String candidate:species){draw-=bridge.eggWeight(candidate);if(draw<0){selected=candidate;break;}}
+        bridge.awardEgg(recipient,selected,mob.instanceId());
     }
 
     /** @param target ダメージ対象 @return ペットスキル由来の防御倍率 */
@@ -240,6 +255,15 @@ public final class PetRuntimeService implements Listener {
     public double damageTakenMultiplier(@NotNull AstEntity victim) {
         Session session = byOwner.get(victim.id());
         return session != null && session.active() ? 1.0D - session.reduction() : 1.0D;
+    }
+
+    /**
+     * ペットのバニラ産卵等を抑止し、マスター/APIに定義した報酬だけを生成します。
+     * @param event バニラエンティティ由来のアイテム生成イベント
+     */
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void onNativeDrop(org.bukkit.event.entity.EntityDropItemEvent event){
+        if(byEntity.containsKey(event.getEntity().getUniqueId()))event.setCancelled(true);
     }
 
     /** @param event ペットの環境被害。バニラ HP を独自 HP へ移管します */
@@ -280,7 +304,12 @@ public final class PetRuntimeService implements Listener {
     private void tick() {
         tick += 5L;
         for (Session session : List.copyOf(byOwner.values())) {
-            if (!session.entity.isValid()) { session.damage(session.maxHealth()); continue; }
+            if (!session.entity.isValid()) {
+                // ワールド/チャンクの退場は死亡イベントと区別し、保存済みHPのまま再召喚する。
+                dismiss(session.owner);
+                refresh(session.owner);
+                continue;
+            }
             if (!session.active()) continue;
             if (tick % 20L == 0L) {
                 RuntimePet current = bridge.equipped(session.owner);
@@ -295,8 +324,13 @@ public final class PetRuntimeService implements Listener {
                 if (session.entity instanceof Mob mob) mob.getPathfinder().stopPathfinding();
                 continue;
             }
-            if (session.tickBasicAttack()) continue;
             Location desired = behind(session.owner.getBukkit());
+            if(desired.getWorld()!=session.entity.getWorld()){
+                session.basicTarget=null;
+                session.entity.teleport(desired);
+                continue;
+            }
+            if (session.tickBasicAttack()) continue;
             if (desired.getWorld() != session.entity.getWorld()
                     || desired.distanceSquared(session.entity.getLocation()) > 144.0D) {
                 session.entity.teleport(desired);
@@ -340,6 +374,8 @@ public final class PetRuntimeService implements Listener {
         @NotNull List<String> eggSpecies();
         /** @return 1討伐当たりの卵ドロップ確率 */
         double eggDropChance();
+        /** @param speciesId 卵の種類ID @return マスターの種類抽選重み */
+        default double eggWeight(String speciesId){return 1.0D;}
     }
 
     /** 個体値・成長・潜在倍率をマスター式へ適用した係数です。すべて比率で保持します。 */
@@ -459,6 +495,10 @@ public final class PetRuntimeService implements Listener {
         /** 必要なら射程まで接近し、基本追撃を一度適用します。自動索敵は行いません。 */
         private boolean tickBasicAttack() {
             BasicAttack basic = pet.basicAttack();
+            if(owner.getBukkit().getWorld()!=entity.getWorld()){
+                basicTarget=null;
+                return false;
+            }
             long now = System.currentTimeMillis();
             if (basic == null || basicTarget == null || basicTargetExpiresAt <= now
                     || basicTarget.state() == MobState.DEAD || basicTarget.currentHealth() <= 0.0D

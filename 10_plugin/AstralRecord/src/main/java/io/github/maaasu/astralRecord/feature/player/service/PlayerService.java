@@ -38,6 +38,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public class PlayerService {
 
+    private io.github.maaasu.astralRecord.feature.pet.service.PetService petService;
+    private io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService petRuntime;
+    /** 読み込み・退出保存と同じ境界にペットを接続します。構築時に一度呼びます。 */
+    public void setPetServices(io.github.maaasu.astralRecord.feature.pet.service.PetService service,
+        io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService runtime){petService=service;petRuntime=runtime;}
     private final UserService userService;
     private final AccountService accountService;
     private final InventoryService inventoryService;
@@ -172,6 +177,7 @@ public class PlayerService {
      */
     public @NotNull PlayerJoinInventoryState loadPlayerJoinInventoryState(@NotNull AccountModel account) {
         inventorySaveCoordinator.awaitQueuedSaves(account.getUuid()).join();
+        if(petService!=null){petService.flush(account.getUuid()).join();petService.loadAccount(account.getUuid());}
         InventorySaveCoordinator.RetainedStateLease retainedLease =
             inventorySaveCoordinator.claimRetainedState(account.getUuid());
         if (retainedLease != null) {
@@ -280,6 +286,7 @@ public class PlayerService {
             return;
         }
 
+        if(petRuntime!=null&&application.astPlayer!=null)petRuntime.dismiss(application.astPlayer);
         Player player = application.player;
         UUID playerId = player.getUniqueId();
         UUID accountId = application.joinData.account().getUuid();
@@ -327,6 +334,7 @@ public class PlayerService {
             throw new IllegalStateException("retained inventory state lease is no longer current");
         }
         application.committed = true;
+        if(petRuntime!=null&&application.astPlayer!=null)petRuntime.refresh(application.astPlayer);
     }
 
     /**
@@ -341,6 +349,7 @@ public class PlayerService {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
             UUID accountId = astPlayer.getAccount().getUuid();
+            if(petRuntime!=null)petRuntime.dismiss(astPlayer);
             playerRegionService.clearPlayer(player.getUniqueId());
             // Bukkit inventory の参照だけをメインスレッドで完了させ、API I/O は保存キューへ委譲する。
             playerSaveCoordinator.prepare(astPlayer, PlayerSaveTrigger.LOGOUT);
@@ -365,6 +374,15 @@ public class PlayerService {
             statusService.clearShieldRuntimeState(player.getUniqueId());
         }
         AstPlayerCache.remove(player.getUniqueId());
+        if(petService!=null&&astPlayer!=null){
+            CompletableFuture<Boolean> inventorySave=save;
+            UUID petAccountId=astPlayer.getAccount().getUuid();
+            long petGeneration=petService.generation(petAccountId);
+            save=petService.flush(petAccountId).thenCombine(inventorySave,(ignored,saved)->{
+                if(saved)petService.releaseSavedAccount(petAccountId,petGeneration);
+                return saved;
+            });
+        }
         return save;
     }
 
@@ -385,6 +403,8 @@ public class PlayerService {
             return CompletableFuture.completedFuture(null);
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        if(petRuntime!=null)petRuntime.dismiss(astPlayer);
+        if(petService!=null)petService.forgetAccount(accountId);
         CompletableFuture<Void> disposal = inventorySaveCoordinator.discardAccountForRecovery(accountId);
 
         player.closeInventory();
@@ -441,7 +461,8 @@ public class PlayerService {
         if (!playerSaveCoordinator.prepare(player, PlayerSaveTrigger.MANUAL)) {
             return CompletableFuture.completedFuture(false);
         }
-        return inventorySaveCoordinator.saveForBoundary(player.getAccount().getUuid());
+        var save=inventorySaveCoordinator.saveForBoundary(player.getAccount().getUuid());
+        return petService==null?save:petService.flush(player.getAccount().getUuid()).thenCombine(save,(ignored,saved)->saved);
     }
 
     /**
@@ -456,6 +477,8 @@ public class PlayerService {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        if(petRuntime!=null)petRuntime.dismiss(astPlayer);
+        if(petService!=null)petService.forgetAccount(accountId);
         player.closeInventory();
         playerRegionService.clearPlayer(player.getUniqueId());
         inventoryStateRegistry.remove(accountId);
@@ -474,6 +497,7 @@ public class PlayerService {
      * @param accountId 削除するアカウント UUID
      */
     public void awaitQueuedSavesForAccountDeletion(@NotNull UUID accountId) {
+        if(petService!=null)petService.flush(accountId).join();
         inventorySaveCoordinator.awaitQueuedSaves(accountId).join();
     }
 

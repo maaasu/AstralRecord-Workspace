@@ -63,7 +63,7 @@ final class OrbLocalMutationCalculator {
             case ENCHANT -> enchant(effect, model, current, enchantMaster);
             case RUNE_ATTACH -> attachRune(model, current, runeItem);
             case RUNE_DETACH -> detachRune(current, runeSlotIndex);
-            case SIGIL_ATTACH, SIGIL_DETACH -> null;
+            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> null;
         };
     }
 

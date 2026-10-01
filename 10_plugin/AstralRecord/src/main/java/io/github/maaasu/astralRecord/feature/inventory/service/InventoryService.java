@@ -180,6 +180,9 @@ public class InventoryService {
      *
      * @return InventoryClickGuard インスタンス
      */
+    /** ペットの個体表示を接続します。構築時に一度呼び、通信は行いません。 */
+    public void setPetService(io.github.maaasu.astralRecord.feature.pet.service.PetService service){itemStackResolver.setPetService(service);}
+
     public @NotNull InventoryClickGuard getClickGuard() {
         return clickGuard;
     }
@@ -1402,6 +1405,8 @@ public class InventoryService {
             granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
                 case EQUIPMENT -> addInstanceItems(
                     state, targetInventory, model, safeAmount, source);
+                // ペットはAPIの卵・孵化操作だけで生成する。通常stackとしての生成を禁止する。
+                case PET, PET_EGG -> 0;
                 // ルーンはマスタ定義だけで効果が確定するスタックアイテムです。
                 case RUNE -> addStackedItems(state, targetInventory, model, safeAmount);
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
@@ -1532,6 +1537,7 @@ public class InventoryService {
             InventoryModel targetInventory = ensureInventory(state, targetType);
             granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
                 case EQUIPMENT -> addInstanceItems(state, targetInventory, model, safeAmount, source);
+                case PET, PET_EGG -> 0;
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
             };
         }
@@ -7264,6 +7270,9 @@ public class InventoryService {
             boolean fullyAdded = switch (category) {
                 case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
                     InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId(), metadataJson) && amount == 1;
+                case PET, PET_EGG -> addExistingInstanceEntry(state,targetInventory,model,
+                    category==ItemCategory.PET?InventoryInstanceType.PET:InventoryInstanceType.PET_EGG,
+                    reference.equipmentInstanceId(),metadataJson)&&amount==1;
                 // ルーンは itemId / quantity で管理する通常stack itemです。
                 case RUNE -> addStackedItems(state, targetInventory, model, amount) == amount;
                 default -> addStackedItems(state, targetInventory, model, amount) == amount;

@@ -279,6 +279,12 @@ public final class OrbService {
             return;
         }
         ItemOrbEffectType type = orbModel.getOrb().getEffect().getType();
+        if(type==ItemOrbEffectType.PET_REVIVE){
+            InventoryEntryModel source=inventoryService.findOwnedNormalItemEntryForConsumption(astPlayer.getAccount().getUuid(),orbModel.getId());
+            var gui=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetGui();
+            if(source!=null&&gui!=null)gui.openReviveOrb(player,source.getInventoryEntryId());
+            return;
+        }
         if (type == ItemOrbEffectType.SIGIL_ATTACH || type == ItemOrbEffectType.SIGIL_DETACH) {
             if (skillSigilOrbService == null) {
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5873);
@@ -1514,7 +1520,7 @@ public final class OrbService {
             case ENCHANT -> OrbEligibility.canEnchant(effect, model, instance, enchantMaster);
             case RUNE_ATTACH -> instance.getRuneMaxSlots() > instance.getRunes().size();
             case RUNE_DETACH -> !instance.getRunes().isEmpty();
-            case SIGIL_ATTACH, SIGIL_DETACH -> false;
+            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> false;
         };
     }
 
@@ -1573,7 +1579,7 @@ public final class OrbService {
             }
             case RUNE_ATTACH -> lore.add(Component.text("クリックしてルーンを装着", NamedTextColor.GREEN));
             case RUNE_DETACH -> lore.add(Component.text("クリックしてルーンを取り外し", NamedTextColor.AQUA));
-            case SIGIL_ATTACH, SIGIL_DETACH -> {
+            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> {
                 // シジル用オーブは SkillSigilOrbService の習得済みスキル一覧で描画する。
             }
             case ENCHANT -> {
@@ -2369,7 +2375,7 @@ public final class OrbService {
             case RUNE_ATTACH, RUNE_DETACH -> MutationResult.rune(model, local.instance());
             case TRANSCENDENCE -> MutationResult.transcendence(
                 model, local.instance(), Objects.requireNonNull(local.transitionName()));
-            case SIGIL_ATTACH, SIGIL_DETACH -> throw new LocalMutationRejectedException();
+            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> throw new LocalMutationRejectedException();
         };
     }
 

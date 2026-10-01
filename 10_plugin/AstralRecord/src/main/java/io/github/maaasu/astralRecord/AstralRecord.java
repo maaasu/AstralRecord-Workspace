@@ -404,6 +404,11 @@ public final class AstralRecord extends JavaPlugin {
 
     // feature services
     private ItemService itemService;
+    private io.github.maaasu.astralRecord.feature.pet.service.PetService petService;
+    private io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService petRuntimeService;
+    private io.github.maaasu.astralRecord.feature.pet.gui.PetGui petGui;
+    private org.bukkit.scheduler.BukkitTask petSaveTask;
+    private org.bukkit.scheduler.BukkitTask petRefreshTask;
     private LootService lootService;
     private ItemStackFactory itemStackFactory;
     private AccountService accountService;
@@ -741,6 +746,13 @@ public final class AstralRecord extends JavaPlugin {
             pendingMasterDataReload.completeExceptionally(
                 new IllegalStateException("マスターデータ再読込中にプラグインが停止しました")
             );
+        }
+        if(petSaveTask!=null){petSaveTask.cancel();petSaveTask=null;}
+        if(petRefreshTask!=null){petRefreshTask.cancel();petRefreshTask=null;}
+        if(petRuntimeService!=null)petRuntimeService.stop();
+        if(petService!=null){
+            try{petService.stopAndFlush().get(5,java.util.concurrent.TimeUnit.SECONDS);}
+            catch(Exception failure){Logger.log(LogId.E_9600,failure,"shutdown");}
         }
         if (inventoryAutoSaveTask != null) {
             inventoryAutoSaveTask.stop();
@@ -1387,11 +1399,28 @@ public final class AstralRecord extends JavaPlugin {
         statusService.setHpRecoveryListener(damageService::presentPlayerHealthRecovery);
         mobService.setHealthRecoveryListener(damageService::presentMobHealthRecovery);
         mobCombatService.setDamageService(damageService);
+        petService=new io.github.maaasu.astralRecord.feature.pet.service.PetService(
+            this,playerStateExecutor,inventoryService,inventorySaveCoordinator,itemService,itemStackFactory);
+        petRuntimeService=new io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService(
+            this,petService,statusService,statusService.getBuffService(),damageService,playerDeathService);
+        inventoryService.setPetService(petService);
+        petService.setPauseListener(petRuntimeService::dismiss);
+        petService.setActivityEligibility(petRuntimeService::hasActivePet);
+        petService.setRefreshListener(owner->{
+            if(AstPlayerCache.get(owner.getBukkit())!=owner)return;
+            petRuntimeService.refresh(owner);
+            inventoryService.applyInventoriesToGuiOnJoin(owner);
+            if(petGui!=null)petGui.refreshCurrent(owner.getBukkit());
+        });
+        petGui=new io.github.maaasu.astralRecord.feature.pet.gui.PetGui(this,petService,inventoryService,itemService,itemStackFactory,mobService);
+        damageService.setPetRuntimeService(petRuntimeService);
+        mobCombatService.setPetRuntimeService(petRuntimeService);
         combatDpsTrackerService = new CombatDpsTrackerService();
         damageService.setCombatDpsTrackerService(combatDpsTrackerService);
         conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
         conditionService = new ConditionService(conditionDisplayService, playerDeathService);
         conditionService.setStatusService(statusService);
+        petRuntimeService.setConditionService(conditionService);
         statusService.setConditionService(conditionService);
         var conditionTickService = new ConditionTickService(conditionService, damageService);
         conditionTickTask = new ConditionTickTask(conditionService, conditionTickService);
@@ -1418,6 +1447,7 @@ public final class AstralRecord extends JavaPlugin {
             playerSaveCoordinator,
             playerRegionService
         );
+        playerService.setPetServices(petService,petRuntimeService);
         bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
         String bossHubWorldId = getConfig().getString(
             "boss.hubWorldId",
@@ -1820,6 +1850,7 @@ public final class AstralRecord extends JavaPlugin {
         PurpleTreeMobSkillExecutor.createAll(mobService, damageService, particleDisplayService, statusService)
                 .forEach(mobSkillRegistry::register);
         mobSkillService = new MobSkillService(mobService, mobSkillRegistry);
+        mobSkillService.setDamageService(damageService);
         mobSkillService.setConditionService(conditionService);
         bindCircleRuntimeService = new BindCircleRuntimeService(mobService, mobSkillService);
         bossMechanicService.setBindCircleRuntimeService(bindCircleRuntimeService);
@@ -2093,6 +2124,7 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
+            petService.reloadMaster();
             var skillDefinitions = skillService.loadDefinitions();
             var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
             playerClassService.loadAll();
@@ -2130,6 +2162,10 @@ public final class AstralRecord extends JavaPlugin {
             bindCircleRuntimeService
         );
         mobAiService.start();
+        petRuntimeService.start();
+        getServer().getPluginManager().registerEvents(petGui,this);
+        petSaveTask=getServer().getScheduler().runTaskTimerAsynchronously(this,petService::tickSave,40L,40L);
+        petRefreshTask=getServer().getScheduler().runTaskTimer(this,()->AstPlayerCache.getAll().forEach(petRuntimeService::refresh),40L,40L);
         trainingDummyService.start();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
         stoneButtonReachService = new StoneButtonReachService(this, worldService);
@@ -2781,6 +2817,11 @@ public final class AstralRecord extends JavaPlugin {
         return itemStackFactory;
     }
 
+    /** ペット個体のキャッシュと保存サービスを返します。未構築ならnullです。 */
+    public io.github.maaasu.astralRecord.feature.pet.service.PetService getPetService(){return petService;}
+    /** ペット管理・施設GUIを返します。未構築ならnullです。 */
+    public io.github.maaasu.astralRecord.feature.pet.gui.PetGui getPetGui(){return petGui;}
+
     public ItemService getItemService() {
         return itemService;
     }
@@ -3158,6 +3199,11 @@ public final class AstralRecord extends JavaPlugin {
             itemService.replaceMasterDataSnapshot(itemSnapshot);
             itemStackFactory.clearCache();
         });
+
+        var petSnapshot=petService.loadMasterSnapshot();
+        loaded+=petSnapshot.speciesIds().size();
+        publications.add(()->petService.publishMasterSnapshot(petSnapshot));
+        activations.add(new MasterDataActivation("pet",()->AstPlayerCache.getAll().forEach(petRuntimeService::refresh)));
 
         var skillDefinitions = skillService.loadDefinitions();
         loaded += skillDefinitions.size();

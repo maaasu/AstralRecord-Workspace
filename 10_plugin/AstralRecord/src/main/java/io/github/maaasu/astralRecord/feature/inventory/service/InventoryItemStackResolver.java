@@ -42,6 +42,8 @@ final class InventoryItemStackResolver {
     private static final NamespacedKey BAG_SLOT_NUMBER_KEY = new NamespacedKey("astralrecord", "bag_slot_number");
 
     private final ItemService itemService;
+    private io.github.maaasu.astralRecord.feature.pet.service.PetService petService;
+    void setPetService(io.github.maaasu.astralRecord.feature.pet.service.PetService service){this.petService=service;}
     private final ItemStackFactory itemStackFactory;
     private @Nullable CastDiskHotbarIconService castDiskHotbarIconService;
 
@@ -151,6 +153,12 @@ final class InventoryItemStackResolver {
             InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
             if (instanceType == null) {
                 return null;
+            }
+            if(instanceType==InventoryInstanceType.PET||instanceType==InventoryInstanceType.PET_EGG){
+                if(petService==null)return null;
+                var pet=expectedAccountId==null?petService.findLoaded(entry.getInstanceId()):petService.find(expectedAccountId,entry.getInstanceId());
+                if(pet==null){if(expectedAccountId!=null)petService.ensureLoaded(expectedAccountId);return null;}
+                return petService.itemStack(pet);
             }
             return resolveEquipment(entry, expectedAccountId, appendBagActionLore, equippedSetCounts);
         }

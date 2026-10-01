@@ -160,6 +160,9 @@ public class StatusService {
      * @param player 対象プレイヤー
      * @return 現在のステータススナップショット
      */
+    /** ペット由来のバフ識別・解除に共有サービスを提供します。HTTP通信は行いません。 */
+    public @NotNull BuffService getBuffService(){return buffService;}
+
     public @NotNull StatusSnapshot getStatus(@NotNull AstPlayer player) {
         expireTemporaryShieldIfReady(player, System.currentTimeMillis());
         StatusSnapshot snapshot;

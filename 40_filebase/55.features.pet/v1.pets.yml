@@ -56,6 +56,10 @@ species:
   - id: wolf
     displayName: 犬
     entityType: WOLF
+    basicAttack:
+      damageRatio: 0.35
+      cooldownSeconds: 3
+      range: 3
     eggItemId: item:81a00001
     petItemId: item:80a00001
     dropWeight: 1
@@ -485,6 +489,10 @@ species:
   - id: cat
     displayName: 猫
     entityType: CAT
+    basicAttack:
+      damageRatio: 0.25
+      cooldownSeconds: 4
+      range: 3
     eggItemId: item:81a00002
     petItemId: item:80a00002
     dropWeight: 1

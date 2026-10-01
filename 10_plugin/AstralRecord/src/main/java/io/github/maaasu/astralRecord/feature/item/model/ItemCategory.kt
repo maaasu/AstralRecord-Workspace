@@ -9,6 +9,8 @@ enum class ItemCategory(val apiValue: String, val displayNameJa: String) {
     BUNDLE("bundle", "バンドル"),
     CURRENCY("currency", "通貨"),
     EQUIPMENT("equipment", "装備"),
+    PET("pet", "ペット"),
+    PET_EGG("pet_egg", "ペットの卵"),
     MATERIAL("material", "素材"),
     ORB("orb", "オーブ"),
     CONSUMABLE("consumable", "消耗品"),

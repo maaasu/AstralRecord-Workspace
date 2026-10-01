@@ -397,6 +397,8 @@ public final class ItemAdminGuiView {
                 case BUNDLE -> Material.BUNDLE;
                 case CURRENCY -> Material.GOLD_INGOT;
                 case EQUIPMENT -> Material.DIAMOND_CHESTPLATE;
+            case PET -> Material.SADDLE;
+            case PET_EGG -> Material.EGG;
                 case MATERIAL -> Material.IRON_INGOT;
                 case ORB -> Material.END_CRYSTAL;
                 case CONSUMABLE -> Material.APPLE;

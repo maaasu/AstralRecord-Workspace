@@ -230,6 +230,28 @@ public class PetRepositoryTests
         Assert.Equal(3, child.Skills.Select(s => s.Id).Distinct().Count());
     }
 
+    [Fact]
+    public async Task Progress_AppliesConfiguredActivityRateOnceAcrossOperationReplay()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Master.Experience.ActivityRate = .5;
+        await fixture.ReplaceMasterAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var request = new PetProgressRequest
+        {
+            OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, ExpectedVersion = pet.Version,
+            Experience = 103, HealthRatio = 1,
+        };
+        var result = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
+        Assert.True(result.Succeeded);
+        Assert.Equal(51, result.Response!.Instance!.Details!.Experience);
+        var replay = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(51, replay.Response!.Instance!.Details!.Experience);
+    }
+
     private static PetMasterResponse MakeMaster() => new()
     {
         Rules = new PetRules { BreedMaterials = [new() { ItemId = "flower", Quantity = 64 }], ReviveMaterials = [new() { ItemId = "flower", Quantity = 16 }] },

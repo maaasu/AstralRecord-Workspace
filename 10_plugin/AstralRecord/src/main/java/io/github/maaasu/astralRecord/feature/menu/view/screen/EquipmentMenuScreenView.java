@@ -94,7 +94,12 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(GAUGE_LARGE_SLOT, futureSlot(Material.SPAWNER, "ラージゲージ"));
         inventory.setItem(GAUGE_MEDIUM_SLOT, futureSlot(Material.SPAWNER, "ミディアムゲージ"));
         inventory.setItem(GAUGE_SMALL_SLOT, futureSlot(Material.SPAWNER, "スモールゲージ"));
-        inventory.setItem(PET_SLOT, futureSlot(Material.SADDLE, "ペットスロット"));
+        var petService=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetService();
+        AstPlayer petOwner=AstPlayerCache.get(player);
+        var petId=petOwner==null||petService==null?null:petService.equippedId(petOwner.getAccount().getUuid());
+        var pet=petId==null?null:petService.find(petOwner.getAccount().getUuid(),petId);
+        inventory.setItem(PET_SLOT,pet==null?createItem(Material.SADDLE,
+            Component.text("ペットスロット",NamedTextColor.GREEN),List.of(Component.text("クリックで選択・保存",NamedTextColor.GRAY))):petService.itemStack(pet));
         inventory.setItem(EQUIPMENT_BACK_SLOT, backItem());
     }
 

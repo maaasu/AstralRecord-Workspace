@@ -118,3 +118,7 @@ base + quadratic × L²
 効果型は `FOLLOW_UP`、`ATTACK_SPEED`、`ATTACK_BUFF`、`HUNT_ORDER`、`DEFENSE_BREAK`、`EVADE_BUFF`、`MOON_DANCE`、`DEFENSE_BUFF`、`COUNTER`、`DAMAGE_REDUCTION`、`HEAL_HP`、`HEAL_MP`、`HEAL_ENERGY`、`ENERGY_SAVING`、`HEAL_ALL` です。
 
 ATTACK_SPEEDはペット自身、BUFF・REDUCTION・SAVING・HEALは主人を対象とします。HUNT_ORDERは主人とペット双方の攻撃を同じvalueで強化し、MOON_DANCEは主人の防御と回避を同じvalueで強化します。HEALのvalueは各最大リソースに対する割合です。HEAL_ALLのdurationSecondsを指定すると継続回復します。追撃・反撃の攻撃が再びOWNER_HITを発火する循環は許可しません。
+
+## 基本追撃
+
+`species[].basicAttack` は任意の種族行動で、スキル枠を消費しない。`damageRatio` は算出済みペット攻撃力への倍率、`cooldownSeconds` は秒、`range` は攻撃距離。犬と猫は主人の直接攻撃に反応して接近・追撃する。ニワトリには定義しない。クールダウンは個体へ保存する。

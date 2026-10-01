@@ -721,10 +721,10 @@
                     "FOLLOW_UP",
                     "ATTACK_SPEED",
                     "ATTACK_BUFF",
-                  "HUNT_ORDER",
+                    "HUNT_ORDER",
                     "DEFENSE_BREAK",
                     "EVADE_BUFF",
-                  "MOON_DANCE",
+                    "MOON_DANCE",
                     "DEFENSE_BUFF",
                     "COUNTER",
                     "DAMAGE_REDUCTION",
@@ -766,6 +766,29 @@
             },
             "minItems": 8,
             "maxItems": 8
+          },
+          "basicAttack": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "damageRatio",
+              "cooldownSeconds",
+              "range"
+            ],
+            "properties": {
+              "damageRatio": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "cooldownSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "range": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
           }
         }
       },

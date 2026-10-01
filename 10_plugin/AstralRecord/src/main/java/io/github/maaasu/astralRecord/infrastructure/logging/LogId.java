@@ -1242,6 +1242,8 @@ public enum LogId {
     E_7610(7610),
     /** Web有償操作のオンライン同期失敗。 */
     E_7611(7611),
+    /** ペットAPI・永続化処理失敗。 */
+    E_9600(9600),
     ;
     private final String id;
 

@@ -41,6 +41,8 @@
 | 35 | [[35_0-概要]] | 寄付結果のゲーム内通知、表示済み確認 | `feature/donation` |
 | 36 | [[36_0-概要]] | アカウント有償特典、チャンネルブースト、Web保留操作の保存境界 | `feature/vip`, `feature/channelboost` |
 
+| 37 | [[37_0-概要]] | ペット卵、成長・配合個体、召喚・支援戦闘、孵化・復活施設 | `feature/pet` |
+
 ## 更新規則
 
 1. `feature/<package>` を追加したら、主所有者となる設計featureをこの表に割り当て、「実装所有パス」へ記載する。
@@ -361,3 +363,7 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_7600`、`E_7610`、`E_7611`）
 - `feature/status` のEXP/DROP最終倍率適用、`feature/item` の券種別とduration読込、`feature/account` のVIP名色
 - `AstralRecordProxy` のブースト一覧・通知・TAB表示
+
+### [[37_0-概要|37-pet]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/pet/*`
