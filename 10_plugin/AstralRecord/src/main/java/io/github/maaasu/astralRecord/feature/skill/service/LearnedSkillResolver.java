@@ -26,6 +26,14 @@ public final class LearnedSkillResolver {
         this.itemService = itemService;
     }
 
+    /**
+     * レベル差分と有効シジルを解決し、シジル1個につき消費リソースを100%加算します。
+     * レベル反映後の主消費と副MP消費へ同じ倍率を適用し、消費軽減は発動時に適用します。
+     *
+     * @param base レジストリでリソース種別・基礎消費量を解決済みの定義
+     * @param learned 解決する習得個体。無効な装着シジルは効果・消費加算ともに除外する
+     * @return 表示・発動で共有する個体専用スナップショット。元定義・習得個体は変更しない
+     */
     public @NotNull ResolvedLearnedSkill resolve(
         @NotNull SkillDefinition base,
         @NotNull LearnedSkillInstance learned
@@ -84,7 +92,9 @@ public final class LearnedSkillResolver {
         indexedParamDeltas.forEach((key, delta) -> applyIndexedParamDelta(params, key, delta));
 
         Double resourceCost = base.getResourceCost();
-        double resolvedResourceCost = Math.max(0.0D, (resourceCost == null ? base.getManaCost() : resourceCost) + resourceDelta);
+        double sigilCostMultiplier = 1.0D + sigilIds.size();
+        double resolvedResourceCost = Math.max(0.0D,
+            (resourceCost == null ? base.getManaCost() : resourceCost) + resourceDelta) * sigilCostMultiplier;
         SkillDefinition resolved = new SkillDefinition(
             base.getId(),
             base.getImplementationId(),
@@ -93,7 +103,7 @@ public final class LearnedSkillResolver {
             base.getIcon(),
             base.getLore(),
             Math.max(0L, base.getCooldownTicks() + cooldownDelta),
-            base.getManaCost(),
+            base.getManaCost() * sigilCostMultiplier,
             Math.max(0L, base.getCastTimeTicks() + castTimeDelta),
             base.getRequiredLevel(),
             base.getOnCastSound(),

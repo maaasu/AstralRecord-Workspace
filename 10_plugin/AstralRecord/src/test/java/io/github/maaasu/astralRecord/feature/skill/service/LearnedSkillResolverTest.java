@@ -104,7 +104,7 @@ class LearnedSkillResolverTest {
 
         assertEquals(70L, resolved.definition().getCooldownTicks());
         assertEquals("head-texture-fixture", resolved.definition().getIconTexture());
-        assertEquals(7.0D, resolved.definition().getResourceCost(), 0.0001D);
+        assertEquals(14.0D, resolved.definition().getResourceCost(), 0.0001D);
         assertEquals(15L, resolved.definition().getCastTimeTicks());
         assertEquals(9.0D, ((Number) resolved.definition().getParams().get("damage")).doubleValue(), 0.0001D);
         List<?> ratios = (List<?>) resolved.definition().getParams().get("damageRatios");
@@ -116,6 +116,66 @@ class LearnedSkillResolverTest {
         assertEquals(1, resolved.sigilIds().size());
         assertEquals(definition.getLearnRequiredItems(), resolved.definition().getLearnRequiredItems());
         assertEquals(definition.getLevelUpRequiredItems(), resolved.definition().getLevelUpRequiredItems());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体の解決
+     * 検証契約: 有効シジル0〜3個はレベル反映後の主消費と副MPへ1〜4倍を適用し、ゼロ消費と元定義を保持する。
+     */
+    @Test
+    void resolveCommonSigilResourceCost() {
+        for (SkillResourceType resourceType : SkillResourceType.values()) {
+            for (int count = 0; count <= 3; count++) {
+                assertCommonSigilResourceCost(resourceType, count, 20.0D, 5.0D, -4.0D);
+            }
+            assertCommonSigilResourceCost(resourceType, 3, 0.0D, 0.0D, 0.0D);
+            assertCommonSigilResourceCost(resourceType, 3, 20.0D, 20.0D, -20.0D);
+        }
+    }
+
+    /**
+     * 共通の消費倍率を固定fixtureで確認します。
+     * @param resourceType 主消費の種別
+     * @param count 有効シジル数
+     * @param resourceCost 基礎主消費
+     * @param manaCost 基礎MP消費
+     * @param levelDelta 主消費のレベル差分
+     */
+    private void assertCommonSigilResourceCost(
+        SkillResourceType resourceType, int count, double resourceCost, double manaCost, double levelDelta
+    ) {
+        ItemService itemService = mock(ItemService.class);
+        List<String> ids = List.of("fixture_sigil_a", "fixture_sigil_b", "fixture_sigil_c");
+        List<LearnedSkillSigil> sigils = new java.util.ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            String id = ids.get(index);
+            ItemModel item = mock(ItemModel.class);
+            when(item.getSigil()).thenReturn(new ItemSigil(id, List.of()));
+            when(itemService.findLoadedById(id)).thenReturn(item);
+            sigils.add(new LearnedSkillSigil(UUID.randomUUID(), id, id, index));
+        }
+        SkillDefinition definition = new SkillDefinition(
+            "fixture_skill", "fixture_skill", "共通計算用スキル", null, "PAPER", List.of(),
+            0L, manaCost, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
+            resourceType, resourceCost, null, 2,
+            List.of(new SkillLevelDefinition(2, 0L, levelDelta, 0L, Map.of(), List.of())),
+            List.of(new SkillSigilSlotDefinition(1, 3)), ids
+        );
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), UUID.randomUUID(), definition.getId(), 2, sigils, 1, null, null
+        );
+
+        ResolvedLearnedSkill resolved = new LearnedSkillResolver(itemService).resolve(definition, learned);
+
+        assertEquals((resourceCost + levelDelta) * (1 + count), resolved.definition().getResourceCost(), 0.0001D);
+        assertEquals(manaCost * (1 + count), resolved.definition().getManaCost(), 0.0001D);
+        assertEquals(resourceType, resolved.definition().getResourceType());
+        assertEquals(count, resolved.sigilIds().size());
+        assertTrue(resolved.statusBonuses().isEmpty());
+        assertEquals(resourceCost, definition.getResourceCost(), 0.0001D);
+        assertEquals(manaCost, definition.getManaCost(), 0.0001D);
+        assertEquals(count, learned.getSigils().size());
     }
 
     /**

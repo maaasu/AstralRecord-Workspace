@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -832,6 +834,7 @@ public final class SkillBindGui {
                 )));
             return;
         }
+        lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_5879.getId()));
         for (int slotIndex = 0; slotIndex < slotCount; slotIndex++) {
             final int targetSlotIndex = slotIndex;
             LearnedSkillSigil attached = entry.learnedSkill().getSigils().stream()

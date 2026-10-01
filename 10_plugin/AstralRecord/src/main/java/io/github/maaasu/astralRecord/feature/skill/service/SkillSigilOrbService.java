@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillSigilOrbGuiHolder;
@@ -673,7 +674,9 @@ public final class SkillSigilOrbService {
             List.of(Component.text(session.type == ItemOrbEffectType.SIGIL_ATTACH
                 ? "シジル用オーブと選択したシジルを各1個消費して装着します"
                 : "シジル用オーブを1個消費し、選択したシジルを所持品へ返却します",
-                NamedTextColor.GRAY))
+                NamedTextColor.GRAY),
+                PlayerMsgResource.getComponent(PlayerMsgId.P_5879.getId()),
+                PlayerMsgResource.getComponent(PlayerMsgId.P_5884.getId()))
         ));
         if (session.screen == SkillSigilOrbGuiHolder.Screen.DETACH && ready && selected != null) {
             ItemStack returned = itemStackFactory.create(selected, 1);
