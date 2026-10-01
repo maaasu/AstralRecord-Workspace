@@ -27,6 +27,8 @@ description: AstralRecord モノレポ全体の実装担当。準備済みの作
    - リソース Pack の素材または JSON では、ルート `README.md` の「AstralRecord Resource Pack」節。
 4. 依頼がプロジェクト境界をまたぐ場合は、プロジェクトごとに作業を分け、それぞれのルールを読む。
 
+Filebase のキー・型・必須・列挙・参照・命名などの定義契約、Plugin / API のマスター読込・変換、装備比較やプレイヤー / クラス成長式を変更する場合は、[Filebase 編集サイトの同期規則](../_shared/filebase-editor-sync.md) を読む。定義と `60_tool/skilltree-editor` のフォーム・検証・候補・命名・比較・グラフを同時に整合させる。
+
 対象プロジェクトを特定できない場合は停止し、ルート `AGENTS.md` の対象プロジェクトを選ぶ質問を尋ねる。
 
 ## 手順

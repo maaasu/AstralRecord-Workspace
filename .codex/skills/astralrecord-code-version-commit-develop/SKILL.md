@@ -12,7 +12,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 ## 最初の分類
 
 1. `質問・説明・診断・読み取り専用レビュー`で差分が不要なら、このスキルを起動せず回答する。
-2. ルート `AGENTS.md` の単一ライターによるファイルベース直接更新の例外は、分類・準備の前に `$astralrecord-master-data-create-direct` へ渡す。そのスキルの適用条件に合わない場合は、この統合入口を使う。
+2. ルート `AGENTS.md` の単一ライターによるファイルベース直接更新の例外は、既存契約内のデータ作成・値調整に限り、分類・準備の前に `$astralrecord-master-data-create-direct` へ渡す。キー・型・必須・列挙・参照形式・命名などの定義契約、読込・変換・成長式を変更する場合はこの統合入口を使い、[Filebase 編集サイトの同期規則](../_shared/filebase-editor-sync.md) に従う。
 3. 差分が必要なら、先に [task-routing.md](references/task-routing.md) を読み、`対象`、`変更種別`、`軽量品質ゲート/標準品質ゲート`、`必要な参照`を決める。
 4. ルート `AGENTS.md` に従い、対象プロジェクトの `Read Next` と対象の担当スキルだけを読む。作業ツリー管理参照は準備/完了処理でGit スキルから読む。既読資料や無関係なスキル・ガイドを読み直さない。
 5. `標準品質ゲート` またはワークスペーススキルの処理の変更では [quality-gate.md](references/quality-gate.md) を読む。軽量品質ゲートでは読まない。

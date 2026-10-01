@@ -8,9 +8,9 @@
 |:--|:--|:--|
 | 共通状態名 | プラグインソース | `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt` |
 | アイテム 共通のフィールド | `40_filebase/10.features.item` | `40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md` |
-| 装備 | `40_filebase/10.features.item/equipment` | `40_filebase/10.features.item/equipment/docs.equipment.YAMLスキーマ定義.md` |
-| 素材 | `40_filebase/10.features.item/material` | `40_filebase/10.features.item/material/docs.material.YAMLスキーマ定義.md` |
-| 消耗品 | `40_filebase/10.features.item/consumable` | `40_filebase/10.features.item/consumable/docs.consumable.YAMLスキーマ定義.md` |
+| 装備 | `40_filebase/10.features.item/20.equipment` | `40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md` |
+| 素材 | `40_filebase/10.features.item/10.material` | `40_filebase/10.features.item/10.material/docs.material.YAMLスキーマ定義.md` |
+| 消耗品 | `40_filebase/10.features.item/30.consumable` | `40_filebase/10.features.item/30.consumable/docs.consumable.YAMLスキーマ定義.md` |
 | 職業 | `40_filebase/20.features.class` | `40_filebase/20.features.class/docs.class.YAMLスキーマ定義.md` |
 | スキル | `40_filebase/30.features.skill` | `40_filebase/30.features.skill/docs.skill.YAMLスキーマ定義.md` |
 | スキルツリー | `40_filebase/35.features.skilltree` | `40_filebase/35.features.skilltree/docs.skilltree.YAMLスキーマ定義.md` |
