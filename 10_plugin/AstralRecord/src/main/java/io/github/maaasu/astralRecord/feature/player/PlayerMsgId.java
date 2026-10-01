@@ -1775,6 +1775,12 @@ public enum PlayerMsgId {
     P_7210(7210),
     /** プレイヤー状態の再読み込み失敗。 */
     P_7211(7211),
+    // region /feature/dungeon/service/DungeonRoomBossBarService.java 7220-7229
+    /** ダンジョン通常部屋の敵数バー。{0}: 生存敵数、{1}: 生成時の敵数 */
+    P_7220(7220),
+    /** ダンジョンボス部屋のHPバー。{0}: ボス表示名、{1}: 現在HP、{2}: 最大HP */
+    P_7221(7221),
+    // endregion
     // region /feature/account/command 7400-7419
     /** 管理者によるアカウント作成成功。{0}: 対象名、{1}: スロット、{2}: アカウント表示名 */
     P_7400(7400),

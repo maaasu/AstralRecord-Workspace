@@ -133,6 +133,7 @@ public final class DungeonService {
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
     private static final long DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS = 1L;
+    private static final long ROOM_BOSS_BAR_UPDATE_PERIOD_TICKS = 5L;
     private static final long MOB_RETURN_SEARCH_RETRY_TICKS = 20L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
@@ -630,13 +631,19 @@ public final class DungeonService {
      * ACTIVEな部屋のDungeon Mobが部屋の水平範囲外またはブロック内にいないか確認します。
      *
      * <p>ブロックとの重なりは実体の当たり判定とブロックの衝突形状で判定します。
-     * Y座標だけでは部屋外と判定しません。メインスレッド上で実行します。</p>
+     * Y座標だけでは部屋外と判定しません。5tickごとに部屋バーのHPと表示対象も同期します。
+     * メインスレッド上で実行します。</p>
      */
     private void tickDungeonMobPositions() {
-        if (stopping || mobBindings.isEmpty()) {
+        if (stopping) {
             return;
         }
         mobPositionTick++;
+        if (mobPositionTick % ROOM_BOSS_BAR_UPDATE_PERIOD_TICKS == 0L) {
+            for (Session session : sessionsById.values()) {
+                refreshRoomBossBars(session);
+            }
+        }
         for (Map.Entry<UUID, MobBinding> entry : List.copyOf(mobBindings.entrySet())) {
             MobBinding binding = entry.getValue();
             Session session = sessionsById.get(binding.sessionId());
@@ -649,6 +656,69 @@ public final class DungeonService {
                 recoverDungeonMobPosition(session, room, mob);
             }
         }
+    }
+
+    /**
+     * 生存ボスの実効HPと、実際の入室位置に対応する参加者の表示を同期します。
+     * テレポートや停止したプレイヤーにも対応し、死亡中・別World・終了中には表示しません。
+     *
+     * @param session 表示を同期するセッション
+     */
+    private void refreshRoomBossBars(@NotNull Session session) {
+        if (session.ending || session.cleared || !session.combatStarted || session.instanceWorld == null) {
+            session.roomBossBars.clear();
+            return;
+        }
+        for (Map.Entry<Integer, Set<UUID>> entry : session.liveMobsByRoom.entrySet()) {
+            if (session.roomStates.get(entry.getKey()) != DungeonMapRoomState.ACTIVE
+                    || room(session, entry.getKey()).role() != DungeonLayout.RoomRole.BOSS) {
+                continue;
+            }
+            MobInstance boss = entry.getValue().stream()
+                    .map(mobService::getInstance)
+                    .filter(mob -> mob != null && mob.state() != MobState.DEAD)
+                    .findFirst()
+                    .orElse(null);
+            if (boss == null) {
+                session.roomBossBars.removeRoom(entry.getKey());
+            } else {
+                session.roomBossBars.updateBossRoom(entry.getKey(), boss);
+            }
+        }
+        for (UUID participantId : session.participants) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()) {
+                session.roomBossBars.removePlayer(participantId);
+                continue;
+            }
+            showRoomBossBar(session, player, player.getLocation());
+        }
+    }
+
+    /**
+     * 本人が現在のDungeon World内の攻略中部屋にいる場合だけ部屋バーを表示します。
+     *
+     * @param session 本人が参加するセッション
+     * @param player 表示対象の参加者
+     * @param location 入室判定位置。移動イベントでは移動先を渡す
+     */
+    private void showRoomBossBar(
+            @NotNull Session session,
+            @NotNull Player player,
+            @NotNull Location location
+    ) {
+        Integer roomId = null;
+        if (!session.ending && !session.cleared && session.combatStarted
+                && session.participants.contains(player.getUniqueId())
+                && !session.dungeonDeathParticipants.contains(player.getUniqueId())
+                && session.instanceWorld != null && location.getWorld() != null
+                && location.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
+            Integer candidate = currentRoomId(session, location);
+            if (candidate != null && session.roomStates.get(candidate) == DungeonMapRoomState.ACTIVE) {
+                roomId = candidate;
+            }
+        }
+        session.roomBossBars.showRoom(player, roomId);
     }
 
     /**
@@ -1681,7 +1751,12 @@ public final class DungeonService {
         return result;
     }
 
-    /** プレイヤー移動から ACTIVE 入口の後続入室、現在部屋、AVAILABLE 部屋の戦闘開始を処理します。 */
+    /**
+     * プレイヤー移動からACTIVE入口の後続入室、現在部屋、戦闘開始と部屋バー表示を処理します。
+     *
+     * @param player 移動する参加者
+     * @param destination 移動先座標
+     */
     public void handleMove(@NotNull Player player, @NotNull Location destination) {
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
@@ -1716,9 +1791,11 @@ public final class DungeonService {
         for (DungeonLayout.Room room : session.layout.rooms()) {
             if (session.roomStates.get(room.id()) == DungeonMapRoomState.AVAILABLE && contains(room, x, z)) {
                 activateRoom(session, room.id());
+                showRoomBossBar(session, player, destination);
                 return;
             }
         }
+        showRoomBossBar(session, player, destination);
     }
 
     /**
@@ -1840,6 +1917,17 @@ public final class DungeonService {
             }
         }
         message(session.participants, PlayerMsgId.P_7010, room.distanceFromStart() + 1);
+        if (!liveMobs.isEmpty()) {
+            if (room.role() == DungeonLayout.RoomRole.BOSS) {
+                MobInstance boss = mobService.getInstance(liveMobs.iterator().next());
+                if (boss != null) {
+                    session.roomBossBars.updateBossRoom(roomId, boss);
+                }
+            } else {
+                session.roomBossBars.startNormalRoom(roomId, liveMobs.size());
+            }
+            refreshRoomBossBars(session);
+        }
         if (liveMobs.isEmpty()) {
             if (room.role() == DungeonLayout.RoomRole.BOSS) {
                 completeSession(session, EndReason.SPAWN_FAILED, false);
@@ -1871,6 +1959,7 @@ public final class DungeonService {
             return;
         }
         live.remove(mobInstanceId);
+        session.roomBossBars.updateNormalRoom(binding.roomId(), live.size());
         if (live.isEmpty() && session.roomStates.get(binding.roomId()) == DungeonMapRoomState.ACTIVE) {
             clearRoom(session, binding.roomId());
         }
@@ -1883,6 +1972,7 @@ public final class DungeonService {
      * @param roomId 生存Mobが0になった部屋ID
      */
     private void clearRoom(@NotNull Session session, int roomId) {
+        session.roomBossBars.removeRoom(roomId);
         session.roomStates.put(roomId, DungeonMapRoomState.CLEARED);
         openActiveRoomEntrance(session, roomId);
         DungeonLayout.Room cleared = room(session, roomId);
@@ -2039,6 +2129,7 @@ public final class DungeonService {
                 if (failure == null && Boolean.TRUE.equals(success)
                         && canRunActiveRoomEntry(session, player, roomId)) {
                     session.currentRoomByParticipant.put(playerId, roomId);
+                    showRoomBossBar(session, player, player.getLocation());
                     grantRoomEntryInvulnerability(player);
                     refreshOpenMaps(session);
                 }
@@ -2119,6 +2210,7 @@ public final class DungeonService {
     private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
         if (session.cleared || session.ending || session.instanceWorld == null) return;
         session.cleared = true;
+        session.roomBossBars.clear();
         List<Player> eligiblePlayers = activePlayersInWorld(session);
         showDungeonClear(eligiblePlayers, session.loaded.definition().displayName());
         try {
@@ -3750,6 +3842,7 @@ public final class DungeonService {
         sessionIdByParticipant.remove(playerId, session.id);
         cartographBindings.removeParticipant(playerId, session.id);
         session.currentRoomByParticipant.remove(playerId);
+        session.roomBossBars.removePlayer(playerId);
         Player departingPlayer = Bukkit.getPlayer(playerId);
         if (departingPlayer != null) {
             DungeonMapGui.Holder holder = mapGui.holder(
@@ -3864,6 +3957,7 @@ public final class DungeonService {
     }
 
     private void registerDungeonDeath(@NotNull Session session, @NotNull UUID playerId) {
+        session.roomBossBars.removePlayer(playerId);
         session.dungeonDeathParticipants.add(playerId);
         dungeonDeathSessionByParticipant.put(playerId, session.id);
     }
@@ -3930,6 +4024,7 @@ public final class DungeonService {
             clearQueueTitles(session.originalParticipants);
         }
         session.ending = true;
+        session.roomBossBars.clear();
         cartographBindings.removeSession(session.id);
         long endingGeneration = ++session.transferGeneration;
         closeSessionGuis(session);
@@ -4245,6 +4340,7 @@ public final class DungeonService {
         creationQueue.clear();
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
+            session.roomBossBars.clear();
             session.transferGeneration++;
             session.cartographTransfers.clear();
             session.pendingRoomEntryByParticipant.clear();
@@ -5065,6 +5161,7 @@ public final class DungeonService {
         private final Set<UUID> departingParticipants = new LinkedHashSet<>();
         private final Map<Integer, DungeonMapRoomState> roomStates = new LinkedHashMap<>();
         private final Map<Integer, Set<UUID>> liveMobsByRoom = new LinkedHashMap<>();
+        private final DungeonRoomBossBarService roomBossBars = new DungeonRoomBossBarService();
         private final Map<Integer, DisplayTextService.ManagedTextDisplay> roomStatusDisplays = new LinkedHashMap<>();
         private final Map<UUID, Integer> currentRoomByParticipant = new HashMap<>();
         private final Map<UUID, Integer> pendingRoomEntryByParticipant = new HashMap<>();
