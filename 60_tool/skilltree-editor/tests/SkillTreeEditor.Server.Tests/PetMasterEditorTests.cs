@@ -119,6 +119,7 @@ public sealed class PetMasterEditorTests : IDisposable
     [InlineData("stat_range", "PET_STAT_TIERS")]
     [InlineData("skill_distribution", "PET_SKILL_TIERS")]
     [InlineData("skill_duplicate", "PET_SKILL_TIERS")]
+    [InlineData("name_length", "PET_SPECIES_NAMES")]
     [InlineData("scaling", "PET_STAT_SCALING")]
     public async Task RuntimeInvariantsRejectInvalidDraftBeforeSaving(string change, string code)
     {
@@ -134,6 +135,7 @@ public sealed class PetMasterEditorTests : IDisposable
             case "stat_range": stat["tiers"]![1]!["min"] = 1; break;
             case "skill_distribution": skills[0]!["tier"] = 1; break;
             case "skill_duplicate": skills[1]!["id"] = skills[0]!["id"]!.DeepClone(); break;
+            case "name_length": master["species"]![0]!["names"]![0] = new string('長', 25); break;
             case "scaling": stat["inheritanceMin"] = .9; break;
         }
         var original = await _service.ReadAsync(PetPath, CancellationToken.None);

@@ -86,6 +86,9 @@ internal static class PetMasterValidation
             var expectedEntity = JsonValueReader.String(entry["id"]) switch { "wolf" => "WOLF", "cat" => "CAT", "chicken" => "CHICKEN", _ => null };
             Check(JsonValueReader.String(entry["entityType"]) == expectedEntity && Number(entry["sizeMin"]) <= Number(entry["sizeMax"]),
                 "PET_SPECIES_VALUES", pointer, "種類とエンティティ種別を対応させ、サイズ下限を上限以下にしてください。", issues);
+            var names = entry["names"] as JsonArray;
+            Check(names is not null && names.All(name => JsonValueReader.String(name) is { Length: > 0 and <= 24 }),
+                "PET_SPECIES_NAMES", pointer + "/names", "名前候補はAPIと同じ1〜24文字で指定してください。", issues);
             if (entry["skills"] is JsonArray skills)
             {
                 var skillRows = skills.OfType<JsonObject>().ToArray();
