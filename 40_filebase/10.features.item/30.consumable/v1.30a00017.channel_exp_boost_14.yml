@@ -5,7 +5,7 @@ schemaVersion: 1
 id: 30a00017
 category: consumable
 name: "&bEXPブーストチケット【1.4倍・1時間】"
-icon: PAPER
+icon: EXPERIENCE_BOTTLE
 rarity: RARE
 maxStack: 64
 saleValue: 0

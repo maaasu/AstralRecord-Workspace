@@ -5,7 +5,7 @@ schemaVersion: 1
 id: 30a00007
 category: consumable
 name: "&bインスタンス優先接続券【5回】"
-icon: PAPER
+icon: ENDER_EYE
 rarity: RARE
 maxStack: 64
 saleValue: 0

@@ -5,7 +5,7 @@ schemaVersion: 1
 id: 30a00012
 category: consumable
 name: "&bDONER利用券【15日】"
-icon: NAME_TAG
+icon: GOLD_INGOT
 rarity: RARE
 maxStack: 64
 saleValue: 0

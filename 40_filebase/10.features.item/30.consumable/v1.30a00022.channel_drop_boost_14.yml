@@ -5,7 +5,7 @@ schemaVersion: 1
 id: 30a00022
 category: consumable
 name: "&bドロップブーストチケット【1.4倍・1時間】"
-icon: PAPER
+icon: CHEST
 rarity: RARE
 maxStack: 64
 saleValue: 0
