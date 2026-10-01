@@ -4,9 +4,18 @@
   "nodeId": "1532",
   "name": "&3フォートレス",
   "icon": "REINFORCED_DEEPSLATE",
-  "tags": ["defense"],
+  "tags": [
+    "defense"
+  ],
   "pointType": "CP",
   "pointCost": 1,
-  "effects": [{ "type": "skill", "skillId": "paladin_fortress" }],
-  "unlockCondition": { "classId": "paladin" }
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_fortress"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
 }

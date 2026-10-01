@@ -4,11 +4,18 @@
   "nodeId": "2395",
   "name": "&6リボーンプロテクトサークル",
   "icon": "TOTEM_OF_UNDYING",
-  "tags": ["health"],
+  "tags": [
+    "health"
+  ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [
-    { "type": "skill", "skillId": "archmage_reborn_protect_circle" }
+    {
+      "type": "skill",
+      "skillId": "archmage_reborn_protect_circle"
+    }
   ],
-  "unlockCondition": { "classId": "archmage" }
+  "unlockCondition": {
+    "classId": "archmage"
+  }
 }

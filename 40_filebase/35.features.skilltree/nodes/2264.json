@@ -4,7 +4,11 @@
   "nodeId": "2264",
   "name": "&dプリズムコンディション",
   "icon": "MAGENTA_CARPET",
-  "tags": ["resource", "mana", "astral"],
+  "tags": [
+    "resource",
+    "mana",
+    "astral"
+  ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [

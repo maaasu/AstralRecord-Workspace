@@ -4,11 +4,18 @@
   "nodeId": "2389",
   "name": "&bセレスティアルサークル",
   "icon": "LIGHT_BLUE_GLAZED_TERRACOTTA",
-  "tags": ["astral"],
+  "tags": [
+    "astral"
+  ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [
-    { "type": "skill", "skillId": "archmage_celestial_circle" }
+    {
+      "type": "skill",
+      "skillId": "archmage_celestial_circle"
+    }
   ],
-  "unlockCondition": { "classId": "archmage" }
+  "unlockCondition": {
+    "classId": "archmage"
+  }
 }

@@ -4,7 +4,10 @@
   "nodeId": "2263",
   "name": "&dエレメンタルボール",
   "icon": "WHITE_GLAZED_TERRACOTTA",
-  "tags": ["offense", "element"],
+  "tags": [
+    "offense",
+    "element"
+  ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [

@@ -4,11 +4,18 @@
   "nodeId": "2394",
   "name": "&bアストラルレイ",
   "icon": "PLAYER_HEAD",
-  "tags": ["astral"],
+  "tags": [
+    "astral"
+  ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [
-    { "type": "skill", "skillId": "archmage_astral_ray" }
+    {
+      "type": "skill",
+      "skillId": "archmage_astral_ray"
+    }
   ],
-  "unlockCondition": { "classId": "archmage" }
+  "unlockCondition": {
+    "classId": "archmage"
+  }
 }

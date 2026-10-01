@@ -4,9 +4,18 @@
   "nodeId": "1530",
   "name": "&bシールドバッシュ",
   "icon": "COPPER_GRATE",
-  "tags": ["offense"],
+  "tags": [
+    "offense"
+  ],
   "pointType": "CP",
   "pointCost": 1,
-  "effects": [{ "type": "skill", "skillId": "paladin_shield_bash" }],
-  "unlockCondition": { "classId": "paladin" }
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_shield_bash"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
 }

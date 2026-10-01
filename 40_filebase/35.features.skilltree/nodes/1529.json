@@ -4,9 +4,18 @@
   "nodeId": "1529",
   "name": "&bガードコンバート",
   "icon": "RESPAWN_ANCHOR",
-  "tags": ["defense"],
+  "tags": [
+    "defense"
+  ],
   "pointType": "CP",
   "pointCost": 1,
-  "effects": [{ "type": "skill", "skillId": "paladin_guard_convert" }],
-  "unlockCondition": { "classId": "paladin" }
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_guard_convert"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
 }

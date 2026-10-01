@@ -4,9 +4,18 @@
   "nodeId": "1533",
   "name": "&bガーディアンプロテクト",
   "icon": "GLOBE_BANNER_PATTERN",
-  "tags": ["defense"],
+  "tags": [
+    "defense"
+  ],
   "pointType": "CP",
   "pointCost": 1,
-  "effects": [{ "type": "skill", "skillId": "paladin_guardian_protect" }],
-  "unlockCondition": { "classId": "paladin" }
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "paladin_guardian_protect"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "paladin"
+  }
 }
