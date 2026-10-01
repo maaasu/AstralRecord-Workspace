@@ -1,0 +1,62 @@
+# design:
+#   motif: "ギリシア伝承 / エンプーサの変幻と銅の炎"
+#   progression: 21
+schemaVersion: 1
+id: empusa_witch
+type: MOB
+category: BOSS
+name: "&d&l紅銅の魔女エンプーサ"
+title: "&5-- 五彩の魔法を操る希少な怪異 --"
+level: 20
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7銅と炎の伝承を宿し、幾色もの魔法を織る魔女。"
+  - "&7渡し守を超える希少な強敵。詠唱の形を見極めよ。"
+  - "&7赤い炎の円を離れ、青い霜炎の二重輪は内側か外側へ。"
+  - "&7雷の帯は横へ、紫の呪いの扇は側面へ退避せよ。"
+  - "&7紅銅の十字は斜めの隙間へ。白い輪は安全の目印。"
+  - "&7儀式は一波ごとに避け、詠唱が途切れた隙に反撃せよ。"
+tags:
+  - boss
+  - humanoid
+  - magic
+equipment:
+  mainHand: BLAZE_ROD
+  offHand: AMETHYST_SHARD
+baseStats:
+  - status: MAX_HEALTH
+    value: 83200
+  - status: ATTACK
+    value: 1670
+  - status: DEFENSE
+    value: 1680
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 28
+    deaggroRange: 38
+    leashRange: 42
+  combat:
+    style: MAGIC
+    preferredRange: 7
+drops:
+  exp: 7800
+  items:
+    - itemId:
+        ref: item:10a00095
+      rate: 100.0
+      amount: 1
+      luckAffected: false
+      hidden: false
