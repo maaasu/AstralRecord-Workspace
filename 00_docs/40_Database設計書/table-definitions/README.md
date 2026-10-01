@@ -32,6 +32,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_safe_editor.sql` | 実ロード世代・server session・Plugin評価view・編集操作台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_batch_editor.sql` | スキルツリー一括変更JSONとaction制約。safe_editor適用後、新API配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260926_market_web_purchase.sql` | Web購入要求の冪等台帳を追加。対応API/Plugin/Web配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20261001_pet.sql` | ペット/卵・装備選択・操作台帳3表とactive個体一意制約。新API配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
@@ -50,6 +51,9 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | テーブル | 定義 |
 |:--|:--|
 | `dbo.account_benefits` | `AstralRecord/dbo.account_benefits.md` |
+| `dbo.pet_instance` | `AstralRecord/dbo.pet_instance.md` |
+| `dbo.account_pet_state` | `AstralRecord/dbo.account_pet_state.md` |
+| `dbo.pet_operation` | `AstralRecord/dbo.pet_operation.md` |
 | `dbo.account_benefit_operation` | `AstralRecord/dbo.account_benefit_operation.md` |
 | `dbo.user` | `AstralRecord/dbo.user.md` |
 | `dbo.user_setting` | `AstralRecord/dbo.user_setting.md` |

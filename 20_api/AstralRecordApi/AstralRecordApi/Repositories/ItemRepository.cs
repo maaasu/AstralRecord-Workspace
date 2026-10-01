@@ -24,6 +24,8 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
         "orb",
         "rune",
         "sigil",
+        "pet",
+        "pet_egg",
     };
 
     public IReadOnlyList<ItemSummaryResponse> GetAllSummaries()

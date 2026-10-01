@@ -10,6 +10,33 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class TradeRepositoryTests
 {
+    /// <summary>39-pet契約: 野生ペット/卵は移管可能、配合出自と装備中はAPIが拒否する。</summary>
+    [Theory]
+    [InlineData("WILD", false, false, true)]
+    [InlineData("WILD", true, false, true)]
+    [InlineData("BRED", false, false, false)]
+    [InlineData("BRED", true, false, false)]
+    [InlineData("WILD", false, true, false)]
+    public async Task CommitAsync_EnforcesPetOriginAndEquippedOwnership(string origin, bool egg, bool equipped, bool succeeds)
+    {
+        await using var harness = await TradeHarness.CreateAsync();
+        var pet = new PetInstanceEntity { InstanceId = Guid.NewGuid(), AccountId = harness.PlayerAAccountId,
+            SpeciesId = "wolf", ItemId = egg ? "market_egg" : "market_pet", IsEgg = egg, Origin = origin };
+        harness.DbContext.PetInstances.Add(pet);
+        var entry = new InventoryEntryEntity { InventoryEntryId = Guid.NewGuid(), InventoryId = harness.PlayerABagId,
+            ItemId = pet.ItemId, ItemCategory = egg ? "pet_egg" : "pet", InstanceId = pet.InstanceId, InstanceType = egg ? "PET_EGG" : "PET", Quantity = 1 };
+        harness.DbContext.InventoryEntries.Add(entry);
+        if (equipped) harness.DbContext.AccountPetStates.Add(new() { AccountId = harness.PlayerAAccountId, EquippedPetId = pet.InstanceId });
+        await harness.DbContext.SaveChangesAsync();
+        var request = harness.Request(); request.PlayerAItems = [new() { SourceInventoryEntryId = entry.InventoryEntryId, Quantity = 1 }];
+        var result = await harness.Repository.CommitAsync(request);
+        Assert.Equal(succeeds, result.Succeeded);
+        Assert.Equal(succeeds ? harness.PlayerBAccountId : harness.PlayerAAccountId,
+            (await harness.DbContext.PetInstances.AsNoTracking().SingleAsync(p => p.InstanceId == pet.InstanceId)).AccountId);
+        Assert.Equal(succeeds ? harness.PlayerBBagId : harness.PlayerABagId,
+            (await harness.DbContext.InventoryEntries.AsNoTracking().SingleAsync(e => e.InventoryEntryId == entry.InventoryEntryId)).InventoryId);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

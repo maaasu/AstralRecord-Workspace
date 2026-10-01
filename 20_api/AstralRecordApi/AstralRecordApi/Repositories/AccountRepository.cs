@@ -391,6 +391,25 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         var equipment = await dbContext.EquipmentInstances.AsNoTracking()
             .Where(instance => instance.AccountId == sourceAccountId && !instance.IsDeleted).ToListAsync();
         var equipmentIds = equipment.ToDictionary(instance => instance.EquipmentInstanceId, _ => Guid.NewGuid());
+        var pets = await dbContext.PetInstances.AsNoTracking()
+            .Where(instance => instance.AccountId == sourceAccountId && !instance.IsDeleted).ToArrayAsync();
+        var petIds = pets.ToDictionary(instance => instance.InstanceId, _ => Guid.NewGuid());
+        await dbContext.PetInstances.AddRangeAsync(pets.Select(instance => new PetInstanceEntity
+        {
+            InstanceId = petIds[instance.InstanceId], AccountId = targetAccountId,
+            SpeciesId = instance.SpeciesId, ItemId = instance.ItemId, IsEgg = instance.IsEgg,
+            Origin = instance.Origin, DetailsJson = instance.DetailsJson, Version = 1,
+            MaleParentId = instance.MaleParentId is Guid maleId && petIds.TryGetValue(maleId, out var clonedMaleId) ? clonedMaleId : instance.MaleParentId,
+            FemaleParentId = instance.FemaleParentId is Guid femaleId && petIds.TryGetValue(femaleId, out var clonedFemaleId) ? clonedFemaleId : instance.FemaleParentId,
+            CreatedAt = now, UpdatedAt = now, CreatedBy = actorId, UpdatedBy = actorId,
+        }));
+        var petState = await dbContext.AccountPetStates.AsNoTracking().SingleOrDefaultAsync(state => state.AccountId == sourceAccountId);
+        if (petState is not null)
+            dbContext.AccountPetStates.Add(new AccountPetStateEntity
+            {
+                AccountId = targetAccountId, UpdatedAt = now, UpdatedBy = actorId,
+                EquippedPetId = petState.EquippedPetId is Guid selectedPet && petIds.TryGetValue(selectedPet, out var clonedPetId) ? clonedPetId : null,
+            });
         await dbContext.EquipmentInstances.AddRangeAsync(equipment.Select(instance => new EquipmentInstanceEntity
         {
             EquipmentInstanceId = equipmentIds[instance.EquipmentInstanceId], AccountId = targetAccountId,
@@ -441,7 +460,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 SlotIndex = entry.SlotIndex, ItemCategory = entry.ItemCategory, ItemId = entry.ItemId,
                 InstanceType = entry.InstanceType,
                 InstanceId = entry.InstanceId is Guid sourceInstanceId && equipmentIds.TryGetValue(sourceInstanceId, out var targetInstanceId)
-                    ? targetInstanceId : entry.InstanceId,
+                    ? targetInstanceId : entry.InstanceId is Guid sourcePetId && petIds.TryGetValue(sourcePetId, out var targetPetId)
+                        ? targetPetId : entry.InstanceId,
                 Quantity = entry.Quantity, MetadataJson = entry.MetadataJson,
                 CreatedAt = now, UpdatedAt = now, CreatedBy = actorId, UpdatedBy = actorId, IsDeleted = false,
             }));
@@ -1127,6 +1147,11 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 .SetProperty(entity => entity.UpdatedAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedBy, deletedBy));
         await LockAccountInventoriesForUpdateAsync(accountId);
+        await dbContext.AccountPetStates.Where(state => state.AccountId == accountId).ExecuteDeleteAsync();
+        await dbContext.PetInstances.Where(pet => pet.AccountId == accountId && !pet.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(pet => pet.IsDeleted, true)
+                .SetProperty(pet => pet.UpdatedAt, deletedAt).SetProperty(pet => pet.UpdatedBy, deletedBy));
+        // 操作台帳は他機能と同様に再送の追跡用として削除済みアカウントに残す。
         await dbContext.InventoryEntries
             .Where(entity => dbContext.Inventories
                 .Where(inventory => inventory.AccountId == accountId)

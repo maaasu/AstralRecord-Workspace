@@ -4,6 +4,7 @@ using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using AstralRecordApi.Utilities;
 
 namespace AstralRecordApi.Repositories;
 
@@ -130,6 +131,13 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryEntryResponse?> CreateEntryAsync(Guid inventoryId, InventoryEntryCreateRequest request)
     {
+        if (PetInstanceAccess.IsPetType(request.InstanceType))
+            return await ExecutePetEntryWriteAsync(inventoryId, null, () => CreateEntryCoreAsync(inventoryId, request));
+        return await CreateEntryCoreAsync(inventoryId, request);
+    }
+
+    private async Task<InventoryEntryResponse?> CreateEntryCoreAsync(Guid inventoryId, InventoryEntryCreateRequest request)
+    {
         var inventory = await dbContext.Inventories
             .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
 
@@ -140,7 +148,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             request.ItemId,
             request.InstanceType,
             request.InstanceId,
-            inventory.AccountId);
+            inventory.AccountId, request.ItemCategory, request.Quantity);
         if (itemId is null)
             return null;
 
@@ -175,6 +183,18 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryEntryResponse?> UpdateEntryAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request)
     {
+        if (PetInstanceAccess.IsPetType(request.InstanceType))
+        {
+            var inventoryId = await dbContext.InventoryEntries.AsNoTracking().Where(e => e.InventoryEntryId == inventoryEntryId && !e.IsDeleted)
+                .Select(e => (Guid?)e.InventoryId).SingleOrDefaultAsync();
+            if (!inventoryId.HasValue) return null;
+            return await ExecutePetEntryWriteAsync(inventoryId.Value, inventoryEntryId, () => UpdateEntryCoreAsync(inventoryEntryId, request));
+        }
+        return await UpdateEntryCoreAsync(inventoryEntryId, request);
+    }
+
+    private async Task<InventoryEntryResponse?> UpdateEntryCoreAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request)
+    {
         var entity = await dbContext.InventoryEntries
             .FirstOrDefaultAsync(x => x.InventoryEntryId == inventoryEntryId && !x.IsDeleted);
 
@@ -190,7 +210,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             request.ItemId,
             request.InstanceType,
             request.InstanceId,
-            inventory.AccountId);
+            inventory.AccountId, request.ItemCategory, request.Quantity);
         if (itemId is null)
             return null;
 
@@ -245,7 +265,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                     requested.ItemId,
                     requested.InstanceType,
                     requested.InstanceId,
-                    inventory.AccountId);
+                    inventory.AccountId, requested.ItemCategory, requested.Quantity);
                 if (itemId is null)
                     return null;
                 resolvedItemIds.Add(itemId);
@@ -533,12 +553,41 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         return candidates.Count;
     }
 
+    private async Task<InventoryEntryResponse?> ExecutePetEntryWriteAsync(Guid inventoryId, Guid? entryId,
+        Func<Task<InventoryEntryResponse?>> action)
+    {
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            var owner = await FindInventoryAccountIdAsync(inventoryId);
+            if (!owner.HasValue) return null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(dbContext.Database.IsSqlServer()
+                ? IsolationLevel.ReadCommitted : IsolationLevel.Serializable);
+            if (!await LockAccountForInventoryUpdateAsync(owner.Value)
+                || await FindInventoryAndLockAccountInventoriesAsync(inventoryId, owner.Value) is null) return null;
+            var entries = await FindCurrentEntriesForUpdateAsync(inventoryId);
+            if (entryId.HasValue && entries.All(e => e.InventoryEntryId != entryId.Value)) return null;
+            var result = await action();
+            if (result is not null) await transaction.CommitAsync();
+            return result;
+        });
+    }
+
     private async Task<string?> ResolveEntryItemIdAsync(
         string? requestedItemId,
         string? instanceType,
         Guid? instanceId,
-        Guid ownerAccountId)
+        Guid ownerAccountId, string category, long quantity)
     {
+        var isPet = PetInstanceAccess.IsPetType(instanceType);
+        if (isPet)
+        {
+            if (!instanceId.HasValue || quantity != 1 || category != (instanceType!.Trim().ToUpperInvariant() == "PET_EGG" ? "pet_egg" : "pet")) return null;
+            var pet = await dbContext.PetInstances.SingleOrDefaultAsync(p => p.InstanceId == instanceId && p.AccountId == ownerAccountId && !p.IsDeleted);
+            return pet is not null && PetInstanceAccess.Matches(pet, instanceType, requestedItemId) ? pet.ItemId : null;
+        }
+        if (category is "pet" or "pet_egg") return null;
         if (string.IsNullOrWhiteSpace(instanceType) || !instanceId.HasValue)
             return requestedItemId;
 

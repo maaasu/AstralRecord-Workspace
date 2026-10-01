@@ -44,6 +44,8 @@ public class MasterDataSeeder(
             ["50.bundle"] = "bundle",
             ["60.rune"] = "rune",
             ["70.sigil"] = "sigil",
+            ["80.pet"] = "pet",
+            ["81.pet_egg"] = "pet_egg",
             ["99.currency"] = "currency",
         };
 
@@ -150,6 +152,7 @@ public class MasterDataSeeder(
                 await ValidateReferencesAsync(warnings, ct);
                 await ValidateWorldRequiredItemsAsync(ct);
                 await ValidateSkillSystemMastersAsync(ct);
+                await ValidatePetMastersAsync(ct);
                 await transaction.CommitAsync(ct);
             }, cancellationToken);
 
@@ -185,6 +188,28 @@ public class MasterDataSeeder(
         }
 
         return ToResult(run, warnings);
+    }
+
+    private async Task ValidatePetMastersAsync(CancellationToken cancellationToken)
+    {
+        var petPayloads = await db.Entries.Where(e => e.MasterType == "pet" && !e.IsDeleted)
+            .Select(e => e.PayloadJson).ToArrayAsync(cancellationToken);
+        if (petPayloads.Length == 0) return;
+        if (petPayloads.Length != 1) throw new InvalidOperationException("Pet master must be a single 'pets' definition.");
+        var master = MasterDataPayloadJson.Deserialize<PetMasterResponse>(petPayloads[0])
+            ?? throw new InvalidOperationException("Pet master cannot be decoded.");
+        PetMasterValidator.Validate(master);
+        var items = await db.Entries.Where(e => e.MasterType == "item" && !e.IsDeleted)
+            .Select(e => new { e.MasterId, e.Category }).ToArrayAsync(cancellationToken);
+        string Id(string id) => id.StartsWith("item:", StringComparison.OrdinalIgnoreCase) ? id[5..] : id;
+        bool Exists(string id, string category) => items.Any(item => item.MasterId == Id(id) && item.Category == category);
+        foreach (var species in master.Species)
+            if (!Exists(species.EggItemId, "pet_egg") || !Exists(species.PetItemId, "pet")
+                || species.HatchMaterials.Any(m => !Exists(m.ItemId, "material")))
+                throw new InvalidOperationException("Pet item/hatch material reference is invalid: " + species.Id);
+        if (!Exists(master.Rules.ReviveOrbItemId, "orb")
+            || master.Rules.BreedMaterials.Concat(master.Rules.ReviveMaterials).Any(m => !Exists(m.ItemId, "material")))
+            throw new InvalidOperationException("Pet breed/revive material reference is invalid.");
     }
 
     // ---- source 同期 -------------------------------------------------------

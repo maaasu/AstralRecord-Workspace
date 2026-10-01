@@ -125,6 +125,7 @@ builder.Services.AddScoped<IChannelBoostRepository, ChannelBoostRepository>();
 builder.Services.AddScoped<IAstraldShopRepository, AstraldShopRepository>();
 builder.Services.AddScoped<IWebMailRepository, WebMailRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IPetRepository, PetRepository>();
 builder.Services.AddScoped<IPlayerStateSnapshotRepository, PlayerStateSnapshotRepository>();
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 builder.Services.AddScoped<IEquipmentOrbOperationRepository, EquipmentOrbOperationRepository>();

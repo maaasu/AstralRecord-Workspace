@@ -3,6 +3,8 @@
 連続アイテム・消耗・ルーンのようなスタック型アイテムと、装備・ペットのようなインスタンス生成型アイテムの両方を 1 テーブルで扱えるようにしています。
 どのインベントリ種別に属するかの判定は親テーブル `dbo.inventory.inventory_type` とプラグイン側コードで行います。
 
+ペットは `item_category=pet/instance_type=PET`、卵は `pet_egg/PET_EGG`。双方 `instance_id→pet_instance.instance_id` をAPIで所有者・種別・itemID照合し数量1に限定する。active行の個体IDは `UX_inventory_entry_pet_instance` で一意。卵の遺伝情報をmetadata_jsonへ格納しない。詳細は [[39_3.00-ペットAPI]]。
+
 ---
 
 ## テーブル情報
