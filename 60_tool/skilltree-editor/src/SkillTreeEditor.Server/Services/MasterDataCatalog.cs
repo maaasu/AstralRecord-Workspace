@@ -40,7 +40,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     {
         var entries = paths.Enumerate().ToArray();
         var directories = entries.Where(path => MasterDataPaths.IsData(path) || path.EndsWith("YAMLスキーマ定義.md", StringComparison.Ordinal))
-            .Select(path => Path.GetDirectoryName(path)!).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray();
+            .Select(path => Path.GetDirectoryName(path)!).Distinct(MasterDataPaths.Comparer).Order(StringComparer.Ordinal).ToArray();
         var categories = new List<MasterDataCategory>();
         foreach (var directory in directories)
         {
@@ -57,12 +57,12 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     private async Task<MasterDataCategory> ReadCategoryAsync(string category, string[] entries, CancellationToken token)
     {
         var directory = category == "." ? paths.Root : paths.Resolve(category, true);
-        var ownFiles = entries.Where(path => string.Equals(Path.GetDirectoryName(path), directory, StringComparison.OrdinalIgnoreCase) && MasterDataPaths.IsData(path)).ToArray();
+        var ownFiles = entries.Where(path => string.Equals(Path.GetDirectoryName(path), directory, MasterDataPaths.Comparison) && MasterDataPaths.IsData(path)).ToArray();
         var documentPaths = new List<string>();
         var ancestor = directory;
-        while (ancestor.StartsWith(paths.Root, StringComparison.OrdinalIgnoreCase))
+        while (ancestor.StartsWith(paths.Root, MasterDataPaths.Comparison))
         {
-            var localDocuments = entries.Where(path => string.Equals(Path.GetDirectoryName(path), ancestor, StringComparison.OrdinalIgnoreCase)
+            var localDocuments = entries.Where(path => string.Equals(Path.GetDirectoryName(path), ancestor, MasterDataPaths.Comparison)
                 && path.EndsWith("YAMLスキーマ定義.md", StringComparison.Ordinal)).ToArray();
             documentPaths.InsertRange(0, localDocuments);
             // A separately defined resource (e.g. set_effect) is not an item subtype.
@@ -79,8 +79,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
         }
         var schemas = new List<MasterDataSchema>();
-        var schemaDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { directory, Path.Combine(directory, "schemas") };
-        if (category.StartsWith("35.features.skilltree/", StringComparison.OrdinalIgnoreCase))
+        var schemaDirectories = new HashSet<string>(MasterDataPaths.Comparer) { directory, Path.Combine(directory, "schemas") };
+        if (category.StartsWith("35.features.skilltree/", MasterDataPaths.Comparison))
             schemaDirectories.Add(Path.Combine(paths.Root, "35.features.skilltree", "schemas"));
         var schemaFiles = entries.Where(path => path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)
             && schemaDirectories.Contains(Path.GetDirectoryName(path)!));
@@ -108,7 +108,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
 
     public static string? ItemCode(string category)
     {
-        var parts = category.ToLowerInvariant().Split('/');
+        var parts = (OperatingSystem.IsWindows() ? category.ToLowerInvariant() : category).Split('/');
         return parts.Length == 2 && parts[0] == "10.features.item" && Regex.IsMatch(parts[1], "^(10|20|30|40|50|60|70|99)\\.[a-z_]+$")
             ? parts[1][..2] : null;
     }
@@ -134,8 +134,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 if (scope.Length > 0 && !quoted.Success && !arrayPaths.Contains(scope.Replace("[]", "", StringComparison.Ordinal))
                     && !recordTypes.ContainsKey(first) && !scope.Contains('.') && !scope.EndsWith("[]", StringComparison.Ordinal)
                     && scope is not "params" and not "rewards" and not "challenge") scope = "";
-                if (category == "47.features.quest" && heading == "item") scope = "@quest-items";
-                if (category.StartsWith("40.features.mob/npc", StringComparison.Ordinal) && heading == "Action") scope = "npc.interaction.actions[]";
+                if (category.Equals("47.features.quest", MasterDataPaths.Comparison) && heading == "item") scope = "@quest-items";
+                if (category.StartsWith("40.features.mob/npc", MasterDataPaths.Comparison) && heading == "Action") scope = "npc.interaction.actions[]";
                 header = null;
                 continue;
             }
@@ -167,7 +167,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             if (type.Length == 0) type = snippetTypes.GetValueOrDefault(scopedKey.TrimEnd('[', ']')) ?? snippetTypes.GetValueOrDefault(scopedKey) ?? "Any";
             var segments = scopedKey.Replace("[]", ".*", StringComparison.Ordinal).Split('.', StringSplitOptions.RemoveEmptyEntries).ToList();
             // Item subtype sections are maps in actual YAML; historical tables use equipment[].
-            if (category.StartsWith("10.features.item/", StringComparison.Ordinal) && segments.Count > 1
+            if (category.StartsWith("10.features.item/", MasterDataPaths.Comparison) && segments.Count > 1
                 && segments[1] == "*" && segments[0] is "equipment" or "consumable" or "bundle" or "rune" or "orb" or "sigil" or "currency")
                 segments.RemoveAt(1);
             segments = segments.Select(segment => segment.StartsWith('<') || segment.StartsWith('{') ? "*" : segment).ToList();

@@ -4,6 +4,8 @@ namespace SkillTreeEditor.Server.Services;
 public sealed class MasterDataPaths(WorkspacePaths workspace)
 {
     public string Root { get; } = Path.GetFullPath(Path.Combine(workspace.WorkspaceRoot, "40_filebase"));
+    public static StringComparison Comparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    public static StringComparer Comparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public string Resolve(string relative, bool directory = false)
     {
@@ -15,7 +17,24 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
         if (!directory && !IsData(full))
             throw new ArgumentException("編集できるファイルは .yml / .yaml / .json です。");
         RequireNoLinks(full);
+        RequireCanonicalCase(relative);
         return full;
+    }
+
+    private void RequireCanonicalCase(string relative)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var current = Root;
+        foreach (var segment in relative.Split('/'))
+        {
+            if (!Directory.Exists(current)) break;
+            var existing = Directory.EnumerateFileSystemEntries(current, segment, SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .FirstOrDefault(name => string.Equals(name, segment, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null && !string.Equals(existing, segment, StringComparison.Ordinal))
+                throw new ArgumentException($"パスの大文字小文字を実ファイル名 '{existing}' に合わせてください。");
+            current = Path.Combine(current, segment);
+        }
     }
 
     public void RequireNoLinks(string path)
@@ -56,6 +75,6 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
     public string Relative(string full) => Path.GetRelativePath(Root, full).Replace('\\', '/');
     public static bool IsData(string path) => Path.GetExtension(path).ToLowerInvariant() is ".yml" or ".yaml" or ".json";
     public static string Format(string path) => path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? "json" : "yaml";
-    public static bool IsReadOnly(string path) => path.Equals("35.features.skilltree/node-id-sequence.json", StringComparison.OrdinalIgnoreCase)
+    public static bool IsReadOnly(string path) => path.Equals("35.features.skilltree/node-id-sequence.json", Comparison)
         || path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase);
 }

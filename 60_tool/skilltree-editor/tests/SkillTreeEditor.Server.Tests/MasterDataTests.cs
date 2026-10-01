@@ -279,6 +279,51 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task WindowsCaseVariantsCannotBypassReferenceDeletionOrMetadataValidation()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        const string itemPath = "10.features.item/10.material/v1.10a00001.sample.yml";
+        Write(itemPath, "schemaVersion: 1\nid: 10a00001\ncategory: material\nname: sample\n");
+        Write("30.features.skill/v1.skill.yml", "id: skill\nitemId:\n  ref: item:10a00001\n");
+        var original = await _service.ReadAsync(itemPath, CancellationToken.None);
+        var changedCase = "10.FEATURES.ITEM/10.MATERIAL/V1.10A00001.SAMPLE.YML";
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteAsync(changedCase, original.Revision, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => _validation.ValidateAsync(changedCase, "name: null\n", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => _catalog.GetAsync("10.FEATURES.ITEM/10.MATERIAL", CancellationToken.None));
+        Assert.Equal(original.Raw, (await _service.ReadAsync(itemPath, CancellationToken.None)).Raw);
+        Assert.Single(await _service.ReferencesAsync(itemPath, CancellationToken.None));
+        Assert.Equal("item", MasterDataService.Kind(changedCase));
+        Assert.Equal("tag", MasterDataService.Kind("76.SHARED.TAG/v1.tags.yml"));
+        Assert.Equal("status", MasterDataService.Kind("75.SHARED.STATUS/v1.status_types.yml"));
+    }
+
+    [Fact]
+    public async Task WindowsCaseVariantsCannotBypassNodeAllocationAndSemanticValidation()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        const string nodePath = "35.features.skilltree/nodes/1000.json";
+        Write(nodePath, "{\"nodeId\":\"1000\"}");
+        const string changedCase = "35.FEATURES.SKILLTREE/NODES/1000.json";
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(new("35.FEATURES.SKILLTREE/NODES/1001.json", "{\"nodeId\":\"1001\"}"), CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => _validation.ValidateAsync(changedCase, "{\"nodeId\":\"1000\"}", CancellationToken.None));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.CreateAsync(new("35.features.skilltree/nodes/1001.json", "{}"), CancellationToken.None));
+        var report = await _validation.ValidateAsync(nodePath, "{\"nodeId\":\"1000\"}", CancellationToken.None);
+        Assert.False(report.IsValid);
+        Assert.Contains(report.Issues, issue => issue.Code == "SCHEMA_REFERENCE_REQUIRED");
+    }
+
+    [Fact]
+    public async Task CanonicalCasingOfArbitraryFoldersIsPreserved()
+    {
+        const string path = "CustomFolder/MixedCase.yml";
+        var created = await _service.CreateAsync(new(path, "id: custom\nname: test\n"), CancellationToken.None);
+        Assert.Equal(path, created.Path);
+        Assert.Equal("test", created.Content!["name"]!.ToString());
+        if (OperatingSystem.IsWindows())
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.ReadAsync("customfolder/MixedCase.yml", CancellationToken.None));
+    }
+
+    [Fact]
     public void LinkedDirectoriesCannotEscapeFilebase()
     {
         var target = Path.Combine(_root, "outside");

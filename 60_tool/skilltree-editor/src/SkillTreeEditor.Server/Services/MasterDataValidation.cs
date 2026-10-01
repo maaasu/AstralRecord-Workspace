@@ -24,12 +24,12 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         }
         if (content is not JsonObject)
             return new(false, [new("error", "ROOT_SHAPE", "", "マスタ文書のルートはオブジェクトで記載してください。")]);
-        if (path.StartsWith("35.features.skilltree/nodes/", StringComparison.OrdinalIgnoreCase) && content is JsonObject node)
+        if (path.StartsWith("35.features.skilltree/nodes/", MasterDataPaths.Comparison) && content is JsonObject node)
         {
             var report = await skillTreeValidation.ValidateNodeDocumentAsync(node, Path.GetFileName(path), token);
             issues.AddRange(report.Issues.Select(issue => new MasterDataIssue(issue.Severity, issue.Code, issue.Path ?? "", issue.Message)));
         }
-        else if (path.StartsWith("35.features.skilltree/structures/", StringComparison.OrdinalIgnoreCase) && content is JsonObject structure)
+        else if (path.StartsWith("35.features.skilltree/structures/", MasterDataPaths.Comparison) && content is JsonObject structure)
         {
             var report = await skillTreeValidation.ValidateStructureDocumentAsync(structure, Path.GetFileName(path), token);
             issues.AddRange(report.Issues.Select(issue => new MasterDataIssue(issue.Severity, issue.Code, issue.Path ?? "", issue.Message)));
@@ -55,7 +55,7 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                 var family = path.Split('/')[0];
                 foreach (var other in paths.Enumerate(family).Where(MasterDataPaths.IsData))
                 {
-                    if (other.Equals(full, StringComparison.OrdinalIgnoreCase) || other.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (other.Equals(full, MasterDataPaths.Comparison) || other.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
                     var otherContent = codec.Parse(other, await File.ReadAllTextAsync(other, token)).Content;
                     if (otherContent is JsonObject otherObject && Text(otherObject["id"]) == id)
                         issues.Add(new("error", "DUPLICATE_ID", "/id", $"ID '{id}' は {paths.Relative(other)} で使用されています。"));
@@ -74,7 +74,7 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                     issues.Add(new("error", "ITEM_FILENAME", "/id", "ファイル名は v<schemaVersion>.<id>.<管理用slug>.yml の形式です。"));
             }
         }
-        if (path.StartsWith("30.features.skill/", StringComparison.Ordinal) && content is JsonObject skill && skill.ContainsKey("params"))
+        if (path.StartsWith("30.features.skill/", MasterDataPaths.Comparison) && content is JsonObject skill && skill.ContainsKey("params"))
             issues.Add(new("warning", "IMPLEMENTATION_PARAMS_UNVERIFIED", "/params", "実装固有の params の意味・動作は Plugin の implementationId に対応する処理で確認してください。"));
         return new(issues.All(issue => issue.Severity != "error"), issues.Distinct().ToArray());
     }

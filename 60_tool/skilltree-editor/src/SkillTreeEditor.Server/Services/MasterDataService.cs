@@ -109,7 +109,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                     throw new ArgumentException("管理用 slug は英数字・_・- で指定してください。");
                 path += $"/v{version}.{id}.{slug}.yml";
             }
-            else if (path == "20.features.class")
+            else if (path.Equals("20.features.class", MasterDataPaths.Comparison))
             {
                 var id = SafePath.RequireIdentifier(MasterDataValidation.Text(content["id"]) ?? "", "id");
                 if (!decimal.TryParse(MasterDataValidation.Text(content["order"]), NumberStyles.Float, CultureInfo.InvariantCulture, out var order))
@@ -122,7 +122,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             raw = codec.Render(new(path, content, request.Raw)).Raw;
         }
         var full = RequireWritable(path);
-        if (path.StartsWith("35.features.skilltree/nodes/", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("35.features.skilltree/nodes/", MasterDataPaths.Comparison))
             throw new UnauthorizedAccessException("ノードの新規作成・複製はスキルツリー画面で自動採番してください。");
         if (File.Exists(full)) throw new InvalidOperationException("作成先ファイルは既に存在します。");
         await RequireValidAsync(path, raw, token);
@@ -136,7 +136,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
     {
         await using var mutation = await EnterMutationAsync(token);
         var full = RequireWritable(path);
-        if (path.Equals("config.yml", StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("Filebase の設定ファイルは削除できません。");
+        if (path.Equals("config.yml", MasterDataPaths.Comparison)) throw new UnauthorizedAccessException("Filebase の設定ファイルは削除できません。");
         var source = await ReadAsync(path, token);
         RequireRevision(source, revision);
         var references = await ReferencesAsync(path, token);
@@ -166,7 +166,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         foreach (var file in paths.Enumerate().Where(MasterDataPaths.IsData))
         {
             var relative = paths.Relative(file);
-            if (relative.Equals(path, StringComparison.OrdinalIgnoreCase) || file.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
+            if (relative.Equals(path, MasterDataPaths.Comparison) || file.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
             var document = await ReadAsync(relative, token);
             foreach (var value in Walk(document.Content))
             {
@@ -180,7 +180,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 && MasterDataValidation.Text(root["$schema"]) is { } schema && !Uri.TryCreate(schema, UriKind.Absolute, out _))
             {
                 var fullReference = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, schema));
-                if (fullReference.Equals(paths.Resolve(path), StringComparison.OrdinalIgnoreCase))
+                if (fullReference.Equals(paths.Resolve(path), MasterDataPaths.Comparison))
                     result.Add(new(relative, "/$schema", schema, null, "schema"));
             }
         }
@@ -246,14 +246,14 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
 
     public static string Kind(string path)
     {
-        if (path.StartsWith("10.features.item/20.equipment/set_effect/", StringComparison.Ordinal)) return "set_effect";
-        if (path.StartsWith("10.features.item/", StringComparison.Ordinal)) return "item";
-        if (path.StartsWith("80.shared.loot/table/", StringComparison.Ordinal)) return "loot_table";
-        if (path.StartsWith("80.shared.loot/pool/", StringComparison.Ordinal)) return "loot_pool";
-        if (path.StartsWith("35.features.skilltree/nodes/", StringComparison.Ordinal)) return "node";
-        if (path.StartsWith("35.features.skilltree/structures/", StringComparison.Ordinal)) return "structure";
+        if (path.StartsWith("10.features.item/20.equipment/set_effect/", MasterDataPaths.Comparison)) return "set_effect";
+        if (path.StartsWith("10.features.item/", MasterDataPaths.Comparison)) return "item";
+        if (path.StartsWith("80.shared.loot/table/", MasterDataPaths.Comparison)) return "loot_table";
+        if (path.StartsWith("80.shared.loot/pool/", MasterDataPaths.Comparison)) return "loot_pool";
+        if (path.StartsWith("35.features.skilltree/nodes/", MasterDataPaths.Comparison)) return "node";
+        if (path.StartsWith("35.features.skilltree/structures/", MasterDataPaths.Comparison)) return "structure";
         var top = path.Split('/')[0].Split('.', 3).Last().Replace('.', '_');
-        return top;
+        return OperatingSystem.IsWindows() ? top.ToLowerInvariant() : top;
     }
 
     private static IEnumerable<string> ReferencePrefixes(string kind) => kind switch
