@@ -64,9 +64,9 @@ baseStats:
   - status: MAX_HEALTH
     value: 1400
   - status: ATTACK
-    value: 254
+    value: 230
   - status: DEFENSE
-    value: 244
+    value: 200
   - status: ACCURACY
     value: 95
   - status: EVASION
