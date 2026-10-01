@@ -11,7 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -31,7 +31,7 @@ final class MiddleEarthRushMotion {
             @NotNull MobInstance caster,
             @NotNull Entity entity,
             @NotNull Location targetLocation,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             double speed,
             double damageRatio,
             @NotNull Runnable onComplete
@@ -62,13 +62,13 @@ final class MiddleEarthRushMotion {
             @NotNull MobInstance caster,
             @NotNull Entity entity,
             @NotNull Location targetLocation,
-            @NotNull Player target,
+            @NotNull LivingEntity target,
             double speed,
             double damageRatio,
             @NotNull DamageElement damageElement,
             @NotNull Runnable onComplete
     ) {
-        if (!isTargetAvailable(entity, target, targetLocation)) {
+        if (!isTargetAvailable(entity, target, targetLocation, damageService)) {
             onComplete.run();
             return;
         }
@@ -88,7 +88,7 @@ final class MiddleEarthRushMotion {
                 MobInstance active = mobService.getInstance(caster.instanceId());
                 Entity activeEntity = active == caster ? mobService.entityController().getEntity(active) : null;
                 if (activeEntity == null || activeEntity.isDead()
-                        || !isTargetAvailable(activeEntity, target, targetLocation)) {
+                        || !isTargetAvailable(activeEntity, target, targetLocation, damageService)) {
                     complete();
                     return;
                 }
@@ -121,7 +121,7 @@ final class MiddleEarthRushMotion {
                 }
             }
 
-            private double rayDistance(@NotNull Location from, @NotNull Location to, @NotNull Player player) {
+            private double rayDistance(@NotNull Location from, @NotNull Location to, @NotNull LivingEntity player) {
                 Vector segment = to.toVector().subtract(from.toVector());
                 RayTraceResult hit = player.getBoundingBox().expand(0.25D)
                         .rayTrace(from.toVector(), segment, segment.length());
@@ -135,14 +135,14 @@ final class MiddleEarthRushMotion {
         }.runTaskTimer(mobService.plugin(), 0L, 1L);
     }
 
+    /** プレイヤーとペット双方について、生存・主人・同一 World を確認します。 */
     static boolean isTargetAvailable(
             @NotNull Entity entity,
-            @NotNull Player target,
-            @NotNull Location targetLocation
+            @NotNull LivingEntity target,
+            @NotNull Location targetLocation,
+            @NotNull DamageService damageService
     ) {
-        return target.getUniqueId() != null
-                && AccountModeGuard.isGameplayPlayer(target)
-                && target.isOnline() && !target.isDead()
+        return damageService.isMobCombatTarget(target)
                 && entity.getWorld() == target.getWorld()
                 && entity.getWorld() == targetLocation.getWorld();
     }

@@ -35,8 +35,7 @@ public final class TwilightColossusGateSlamSkillExecutor implements MobSkillExec
         renderImpact(center);
         for (Entity entity : center.getWorld().getNearbyEntities(center, RANGE, RANGE, RANGE)) {
             AstEntity victim = damageService.resolveEntity(entity);
-            if (victim.isPlayer() && victim.player() != null
-                    && AccountModeGuard.isGameplayPlayer(victim.player())
+            if (damageService.isMobCombatTarget(entity)
                     && victim.location().distanceSquared(center) <= RANGE * RANGE) {
                 damageService.attack(
                         AstEntity.mob(context.mob()),

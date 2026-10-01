@@ -10,7 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,14 +63,12 @@ public final class AllThingsElIceSphereMobSkillExecutor implements MobSkillExecu
         if (origin.getWorld() == null) {
             return false;
         }
-        List<Player> players = origin.getWorld().getPlayers().stream()
-                .filter(player -> player.isOnline() && !player.isDead() && isGameplayTargetPlayer(player))
-                .toList();
+        List<LivingEntity> players = damageService.mobCombatTargets(origin.getWorld());
         if (players.isEmpty()) {
             return false;
         }
         Map<String, Double> params = context.binding().params();
-        for (Player player : players) {
+        for (LivingEntity player : players) {
             for (int index = 0; index < 2; index++) {
                 projectileService.launchBouncingIceSphere(
                         context.mob(), origin, spreadToward(origin, player, params.getOrDefault("spreadDegrees", 24.0D)),
@@ -84,11 +82,11 @@ public final class AllThingsElIceSphereMobSkillExecutor implements MobSkillExecu
         return true;
     }
 
-    private boolean isGameplayTargetPlayer(@NotNull Player player) {
-        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
+    private boolean isGameplayTargetPlayer(@NotNull LivingEntity player) {
+        return damageService.isMobCombatTarget(player);
     }
 
-    private @NotNull Vector spreadToward(@NotNull Location origin, @NotNull Player player, double spreadDegrees) {
+    private @NotNull Vector spreadToward(@NotNull Location origin, @NotNull LivingEntity player, double spreadDegrees) {
         Vector direction = player.getEyeLocation().toVector().subtract(origin.toVector());
         if (direction.lengthSquared() <= 1.0E-6D) {
             direction = new Vector(1.0D, 0.0D, 0.0D);

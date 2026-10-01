@@ -18,7 +18,7 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -182,8 +182,8 @@ public final class AinurindaleFangWaveMobSkillExecutor implements MobSkillExecut
             double damageRatio
     ) {
         Set<UUID> damaged = new HashSet<>();
-        for (Player player : centers.get(1).getWorld().getPlayers()) {
-            if (!player.isOnline() || player.isDead() || !isGameplayTargetPlayer(player)
+        for (LivingEntity player : damageService.mobCombatTargets(centers.get(1).getWorld())) {
+            if (!damageService.isMobCombatTarget(player)
                     || !damaged.add(player.getUniqueId())) {
                 continue;
             }
@@ -198,8 +198,8 @@ public final class AinurindaleFangWaveMobSkillExecutor implements MobSkillExecut
         }
     }
 
-    private boolean isGameplayTargetPlayer(@NotNull Player player) {
-        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
+    private boolean isGameplayTargetPlayer(@NotNull LivingEntity player) {
+        return damageService.isMobCombatTarget(player);
     }
 
     private @NotNull Vector horizontalDirection(

@@ -35,6 +35,7 @@ import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -45,6 +46,7 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,6 +83,21 @@ public class MobCombatService {
     private AfkService afkService;
     private BiConsumer<AstPlayer, String> mobDefeatedListener;
     private BiConsumer<AstPlayer, MobDefeated> mobDefeatedLevelListener;
+    private PetRuntimeService petRuntimeService;
+
+    /** @param runtime ペット標的・活動経験値・全敵共通卵抽選の連携先 */
+    public void setPetRuntimeService(@Nullable PetRuntimeService runtime) { this.petRuntimeService = runtime; }
+
+    /**
+     * @param id 標的 UUID
+     * @return 現在有効なプレイヤーまたは召喚ペット。存在しなければ null
+     */
+    public @Nullable LivingEntity resolveTarget(@Nullable UUID id) {
+        if (id == null) return null;
+        Player player = Bukkit.getPlayer(id);
+        if (player != null && player.isOnline() && isGameplayTargetPlayer(player) && !isPlayerDead(player)) return player;
+        return petRuntimeService == null ? null : petRuntimeService.target(id);
+    }
 
     /**
      * コンストラクタ。
@@ -171,10 +188,10 @@ public class MobCombatService {
      * Mob のターゲットを選定して {@link MobInstance#targetId(UUID)} に設定します。
      *
      * @param instance 対象 Mob
-     * @return 選定されたプレイヤー（候補なしなら {@code null}）
+     * @return 選定されたプレイヤーまたはペット（候補なしなら {@code null}）
      */
     @Nullable
-    public Player selectTarget(@NotNull MobInstance instance) {
+    public LivingEntity selectTarget(@NotNull MobInstance instance) {
         MobTemplate template = instance.template();
         MobTargetingConfig targeting = template.targeting();
         if (targeting == null || template.category() == MobCategory.NPC) {
@@ -189,8 +206,8 @@ public class MobCombatService {
         Location loc = instance.currentLocation();
         if (targeting.retaliateOnly()) {
             UUID topId = instance.threatTable().top();
-            Player top = topId == null ? null : Bukkit.getPlayer(topId);
-            if (top == null || !isGameplayTargetPlayer(top) || isPlayerDead(top) || top.getWorld() != loc.getWorld()
+            LivingEntity top = resolveTarget(topId);
+            if (top == null || top.getWorld() != loc.getWorld()
                     || top.getLocation().distanceSquared(loc) > aggroSq) {
                 instance.targetId(null);
                 return null;
@@ -198,7 +215,7 @@ public class MobCombatService {
             instance.targetId(top.getUniqueId());
             return top;
         }
-        List<Player> candidates = new ArrayList<>();
+        List<LivingEntity> candidates = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != loc.getWorld()) continue;
             if (!isGameplayTargetPlayer(player)) continue;
@@ -206,16 +223,17 @@ public class MobCombatService {
             if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
             candidates.add(player);
         }
+        if (petRuntimeService != null) candidates.addAll(petRuntimeService.targets(loc, targeting.aggroRange()));
         if (candidates.isEmpty()) {
             instance.targetId(null);
             return null;
         }
 
-        Player chosen = switch (targeting.strategy()) {
+        LivingEntity chosen = switch (targeting.strategy()) {
             case NEAREST -> nearest(candidates, loc);
             case HIGHEST_THREAT -> {
                 UUID top = instance.threatTable().top();
-                Player p = top == null ? null : Bukkit.getPlayer(top);
+                LivingEntity p = resolveTarget(top);
                 yield p != null && candidates.contains(p) ? p : nearest(candidates, loc);
             }
             case RANDOM -> candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
@@ -238,8 +256,8 @@ public class MobCombatService {
             instance.state(MobState.AGGRO);
             return;
         }
-        Player target = Bukkit.getPlayer(targetId);
-        if (target == null || !target.isOnline() || !isGameplayTargetPlayer(target) || isPlayerDead(target)) {
+        LivingEntity target = resolveTarget(targetId);
+        if (target == null || target.getWorld() != instance.currentLocation().getWorld()) {
             instance.targetId(null);
             instance.state(MobState.AGGRO);
             return;
@@ -271,13 +289,14 @@ public class MobCombatService {
             return;
         }
 
-        AstPlayer astTarget = AstPlayerCache.get(target);
-        if (damageService == null || astTarget == null) {
+        if (damageService == null) {
             return;
         }
+        AstEntity combatTarget = damageService.resolveEntity(target);
+        if (!combatTarget.isManaged()) return;
         damageService.attack(
                 AstEntity.mob(instance),
-                AstEntity.player(astTarget),
+                combatTarget,
                 attackType(combat.style()),
                 List.of(DamageComponent.defaultComponent()),
                 DamageSource.NORMAL_ATTACK
@@ -371,6 +390,15 @@ public class MobCombatService {
             );
         }
 
+        if (petRuntimeService != null) {
+            List<MobDropResult> petResults = new ArrayList<>();
+            for (int index = 0; index < recipients.size(); index++) {
+                MobDropResult result = results.get(index);
+                petResults.add(afkService != null && afkService.isAfk(recipients.get(index))
+                        ? new MobDropResult(result.items(), 0, result.money()) : result);
+            }
+            petRuntimeService.onMobDefeated(instance, recipients, petResults);
+        }
         mobService.destroy(instance.instanceId());
         return results;
     }
@@ -385,7 +413,8 @@ public class MobCombatService {
             if (entry.getValue() <= 0.0D) {
                 continue;
             }
-            Player player = Bukkit.getPlayer(entry.getKey());
+            UUID ownerId = petRuntimeService == null ? entry.getKey() : petRuntimeService.rewardOwner(entry.getKey());
+            Player player = Bukkit.getPlayer(ownerId);
             addRecipient(recipients, player);
         }
 
@@ -504,10 +533,10 @@ public class MobCombatService {
     }
 
     @Nullable
-    private Player nearest(@NotNull List<Player> candidates, @NotNull Location origin) {
-        Player best = null;
+    private LivingEntity nearest(@NotNull List<LivingEntity> candidates, @NotNull Location origin) {
+        LivingEntity best = null;
         double bestSq = Double.MAX_VALUE;
-        for (Player player : candidates) {
+        for (LivingEntity player : candidates) {
             double sq = player.getLocation().distanceSquared(origin);
             if (sq < bestSq) {
                 bestSq = sq;
@@ -518,11 +547,11 @@ public class MobCombatService {
     }
 
     @Nullable
-    private Player lowestHp(@NotNull List<Player> candidates) {
-        Player best = null;
+    private LivingEntity lowestHp(@NotNull List<LivingEntity> candidates) {
+        LivingEntity best = null;
         double bestHp = Double.MAX_VALUE;
-        for (Player player : candidates) {
-            double hp = player.getHealth();
+        for (LivingEntity player : candidates) {
+            double hp = damageService == null ? player.getHealth() : damageService.resolveEntity(player).currentHealth();
             if (hp < bestHp) {
                 bestHp = hp;
                 best = player;

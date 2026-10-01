@@ -137,13 +137,12 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
         );
         world.playSound(center, Sound.BLOCK_AZALEA_LEAVES_BREAK, 1.0F, 0.75F);
         for (Entity entity : world.getNearbyEntities(center, radius, 2.0D, radius)) {
-            if (!(entity instanceof Player player) || player.isDead()
-                    || !AccountModeGuard.isGameplayPlayer(player)
-                    || horizontalDistanceSquared(player.getLocation(), center) > radius * radius) {
+            if (!damageService.isMobCombatTarget(entity)
+                    || horizontalDistanceSquared(entity.getLocation(), center) > radius * radius) {
                 continue;
             }
             damageService.attack(
-                    AstEntity.mob(caster), damageService.resolveEntity(player), AttackType.MAGIC,
+                    AstEntity.mob(caster), damageService.resolveEntity(entity), AttackType.MAGIC,
                     List.of(new DamageComponent(DamageElement.NONE, damageRatio)), DamageSource.SKILL
             );
         }

@@ -22,6 +22,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -110,7 +111,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         Vector facing = direction.normalize();
         List<Location> warning = fanPoints(center, facing, radius);
         scheduleArea(context.mob(), center, warning, () -> {
-            for (Player player : playersNear(center, radius)) {
+            for (LivingEntity player : playersNear(center, radius)) {
                 Vector relative = player.getLocation().toVector().subtract(center.toVector()).setY(0);
                 if (relative.lengthSquared() <= radius * radius
                         && (relative.lengthSquared() <= 0.01D || facing.dot(relative.normalize()) >= 0.5D)) {
@@ -129,9 +130,9 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = phaseRadius(context.mob(), 2.1D);
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            for (Player player : playersNear(center, radius)) {
+            for (LivingEntity player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
-                    AstPlayer target = AstPlayerCache.get(player);
+                    AstPlayer target = player instanceof Player bukkitPlayer ? AstPlayerCache.get(bukkitPlayer) : null;
                     if (target != null) {
                         statusService.applyBuff(target, ROOT_BIND_DEBUFF_ID);
                     }
@@ -156,7 +157,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
     }
 
     /** 突進中は壁か対象に当たるまで移動し、発動者が消えたら即時終了します。 */
-    private void startCharge(MobInstance mob, Player target, Vector direction) {
+    private void startCharge(MobInstance mob, LivingEntity target, Vector direction) {
         Entity entity = activeCaster(mob, target.getWorld());
         if (entity == null || !validTarget(target, entity.getWorld())) return;
         mob.scriptedAction(true);
@@ -204,7 +205,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = 3.0D;
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            for (Player player : playersNear(center, radius)) {
+            for (LivingEntity player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
                     damage(context.mob(), player, AttackType.MELEE, 0.75D);
                 }
@@ -265,7 +266,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         double radius = 2.6D;
         List<Location> warning = ringPoints(center, radius, 0.12D);
         scheduleArea(context.mob(), center, warning, () -> {
-            for (Player player : playersNear(center, radius)) {
+            for (LivingEntity player : playersNear(center, radius)) {
                 if (horizontalDistanceSquared(player.getLocation(), center) <= radius * radius) {
                     damage(context.mob(), player, AttackType.MAGIC, 0.8D);
                 }
@@ -354,23 +355,18 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         return entity == null || entity.isDead() || entity.getWorld() != world ? null : entity;
     }
 
-    /** 戦闘対象のプレイヤーだけを範囲攻撃の候補として返します。 */
-    private List<Player> playersNear(Location center, double radius) {
-        List<Player> result = new ArrayList<>();
-        for (Entity entity : center.getWorld().getNearbyEntities(center, radius, 2.5D, radius)) {
-            if (entity instanceof Player player && validTarget(player, center.getWorld())) result.add(player);
-        }
-        return result;
+    /** 戦闘対象のプレイヤーとペットを範囲攻撃の候補として返します。 */
+    private List<LivingEntity> playersNear(Location center, double radius) {
+        return damageService.mobCombatTargets(center, radius, 2.5D);
     }
 
-    /** プレイヤーが現在この攻撃の対象になれるか確認します。 */
-    private boolean validTarget(Player player, World world) {
-        return player.isOnline() && !player.isDead() && player.getWorld() == world
-                && AccountModeGuard.isGameplayPlayer(player);
+    /** プレイヤーまたはペットが現在この攻撃の対象になれるか確認します。 */
+    private boolean validTarget(LivingEntity player, World world) {
+        return player.getWorld() == world && damageService.isMobCombatTarget(player);
     }
 
     /** 対象へ Mob スキルダメージを一度だけ与えます。 */
-    private void damage(MobInstance mob, Player player, AttackType type, double ratio) {
+    private void damage(MobInstance mob, LivingEntity player, AttackType type, double ratio) {
         damageService.attack(AstEntity.mob(mob), damageService.resolveEntity(player), type,
                 List.of(new DamageComponent(DamageElement.NONE, ratio)), DamageSource.SKILL);
     }

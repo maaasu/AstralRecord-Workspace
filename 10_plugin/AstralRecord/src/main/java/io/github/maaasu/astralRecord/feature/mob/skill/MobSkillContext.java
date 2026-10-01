@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  * Mob 専用スキルExecutorへ渡す、発動開始時点で固定された文脈です。
  *
  * @param mob       発動する Mob
- * @param target    発動開始時の主対象
+ * @param target    発動開始時の主対象。プレイヤーまたは召喚ペット
  * @param binding   Mob マスター上のスキル紐付け
  * @param timing    解決済みの発動・詠唱・再使用設定
  * @param origin    発動開始時の射出・詠唱位置
@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public record MobSkillContext(
         @NotNull MobInstance mob,
-        @NotNull Player target,
+        @NotNull LivingEntity target,
         @NotNull MobSkillBinding binding,
         @NotNull MobSkillTiming timing,
         @NotNull Location origin,

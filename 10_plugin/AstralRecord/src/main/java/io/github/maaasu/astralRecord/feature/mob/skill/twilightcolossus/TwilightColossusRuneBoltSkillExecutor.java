@@ -28,7 +28,7 @@ public final class TwilightColossusRuneBoltSkillExecutor implements MobSkillExec
         Location impact = context.target().getLocation().add(0.0D, 0.8D, 0.0D);
         particleDisplayService.spawnForNearbyViewers(impact, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
         AstEntity victim = damageService.resolveEntity(context.target());
-        if (victim.isPlayer()) damageService.attack(AstEntity.mob(context.mob()), victim, AttackType.MAGIC, List.of(new DamageComponent(DamageElement.LIGHTNING, 0.55D)));
+        if (damageService.isMobCombatTarget(context.target())) damageService.attack(AstEntity.mob(context.mob()), victim, AttackType.MAGIC, List.of(new DamageComponent(DamageElement.LIGHTNING, 0.55D)));
         return true;
     }
 }
