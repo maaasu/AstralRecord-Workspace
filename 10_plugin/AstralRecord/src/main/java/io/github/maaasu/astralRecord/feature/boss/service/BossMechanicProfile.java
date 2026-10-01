@@ -16,6 +16,7 @@ final class BossMechanicProfile {
     static final String FORGOTTEN_ALDA_COLOSSUS = "forgotten_alda_colossus";
     static final String GREAT_TREE_GUARDIAN_GRANBAL = "great_tree_guardian_granbal";
     static final String CHARON_FERRYMAN = "charon_ferryman";
+    static final String EMPUSA_WITCH = "empusa_witch";
 
     private static final Map<String, BossMechanicProfile> PROFILES = Map.of(
         TWILIGHT_COLOSSUS,

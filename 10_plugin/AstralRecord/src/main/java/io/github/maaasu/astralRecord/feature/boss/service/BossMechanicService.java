@@ -11,6 +11,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.model.Party;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
@@ -145,9 +147,12 @@ public final class BossMechanicService {
     private final MobService mobService;
     private final DamageService damageService;
     private final DungeonService dungeonService;
+    private final BossChallengeService bossChallengeService;
+    private final PartyService partyService;
     private final ConditionService conditionService;
     private final ParticleDisplayService particleDisplayService;
     private final CharonRitualController charonRitualController;
+    private final EmpusaSpellController empusaSpellController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -166,6 +171,8 @@ public final class BossMechanicService {
      * @param mobService ボスMobとBukkit Entityを解決するサービス
      * @param damageService ギミックdamageを適用するサービス
      * @param dungeonService Dungeon内の地形変更可否を判定するサービス
+     * @param bossChallengeService ボス挑戦の確定参加人数を解決するサービス
+     * @param partyService 直接召喚されたボスの対象パーティーを解決するサービス
      * @param conditionService ボスのAI実行可否を判定する状態異常サービス
      * @param particleDisplayService ギミック演出を表示するサービス
      */
@@ -174,6 +181,8 @@ public final class BossMechanicService {
         @NotNull MobService mobService,
         @NotNull DamageService damageService,
         @NotNull DungeonService dungeonService,
+        @NotNull BossChallengeService bossChallengeService,
+        @NotNull PartyService partyService,
         @NotNull ConditionService conditionService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
@@ -181,13 +190,21 @@ public final class BossMechanicService {
         this.mobService = mobService;
         this.damageService = damageService;
         this.dungeonService = dungeonService;
+        this.bossChallengeService = bossChallengeService;
+        this.partyService = partyService;
         this.conditionService = conditionService;
         this.particleDisplayService = particleDisplayService;
         this.charonRitualController = new CharonRitualController(
             mobService,
             particleDisplayService,
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
+            this::charonParticipantCount,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
+        );
+        this.empusaSpellController = new EmpusaSpellController(
+            particleDisplayService,
+            center -> nearbyManagedPlayers(center, TARGET_RANGE),
+            (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)
         );
     }
 
@@ -233,6 +250,7 @@ public final class BossMechanicService {
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
+        empusaSpellController.clear(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -264,6 +282,7 @@ public final class BossMechanicService {
         }
         runtimes.clear();
         charonRitualController.clearAll();
+        empusaSpellController.clearAll();
     }
 
     /**
@@ -276,13 +295,31 @@ public final class BossMechanicService {
         processPendingMechanics();
 
         Set<UUID> activeBosses = new HashSet<>();
+        Set<UUID> activeEmpusas = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
-            if (profile == null || boss.currentHealth() <= 0.0D) {
+            boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
+            if ((profile == null && !empusa) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (empusa) {
+                activeEmpusas.add(boss.instanceId());
+                boolean engaged = isCharonEngaged(boss, entity);
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    empusaSpellController.clear(boss.instanceId());
+                } else if (!engaged) {
+                    empusaSpellController.cancelCast(boss.instanceId());
+                } else if (!conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    empusaSpellController.cancelCast(boss.instanceId());
+                } else {
+                    empusaSpellController.tick(boss, entity, clockTicks);
+                }
                 continue;
             }
 
@@ -363,6 +400,7 @@ public final class BossMechanicService {
                 runtime.nextActionTick = clockTicks + 20L;
             }
         }
+        empusaSpellController.retain(activeEmpusas);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -2193,6 +2231,26 @@ public final class BossMechanicService {
             .filter(player -> AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))
             .filter(player -> damageService.resolveEntity(player).isPlayer())
             .toList();
+    }
+
+    /**
+     * カロンの召喚を補正する人数を、挑戦・ダンジョンの確定参加者から解決します。
+     *
+     * @param boss 召喚を開始するカロン
+     * @return 確定参加人数。直接召喚の場合は対象パーティー人数、対象未所属なら1
+     */
+    private int charonParticipantCount(@NotNull MobInstance boss) {
+        int participantCount = bossChallengeService.participantCountForBossMob(boss.instanceId());
+        if (participantCount > 0) {
+            return participantCount;
+        }
+        participantCount = dungeonService.participantCountForMob(boss.instanceId());
+        if (participantCount > 0) {
+            return participantCount;
+        }
+        UUID targetId = boss.targetId();
+        Party party = targetId == null ? null : partyService.findParty(targetId);
+        return party == null ? 1 : party.size();
     }
 
     /**

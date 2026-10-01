@@ -1541,6 +1541,8 @@ public final class AstralRecord extends JavaPlugin {
             mobService,
             damageService,
             dungeonService,
+            bossChallengeService,
+            partyService,
             conditionService,
             particleDisplayService
         );

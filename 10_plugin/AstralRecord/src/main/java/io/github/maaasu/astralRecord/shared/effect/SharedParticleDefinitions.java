@@ -309,6 +309,24 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition CHARON_SAFE_LIGHT =
         new SharedParticleDefinition("charon_safe_light", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(80, 235, 255), 1.3F));
+    /** 紅炎の危険地表。極低密度でも粒子が消えず、統合版へ変換されるFLAMEを使います。 */
+    public static final SharedParticleDefinition EMPUSA_FIRE =
+        new SharedParticleDefinition("empusa_fire", Particle.FLAME, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 氷の危険地表。統合版の青い炎で白い安全輪と明確に区別します。 */
+    public static final SharedParticleDefinition EMPUSA_ICE =
+        new SharedParticleDefinition("empusa_ice", Particle.SOUL_FIRE_FLAME, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 雷の危険地表。CRITは統合版でも認識できる衝撃粒子です。 */
+    public static final SharedParticleDefinition EMPUSA_STORM =
+        new SharedParticleDefinition("empusa_storm", Particle.CRIT, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 呪術の危険地表。紫のPORTALで他属性との判別を可能にします。 */
+    public static final SharedParticleDefinition EMPUSA_HEX =
+        new SharedParticleDefinition("empusa_hex", Particle.PORTAL, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 完全に安全な床だけを囲う白い安全輪です。 */
+    public static final SharedParticleDefinition EMPUSA_BEACON =
+        new SharedParticleDefinition("empusa_beacon", Particle.END_ROD, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 発動瞬間の破片。発動後の表示なので当たり判定には使用しません。 */
+    public static final SharedParticleDefinition EMPUSA_IMPACT =
+        new SharedParticleDefinition("empusa_impact", Particle.CRIT, 8, 0.08D, 0.12D, 0.08D, 0.02D);
     public static final SharedParticleDefinition SUNBIRD_SOLAR_DUST =
         new SharedParticleDefinition(
             "sunbird_solar_dust",

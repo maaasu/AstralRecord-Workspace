@@ -1,0 +1,16 @@
+# design:
+#   motif: "ギリシア伝承 / エンプーサの銅と炎"
+#   progression: 21
+schemaVersion: 1
+id: 10a00095
+category: material
+name: "&d紅銅の呪核"
+icon: WAXED_COPPER_BLOCK
+rarity: EPIC
+maxStack: 64
+saleValue: 600
+lore:
+  - "&7魔女の五彩の魔法を封じた、赤く輝く銅の核。"
+  - "&7紅銅の魔女を討ち果たした証。売却して換金できる。"
+unTradeable: false
+unSellable: false

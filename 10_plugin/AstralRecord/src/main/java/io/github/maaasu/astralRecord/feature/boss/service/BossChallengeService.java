@@ -555,6 +555,18 @@ public final class BossChallengeService {
     }
 
     /**
+     * ボス個体に紐付く挑戦で、開始時に確定した参加人数を返します。
+     *
+     * @param mobInstanceId ボスMobの個体ID
+     * @return 確定参加人数。挑戦に紐付かない場合は0
+     */
+    public int participantCountForBossMob(@NotNull UUID mobInstanceId) {
+        UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
+        BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+        return challenge == null ? 0 : challenge.participantIds().size();
+    }
+
+    /**
      * Records effective damage dealt to a boss by a challenge participant.
      *
      * @param mobInstanceId boss mob instance ID

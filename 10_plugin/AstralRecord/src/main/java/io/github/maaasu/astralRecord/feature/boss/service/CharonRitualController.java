@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.boss.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 
 /** カロンの持続する魂柱と、一度限りのHP境界儀式を同期tickで進行します。 */
 final class CharonRitualController {
@@ -43,6 +45,8 @@ final class CharonRitualController {
     private static final long SUMMON_TICKS = 60L;
     private static final long PILLAR_LIFETIME = 600L;
     private static final long PILLAR_COOLDOWN = 900L;
+    private static final long PILLAR_COOLDOWN_REDUCTION_PER_PLAYER = 40L;
+    private static final int BASE_PILLAR_COUNT = 3;
     private static final long BEAM_WARNING = 30L;
     private static final long BEAM_INTERVAL = 60L;
     private static final double BEAM_HALF_WIDTH = 0.9D;
@@ -59,6 +63,7 @@ final class CharonRitualController {
     private final MobService mobService;
     private final ParticleDisplayService particles;
     private final Function<Location, List<Player>> targets;
+    private final ToIntFunction<MobInstance> participantCounts;
     private final HitHandler hitHandler;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
 
@@ -68,17 +73,20 @@ final class CharonRitualController {
      * @param mobService 無敵状態と位置を同期するMobサービス
      * @param particles 閲覧者ごとの密度を適用する表示サービス
      * @param targets 中心から32ブロック以内の有効な管理対象Playerを解決する関数
+     * @param participantCounts 召喚時の確定参加人数または対象パーティー人数を解決する関数
      * @param hitHandler 魔法・無属性のスキルダメージを適用する関数
      */
     CharonRitualController(
         @NotNull MobService mobService,
         @NotNull ParticleDisplayService particles,
         @NotNull Function<Location, List<Player>> targets,
+        @NotNull ToIntFunction<MobInstance> participantCounts,
         @NotNull HitHandler hitHandler
     ) {
         this.mobService = mobService;
         this.particles = particles;
         this.targets = targets;
+        this.participantCounts = participantCounts;
         this.hitHandler = hitHandler;
     }
 
@@ -128,25 +136,29 @@ final class CharonRitualController {
     }
 
     /**
-     * 30ブロック以内の安全な床3地点へ柱を表示し、3秒間だけ浮遊・無敵にします。
+     * 人数に応じた数の魂柱を安全な床へ表示し、3秒間だけ浮遊・無敵にします。
+     * 1人では3本・45秒間隔とし、追加1人ごとに1本増やして間隔を2秒短縮します。
      *
      * @param boss 発動するカロン。既存予兆と反撃時間は呼び出し元が解除済みであること
      * @param entity ボスの有効な実体
      * @param tick 現在tick
-     * @return 3地点を確保して召喚を開始した場合はtrue。配置不能時は5秒後へ延期します
+     * @return 必要な地点を確保して召喚を開始した場合はtrue。配置不能時は5秒後へ延期します
      */
     boolean startPillars(@NotNull MobInstance boss, @NotNull Entity entity, long tick) {
         Encounter state = encounters.get(boss.instanceId());
         if (state == null) {
             return false;
         }
-        List<Location> grounds = pillarGrounds(entity.getLocation());
-        if (grounds.size() != 3) {
+        int participantCount = Math.clamp(participantCounts.applyAsInt(boss), 1, PartyService.MAX_MEMBERS);
+        int pillarCount = BASE_PILLAR_COUNT + participantCount - 1;
+        List<Location> grounds = pillarGrounds(entity.getLocation(), pillarCount);
+        if (grounds.size() != pillarCount) {
             state.nextPillarAt = tick + 100L;
             return false;
         }
         state.center = entity.getLocation();
-        state.nextPillarAt = tick + PILLAR_COOLDOWN;
+        state.nextPillarAt = tick + PILLAR_COOLDOWN
+            - PILLAR_COOLDOWN_REDUCTION_PER_PLAYER * (participantCount - 1);
         state.summonUntil = tick + SUMMON_TICKS;
         state.pillarsExpireAt = 0L;
         state.beamIndex = 0;
@@ -245,8 +257,9 @@ final class CharonRitualController {
             return;
         }
         if (state.beam == null && tick >= state.nextBeamAt) {
-            Pillar from = state.pillars.get(state.beamIndex % 3);
-            Pillar to = state.pillars.get((state.beamIndex + 1) % 3);
+            int pillarCount = state.pillars.size();
+            Pillar from = state.pillars.get(state.beamIndex % pillarCount);
+            Pillar to = state.pillars.get((state.beamIndex + 1) % pillarCount);
             state.beam = clippedBeam(from.ground, to.ground);
             state.beamImpactAt = tick + BEAM_WARNING;
             state.nextBeamAt = tick + BEAM_INTERVAL;
@@ -475,15 +488,21 @@ final class CharonRitualController {
         state.boss.scriptedAction(keepScripted);
     }
 
-    /** 未ロードchunkと頭上が詰まった床を除き、互いに6ブロック以上離れた柱3地点を選びます。 */
-    private static @NotNull List<Location> pillarGrounds(@NotNull Location center) {
+    /**
+     * 未ロードchunkと頭上が詰まった床を除き、互いに6ブロック以上離れた柱の床を選びます。
+     *
+     * @param center ボスの現在位置
+     * @param pillarCount 参加人数から算出した3〜8本の柱数
+     * @return 必要な全地点。確保できない場合は空リスト
+     */
+    private static @NotNull List<Location> pillarGrounds(@NotNull Location center, int pillarCount) {
         List<Location> result = new ArrayList<>();
         double startAngle = Math.toRadians(center.getYaw());
-        for (int index = 0; index < 3; index++) {
+        for (int index = 0; index < pillarCount; index++) {
             Location chosen = null;
             for (double radius : new double[] {16.0D, 20.0D, 24.0D, 10.0D}) {
                 for (double offset : new double[] {0.0D, 0.25D, -0.25D}) {
-                    double angle = startAngle + index * Math.PI * 2.0D / 3.0D + offset;
+                    double angle = startAngle + index * Math.PI * 2.0D / pillarCount + offset;
                     Location ground = groundAt(center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius), 6);
                     if (ground != null && result.stream().allMatch(other -> horizontalSquared(other, ground) >= 36.0D)) {
                         chosen = ground;

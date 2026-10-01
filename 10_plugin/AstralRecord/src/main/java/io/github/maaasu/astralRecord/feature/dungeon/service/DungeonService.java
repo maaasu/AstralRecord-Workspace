@@ -1610,7 +1610,8 @@ public final class DungeonService {
     }
 
     /**
-     * 初回転送後の10秒間はMobを生成せず、完了時にSTARTを安全完了して最初の攻略先を解放します。
+     * 初回転送後の10秒間はMobを生成せず、完了時に攻略開始人数を確定して、
+     * STARTを安全完了し最初の攻略先を解放します。
      *
      * @param session 初回転送を完了した稼働セッション
      */
@@ -1638,6 +1639,7 @@ public final class DungeonService {
                 }
                 taskRef[0].cancel();
                 session.startCountdownTask = null;
+                session.startedParticipantCount = session.participants.size();
                 session.combatStarted = true;
                 markMovementObservationStarted(session);
                 resetChallengeBuffs(inWorld);
@@ -3410,6 +3412,18 @@ public final class DungeonService {
     /** @return 指定 Mob が進行中ダンジョンに紐付く場合 {@code true} */
     public boolean isDungeonMob(@NotNull UUID mobInstanceId) {
         return mobBindings.containsKey(mobInstanceId);
+    }
+
+    /**
+     * Mob個体に紐付くダンジョンの開始時参加人数を、メインスレッドで返します。
+     *
+     * @param mobInstanceId ダンジョンMobの個体ID
+     * @return 開始時の参加人数。セッションに紐付かない場合は0
+     */
+    public int participantCountForMob(@NotNull UUID mobInstanceId) {
+        MobBinding binding = mobBindings.get(mobInstanceId);
+        Session session = binding == null ? null : sessionsById.get(binding.sessionId());
+        return session == null ? 0 : session.startedParticipantCount;
     }
 
     /**
@@ -5186,6 +5200,7 @@ public final class DungeonService {
         private final Set<UUID> pendingCountedDeaths = new LinkedHashSet<>();
         private final Map<UUID, List<DungeonRewardEntry>> rewardsByPlayer = new HashMap<>();
         private int deathCount;
+        private int startedParticipantCount;
         private boolean combatStarted;
         private boolean cleared;
         private boolean ending;
