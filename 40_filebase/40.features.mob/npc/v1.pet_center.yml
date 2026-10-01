@@ -1,0 +1,41 @@
+# design:
+#   motif: "動物 / 飼育"
+#   progression: 21
+schemaVersion: 1
+id: pet_center
+type: MOB
+category: NPC
+name: "&dペット飼育員"
+title: "&7孵化・配合・復活"
+level: 1
+entityType: VILLAGER
+variant:
+  age: ADULT
+  profession: FARMER
+  villagerType: PLAINS
+nameVisible: true
+damageImmune: true
+icon: EGG
+lore:
+  - "&7ペットの孵化、配合、復活を手伝う。"
+  - "&7左クリックで復活用品の交換所を開く。"
+tags:
+  - npc
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+ai:
+  idle:
+    behavior: STATIONARY
+interactions:
+  leftClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: pet_support_exchange
+  rightClick:
+    - id: gui
+      params:
+        type: PET_CENTER

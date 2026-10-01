@@ -1,0 +1,1342 @@
+# design:
+#   motif: "動物 / 犬・猫・ニワトリ"
+#   progression: 21
+schemaVersion: 1
+id: pets
+rules:
+  maxLevel: 100
+  wildMaxTier: 4
+  breedMaxTier: 10
+  skillSlotLevels:
+    - 1
+    - 20
+    - 50
+  breedMinLevel: 20
+  breedCooldownHours: 24
+  mutationChance: 0.01
+  wildPotentialChance: 0.001
+  potentialGrowthMultiplier: 2
+  potentialCountWeights:
+    - 20
+    - 75
+    - 5
+  maleChance: 0.5
+  eggDropChance: 0.0001
+  reviveOrbItemId: item:40a00020
+  facilityId: pet_center
+  breedMaterials:
+    - itemId: item:10a00084
+      quantity: 64
+    - itemId: item:10a00085
+      quantity: 4
+  reviveMaterials:
+    - itemId: item:10a00084
+      quantity: 16
+    - itemId: item:10a00085
+      quantity: 1
+experience:
+  base: 500
+  quadratic: 120
+  tierInterval: 10
+  tierBonus: 850
+  wave:
+    - 0
+    - 90
+    - 35
+    - 140
+    - 60
+    - 185
+    - 95
+    - 230
+  milestoneInterval: 5
+  milestoneBase: 600
+  milestoneLinear: 80
+  activityRate: 1
+species:
+  - id: wolf
+    displayName: 犬
+    entityType: WOLF
+    eggItemId: item:81a00001
+    petItemId: item:80a00001
+    dropWeight: 1
+    names:
+      - コハク
+      - ハチ
+      - モカ
+      - シロ
+      - アズキ
+      - クロ
+      - ソラ
+      - レオ
+      - ハル
+      - カイ
+      - リク
+      - ムサシ
+      - コテツ
+      - タロウ
+      - ジロウ
+      - ゴロウ
+      - マル
+      - ポチ
+      - ラテ
+      - チョコ
+      - クルミ
+      - キナコ
+      - コムギ
+      - メイ
+      - ルイ
+      - ベル
+      - リン
+      - ノア
+      - ロイ
+      - セナ
+      - トワ
+      - ナギ
+      - ツキ
+      - ヨル
+      - ホシ
+      - アオ
+      - ユキ
+      - フク
+      - コロ
+      - チビ
+      - モモ
+      - ナナ
+      - ロク
+      - シュン
+      - レン
+      - アキ
+      - ナツ
+      - フユ
+      - ミント
+      - バニラ
+      - ジン
+      - ガク
+      - ラン
+      - ユウ
+      - ヒナ
+      - サクラ
+      - カエデ
+      - チャイ
+      - オト
+      - フウ
+    sizeMin: 0.8
+    sizeMax: 1.2
+    hatchMaterials:
+      - itemId: item:10a00084
+        quantity: 256
+      - itemId: item:10a00085
+        quantity: 16
+      - itemId: item:10a00076
+        quantity: 128
+    stats:
+      VITALITY:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.2
+        inheritanceMin: 0.15
+        inheritanceMax: 0.55
+        scale: 40
+      POWER:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.25
+        inheritanceMin: 0.04
+        inheritanceMax: 0.28
+        scale: 40
+      DEFENSE:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.15
+        inheritanceMin: 0.08
+        inheritanceMax: 0.4
+        scale: 40
+      EVASION:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.1
+        inheritanceMin: 0
+        inheritanceMax: 0.1
+        scale: 40
+      SUPPORT:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.1
+        inheritanceMin: 0
+        inheritanceMax: 0.25
+        scale: 40
+    skills:
+      - id: wolf_t0_follow_up
+        name: 追い牙
+        tier: 0
+        weight: 100
+        trigger: OWNER_HIT
+        effect: FOLLOW_UP
+        cooldownSeconds: 3
+        value: 0.65
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: wolf_t0_attack_speed
+        name: 勇み足
+        tier: 0
+        weight: 100
+        trigger: PERIODIC
+        effect: ATTACK_SPEED
+        cooldownSeconds: 20
+        value: 0.15
+        chance: 1
+        durationSeconds: 8
+        hitCount: 1
+        attackCount: 1
+      - id: wolf_t1_combo_bite
+        name: 連携噛みつき
+        tier: 1
+        weight: 30
+        trigger: OWNER_HIT
+        effect: FOLLOW_UP
+        cooldownSeconds: 5
+        value: 1.2
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 3
+      - id: wolf_t1_howl
+        name: 群れの遠吠え
+        tier: 1
+        weight: 30
+        trigger: PERIODIC
+        effect: ATTACK_BUFF
+        cooldownSeconds: 25
+        value: 0.06
+        chance: 1
+        durationSeconds: 10
+        hitCount: 1
+        attackCount: 1
+      - id: wolf_t2_weak_point
+        name: 急所噛み
+        tier: 2
+        weight: 8
+        trigger: OWNER_HIT
+        effect: DEFENSE_BREAK
+        cooldownSeconds: 12
+        value: 0.1
+        chance: 1
+        durationSeconds: 6
+        hitCount: 1
+        attackCount: 1
+      - id: wolf_t2_double_fang
+        name: 連牙
+        tier: 2
+        weight: 8
+        trigger: OWNER_HIT
+        effect: FOLLOW_UP
+        cooldownSeconds: 8
+        value: 0.75
+        chance: 1
+        durationSeconds: 0
+        hitCount: 2
+        attackCount: 1
+      - id: wolf_t3_hunt_order
+        name: 狩りの号令
+        tier: 3
+        weight: 1
+        trigger: PERIODIC
+        effect: HUNT_ORDER
+        cooldownSeconds: 35
+        value: 0.12
+        chance: 1
+        durationSeconds: 12
+        hitCount: 1
+        attackCount: 1
+      - id: wolf_t3_chase
+        name: 猛追
+        tier: 3
+        weight: 1
+        trigger: OWNER_HIT
+        effect: FOLLOW_UP
+        cooldownSeconds: 15
+        value: 0.85
+        chance: 1
+        durationSeconds: 0
+        hitCount: 3
+        attackCount: 1
+  - id: cat
+    displayName: 猫
+    entityType: CAT
+    eggItemId: item:81a00002
+    petItemId: item:80a00002
+    dropWeight: 1
+    names:
+      - ルナ
+      - ミケ
+      - スズ
+      - ムギ
+      - ユズ
+      - ミミ
+      - ニコ
+      - モネ
+      - リリ
+      - ココ
+      - ナナ
+      - ハナ
+      - モモ
+      - ウメ
+      - アンズ
+      - ナツメ
+      - コメ
+      - マメ
+      - クルミ
+      - キナコ
+      - アズキ
+      - ゴマ
+      - シオ
+      - サトウ
+      - モチ
+      - ダイフク
+      - マロン
+      - プリン
+      - ミルク
+      - ラテ
+      - カカオ
+      - カリン
+      - リンゴ
+      - ミカン
+      - レモン
+      - ライム
+      - メロン
+      - ベリー
+      - ミント
+      - バニラ
+      - ソラ
+      - アメ
+      - クモ
+      - ツキ
+      - ホシ
+      - ユキ
+      - シズク
+      - ナギ
+      - カスミ
+      - アカリ
+      - ヒカリ
+      - サクラ
+      - スミレ
+      - ツバキ
+      - カエデ
+      - フタバ
+      - リン
+      - ユイ
+      - メイ
+      - ネネ
+    sizeMin: 0.75
+    sizeMax: 1.15
+    hatchMaterials:
+      - itemId: item:10a00084
+        quantity: 256
+      - itemId: item:10a00085
+        quantity: 16
+      - itemId: item:10a00077
+        quantity: 128
+    stats:
+      VITALITY:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.15
+        inheritanceMin: 0.12
+        inheritanceMax: 0.45
+        scale: 40
+      POWER:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.18
+        inheritanceMin: 0.03
+        inheritanceMax: 0.22
+        scale: 40
+      DEFENSE:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.2
+        inheritanceMin: 0.1
+        inheritanceMax: 0.5
+        scale: 40
+      EVASION:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.2
+        inheritanceMin: 0.01
+        inheritanceMax: 0.16
+        scale: 40
+      SUPPORT:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.15
+        inheritanceMin: 0
+        inheritanceMax: 0.35
+        scale: 40
+    skills:
+      - id: cat_t0_dodge
+        name: 身かわし
+        tier: 0
+        weight: 100
+        trigger: PERIODIC
+        effect: EVADE_BUFF
+        cooldownSeconds: 20
+        value: 0.02
+        chance: 1
+        durationSeconds: 10
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t0_follow_up
+        name: 援護の爪
+        tier: 0
+        weight: 100
+        trigger: OWNER_HIT
+        effect: FOLLOW_UP
+        cooldownSeconds: 4
+        value: 0.5
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t1_guard
+        name: 柔らかな守り
+        tier: 1
+        weight: 30
+        trigger: PERIODIC
+        effect: DEFENSE_BUFF
+        cooldownSeconds: 25
+        value: 0.08
+        chance: 1
+        durationSeconds: 12
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t1_counter
+        name: 猫の反撃
+        tier: 1
+        weight: 30
+        trigger: OWNER_DODGE
+        effect: COUNTER
+        cooldownSeconds: 5
+        value: 0.9
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t2_protection
+        name: しなやかな護り
+        tier: 2
+        weight: 8
+        trigger: PERIODIC
+        effect: DAMAGE_REDUCTION
+        cooldownSeconds: 30
+        value: 0.1
+        chance: 1
+        durationSeconds: 8
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t2_shadow_claw
+        name: 影爪
+        tier: 2
+        weight: 8
+        trigger: OWNER_DODGE
+        effect: COUNTER
+        cooldownSeconds: 9
+        value: 1.6
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t3_moon_dance
+        name: 月影の舞
+        tier: 3
+        weight: 1
+        trigger: PERIODIC
+        effect: MOON_DANCE
+        cooldownSeconds: 35
+        value: 0.06
+        chance: 1
+        durationSeconds: 12
+        hitCount: 1
+        attackCount: 1
+      - id: cat_t3_phantom_claw
+        name: 幻影の爪
+        tier: 3
+        weight: 1
+        trigger: OWNER_DODGE
+        effect: COUNTER
+        cooldownSeconds: 15
+        value: 0.9
+        chance: 1
+        durationSeconds: 0
+        hitCount: 3
+        attackCount: 1
+  - id: chicken
+    displayName: ニワトリ
+    entityType: CHICKEN
+    eggItemId: item:81a00003
+    petItemId: item:80a00003
+    dropWeight: 1
+    names:
+      - コッコ
+      - ピヨ
+      - ヒナ
+      - マメ
+      - ポポ
+      - ピピ
+      - ココ
+      - コロン
+      - チコ
+      - ポン
+      - モコ
+      - マル
+      - フク
+      - ハク
+      - キイ
+      - キナコ
+      - コムギ
+      - コメ
+      - ムギ
+      - アワ
+      - キビ
+      - ゴマ
+      - クルミ
+      - アズキ
+      - モチ
+      - タマゴ
+      - チャイ
+      - ラテ
+      - ミルク
+      - プリン
+      - バニラ
+      - カスタ
+      - オム
+      - チーズ
+      - レモン
+      - ユズ
+      - ミカン
+      - サクラ
+      - ヒマワリ
+      - タンポポ
+      - スミレ
+      - ナズナ
+      - ツクシ
+      - ワカバ
+      - フタバ
+      - コハル
+      - ハル
+      - ナツ
+      - アキ
+      - フユ
+      - ヒヨリ
+      - アサ
+      - ヒル
+      - ヨル
+      - ソラ
+      - アオ
+      - クモ
+      - ユキ
+      - ホシ
+      - ツキ
+    sizeMin: 0.8
+    sizeMax: 1.25
+    hatchMaterials:
+      - itemId: item:10a00084
+        quantity: 256
+      - itemId: item:10a00085
+        quantity: 16
+      - itemId: item:10a00074
+        quantity: 128
+    stats:
+      VITALITY:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.2
+        inheritanceMin: 0.15
+        inheritanceMax: 0.5
+        scale: 40
+      POWER:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.1
+        inheritanceMin: 0.02
+        inheritanceMax: 0.12
+        scale: 40
+      DEFENSE:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.15
+        inheritanceMin: 0.08
+        inheritanceMax: 0.35
+        scale: 40
+      EVASION:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.1
+        inheritanceMin: 0
+        inheritanceMax: 0.1
+        scale: 40
+      SUPPORT:
+        tiers:
+          - tier: 0
+            min: 1
+            max: 3
+            weight: 10000
+          - tier: 1
+            min: 4
+            max: 5
+            weight: 3000
+          - tier: 2
+            min: 6
+            max: 8
+            weight: 900
+          - tier: 3
+            min: 9
+            max: 12
+            weight: 180
+          - tier: 4
+            min: 13
+            max: 16
+            weight: 20
+          - tier: 5
+            min: 17
+            max: 21
+            weight: 0
+          - tier: 6
+            min: 22
+            max: 27
+            weight: 0
+          - tier: 7
+            min: 28
+            max: 34
+            weight: 0
+          - tier: 8
+            min: 35
+            max: 42
+            weight: 0
+          - tier: 9
+            min: 43
+            max: 51
+            weight: 0
+          - tier: 10
+            min: 52
+            max: 61
+            weight: 0
+        valueWeightPower: 2
+        growthPerLevel: 0.3
+        inheritanceMin: 0.05
+        inheritanceMax: 0.6
+        scale: 40
+    skills:
+      - id: chicken_t0_heal
+        name: 安らぎの鳴き声
+        tier: 0
+        weight: 100
+        trigger: PERIODIC
+        effect: HEAL_HP
+        cooldownSeconds: 20
+        value: 0.03
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t0_mana
+        name: 魔力の羽ばたき
+        tier: 0
+        weight: 100
+        trigger: PERIODIC
+        effect: HEAL_MP
+        cooldownSeconds: 20
+        value: 0.04
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t1_energy
+        name: 活力の鳴き声
+        tier: 1
+        weight: 30
+        trigger: PERIODIC
+        effect: HEAL_ENERGY
+        cooldownSeconds: 15
+        value: 0.06
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t1_warm_feather
+        name: 温かな羽毛
+        tier: 1
+        weight: 30
+        trigger: PERIODIC
+        effect: HEAL_HP
+        cooldownSeconds: 8
+        value: 0.015
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t2_mana_cycle
+        name: 魔力の巡り
+        tier: 2
+        weight: 8
+        trigger: PERIODIC
+        effect: HEAL_MP
+        cooldownSeconds: 8
+        value: 0.025
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t2_saving
+        name: 節約の羽
+        tier: 2
+        weight: 8
+        trigger: PERIODIC
+        effect: ENERGY_SAVING
+        cooldownSeconds: 30
+        value: 0.12
+        chance: 1
+        durationSeconds: 12
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t3_abundance
+        name: 豊穣の鳴き声
+        tier: 3
+        weight: 1
+        trigger: PERIODIC
+        effect: HEAL_ALL
+        cooldownSeconds: 35
+        value: 0.09
+        chance: 1
+        durationSeconds: 0
+        hitCount: 1
+        attackCount: 1
+      - id: chicken_t3_life_rhythm
+        name: 生命のリズム
+        tier: 3
+        weight: 1
+        trigger: PERIODIC
+        effect: HEAL_ALL
+        cooldownSeconds: 40
+        value: 0.025
+        chance: 1
+        durationSeconds: 12
+        hitCount: 1
+        attackCount: 1

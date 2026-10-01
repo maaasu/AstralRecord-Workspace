@@ -1,0 +1,27 @@
+# design:
+#   motif: "生命 / 復活"
+#   progression: 21
+schemaVersion: 1
+id: pet_support_exchange
+type: SHOP
+name: "&dペット復活用品の交換所"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: pet_revive_orb
+    itemId:
+      ref: item:40a00020
+    category: orb
+    amount: 1
+    slot: 0
+    page: 1
+    priceGold: 1000
+    requiredItems:
+      - itemId:
+          ref: item:10a00084
+        category: material
+        amount: 64
+      - itemId:
+          ref: item:10a00085
+        category: material
+        amount: 4

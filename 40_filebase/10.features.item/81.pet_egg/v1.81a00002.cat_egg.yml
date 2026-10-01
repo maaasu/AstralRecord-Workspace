@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 猫の卵"
+#   progression: 21
+schemaVersion: 1
+id: 81a00002
+category: pet_egg
+name: "&d猫の卵"
+icon: EGG
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7孵化施設で素材を使うとペットが生まれる。"
+  - "&7個体の能力は孵化するまで分からない。"
+unTradeable: false
+unSellable: true

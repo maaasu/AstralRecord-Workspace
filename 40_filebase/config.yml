@@ -27,6 +27,8 @@ database:
     path: 09.features.guide
   - name: shop
     path: 45.features.shop
+  - name: pet
+    path: 55.features.pet
 
   - name: set_effect
     path: 10.features.item/20.equipment/set_effect
@@ -93,3 +95,6 @@ referenceResolver:
   - prefix: "guide:"
     database: guide
     aliases: ["gd"]
+  - prefix: "pet:"
+    database: pet
+    aliases: ["pt"]

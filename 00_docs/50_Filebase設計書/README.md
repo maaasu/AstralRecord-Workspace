@@ -102,6 +102,7 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 47-quest.md
 │  ├─ 48-quest_board.md
 │  ├─ 49-npc.md
+│  ├─ 55-pet.md
 │  ├─ 60-world.md
 │  ├─ 65-dungeon.md
 │  ├─ 70-buff.md

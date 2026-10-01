@@ -1,0 +1,776 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AstralRecord pet master v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "rules",
+    "experience",
+    "species"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "const": "pets"
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxLevel",
+        "wildMaxTier",
+        "breedMaxTier",
+        "skillSlotLevels",
+        "breedMinLevel",
+        "breedCooldownHours",
+        "mutationChance",
+        "wildPotentialChance",
+        "potentialGrowthMultiplier",
+        "potentialCountWeights",
+        "maleChance",
+        "eggDropChance",
+        "reviveOrbItemId",
+        "facilityId",
+        "breedMaterials",
+        "reviveMaterials"
+      ],
+      "properties": {
+        "maxLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "wildMaxTier": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "breedMaxTier": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "skillSlotLevels": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "breedMinLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "breedCooldownHours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mutationChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wildPotentialChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "potentialGrowthMultiplier": {
+          "type": "number",
+          "minimum": 1
+        },
+        "potentialCountWeights": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "maleChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "eggDropChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reviveOrbItemId": {
+          "type": "string",
+          "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+        },
+        "facilityId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "breedMaterials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "itemId",
+              "quantity"
+            ],
+            "properties": {
+              "itemId": {
+                "type": "string",
+                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "minItems": 0
+        },
+        "reviveMaterials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "itemId",
+              "quantity"
+            ],
+            "properties": {
+              "itemId": {
+                "type": "string",
+                "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "quadratic",
+        "tierInterval",
+        "tierBonus",
+        "wave",
+        "milestoneInterval",
+        "milestoneBase",
+        "milestoneLinear",
+        "activityRate"
+      ],
+      "properties": {
+        "base": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quadratic": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tierInterval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tierBonus": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wave": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 1
+        },
+        "milestoneInterval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "milestoneBase": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "milestoneLinear": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activityRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "species": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "displayName",
+          "entityType",
+          "eggItemId",
+          "petItemId",
+          "dropWeight",
+          "names",
+          "sizeMin",
+          "sizeMax",
+          "hatchMaterials",
+          "stats",
+          "skills"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "wolf",
+              "cat",
+              "chicken"
+            ]
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entityType": {
+            "enum": [
+              "WOLF",
+              "CAT",
+              "CHICKEN"
+            ]
+          },
+          "eggItemId": {
+            "type": "string",
+            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+          },
+          "petItemId": {
+            "type": "string",
+            "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+          },
+          "dropWeight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 50,
+            "uniqueItems": true
+          },
+          "sizeMin": {
+            "type": "number",
+            "minimum": 0.0625,
+            "maximum": 16
+          },
+          "sizeMax": {
+            "type": "number",
+            "minimum": 0.0625,
+            "maximum": 16
+          },
+          "hatchMaterials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "itemId",
+                "quantity"
+              ],
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "pattern": "^item:[0-9]{2}[a-z][0-9]{5}$"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "minItems": 1
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "VITALITY",
+              "POWER",
+              "DEFENSE",
+              "EVASION",
+              "SUPPORT"
+            ],
+            "properties": {
+              "VITALITY": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tiers",
+                  "valueWeightPower",
+                  "growthPerLevel",
+                  "inheritanceMin",
+                  "inheritanceMax",
+                  "scale"
+                ],
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tier",
+                        "min",
+                        "max",
+                        "weight"
+                      ],
+                      "properties": {
+                        "tier": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10
+                        },
+                        "min": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 11,
+                    "maxItems": 11
+                  },
+                  "valueWeightPower": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "growthPerLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "inheritanceMin": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "inheritanceMax": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "POWER": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tiers",
+                  "valueWeightPower",
+                  "growthPerLevel",
+                  "inheritanceMin",
+                  "inheritanceMax",
+                  "scale"
+                ],
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tier",
+                        "min",
+                        "max",
+                        "weight"
+                      ],
+                      "properties": {
+                        "tier": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10
+                        },
+                        "min": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 11,
+                    "maxItems": 11
+                  },
+                  "valueWeightPower": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "growthPerLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "inheritanceMin": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "inheritanceMax": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "DEFENSE": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tiers",
+                  "valueWeightPower",
+                  "growthPerLevel",
+                  "inheritanceMin",
+                  "inheritanceMax",
+                  "scale"
+                ],
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tier",
+                        "min",
+                        "max",
+                        "weight"
+                      ],
+                      "properties": {
+                        "tier": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10
+                        },
+                        "min": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 11,
+                    "maxItems": 11
+                  },
+                  "valueWeightPower": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "growthPerLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "inheritanceMin": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "inheritanceMax": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "EVASION": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tiers",
+                  "valueWeightPower",
+                  "growthPerLevel",
+                  "inheritanceMin",
+                  "inheritanceMax",
+                  "scale"
+                ],
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tier",
+                        "min",
+                        "max",
+                        "weight"
+                      ],
+                      "properties": {
+                        "tier": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10
+                        },
+                        "min": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 11,
+                    "maxItems": 11
+                  },
+                  "valueWeightPower": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "growthPerLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "inheritanceMin": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "inheritanceMax": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "SUPPORT": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tiers",
+                  "valueWeightPower",
+                  "growthPerLevel",
+                  "inheritanceMin",
+                  "inheritanceMax",
+                  "scale"
+                ],
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tier",
+                        "min",
+                        "max",
+                        "weight"
+                      ],
+                      "properties": {
+                        "tier": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10
+                        },
+                        "min": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "max": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 11,
+                    "maxItems": 11
+                  },
+                  "valueWeightPower": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "growthPerLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "inheritanceMin": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "inheritanceMax": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "name",
+                "tier",
+                "weight",
+                "trigger",
+                "effect",
+                "cooldownSeconds",
+                "value",
+                "chance",
+                "durationSeconds",
+                "hitCount",
+                "attackCount"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tier": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "weight": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "trigger": {
+                  "enum": [
+                    "OWNER_HIT",
+                    "OWNER_DODGE",
+                    "PERIODIC"
+                  ]
+                },
+                "effect": {
+                  "enum": [
+                    "FOLLOW_UP",
+                    "ATTACK_SPEED",
+                    "ATTACK_BUFF",
+                  "HUNT_ORDER",
+                    "DEFENSE_BREAK",
+                    "EVADE_BUFF",
+                  "MOON_DANCE",
+                    "DEFENSE_BUFF",
+                    "COUNTER",
+                    "DAMAGE_REDUCTION",
+                    "HEAL_HP",
+                    "HEAL_MP",
+                    "HEAL_ENERGY",
+                    "ENERGY_SAVING",
+                    "HEAL_ALL"
+                  ]
+                },
+                "cooldownSeconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "value": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "chance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "durationSeconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "hitCount": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "attackCount": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "minItems": 8,
+            "maxItems": 8
+          }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}
