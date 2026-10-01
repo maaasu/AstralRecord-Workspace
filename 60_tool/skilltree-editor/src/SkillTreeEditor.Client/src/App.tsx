@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError, editorApi } from './api/editorApi'
+import './masterData.css'
 import { NodeEditor } from './components/NodeEditor'
 import { NodeSidebar } from './components/NodeSidebar'
 import { PlacementInspector } from './components/PlacementInspector'
@@ -50,6 +51,7 @@ const NODE_SIZE_STORAGE_KEY = 'astralrecord.skilltree-editor.node-size'
 const DEFAULT_NODE_SIZE = 56
 const MIN_NODE_SIZE = 32
 const MAX_NODE_SIZE = 140
+const MasterDataEditor = lazy(() => import('./components/MasterDataEditor').then((module) => ({ default: module.MasterDataEditor })))
 
 function initialNodeSize(): number {
   const stored = typeof window === 'undefined' ? Number.NaN : Number(window.localStorage.getItem(NODE_SIZE_STORAGE_KEY))
@@ -59,6 +61,24 @@ function initialNodeSize(): number {
 }
 
 export default function App() {
+  const [workspace, setWorkspace] = useState<'master' | 'skilltree'>('master')
+  const [treeOpened, setTreeOpened] = useState(false)
+  const [masterDirty, setMasterDirty] = useState(false)
+  const [treeDirty, setTreeDirty] = useState(false)
+  const selectWorkspace = (next: typeof workspace) => {
+    if (next === workspace) return
+    if ((workspace === 'master' ? masterDirty : treeDirty) && !window.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
+    if (next === 'skilltree') setTreeOpened(true)
+    setWorkspace(next)
+  }
+  return <div className="master-app-shell">
+    <nav className="master-app-nav" aria-label="開発ツール"><strong>AstralRecord マスターエディタ</strong><button className={`button ${workspace === 'master' ? 'active' : ''}`} aria-pressed={workspace === 'master'} onClick={() => selectWorkspace('master')}>Filebase マスター{masterDirty ? ' ●' : ''}</button><button className={`button ${workspace === 'skilltree' ? 'active' : ''}`} aria-pressed={workspace === 'skilltree'} onClick={() => selectWorkspace('skilltree')}>スキルツリー{treeDirty ? ' ●' : ''}</button><small>ローカル開発者向け · 変更は明示保存</small></nav>
+    <div className="master-app-content" hidden={workspace !== 'master'}><Suspense fallback={<div className="loading-screen">エディタを読み込んでいます…</div>}><MasterDataEditor active={workspace === 'master'} onDirtyChange={setMasterDirty} onOpenSkillTree={() => selectWorkspace('skilltree')} /></Suspense></div>
+    {treeOpened && <div className="master-app-content" hidden={workspace !== 'skilltree'}><SkillTreeWorkspace active={workspace === 'skilltree'} onDirtyChange={setTreeDirty} /></div>}
+  </div>
+}
+
+function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange: (dirty: boolean) => void }) {
   const [nodeDocuments, setNodeDocuments] = useState<StoredDocument<NodeMaster>[]>([])
   const [structureDocuments, setStructureDocuments] = useState<StoredDocument<StructureDocument>[]>([])
   const [schemas, setSchemas] = useState<SchemaSummary[]>([])
@@ -101,6 +121,7 @@ export default function App() {
   const structures = useMemo(() => structureDocuments.map((document) => document.content), [structureDocuments])
   const currentStructure = history.present
   const dirty = Boolean(selectedStructureId) && JSON.stringify(currentStructure) !== savedSnapshot
+  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
   const selectedMaster = nodes.find((node) => node.nodeId === selectedNodeId) ?? null
   const tagSuggestions = useMemo(
@@ -193,6 +214,7 @@ export default function App() {
   }, [dirty])
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
+      if (!active) return
       const target = event.target as HTMLElement | null
       if (target?.matches('input, textarea, select') || nodeEditor || settingsOpen) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
@@ -207,7 +229,7 @@ export default function App() {
     }
     window.addEventListener('keydown', keyboard)
     return () => window.removeEventListener('keydown', keyboard)
-  }, [history, nodeEditor, settingsOpen])
+  }, [active, history, nodeEditor, settingsOpen])
 
   const selectStructure = (structureId: string) => {
     if (dirty && !window.confirm('未保存の構造変更を破棄しますか？')) return
