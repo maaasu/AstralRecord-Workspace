@@ -29,6 +29,7 @@ import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -275,8 +276,10 @@ public class SkillService {
      */
     public @NotNull Map<String, SkillDefinition> loadDefinitions() {
         List<SkillSummary> summaries = List.of();
+        MasterDataLoadProgress progress = null;
         try {
             summaries = repository.findAll();
+            progress = new MasterDataLoadProgress(LogId.I_5801, summaries.size());
         } catch (Exception e) {
             Logger.log(LogId.E_5801, e, "reloadDefinitions");
         }
@@ -289,24 +292,35 @@ public class SkillService {
             } catch (Exception e) {
                 Logger.log(LogId.W_5801, summary.getId(), summary.getImplementationId(),
                         "詳細取得失敗: " + e.getMessage());
+                progress.record(false);
                 continue;
             }
             if (definition == null) {
                 Logger.log(LogId.W_5801, summary.getId(), summary.getImplementationId(),
                         "API から定義を取得できませんでした");
+                progress.record(false);
                 continue;
             }
-            addValidatedDefinition(next, definition);
+            progress.record(addValidatedDefinition(next, definition));
         }
 
         for (SkillDefinition definition : builtInDefinitions.values()) {
             addValidatedDefinition(next, definition);
         }
 
-        return Collections.unmodifiableMap(new LinkedHashMap<>(next));
+        Map<String, SkillDefinition> snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(next));
+        if (progress != null) progress.finish();
+        return snapshot;
     }
 
-    private void addValidatedDefinition(
+    /**
+     * 定義を検証し、有効なものだけを準備中のマップへ登録します。
+     *
+     * @param definitions 登録先の準備中マップ
+     * @param definition 検証する定義
+     * @return 登録に成功した場合は true。不正な定義は警告を記録して false を返します
+     */
+    private boolean addValidatedDefinition(
             @NotNull Map<String, SkillDefinition> definitions,
             @NotNull SkillDefinition definition
     ) {
@@ -321,8 +335,10 @@ public class SkillService {
 
             executor.validateParams(definition);
             definitions.put(skillId, withResolvedDefinition(definition, executor));
+            return true;
         } catch (RuntimeException e) {
             Logger.log(LogId.W_5801, skillId, implementationId, validationFailureReason(e));
+            return false;
         }
     }
 

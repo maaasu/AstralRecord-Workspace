@@ -30,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -83,18 +84,27 @@ public class MobRepository {
                 }
 
                 JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
+                MasterDataLoadProgress progress = new MasterDataLoadProgress(LogId.I_5704, array.size());
                 List<MobTemplate> result = new ArrayList<>();
                 for (JsonElement element : array) {
-                    if (!element.isJsonObject()) continue;
+                    if (!element.isJsonObject()) {
+                        progress.record(false);
+                        continue;
+                    }
                     // summary には category や level のみが入る。詳細を取得するため findById で再取得する
                     JsonObject summary = element.getAsJsonObject();
                     String id = optionalString(summary, "id");
-                    if (id == null) continue;
+                    if (id == null) {
+                        progress.record(false);
+                        continue;
+                    }
                     MobTemplate template = findById(id);
                     if (template != null) {
                         result.add(template);
                     }
+                    progress.record(template != null);
                 }
+                progress.finish();
                 return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -156,7 +166,6 @@ public class MobRepository {
             return null;
         }
 
-        Logger.log(LogId.D_5700, id);
         MobTemplate base = parseTemplateFields(obj, id, category, entityType, entityTypeName, blockMaterial);
         List<MobLevelProfile> profiles = parseLevelProfiles(
                 obj, id, category, entityType, entityTypeName, blockMaterial

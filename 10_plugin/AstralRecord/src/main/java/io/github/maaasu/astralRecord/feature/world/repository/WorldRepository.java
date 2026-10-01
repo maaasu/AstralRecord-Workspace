@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -91,9 +92,11 @@ public class WorldRepository {
      */
     @NotNull
     List<WorldMasterData> resolveListPayload(@NotNull JsonArray array) {
+        MasterDataLoadProgress progress = new MasterDataLoadProgress(LogId.I_5752, array.size());
         List<WorldMasterData> result = new ArrayList<>();
         for (JsonElement element : array) {
             if (!element.isJsonObject()) {
+                progress.record(false);
                 continue;
             }
 
@@ -104,6 +107,7 @@ public class WorldRepository {
             } else {
                 String worldId = optionalString(obj, "id");
                 if (worldId == null) {
+                    progress.record(false);
                     continue;
                 }
                 world = findById(worldId);
@@ -115,8 +119,11 @@ public class WorldRepository {
             if (world != null) {
                 result.add(world);
             }
+            progress.record(world != null);
         }
-        return List.copyOf(result);
+        List<WorldMasterData> snapshot = List.copyOf(result);
+        progress.finish();
+        return snapshot;
     }
 
     /**
@@ -161,7 +168,6 @@ public class WorldRepository {
             return null;
         }
 
-        Logger.log(LogId.D_5750, id);
         return new WorldMasterData(
                 obj.has("schemaVersion") ? obj.get("schemaVersion").getAsInt() : 1,
                 id,

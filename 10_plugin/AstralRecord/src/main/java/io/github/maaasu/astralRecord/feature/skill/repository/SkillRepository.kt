@@ -74,7 +74,6 @@ class SkillRepository {
                 return when (response.statusCode()) {
                     200 -> {
                         val definition = toDefinition(JsonParser.parseString(response.body()).asJsonObject)
-                        Logger.log(LogId.D_5800, skillId)
                         definition
                     }
                     404 -> {

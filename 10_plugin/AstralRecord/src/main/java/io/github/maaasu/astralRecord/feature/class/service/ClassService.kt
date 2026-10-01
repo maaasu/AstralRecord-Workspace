@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.repository.ClassRepository
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import java.util.Collections
 import java.util.LinkedHashMap
@@ -45,15 +46,18 @@ class ClassService {
      */
     fun loadSnapshot(): Map<String, ClassModel> {
         val summaries = classRepository.findAll()
+        val progress = MasterDataLoadProgress(LogId.I_5501, summaries.size)
         val loaded = LinkedHashMap<String, ClassModel>()
         for (summary in summaries) {
             val model = classRepository.findById(summary.id)
             if (model != null) {
                 loaded[normalize(model.id)] = model
             }
+            progress.record(model != null)
         }
         val snapshot = Collections.unmodifiableMap(LinkedHashMap(loaded))
         validateSnapshot(snapshot)
+        progress.finish()
         return snapshot
     }
 

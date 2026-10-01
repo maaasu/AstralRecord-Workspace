@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.repository.LootRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,12 +63,15 @@ public class LootService {
      */
     public @NotNull Map<String, LootModel> loadSnapshot() {
         List<LootModel> loots = lootRepository.findAll();
+        MasterDataLoadProgress progress = new MasterDataLoadProgress(LogId.I_5301, loots.size());
         Map<String, LootModel> nextLoots = new LinkedHashMap<>();
         for (LootModel loot : loots) {
             nextLoots.put(normalize(loot.getId()), loot);
-            Logger.log(LogId.D_5301, loot);
+            progress.record(true);
         }
-        return immutableSnapshot(nextLoots);
+        Map<String, LootModel> snapshot = immutableSnapshot(nextLoots);
+        progress.finish();
+        return snapshot;
     }
 
     /**

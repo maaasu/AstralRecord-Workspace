@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.infrastructure.util;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -61,6 +63,7 @@ public final class YamlLoaderUtil {
 
     /**
      * 指定されたディレクトリ内の全YAMLファイルをロードします
+     * 成功ログはファイルごとの詳細ではなく、対象ファイル数に対する取得件数へ集約します。
      * @param directory ディレクトリ
      * @param recursive サブディレクトリも含めるかどうか
      * @return ファイル名（拡張子なし）とYamlConfigurationのマップ
@@ -74,21 +77,25 @@ public final class YamlLoaderUtil {
         }
 
         try (Stream<Path> walk = recursive ? Files.walk(directory.toPath()) : Files.list(directory.toPath())) {
-            walk.filter(path -> {
+            List<Path> files = walk.filter(path -> {
                 File file = path.toFile();
                 return file.isFile() && file.getName().endsWith(".yml");
-            }).forEach(path -> {
+            }).toList();
+            MasterDataLoadProgress progress = new MasterDataLoadProgress(LogId.I_1003, files.size());
+            for (Path path : files) {
                 File file = path.toFile();
                 try {
                     YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
                     String fileName = file.getName();
                     String nameWithoutExtension = fileName.substring(0, fileName.lastIndexOf('.'));
                     result.put(nameWithoutExtension, yaml);
-                    Logger.log(LogId.D_1000, fileName);
+                    progress.record(true);
                 } catch (Exception e) {
+                    progress.record(false);
                     Logger.log(LogId.E_1000, e, file.getName());
                 }
-            });
+            }
+            progress.finish();
         } catch (IOException e) {
             Logger.log(LogId.E_1001, e, directory.getAbsolutePath());
         }

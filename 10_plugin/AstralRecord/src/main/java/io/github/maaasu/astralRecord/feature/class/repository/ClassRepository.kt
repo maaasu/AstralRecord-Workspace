@@ -63,7 +63,6 @@ class ClassRepository {
                 return when (response.statusCode()) {
                     200 -> {
                         val model = parseClass(response.body())
-                        Logger.log(LogId.D_5500, classId)
                         model
                     }
                     404 -> {

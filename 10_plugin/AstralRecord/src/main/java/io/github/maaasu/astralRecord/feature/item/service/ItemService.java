@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -107,9 +108,11 @@ public class ItemService {
     public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
         Map<String, ItemModel> snapshot = new LinkedHashMap<>();
         Map<String, Integer> categoryCounts = new HashMap<>();
+        MasterDataLoadProgress progress;
 
         try {
             List<ItemSummary> summaries = itemRepository.findAll();
+            progress = new MasterDataLoadProgress(LogId.I_5204, summaries.size());
             for (ItemSummary summary : summaries) {
                 ItemModel item = itemRepository.findById(summary.getId(), summary.getCategory());
                 if (item == null) {
@@ -120,6 +123,7 @@ public class ItemService {
 
                 snapshot.put(normalize(item.getId()), item);
                 categoryCounts.merge(item.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+                progress.record(true);
             }
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, "loadAll");
@@ -157,6 +161,7 @@ public class ItemService {
             enchantMasters.put(normalize(master.getId()), master);
         }
 
+        progress.finish();
         Logger.log(LogId.I_5203, snapshot.size());
         return new MasterDataSnapshot(snapshot, enchantMasters);
     }
@@ -171,7 +176,6 @@ public class ItemService {
         loadedMasterData = snapshot;
         masterDataSnapshotPublished = true;
         loadedSetEffects.clear();
-        snapshot.items().values().forEach(item -> Logger.log(LogId.D_5203, item));
     }
 
     /** Reloads only filebase/API-backed item caches; runtime equipment state is preserved. */
@@ -1127,7 +1131,6 @@ public class ItemService {
             new LinkedHashMap<>(loadedMasterData.enchantMasters());
         updatedEnchantMasters.putAll(resolvedEnchantMasters);
         loadedMasterData = new MasterDataSnapshot(updatedItems, updatedEnchantMasters);
-        items.forEach(item -> Logger.log(LogId.D_5203, item));
     }
 
     /** API 側の RangeValueResolver と同じ固定値 / min~max 契約をローカルで解決します。 */
