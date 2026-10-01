@@ -12,7 +12,7 @@ icon: IRON_SWORD
 classGui: { slot: 29 }
 adminChangeOnly: true
 role: DEALER
-maxLevel: 100
+maxLevel: 125
 unlockLevel: 15
 unlockClassLevel:
   - class: swordsman

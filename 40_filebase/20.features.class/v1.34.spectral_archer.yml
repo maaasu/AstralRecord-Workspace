@@ -12,7 +12,7 @@ icon: firework_rocket
 classGui: { slot: 40 }
 adminChangeOnly: true
 role: DEALER
-maxLevel: 100
+maxLevel: 150
 unlockLevel: 1
 unlockClassLevel:
   - class: phantom_archer

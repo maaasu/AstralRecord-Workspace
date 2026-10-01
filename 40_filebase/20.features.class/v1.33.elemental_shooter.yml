@@ -12,7 +12,7 @@ icon: tipped_arrow
 classGui: { slot: 39 }
 adminChangeOnly: true
 role: DEALER
-maxLevel: 100
+maxLevel: 150
 unlockLevel: 1
 unlockClassLevel:
   - class: sharpshooter

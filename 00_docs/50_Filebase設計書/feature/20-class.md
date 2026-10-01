@@ -11,7 +11,7 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - class 単体で全役割を満たさず、equipment と skill に選択余地を残します。
 - 使用可能なステータス一覧は複製せず `StatusType.kt` を参照します。
 - 初期職は `adventurer`、通常の一次派生職は `swordsman` / `hunter` / `mage` とします。3 職はいずれも `adventurer` Lv.10 を転職条件とし、ここからさらに枝分かれできる構造にします。
-- 一次職の最大レベルは `60` とします。二次職は元となる一次職 Lv.50 以上かつプレイヤー Lv.15 以上、三次職は元となる二次職 Lv.80 以上を転職条件とします。二次職・三次職の `usableSkills` と skilltree は、この段階では追加・変更しません。
+- 一次職の最大レベルは `60`、二次職は `125`、三次職は `150` とします。二次職は元となる一次職 Lv.50 以上かつプレイヤー Lv.15 以上、三次職は元となる二次職 Lv.80 以上を転職条件とします。二次職・三次職の `usableSkills` と skilltree は、この段階では追加・変更しません。
 - `acolyte` は現行クラス定義に含めません。
 - クラスは `usableSkills` で現在クラスにおける使用許可だけを定義し、スキルの習得・レベル・所持個体は変更しません。
 - `swordsman` / `hunter` / `mage` は、冒険者から引き継ぐ初期攻撃 skill を `usableSkills` に定義する。ソードマンは `adventurer_astral_edge` / `adventurer_smash` と、タンクのシールドを有効化する `swordsman_shield_activate`、ハンターは `adventurer_blast_arrow` / `adventurer_quick_shot`、メイジは `adventurer_mana_burst` / `adventurer_lightning_bolt` とする。加えてハンターは職固有の初期範囲攻撃 `hunter_arrow_rain`、メイジは職固有の即時範囲回復 `mage_heal_aura` を許可する。
@@ -47,7 +47,7 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 ## パラディン
 
-`paladin` はソードマンLv50・プレイヤーLv15から転職するLv100タンクです。Lv1時点で `MAX_HEALTH +135 / MAX_SHIELD +15 / DEFENSE +12 / MAGIC_DEFENSE +8` を持ち、Lvごとに `MAX_HEALTH +8 / VITALITY +1.6 / DEFENSE +1.1 / MAGIC_DEFENSE +0.7` を成長させます。攻撃成長は `STRENGTH +0.8 / ATTACK +0.8` に抑え、同じ旧値だったソードマスターの `+1.2 / +1.2` を引き継ぎません。
+`paladin` はソードマンLv50・プレイヤーLv15から転職するLv125タンクです。Lv1時点で `MAX_HEALTH +135 / MAX_SHIELD +15 / DEFENSE +12 / MAGIC_DEFENSE +8` を持ち、Lvごとに `MAX_HEALTH +8 / VITALITY +1.6 / DEFENSE +1.1 / MAGIC_DEFENSE +0.7` を成長させます。攻撃成長は `STRENGTH +0.8 / ATTACK +0.8` に抑え、同じ旧値だったソードマスターの `+1.2 / +1.2` を引き継ぎません。
 
 クラス本体の使用許可は `swordsman_challenging_roar`、`swordsman_shield_activate` の2つだけです。パラディン固有skillの使用許可はskilltreeで解放します。ディフェンスコンバージョン以外の現行固有skillであるホーリースマイト、ホーリーフィールド、ホーリースマッシュ、ディバインチェイサー、パラディンシールドはHoly型に属します。
 

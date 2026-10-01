@@ -12,7 +12,7 @@ icon: SHIELD
 classGui: { slot: 28 }
 adminChangeOnly: true
 role: TANK
-maxLevel: 100
+maxLevel: 125
 unlockLevel: 15
 unlockClassLevel:
   - class: swordsman
