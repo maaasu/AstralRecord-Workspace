@@ -487,8 +487,8 @@ items:
       ref: item:30a00049
     category: consumable
     amount: 1
-    page: 3
-    slot: 0
+    page: 2
+    slot: 4
     priceGold: 80
     requiredItems:
       - itemId:
@@ -508,8 +508,8 @@ items:
       ref: item:30a00050
     category: consumable
     amount: 1
-    page: 3
-    slot: 1
+    page: 2
+    slot: 5
     priceGold: 240
     requiredItems:
       - itemId:
@@ -533,8 +533,8 @@ items:
       ref: item:30a00051
     category: consumable
     amount: 1
-    page: 3
-    slot: 2
+    page: 2
+    slot: 6
     priceGold: 600
     requiredItems:
       - itemId:
@@ -562,8 +562,8 @@ items:
       ref: item:30a00052
     category: consumable
     amount: 1
-    page: 3
-    slot: 7
+    page: 2
+    slot: 11
     priceGold: 80
     requiredItems:
       - itemId:
@@ -583,8 +583,8 @@ items:
       ref: item:30a00053
     category: consumable
     amount: 1
-    page: 3
-    slot: 8
+    page: 2
+    slot: 12
     priceGold: 240
     requiredItems:
       - itemId:
@@ -608,8 +608,8 @@ items:
       ref: item:30a00054
     category: consumable
     amount: 1
-    page: 3
-    slot: 9
+    page: 2
+    slot: 13
     priceGold: 600
     requiredItems:
       - itemId:
@@ -637,8 +637,8 @@ items:
       ref: item:30a00055
     category: consumable
     amount: 1
-    page: 3
-    slot: 14
+    page: 2
+    slot: 18
     priceGold: 80
     requiredItems:
       - itemId:
@@ -658,8 +658,8 @@ items:
       ref: item:30a00056
     category: consumable
     amount: 1
-    page: 3
-    slot: 15
+    page: 2
+    slot: 19
     priceGold: 240
     requiredItems:
       - itemId:
@@ -683,8 +683,8 @@ items:
       ref: item:30a00057
     category: consumable
     amount: 1
-    page: 3
-    slot: 16
+    page: 2
+    slot: 20
     priceGold: 600
     requiredItems:
       - itemId:
@@ -712,8 +712,8 @@ items:
       ref: item:30a00058
     category: consumable
     amount: 1
-    page: 3
-    slot: 21
+    page: 2
+    slot: 25
     priceGold: 80
     requiredItems:
       - itemId:
@@ -733,8 +733,8 @@ items:
       ref: item:30a00059
     category: consumable
     amount: 1
-    page: 3
-    slot: 22
+    page: 2
+    slot: 26
     priceGold: 240
     requiredItems:
       - itemId:
@@ -758,8 +758,8 @@ items:
       ref: item:30a00060
     category: consumable
     amount: 1
-    page: 3
-    slot: 23
+    page: 2
+    slot: 27
     priceGold: 600
     requiredItems:
       - itemId:
