@@ -151,9 +151,15 @@ class MobAiServiceTest {
         MobService mobService = mock(MobService.class);
         MobTauntService tauntService = mock(MobTauntService.class);
         when(tauntService.activeTaunter(instance)).thenReturn(taunterId, taunterId, null, null);
+        MobCombatService combatService = mock(MobCombatService.class);
+        when(combatService.resolveTarget(taunterId)).thenReturn(taunter);
+        when(combatService.selectTarget(instance)).thenAnswer(ignored -> {
+            instance.targetId(threatTargetId);
+            return threatTarget;
+        });
         MobAiService aiService = new MobAiService(
                 mobService,
-                mock(MobCombatService.class),
+                combatService,
                 mock(MobSkillService.class),
                 null,
                 null,
@@ -177,6 +183,7 @@ class MobAiServiceTest {
 
             invokeTickAggro(aiService, instance);
             assertEquals(threatTargetId, instance.targetId());
+            verify(combatService).selectTarget(instance);
         }
     }
 
@@ -618,7 +625,9 @@ class MobAiServiceTest {
         MobSkillService mobSkillService = mock(MobSkillService.class);
         when(mobSkillService.isWithinActivationRange(instance, binding, target, 12.25D)).thenReturn(true);
         when(mobSkillService.tryCast(instance, binding, target, 0L)).thenReturn(true);
-        MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
+        MobCombatService combatService = mock(MobCombatService.class);
+        when(combatService.resolveTarget(targetId)).thenReturn(target);
+        MobAiService aiService = new MobAiService(mobService, combatService, mobSkillService);
 
         AstPlayer gameplayTarget = gameplayAstPlayer();
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -658,7 +667,9 @@ class MobAiServiceTest {
         MobService mobService = mock(MobService.class);
         MobSkillService mobSkillService = mock(MobSkillService.class);
         when(mobSkillService.isWithinActivationRange(instance, binding, target, 12.25D)).thenReturn(true);
-        MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
+        MobCombatService combatService = mock(MobCombatService.class);
+        when(combatService.resolveTarget(targetId)).thenReturn(target);
+        MobAiService aiService = new MobAiService(mobService, combatService, mobSkillService);
 
         AstPlayer gameplayTarget = gameplayAstPlayer();
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
