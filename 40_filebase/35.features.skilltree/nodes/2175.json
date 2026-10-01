@@ -16,7 +16,7 @@
       "type": "status",
       "status": "SUPER_CRITICAL_RATE",
       "modifierType": "FLAT",
-      "value": 1.5
+      "value": 0.3
     },
     {
       "type": "status",

@@ -472,7 +472,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-sharpshooter-common-evasion` | `2130`〜`2134` | EVASION `FLAT +0.5`、MOVEMENT_SPEED `FLAT +1` | `&d風避の星環` | `FEATHER` | `status`, `agility`, `defense`, `wind` |
 | `status-sharpshooter-common-evasion-notable` | `2135` | EVASION `FLAT +1.5`、MOVEMENT_SPEED `FLAT +4` | `&6空走の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
 | `status-sharpshooter-common-resource` | `2138`〜`2142` | ACCURACY `FLAT +1`、MAX_ENERGY `FLAT +5` | `&d狩気の星環` | `ENDER_PEARL` | `status`, `resource`, `energy`, `accuracy` |
-| `status-sharpshooter-common-resource-notable` | `2143` | ACCURACY `FLAT +3`、MAX_ENERGY `FLAT +40`、ENERGY_REGEN `FLAT +3`、SUPER_CRITICAL_RATE `FLAT +1`、SUPER_CRITICAL_DAMAGE `FLAT +5` | `&6星狩の極星` | `NETHER_STAR` | `status`, `resource`, `energy`, `accuracy`, `astral` |
+| `status-sharpshooter-common-resource-notable` | `2143` | ACCURACY `FLAT +3`、MAX_ENERGY `FLAT +40`、ENERGY_REGEN `FLAT +3`、SUPER_CRITICAL_RATE `FLAT +0.2`、SUPER_CRITICAL_DAMAGE `FLAT +5` | `&6星狩の極星` | `NETHER_STAR` | `status`, `resource`, `energy`, `accuracy`, `astral` |
 
 ### Sniperパッケージ
 
@@ -485,8 +485,8 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-sharpshooter-sniper-accuracy-notable` | `2159` | ACCURACY `FLAT +5.5`、RANGED_DEFENSE_PENETRATION_RATE `FLAT +6` | `&6必中の極星` | `TARGET` | `status`, `offense`, `accuracy` |
 | `status-sharpshooter-sniper-critical` | `2162`〜`2166` | CRITICAL_RATE `FLAT +0.5`、CRITICAL_DAMAGE `FLAT +1` | `&b会心の星環` | `AMETHYST_SHARD` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-critical-notable` | `2167` | CRITICAL_RATE `FLAT +1.5`、CRITICAL_DAMAGE `FLAT +10` | `&6致命射の極星` | `RECOVERY_COMPASS` | `status`, `offense`, `astral` |
-| `status-sharpshooter-sniper-super-critical` | `2170`〜`2174` | SUPER_CRITICAL_RATE `FLAT +0.5`、SUPER_CRITICAL_DAMAGE `FLAT +1` | `&d超星狙撃の星環` | `ECHO_SHARD` | `status`, `offense`, `astral` |
-| `status-sharpshooter-sniper-super-critical-notable` | `2175` | SUPER_CRITICAL_RATE `FLAT +1.5`、SUPER_CRITICAL_DAMAGE `FLAT +10` | `&6超星穿の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-super-critical` | `2170`〜`2174` | SUPER_CRITICAL_RATE `FLAT +0.1`、SUPER_CRITICAL_DAMAGE `FLAT +1` | `&d超星狙撃の星環` | `ECHO_SHARD` | `status`, `offense`, `astral` |
+| `status-sharpshooter-sniper-super-critical-notable` | `2175` | SUPER_CRITICAL_RATE `FLAT +0.3`、SUPER_CRITICAL_DAMAGE `FLAT +10` | `&6超星穿の極星` | `NETHER_STAR` | `status`, `offense`, `astral` |
 | `status-sharpshooter-sniper-lightning` | `2178`〜`2182` | LIGHTNING_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&e雷矢の星環` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
 | `status-sharpshooter-sniper-lightning-notable` | `2183` | LIGHTNING_DAMAGE_INCREASE `FLAT +8`、LIGHTNING_PENETRATION `FLAT +6`、SKILL_DAMAGE_INCREASE `FLAT +5` | `&6天雷の極星` | `LIGHTNING_ROD` | `status`, `offense`, `lightning`, `shocked` |
 | `status-sharpshooter-ice-arrow` | `2243`〜`2247` | ICE_DAMAGE_INCREASE `FLAT +2`、SKILL_DAMAGE_INCREASE `FLAT +1.5` | `&b氷矢の星環` | `PACKED_ICE` | `status`, `offense`, `ice`, `frozen`, `azure` |
