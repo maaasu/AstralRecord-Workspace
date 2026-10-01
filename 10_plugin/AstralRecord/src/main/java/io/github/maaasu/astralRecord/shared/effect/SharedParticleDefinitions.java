@@ -246,23 +246,16 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =
         new SharedParticleDefinition("critical_hit_crit", Particle.CRIT, 18, 0.34D, 0.38D, 0.34D, 0.16D);
-    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_BURST_END_ROD =
-        new SharedParticleDefinition("super_star_critical_burst_end_rod", Particle.END_ROD, 24, 0.42D, 0.48D, 0.42D, 0.08D);
-    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_END_ROD =
-        new SharedParticleDefinition("super_star_critical_trail_end_rod", Particle.END_ROD, 1, 0.03D, 0.03D, 0.03D, 0.0D);
+    /** 連続会心でも残光が重なりにくい、小さな魔法会心の粒です。 */
+    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_BURST_ENCHANTED_HIT =
+        new SharedParticleDefinition("super_star_critical_burst_enchanted_hit", Particle.ENCHANTED_HIT, 10,
+            0.24D, 0.30D, 0.24D, 0.10D);
     public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_SPARK =
         new SharedParticleDefinition("super_star_critical_trail_spark", Particle.ELECTRIC_SPARK, 1, 0.04D, 0.04D, 0.04D, 0.0D);
+    /** 敵の輪郭を覆う閃光の代わりに、短い火花で命中を強調します。 */
     public static final SharedParticleDefinition SUPER_STAR_CRITICAL_IMPACT =
-        new SharedParticleDefinition(
-            "super_star_critical_impact",
-            Particle.FLASH,
-            1,
-            0.0D,
-            0.0D,
-            0.0D,
-            0.0D,
-            Color.WHITE
-        );
+        new SharedParticleDefinition("super_star_critical_impact", Particle.ELECTRIC_SPARK, 6,
+            0.18D, 0.22D, 0.18D, 0.08D);
     public static final SharedParticleDefinition SPAWNER_VISUAL_ENCHANT =
         new SharedParticleDefinition("spawner_visual_enchant", Particle.ENCHANT, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition NPC_BLOCK_AMBIENT_ENCHANT =

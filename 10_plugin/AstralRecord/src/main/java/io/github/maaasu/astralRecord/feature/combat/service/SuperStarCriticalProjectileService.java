@@ -54,6 +54,7 @@ public final class SuperStarCriticalProjectileService {
     static final double MIN_CURVE_PHASE_STEP = 0.25D;
     static final double MAX_CURVE_PHASE_STEP = 0.55D;
     static final double TARGET_RADIUS = 24.0D;
+    private static final int TRAIL_PARTICLE_INTERVAL_TICKS = 2;
     private static final double VECTOR_EPSILON = 1.0E-8D;
     private static final double COLLISION_RADIUS = 0.2D;
     private static final double FALLBACK_TARGET_HALF_WIDTH = 0.45D;
@@ -308,7 +309,7 @@ public final class SuperStarCriticalProjectileService {
         }
     }
 
-    /** 全追尾弾を1 tick 更新し、同一ワールドの軌跡をまとめて表示します。 */
+    /** 全追尾弾を1 tick 更新し、2 tick 間隔の火花の軌跡をワールド単位でまとめて表示します。 */
     private void tick() {
         Map<World, List<Location>> trailLocations = new HashMap<>();
         Iterator<ProjectileState> iterator = projectiles.iterator();
@@ -320,7 +321,7 @@ public final class SuperStarCriticalProjectileService {
                 continue;
             }
             World world = projectile.location.getWorld();
-            if (world != null) {
+            if (world != null && projectile.ageTicks % TRAIL_PARTICLE_INTERVAL_TICKS == 0) {
                 trailLocations.computeIfAbsent(world, ignored -> new ArrayList<>())
                         .add(projectile.location.clone());
             }
@@ -379,6 +380,7 @@ public final class SuperStarCriticalProjectileService {
 
     /**
      * 移動線分上で最初に接触した攻撃可能 Mob へ命中させ、未命中なら表示を移動します。
+     * 命中演出はダメージ再計算先へ委譲し、接触時の追加表示による重複を避けます。
      *
      * @param projectile 移動する追尾弾
      * @param next 移動終点
@@ -394,10 +396,6 @@ public final class SuperStarCriticalProjectileService {
             return projectile.move(next);
         }
         projectile.removeDisplay();
-        particleDisplayService.spawnForNearbyViewers(
-                targetCenter(hitTarget),
-                SharedParticleDefinitions.SUPER_STAR_CRITICAL_IMPACT
-        );
         projectile.damageApplier.apply(AstEntity.mob(hitTarget));
         return false;
     }
@@ -480,7 +478,7 @@ public final class SuperStarCriticalProjectileService {
     }
 
     /**
-     * ワールド単位でまとめた追尾弾の軌跡パーティクルを表示します。
+     * ワールド単位でまとめた追尾弾の軌跡に、短い火花だけを表示します。
      *
      * @param trailLocations ワールド別の追尾弾位置
      */
@@ -490,11 +488,6 @@ public final class SuperStarCriticalProjectileService {
                 continue;
             }
             Location center = locations.getFirst();
-            particleDisplayService.spawnForNearbyViewers(
-                    center,
-                    locations,
-                    SharedParticleDefinitions.SUPER_STAR_CRITICAL_TRAIL_END_ROD
-            );
             particleDisplayService.spawnForNearbyViewers(
                     center,
                     locations,

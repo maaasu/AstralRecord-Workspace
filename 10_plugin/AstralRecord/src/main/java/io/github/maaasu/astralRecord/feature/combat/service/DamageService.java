@@ -1354,6 +1354,7 @@ public final class DamageService {
 
     /**
      * 成立した通常会心・超星会心のパーティクルとサウンドを被弾中心へ表示します。
+     * 超星会心は小さな魔法会心の粒と短い火花を重ね、近傍 viewer を一括で解決します。
      *
      * @param victim 被弾対象
      * @param result shield 反映後のダメージ結果
@@ -1378,9 +1379,11 @@ public final class DamageService {
         if (result.superStarCritical()) {
             particleDisplayService.spawnForNearbyViewers(
                     center,
-                    SharedParticleDefinitions.SUPER_STAR_CRITICAL_BURST_END_ROD
+                    List.of(
+                            SharedParticleDefinitions.SUPER_STAR_CRITICAL_BURST_ENCHANTED_HIT,
+                            SharedParticleDefinitions.SUPER_STAR_CRITICAL_IMPACT
+                    )
             );
-            particleDisplayService.spawnForNearbyViewers(center, SharedParticleDefinitions.SUPER_STAR_CRITICAL_IMPACT);
             world.playSound(center, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, SoundCategory.PLAYERS, 1.0F, 1.2F);
         }
     }
