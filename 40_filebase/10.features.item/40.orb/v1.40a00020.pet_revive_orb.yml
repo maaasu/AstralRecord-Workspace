@@ -1,0 +1,19 @@
+# design:
+#   motif: "生命 / 復活"
+#   progression: 21
+schemaVersion: 1
+id: 40a00020
+category: orb
+name: "&d命帰りのオーブ"
+icon: TOTEM_OF_UNDYING
+rarity: EPIC
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7倒れたペットを選んで復活させる。"
+  - "&7復活に成功すると1個消費する。"
+unTradeable: false
+unSellable: true
+orb:
+  effect:
+    type: PET_REVIVE

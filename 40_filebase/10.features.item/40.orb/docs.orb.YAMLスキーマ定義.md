@@ -6,7 +6,7 @@
 
 | キー | 型 | 必須 | 説明 |
 |:--|:--|:--:|:--|
-| `type` | String | ○ | `ENHANCE` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` / `SIGIL_ATTACH` / `SIGIL_DETACH` |
+| `type` | String | ○ | `ENHANCE` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` / `SIGIL_ATTACH` / `SIGIL_DETACH` / `PET_REVIVE` |
 | `targetSlots[]` | List<String> | 条件 | 強化対象スロット。`ENHANCE` で指定し、武器・防具・アクセサリを絞り込む |
 | `rank` | Integer | 条件 | `ENHANCE` では現在状態ランク、`TRANSCENDENCE` では次に到達するランクの条件 |
 | `rankMode` | String | × | `EXACT` は `rank` と一致、`AT_MOST` は対象ランクが `rank` 以下。既定 `EXACT` |
@@ -22,3 +22,5 @@
 `RUNE_ATTACH` は対象装備を選択後、所持ルーンを1個選んで装着します。`RUNE_DETACH` は装着済みルーンを1個選んで取り外し、通常インベントリへ返却します。これら二種はオーブ自体を消費しません。
 
 `SIGIL_ATTACH` は操作可能な習得済みスキルを選択後、対応するオーブと所持シジルを各1個、同一 transaction で消費して装着します。`SIGIL_DETACH` は対応するオーブを1個消費し、装着済みシジルを1個選んで取り外し、通常インベントリへ返却します。空き枠なし、非許可シジル、対象不在などの業務失敗では、オーブとシジルを消費しません。
+
+`PET_REVIVE` は死亡した所有ペットの一覧を開き、復活に成功したときだけオーブを1個消費します。装備のrankやtargetSlotsは指定しません。ペットマスターの `rules.reviveOrbItemId` と一致するitem IDを使用し、施設の復活素材は併用しません。

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 犬"
+#   progression: 21
+schemaVersion: 1
+id: 80a00001
+category: pet
+name: "&d犬のペット"
+icon: WOLF_SPAWN_EGG
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ペット枠に設定すると一緒に冒険する。"
+  - "&7配合で生まれた個体は譲渡できない。"
+unTradeable: false
+unSellable: true
