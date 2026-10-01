@@ -1,12 +1,12 @@
 # design:
-#   motif: "魔術 / 呪術師"
+#   motif: "工芸 / 守護像"
 #   progression: 16
 schemaVersion: 1
-id: purple_tree_melza_spawner
+id: purple_tree_golm_lv16_spawner
 type: MOB_SPAWNER
 radiusMeters: 18
 spawnMobs:
-  - mobId: mob:purple_tree_melza
+  - mobId: mob:purple_tree_golm
     level: 16
     weight: 100
 spawnTimes:

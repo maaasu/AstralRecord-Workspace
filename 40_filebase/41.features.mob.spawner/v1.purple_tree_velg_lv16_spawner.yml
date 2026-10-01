@@ -2,7 +2,7 @@
 #   motif: "植物 / 紫蝕の樹"
 #   progression: 16
 schemaVersion: 1
-id: purple_tree_velg_spawner
+id: purple_tree_velg_lv16_spawner
 type: MOB_SPAWNER
 radiusMeters: 18
 spawnMobs:
