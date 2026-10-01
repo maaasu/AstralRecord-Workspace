@@ -266,22 +266,33 @@ function MasterCreateDialog({ mode, category, categories, source, importedRaw, b
   const [debug, setDebug] = useState(false)
   const [templateIndex, setTemplateIndex] = useState(0)
   const [raw, setRaw] = useState(mode === 'import' ? importedRaw : mode === 'copy' ? source?.raw ?? '' : selected?.templates[0]?.raw ?? '')
+  const categoryFormat = (entry?: MasterCategory): 'json' | 'yaml' => entry?.templates.length
+    ? entry.templates[0].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml'
+    : entry?.jsonSchemas.length ? 'json' : 'yaml'
+  const [draftFormat, setDraftFormat] = useState<'json' | 'yaml'>(() => {
+    if (mode === 'copy') return source?.format === 'json' ? 'json' : 'yaml'
+    if (mode === 'import') {
+      try { JSON.parse(importedRaw); return 'json' } catch { return 'yaml' }
+    }
+    return categoryFormat(selected)
+  })
   const [error, setError] = useState('')
   const isItem = Boolean(selected?.itemCategoryCode)
-  const jsonFormat = source?.format === 'json' || Boolean(selected?.jsonSchemas.length && !selected?.templates.length)
+  const jsonFormat = draftFormat === 'json'
+  const directory = selected?.directory === '.' ? '' : (selected?.directory ?? '').replace(/\/+$/, '')
   let content: JsonObject | undefined
   try { content = asObject(JSON.parse(raw)) } catch { /* YAML preview uses only root scalars; the server validates the final document. */ }
   const yamlScalar = (key: string) => raw.match(new RegExp(`^${key}:\\s*["']?([^\\s"'#]+)`, 'm'))?.[1]
   const previewId = String(content?.id ?? content?.nodeId ?? content?.structureId ?? yamlScalar('id') ?? '')
   const previewVersion = String(content?.schemaVersion ?? yamlScalar('schemaVersion') ?? '')
   const stem = slugOf(slug) || slugOf(previewId) || 'new-master'
-  const generatedPath = `${selected?.directory ?? ''}/${!jsonFormat && previewVersion && /^\d+$/.test(previewVersion) ? `v${previewVersion}.` : ''}${stem}.${jsonFormat ? 'json' : 'yml'}`
-  const path = autoItemId && isItem || autoName ? selected?.directory ?? '' : autoPath ? generatedPath : filePath
+  const generatedPath = `${directory ? `${directory}/` : ''}${!jsonFormat && previewVersion && /^\d+$/.test(previewVersion) ? `v${previewVersion}.` : ''}${stem}.${jsonFormat ? 'json' : 'yml'}`
+  const path = autoItemId && isItem || autoName ? directory : autoPath ? generatedPath : filePath
   const selectCategory = (id: string) => {
     setCategoryId(id); setTemplateIndex(0)
     const next = categories.find((entry) => entry.id === id)
     setAutoItemId(Boolean(next?.itemCategoryCode)); setAutoName(Boolean(next?.directory.includes('features.class')))
-    if (mode === 'new') setRaw(next?.templates[0]?.raw ?? '')
+    if (mode === 'new') { setRaw(next?.templates[0]?.raw ?? ''); setDraftFormat(categoryFormat(next)) }
   }
   const createFromSchema = async () => {
     if (!selected?.jsonSchemas[0]) return
@@ -292,20 +303,22 @@ function MasterCreateDialog({ mode, category, categories, source, importedRaw, b
   }
   return <div className="modal-backdrop"><form className="modal master-create-dialog" role="dialog" aria-modal="true" aria-label="マスターファイル作成" onSubmit={(event) => {
     event.preventDefault(); setError('')
+    if (busy) return
     if (!path.trim() || !raw.trim()) { setError('保存先と原稿を入力してください。'); return }
     if (path.includes('/nodes/')) { setError('ノードの新規作成・複製は、スキルツリー画面から行ってください。IDは専用の採番で管理します。'); return }
     if (isItem && autoItemId && !slugOf(slug)) { setError('ファイル名に使う英数字のslugを入力してください。'); return }
     void onCreate({ path, raw, autoItemId: isItem && autoItemId, slug: slugOf(slug), group: debug ? 'z' : undefined, autoName }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)))
-  }}><header className="modal-header"><div><h2>{mode === 'copy' ? '保存済みファイルの複製' : mode === 'import' ? '原稿から新規作成' : 'マスターファイル作成'}</h2><p className="master-muted">保存前に定義と重複を検証します。</p></div></header><div className="modal-body master-create-fields">
+  }}><header className="modal-header"><div><h2>{mode === 'copy' ? '保存済みファイルの複製' : mode === 'import' ? '原稿から新規作成' : 'マスターファイル作成'}</h2><p className="master-muted">保存前に定義と重複を検証します。</p></div></header><fieldset disabled={busy} className="modal-body master-create-fields master-form-lock">
     <label>カテゴリ<select value={categoryId} onChange={(event) => selectCategory(event.target.value)}>{categories.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</select></label>
+    <label>原稿の形式<select aria-label="新規マスターの形式" value={draftFormat} onChange={(event) => setDraftFormat(event.target.value as 'json' | 'yaml')}><option value="yaml">YAML</option><option value="json">JSON</option></select><small>原稿と一致する形式を選びます。自動提案する保存先の拡張子にも反映します。</small></label>
     <label>ファイル名用 slug（小文字英数字）<input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="iron-sword" /><small>提案: {slugOf(slug) || 'new-master'}</small></label>
     {isItem && <><label className="master-checkbox"><input type="checkbox" checked={autoItemId} onChange={(event) => setAutoItemId(event.target.checked)} />カテゴリに沿ったアイテムID・ファイル名を自動採番</label>{autoItemId && <label className="master-checkbox"><input type="checkbox" checked={debug} onChange={(event) => setDebug(event.target.checked)} />デバッグ用 group z を使用</label>}</>}
     {selected?.directory.includes('features.class') && <label className="master-checkbox"><input type="checkbox" checked={autoName} onChange={(event) => setAutoName(event.target.checked)} />schemaVersion / order / id からファイル名を生成</label>}
     {!autoItemId && !autoName && <label className="master-checkbox"><input type="checkbox" checked={autoPath} onChange={(event) => { setAutoPath(event.target.checked); if (!filePath) setFilePath(generatedPath) }} />slugから保存先を自動提案</label>}
     <label>保存先（Filebase内の相対パス）<input value={path} disabled={autoPath || autoItemId && isItem || autoName} onChange={(event) => setFilePath(event.target.value)} /><small>{autoItemId && isItem ? 'ID・グループの採番後、確定したファイル名を表示します。' : autoName ? '原稿の定義から確定したファイル名を表示します。' : 'サブフォルダや既存の命名規則も直接指定できます。'}</small></label>
-    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw) }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
+    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
     <label>原稿<textarea className="master-raw" aria-label="新規マスター原稿" spellCheck={false} value={raw} onChange={(event) => setRaw(event.target.value)} /></label>
     {mode === 'copy' && <p className="master-muted">読み込んだ保存済み原稿から新しいファイルを作成します。アイテムの自動採番以外は、原稿のIDを新しい一意の値へ変更してください。</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
-  </div><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={onCancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></div>
+  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={onCancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></div>
 }

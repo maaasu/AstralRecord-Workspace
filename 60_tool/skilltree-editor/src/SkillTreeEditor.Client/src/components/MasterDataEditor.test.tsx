@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { MasterDataEditor } from './MasterDataEditor'
-import type { MasterCatalog, MasterDocument } from '../types/masterData'
+import type { MasterCatalog, MasterCategory, MasterDocument } from '../types/masterData'
 
 const catalog: MasterCatalog = { root: '/filebase', backups: '/backups', categories: [{
   id: 'class', label: 'クラス', directory: '20.features.class', fileCount: 1,
@@ -103,5 +103,60 @@ describe('master editor workflow', () => {
     expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '保存済みファイルを複製' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '削除' })).toBeDisabled()
+  })
+
+  it('uses a YAML template format for a new category after opening JSON', async () => {
+    const structureCategory: MasterCategory = { ...catalog.categories[0], id: 'structure', label: '構造', directory: '35.features.skilltree/structures', templates: [] }
+    const skillCategory: MasterCategory = { ...catalog.categories[0], id: 'skill', label: 'スキル', directory: '30.features.skill', templates: [{ path: '30.features.skill/v1.new_skill.yml', raw: 'schemaVersion: 1\nid: new_skill\n' }] }
+    vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [structureCategory, skillCategory] })
+    vi.spyOn(masterDataApi, 'file').mockResolvedValue({ ...original, path: '35.features.skilltree/structures/tree.json', format: 'json', raw: '{"id":"old"}' })
+    const create = vi.spyOn(masterDataApi, 'create').mockResolvedValue({ ...original, path: '30.features.skill/v1.new_skill.yml' })
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /元クラス.*old/ }))
+    await screen.findByRole('textbox', { name: '/id' })
+    await waitFor(() => expect(screen.getByRole('button', { name: '＋ 新規' })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: '＋ 新規' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    fireEvent.change(dialog.getByRole('combobox', { name: 'カテゴリ' }), { target: { value: 'skill' } })
+    expect(dialog.getByRole('combobox', { name: '新規マスターの形式' })).toHaveValue('yaml')
+    expect(dialog.getByRole('textbox', { name: /保存先/ })).toHaveValue('30.features.skill/v1.new_skill.yml')
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ path: '30.features.skill/v1.new_skill.yml', raw: 'schemaVersion: 1\nid: new_skill\n' })))
+  })
+
+  it('omits a dot directory prefix and permits explicitly choosing JSON', async () => {
+    const rootCategory: MasterCategory = { ...catalog.categories[0], id: 'root', label: 'ルート', directory: '.', templates: [{ path: 'v1.root_config.yml', raw: 'schemaVersion: 1\nid: root_config\n' }] }
+    vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [rootCategory] })
+    const create = vi.spyOn(masterDataApi, 'create').mockResolvedValue(original)
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    expect(dialog.getByRole('textbox', { name: /保存先/ })).toHaveValue('v1.root_config.yml')
+    fireEvent.change(dialog.getByRole('combobox', { name: '新規マスターの形式' }), { target: { value: 'json' } })
+    fireEvent.change(dialog.getByRole('textbox', { name: '新規マスター原稿' }), { target: { value: '{"id":"root_json","schemaVersion":1}' } })
+    expect(dialog.getByRole('textbox', { name: /保存先/ })).toHaveValue('root_json.json')
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ path: 'root_json.json', raw: '{"id":"root_json","schemaVersion":1}' })))
+  })
+
+  it('locks every creation control while the submitted request is pending', async () => {
+    const skillCategory: MasterCategory = { ...catalog.categories[0], id: 'skill', label: 'スキル', directory: '30.features.skill', templates: [{ path: '30.features.skill/v1.new_skill.yml', raw: 'schemaVersion: 1\nid: new_skill\n' }] }
+    vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [skillCategory] })
+    let complete!: (value: MasterDocument) => void
+    const create = vi.spyOn(masterDataApi, 'create').mockImplementation(() => new Promise((resolve) => { complete = resolve }))
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toBeDisabled()
+    expect(dialog.getByRole('combobox', { name: 'カテゴリ' })).toBeDisabled()
+    expect(dialog.getByRole('combobox', { name: '新規マスターの形式' })).toBeDisabled()
+    expect(dialog.getByRole('combobox', { name: 'テンプレート' })).toBeDisabled()
+    expect(dialog.getByRole('textbox', { name: /ファイル名用 slug/ })).toBeDisabled()
+    expect(dialog.getByRole('checkbox', { name: /slugから保存先/ })).toBeDisabled()
+    expect(dialog.getByRole('button', { name: 'キャンセル' })).toBeDisabled()
+    await act(async () => complete({ ...original, path: '30.features.skill/v1.new_skill.yml' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'マスターファイル作成' })).not.toBeInTheDocument())
   })
 })

@@ -73,6 +73,7 @@
 .master-doc-links .button { margin: 7px 7px 0 0; }
 .master-create-dialog { grid-template-rows: auto minmax(0, 1fr) auto; }
 .master-create-fields { display: grid; gap: 14px; }
+.master-create-fields.master-form-lock { padding: 18px 20px; }
 .master-create-fields .master-raw { min-height: 280px; }
 .master-diff-dialog, .master-doc-dialog { grid-template-rows: auto minmax(0, 1fr); width: min(1200px, 95vw); }
 .master-doc-dialog pre { white-space: pre-wrap; font: 12px/1.8 "Cascadia Code", Consolas, monospace; }
