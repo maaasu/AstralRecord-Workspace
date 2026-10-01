@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument, StructurePlacement } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import { SuggestionInput } from './SuggestionInput'
+import { MaterialIconInput } from './MaterialIconInput'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 import { describeNodeCost, describeNodeEffects } from '../data/nodeEffectPresentation'
 import {
@@ -175,11 +175,13 @@ export function PlacementInspector({
             </label>
             <label>Minecraft Material
               <div className="input-with-action">
-                <SuggestionInput
-                  aria-label="Minecraft Material"
+                <MaterialIconInput
+                  ariaLabel="Minecraft Material"
                   value={String(draft.icon)}
                   suggestions={materialSuggestions}
-                  onChange={(event) => updateMaster('icon', event.target.value.toUpperCase())}
+                  revision={iconRevision}
+                  disabled={saving}
+                  onChange={(value) => updateMaster('icon', value.toUpperCase())}
                 />
                 <button className="button subtle compact" type="button" onClick={onRetryIcons}>再読込</button>
               </div>

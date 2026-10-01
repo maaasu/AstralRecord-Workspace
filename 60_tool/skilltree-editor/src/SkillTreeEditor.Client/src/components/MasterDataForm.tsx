@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
+import { MaterialIconInput } from './MaterialIconInput'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
 const typeLabels: Record<ValueType, string> = {
@@ -122,6 +123,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = /\/\d+$/.test(path) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
+  if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={metadata?.reference ?? parentReference}
     referencePrefix={typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined} />
 }
