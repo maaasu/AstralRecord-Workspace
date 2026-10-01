@@ -221,6 +221,30 @@ public sealed class DonationRepositoryTests
     }
 
     [Fact]
+    public async Task PendingCountIncludesAllUsersAndPages_ExcludesOtherStates()
+    {
+        await using var f = await Fixture.Create();
+        var otherUser = Guid.NewGuid();
+        for (var i = 0; i < 27; i++)
+            f.Management.Set<DonationRequestEntity>().Add(new()
+            {
+                Id = Guid.NewGuid(), UserUuid = i % 2 == 0 ? f.User : otherUser,
+                Mcid = "Fixture", Status = DonationRules.Pending, ProtectedEntries = f.Protector.CreateProtector("AstralRecord.Donations.Entries.v1").Protect("[]"), CreatedAtUtc = DateTime.UtcNow,
+            });
+        foreach (var status in new[] { DonationRules.Reviewing, DonationRules.Approved, DonationRules.Rejected, DonationRules.Cancelled })
+            f.Management.Set<DonationRequestEntity>().Add(new()
+            {
+                Id = Guid.NewGuid(), UserUuid = f.User, Mcid = "Fixture", Status = status,
+                ProtectedEntries = f.Protector.CreateProtector("AstralRecord.Donations.Entries.v1").Protect("[]"), CreatedAtUtc = DateTime.UtcNow,
+            });
+        await f.Management.SaveChangesAsync();
+        Assert.Equal(27, await f.Repo.CountPendingAsync(default));
+        var pending = await f.Management.Set<DonationRequestEntity>().FirstAsync(x => x.Status == DonationRules.Pending);
+        await f.Repo.TransitionAsync(pending.Id, f.Admin, "review");
+        Assert.Equal(26, await f.Repo.CountPendingAsync(default));
+    }
+
+    [Fact]
     public async Task WebEndpointsRequireDedicatedKey_AndFreshManagementAdminFlag()
     {
         await using var f = await Fixture.Create();
@@ -230,15 +254,20 @@ public sealed class DonationRepositoryTests
         var controller = new DonationController(f.Repo, f.Discord, auth, config)
         { ControllerContext = new() { HttpContext = new DefaultHttpContext() } };
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.List(f.User)).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.PendingCount(f.User, default)).StatusCode);
         controller.Request.Headers["X-Donation-Web-Key"] = "dedicated-key";
         Assert.IsType<OkObjectResult>(await controller.List(f.User));
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.AdminList(f.User)).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.PendingCount(f.User, default)).StatusCode);
         var player = await f.Management.Players.SingleAsync();
         player.WebAdmin = true;
         await f.Management.SaveChangesAsync();
         Assert.IsType<OkObjectResult>(await controller.AdminList(f.User));
+        var count = Assert.IsType<DonationPendingCountResponse>(Assert.IsType<OkObjectResult>(await controller.PendingCount(f.User, default)).Value);
+        Assert.Equal(0, count.PendingCount);
         player.WebAdmin = false;
         await f.Management.SaveChangesAsync();
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.PendingCount(f.User, default)).StatusCode);
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.AdminList(f.User)).StatusCode);
     }
 

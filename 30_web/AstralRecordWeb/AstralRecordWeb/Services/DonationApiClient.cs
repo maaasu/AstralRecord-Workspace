@@ -11,6 +11,8 @@ public sealed record DonationApiResult<T>(T? Value, HttpStatusCode Status, strin
 
 public sealed class DonationApiClient(HttpClient client)
 {
+    public Task<DonationApiResult<DonationPendingCount>> PendingCountAsync(Guid actor, CancellationToken ct) =>
+        SendAsync<DonationPendingCount>(HttpMethod.Get, "admin/pending-count", actor, null, ct);
     public Task<DonationApiResult<DonationList>> ListAsync(Guid actor, bool admin, int page, CancellationToken ct) =>
         SendAsync<DonationList>(HttpMethod.Get, admin ? "admin" : "", actor, null, ct, $"&page={page}&page_size=20");
     public Task<DonationApiResult<DonationRequest>> GetAsync(Guid actor, Guid id, CancellationToken ct) =>

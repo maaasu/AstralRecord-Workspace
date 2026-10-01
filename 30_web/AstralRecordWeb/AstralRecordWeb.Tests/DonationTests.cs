@@ -14,6 +14,31 @@ namespace AstralRecordWeb.Tests;
 
 public sealed class DonationTests
 {
+    [Theory]
+    [InlineData(true, true, 27, true, true)]
+    [InlineData(true, true, 0, true, false)]
+    [InlineData(true, true, 27, false, false)]
+    [InlineData(true, false, 27, true, false)]
+    [InlineData(false, true, 27, true, false)]
+    public async Task MenuPendingBadgeRequiresVerifiedAdmin_AndSuccessfulPositiveCount(bool admin, bool verified, int pendingCount, bool available, bool visible)
+    {
+        var api = new DonationHandler { Admin = admin, Verified = verified, PendingCount = pendingCount, CountAvailable = available };
+        await using var factory = new DonationFactory(api);
+        using var client = Client(factory);
+        Assert.DoesNotContain("ar-menu-badge", await client.GetStringAsync("/Login"));
+        Assert.Equal(0, api.CountCalls);
+        await Login(client);
+        var html = await client.GetStringAsync("/Donations");
+        Assert.Equal(visible, html.Contains("class=\"ar-menu-badge\"", StringComparison.Ordinal));
+        Assert.Equal(admin && verified ? 1 : 0, api.CountCalls);
+        if (visible)
+        {
+            Assert.Contains("</span>27<span", html);
+            Assert.Equal(DonationHandler.Actor, api.LastActor);
+            Assert.Equal("fixture-donation-key", api.LastWebKey);
+        }
+    }
+
     [Fact]
     public async Task OAuth_ExpiredLoginDoesNotCopyCodeIntoLoginReturnUrl()
     {
@@ -202,6 +227,10 @@ public sealed class DonationTests
         public static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
         public static readonly Guid Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
         public bool Admin { get; init; }
+        public bool Verified { get; init; } = true;
+        public int PendingCount { get; init; }
+        public bool CountAvailable { get; init; } = true;
+        public int CountCalls { get; private set; }
         public int Creates { get; private set; }
         public int Approvals { get; private set; }
         public int Links { get; private set; }
@@ -221,13 +250,18 @@ public sealed class DonationTests
                 Assert.Contains("client_secret=fixture-secret", form);
                 return Json(new { access_token = "fixture-access", refresh_token = "fixture-refresh" });
             }
-            if (path.EndsWith("/challenges/consume")) return Json(new { codeAuthenticatedAt = DateTimeOffset.UtcNow, codeAuthenticationProof = "fixture-proof", sessionVersion = Actor, userUuid = Actor, mcid = "TestPlayer", permission = 0, accountIds = Array.Empty<Guid>() });
+            if (path.EndsWith("/challenges/consume")) return Json(new { codeAuthenticatedAt = DateTimeOffset.UtcNow, codeAuthenticationProof = Verified ? "fixture-proof" : null, sessionVersion = Actor, userUuid = Actor, mcid = "TestPlayer", permission = 0, accountIds = Array.Empty<Guid>() });
             if (path.EndsWith("/credentials")) return Json(new { sessionVersion = Actor, enabled = false });
             if (path.EndsWith("/authorization")) return Json(new { webAdmin = Admin });
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri.Query);
             if (query.TryGetValue("actor_user_uuid", out var value) && Guid.TryParse(value, out var actor)) LastActor = actor;
             LastWebKey = request.Headers.TryGetValues("X-Donation-Web-Key", out var keys) ? keys.Single() : null;
             if (request.Content is not null) LastBody = await request.Content.ReadAsStringAsync(ct);
+            if (path == "/api/donations/admin/pending-count")
+            {
+                CountCalls++;
+                return CountAvailable ? Json(new { pendingCount = PendingCount }) : new(HttpStatusCode.ServiceUnavailable);
+            }
             if (path == "/api/donations/discord") { Links++; return Json(new { }); }
             if (path.EndsWith("/approve")) { Approvals++; return Json(Donation()); }
             if (path == "/api/donations" && request.Method == HttpMethod.Post) { Creates++; return Json(Donation()); }

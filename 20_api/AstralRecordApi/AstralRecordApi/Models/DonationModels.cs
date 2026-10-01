@@ -24,5 +24,7 @@ public sealed record DonationResponse(Guid Id, Guid UserUuid, string Mcid, int D
     Guid? ReviewerUuid, IReadOnlyList<DonationEntry> Entries, string DiscordUserId, string DiscordName);
 public sealed record DonationListResponse(long TotalApprovedAmount, IReadOnlyList<DonationResponse> Requests,
     DonationDiscordLinkResponse? DiscordLink, int TotalCount);
+/// <summary>管理者向けの全ユーザーの申請中件数です。</summary>
+public sealed record DonationPendingCountResponse(int PendingCount);
 public sealed record DonationNotificationResponse(Guid Id, string Kind, int Amount, string Message);
 public sealed class DonationConflictException(string message) : Exception(message);

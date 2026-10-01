@@ -4,6 +4,8 @@ namespace AstralRecordApi.Repositories;
 
 public interface IDonationRepository
 {
+    /// <summary>全ユーザーのPending状態の寄付申請件数を取得します。</summary>
+    Task<int> CountPendingAsync(CancellationToken cancellationToken);
     Task<DonationListResponse> ListAsync(Guid actor, bool all, int page, int pageSize);
     Task<DonationResponse?> GetAsync(Guid id, Guid actor, bool admin);
     Task<DonationResponse> CreateAsync(Guid user, DonationCreateRequest request);

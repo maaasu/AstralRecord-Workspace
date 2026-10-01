@@ -2,6 +2,8 @@
 <html lang="ja">
 @inject Microsoft.Extensions.Options.IOptions<AstralRecordWeb.Options.PublicSiteOptions> PublicSiteOptionsAccessor
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@inject AstralRecordWeb.Services.DonationApiClient DonationApi
+@using System.Security.Claims
 @{
     var publicSite = PublicSiteOptionsAccessor.Value;
     var isHomePage = string.Equals(ViewContext.RouteData.Values["page"] as string, "/Index", StringComparison.OrdinalIgnoreCase);
@@ -93,9 +95,26 @@
                 var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminVisible");
                 @if (webAdminAuthorization.Succeeded)
                 {
+                    var pendingDonationCount = 0;
+                    var verifiedAdmin = await AuthorizationService.AuthorizeAsync(User, Context, "WebAdminOnly");
+                    if (verifiedAdmin.Succeeded && Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor))
+                    {
+                        var countResult = await DonationApi.PendingCountAsync(actor, Context.RequestAborted);
+                        if (countResult.Succeeded) pendingDonationCount = countResult.Value!.PendingCount;
+                    }
                     <nav class="ar-menu-section ar-menu-admin" aria-label="管理者専用">
                         <p class="ar-menu-label">管理者専用</p>
-                        <a asp-page="/Admin/Donations/Index"><span>寄付申請管理</span><span aria-hidden="true">↗</span></a>
+                        <a asp-page="/Admin/Donations/Index">
+                            <span>寄付申請管理</span>
+                            @if (pendingDonationCount > 0)
+                            {
+                                <span class="ar-menu-badge"><span class="visually-hidden">申請中 </span>@pendingDonationCount<span class="visually-hidden">件</span></span>
+                            }
+                            else
+                            {
+                                <span aria-hidden="true">↗</span>
+                            }
+                        </a>
                         <a asp-page="/Admin/Items"><span>アイテム</span><span aria-hidden="true">↗</span></a>
                         <a asp-page="/Admin/Network"><span>ネットワーク設定</span><span aria-hidden="true">↗</span></a>
                         <a asp-page="/Admin/History/SameIp"><span>プレイヤー活動履歴</span><span aria-hidden="true">↗</span></a>

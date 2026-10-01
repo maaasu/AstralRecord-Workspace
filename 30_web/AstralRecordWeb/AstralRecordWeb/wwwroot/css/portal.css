@@ -24,6 +24,7 @@ main, .ar-footer { position: relative; }
 .ar-menu-section a { display: flex; justify-content: space-between; align-items: center; color: #edf2f7; text-decoration: none; padding: .65rem .2rem; border-bottom: 1px solid #ffffff0e; transition: padding .2s, color .2s; }
 .ar-menu-section a:hover { padding-left: .65rem; color: var(--ar-teal); }
 .ar-menu-section a span:last-child { color: #89a4b8; }
+.ar-menu-section a span.ar-menu-badge { min-width: 1.6rem; padding: .15rem .5rem; border-radius: 999px; background: var(--ar-gold-light); color: #17212b; font-size: .8rem; font-weight: 700; text-align: center; }
 .ar-menu-account, .ar-menu-admin { padding: 1.15rem; border: 1px solid #8ae3db40; border-radius: 8px; background: #8ae3db08; }
 .ar-menu-account .ar-menu-label { color: var(--ar-teal); }
 .ar-menu-player { display: block; margin-bottom: .6rem; overflow-wrap: anywhere; }

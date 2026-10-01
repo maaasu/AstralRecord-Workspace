@@ -21,6 +21,7 @@ WebでMinecraftユーザー本人がAmazonギフトカード番号またはPayPa
 |---|---|
 | GET `/` | 本人履歴。`page`/`page_size`、`totalCount`と`totalApprovedAmount`、`discordLink`を返す |
 | GET `/admin` | 管理者のみ全履歴。合計は全ユーザーの承認額 |
+| GET `/admin/pending-count` | 管理者のみ全ユーザーのPending件数。`{pendingCount:3}`。Reviewingや処理済みを含めず、ページ分割なし |
 | GET `/{id}` | 本人または管理者に詳細・支払い明細を返す |
 | POST `/` | `{operationId,declaredAmount,termsVersion,entries:[{method,value,declaredAmount}]}` |
 | POST `/{id}/review` | PendingからReviewingへ。担当を確保する |

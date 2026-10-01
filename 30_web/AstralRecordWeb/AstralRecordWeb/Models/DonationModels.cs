@@ -1,5 +1,7 @@
 namespace AstralRecordWeb.Models;
 
+public sealed record DonationPendingCount(int PendingCount);
+
 public sealed class DonationList
 {
     public long TotalApprovedAmount { get; init; }

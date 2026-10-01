@@ -21,6 +21,10 @@ public sealed class DonationRepository(ManagementDbContext management, AstralRec
     private DbSet<DonationGrantEntity> Grants => management.Set<DonationGrantEntity>();
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
+    /// <summary>一覧のページ数によらず、全ユーザーの申請中件数を取得します。</summary>
+    public Task<int> CountPendingAsync(CancellationToken cancellationToken) =>
+        Requests.AsNoTracking().CountAsync(x => x.Status == DonationRules.Pending, cancellationToken);
+
     public async Task<DonationListResponse> ListAsync(Guid actor, bool all, int page, int pageSize)
     {
         page = Math.Clamp(page, 1, 1_000_000);

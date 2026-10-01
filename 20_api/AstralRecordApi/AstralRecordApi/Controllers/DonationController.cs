@@ -22,6 +22,11 @@ public sealed class DonationController(IDonationRepository repository, IDonation
     public Task<IActionResult> AdminList([FromQuery(Name = "actor_user_uuid")] Guid actor, [FromQuery] int page = 1,
         [FromQuery(Name = "page_size")] int pageSize = 20) => Web(actor, true, async () => await repository.ListAsync(actor, true, page, pageSize));
 
+    /// <summary>管理者専用メニューに表示する全ユーザーの申請中件数を取得します。</summary>
+    [HttpGet("admin/pending-count")]
+    public Task<IActionResult> PendingCount([FromQuery(Name = "actor_user_uuid")] Guid actor, CancellationToken cancellationToken) =>
+        Web(actor, true, async () => new DonationPendingCountResponse(await repository.CountPendingAsync(cancellationToken)));
+
     /// <summary>本人または管理者だけに申請の支払い明細を開示します。</summary>
     [HttpGet("{id:guid}")]
     public Task<IActionResult> Detail(Guid id, [FromQuery(Name = "actor_user_uuid")] Guid actor) =>
