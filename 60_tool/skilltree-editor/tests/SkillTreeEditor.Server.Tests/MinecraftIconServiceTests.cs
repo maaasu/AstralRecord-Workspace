@@ -185,6 +185,47 @@ public sealed class MinecraftIconServiceTests
     }
 
     [Fact]
+    public async Task InterruptedPrimaryBodyUsesFallbackAndRemovesPartialCache()
+    {
+        using var context = new IconTestContext((request, _) => Task.FromResult(request.RequestUri!.Host == "mc-icons.example"
+            ? InterruptedResponse()
+            : PngResponse()));
+
+        var result = await context.Service.GetIconPathAsync("PORKCHOP", refresh: false, CancellationToken.None);
+
+        Assert.Equal(PngBytes, await File.ReadAllBytesAsync(result!));
+        Assert.Equal(2, context.Handler.Requests.Count);
+        Assert.Equal(context.CachePath, Assert.Single(Directory.GetFiles(context.Paths.MinecraftIconCache)));
+    }
+
+    [Fact]
+    public async Task InterruptedBodyWithCallerCancellationDoesNotContactFallback()
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var context = new IconTestContext((_, _) => Task.FromResult(InterruptedResponse(cancellation.Cancel)));
+
+        await Assert.ThrowsAsync<HttpIOException>(() =>
+            context.Service.GetIconPathAsync("PORKCHOP", refresh: false, cancellation.Token));
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Equal("mc-icons.example", Assert.Single(context.Handler.Requests).Host);
+        Assert.Empty(Directory.GetFiles(context.Paths.MinecraftIconCache));
+    }
+
+    [Fact]
+    public async Task LocalCacheDirectoryFailureDoesNotContactFallback()
+    {
+        using var context = new IconTestContext((_, _) => Task.FromResult(PngResponse()));
+        Directory.CreateDirectory(Path.GetDirectoryName(context.Paths.MinecraftIconCache)!);
+        await File.WriteAllBytesAsync(context.Paths.MinecraftIconCache, PngBytes);
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            context.Service.GetIconPathAsync("PORKCHOP", refresh: false, CancellationToken.None));
+
+        Assert.Equal("mc-icons.example", Assert.Single(context.Handler.Requests).Host);
+    }
+
+    [Fact]
     public async Task ConcurrentRequestsShareOnePrimaryAndFallbackDownload()
     {
         using var context = new IconTestContext(async (request, token) =>
@@ -218,6 +259,30 @@ public sealed class MinecraftIconServiceTests
 
         Assert.Equal("mc-icons.example", Assert.Single(context.Handler.Requests).Host);
         Assert.False(File.Exists(context.CachePath));
+    }
+
+    private static HttpResponseMessage InterruptedResponse(Action? beforeFailure = null)
+    {
+        var content = new StreamContent(new InterruptedReadStream(beforeFailure));
+        content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Headers.ContentLength = PngBytes.Length * 2;
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+    }
+
+    private sealed class InterruptedReadStream(Action? beforeFailure) : MemoryStream(PngBytes, writable: false)
+    {
+        private bool _receivedFirstChunk;
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (!_receivedFirstChunk)
+            {
+                _receivedFirstChunk = true;
+                return base.ReadAsync(buffer, cancellationToken);
+            }
+            beforeFailure?.Invoke();
+            return ValueTask.FromException<int>(new HttpIOException(HttpRequestError.ResponseEnded, "Response ended prematurely."));
+        }
     }
 
     private static HttpResponseMessage PngResponse()

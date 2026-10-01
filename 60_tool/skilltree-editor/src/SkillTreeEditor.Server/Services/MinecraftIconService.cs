@@ -36,6 +36,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
                     return primaryPath;
             }
             catch (HttpRequestException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
+            catch (HttpIOException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
             catch (InvalidDataException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
             catch (OperationCanceledException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
 
