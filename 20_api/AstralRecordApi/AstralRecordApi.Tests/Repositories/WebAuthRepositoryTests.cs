@@ -113,24 +113,30 @@ public class WebAuthRepositoryTests
         Assert.True(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
 
         var trustedBrowser = await managementContext.WebTrustedBrowsers.AsNoTracking().SingleAsync();
-        trustedBrowser.CreatedAtUtc = DateTime.UtcNow.AddDays(-6).AddMinutes(-1);
-        trustedBrowser.LastUsedAtUtc = DateTime.UtcNow.AddDays(-6);
-        managementContext.WebTrustedBrowsers.Update(trustedBrowser);
-        await managementContext.SaveChangesAsync();
+        var recentCreatedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(-1);
+        var recentLastUsedAt = DateTime.UtcNow.AddDays(-6);
+        await managementContext.WebTrustedBrowsers
+            .Where(item => item.TrustedBrowserId == trustedBrowser.TrustedBrowserId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.CreatedAtUtc, recentCreatedAt)
+                .SetProperty(item => item.LastUsedAtUtc, recentLastUsedAt));
         Assert.True(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
-        managementContext.ChangeTracker.Clear();
         var refreshed = await managementContext.WebTrustedBrowsers.AsNoTracking().SingleAsync();
         Assert.True(refreshed.LastUsedAtUtc > DateTime.UtcNow.AddDays(-6));
 
-        refreshed.CreatedAtUtc = DateTime.UtcNow.AddDays(-7).AddMinutes(-1);
-        refreshed.LastUsedAtUtc = DateTime.UtcNow.AddDays(-7).AddSeconds(-1);
-        managementContext.WebTrustedBrowsers.Update(refreshed);
-        await managementContext.SaveChangesAsync();
+        var expiredCreatedAt = DateTime.UtcNow.AddDays(-7).AddMinutes(-1);
+        var expiredLastUsedAt = DateTime.UtcNow.AddDays(-7).AddSeconds(-1);
+        await managementContext.WebTrustedBrowsers
+            .Where(item => item.TrustedBrowserId == trustedBrowser.TrustedBrowserId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.CreatedAtUtc, expiredCreatedAt)
+                .SetProperty(item => item.LastUsedAtUtc, expiredLastUsedAt));
         Assert.False(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
 
-        refreshed.LastUsedAtUtc = DateTime.UtcNow;
-        managementContext.WebTrustedBrowsers.Update(refreshed);
-        await managementContext.SaveChangesAsync();
+        var restoredLastUsedAt = DateTime.UtcNow;
+        await managementContext.WebTrustedBrowsers
+            .Where(item => item.TrustedBrowserId == trustedBrowser.TrustedBrowserId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.LastUsedAtUtc, restoredLastUsedAt));
         var enabled = await repository.UpdateCredentialAsync(userId, new WebCredentialUpdateRequest
         {
             SessionVersion = consumed.SessionVersion,
