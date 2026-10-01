@@ -15,7 +15,7 @@ namespace AstralRecordApi.Repositories;
 public sealed class DonationRepository(ManagementDbContext management, AstralRecordDbContext game,
     IDonationDiscordRepository discord, IDataProtectionProvider protection, TimeProvider clock) : IDonationRepository
 {
-    private readonly IDataProtector protector = protection.CreateProtector("AstralRecord.Donations.Entries.v1");
+    private readonly IDataProtector legacyProtector = protection.CreateProtector("AstralRecord.Donations.Entries.v1");
     private DbSet<DonationRequestEntity> Requests => management.Set<DonationRequestEntity>();
     private DbSet<DonationLedgerEntity> Ledgers => management.Set<DonationLedgerEntity>();
     private DbSet<DonationGrantEntity> Grants => management.Set<DonationGrantEntity>();
@@ -67,7 +67,7 @@ public sealed class DonationRepository(ManagementDbContext management, AstralRec
             var row = new DonationRequestEntity
             {
                 Id = request.OperationId, UserUuid = user, Mcid = mcid, DeclaredAmount = request.DeclaredAmount,
-                ProtectedEntries = protector.Protect(JsonSerializer.Serialize(entries)), TermsVersion = request.TermsVersion,
+                ProtectedEntries = JsonSerializer.Serialize(entries), TermsVersion = request.TermsVersion,
                 DiscordUserId = link.DiscordUserId, DiscordName = link.DiscordName, CreatedAtUtc = Now,
             };
             Requests.Add(row);
@@ -312,7 +312,17 @@ public sealed class DonationRepository(ManagementDbContext management, AstralRec
     private DonationResponse Map(DonationRequestEntity row, bool detail) => new(row.Id, row.UserUuid, row.Mcid,
         row.DeclaredAmount, row.ApprovedAmount, row.Status, row.Reason, row.CreatedAtUtc, row.DecidedAtUtc,
         row.ReviewerUuid, detail ? ReadEntries(row) : [], row.DiscordUserId, row.DiscordName);
-    private DonationEntry[] ReadEntries(DonationRequestEntity row) => JsonSerializer.Deserialize<DonationEntry[]>(protector.Unprotect(row.ProtectedEntries))!;
+    private DonationEntry[] ReadEntries(DonationRequestEntity row)
+    {
+        // Keep the existing column and read encrypted requests created before plaintext storage.
+        var json = row.ProtectedEntries;
+        if (!json.TrimStart().StartsWith('['))
+        {
+            try { json = legacyProtector.Unprotect(json); }
+            catch (CryptographicException) { return []; }
+        }
+        return JsonSerializer.Deserialize<DonationEntry[]>(json)!;
+    }
     private static string ApprovalMessage(DonationRequestEntity row) => $"申告額: {row.DeclaredAmount:N0}円 / 承認額: {row.ApprovedAmount:N0}円。{row.Reason}";
     private static void Require(bool value, string message) { if (!value) throw new DonationConflictException(message); }
     private static string CleanReason(string? text)

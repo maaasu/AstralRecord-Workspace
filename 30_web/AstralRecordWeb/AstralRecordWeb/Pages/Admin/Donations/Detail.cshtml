@@ -13,6 +13,10 @@
             <p>Discord：@donation.DiscordName（@donation.DiscordUserId）</p>
             <p>申請日時：@donation.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")（日本時間）</p>
             @if (donation.Reason is not null) { <p class="text-break">管理者メッセージ：@donation.Reason</p> }
+            @if (donation.Entries.Count == 0)
+            {
+                <p class="alert alert-warning" role="alert">支払い情報を読み出せません。申請者へ番号・URLの再確認を依頼してください。</p>
+            }
             @foreach (var entry in donation.Entries)
             {
                 <div class="border rounded p-3 mb-2"><strong>@(entry.Method == "amazon" ? "Amazonギフトカード番号" : "PayPay送金URL") / @entry.DeclaredAmount.ToString("N0") 円</strong><p class="text-break mb-0">@entry.Value</p></div>

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,6 +15,35 @@ namespace AstralRecordWeb.Tests;
 
 public sealed class DonationTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DetailDisplaysPaymentValues_OrBasicInformationWithUnavailableMessage(bool entriesAvailable)
+    {
+        var api = new DonationHandler
+        {
+            Admin = true,
+            Entries = entriesAvailable
+                ? [new() { Method = "amazon", Value = "ABC12345-GIFT", DeclaredAmount = 300 },
+                   new() { Method = "paypay", Value = "https://pay.paypay.ne.jp/fixture-link", DeclaredAmount = 200 }]
+                : [],
+        };
+        await using var factory = new DonationFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var response = await client.GetAsync("/Admin/Donations/Detail/" + DonationHandler.Id);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+        Assert.Contains("TestPlayer", html);
+        Assert.Contains("申告額：500", html);
+        Assert.Contains("確認中", html);
+        Assert.True(response.Headers.CacheControl!.NoStore);
+        Assert.Equal("no-referrer", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
+        Assert.Equal(entriesAvailable, html.Contains("ABC12345-GIFT", StringComparison.Ordinal));
+        Assert.Equal(entriesAvailable, html.Contains("https://pay.paypay.ne.jp/fixture-link", StringComparison.Ordinal));
+        Assert.Equal(!entriesAvailable, html.Contains("支払い情報を読み出せません。", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(true, true, 27, true, true)]
     [InlineData(true, true, 0, true, false)]
@@ -227,6 +257,7 @@ public sealed class DonationTests
         public static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
         public static readonly Guid Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
         public bool Admin { get; init; }
+        public IReadOnlyList<DonationEntry> Entries { get; init; } = [];
         public bool Verified { get; init; } = true;
         public int PendingCount { get; init; }
         public bool CountAvailable { get; init; } = true;
@@ -273,7 +304,7 @@ public sealed class DonationTests
             if (path == "/api/donations/" + Id) return Json(Donation());
             return new(HttpStatusCode.NotFound);
         }
-        private static object Donation() => new { id = Id, userUuid = Actor, mcid = "TestPlayer", declaredAmount = 500, status = "Reviewing", createdAtUtc = DateTimeOffset.UtcNow, entries = Array.Empty<object>() };
+        private object Donation() => new { id = Id, userUuid = Actor, mcid = "TestPlayer", declaredAmount = 500, status = "Reviewing", createdAtUtc = DateTimeOffset.UtcNow, entries = Entries };
         private static HttpResponseMessage Json(object body) => new(HttpStatusCode.OK) { Content = JsonContent.Create(body) };
     }
 }

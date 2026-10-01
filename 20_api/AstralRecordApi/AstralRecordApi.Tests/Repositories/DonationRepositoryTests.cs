@@ -19,6 +19,70 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class DonationRepositoryTests
 {
     [Fact]
+    public async Task PlaintextEntriesRemainReadableWithNewProtectionProvider_AndStayOutOfListsAndNotifications()
+    {
+        await using var f = await Fixture.Create();
+        var input = new DonationCreateRequest(Guid.NewGuid(), 500, DonationRules.TermsVersion,
+            [new("amazon", "ABC12345-GIFT", 300), new("paypay", "https://pay.paypay.ne.jp/fixture-link", 200)]);
+        var created = await f.Repo.CreateAsync(f.User, input);
+        var row = await f.Management.Set<DonationRequestEntity>().SingleAsync();
+        Assert.Equal(input.Entries, JsonSerializer.Deserialize<DonationEntry[]>(row.ProtectedEntries));
+
+        var restarted = new DonationRepository(f.Management, f.Game, f.Discord, new EphemeralDataProtectionProvider(), TimeProvider.System);
+        var detail = await restarted.GetAsync(created.Id, f.Admin, true);
+        Assert.NotNull(detail);
+        Assert.Equal(input.Entries, detail.Entries);
+        Assert.Equal(created.Id, (await restarted.CreateAsync(f.User, input)).Id);
+        Assert.Null(await restarted.GetAsync(created.Id, f.Admin, false));
+        var listJson = JsonSerializer.Serialize(await restarted.ListAsync(f.User, false, 1, 20));
+        var notificationsJson = JsonSerializer.Serialize(await restarted.NotificationsAsync(f.User));
+        foreach (var entry in input.Entries)
+        {
+            Assert.DoesNotContain(entry.Value, listJson);
+            Assert.DoesNotContain(entry.Value, notificationsJson);
+        }
+        await Assert.ThrowsAsync<DonationConflictException>(() => restarted.CreateAsync(f.User, input with { OperationId = Guid.NewGuid() }));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LegacyEntriesUseOldKey_WhenUnavailableBasicDetailsAndTransitionsStillWork(bool keyLost)
+    {
+        await using var f = await Fixture.Create();
+        var input = Request();
+        var created = await f.Repo.CreateAsync(f.User, input);
+        var row = await f.Management.Set<DonationRequestEntity>().SingleAsync();
+        var encrypted = f.Protector.CreateProtector("AstralRecord.Donations.Entries.v1").Protect(JsonSerializer.Serialize(input.Entries));
+        row.ProtectedEntries = encrypted;
+        await f.Management.SaveChangesAsync();
+        var reader = new DonationRepository(f.Management, f.Game, f.Discord,
+            keyLost ? new EphemeralDataProtectionProvider() : f.Protector, TimeProvider.System);
+
+        var detail = await reader.GetAsync(created.Id, f.Admin, true);
+        Assert.NotNull(detail);
+        Assert.Equal(500, detail.DeclaredAmount);
+        Assert.Equal("Tester", detail.Mcid);
+        Assert.Equal(DonationRules.Pending, detail.Status);
+        if (keyLost)
+        {
+            Assert.Empty(detail.Entries);
+            await Assert.ThrowsAsync<DonationConflictException>(() => reader.CreateAsync(f.User, input));
+        }
+        else
+        {
+            Assert.Equal(input.Entries, detail.Entries);
+            Assert.Equal(created.Id, (await reader.CreateAsync(f.User, input)).Id);
+        }
+        Assert.Null(await reader.GetAsync(created.Id, f.Admin, false));
+        Assert.Empty(Assert.Single((await reader.ListAsync(f.User, false, 1, 20)).Requests).Entries);
+        Assert.Equal(DonationRules.Reviewing, (await reader.TransitionAsync(created.Id, f.Admin, "review")).Status);
+        Assert.Equal(DonationRules.Rejected, (await reader.TransitionAsync(created.Id, f.Admin, "reject", reason: "番号の再確認が必要")).Status);
+        Assert.Empty(await f.Management.Set<DonationEntryFingerprintEntity>().ToListAsync());
+        Assert.Equal(encrypted, (await f.Management.Set<DonationRequestEntity>().SingleAsync()).ProtectedEntries);
+    }
+
+    [Fact]
     public async Task PendingLimit_CancelAndRejectReleaseSlots_ReviewBlocksCancellation()
     {
         await using var f = await Fixture.Create();
@@ -196,7 +260,7 @@ public sealed class DonationRepositoryTests
         Assert.Equal(2, (await f.Repo.NotificationsAsync(f.User)).Count(x => x.Kind == "MailDelivered"));
         Assert.All((await f.Repo.ListAsync(f.User, false, 1, 20)).Requests, x => Assert.Empty(x.Entries));
         var request = await f.Management.Set<DonationRequestEntity>().FirstAsync();
-        Assert.DoesNotContain("amazon", request.ProtectedEntries);
+        Assert.Equal("amazon", Assert.Single(JsonSerializer.Deserialize<DonationEntry[]>(request.ProtectedEntries)!).Method);
         Assert.Null(await f.Repo.GetAsync(request.Id, f.Admin, false));
         Assert.NotNull(await f.Repo.GetAsync(request.Id, f.Admin, true));
         var notification = (await f.Repo.NotificationsAsync(f.User))[0];

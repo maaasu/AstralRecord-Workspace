@@ -11,7 +11,8 @@ WebでMinecraftユーザー本人がAmazonギフトカード番号またはPayPa
 - Discord OAuthは`identify guilds.members.read`を使う。APIが本人IDと設定された公式Guild参加を検証し、申請時も再照会する。同一Discord IDを複数Minecraftユーザーへ関連付けない。
 - 明細1～10件、各明細の種別・番号/URL・金額と申告合計を送信。合計一致、申告500～1,000,000円、規約版`2026-09-26`への同意を検証する。最大額は整数/報酬処理負荷の入力上限。
 - PayPayは`https://pay.paypay.ne.jp/<受取ID>`のみ。ユーザー提供URLへAPIからアクセスせず、別ホスト・資格情報・クエリ・フラグメントを拒否する。
-- コード/URLは暗号化保存し、重複判定用には正規化したSHA-256を保存する。秘密情報は一覧・通知・ログへ含めない。
+- 支払い明細（種別・コード/URL・金額）は`donation_request.protected_entries`へ平文JSONで保存し、重複判定用には正規化したSHA-256を保存する。既存DB列名は維持する。秘密情報は一覧・通知・ログへ含めない。
+- 旧申請の暗号化明細は、旧鍵が利用できれば復号して詳細に表示する。旧鍵が失われている場合は`entries:[]`として、申請者・金額・状態などの詳細を返す。暗号化データを平文として表示したり上書きしたりしない。番号/URLの復元には旧鍵または申請者からの再取得が必要。旧鍵喪失時の同じ申請IDによる作成再送は、保存明細との一致を確認できないため409を返す。新規平文と旧鍵が利用できる申請では、同じID・内容の再送を冪等に扱う。
 
 ## API
 
@@ -52,7 +53,7 @@ WebでMinecraftユーザー本人がAmazonギフトカード番号またはPayPa
 2. Filebaseの有償通貨を配置してMasterDataDBへseedする。API/Web/Pluginを配置する。
 3. APIとWebへ同じ`Donations__WebKey`（共通APIキーとは別）、`Donations__DiscordClientId`、`Donations__DiscordClientSecret`を設定。APIへ`Donations__DiscordGuildId`、Webへ`Donations__DiscordRedirectUri`を設定する。
 4. Discord Developer PortalへWebのHTTPS callback `/Donations/Discord`を正確に登録する。公開画面・資格情報を使った疎通は運営環境で実施する。
-5. API `DataProtection__KeyPath`を永続ディレクトリへ設定し、API実行ユーザーだけに書込/読取を許可する。再起動・複数API間で同じアプリ名と鍵を共有する。鍵喪失はコード・OAuth情報の復号不能につながる。
+5. API `DataProtection__KeyPath`を永続ディレクトリへ設定し、API実行ユーザーだけに書込/読取を許可する。再起動・複数API間で同じアプリ名と鍵を共有する。Discord OAuth情報と旧申請の暗号化明細には鍵が必要。新規申請の支払い明細は鍵なしで読み取れる。
 
 `WebKey`が空なら寄付Web APIは503、配布workerは停止する。秘密をリポジトリへ記入しない。DB migration前に有効化しない。
 

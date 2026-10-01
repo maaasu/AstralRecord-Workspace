@@ -196,7 +196,7 @@ http://localhost:{port}/openapi/v1.json
 
 ## 寄付受付
 
-本人の寄付申請・管理者審査・Discord本人連携・ゲーム内累計配布は [37-donations](00_docs/20_API設計書/feature/37-donations/37_README.md) を参照する。ManagementDB migrationとDiscordアプリ設定、専用Webキー、永続Data Protection鍵を準備してから有効化する。
+本人の寄付申請・管理者審査・Discord本人連携・ゲーム内累計配布は [37-donations](00_docs/20_API設計書/feature/37-donations/37_README.md) を参照する。ManagementDB migrationとDiscordアプリ設定、専用Webキー、Discord OAuth情報用の永続Data Protection鍵を準備してから有効化する。新規申請の支払い明細は平文JSONで保存し、旧申請の暗号化明細は旧鍵が利用できる場合だけ開示する。
 
 ## 有償サービスとチャンネルブースト
 

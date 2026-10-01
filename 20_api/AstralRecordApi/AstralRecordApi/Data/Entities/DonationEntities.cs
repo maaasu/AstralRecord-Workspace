@@ -8,7 +8,7 @@ public sealed class DonationLedgerEntity
     public int Revision { get; set; }
 }
 
-/// <summary>暗号化した支払情報と、申請・最終判断の監査記録です。</summary>
+/// <summary>支払情報の平文JSONと、申請・最終判断の監査記録です。</summary>
 public sealed class DonationRequestEntity
 {
     public Guid Id { get; set; }
@@ -18,6 +18,7 @@ public sealed class DonationRequestEntity
     public int? ApprovedAmount { get; set; }
     public long? ApprovedThroughAmount { get; set; }
     public string Status { get; set; } = "Pending";
+    /// <summary>既存DB列名を維持します。旧申請には暗号化形式が残ります。</summary>
     public string ProtectedEntries { get; set; } = "";
     public string TermsVersion { get; set; } = "";
     public string DiscordUserId { get; set; } = "";
