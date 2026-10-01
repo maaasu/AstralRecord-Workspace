@@ -152,6 +152,7 @@ public final class BossMechanicService {
     private final ConditionService conditionService;
     private final ParticleDisplayService particleDisplayService;
     private final CharonRitualController charonRitualController;
+    private final EmpusaSpellController empusaSpellController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -200,6 +201,11 @@ public final class BossMechanicService {
             this::charonParticipantCount,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
         );
+        this.empusaSpellController = new EmpusaSpellController(
+            particleDisplayService,
+            center -> nearbyManagedPlayers(center, TARGET_RANGE),
+            (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)
+        );
     }
 
     /**
@@ -244,6 +250,7 @@ public final class BossMechanicService {
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
+        empusaSpellController.clear(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -275,6 +282,7 @@ public final class BossMechanicService {
         }
         runtimes.clear();
         charonRitualController.clearAll();
+        empusaSpellController.clearAll();
     }
 
     /**
@@ -287,13 +295,31 @@ public final class BossMechanicService {
         processPendingMechanics();
 
         Set<UUID> activeBosses = new HashSet<>();
+        Set<UUID> activeEmpusas = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
-            if (profile == null || boss.currentHealth() <= 0.0D) {
+            boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
+            if ((profile == null && !empusa) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (empusa) {
+                activeEmpusas.add(boss.instanceId());
+                boolean engaged = isCharonEngaged(boss, entity);
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    empusaSpellController.clear(boss.instanceId());
+                } else if (!engaged) {
+                    empusaSpellController.cancelCast(boss.instanceId());
+                } else if (!conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    empusaSpellController.cancelCast(boss.instanceId());
+                } else {
+                    empusaSpellController.tick(boss, entity, clockTicks);
+                }
                 continue;
             }
 
@@ -374,6 +400,7 @@ public final class BossMechanicService {
                 runtime.nextActionTick = clockTicks + 20L;
             }
         }
+        empusaSpellController.retain(activeEmpusas);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
