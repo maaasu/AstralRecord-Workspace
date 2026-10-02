@@ -11,6 +11,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     {
         ["schemaVersion"] = "スキーマバージョン", ["id"] = "ID", ["name"] = "表示名",
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
+        ["iconGlint"] = "アイコンのエンチャントエフェクト", ["chargeSaleValue"] = "売却額分のGoldを消費",
+        ["rankBasis"] = "状態変化のランク判定基準",
         ["rarity"] = "レアリティ", ["saleValue"] = "売却額", ["lore"] = "説明文",
         ["unTradeable"] = "取引不可", ["unSellable"] = "売却不可", ["requiredLevel"] = "必要レベル",
         ["requiredClasses"] = "必要クラス", ["level"] = "レベル", ["status"] = "ステータスID",
@@ -206,8 +208,10 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
             var label = Labels.GetValueOrDefault(leaf) ?? leaf;
             var reference = leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
+            var enumValues = scopedKey == "orb.effect.rankBasis"
+                ? new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")) : null;
             yield return new(pointer, scopedKey, label, type, Cell("必須") is "○" or "〇" or "必須" or "yes" or "true", description,
-                Cell("デフォルト"), source, null, reference);
+                Cell("デフォルト"), source, enumValues, reference);
             }
         }
     }

@@ -71,6 +71,17 @@ export function masterDefault(schema: JsonObject = {}, type: string = 'string', 
   return ''
 }
 
+function documentedFieldDefault(field: MasterField | undefined, schema: JsonObject, fallbackType: string, root: JsonObject): JsonValue {
+  if (schema.default !== undefined || schema.const !== undefined || schema.enum !== undefined) return masterDefault(schema, field?.type ?? fallbackType, root)
+  const documented = field?.default?.trim()
+  const type = normalizeMasterType(field?.type ?? fallbackType)
+  if (documented === 'true' && type === 'boolean') return true
+  if (documented === 'false' && type === 'boolean') return false
+  if (documented && type === 'string' && /^[A-Za-z][A-Za-z0-9_]*$/.test(documented)
+      && documented !== 'Null') return documented
+  return masterDefault(schema, field?.type ?? fallbackType, root)
+}
+
 interface MasterDataFormProps {
   value: JsonValue
   onChange: (value: JsonValue) => void
@@ -147,7 +158,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   const add = (key: string, type = newType) => {
     if (!key.trim() || Object.hasOwn(value, key)) { setAddError('キーが空、または同名キーが存在します。'); return }
     const field = fieldForPath(fields, `${path}/${pointerKey(key)}`)
-    onChange({ ...value, [key]: masterDefault(childSchema(key), field?.type ?? type, rootSchema) })
+    onChange({ ...value, [key]: documentedFieldDefault(field, childSchema(key), type, rootSchema) })
     setNewKey(''); setAddError('')
   }
   return <div className="master-object">

@@ -132,6 +132,39 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task OrbGoldAndIconGlintFieldsUseDocumentedBooleanTypesAndEffectRestriction()
+    {
+        Write("10.features.item/docs.item.YAMLスキーマ定義.md", "# ITEM\n| キー | 型 | 必須 | デフォルト | 説明 |\n|:--|:--|:--|:--|:--|\n| `iconGlint` | Boolean | × | false | アイコンだけを光らせる |\n");
+        Write("10.features.item/40.orb/docs.orb.YAMLスキーマ定義.md", "# ORB\n## `orb.effect`\n| キー | 型 | 必須 | デフォルト | 説明 |\n|:--|:--|:--|:--|:--|\n| `chargeSaleValue` | Boolean | × | false | 売却額分のGoldを消費 |\n| `rankBasis` | String | × | TARGET | CURRENT / TARGET |\n");
+        const string path = "10.features.item/40.orb/v1.40a00001.sample.yml";
+        var category = await _catalog.GetAsync("10.features.item/40.orb", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/iconGlint" && field.Type == "Boolean"
+            && field.Label == "アイコンのエンチャントエフェクト" && field.Default == "false");
+        Assert.Contains(category.Fields, field => field.Path == "/orb/effect/chargeSaleValue" && field.Type == "Boolean"
+            && field.Label == "売却額分のGoldを消費" && field.Default == "false");
+        Assert.Contains(category.Fields, field => field.Path == "/orb/effect/rankBasis" && field.Type == "String"
+            && field.Label == "状態変化のランク判定基準" && field.Default == "TARGET"
+            && field.Enum is { Count: 2 } && field.Enum[0]?.ToString() == "CURRENT" && field.Enum[1]?.ToString() == "TARGET");
+
+        const string raw = "id: 40a00001\ncategory: orb\niconGlint: true\nsaleValue: 100\norb:\n  effect:\n    type: ENHANCE\n    chargeSaleValue: true\n";
+        Write(path, raw);
+        Assert.True((await _validation.ValidateAsync(path, raw, CancellationToken.None)).IsValid);
+        var edited = raw.Replace("iconGlint: true", "iconGlint: false", StringComparison.Ordinal);
+        var original = await _service.ReadAsync(path, CancellationToken.None);
+        var saved = await _service.SaveAsync(new(path, edited, original.Revision), CancellationToken.None);
+        Assert.False(saved.Content!["iconGlint"]!.GetValue<bool>());
+        Assert.True(saved.Content["orb"]!["effect"]!["chargeSaleValue"]!.GetValue<bool>());
+        Assert.Contains("chargeSaleValue: true", saved.Raw);
+
+        var wrongType = await _validation.ValidateAsync(path, raw.Replace("chargeSaleValue: true", "chargeSaleValue: yes", StringComparison.Ordinal), CancellationToken.None);
+        Assert.Contains(wrongType.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/orb/effect/chargeSaleValue");
+        var unrelated = await _validation.ValidateAsync(path, raw.Replace("type: ENHANCE", "type: ENCHANT", StringComparison.Ordinal), CancellationToken.None);
+        Assert.Contains(unrelated.Issues, issue => issue.Code == "ORB_GOLD_EFFECT_TYPE" && issue.Path == "/orb/effect/chargeSaleValue");
+        var invalidRankBasis = await _validation.ValidateAsync(path, raw.Replace("chargeSaleValue: true", "rankBasis: BEFORE", StringComparison.Ordinal), CancellationToken.None);
+        Assert.Contains(invalidRankBasis.Issues, issue => issue.Code == "ORB_RANK_BASIS" && issue.Path == "/orb/effect/rankBasis");
+    }
+
+    [Fact]
     public async Task ConcurrentItemCreatesAllocateUniqueIdsAndCanonicalNames()
     {
         const string directory = "10.features.item/20.equipment";

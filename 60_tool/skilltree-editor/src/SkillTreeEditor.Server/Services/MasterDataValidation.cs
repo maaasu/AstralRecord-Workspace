@@ -73,6 +73,15 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                 var version = Text(obj["schemaVersion"]);
                 if (id is not null && version is not null && !Regex.IsMatch(Path.GetFileName(full), "^v" + Regex.Escape(version) + "\\." + Regex.Escape(id) + "\\.[A-Za-z0-9_-]+\\.ya?ml$"))
                     issues.Add(new("error", "ITEM_FILENAME", "/id", "ファイル名は v<schemaVersion>.<id>.<管理用slug>.yml の形式です。"));
+                if (logical == "orb" && obj["orb"] is JsonObject orb && orb["effect"] is JsonObject effect
+                    && effect.ContainsKey("chargeSaleValue")
+                    && Text(effect["type"]) is not ("ENHANCE" or "REPAIR" or "TRANSCENDENCE"))
+                    issues.Add(new("error", "ORB_GOLD_EFFECT_TYPE", "/orb/effect/chargeSaleValue",
+                        "chargeSaleValue は ENHANCE / REPAIR / TRANSCENDENCE のオーブにだけ指定できます。"));
+                if (logical == "orb" && obj["orb"] is JsonObject rankOrb && rankOrb["effect"] is JsonObject rankEffect
+                    && rankEffect.ContainsKey("rankBasis") && Text(rankEffect["rankBasis"]) is not ("CURRENT" or "TARGET"))
+                    issues.Add(new("error", "ORB_RANK_BASIS", "/orb/effect/rankBasis",
+                        "rankBasis は CURRENT または TARGET を指定してください。"));
             }
         }
         if (path.StartsWith("30.features.skill/", MasterDataPaths.Comparison) && content is JsonObject skill && skill.ContainsKey("params"))

@@ -7,6 +7,7 @@ export interface MasterField {
   type: string
   required: boolean
   description: string
+  default?: string | null
   enum?: JsonValue[]
   reference?: string
 }

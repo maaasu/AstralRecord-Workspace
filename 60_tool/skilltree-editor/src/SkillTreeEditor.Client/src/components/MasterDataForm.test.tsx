@@ -61,6 +61,24 @@ describe('master form', () => {
     expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ equipment: { level: 0 } })
   })
 
+  it('adds orb options with documented defaults and Japanese labels', () => {
+    const orbFields: MasterField[] = [
+      { path: '/iconGlint', key: 'iconGlint', label: 'アイコンのエンチャントエフェクト', type: 'Boolean', required: false, default: 'false', description: 'アイコンだけを光らせる' },
+      { path: '/orb/effect/chargeSaleValue', key: 'chargeSaleValue', label: '売却額分のGoldを消費', type: 'Boolean', required: false, default: 'false', description: '売却額分のGoldを消費する' },
+      { path: '/orb/effect/rankBasis', key: 'rankBasis', label: '状態変化のランク判定基準', type: 'String', required: false, default: 'TARGET', description: 'CURRENT / TARGET', enum: ['CURRENT', 'TARGET'] },
+    ]
+    render(<Editable initial={{ orb: { effect: { type: 'TRANSCENDENCE' } } }} metadata={orbFields} />)
+    fireEvent.change(screen.getByRole('combobox', { name: '/ 定義済みの項目を追加' }), { target: { value: 'iconGlint' } })
+    fireEvent.change(screen.getByRole('combobox', { name: '/orb/effect 定義済みの項目を追加' }), { target: { value: 'chargeSaleValue' } })
+    fireEvent.change(screen.getByRole('combobox', { name: '/orb/effect 定義済みの項目を追加' }), { target: { value: 'rankBasis' } })
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ iconGlint: false, orb: { effect: { type: 'TRANSCENDENCE', chargeSaleValue: false, rankBasis: 'TARGET' } } })
+    expect(screen.getByText('状態変化のランク判定基準')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '/orb/effect/rankBasis' })).toHaveValue('"TARGET"')
+    fireEvent.click(screen.getByRole('checkbox', { name: '/iconGlint' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '/orb/effect/chargeSaleValue' }))
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ iconGlint: true, orb: { effect: { type: 'TRANSCENDENCE', chargeSaleValue: true, rankBasis: 'TARGET' } } })
+  })
+
   it('keeps unknown RPC parameters while editing a Japanese field', () => {
     render(<Editable initial={{ name: '旧名', skills: [{ params: { AlienRPCParameter: 'kept', damage: 5 } }] }} />)
     fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '新名' } })
