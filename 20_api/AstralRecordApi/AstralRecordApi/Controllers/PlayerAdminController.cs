@@ -73,26 +73,23 @@ public sealed class PlayerAdminController(
             : !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.CancelAsync(editSessionId, actor, request));
 
-    /// <summary>ゲーム・ロビー・Proxy の起動個体を永続登録します。</summary>
+    /// <summary>共通APIキー認証でゲーム・ロビー・Proxyの起動個体を永続登録します。</summary>
     [HttpPut("runtime/servers/{serverId}")]
     public async Task<IActionResult> RegisterServer(string serverId,
         [FromBody] PlayerAdminRuntimeRegistrationRequest request)
-        => !HasRuntimeCredential() ? Unauthorized()
-            : Respond(await edits.RegisterServerAsync(serverId, request));
+        => Respond(await edits.RegisterServerAsync(serverId, request));
 
-    /// <summary>指定した起動個体が退避すべきユーザーと継続ロックを返します。</summary>
+    /// <summary>共通APIキー認証で指定した起動個体の退避対象ユーザーと継続ロックを返します。</summary>
     [HttpGet("runtime/servers/{serverId}/drains")]
     public async Task<IActionResult> GetDrains(string serverId,
         [FromQuery(Name = "server_session_id")] Guid serverSessionId)
-        => !HasRuntimeCredential() ? Unauthorized()
-            : Respond(await edits.GetDrainsAsync(serverId, serverSessionId));
+        => Respond(await edits.GetDrainsAsync(serverId, serverSessionId));
 
-    /// <summary>保存とログアウトを確認できたサーバーの退避証明を登録します。</summary>
+    /// <summary>共通APIキー認証で保存とログアウトを確認できたサーバーの退避証明を登録します。</summary>
     [HttpPost("runtime/edit-sessions/{editSessionId:guid}/drain-ack")]
     public async Task<IActionResult> AcknowledgeDrain(Guid editSessionId,
         [FromBody] PlayerAdminDrainAckRequest request)
-        => !HasRuntimeCredential() ? Unauthorized()
-            : Respond(await edits.AcknowledgeDrainAsync(editSessionId, request));
+        => Respond(await edits.AcknowledgeDrainAsync(editSessionId, request));
 
     private Task<bool> CanEditAsync(Guid actor) => actor == Guid.Empty
         ? Task.FromResult(false) : webAuth.IsWebAdminAsync(actor);
@@ -104,20 +101,6 @@ public sealed class PlayerAdminController(
         var common = configuration["ApiKey:Key"];
         if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(provided)
             || string.Equals(expected, common, StringComparison.Ordinal)) return false;
-        var left = Encoding.UTF8.GetBytes(expected);
-        var right = Encoding.UTF8.GetBytes(provided);
-        return left.Length == right.Length && CryptographicOperations.FixedTimeEquals(left, right);
-    }
-
-    private bool HasRuntimeCredential()
-    {
-        var expected = configuration["PlayerAdmin:RuntimeKey"];
-        var provided = Request.Headers["X-Player-Admin-Runtime-Key"].FirstOrDefault();
-        var common = configuration["ApiKey:Key"];
-        var web = configuration["PlayerAdmin:WebKey"];
-        if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(provided)
-            || string.Equals(expected, common, StringComparison.Ordinal)
-            || string.Equals(expected, web, StringComparison.Ordinal)) return false;
         var left = Encoding.UTF8.GetBytes(expected);
         var right = Encoding.UTF8.GetBytes(provided);
         return left.Length == right.Length && CryptographicOperations.FixedTimeEquals(left, right);

@@ -9,8 +9,6 @@ api:
 runtime:
   # PlayerAdmin.RequiredServerIds に含める、このLobbyプロセス固有のID。
   serverId: lobby
-  # API の PlayerAdmin:RuntimeKey と一致させる。Web用キーや通常の api.apiKey と分離する。
-  playerAdminKey: ""
 discord:
   enabled: true
   gameChannel: global

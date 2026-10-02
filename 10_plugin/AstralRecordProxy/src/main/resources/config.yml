@@ -53,5 +53,3 @@ api:
 runtime:
   # PlayerAdmin.RequiredServerIds に含める、このProxyプロセス固有のID。
   serverId: proxy
-  # API の PlayerAdmin:RuntimeKey と一致させる。Web用キーや通常の api.apiKey と分離する。
-  playerAdminKey: ""

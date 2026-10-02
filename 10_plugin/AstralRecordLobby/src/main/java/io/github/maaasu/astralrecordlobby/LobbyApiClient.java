@@ -32,13 +32,11 @@ final class LobbyApiClient {
     private final HttpClient client;
     private final String baseUrl;
     private final String apiKey;
-    private final String runtimePlayerAdminKey;
     private final Duration timeout;
 
     LobbyApiClient(FileConfiguration config) {
         baseUrl = config.getString("api.baseUrl", "http://127.0.0.1:5261").replaceAll("/+$", "");
         apiKey = config.getString("api.apiKey", "");
-        runtimePlayerAdminKey = config.getString("runtime.playerAdminKey", "");
         timeout = Duration.ofMillis(Math.max(500, config.getInt("api.timeoutMillis", 3000)));
         HttpClient.Builder builder = HttpClient.newBuilder()
             .connectTimeout(timeout)
@@ -64,7 +62,7 @@ final class LobbyApiClient {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", serverSessionId.toString());
         body.addProperty("role", "LOBBY");
-        sendRuntime("PUT", "/api/player-admin/runtime/servers/" +
+        send("PUT", "/api/player-admin/runtime/servers/" +
             URLEncoder.encode(serverId, StandardCharsets.UTF_8), body.toString());
     }
 
@@ -72,7 +70,7 @@ final class LobbyApiClient {
     List<EditDrain> getEditDrains(String serverId, UUID serverSessionId) {
         String path = "/api/player-admin/runtime/servers/" +
             URLEncoder.encode(serverId, StandardCharsets.UTF_8) + "/drains?server_session_id=" + serverSessionId;
-        JsonArray values = gson.fromJson(sendRuntime("GET", path, null), JsonArray.class);
+        JsonArray values = gson.fromJson(send("GET", path, null), JsonArray.class);
         if (values == null) throw new IllegalStateException("Player edit drain response is null");
         List<EditDrain> drains = new ArrayList<>();
         values.forEach(value -> drains.add(EditDrain.fromJson(value.getAsJsonObject())));
@@ -89,7 +87,7 @@ final class LobbyApiClient {
         body.addProperty("saved", true);
         body.addProperty("offline", true);
         body.addProperty("ackId", ackId.toString());
-        sendRuntime("POST", "/api/player-admin/runtime/edit-sessions/" + drain.editSessionId() +
+        send("POST", "/api/player-admin/runtime/edit-sessions/" + drain.editSessionId() +
             "/drain-ack", body.toString());
     }
 
@@ -191,25 +189,10 @@ final class LobbyApiClient {
     }
 
     private String send(String method, String path, String body) {
-        return send(method, path, body, null);
-    }
-
-    private String sendRuntime(String method, String path, String body) {
-        if (runtimePlayerAdminKey == null || runtimePlayerAdminKey.isBlank()
-            || runtimePlayerAdminKey.equals(apiKey)) {
-            throw new IllegalStateException("Player admin runtime key is missing or is not separate from the API key");
-        }
-        return send(method, path, body, runtimePlayerAdminKey);
-    }
-
-    private String send(String method, String path, String body, String runtimeKey) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(timeout)
             .header("X-Api-Key", apiKey)
             .header("Accept", "application/json");
-        if (runtimeKey != null) {
-            builder.header("X-Player-Admin-Runtime-Key", runtimeKey);
-        }
         if (body == null) {
             builder.method(method, HttpRequest.BodyPublishers.noBody());
         } else {

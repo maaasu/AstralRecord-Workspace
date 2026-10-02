@@ -31,14 +31,12 @@ final class NetworkApiClient {
     private final Gson gson = new Gson();
     private final String baseUrl;
     private final String apiKey;
-    private final String runtimePlayerAdminKey;
     private final String authoritySyncKey;
     private final Duration timeout;
 
     NetworkApiClient(ProxyConfig config) {
         baseUrl = config.apiBaseUrl().replaceAll("/+$", "");
         apiKey = config.apiKey();
-        runtimePlayerAdminKey = config.runtimePlayerAdminKey();
         authoritySyncKey = config.authoritySyncKey();
         timeout = Duration.ofMillis(Math.max(500, config.apiTimeoutMillis()));
         HttpClient.Builder builder = HttpClient.newBuilder()
@@ -103,7 +101,7 @@ final class NetworkApiClient {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", serverSessionId.toString());
         body.addProperty("role", "PROXY");
-        return sendRuntime("PUT", "/api/player-admin/runtime/servers/" +
+        return send("PUT", "/api/player-admin/runtime/servers/" +
             URLEncoder.encode(serverId, StandardCharsets.UTF_8), body.toString()).thenApply(ignored -> null);
     }
 
@@ -111,7 +109,7 @@ final class NetworkApiClient {
     CompletableFuture<List<EditDrain>> getEditDrains(String serverId, UUID serverSessionId) {
         String path = "/api/player-admin/runtime/servers/" +
             URLEncoder.encode(serverId, StandardCharsets.UTF_8) + "/drains?server_session_id=" + serverSessionId;
-        return sendRuntime("GET", path, null).thenApply(json -> {
+        return send("GET", path, null).thenApply(json -> {
             JsonArray values = gson.fromJson(json, JsonArray.class);
             if (values == null) throw new IllegalStateException("Player edit drain response is null");
             List<EditDrain> drains = new ArrayList<>();
@@ -130,7 +128,7 @@ final class NetworkApiClient {
         body.addProperty("saved", true);
         body.addProperty("offline", true);
         body.addProperty("ackId", ackId.toString());
-        return sendRuntime("POST", "/api/player-admin/runtime/edit-sessions/" + drain.editSessionId() +
+        return send("POST", "/api/player-admin/runtime/edit-sessions/" + drain.editSessionId() +
             "/drain-ack", body.toString()).thenApply(ignored -> null);
     }
 
@@ -268,32 +266,16 @@ final class NetworkApiClient {
     }
 
     private CompletableFuture<String> send(String method, String path, String body) {
-        return send(method, path, body, null, null);
+        return send(method, path, body, null);
     }
 
     private CompletableFuture<String> send(String method, String path, String body, String syncKey) {
-        return send(method, path, body, syncKey, null);
-    }
-
-    private CompletableFuture<String> sendRuntime(String method, String path, String body) {
-        if (runtimePlayerAdminKey == null || runtimePlayerAdminKey.isBlank()
-            || runtimePlayerAdminKey.equals(apiKey)) {
-            return CompletableFuture.failedFuture(new IllegalStateException(
-                "Player admin runtime key is missing or is not separate from the API key"));
-        }
-        return send(method, path, body, null, runtimePlayerAdminKey);
-    }
-
-    private CompletableFuture<String> send(String method, String path, String body, String syncKey, String runtimeKey) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(timeout)
             .header("X-Api-Key", apiKey)
             .header("Accept", "application/json");
         if (syncKey != null && !syncKey.isBlank()) {
             builder.header("X-Authority-Sync-Key", syncKey);
-        }
-        if (runtimeKey != null) {
-            builder.header("X-Player-Admin-Runtime-Key", runtimeKey);
         }
         if (body == null) {
             builder.method(method, HttpRequest.BodyPublishers.noBody());

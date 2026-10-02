@@ -3,7 +3,6 @@ package io.github.maaasu.astralrecordlobby;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -68,7 +67,7 @@ class LobbyApiClientTest {
     }
 
     @Test
-    void runtimeRequestsRequireDedicatedKeyWithoutLeakingItToOrdinaryAdmissions() throws Exception {
+    void runtimeRequestsUseCommonApiKeyWithoutDedicatedConfiguration() throws Exception {
         List<String> requests = java.util.Collections.synchronizedList(new ArrayList<>());
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
@@ -88,7 +87,6 @@ class LobbyApiClientTest {
             YamlConfiguration config = new YamlConfiguration();
             config.set("api.baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
             config.set("api.apiKey", "common-key");
-            config.set("runtime.playerAdminKey", "runtime-secret");
             LobbyApiClient api = new LobbyApiClient(config);
             UUID boot = UUID.randomUUID();
             UUID player = UUID.randomUUID();
@@ -101,7 +99,7 @@ class LobbyApiClientTest {
             api.getAdmission(player);
 
             assertEquals(4, requests.size());
-            requests.subList(0, 3).forEach(value -> assertTrue(value.contains("|common-key|runtime-secret")));
+            requests.forEach(value -> assertTrue(value.endsWith("|common-key|null")));
             assertTrue(requests.get(0).startsWith("/api/player-admin/runtime/servers/lobby|"));
             assertTrue(requests.get(1).contains("/drains|"));
             assertTrue(requests.get(2).contains("/drain-ack|"));
@@ -109,22 +107,6 @@ class LobbyApiClientTest {
             assertTrue(requests.get(3).endsWith("|common-key|null"));
         } finally {
             server.stop(0);
-        }
-    }
-
-    @Test
-    void missingOrSharedRuntimeKeyRefusesRegistrationBeforeSending() {
-        for (String key : List.of("", "common-key")) {
-            YamlConfiguration config = new YamlConfiguration();
-            config.set("api.baseUrl", "http://127.0.0.1:1");
-            config.set("api.apiKey", "common-key");
-            config.set("runtime.playerAdminKey", key);
-
-            IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> new LobbyApiClient(config).registerRuntimeServer("lobby", UUID.randomUUID()));
-
-            assertEquals("Player admin runtime key is missing or is not separate from the API key",
-                exception.getMessage());
         }
     }
 

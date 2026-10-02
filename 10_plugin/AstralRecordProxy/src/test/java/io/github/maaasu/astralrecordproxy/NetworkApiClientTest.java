@@ -1,7 +1,6 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletionException;
 import java.util.UUID;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -148,7 +146,7 @@ class NetworkApiClientTest {
     }
 
     @Test
-    void runtimeRequestsRequireDedicatedKeyWithoutLeakingItToOrdinaryAdmissions() throws Exception {
+    void runtimeRequestsUseCommonApiKeyWithoutDedicatedConfiguration() throws Exception {
         List<String> requests = java.util.Collections.synchronizedList(new ArrayList<>());
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
@@ -169,7 +167,7 @@ class NetworkApiClientTest {
                 "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
                 "http://127.0.0.1:" + server.getAddress().getPort(), "common-key", "sync-key",
                 3000, 500L, 5L, false, "mc.astralrecord.com", List.of(), java.util.Set.of(),
-                "proxy", "runtime-secret");
+                "proxy");
             NetworkApiClient api = new NetworkApiClient(config);
             UUID boot = UUID.randomUUID();
             UUID player = UUID.randomUUID();
@@ -182,8 +180,7 @@ class NetworkApiClientTest {
             api.getAdmission(player, "lobby").join();
 
             assertEquals(4, requests.size());
-            requests.subList(0, 3).forEach(value -> assertEquals(true,
-                value.contains("|common-key|runtime-secret")));
+            requests.forEach(value -> assertEquals(true, value.endsWith("|common-key|null")));
             assertEquals(true, requests.get(0).startsWith("/api/player-admin/runtime/servers/proxy|"));
             assertEquals(true, requests.get(1).contains("/drains|"));
             assertEquals(true, requests.get(2).contains("/drain-ack|"));
@@ -191,22 +188,6 @@ class NetworkApiClientTest {
             assertEquals(true, requests.get(3).endsWith("|common-key|null"));
         } finally {
             server.stop(0);
-        }
-    }
-
-    @Test
-    void missingOrSharedRuntimeKeyRefusesRegistrationBeforeSending() {
-        for (String key : List.of("", "common-key")) {
-            ProxyConfig config = new ProxyConfig(
-                "lobby", List.of(), Map.of(), Map.of(), 30L, 2L, 10L,
-                "http://127.0.0.1:1", "common-key", "sync-key", 500, 500L, 5L, false,
-                "mc.astralrecord.com", List.of(), java.util.Set.of(), "proxy", key);
-
-            CompletionException exception = assertThrows(CompletionException.class,
-                () -> new NetworkApiClient(config).registerRuntimeServer("proxy", UUID.randomUUID()).join());
-
-            assertEquals("Player admin runtime key is missing or is not separate from the API key",
-                exception.getCause().getMessage());
         }
     }
 

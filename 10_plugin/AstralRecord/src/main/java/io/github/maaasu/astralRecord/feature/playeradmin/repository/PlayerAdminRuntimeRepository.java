@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.playeradmin.repository;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** 管理編集のサーバー参加登録、退避要求、確定通知を扱う API 境界です。 */
+/** 共通APIキーで管理編集のサーバー参加登録、退避要求、確定通知を扱うAPI境界です。 */
 public final class PlayerAdminRuntimeRepository {
     private static final String ROOT = "/api/player-admin/runtime";
 
@@ -72,7 +71,7 @@ public final class PlayerAdminRuntimeRepository {
 
     private static com.google.gson.JsonElement send(String method, String path, JsonObject body) {
         try {
-            HttpRequest.Builder builder = buildRuntimeRequestBuilder(path);
+            HttpRequest.Builder builder = ApiRequestUtil.buildRequestBuilder(path);
             HttpRequest request = switch (method) {
                 case "GET" -> builder.GET().build();
                 case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(body.toString())).build();
@@ -90,18 +89,5 @@ public final class PlayerAdminRuntimeRepository {
         } catch (IOException failure) {
             throw new java.io.UncheckedIOException(failure);
         }
-    }
-
-    static HttpRequest.Builder buildRuntimeRequestBuilder(String path) {
-        ConfigProperties config = ConfigProperties.getInstance();
-        String runtimeKey = config.getApiPlayerAdminRuntimeKey();
-        if (runtimeKey == null || runtimeKey.isBlank()) {
-            throw new IllegalStateException("api.playerAdminRuntimeKey is required");
-        }
-        if (runtimeKey.equals(config.getApiAuthApiKey())) {
-            throw new IllegalStateException("api.playerAdminRuntimeKey must differ from the common API key");
-        }
-        return ApiRequestUtil.buildRequestBuilder(path)
-            .header("X-Player-Admin-Runtime-Key", runtimeKey);
     }
 }

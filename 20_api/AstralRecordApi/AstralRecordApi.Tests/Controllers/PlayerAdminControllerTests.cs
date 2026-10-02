@@ -99,33 +99,36 @@ public sealed class PlayerAdminControllerTests
     }
 
     [Fact]
-    public async Task RuntimeRoutesRequireDedicatedKeyDistinctFromWebAndCommon()
+    public async Task RuntimeRoutesDoNotRequireDedicatedCredentialOrWebActor()
     {
         var edits = new EditRepository();
         var auth = new WebAuthRepository();
         var registration = new PlayerAdminRuntimeRegistrationRequest(Guid.NewGuid(), "PROXY", null, null);
-        Assert.IsType<UnauthorizedResult>(await MakeController(edits, auth)
-            .RegisterServer("proxy-1", registration));
-        Assert.IsType<UnauthorizedResult>(await MakeController(edits, auth, runtimeProvided: "common-secret")
-            .RegisterServer("proxy-1", registration));
-        Assert.IsType<UnauthorizedResult>(await MakeController(edits, auth, runtimeProvided: "runtime-secret",
-                runtimeConfigured: "admin-secret")
-            .GetDrains("proxy-1", registration.ServerSessionId));
-        Assert.Equal(0, edits.RegisterCalls);
+        var session = Guid.NewGuid();
+        var acknowledgement = new PlayerAdminDrainAckRequest("proxy-1", registration.ServerSessionId,
+            Account, Guid.NewGuid(), true, true, Guid.NewGuid());
+        var controller = MakeController(edits, auth);
 
-        var allowed = MakeController(edits, auth, runtimeProvided: "runtime-secret");
-        Assert.Equal(200, Assert.IsType<ObjectResult>(await allowed.RegisterServer("proxy-1", registration)).StatusCode);
+        Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.RegisterServer("proxy-1", registration)).StatusCode);
+        Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.GetDrains("proxy-1", registration.ServerSessionId)).StatusCode);
+        Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.AcknowledgeDrain(session, acknowledgement)).StatusCode);
         Assert.Equal(1, edits.RegisterCalls);
+        Assert.Equal(1, edits.GetDrainsCalls);
+        Assert.Equal(1, edits.AcknowledgeCalls);
+        Assert.Same(acknowledgement, edits.LastAcknowledgement);
+        Assert.Equal(session, edits.LastEditSession);
+        Assert.Equal(0, auth.AdminChecks);
+        Assert.Equal(0, edits.StartCalls);
+        Assert.Equal(0, edits.ApplyCalls);
+        Assert.Equal(0, edits.CancelCalls);
     }
 
     private static PlayerAdminController MakeController(EditRepository edits, WebAuthRepository auth,
-        string? provided = null, string common = "common-secret",
-        string? runtimeProvided = null, string runtimeConfigured = "runtime-secret")
+        string? provided = null, string common = "common-secret")
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["PlayerAdmin:WebKey"] = "admin-secret",
-            ["PlayerAdmin:RuntimeKey"] = runtimeConfigured,
             ["ApiKey:Key"] = common,
         }).Build();
         var controller = new PlayerAdminController(edits, auth, config)
@@ -134,8 +137,7 @@ public sealed class PlayerAdminControllerTests
         };
         if (provided is not null)
             controller.Request.Headers["X-Player-Admin-Web-Key"] = provided;
-        if (runtimeProvided is not null)
-            controller.Request.Headers["X-Player-Admin-Runtime-Key"] = runtimeProvided;
+        controller.Request.Headers["X-Api-Key"] = common;
         return controller;
     }
 
@@ -145,6 +147,10 @@ public sealed class PlayerAdminControllerTests
         public int ApplyCalls { get; private set; }
         public int CancelCalls { get; private set; }
         public int RegisterCalls { get; private set; }
+        public int GetDrainsCalls { get; private set; }
+        public int AcknowledgeCalls { get; private set; }
+        public PlayerAdminDrainAckRequest? LastAcknowledgement { get; private set; }
+        public Guid LastEditSession { get; private set; }
         public Guid LastAccount { get; private set; }
         public Guid LastActor { get; private set; }
         public PlayerAdminEditStartRequest? LastRequest { get; private set; }
@@ -188,8 +194,18 @@ public sealed class PlayerAdminControllerTests
             return Task.FromResult(new PlayerAdminResult<PlayerAdminRuntimeRegistrationResponse>(200,
                 new(serverId, request.ServerSessionId, request.Role)));
         }
-        public Task<PlayerAdminResult<IReadOnlyList<PlayerAdminDrainResponse>>> GetDrainsAsync(string serverId, Guid serverSessionId) => throw new NotSupportedException();
-        public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> AcknowledgeDrainAsync(Guid editSessionId, PlayerAdminDrainAckRequest request) => throw new NotSupportedException();
+        public Task<PlayerAdminResult<IReadOnlyList<PlayerAdminDrainResponse>>> GetDrainsAsync(string serverId, Guid serverSessionId)
+        {
+            GetDrainsCalls++;
+            return Task.FromResult(new PlayerAdminResult<IReadOnlyList<PlayerAdminDrainResponse>>(200, []));
+        }
+        public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> AcknowledgeDrainAsync(Guid editSessionId, PlayerAdminDrainAckRequest request)
+        {
+            AcknowledgeCalls++;
+            LastEditSession = editSessionId;
+            LastAcknowledgement = request;
+            return Task.FromResult(StartResult with { StatusCode = 200 });
+        }
     }
 
     private sealed class WebAuthRepository : IWebAuthRepository
