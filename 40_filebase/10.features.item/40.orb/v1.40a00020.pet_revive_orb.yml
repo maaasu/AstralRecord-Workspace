@@ -1,11 +1,12 @@
 # design:
-#   motif: "生命 / 復活"
+#   motif: "北欧神話 / イズン / 生命と若返り"
 #   progression: 21
 schemaVersion: 1
 id: 40a00020
 category: orb
-name: "&d命帰りのオーブ"
-icon: TOTEM_OF_UNDYING
+name: "&dイズンのオーブ"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2ZiYjk1NTAyZTBmZDBkYmE2MGJiZTU4MThlMmZkNTI3OGVkYTI5OWNjMmQ3ODEwOWMyY2E1Nzc1NTdhMGE2In19fQ==
 rarity: EPIC
 maxStack: 64
 saleValue: 0

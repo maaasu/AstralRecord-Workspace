@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode;
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankBasis;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -94,7 +95,8 @@ final class OrbEligibility {
             .orElse(null);
         if (next == null
             || effect.getRank() == null
-            || !matchesRank(next.getRank(), effect)
+            || !matchesRank(effect.getRankBasis() == ItemOrbRankBasis.CURRENT
+                ? instance.getTranscendenceRank() : next.getRank(), effect)
             || instance.getEnhanceLevel() < effectiveEnhanceMaxLevel(
                 equipment, instance.getTranscendenceRank())
             || instance.getEnhanceLevel() < next.getRequiredEnhanceLevel()) {

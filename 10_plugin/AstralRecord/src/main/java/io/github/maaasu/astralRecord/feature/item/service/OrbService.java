@@ -877,6 +877,14 @@ public final class OrbService {
                 NamedTextColor.GOLD
             )
             : Component.text("この操作は1回のみです", NamedTextColor.GRAY));
+        long perUseGold = operationGold(orbModel, null);
+        if (perUseGold > 0) {
+            infoLore.add(Component.text("消費ゴールド: " + perUseGold + " / 1個", NamedTextColor.GOLD));
+            infoLore.add(Component.text("選択数の消費ゴールド: " + perUseGold * session.selectedOrbAmount,
+                NamedTextColor.GOLD));
+            infoLore.add(Component.text("所持ゴールド: " + inventoryService.getGoldAmount(session.accountId),
+                NamedTextColor.YELLOW));
+        }
         appendLore(info, infoLore);
         inventory.setItem(INFO_SLOT, info);
     }
@@ -1045,6 +1053,7 @@ public final class OrbService {
         session.batchRequestedAmount = selected;
         session.batchTargetId = target.instance.getEquipmentInstanceId();
         session.batchConsumedAmount = 0;
+        session.batchConsumedGold = 0L;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
         session.batchLastSuccessfulInstance = null;
@@ -1058,6 +1067,7 @@ public final class OrbService {
         session.batchTargetId = null;
         session.batchRequestedAmount = 1;
         session.batchConsumedAmount = 0;
+        session.batchConsumedGold = 0L;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
         session.batchLastSuccessfulInstance = null;
@@ -1799,9 +1809,9 @@ public final class OrbService {
         ));
         inventory.setItem(CONFIRM_GOLD_SLOT, createGoldRequirementItem(
             session,
-            Math.max(0, plan.definition().getRequiredCurrency())
+            operationGold(orbModel, plan)
         ));
-        boolean enough = hasTransitionRequirements(session, plan.definition(), orbModel.getId());
+        boolean enough = hasTransitionRequirements(session, plan.definition(), orbModel);
         inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
             enough ? Material.LIME_CONCRETE : Material.BARRIER,
             Component.text(
@@ -1867,7 +1877,7 @@ public final class OrbService {
             pageButton(true, session.materialPage + 1 < pageCount));
         inventory.setItem(MATERIAL_LIST_GOLD_SLOT, createGoldRequirementItem(
             session,
-            Math.max(0, plan.definition().getRequiredCurrency())
+            operationGold(orbModel, plan)
         ));
         inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.ANVIL, "オーブ使用確認")
@@ -2065,7 +2075,7 @@ public final class OrbService {
             closeAndRemove(session);
             return;
         }
-        if (!hasTransitionRequirements(session, plan.definition(), orbModel.getId())) {
+        if (!hasTransitionRequirements(session, plan.definition(), orbModel)) {
             PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5291);
             renderTranscendenceConfirmation(session, orbModel, target, session.inventory);
             GuiSound.DENY.play(session.player);
@@ -2149,17 +2159,20 @@ public final class OrbService {
      *
      * @param session 操作セッション
      * @param definition 状態変化定義
+     * @param orbModel 使用するオーブの正本
      * @return 全要件を満たす場合 {@code true}
      */
     private boolean hasTransitionRequirements(
         @NotNull OrbSession session,
         @NotNull ItemEquipmentTranscendence definition,
-        @NotNull String orbItemId
+        @NotNull ItemModel orbModel
     ) {
-        if (inventoryService.getGoldAmount(session.accountId) < Math.max(0, definition.getRequiredCurrency())) {
+        if (inventoryService.getGoldAmount(session.accountId) < operationGold(
+            orbModel,
+            new OrbEligibility.TranscendencePlan(definition))) {
             return false;
         }
-        return materialRequirements(definition, orbItemId).stream().allMatch(requirement ->
+        return materialRequirements(definition, orbModel.getId()).stream().allMatch(requirement ->
             itemService.findLoadedById(requirement.itemId()) != null
                 && inventoryService.getNormalItemAmount(session.accountId, requirement.itemId()) >= requirement.amount());
     }
@@ -2200,6 +2213,15 @@ public final class OrbService {
             }
         }
 
+        long requiredGold = operationGold(currentOrb, transitionPlan);
+        if (inventoryService.getGoldAmount(session.accountId) < requiredGold) {
+            if (session.batchActive) {
+                finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
+            }
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5299, requiredGold);
+            GuiSound.DENY.play(session.player);
+            return;
+        }
         UUID operationId = UUID.randomUUID();
         if (!reserveOperationPayment(session, currentOrb, transitionPlan, operationId)) {
             if (session.batchActive) {
@@ -2213,7 +2235,28 @@ public final class OrbService {
         session.interactionLock.beginMutation();
         showProcessingIcon(session);
         session.operationId = operationId;
+        session.operationGold = requiredGold;
         completeLocalMutation(session, target, currentOrb, operationId);
+    }
+
+    /**
+     * 使用するオーブの売り値と状態変化の必要通貨を合算します。
+     * @param orbModel 使用するオーブの正本
+     * @param transitionPlan 状態変化計画。その他の操作はnull
+     * @return 1回の操作で消費する非負のゴールド
+     */
+    private static long operationGold(
+        @NotNull ItemModel orbModel,
+        @Nullable OrbEligibility.TranscendencePlan transitionPlan
+    ) {
+        ItemOrbEffect effect = orbModel.getOrb().getEffect();
+        boolean chargeable = effect.getType() == ItemOrbEffectType.ENHANCE
+            || effect.getType() == ItemOrbEffectType.REPAIR
+            || effect.getType() == ItemOrbEffectType.TRANSCENDENCE;
+        long orbGold = chargeable && effect.getChargeSaleValue()
+            ? Math.max(0L, orbModel.getSaleValue()) : 0L;
+        return orbGold + (transitionPlan == null
+            ? 0L : Math.max(0L, transitionPlan.definition().getRequiredCurrency()));
     }
 
     /** APIが支払う資産をローカル消費から予約し、報酬加算や移動は止めず二重支出だけを防ぎます。 */
@@ -2242,9 +2285,7 @@ public final class OrbService {
         } catch (ArithmeticException overflow) {
             return false;
         }
-        long gold = transitionPlan == null
-            ? 0L
-            : Math.max(0L, transitionPlan.definition().getRequiredCurrency());
+        long gold = operationGold(orbModel, transitionPlan);
         return inventoryService.reserveOrbOperationPayment(
             session.accountId,
             operationId,
@@ -2429,6 +2470,7 @@ public final class OrbService {
             return;
         }
 
+        session.lastConsumedGold = session.operationGold;
         useSuccessListener.accept(session.astPlayer, session.orbItemId);
 
         if (session.batchActive) {
@@ -2446,7 +2488,7 @@ public final class OrbService {
             || !session.player.isOnline()
             || !session.reopening && !isCurrentInventory(session.player, session)) {
             if (session.player.isOnline()) {
-                sendMutationResult(session.player, result);
+                sendMutationResult(session.player, result, session.lastConsumedGold);
             }
             sessions.remove(session.player.getUniqueId(), session);
             return;
@@ -2512,6 +2554,7 @@ public final class OrbService {
         @NotNull MutationResult result
     ) {
         session.batchConsumedAmount++;
+        session.batchConsumedGold += session.lastConsumedGold;
         if (result.instance != null) {
             session.batchLastSuccessfulInstance = result.instance;
         }
@@ -2579,7 +2622,8 @@ public final class OrbService {
                     consumed,
                     successes,
                     failures,
-                    remaining
+                    remaining,
+                    session.batchConsumedGold
                 );
                 if (successes > 0) {
                     GuiSound.SUCCESS.play(session.player);
@@ -2653,7 +2697,7 @@ public final class OrbService {
             sessions.remove(session.player.getUniqueId(), session);
             return;
         }
-        sendMutationResult(session.player, result);
+        sendMutationResult(session.player, result, session.lastConsumedGold);
         if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
             GuiSound.DENY.play(session.player);
         } else {
@@ -2737,10 +2781,14 @@ public final class OrbService {
      *
      * @param player 送信先プレイヤー
      * @param result 成功した装備処理結果
+     * @param consumedGold 成立した操作で確定した消費ゴールド
      */
-    private void sendMutationResult(@NotNull Player player, @NotNull MutationResult result) {
+    private void sendMutationResult(@NotNull Player player, @NotNull MutationResult result, long consumedGold) {
         if (result.model == null || result.instance == null || result.kind == null) {
             return;
+        }
+        if (consumedGold > 0) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5298, consumedGold);
         }
         String displayName = result.model.getName() == null || result.model.getName().isBlank()
             ? "装備"
@@ -3110,6 +3158,9 @@ public final class OrbService {
         private String batchTargetId;
         private int batchRequestedAmount = 1;
         private int batchConsumedAmount;
+        private long batchConsumedGold;
+        private long operationGold;
+        private long lastConsumedGold;
         private int batchSuccessCount;
         private int batchFailureCount;
         private EquipmentInstance batchLastSuccessfulInstance;

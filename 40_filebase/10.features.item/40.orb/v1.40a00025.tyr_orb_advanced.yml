@@ -1,0 +1,25 @@
+# design:
+#   motif: "武器強化 / テュール / 上級の加護"
+#   progression: 3
+schemaVersion: 1
+id: 40a00025
+category: orb
+name: "&bテュールのオーブ(上級)"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjBkM2IxNjUzNjE1ZTcwZTFiZmEwNzQ3NGE4OTAyYjZkNTg5MzRmMzJiY2JlMTBmZjk4M2IyNzNlMzc5ZDRhYiJ9fX0=
+rarity: EPIC
+maxStack: 64
+saleValue: 320
+lore:
+  - "&7状態ランク2以下の武器を1段階強化する。"
+  - "&7成功率と失敗時挙動は装備ごとに異なる。"
+  - "&e使用時に売り値と同額のゴールドを消費する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENHANCE
+    targetSlots: [WEAPON, SUBWEAPON]
+    rank: 2
+    rankMode: AT_MOST
+    chargeSaleValue: true

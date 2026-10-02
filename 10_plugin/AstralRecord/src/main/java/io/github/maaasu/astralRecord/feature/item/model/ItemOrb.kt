@@ -12,7 +12,7 @@ data class ItemOrb(
 )
 
 /** オーブが実行する装備操作。 */
-data class ItemOrbEffect(
+data class ItemOrbEffect @JvmOverloads constructor(
     val type: ItemOrbEffectType,
     val targetSlots: List<ItemEquipmentSlot> = emptyList(),
     val rank: Int? = null,
@@ -21,7 +21,26 @@ data class ItemOrbEffect(
     val repairFull: Boolean = false,
     val enchantMasterId: String? = null,
     val enchantOperation: ItemOrbEnchantOperation? = null,
+    /** 成立した1回の操作で、売り値と同額のゴールドを消費します。 */
+    val chargeSaleValue: Boolean = false,
+    /** 状態変化ランクの比較基準。省略時は従来の到達先です。 */
+    val rankBasis: ItemOrbRankBasis = ItemOrbRankBasis.TARGET,
 )
+
+/** 状態変化のランク比較基準。 */
+enum class ItemOrbRankBasis {
+    CURRENT,
+    TARGET,
+    ;
+
+    companion object {
+        /** APIの比較基準を解決し、省略時は到達先を使用します。 */
+        @JvmStatic
+        fun fromApiValue(value: String?): ItemOrbRankBasis = runCatching {
+            value?.trim()?.uppercase()?.takeIf(String::isNotBlank)?.let(::valueOf)
+        }.getOrNull() ?: TARGET
+    }
+}
 
 /** オーブ効果種別。 */
 enum class ItemOrbEffectType {

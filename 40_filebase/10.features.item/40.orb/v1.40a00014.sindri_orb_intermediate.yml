@@ -12,9 +12,11 @@ maxStack: 64
 saleValue: 120
 lore:
   - "&7装備の耐久値を150回復する。"
+  - "&e使用時に売り値と同額のゴールドを消費する。"
 unTradeable: false
 unSellable: false
 orb:
   effect:
     type: REPAIR
     repairAmount: 150
+    chargeSaleValue: true

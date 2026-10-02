@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscenden
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrb
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankBasis
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode
@@ -220,6 +221,7 @@ class ItemRepository {
             name = obj.get("name").asString,
             icon = obj.get("icon").asString,
             iconTexture = obj.get("iconTexture")?.takeIf { !it.isJsonNull }?.asString,
+            iconGlint = obj.get("iconGlint")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
             rarity = obj.get("rarity").asString,
             maxStack = obj.get("maxStack")?.asInt ?: 64,
             saleValue = obj.get("saleValue")?.asInt ?: 0,
@@ -280,6 +282,8 @@ class ItemRepository {
             repairFull = effectObj.get("repairFull")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
             enchantMasterId = normalizeEnchantMasterReference(parseStringOrNull(effectObj, "enchantMasterId")),
             enchantOperation = ItemOrbEnchantOperation.fromApiValue(parseStringOrNull(effectObj, "enchantOperation")),
+            chargeSaleValue = effectObj.get("chargeSaleValue")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+            rankBasis = ItemOrbRankBasis.fromApiValue(parseStringOrNull(effectObj, "rankBasis")),
         ))
     }
 

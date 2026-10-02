@@ -412,6 +412,10 @@ public class ItemStackFactory {
         }
         applyVanillaHideFlags(meta);
 
+        if (model.getIconGlint()) {
+            meta.setEnchantmentGlintOverride(true);
+        }
+
         // enchant がある場合はバニラエンチャントの輝きを付与（エンチャント名はHIDE_ENCHANTSで非表示）
         if (!instance.getEnchants().isEmpty()) {
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
@@ -701,6 +705,10 @@ public class ItemStackFactory {
 
         // 表示名/Loreは維持しつつ、可能な限りバニラ要素を非表示化
         applyVanillaHideFlags(meta);
+
+        if (model.getIconGlint()) {
+            meta.setEnchantmentGlintOverride(true);
+        }
 
         // --- PDC にメタ情報を格納 ---
         writeCommonPersistentData(meta.getPersistentDataContainer(), model);

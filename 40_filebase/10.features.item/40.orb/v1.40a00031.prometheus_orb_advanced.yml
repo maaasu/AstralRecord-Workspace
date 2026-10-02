@@ -1,0 +1,25 @@
+# design:
+#   motif: "ギリシャ神話 / プロメテウス / 上級の火"
+#   progression: 3
+schemaVersion: 1
+id: 40a00031
+category: orb
+name: "&cプロメテウスのオーブ(上級)"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWY3ZWVmYTRkYTc1MWYwOGMwNGU4MTdjODlmYTI1NzFmZWZhYTdiYmJlNjliY2JkMTc4OGNlNWYwZjA4YmVlZCJ9fX0=
+rarity: EPIC
+maxStack: 64
+saleValue: 600
+lore:
+  - "&7現在のランクが2以下の装備に使用できる。"
+  - "&7次の段階へ状態変化を行う。"
+  - "&e使用時に売り値と同額のゴールドを消費する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: TRANSCENDENCE
+    rank: 2
+    rankMode: AT_MOST
+    rankBasis: CURRENT
+    chargeSaleValue: true

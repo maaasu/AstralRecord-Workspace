@@ -13,6 +13,7 @@ ITEMの基本的なスキーマ定義。
 | `icon`            | String       | ○  | -         | Bukkit Material名（例: `IRON_INGOT`）                      |
 | `iconTexture`     | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は`http(s)://textures.minecraft.net/texture/[hex 1..64]`に一致する必要がある |
 | `rarity`          | String       | ○  | -         | rarityヘッダ参照                                            |
+| `iconGlint`       | Boolean      | ×  | false     | trueでエンチャントの光沢を表示する。装備効果は付与しない |
 | `saleValue`       | Integer      | ×  | 0         | 売却した際に得られるお金                                           |
 | `customModelData` | Integer      | ×  | Null      | クライアント側リソースパック用のモデルデータID (未実装予定)                       |
 | `appearance`      | Map          | ×  | Null      | 同じ `icon` Material 内のバニラ外見差分を固定する設定。革装備色、ポーション色/種別などに使用する |
