@@ -115,9 +115,10 @@ function schemaForValue(schema: JsonObject, rootSchema: JsonObject, value: JsonV
 }
 
 export function schemaAtPointer(rootSchema: JsonObject, path: string, rootValue: JsonValue): JsonObject {
-  let schema = schemaForValue(rootSchema, rootSchema, rootValue)
+  let schema = resolveSchema(rootSchema, rootSchema)
   let value: JsonValue | undefined = rootValue
   for (const part of pointerParts(path)) {
+    schema = schemaForValue(schema, rootSchema, value)
     let childSchema: JsonObject = {}
     if (Array.isArray(value) || value === undefined && schema.type === 'array') {
       childSchema = objectOf(schema.items) ?? {}
@@ -126,7 +127,7 @@ export function schemaAtPointer(rootSchema: JsonObject, path: string, rootValue:
       childSchema = objectOf(properties && Object.hasOwn(properties, part) ? properties[part] : undefined) ?? objectOf(schema.additionalProperties) ?? {}
     }
     value = childAt(value, part)
-    schema = schemaForValue(childSchema, rootSchema, value)
+    schema = resolveSchema(childSchema, rootSchema)
   }
   return schema
 }

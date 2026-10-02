@@ -15,6 +15,10 @@ function Editable({ initial, metadata = fields }: { initial: JsonValue; metadata
   const [value, setValue] = useState(initial)
   return <><MasterDataForm value={value} onChange={setValue} fields={metadata} /><output data-testid="value">{JSON.stringify(value)}</output></>
 }
+function openAdd(path: string) {
+  const input = screen.getByRole('textbox', { name: path + ' 新しいキー', hidden: true })
+  fireEvent.click(input.closest('details')!.querySelector('summary')!)
+}
 
 describe('master form', () => {
   it('previews a material icon without changing unknown fields during free text edits', () => {
@@ -52,6 +56,7 @@ describe('master form', () => {
     expect(normalizeMasterType('Map<String, Double>')).toBe('object')
     expect(normalizeMasterType('String|Integer')).toBeUndefined()
     render(<Editable initial={{ equipment: {} }} metadata={[{ path: '/equipment/level', key: 'equipment[].level', label: 'レベル', type: 'Integer', required: false, description: '' }]} />)
+    openAdd('/equipment')
     fireEvent.change(screen.getByRole('combobox', { name: '/equipment 定義済みの項目を追加' }), { target: { value: 'level' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ equipment: { level: 0 } })
   })
@@ -66,6 +71,7 @@ describe('master form', () => {
 
   it('can add absent documented optional fields and arbitrary typed keys', () => {
     render(<Editable initial={{ equipment: {} }} />)
+    openAdd('/equipment')
     fireEvent.change(screen.getByRole('combobox', { name: '/equipment 定義済みの項目を追加' }), { target: { value: 'level' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ equipment: { level: 0 } })
     fireEvent.change(screen.getByRole('textbox', { name: '/equipment 新しいキー' }), { target: { value: 'custom' } })

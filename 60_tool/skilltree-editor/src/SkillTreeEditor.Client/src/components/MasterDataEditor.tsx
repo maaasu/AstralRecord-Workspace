@@ -5,7 +5,9 @@ import { useHistory } from '../state/history'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
 import type { MasterCatalog, MasterCategory, MasterDocument, MasterDraft, MasterFileSummary, MasterReference } from '../types/masterData'
 import { MasterDataDiff } from './MasterDataDiff'
-import { MasterDataForm, masterDefault } from './MasterDataForm'
+import { masterDefault } from './MasterDataForm'
+import { MasterDataDetails, MasterDataOutline } from './MasterDataNavigation'
+import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
 import { MinecraftIcon } from './MinecraftIcon'
 
 interface DraftState { raw: string; content: JsonValue; source: 'raw' | 'form' }
@@ -41,12 +43,19 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const [referenceQuery, setReferenceQuery] = useState('')
   const [referencePage, setReferencePage] = useState(0)
   const [documentation, setDocumentation] = useState<{ path: string; raw: string } | null>(null)
+  const [sidebarView, setSidebarView] = useState<'files' | 'outline'>('files')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [formPath, setFormPath] = useState('')
+  const [focusPath, setFocusPath] = useState<{ path: string } | null>(null)
+  const rememberedPaths = useRef<Record<string, string>>({})
+  const editorElement = useRef<HTMLElement>(null)
   const importInput = useRef<HTMLInputElement>(null)
   const operationId = useRef(0)
   const latestRenderWarnings = useRef<string[]>([])
   const reviewedRaw = useRef('')
   const history = useHistory(emptyDraft)
   const draft = history.present
+  const selectedFormPath = closestContainerPointer(draft.content, formPath)
   const category = catalog?.categories.find((entry) => entry.id === categoryId) ?? null
   const documentCategory = catalog?.categories.filter((entry) => document?.path.startsWith(`${entry.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0] ?? null
   const savedIcon = asObject(document?.content)?.icon
@@ -111,6 +120,9 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       const loaded = await masterDataApi.file(path)
       if (requestId !== operationId.current) return
       setDocument(loaded); setInvalidInputs({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
+      setFormPath(closestContainerPointer(loaded.content, rememberedPaths.current[path] ?? '')); setFocusPath(null)
+      setSidebarView(loaded.content === null ? 'files' : 'outline')
+      if (window.innerWidth <= 640) setSidebarCollapsed(true)
       setReport({ isValid: !loaded.issues.some((entry) => entry.severity === 'error'), issues: loaded.issues }); setRenderWarnings([])
       latestRenderWarnings.current = []; reviewedRaw.current = ''
       setReferences([])
@@ -165,14 +177,30 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       void refresh().catch(() => setNotice(`${baseName(saved.path)} は保存済みです。一覧を再読込できませんでした。`))
     } catch (reason) { showError(reason) } finally { setBusy(false) }
   }
+  const moveHistory = (direction: 'undo' | 'redo') => {
+    if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから履歴を移動してください。'); return }
+    if (direction === 'undo' ? !history.canUndo : !history.canRedo) return
+    // Array positions can refer to another element after a structural undo.
+    let parent = selectedFormPath
+    while (parent) {
+      parent = parentPointer(parent)
+      if (Array.isArray(valueAtPointer(draft.content, parent))) {
+        setFormPath(parent)
+        if (document) rememberedPaths.current[document.path] = parent
+        break
+      }
+    }
+    setFocusPath(null)
+    if (direction === 'undo') history.undo(); else history.redo()
+  }
   useEffect(() => {
     if (!active) return
     const keyboard = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || createMode || diffRaw !== null || busy) return
       if (event.key.toLowerCase() === 's') { event.preventDefault(); void save() }
       if ((event.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]')) return
-      if (event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) history.redo(); else history.undo() }
-      if (event.key.toLowerCase() === 'y') { event.preventDefault(); history.redo() }
+      if (event.key.toLowerCase() === 'z') { event.preventDefault(); moveHistory(event.shiftKey ? 'redo' : 'undo') }
+      if (event.key.toLowerCase() === 'y') { event.preventDefault(); moveHistory('redo') }
     }
     window.addEventListener('keydown', keyboard)
     return () => window.removeEventListener('keydown', keyboard)
@@ -205,6 +233,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       const created = await masterDataApi.create(newDraft)
       const requestId = ++operationId.current
       setDocument(created); history.reset({ raw: created.raw, content: created.content, source: created.content === null ? 'raw' : 'form' }); setInvalidInputs({}); setReferences([]); setReport({ isValid: !created.issues.some((issue) => issue.severity === 'error'), issues: created.issues }); setRenderWarnings([]); setCreateMode(null)
+      setFormPath(''); setFocusPath(null); setSidebarView(created.content === null ? 'files' : 'outline')
       setNotice(`${created.path} を作成しました。`); void refresh().catch(() => setNotice(`${created.path} は作成済みです。一覧を再読込できませんでした。`))
       void masterDataApi.references(created.path).then((next) => { if (requestId === operationId.current) setReferences(next) }).catch(() => { /* Free text stays available. */ })
     } catch (reason) { showError(reason); throw reason } finally { setBusy(false) }
@@ -217,29 +246,58 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       } else if (allowDiscard()) { setImportText(raw); setCreateMode('import') }
     } catch (reason) { showError(reason) }
   }
-  const focusIssue = (path?: string) => {
-    if (!path) return
-    const target = Array.from(window.document.querySelectorAll<HTMLInputElement>('.master-editor input, .master-editor textarea, .master-editor select')).find((entry) => entry.getAttribute('aria-label') === path)
-    target?.scrollIntoView({ block: 'center' }); target?.focus()
+  const selectFormPath = (path: string) => {
+    if (busy || Object.keys(invalidInputs).length) return
+    const next = closestContainerPointer(draft.content, path)
+    setFormPath(next); setFocusPath(null)
+    if (document) rememberedPaths.current[document.path] = next
   }
+  const focusIssue = (path?: string) => {
+    if (busy) return
+    if (path && (!path.startsWith('/') || /~(?![01])/.test(path))) { setNotice('この検証結果には移動できる項目パスがありません。原稿を確認してください。'); return }
+    const next = { path: path ?? '' }
+    if (draft.source === 'raw') void changeMode('form').then(() => setFocusPath(next))
+    else setFocusPath(next)
+  }
+  useEffect(() => {
+    if (!focusPath || draft.source !== 'form' || busy) return
+    const targetValue = valueAtPointer(draft.content, focusPath.path)
+    const container = closestContainerPointer(draft.content, targetValue !== null && typeof targetValue === 'object' ? focusPath.path : parentPointer(focusPath.path))
+    if (container !== selectedFormPath) {
+      if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから別の項目へ移動してください。'); setFocusPath(null); return }
+      setFormPath(container); setSidebarView('outline')
+      if (document) rememberedPaths.current[document.path] = container
+      return
+    }
+    const target = Array.from(editorElement.current?.querySelectorAll<HTMLInputElement>('.master-node-editor input, .master-node-editor textarea, .master-node-editor select') ?? []).find((entry) => entry.getAttribute('aria-label') === (focusPath.path || '/'))
+    if (target) {
+      for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true
+      target.focus(); target.scrollIntoView?.({ block: 'center' })
+    } else editorElement.current?.querySelector<HTMLElement>('[data-node-heading]')?.focus()
+    setFocusPath(null)
+  }, [focusPath, selectedFormPath, draft.content, draft.source, busy, invalidInputs, document])
   if (loading) return <div className="loading-screen"><p>Filebaseのカテゴリとファイルを読み込んでいます…</p></div>
-  return <main className="master-editor">
-    <aside className="master-sidebar">
-      <h2>Filebase マスター</h2>
+  return <main ref={editorElement} className={'master-editor ' + (sidebarCollapsed ? 'master-sidebar-collapsed' : '')}>
+    <aside className="master-sidebar" hidden={sidebarCollapsed}>
+      <div className="master-sidebar-header"><h2>Filebase マスター</h2><button type="button" className="button compact subtle" aria-label="ナビを閉じる" onClick={() => setSidebarCollapsed(true)}>×</button></div>
+      <div className="master-sidebar-tabs"><button type="button" className={'button compact ' + (sidebarView === 'files' ? 'active' : '')} aria-pressed={sidebarView === 'files'} onClick={() => setSidebarView('files')}>ファイル一覧</button><button type="button" className={'button compact ' + (sidebarView === 'outline' ? 'active' : '')} aria-pressed={sidebarView === 'outline'} disabled={!document || draft.source !== 'form'} onClick={() => setSidebarView('outline')}>レコード内の構造</button></div>
+      <div className="master-toolbar"><button className="button" disabled={busy} onClick={() => { if (allowDiscard()) setCreateMode('new') }}>＋ 新規</button><button className="button subtle" disabled={busy} onClick={() => importInput.current?.click()}>原稿を読込</button><button className="button subtle" disabled={busy} onClick={() => { void refresh().catch(showError) }} title="一覧と定義メタデータを再読込">↻</button></div>
+      <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
+      <div className="master-sidebar-files" hidden={sidebarView !== 'files' && draft.source === 'form' && Boolean(document)}>
       <label>カテゴリ<select aria-label="マスターのカテゴリ" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setSubdirectory('') }}><option value="">すべて ({files.length})</option>{catalog?.categories.map((entry) => <option key={entry.id} value={entry.id}>{entry.label} ({entry.fileCount})</option>)}</select></label>
       {subdirectories.length > 1 && <label>サブフォルダ<select aria-label="サブフォルダ" value={subdirectory} onChange={(event) => setSubdirectory(event.target.value)}><option value="">すべてのフォルダ</option>{subdirectories.map((entry) => <option value={entry} key={entry}>{entry}</option>)}</select></label>}
       <label>検索<input aria-label="マスター検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="名前 / ID / ファイルパス" /></label>
       <label>形式<select aria-label="ファイル形式" value={format} onChange={(event) => setFormat(event.target.value)}><option value="">すべて</option>{[...new Set(files.map((entry) => entry.format))].map((entry) => <option key={entry} value={entry}>{entry.toUpperCase()}</option>)}</select></label>
-      <div className="master-toolbar"><button className="button" disabled={busy} onClick={() => { if (allowDiscard()) setCreateMode('new') }}>＋ 新規</button><button className="button subtle" disabled={busy} onClick={() => importInput.current?.click()}>原稿を読込</button><button className="button subtle" disabled={busy} onClick={() => { void refresh().catch(showError) }} title="一覧と定義メタデータを再読込">↻</button></div>
-      <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
       <div className="master-list-heading">{visibleFiles.length} 件 / {files.length} 件</div>
       <div className="master-file-list">{visibleFiles.slice(currentPage * 50, (currentPage + 1) * 50).map((entry) => <button key={entry.path} type="button" disabled={busy} className={`master-file ${document?.path === entry.path ? 'selected' : ''}`} onClick={() => void loadDocument(entry.path)}><span className="master-file-identity">{entry.icon && <MinecraftIcon icon={entry.icon} className="master-list-icon" />}<strong>{entry.name || baseName(entry.path)}</strong></span><span>{entry.id && <code>{entry.id}</code>}{entry.parseError && <b className="master-required">解析エラー</b>}{entry.readOnly && <small>閲覧のみ</small>}</span><small>{entry.path}</small></button>)}{!visibleFiles.length && <p className="master-muted">一致するファイルがありません。</p>}</div>
       <div className="master-pagination"><button className="button compact" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前へ</button><span>{currentPage + 1} / {pageCount}</span><button className="button compact" disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)}>次へ</button></div>
       <details className="master-paths"><summary>読込先 / バックアップ先</summary><small>{catalog?.root}</small><small>{catalog?.backups}</small></details>
+      </div>
+      {document && draft.source === 'form' && <div className="master-sidebar-outline" hidden={sidebarView !== 'outline'}><MasterDataOutline key={document.path} value={draft.content} fields={documentCategory?.fields ?? []} schema={schema} selectedPath={selectedFormPath} disabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} /></div>}
     </aside>
     <section className="master-workspace">
-      <header className="master-document-header">{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} className="master-header-icon" /></span>}<div><h2>{document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div><span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span></header>
-      <div className="master-toolbar master-main-toolbar"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button><button className="button" title="元に戻す Ctrl+Z" disabled={!history.canUndo || busy} onClick={() => { setInvalidInputs({}); history.undo() }}>↶</button><button className="button" title="やり直す Ctrl+Y" disabled={!history.canRedo || busy} onClick={() => { setInvalidInputs({}); history.redo() }}>↷</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><span className="master-spacer" /><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
+      <header className="master-document-header"><button type="button" className="button compact subtle" aria-expanded={!sidebarCollapsed} onClick={() => setSidebarCollapsed((current) => !current)}>{sidebarCollapsed ? 'ナビを表示' : 'ナビを隠す'}</button>{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} className="master-header-icon" /></span>}<div><h2>{document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div><span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span></header>
+      <div className="master-toolbar master-main-toolbar"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button><button className="button" title="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="button" title="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><span className="master-spacer" /><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
       {(error || notice) && <div className={`master-message ${error ? 'error' : 'success'}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="button compact subtle" onClick={() => { setError(''); setNotice('') }}>閉じる</button></div>}
       {renderWarnings.length > 0 && <div className="master-message warning"><div><strong>原稿の変換を確認してください</strong>{renderWarnings.map((warning, index) => <p key={index}>{warning}</p>)}</div><button className="button" disabled={busy} onClick={() => void showDiff()}>差分を確認</button></div>}
       <div className="master-edit-area">{document ? <>
@@ -253,7 +311,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
           if (event.key !== 'Tab') return
           event.preventDefault(); const target = event.currentTarget; const start = target.selectionStart; const end = target.selectionEnd
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
-        }} /></> : <><p className="master-muted">日本語の項目名・説明と元のキーを表示します。固有パラメータや未定義のキーも編集できます。定義済みの任意項目は各Map末尾から追加できます。</p><fieldset className="master-form-lock" disabled={busy || readOnly}><MasterDataForm value={draft.content} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} onInvalid={handleInvalid} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} /></fieldset></>}
+        }} /></> : <MasterDataDetails value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onInvalid={handleInvalid} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>マスターデータを編集</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{category && <p>{category.label} · {category.directory}</p>}</div>}</div>
       {(report || Object.keys(invalidInputs).length > 0) && <section className="master-validation"><details open><summary>検証結果 {report?.isValid ? '✓ 成功' : ''} {report?.issues.length ? `${report.issues.length} 件` : ''}</summary>{report?.isValid && !report.issues.length && <p className="success-message">検証エラーはありません。</p>}<ul>{Object.entries(invalidInputs).map(([path, message]) => <li className="error" key={path}><button className="text-button" onClick={() => focusIssue(path)}>{path}</button> {message}</li>)}{report?.issues.map((issue, index) => <li key={index} className={issue.severity}><code>{issue.code}</code> <button className="text-button" onClick={() => focusIssue(issue.path)}>{issue.path || '/'}</button> {issue.message}</li>)}</ul></details></section>}
     </section>

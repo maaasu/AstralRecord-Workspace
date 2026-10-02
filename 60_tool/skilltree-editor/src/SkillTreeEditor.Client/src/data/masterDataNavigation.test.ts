@@ -62,7 +62,7 @@ describe('master data navigation', () => {
       },
     }
     const value = { items: [{ type: 'heal', amount: 2 }], map: { 'a/b': { type: 'attack', damage: 3 } } }
-    expect(schemaAtPointer(schema, '/items/0', value).title).toBe('回復')
+    expect(schemaAtPointer(schema, '/items/0', value).oneOf).toEqual(schema.$defs && (schema.$defs as JsonObject).entry && ((schema.$defs as JsonObject).entry as JsonObject).oneOf)
     expect(schemaAtPointer(schema, '/items/0/amount', value).type).toBe('number')
     expect(schemaAtPointer(schema, '/map/a~1b/damage', value).type).toBe('integer')
     expect(schemaAtPointer(schema, '/items/0/other', value)).toEqual({})
@@ -74,7 +74,7 @@ describe('master data navigation', () => {
       { title: '別型', properties: { kind: { const: 'second' }, value: { type: 'number' } } },
     ] }
     expect(schemaAtPointer(schema, '/value', { kind: 'second', value: 1 }).type).toBe('number')
-    expect(schemaAtPointer(schema, '', { value: 'fallback' }).title).toBe('既定')
+    expect(schemaAtPointer(schema, '', { value: 'fallback' }).anyOf).toEqual(schema.anyOf)
     expect(schemaAtPointer({ properties: {} }, '/__proto__', { __proto__: 1 })).toEqual({})
   })
 

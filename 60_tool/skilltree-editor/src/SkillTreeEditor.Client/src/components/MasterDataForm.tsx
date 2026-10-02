@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
+import { summarizeMasterValue } from '../data/masterDataNavigation'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
 const typeLabels: Record<ValueType, string> = {
@@ -79,13 +80,15 @@ interface MasterDataFormProps {
   rootSchema?: JsonObject
   path?: string
   onInvalid?: (path: string, message: string | null) => void
+  onNavigate?: (path: string) => void
+  navigationDisabled?: boolean
 }
 
-export function MasterDataForm({ value, onChange, fields, references = [], schema = {}, rootSchema = schema, path = '', onInvalid }: MasterDataFormProps) {
+export function MasterDataForm({ value, onChange, fields, references = [], schema = {}, rootSchema = schema, path = '', onInvalid, onNavigate, navigationDisabled }: MasterDataFormProps) {
   const resolved = resolveSchema(schema, rootSchema)
   const metadata = fieldForPath(fields, path)
   const kind = valueType(value, resolved, metadata)
-  const inherited = { fields, references, rootSchema, onInvalid }
+  const inherited = { fields, references, rootSchema, onInvalid, onNavigate, navigationDisabled }
   const unions = Array.isArray(resolved.oneOf ?? resolved.anyOf) ? (resolved.oneOf ?? resolved.anyOf) as JsonValue[] : []
   const selectedUnion = Math.max(0, unions.findIndex((choice) => {
     const properties = objectOf(objectOf(choice)?.properties)
@@ -128,7 +131,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
     referencePrefix={typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined} />
 }
 
-function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
+function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
   const [newKey, setNewKey] = useState('')
   const [newType, setNewType] = useState<ValueType>('string')
   const [addError, setAddError] = useState('')
@@ -163,6 +166,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const content = <>
         <div className="master-field-heading"><strong>{label}</strong><code>{key}</code><span className="master-type">{typeLabels[valueType(child, definition, field)]}</span>{isRequired && <b className="master-required">必須</b>}
           <span className="master-spacer" />
+          <details className="master-field-actions"><summary aria-label={childPath + ' の操作'}>操作</summary><div className="master-field-actions-body">
           {canChangeType && <select className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
             const nextType = event.target.value as ValueType
             if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
@@ -171,36 +175,50 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           <button type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
             if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
-          }}>削除</button></div>
-        {description && <p className="master-field-description">{description}</p>}
+          }}>削除</button></div></details></div>
+        {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
-        {!field && !Object.hasOwn(properties, key) && <p className="master-field-description">個別キー / 定義メタデータなし。現在の値の型で編集します。</p>}
-        <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onChange={(next) => onChange({ ...value, [key]: next })} />
+        {structured && onNavigate ? <div className="master-node-link"><span>{summarizeMasterValue(child)}</span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
+          : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
-      return structured ? <details open key={key} className="master-field"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? `${child.length} 件` : `${Object.keys(objectOf(child) ?? {}).length} 項目`}</small></summary>{content}</details> : <div key={key} className="master-field">{content}</div>
+      return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
+        : <div key={key} className={'master-field ' + (structured || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
-    <div className="master-add-field">
+    <details className="master-add-field"><summary>項目を追加</summary><div className="master-add-field-body">
       {optionalKeys.length > 0 && <label>定義済みの項目を追加<select aria-label={`${path || '/'} 定義済みの項目を追加`} value="" onChange={(event) => { if (event.target.value) add(event.target.value) }}><option value="">項目を選択…</option>{optionalKeys.map((key) => {
         const field = fieldForPath(fields, `${path}/${pointerKey(key)}`)
         return <option key={key} value={key}>{String(childSchema(key).title ?? field?.label ?? key)} · {key}{required.has(key) || field?.required ? '（必須）' : ''}</option>
       })}</select></label>}
       <div className="master-add-row"><input aria-label={`${path || '/'} 新しいキー`} value={newKey} placeholder="任意のキーを追加" onChange={(event) => setNewKey(event.target.value)} /><select aria-label={`${path || '/'} 追加する型`} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select><button type="button" className="button" onClick={() => add(newKey)}>＋ キー</button></div>
       {addError && <p role="alert" className="error-message">{addError}</p>}
-    </div>
+    </div></details>
   </div>
 }
 
 function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<MasterDataFormProps, 'value' | 'schema'> & { values: JsonValue[]; itemSchema: JsonObject; path: string }) {
   const [newType, setNewType] = useState<ValueType>(typeof itemSchema.type === 'string' && types.includes(itemSchema.type as ValueType) ? itemSchema.type as ValueType : 'string')
+  const [page, setPage] = useState(0)
+  const pageSize = 25
+  const paged = Boolean(inherited.onNavigate) && values.every((entry) => entry !== null && typeof entry === 'object')
+  const pageCount = Math.max(1, Math.ceil(values.length / pageSize))
+  const currentPage = Math.min(page, pageCount - 1)
+  const offset = paged ? currentPage * pageSize : 0
+  const visible = paged ? values.slice(offset, offset + pageSize) : values
   const move = (index: number, offset: number) => {
     const next = [...values]
     ;[next[index], next[index + offset]] = [next[index + offset], next[index]]
     onChange(next)
   }
-  return <div className="master-array">{values.map((entry, index) => <div className="master-array-entry" key={index}>
+  return <div className="master-array">{visible.map((entry, visibleIndex) => {
+    const index = offset + visibleIndex
+    const structured = entry !== null && typeof entry === 'object'
+    return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
     <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={`${path}/${index} 上へ`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${path}/${index} 下へ`} disabled={index === values.length - 1} onClick={() => move(index, 1)}>↓</button><button type="button" className="button compact" onClick={() => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])}>複製</button><button type="button" className="button compact danger subtle" aria-label={`${path}/${index} を削除`} onClick={() => onChange(values.filter((_, item) => item !== index))}>削除</button></div>
-    <MasterDataForm {...inherited} path={`${path}/${index}`} value={entry} schema={itemSchema} onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />
-  </div>)}<div className="master-add-row">{!itemSchema.type && <select aria-label={`${path} 配列に追加する型`} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" onClick={() => onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
+    {structured && inherited.onNavigate ? <div className="master-node-link"><span>{summarizeMasterValue(entry)}</span><button type="button" className="button compact" aria-label={path + '/' + index + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(path + '/' + index)}>編集 →</button></div>
+      : <MasterDataForm {...inherited} path={path + '/' + index} value={entry} schema={itemSchema} onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />}
+  </div>})}
+    {paged && pageCount > 1 && <div className="master-pagination"><button type="button" className="button compact" disabled={currentPage === 0 || inherited.navigationDisabled} onClick={() => setPage(currentPage - 1)}>前の要素</button><span>{offset + 1}–{Math.min(offset + pageSize, values.length)} / {values.length}件</span><button type="button" className="button compact" disabled={currentPage + 1 >= pageCount || inherited.navigationDisabled} onClick={() => setPage(currentPage + 1)}>次の要素</button></div>}
+    <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" onClick={() => onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
 }
 
 function NumberEditor({ value, kind, path, onChange, onInvalid }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid'] }) {
