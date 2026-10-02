@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { classBonus, equipmentRows, rangeOf } from './masterAnalytics'
+import { classBonus, equipmentRows, plainName, rangeOf } from './masterAnalytics'
 import type { AnalyticsMaster } from './masterAnalytics'
 
 describe('master comparison math', () => {
+  it('uses visible hex names in search, accessible labels and CSV rows', () => {
+    expect(plainName('&#12abef黄金&x&5&5&f&f&5&5の剣')).toBe('黄金の剣')
+    expect(equipmentRows([{ path: 'sword.yml', progression: null, content: { name: '§#12abef黄金§rの剣' } }], 0)[0].name).toBe('黄金の剣')
+  })
   it('retains both possible endpoints of independent equipment rolls', () => {
     expect(rangeOf({ min: '10~20', max: '21~50' })).toEqual({ min: 10, max: 50 })
     expect(rangeOf('20～10')).toEqual({ min: 10, max: 20 })

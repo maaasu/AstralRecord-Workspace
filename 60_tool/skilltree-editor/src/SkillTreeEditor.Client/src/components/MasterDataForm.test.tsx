@@ -17,6 +17,29 @@ function Editable({ initial, metadata = fields }: { initial: JsonValue; metadata
 }
 
 describe('master form', () => {
+  it('previews names and multiline lore in color while retaining the editable source', () => {
+    render(<Editable initial={{ name: '&6&l利用券', lore: ['§a説明\n&r通常'] }} />)
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('&6&l利用券')
+    expect(screen.getByText('利用券')).toHaveStyle({ color: '#ffaa00', fontWeight: '700' })
+    expect(screen.getByRole('textbox', { name: '/lore/0' })).toHaveValue('§a説明\n&r通常')
+    expect(screen.getByText('説明')).toHaveStyle({ color: '#55ff55' })
+    fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '&#12abef新名' } })
+    expect(screen.getByText('新名')).toHaveStyle({ color: '#12abef' })
+    expect(JSON.parse(screen.getByTestId('value').textContent!).name).toBe('&#12abef新名')
+  })
+
+  it('shows colored reference candidates and selects their original ID', () => {
+    const onChange = vi.fn()
+    render(<MasterDataForm value="犬の卵" path="/eggItemId" fields={[{ path: '/eggItemId', key: 'eggItemId', label: '卵', type: 'string', required: false, description: '', reference: 'item' }]}
+      references={[{ path: 'egg.yml', pointer: '/id', value: '81a00001', kind: 'item', label: '&6犬の&a卵' }]} onChange={onChange} />)
+    expect(document.querySelector('option[value="81a00001"]')).toHaveTextContent('犬の卵')
+    expect(screen.getByText('犬の')).toHaveStyle({ color: '#ffaa00' })
+    expect(screen.getByText('卵', { selector: '.minecraft-text span' })).toHaveStyle({ color: '#55ff55' })
+    fireEvent.click(screen.getByText('名前と色を確認して選択'))
+    fireEvent.click(screen.getByRole('button', { name: '犬の卵81a00001' }))
+    expect(onChange).toHaveBeenCalledWith('81a00001')
+  })
+
   it('previews a material icon without changing unknown fields during free text edits', () => {
     render(<Editable initial={{ icon: 'iron_ingot', params: { AlienRPC: 'keep' } }} metadata={[]} />)
     expect(screen.getByRole('img', { name: '素材アイコン: iron_ingot' })).toBeInTheDocument()

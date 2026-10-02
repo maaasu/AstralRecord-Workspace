@@ -20,7 +20,7 @@
 .master-file strong { font-size: 12px; overflow-wrap: anywhere; }
 .master-file code { color: var(--gold); font-size: 11px; }
 .master-file small { font-size: 10px; color: var(--text-muted); overflow-wrap: anywhere; }
-.master-file span { display: flex; gap: 5px; }
+.master-file > span { display: flex; gap: 5px; }
 .master-paths { font-size: 11px; color: var(--text-muted); }
 .master-paths small { display: block; overflow-wrap: anywhere; margin-top: 8px; }
 .master-workspace { min-height: 0; display: flex; flex-direction: column; min-width: 0; }
@@ -49,6 +49,13 @@
 .master-type { padding: 2px 6px; border-radius: 3px; background: var(--surface-soft); color: var(--text-muted); font-size: 10px; }
 .master-type-select { width: auto; max-width: 180px; padding: 4px 6px; font-size: 11px; }
 .master-required { color: var(--gold); font-size: 10px; }
+.master-text-preview { padding: 8px 10px; margin-top: 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font-size: 12px; }
+.master-colored-candidates { margin-top: 6px; font-size: 11px; }
+.master-colored-candidates summary { cursor: pointer; color: var(--text-muted); }
+.master-colored-candidates > div { max-height: 230px; overflow: auto; margin-top: 6px; }
+.master-candidate { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 8px; color: inherit; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.master-candidate:hover { background: var(--surface-soft); }
+.master-candidate code { color: var(--text-muted); font-size: 10px; flex-shrink: 0; }
 .master-field-description { font-size: 11px; line-height: 1.6; color: var(--text-muted); margin-bottom: 7px; white-space: pre-wrap; }
 .master-checkbox { display: flex !important; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; }
 .master-checkbox input { width: 16px; height: 16px; }

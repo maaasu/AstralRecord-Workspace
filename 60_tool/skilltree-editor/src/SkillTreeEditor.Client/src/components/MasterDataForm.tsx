@@ -2,6 +2,8 @@ import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
+import { MinecraftText } from './MinecraftText'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
 const typeLabels: Record<ValueType, string> = {
@@ -224,9 +226,15 @@ function StringEditor({ value, path, onChange, references, referenceKind, refere
     const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
     return [candidate.value, candidate] as const
   })).values()] : []
-  const search = value.toLocaleLowerCase()
-  const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || entry.label?.toLocaleLowerCase().includes(search)).slice(0, 100)
+  const search = stripMinecraftFormatting(value).toLocaleLowerCase()
+  const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(search)).slice(0, 100)
+  const selected = candidates.find((entry) => entry.value === value)
+  const preview = selected?.label ?? value
+  const formatted = preview !== stripMinecraftFormatting(preview)
   return <div>{value.includes('\n') ? <textarea aria-label={path || '/'} rows={Math.min(12, value.split('\n').length + 1)} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
-    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{entry.label ?? entry.value}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small></>}
+    {formatted && <div className="master-text-preview" aria-label={`${path || '/'} 表示プレビュー`}><MinecraftText value={preview} /></div>}
+    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small>
+      <details className="master-colored-candidates"><summary>名前と色を確認して選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
+    </>}
   </div>
 }

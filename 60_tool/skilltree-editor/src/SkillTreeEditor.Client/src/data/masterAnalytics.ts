@@ -1,3 +1,5 @@
+import { stripMinecraftFormatting } from '../utils/minecraft'
+
 export type MasterObject = Record<string, unknown>
 export interface AnalyticsMaster { path: string; content: MasterObject; progression: number | null }
 export interface AnalyticsCatalog { equipment: AnalyticsMaster[]; classes: AnalyticsMaster[]; diagnostics: { path: string; message: string }[] }
@@ -12,7 +14,7 @@ export interface EquipmentRow { path: string; id: string; name: string; slot: st
 export const asObject = (value: unknown): MasterObject => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as MasterObject : {}
 export const asList = (value: unknown): unknown[] => Array.isArray(value) ? value : []
 export const numeric = (value: unknown, fallback = 0): number => (typeof value === 'number' || typeof value === 'string') && String(value).trim() !== '' && Number.isFinite(Number(value)) ? Number(value) : fallback
-export const plainName = (value: unknown): string => String(value ?? '').replace(/[&§][0-9a-fk-or]/gi, '')
+export const plainName = (value: unknown): string => stripMinecraftFormatting(String(value ?? ''))
 export const normalizeStatus = (value: unknown): string => String(value ?? '').trim().replace(/[ -]/g, '_').toUpperCase()
 
 export function rangeOf(value: unknown): StatRange | null {

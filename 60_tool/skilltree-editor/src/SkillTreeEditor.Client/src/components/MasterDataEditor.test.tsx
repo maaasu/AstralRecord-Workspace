@@ -31,6 +31,30 @@ async function openFile() {
 }
 
 describe('master editor workflow', () => {
+  it('colors list, header and references, finds visible names, and saves original color codes', async () => {
+    const name = '&6太字&aのアイテム'
+    const colored = { ...original, content: { id: 'old', name }, raw: `id: old\nname: '${name}'\n` }
+    vi.mocked(masterDataApi.files).mockResolvedValue([{ path: original.path, category: 'class', format: 'yaml', name, id: 'old', revision: original.revision, size: 20, modifiedUtc: '' }])
+    vi.mocked(masterDataApi.file).mockResolvedValue(colored)
+    vi.mocked(masterDataApi.references).mockResolvedValue([{ path: original.path, kind: 'item', pointer: '/itemId', value: 'old', label: '§b参照元' }])
+    vi.mocked(masterDataApi.render).mockImplementation(async (_path, content) => ({ raw: `id: new\nname: '${(content as { name: string }).name}'\n`, commentsPreserved: true, warnings: [] }))
+    const save = vi.spyOn(masterDataApi, 'save').mockResolvedValue({ ...colored, revision: 'next' })
+    render(<MasterDataEditor />)
+    const entry = await screen.findByRole('button', { name: /太字のアイテム.*old/ })
+    expect(within(entry).getByText('太字')).toHaveStyle({ color: '#ffaa00' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'マスター検索' }), { target: { value: '太字のアイテム' } })
+    expect(entry).toBeInTheDocument()
+    fireEvent.click(entry)
+    await screen.findByRole('textbox', { name: '/name' })
+    expect(screen.getByRole('heading', { name: '太字のアイテム' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue(name)
+    fireEvent.click(screen.getByRole('button', { name: /参照一覧/ }))
+    expect(await screen.findByText('参照元', { selector: '.minecraft-text span' })).toHaveStyle({ color: '#55ffff' })
+    fireEvent.change(screen.getByRole('textbox', { name: '/id' }), { target: { value: 'new' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith(original.path, `id: new\nname: '${name}'\n`, original.revision))
+  })
+
   it('validates first and saves using the original optimistic revision', async () => {
     const save = vi.spyOn(masterDataApi, 'save').mockResolvedValue({ ...original, content: { id: 'new', name: '元クラス' }, raw: 'id: new\nname: 元クラス\n', revision: 'new-revision' })
     await openFile()
