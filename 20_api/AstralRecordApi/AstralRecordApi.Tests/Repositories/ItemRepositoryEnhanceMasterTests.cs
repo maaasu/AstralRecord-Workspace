@@ -291,6 +291,42 @@ public class ItemRepositoryEnhanceMasterTests
     }
 
     [Fact]
+    public void DeserializeLiteralJson_PopulatesOrbVisualAndPaymentContractWithDefaults()
+    {
+        var payloadType = typeof(ItemRepository).Assembly
+            .GetType("AstralRecordApi.Repositories.MasterDataPayloadJson", throwOnError: true)!;
+        var options = (System.Text.Json.JsonSerializerOptions)payloadType
+            .GetField("Options", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+            .GetValue(null)!;
+        const string baseJson = """
+            {
+              "schemaVersion": 1, "id": "40a00001", "category": "orb",
+              "name": "orb", "icon": "PLAYER_HEAD", "rarity": "COMMON",
+              "iconGlint": true, "saleValue": 80,
+              "orb": {"effect": {"type": "TRANSCENDENCE", "rank": 1,
+                "rankBasis": "CURRENT", "chargeSaleValue": true}}
+            }
+            """;
+        const string legacyJson = """
+            {
+              "schemaVersion": 1, "id": "40a00002", "category": "orb",
+              "name": "orb", "icon": "PLAYER_HEAD", "rarity": "COMMON",
+              "orb": {"effect": {"type": "TRANSCENDENCE", "rank": 1}}
+            }
+            """;
+
+        var orb = System.Text.Json.JsonSerializer.Deserialize<ItemResponse>(baseJson, options);
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<ItemResponse>(legacyJson, options);
+
+        Assert.True(orb!.IconGlint);
+        Assert.True(orb.Orb!.Effect.ChargeSaleValue);
+        Assert.Equal("CURRENT", orb.Orb.Effect.RankBasis);
+        Assert.False(legacy!.IconGlint);
+        Assert.False(legacy.Orb!.Effect.ChargeSaleValue);
+        Assert.Equal("TARGET", legacy.Orb.Effect.RankBasis);
+    }
+
+    [Fact]
     public void DeserializeLiteralJson_PopulatesEquipmentRequirementsAndTranscendenceRequirement()
     {
         var payloadType = typeof(ItemRepository)

@@ -15,6 +15,8 @@ public class ItemResponse
     /// <summary>アイコンが <c>PLAYER_HEAD</c> の場合に使用する Base64 テクスチャ。</summary>
     public string? IconTexture { get; init; }
 
+    public bool IconGlint { get; init; }
+
     public required string Rarity { get; init; }
 
     public int SaleValue { get; init; }
@@ -285,11 +287,15 @@ public class ItemOrbEffectResponse
 {
     public required string Type { get; init; }
 
+    public bool ChargeSaleValue { get; init; }
+
     public IReadOnlyList<string> TargetSlots { get; init; } = [];
 
     public int? Rank { get; init; }
 
     public string RankMode { get; init; } = "EXACT";
+
+    public string RankBasis { get; init; } = "TARGET";
 
     public int? RepairAmount { get; init; }
 

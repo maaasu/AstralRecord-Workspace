@@ -169,7 +169,7 @@ public class EquipmentOrbOperationRepository(
             var affectedEntryIds = new HashSet<Guid>();
             var requiredMaterials = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             string? returnedRuneItemId = null;
-            long requiredGold = 0L;
+            long requiredGold = effect.ChargeSaleValue ? Math.Max(0, orbItem!.SaleValue) : 0L;
             var currentEnchants = await dbContext.EquipmentInstanceEnchants
                 .Where(enchant => enchant.EquipmentInstanceId == instance.EquipmentInstanceId)
                 .OrderBy(enchant => enchant.SlotIndex)
@@ -269,7 +269,7 @@ public class EquipmentOrbOperationRepository(
                         .OrderBy(candidate => candidate.Rank)
                         .FirstOrDefault();
                     if (target is null
-                        || !MatchesTargetRank(effect, target.Rank)
+                        || !MatchesTranscendenceRank(effect, instance.TranscendenceRank, target.Rank)
                         || instance.EnhanceLevel < GetEffectiveEnhanceMaxLevel(
                             equipmentItem.Equipment, instance.TranscendenceRank)
                         || instance.EnhanceLevel < target.RequiredEnhanceLevel)
@@ -282,7 +282,7 @@ public class EquipmentOrbOperationRepository(
                         requiredMaterials[NormalizeId(material.ItemId)] = checked(
                             requiredMaterials.GetValueOrDefault(NormalizeId(material.ItemId)) + material.Amount);
                     }
-                    requiredGold = Math.Max(0, target.RequiredCurrency);
+                    requiredGold = checked(requiredGold + Math.Max(0, target.RequiredCurrency));
                     instance.TranscendenceRank = target.Rank;
                     if (target.Overrides?.Rune is not null
                         && !string.IsNullOrWhiteSpace(target.Overrides.Rune.MaxSlots))
@@ -978,6 +978,14 @@ public class EquipmentOrbOperationRepository(
             ? targetRank <= effect.Rank.Value
             : targetRank == effect.Rank.Value;
     }
+
+    private static bool MatchesTranscendenceRank(
+        ItemOrbEffectResponse effect,
+        int currentRank,
+        int targetRank)
+        => IdEquals(effect.RankBasis, "CURRENT")
+            ? MatchesRank(effect, currentRank)
+            : IdEquals(effect.RankBasis, "TARGET") && MatchesTargetRank(effect, targetRank);
 
     private static string NormalizeFailAction(string? value)
         => value?.Trim().ToUpperInvariant() switch

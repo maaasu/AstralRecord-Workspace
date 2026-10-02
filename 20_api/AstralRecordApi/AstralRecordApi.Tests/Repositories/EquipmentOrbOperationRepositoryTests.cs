@@ -93,6 +93,53 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
     }
 
+    [Fact]
+    public async Task Enhance_ChargedOrbConsumesGoldEvenWhenEnhancementFails()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: CreateEquipment(
+            enhanceLevels: [CreateEnhanceLevel(1, 0.0F, "NONE")], maxEnhanceLevel: 1));
+        var orb = await harness.AddOrbAsync("charged_enhance", new ItemOrbEffectResponse
+        {
+            Type = "ENHANCE", TargetSlots = ["WEAPON"], Rank = 0, ChargeSaleValue = true,
+        }, saleValue: 75);
+        await harness.AddCurrencyEntryAsync("gold_ingot", 1);
+
+        var result = await harness.ExecuteAsync("charged_enhance", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.False(result.EnhancementSucceeded);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(0, result.Equipment!.EnhanceLevel);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+        Assert.Equal(25, await harness.GetGoldValueAsync());
+        Assert.NotEmpty(result.InventorySnapshot!.CurrencyEntries);
+    }
+
+    [Fact]
+    public async Task ChargedRepair_InsufficientGoldLeavesEquipmentAndOrbIntactOnReplay()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 40);
+        var orb = await harness.AddOrbAsync("charged_repair", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR", RepairFull = true, ChargeSaleValue = true,
+        }, saleValue: 101);
+        await harness.AddCurrencyEntryAsync("gold_ingot", 1);
+        var request = harness.CreateRequest(Guid.NewGuid(), "charged_repair", orb);
+
+        var first = await harness.ExecuteAsync(request);
+        var replay = await harness.ExecuteAsync(request);
+
+        Assert.Equal("PAYMENT_UNAVAILABLE", first.Result);
+        Assert.False(first.PaymentConsumed);
+        Assert.Equal(JsonSerializer.Serialize(first), JsonSerializer.Serialize(replay));
+        Assert.Equal(40, (await harness.GetEquipmentAsync()).DurabilityValue);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+        Assert.Equal(100, await harness.GetGoldValueAsync());
+        Assert.NotEmpty(first.InventorySnapshot!.CurrencyEntries);
+        await harness.AssertSingleTerminalLedgerAsync(request.OperationId, paymentConsumed: false);
+    }
+
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
     /// 検証契約: Pluginが先に計算したENHANCE結果は、現在状態とmaster条件が一致する場合だけAPIで確定する。
@@ -507,6 +554,88 @@ public class EquipmentOrbOperationRepositoryTests
             Assert.Equal(result.InventorySnapshot.CurrencyInventoryId, entry.InventoryId));
         Assert.Contains(result.InventorySnapshot.Entries, entry => entry.InventoryEntryId == material && entry.Quantity == 3);
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
+    }
+
+    [Theory]
+    [InlineData(-20, 150)]
+    [InlineData(75, 225)]
+    public async Task Transcendence_ChargedOrbAddsSaleValueToRequiredCurrency(
+        int saleValue, long expectedCost)
+    {
+        var equipment = CreateEquipment(transcendence:
+        [
+            new ItemEquipmentTranscendenceResponse
+            {
+                Name = "星鋼化", Rank = 1, RequiredEnhanceLevel = 3,
+                RequiredCurrency = 150,
+            },
+        ]);
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: equipment);
+        await harness.SetEquipmentStateAsync(instance => instance.EnhanceLevel = 3);
+        var orb = await harness.AddOrbAsync("charged_transition", new ItemOrbEffectResponse
+        {
+            Type = "TRANSCENDENCE", Rank = 1, ChargeSaleValue = true,
+        }, saleValue: saleValue);
+        await harness.AddCurrencyEntryAsync("gold_ingot", 3);
+
+        var result = await harness.ExecuteAsync("charged_transition", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal(1, result.Equipment!.TranscendenceRank);
+        Assert.Equal(300 - expectedCost, await harness.GetGoldValueAsync());
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
+    public async Task Transcendence_CurrentRankBasisAllowsGappedNextRank()
+    {
+        var equipment = CreateEquipment(transcendence:
+        [
+            new ItemEquipmentTranscendenceResponse
+            {
+                Name = "二段階変化", Rank = 2, RequiredEnhanceLevel = 3,
+            },
+        ]);
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: equipment);
+        await harness.SetEquipmentStateAsync(instance => instance.EnhanceLevel = 3);
+        var orb = await harness.AddOrbAsync("current_rank_orb", new ItemOrbEffectResponse
+        {
+            Type = "TRANSCENDENCE", Rank = 0, RankBasis = "CURRENT",
+        });
+
+        var result = await harness.ExecuteAsync("current_rank_orb", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal(2, result.Equipment!.TranscendenceRank);
+    }
+
+    [Fact]
+    public async Task Transcendence_CurrentRankBasisRejectsRankAboveLimit()
+    {
+        var equipment = CreateEquipment(transcendence:
+        [
+            new ItemEquipmentTranscendenceResponse
+            {
+                Name = "三段階変化", Rank = 3, RequiredEnhanceLevel = 3,
+            },
+        ]);
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: equipment);
+        await harness.SetEquipmentStateAsync(instance =>
+        {
+            instance.TranscendenceRank = 2;
+            instance.EnhanceLevel = 3;
+        });
+        var orb = await harness.AddOrbAsync("limited_rank_orb", new ItemOrbEffectResponse
+        {
+            Type = "TRANSCENDENCE", Rank = 1, RankMode = "AT_MOST", RankBasis = "CURRENT",
+        });
+
+        var result = await harness.ExecuteAsync("limited_rank_orb", orb);
+
+        Assert.Equal("NOT_ELIGIBLE", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(2, result.Equipment!.TranscendenceRank);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
     }
 
     /**
@@ -1106,7 +1235,8 @@ public class EquipmentOrbOperationRepositoryTests
             string itemId,
             ItemOrbEffectResponse effect,
             long quantity = 2,
-            int? slotIndex = null)
+            int? slotIndex = null,
+            int saleValue = 0)
         {
             items.Add(new ItemResponse
             {
@@ -1116,6 +1246,7 @@ public class EquipmentOrbOperationRepositoryTests
                 Name = itemId,
                 Icon = "AMETHYST_SHARD",
                 Rarity = "COMMON",
+                SaleValue = saleValue,
                 Orb = new ItemOrbResponse { Effect = effect },
             });
             return await AddNormalEntryAsync(itemId, "orb", quantity, slotIndex);
