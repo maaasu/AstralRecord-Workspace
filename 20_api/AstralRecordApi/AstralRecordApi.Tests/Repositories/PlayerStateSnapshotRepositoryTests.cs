@@ -1692,9 +1692,13 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
             var secondInventoryId = Guid.NewGuid();
             var entryId = Guid.NewGuid();
             var time = DateTime.SpecifyKind(DateTime.UtcNow.AddMinutes(-1), DateTimeKind.Utc);
+            var ownerId = Guid.NewGuid();
+            dbContext.Users.Add(new UserEntity { Uuid = ownerId, Mcid = "snapshot-fixture",
+                JoinDate = time, LastJoinDate = time, CreatedAt = time, UpdatedAt = time,
+                CreatedBy = accountId, UpdatedBy = accountId });
             dbContext.Accounts.Add(new AccountEntity
             {
-                Uuid = accountId, UserId = Guid.NewGuid(), AccountName = "snapshot-test",
+                Uuid = accountId, UserId = ownerId, AccountName = "snapshot-test",
                 Level = 1, ClassId = "adventurer", ClassLevel = 1, ProgressVersion = 1,
                 CreatedAt = time, UpdatedAt = time, CreatedBy = accountId, UpdatedBy = accountId,
             });

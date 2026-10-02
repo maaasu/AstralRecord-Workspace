@@ -297,6 +297,11 @@ public class SkillTreeService {
     private final SkillTreePlayerStateRepository playerStateRepository;
     private final SkillTreeRuntimeRepository runtimeRepository = new SkillTreeRuntimeRepository();
     private final UUID runtimeServerSessionId = UUID.randomUUID();
+
+    /** 管理編集のサーバー退避確認に、既存runtimeと同じ起動session IDを返します。 */
+    public @NotNull UUID getRuntimeServerSessionId() {
+        return runtimeServerSessionId;
+    }
     private final java.time.Instant runtimeServerStartedAtUtc = java.time.Instant.now();
     private final NamespacedKey nodeInteractionKey;
     private final Map<String, SkillTreeNodeDefinition> nodesById = new LinkedHashMap<>();
@@ -327,6 +332,32 @@ public class SkillTreeService {
     /** Runtime API の同一 account 操作を重複して claim しないための処理中集合です。 */
     private final Set<UUID> runtimeOperationAccounts = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final Map<UUID, SkillTreeRuntimeRepository.AccountSession> runtimeAccountSessions = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 既存の起動・account session にだけ紐付く最終保存の証拠。toString に秘密値を含めない。 */
+    public record RuntimeAccountAuthority(String serverId, UUID serverSessionId,
+                                          UUID accountSessionId, String accountLeaseToken) {
+        public void writeTo(@NotNull JsonObject body) {
+            body.addProperty("serverId", serverId);
+            body.addProperty("serverSessionId", serverSessionId.toString());
+            body.addProperty("accountSessionId", accountSessionId.toString());
+            body.addProperty("accountLeaseToken", accountLeaseToken);
+        }
+
+        @Override public String toString() {
+            return "RuntimeAccountAuthority[serverId=" + serverId + ", serverSessionId="
+                + serverSessionId + ", accountSessionId=" + accountSessionId + ", accountLeaseToken=REDACTED]";
+        }
+    }
+
+    /** 新規sessionを取得せず、現在保持する元の処理権限だけを取り出す。 */
+    public @Nullable RuntimeAccountAuthority snapshotRuntimeAccountAuthority(@NotNull UUID accountId) {
+        SkillTreeRuntimeRepository.AccountSession session = runtimeAccountSessions.get(accountId);
+        if (session == null) return null;
+        return new RuntimeAccountAuthority(ConfigProperties.getInstance().getApiServerId(),
+            runtimeServerSessionId, session.id(), session.token());
+    }
+    /** 退出保存ACK後、APIへのsession-close確認に失敗した最終view。 */
+    private final Map<UUID, RuntimeLogoutSnapshot> pendingRuntimeLogouts = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, String> runtimeAccountDefinitionGenerations = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, JsonObject> runtimeLastViews = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, Long> runtimeViewSequences = new java.util.concurrent.ConcurrentHashMap<>();
@@ -1822,12 +1853,28 @@ public class SkillTreeService {
             return new RuntimeLogoutSnapshot(session, view, runtimeViewSequences.getOrDefault(accountId, 0L) + 1);
         });
         if (snapshot == null) return;
+        pendingRuntimeLogouts.putIfAbsent(accountId, snapshot);
+        retryPendingRuntimeLogout(accountId);
+    }
+
+    /**
+     * 保存済みの最終viewと元のaccount sessionで、失敗した終了確認を再送します。
+     * 古い起動sessionの確認を別の起動へ付け替えません。
+     *
+     * @param accountId 退出したaccount
+     * @return 未確認の終了処理がなく、APIの終了応答を確認できた場合だけtrue
+     */
+    public boolean retryPendingRuntimeLogout(@NotNull UUID accountId) {
+        RuntimeLogoutSnapshot snapshot = pendingRuntimeLogouts.get(accountId);
+        if (snapshot == null) return !runtimeAccountSessions.containsKey(accountId);
         try {
             runtimeRepository.closeAccount(ConfigProperties.getInstance().getApiServerId(), runtimeServerSessionId,
                     accountId, snapshot.session(), snapshot.view(), snapshot.sequence());
-        } catch (RuntimeException ignored) {
-            // ACK済みのデータは保持済み。終了確認不能時はlease失効まで新たな所有権を与えない。
-        } finally {
+        } catch (RuntimeException failure) {
+            // 終了を確認できるまでsessionと最終viewを保持し、後続の退避確認で再試行する。
+            return false;
+        }
+        if (pendingRuntimeLogouts.remove(accountId, snapshot)) {
             synchronized (this) {
                 runtimeAccountSessions.remove(accountId, snapshot.session());
                 runtimeAccountDefinitionGenerations.remove(accountId);
@@ -1836,6 +1883,7 @@ public class SkillTreeService {
                 discardAccountState(accountId);
             }
         }
+        return true;
     }
 
     private record RuntimeLogoutSnapshot(SkillTreeRuntimeRepository.AccountSession session, JsonObject view, long sequence) { }

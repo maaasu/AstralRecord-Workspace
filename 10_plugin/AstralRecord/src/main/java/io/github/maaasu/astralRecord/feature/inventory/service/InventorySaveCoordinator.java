@@ -58,6 +58,8 @@ public final class InventorySaveCoordinator {
     private final java.util.Set<UUID> backgroundRetries = ConcurrentHashMap.newKeySet();
     /** 復旧のため旧 state を破棄中の account。新しい保存要求を受け付けない。 */
     private final java.util.Set<UUID> recoveryAccounts = ConcurrentHashMap.newKeySet();
+    /** 管理編集の最終保存へ向けて新規ローカル変更と外部操作を停止したaccount。 */
+    private final java.util.Set<UUID> adminEditDrainingAccounts = ConcurrentHashMap.newKeySet();
     /** 旧 state の in-flight 操作と外部境界が終了した時点で完了する復旧破棄。 */
     private final Map<UUID, CompletableFuture<Void>> recoveryDisposals = new ConcurrentHashMap<>();
     /** account runtime cleanup まで含む再ロード開始バリア。 */
@@ -915,6 +917,25 @@ public final class InventorySaveCoordinator {
     }
 
     /**
+     * 管理編集の退避保存へ向けて新規変更を停止します。
+     * 実行中の外部操作は既存の所有トークンで完了できます。
+     *
+     * @param accountId 退避対象のアカウント
+     */
+    public void beginAdminEditDrain(@NotNull UUID accountId) {
+        synchronized (unresolvedBoundaryLock) {
+            adminEditDrainingAccounts.add(accountId);
+        }
+    }
+
+    /** 管理編集セッションの終了後に、退避による変更停止を解除します。 */
+    public void endAdminEditDrain(@NotNull UUID accountId) {
+        synchronized (unresolvedBoundaryLock) {
+            adminEditDrainingAccounts.remove(accountId);
+        }
+    }
+
+    /**
      * 保存不能になった account の旧 runtime state を、進行中の外部操作が終了してから破棄します。
      * <p>
      * この呼出し以降、同じ account の新規保存・経済操作は受け付けません。すでに API I/O を
@@ -978,6 +999,7 @@ public final class InventorySaveCoordinator {
         synchronized (unresolvedBoundaryLock) {
             boolean ownsCriticalBoundary = accountId.equals(criticalMutationAccount.get());
             if (closing || recoveryAccounts.contains(accountId)
+                || !ownsCriticalBoundary && adminEditDrainingAccounts.contains(accountId)
                 || !ownsCriticalBoundary && unresolvedExternalOperations.containsKey(accountId)
                 || persistence.isPlayerStateBlocked(accountId)) {
                 throw new ExternalOperationPendingException(accountId);
@@ -1144,7 +1166,8 @@ public final class InventorySaveCoordinator {
         boolean allowExistingBoundary
     ) {
         synchronized (unresolvedBoundaryLock) {
-            if (recoveryAccounts.contains(accountId) && !allowExistingBoundary) {
+            if ((recoveryAccounts.contains(accountId) || adminEditDrainingAccounts.contains(accountId))
+                && !allowExistingBoundary) {
                 return null;
             }
             UUID currentToken = unresolvedExternalOperations.get(accountId);

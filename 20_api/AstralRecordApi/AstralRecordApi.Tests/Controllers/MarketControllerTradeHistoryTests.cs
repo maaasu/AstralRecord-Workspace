@@ -12,6 +12,27 @@ namespace AstralRecordApi.Tests.Controllers;
 public sealed class MarketControllerTradeHistoryTests
 {
     [Fact]
+    public async Task Process_WhenPlayerEditBlocksPurchase_KeepsPendingOperationForLaterRetry()
+    {
+        var operationId = Guid.NewGuid(); var accountId = Guid.NewGuid(); var actor = Guid.NewGuid();
+        var repository = new RecordingMarketRepository
+        {
+            WebPurchase = new MarketWebPurchaseResponse { OperationId = operationId,
+                BuyerAccountId = accountId, ListingId = Guid.NewGuid(), Quantity = 1, Status = "PENDING" },
+            PurchaseResult = MarketOperationResult<MarketTransactionResponse>.Failure(
+                409, "player_editing", "A player edit is in progress."),
+        };
+        var controller = new MarketWebPurchaseController(repository, new ConfigurationBuilder().Build())
+        { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+        var response = await controller.Process(operationId, new MarketPurchaseRequest
+        { WebOperationId = operationId, BuyerAccountId = accountId, UpdatedBy = actor,
+            PreparedOnline = true, IdempotencyKey = "web:" + operationId });
+        Assert.Equal(409, Assert.IsType<ObjectResult>(response).StatusCode);
+        Assert.False(repository.WasRejected);
+        Assert.Equal("PENDING", repository.WebPurchase.Status);
+    }
+
+    [Fact]
     public async Task WebPurchase_WhenWebCredentialIsMissing_ReturnsServiceUnavailable()
     {
         var controller = new MarketWebPurchaseController(
@@ -60,6 +81,9 @@ public sealed class MarketControllerTradeHistoryTests
 
     private sealed class RecordingMarketRepository : IMarketRepository
     {
+        public MarketWebPurchaseResponse? WebPurchase { get; init; }
+        public MarketOperationResult<MarketTransactionResponse>? PurchaseResult { get; init; }
+        public bool WasRejected { get; private set; }
         public MarketTradeHistoryQuery? Query { get; private set; }
         public MarketTradeHistoryPageResponse Result { get; } = new()
         {
@@ -87,11 +111,14 @@ public sealed class MarketControllerTradeHistoryTests
         public Task<MarketAccountSummaryResponse?> GetAccountSummaryAsync(Guid accountId) => throw new NotSupportedException();
         public Task<MarketOperationResult<MarketListingResponse>> CreateListingAsync(MarketListingCreateRequest request) => throw new NotSupportedException();
         public Task<MarketOperationResult<MarketListingResponse>> GetCreateListingResultAsync(Guid operationId, Guid sellerAccountId) => throw new NotSupportedException();
-        public Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request) => throw new NotSupportedException();
+        public Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request)
+            => Task.FromResult(PurchaseResult ?? throw new NotSupportedException());
         public Task<MarketOperationResult<MarketWebPurchaseResponse>> CreateWebPurchaseAsync(Guid listingId, Guid actorUserUuid, MarketWebPurchaseRequest request) => throw new NotSupportedException();
-        public Task<MarketWebPurchaseResponse?> GetWebPurchaseAsync(Guid operationId, Guid actorUserUuid) => throw new NotSupportedException();
+        public Task<MarketWebPurchaseResponse?> GetWebPurchaseAsync(Guid operationId, Guid actorUserUuid)
+            => Task.FromResult(WebPurchase?.OperationId == operationId ? WebPurchase : null);
         public Task<IReadOnlyList<MarketWebPurchaseResponse>> GetPendingWebPurchasesAsync(Guid buyerAccountId) => throw new NotSupportedException();
-        public Task RejectWebPurchaseAsync(Guid operationId, string errorCode) => throw new NotSupportedException();
+        public Task RejectWebPurchaseAsync(Guid operationId, string errorCode)
+        { WasRejected = true; return Task.CompletedTask; }
         public Task<MarketOperationResult<MarketListingResponse>> CancelListingAsync(Guid listingId, MarketCancelRequest request) => throw new NotSupportedException();
         public Task<MarketOperationResult<MarketListingResponse>> GetCancelResultAsync(Guid listingId, Guid sellerAccountId, string idempotencyKey) => throw new NotSupportedException();
         public Task<MarketOperationResult<MarketProceedsClaimResponse>> ClaimProceedsAsync(Guid listingId, MarketProceedsClaimRequest request) => throw new NotSupportedException();

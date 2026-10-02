@@ -7,7 +7,9 @@ public sealed record AstraldShopCatalogResponse(IReadOnlyList<AstraldShopItemRes
     IReadOnlyList<AstraldShopChannelResponse> Channels);
 public sealed record AstraldShopPurchaseRequest(Guid OperationId, Guid AccountId, string ItemId,
     int ExpectedPricePaidAstrald, string? ChannelId);
-public sealed record AstraldShopProcessRequest(Guid AccountId, bool PreparedOnline);
+public sealed record AstraldShopProcessRequest(Guid AccountId, bool PreparedOnline,
+    string? ServerId = null, Guid? ServerSessionId = null,
+    Guid? AccountSessionId = null, string? AccountLeaseToken = null);
 public sealed record AstraldShopPendingResponse(Guid OperationId, Guid AccountId);
 public sealed record AstraldShopPurchaseResponse(Guid OperationId, string Status, string? Reason,
     Guid AccountId, string ItemId, string? ChannelId, long? PaidAstraldBalance = null,

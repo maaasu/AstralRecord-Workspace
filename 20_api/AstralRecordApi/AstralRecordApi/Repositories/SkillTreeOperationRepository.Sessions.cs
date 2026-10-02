@@ -14,10 +14,22 @@ public sealed partial class SkillTreeOperationRepository
     {
         if (request.AccountSessionId == Guid.Empty || !ValidHash(request.AccountLeaseToken)) return false;
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var ownerUserId = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.Uuid == accountId && !x.IsDeleted)
+            .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+        if (!ownerUserId.HasValue || !await LockUserForPlayerAdminAsync(ownerUserId.Value)) return false;
         if (await LockAccountAsync(accountId) is null) return false;
         var runtime = await VerifyRuntimeAsync(serverId, request.ServerSessionId);
         if (runtime is null || runtime.DefinitionGenerationId != request.DefinitionGenerationId) return false;
         var existing = await SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(x => x.AccountSessionId == request.AccountSessionId);
+        var edit = await dbContext.PlayerAdminEditSessions.AsNoTracking().SingleOrDefaultAsync(x =>
+            x.UserUuid == ownerUserId.Value && (x.Status == "DRAINING" || x.Status == "READY"
+                || x.Status == "APPLYING" || x.Status == "RECOVERY_REQUIRED"));
+        if (edit is not null && (edit.Status is not ("DRAINING" or "RECOVERY_REQUIRED") || existing is null
+            || existing.CreatedAtUtc > edit.CreatedAtUtc || existing.Closed
+            || !await dbContext.PlayerAdminEditDrains.AsNoTracking().AnyAsync(x =>
+                x.EditSessionId == edit.EditSessionId && x.ServerId == serverId
+                && x.ServerSessionId == request.ServerSessionId))) return false;
         if (existing is not null)
         {
             if (existing.Closed || existing.ExpiresAtUtc <= DateTime.UtcNow || existing.AccountId != accountId
@@ -57,9 +69,33 @@ public sealed partial class SkillTreeOperationRepository
     private async Task<bool> CloseAccountSessionCoreAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var ownerUserId = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.Uuid == accountId && !x.IsDeleted)
+            .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+        if (!ownerUserId.HasValue || !await LockUserForPlayerAdminAsync(ownerUserId.Value)) return false;
         if (await LockAccountAsync(accountId) is null) return false;
+        var completed = await SkillTreeSessionReads.Query(dbContext)
+            .SingleOrDefaultAsync(x => x.AccountSessionId == request.AccountSessionId);
+        if (completed?.Closed == true)
+        {
+            if (completed.AccountId != accountId || completed.ServerId != serverId
+                || completed.ServerSessionId != request.ServerSessionId
+                || !ValidHash(request.AccountLeaseToken)
+                || !FixedEquals(completed.LeaseTokenHash, Hash(request.AccountLeaseToken))) return false;
+            await transaction.CommitAsync();
+            return true;
+        }
         var runtime = await dbContext.SkillTreeServerRuntimes.SingleOrDefaultAsync(x => x.ServerId == serverId);
         var session = await MatchingSessionAsync(accountId, serverId, request.ServerSessionId, request.AccountSessionId, request.AccountLeaseToken);
+        if (session is null && ValidHash(request.DefinitionGenerationId)
+            && await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(dbContext,
+                accountId, ownerUserId.Value, serverId, request.ServerSessionId,
+                request.AccountSessionId, request.AccountLeaseToken))
+        {
+            session = await SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(x =>
+                x.AccountSessionId == request.AccountSessionId && x.AccountId == accountId
+                && x.DefinitionGenerationId == request.DefinitionGenerationId && !x.Closed);
+        }
         if (session is null) return false;
         var state = await dbContext.AccountSkillTreeStates.SingleOrDefaultAsync(x => x.AccountId == accountId && !x.IsDeleted);
         if (runtime is not null && runtime.ServerSessionId == request.ServerSessionId
@@ -90,6 +126,14 @@ public sealed partial class SkillTreeOperationRepository
             return await dbContext.Accounts.FromSqlInterpolated($"SELECT * FROM [dbo].[account] WITH (UPDLOCK,HOLDLOCK) WHERE [uuid] = {accountId}")
                 .SingleOrDefaultAsync(x => !x.IsDeleted);
         return await dbContext.Accounts.SingleOrDefaultAsync(x => x.Uuid == accountId && !x.IsDeleted);
+    }
+
+    private async Task<bool> LockUserForPlayerAdminAsync(Guid userId)
+    {
+        var query = dbContext.Database.IsSqlServer()
+            ? dbContext.Users.FromSqlInterpolated($"SELECT * FROM [dbo].[user] WITH (UPDLOCK,HOLDLOCK) WHERE [uuid] = {userId}")
+            : dbContext.Users.Where(x => x.Uuid == userId);
+        return await query.AnyAsync(x => !x.IsDeleted);
     }
 
     private Task<SkillTreeAccountSessionEntity?> ActiveSessionAsync(Guid accountId) =>

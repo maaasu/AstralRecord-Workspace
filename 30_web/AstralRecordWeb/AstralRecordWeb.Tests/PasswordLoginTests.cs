@@ -63,10 +63,13 @@ public sealed class PasswordLoginTests
         Assert.Equal(HttpStatusCode.OK, firstUse.StatusCode);
 
         clock.Now = clock.Now.AddDays(6);
+        // The login session lasts 12 hours; renew it to test the independent trusted-browser window.
+        await Login(client, password: true);
         using var secondUse = await client.GetAsync("/Admin/Items");
         Assert.Equal(HttpStatusCode.OK, secondUse.StatusCode);
 
         clock.Now = clock.Now.AddDays(8);
+        await Login(client, password: true);
         using var expired = await client.GetAsync("/Admin/Items");
         Assert.StartsWith("/Reauthenticate?", expired.Headers.Location?.OriginalString);
         Assert.True(api.TrustedBrowserValidations >= 3);
@@ -256,7 +259,7 @@ public sealed class PasswordLoginTests
     }
     private sealed class AuthFactory(AuthHandler handler, TestClock clock) : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
         {
             handler.Clock = clock;
             services.AddSingleton<TimeProvider>(clock);

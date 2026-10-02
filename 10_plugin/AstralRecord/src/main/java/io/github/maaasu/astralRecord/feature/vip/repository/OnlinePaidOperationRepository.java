@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.RuntimeAccountAuthority;
 import java.io.IOException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -29,16 +30,22 @@ public final class OnlinePaidOperationRepository {
     }
 
     /** 保存済みbaselineを保持した呼出元から冪等操作IDで確定します。 */
-    public JsonObject process(Kind kind, UUID operationId, UUID accountId)
+    public JsonObject process(Kind kind, UUID operationId, UUID accountId, RuntimeAccountAuthority authority)
         throws IOException, InterruptedException {
-        JsonObject body = new JsonObject();
-        body.addProperty("accountId", accountId.toString());
-        body.addProperty("preparedOnline", true);
+        JsonObject body = processBody(accountId, authority);
         HttpResponse<String> response = send(kind.path + "/" + operationId + "/process", body);
         if (response.statusCode() != 200 && response.statusCode() != 409)
             throw new IOException("Paid process HTTP " + response.statusCode());
         try { return JsonParser.parseString(response.body()).getAsJsonObject(); }
         catch (RuntimeException error) { throw new IOException("Invalid paid process response", error); }
+    }
+
+    static JsonObject processBody(UUID accountId, RuntimeAccountAuthority authority) {
+        JsonObject body = new JsonObject();
+        body.addProperty("accountId", accountId.toString());
+        body.addProperty("preparedOnline", true);
+        if (authority != null) authority.writeTo(body);
+        return body;
     }
 
     /** 共通API接続設定でGETまたはPOSTします。 */

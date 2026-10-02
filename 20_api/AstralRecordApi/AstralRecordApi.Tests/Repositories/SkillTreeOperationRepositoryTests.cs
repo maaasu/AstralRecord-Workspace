@@ -8,12 +8,62 @@ using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class SkillTreeOperationRepositoryTests
 {
+    [Fact]
+    public async Task ExpiredCapturedSession_CanCommitFinalSnapshotAndCloseBeforeDrainAck()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var editId = Guid.NewGuid(); var now = DateTime.UtcNow;
+        f.Db.PlayerAdminServerRuntimes.Add(new() { ServerId = f.Server, ServerSessionId = f.Boot,
+            Role = "RPG", Enabled = true, RegisteredAtUtc = now, LastSeenUtc = now });
+        f.Db.PlayerAdminEditSessions.Add(new() { EditSessionId = editId, AccountId = f.Account,
+            UserUuid = f.User, ActorUserUuid = f.User, Reason = "drain test", Status = "DRAINING",
+            ExpectedServerCount = 1, CreatedAtUtc = now, UpdatedAtUtc = now, ExpiresAtUtc = now.AddMinutes(30) });
+        f.Db.PlayerAdminEditDrains.Add(new() { EditSessionId = editId, ServerId = f.Server,
+            ServerSessionId = f.Boot });
+        var owner = await f.Db.SkillTreeAccountSessions.SingleAsync(x => !x.Closed);
+        owner.ExpiresAtUtc = now.AddSeconds(-1);
+        await f.Db.SaveChangesAsync();
+        Assert.False(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server,
+            f.Boot, f.Generation, f.Session, f.Token));
+
+        PlayerStateSnapshotSaveRequest Snapshot(string token) => new()
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = f.Account, UpdatedBy = f.User,
+            SkillTree = JsonSerializer.SerializeToElement(new PlayerStateSkillTreeSection
+            {
+                AccountId = f.Account, ClientRevision = 2, ExpectedVersion = 1,
+                TargetVersion = 2, DefinitionGenerationId = f.Generation,
+                ServerId = f.Server, ServerSessionId = f.Boot,
+                AccountSessionId = f.Session, AccountLeaseToken = token,
+                UnlockedNodes = [new AccountSkillTreeUnlockedNodeModel { NodeId = "root" }],
+            }, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        };
+        var snapshots = new PlayerStateSnapshotRepository(f.Db, f.Repository);
+        var wrong = await snapshots.SaveAsync(Snapshot(Hash("wrong-token")));
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, wrong.Failure);
+        Assert.Equal(1, await f.Db.AccountSkillTreeStates.AsNoTracking().Select(x => x.Version).SingleAsync());
+        var saved = await snapshots.SaveAsync(Snapshot(f.Token));
+        Assert.True(saved.Succeeded, saved.Detail);
+        Assert.Equal(2, await f.Db.AccountSkillTreeStates.AsNoTracking().Select(x => x.Version).SingleAsync());
+        Assert.Equal(1, await f.Db.PlayerStateSnapshots.CountAsync());
+
+        Assert.True(await f.Repository.CloseAccountSessionAsync(f.Server, f.Account, f.ViewRequest()));
+        Assert.True((await f.Db.SkillTreeAccountSessions.AsNoTracking().SingleAsync()).Closed);
+        var edits = new PlayerAdminEditRepository(f.Db, null!, null!, new ConfigurationBuilder().Build());
+        var ack = await edits.AcknowledgeDrainAsync(editId,
+            new(f.Server, f.Boot, f.Account, f.User, true, true, Guid.NewGuid()));
+        Assert.Equal("READY", ack.Value?.Status);
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict,
+            (await snapshots.SaveAsync(Snapshot(f.Token))).Failure);
+    }
+
     [Fact]
     public async Task UnknownCannotEdit_AndOnlyClosedSessionProvidesOfflineDraft()
     {
@@ -206,6 +256,9 @@ public sealed class SkillTreeOperationRepositoryTests
         internal static async Task<Fixture> SeedAsync(AstralRecordDbContext db, SqliteConnection? connection = null, string server = "test-server")
         {
             var f = new Fixture(connection, db, server); var now = DateTime.UtcNow;
+            db.Users.Add(new UserEntity { Uuid = f.User, Mcid = "skilltree-fixture",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = f.User, UpdatedBy = f.User });
             db.Accounts.Add(new() { Uuid = f.Account, UserId = f.User, AccountName = "fixture", SlotIndex = 0, IsActive = true, Level = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = f.User, UpdatedBy = f.User });
             await db.SaveChangesAsync();
             Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, f.Registration()));

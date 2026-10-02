@@ -33,6 +33,15 @@ public class MarketRepository(
         {
             dbContext.ChangeTracker.Clear();
             await using var scope = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var webSeller = await dbContext.MarketListings.AsNoTracking()
+                .Where(x => x.ListingId == listingId).Select(x => (Guid?)x.SellerAccountId)
+                .SingleOrDefaultAsync();
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext,
+                    webSeller.HasValue
+                        ? new[] { request.BuyerAccountId, webSeller.Value }
+                        : new[] { request.BuyerAccountId }))
+                return MarketOperationResult<MarketWebPurchaseResponse>.Failure(
+                    409, "player_editing", "A player edit is in progress.");
             var account = dbContext.Database.IsSqlServer()
                 ? await dbContext.Accounts.FromSqlInterpolated(
                     $"SELECT * FROM dbo.account WITH (UPDLOCK,HOLDLOCK) WHERE uuid={request.BuyerAccountId}")
@@ -314,6 +323,9 @@ public class MarketRepository(
             var now = DateTime.UtcNow;
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [request.SellerAccountId]))
+                return MarketOperationResult<MarketListingResponse>.Failure(
+                    409, "player_editing", "A player edit is in progress.");
 
             async Task<MarketOperationResult<MarketListingResponse>> RollbackFailureAsync(
                 int statusCode,
@@ -546,6 +558,25 @@ public class MarketRepository(
             dbContext.ChangeTracker.Clear();
             await using var transactionScope = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
+            var purchaseSeller = await dbContext.MarketListings.AsNoTracking()
+                .Where(x => x.ListingId == listingId).Select(x => (Guid?)x.SellerAccountId)
+                .SingleOrDefaultAsync();
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext,
+                    purchaseSeller.HasValue
+                        ? new[] { request.BuyerAccountId, purchaseSeller.Value }
+                        : new[] { request.BuyerAccountId }))
+            {
+                var prior = await dbContext.MarketTransactions.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.BuyerAccountId == request.BuyerAccountId
+                        && x.IdempotencyKey == request.IdempotencyKey);
+                if (prior is not null && prior.ListingId == listingId && prior.Quantity == request.Quantity)
+                {
+                    try { return MarketOperationResult<MarketTransactionResponse>.Success(MapTransaction(prior)); }
+                    catch (InvalidOperationException) { /* A broken receipt cannot authorize a new write. */ }
+                }
+                return MarketOperationResult<MarketTransactionResponse>.Failure(
+                    409, "player_editing", "A player edit is in progress.");
+            }
 
             async Task<MarketOperationResult<MarketTransactionResponse>> RollbackFailureAsync(
                 int statusCode,
@@ -771,6 +802,9 @@ public class MarketRepository(
             dbContext.ChangeTracker.Clear();
             await using var transactionScope = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [request.SellerAccountId]))
+                return MarketOperationResult<MarketListingResponse>.Failure(
+                    409, "player_editing", "A player edit is in progress.");
 
             async Task<MarketOperationResult<MarketListingResponse>> RollbackFailureAsync(
                 int statusCode,
@@ -976,6 +1010,9 @@ public class MarketRepository(
             dbContext.ChangeTracker.Clear();
             await using var transactionScope = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [request.SellerAccountId]))
+                return MarketOperationResult<MarketProceedsClaimResponse>.Failure(
+                    409, "player_editing", "A player edit is in progress.");
 
             async Task<MarketOperationResult<MarketProceedsClaimResponse>> RollbackFailureAsync(
                 int statusCode,

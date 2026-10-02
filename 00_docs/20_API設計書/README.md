@@ -13,6 +13,7 @@
 | `feature/28-release-note` | Markdownリリースノートの公開登録とDiscord通知Outbox |
 | `feature/33-network` | ロビーadmission、オンライン所在、サーバー状態、チャット中継 |
 | `feature/39-pet` | 卵・孵化・育成・配合・装備選択・死亡復活の冪等操作 |
+| `feature/40-player-admin-edit` | Web管理者の参加制限・保存退避・オフラインinventory/class/level訂正 |
 
 ## 0. 編集ツールと参照記法
 

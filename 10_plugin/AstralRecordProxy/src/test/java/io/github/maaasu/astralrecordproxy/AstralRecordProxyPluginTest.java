@@ -184,6 +184,15 @@ class AstralRecordProxyPluginTest {
         assertEquals(NamedTextColor.GRAY, bracket.style().color());
     }
 
+    @Test
+    void editingAdmissionUsesDedicatedDisconnectReason() {
+        var admission = new NetworkApiClient.Admission(false, "player_editing", 0, false, null, null);
+
+        assertEquals("管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。",
+            PlainTextComponentSerializer.plainText().serialize(
+                AstralRecordProxyPlugin.admissionDenyComponent(admission)));
+    }
+
     /** Management DBの無期限BANは理由を含めて切断理由へ表示する。 */
     @Test
     void indefiniteBanDisconnectReasonIncludesReason() {

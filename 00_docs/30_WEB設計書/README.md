@@ -13,6 +13,7 @@ AstralRecord Web (`30_web/AstralRecordWeb`) の画面、認証、画面遷移を
 | `feature/06-player-activity` | WebAdmin専用の同IP関連・トレード・ダンジョン攻略・モブによるプレイヤー撃破履歴 |
 | `feature/07-donations` | Discord本人連携・公式サーバー参加確認、寄付申請・本人履歴、管理者の受領確認と承認・否認 |
 | `feature/08-paid-services` | 有償アストラルドショップ、現在アカウントの特典・メール確認、通貨報酬のWeb受取 |
+| `feature/09-player-admin-edit` | WebAdmin専用のプレイヤー保存退避とinventory/class/level訂正 |
 
 API 契約は `00_docs/20_API設計書`、DB 定義は `00_docs/40_Database設計書` を正として参照します。
 

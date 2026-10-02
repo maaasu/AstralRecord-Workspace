@@ -85,6 +85,8 @@ api:
   # 実ロード世代の登録・Webスキルツリー操作の確定に使うPlugin専用キー。
   # API の SkillTreeRuntime:Key と一致させ、Web用APIキーとは共有しない。
   skillTreeRuntimeKey: ""
+  # API PlayerAdmin:RuntimeKey と一致させる。共通 API キーや Web キーとは別値にする。
+  playerAdminRuntimeKey: ""
   # APIキー認証情報
   auth:
     apiKey: "your_api_key"

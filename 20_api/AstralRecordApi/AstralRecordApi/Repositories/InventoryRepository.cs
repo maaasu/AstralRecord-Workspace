@@ -32,6 +32,11 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryResponse> CreateAsync(InventoryCreateRequest request)
     {
+        return await GuardedWriteAsync(request.AccountId, () => CreateCoreAsync(request));
+    }
+
+    private async Task<InventoryResponse> CreateCoreAsync(InventoryCreateRequest request)
+    {
         var existing = await FindExistingInventoryAsync(request);
         if (existing is not null)
             return MapInventory(existing);
@@ -84,6 +89,14 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryResponse?> UpdateAsync(Guid inventoryId, InventoryUpdateRequest request)
     {
+        var owner = await FindInventoryAccountIdAsync(inventoryId);
+        return owner.HasValue
+            ? await GuardedWriteAsync(owner.Value, () => UpdateCoreAsync(inventoryId, request))
+            : null;
+    }
+
+    private async Task<InventoryResponse?> UpdateCoreAsync(Guid inventoryId, InventoryUpdateRequest request)
+    {
         var entity = await dbContext.Inventories
             .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
 
@@ -133,7 +146,10 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
     {
         if (PetInstanceAccess.IsPetType(request.InstanceType))
             return await ExecutePetEntryWriteAsync(inventoryId, null, () => CreateEntryCoreAsync(inventoryId, request));
-        return await CreateEntryCoreAsync(inventoryId, request);
+        var owner = await FindInventoryAccountIdAsync(inventoryId);
+        return owner.HasValue
+            ? await GuardedWriteAsync(owner.Value, () => CreateEntryCoreAsync(inventoryId, request))
+            : null;
     }
 
     private async Task<InventoryEntryResponse?> CreateEntryCoreAsync(Guid inventoryId, InventoryEntryCreateRequest request)
@@ -190,7 +206,10 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             if (!inventoryId.HasValue) return null;
             return await ExecutePetEntryWriteAsync(inventoryId.Value, inventoryEntryId, () => UpdateEntryCoreAsync(inventoryEntryId, request));
         }
-        return await UpdateEntryCoreAsync(inventoryEntryId, request);
+        var owner = await FindEntryAccountIdAsync(inventoryEntryId);
+        return owner.HasValue
+            ? await GuardedWriteAsync(owner.Value, () => UpdateEntryCoreAsync(inventoryEntryId, request))
+            : null;
     }
 
     private async Task<InventoryEntryResponse?> UpdateEntryCoreAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request)
@@ -250,6 +269,9 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 .BeginTransactionAsync(dbContext.Database.IsSqlServer()
                     ? IsolationLevel.ReadCommitted
                     : IsolationLevel.Serializable);
+
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [inventoryAccountId.Value]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
 
             if (!await LockAccountForInventoryUpdateAsync(inventoryAccountId.Value))
                 return null;
@@ -409,6 +431,30 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         .Select(inventory => (Guid?)inventory.AccountId)
         .FirstOrDefaultAsync();
 
+    private async Task<Guid?> FindEntryAccountIdAsync(Guid entryId) => await (
+        from entry in dbContext.InventoryEntries.AsNoTracking()
+        join inventory in dbContext.Inventories.AsNoTracking()
+            on entry.InventoryId equals inventory.InventoryId
+        where entry.InventoryEntryId == entryId && !entry.IsDeleted && !inventory.IsDeleted
+        select (Guid?)inventory.AccountId).SingleOrDefaultAsync();
+
+    private async Task<T> GuardedWriteAsync<T>(Guid accountId, Func<Task<T>> action)
+    {
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [accountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
+            if (!await LockAccountForInventoryUpdateAsync(accountId))
+                throw new PlayerAdminEditConflictException("Account is unavailable for inventory writing.");
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
+        });
+    }
+
     private async Task<bool> LockAccountForInventoryUpdateAsync(Guid accountId)
     {
         if (!dbContext.Database.IsSqlServer())
@@ -487,6 +533,14 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy)
     {
+        var owner = await FindEntryAccountIdAsync(inventoryEntryId);
+        return owner.HasValue
+            ? await GuardedWriteAsync(owner.Value, () => DeleteEntryCoreAsync(inventoryEntryId, updatedBy))
+            : null;
+    }
+
+    private async Task<bool?> DeleteEntryCoreAsync(Guid inventoryEntryId, Guid updatedBy)
+    {
         var entity = await dbContext.InventoryEntries
             .FirstOrDefaultAsync(x => x.InventoryEntryId == inventoryEntryId && !x.IsDeleted);
 
@@ -510,6 +564,11 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
     }
 
     public async Task<int> RepairEquipmentEntryItemIdsAsync(Guid accountId)
+    {
+        return await GuardedWriteAsync(accountId, () => RepairEquipmentEntryItemIdsCoreAsync(accountId));
+    }
+
+    private async Task<int> RepairEquipmentEntryItemIdsCoreAsync(Guid accountId)
     {
         var candidates = await (
             from entry in dbContext.InventoryEntries
@@ -564,6 +623,8 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             if (!owner.HasValue) return null;
             await using var transaction = await dbContext.Database.BeginTransactionAsync(dbContext.Database.IsSqlServer()
                 ? IsolationLevel.ReadCommitted : IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [owner.Value]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
             if (!await LockAccountForInventoryUpdateAsync(owner.Value)
                 || await FindInventoryAndLockAccountInventoriesAsync(inventoryId, owner.Value) is null) return null;
             var entries = await FindCurrentEntriesForUpdateAsync(inventoryId);

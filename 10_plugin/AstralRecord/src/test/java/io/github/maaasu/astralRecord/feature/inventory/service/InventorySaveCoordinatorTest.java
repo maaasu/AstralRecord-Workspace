@@ -41,6 +41,67 @@ import static org.mockito.Mockito.when;
 class InventorySaveCoordinatorTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
+     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
+     * 検証契約: 退避中は新規ローカル変更と外部操作を拒否し、編集終了後だけ通常受付へ戻す。
+     */
+    @Test
+    void adminEditDrainFencesNewMutationsUntilReleased() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(new PlayerInventoryState(accountId));
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(
+            mock(InventoryPersistence.class), registry, new ManualExecutor());
+
+        coordinator.beginAdminEditDrain(accountId);
+        assertThrows(InventorySaveCoordinator.ExternalOperationPendingException.class,
+            () -> coordinator.executeLocalMutation(accountId, () -> "changed"));
+        CompletionException blocked = assertThrows(CompletionException.class,
+            () -> coordinator.executeCriticalMutation(accountId,
+                () -> new InventorySaveCoordinator.CriticalMutation<>("changed", () -> { })).join());
+        assertTrue(blocked.getCause() instanceof InventorySaveCoordinator.ExternalOperationPendingException);
+
+        coordinator.endAdminEditDrain(accountId);
+        assertEquals("changed", coordinator.executeLocalMutation(accountId, () -> "changed"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
+     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
+     * 検証契約: 退避開始前に取得済みの外部操作境界は同じ handle で確定でき、新規操作だけを止める。
+     */
+    @Test
+    void preparedExternalOperationCanSettleAfterAdminDrainStarts() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        var baseline = new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(persistence.saveNowWithBaseline(state)).thenReturn(baseline);
+        when(persistence.saveNow(state)).thenReturn(true);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var preparation = coordinator.prepareExternalOperationAfterSave(accountId);
+        executor.runAll();
+        var handle = preparation.join();
+        coordinator.beginAdminEditDrain(accountId);
+        assertTrue(coordinator.hasUnresolvedExternalOperation(accountId));
+        var settled = coordinator.completePreparedExternalOperation(handle, savedBaseline -> {
+            assertSame(baseline, savedBaseline);
+            return "COMPLETED";
+        });
+        executor.runAll();
+
+        assertEquals("COMPLETED", settled.join());
+        assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        assertThrows(InventorySaveCoordinator.ExternalOperationPendingException.class,
+            () -> coordinator.executeLocalMutation(accountId, () -> "new mutation"));
+        coordinator.endAdminEditDrain(accountId);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 外部取引の反映後に保存がタイムアウトしても、再試行は保存だけを行い、受取Goldを再加算しない。

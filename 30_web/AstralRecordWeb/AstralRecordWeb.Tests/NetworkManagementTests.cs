@@ -298,7 +298,7 @@ public sealed class NetworkManagementTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["AstralRecordApi:ApiKey"] = "fixture-api-key" }));
-            builder.ConfigureTestServices(services =>
+            builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             {
                 services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);

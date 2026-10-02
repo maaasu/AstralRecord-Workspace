@@ -1,3 +1,4 @@
+using System.Data;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -39,6 +40,9 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
     }
 
     public async Task<EquipmentLoadoutResponse> CreateAsync(EquipmentLoadoutCreateRequest request)
+        => await GuardedWriteAsync(request.AccountId, () => CreateCoreAsync(request));
+
+    private async Task<EquipmentLoadoutResponse> CreateCoreAsync(EquipmentLoadoutCreateRequest request)
     {
         var now = DateTime.UtcNow;
         var entity = new EquipmentLoadoutEntity
@@ -71,6 +75,12 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
     }
 
     public async Task<EquipmentLoadoutResponse?> UpdateAsync(Guid loadoutId, EquipmentLoadoutUpdateRequest request)
+    {
+        var owner = await FindOwnerAsync(loadoutId);
+        return owner.HasValue ? await GuardedWriteAsync(owner.Value, () => UpdateCoreAsync(loadoutId, request)) : null;
+    }
+
+    private async Task<EquipmentLoadoutResponse?> UpdateCoreAsync(Guid loadoutId, EquipmentLoadoutUpdateRequest request)
     {
         var entity = await dbContext.EquipmentLoadouts
             .FirstOrDefaultAsync(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted);
@@ -107,6 +117,12 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
 
     public async Task<bool> DeleteAsync(Guid loadoutId, Guid updatedBy)
     {
+        var owner = await FindOwnerAsync(loadoutId);
+        return owner.HasValue && await GuardedWriteAsync(owner.Value, () => DeleteCoreAsync(loadoutId, updatedBy));
+    }
+
+    private async Task<bool> DeleteCoreAsync(Guid loadoutId, Guid updatedBy)
+    {
         var entity = await dbContext.EquipmentLoadouts
             .FirstOrDefaultAsync(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted);
 
@@ -135,6 +151,12 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
     }
 
     public async Task<EquipmentLoadoutResponse?> ActivateAsync(Guid loadoutId, Guid updatedBy)
+    {
+        var owner = await FindOwnerAsync(loadoutId);
+        return owner.HasValue ? await GuardedWriteAsync(owner.Value, () => ActivateCoreAsync(loadoutId, updatedBy)) : null;
+    }
+
+    private async Task<EquipmentLoadoutResponse?> ActivateCoreAsync(Guid loadoutId, Guid updatedBy)
     {
         var entity = await dbContext.EquipmentLoadouts
             .FirstOrDefaultAsync(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted);
@@ -168,6 +190,12 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
     }
 
     public async Task<EquipmentLoadoutSlotResponse?> UpsertSlotAsync(Guid loadoutId, EquipmentLoadoutSlotUpsertRequest request)
+    {
+        var owner = await FindOwnerAsync(loadoutId);
+        return owner.HasValue ? await GuardedWriteAsync(owner.Value, () => UpsertSlotCoreAsync(loadoutId, request)) : null;
+    }
+
+    private async Task<EquipmentLoadoutSlotResponse?> UpsertSlotCoreAsync(Guid loadoutId, EquipmentLoadoutSlotUpsertRequest request)
     {
         var loadout = await dbContext.EquipmentLoadouts
             .FirstOrDefaultAsync(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted);
@@ -233,6 +261,14 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
 
     public async Task<bool?> DeleteSlotAsync(Guid loadoutId, string slotType, int slotIndex, Guid updatedBy)
     {
+        var owner = await FindOwnerAsync(loadoutId);
+        return owner.HasValue
+            ? await GuardedWriteAsync(owner.Value, () => DeleteSlotCoreAsync(loadoutId, slotType, slotIndex, updatedBy))
+            : null;
+    }
+
+    private async Task<bool?> DeleteSlotCoreAsync(Guid loadoutId, string slotType, int slotIndex, Guid updatedBy)
+    {
         var loadout = await dbContext.EquipmentLoadouts
             .FirstOrDefaultAsync(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted);
 
@@ -257,6 +293,25 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
 
         await dbContext.SaveChangesAsync();
         return true;
+    }
+
+    private Task<Guid?> FindOwnerAsync(Guid loadoutId) => dbContext.EquipmentLoadouts.AsNoTracking()
+        .Where(x => x.EquipmentLoadoutId == loadoutId && !x.IsDeleted)
+        .Select(x => (Guid?)x.AccountId).SingleOrDefaultAsync();
+
+    private async Task<T> GuardedWriteAsync<T>(Guid accountId, Func<Task<T>> action)
+    {
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [accountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
+        });
     }
 
     private async Task<Dictionary<Guid, IReadOnlyList<EquipmentLoadoutSlotResponse>>> GetSlotsByLoadoutIdsAsync(IEnumerable<Guid> loadoutIds)

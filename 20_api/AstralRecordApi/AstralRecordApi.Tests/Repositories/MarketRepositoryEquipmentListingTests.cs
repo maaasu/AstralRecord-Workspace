@@ -1943,10 +1943,14 @@ public class MarketRepositoryEquipmentListingTests
             var inventoryId = Guid.NewGuid();
             Guid? equipmentEntryId = null;
             var now = DateTime.UtcNow;
+            var ownerId = Guid.NewGuid();
+            dbContext.Users.Add(new UserEntity { Uuid = ownerId, Mcid = "market-seller",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = accountId, UpdatedBy = accountId });
             dbContext.Accounts.Add(new AccountEntity
             {
                 Uuid = accountId,
-                UserId = Guid.NewGuid(),
+                UserId = ownerId,
                 AccountName = "market-test",
                 IsActive = true,
                 CreatedAt = now,
@@ -2317,10 +2321,14 @@ public class MarketRepositoryEquipmentListingTests
             var accountId = Guid.NewGuid();
             var bagInventoryId = Guid.NewGuid();
             var now = DateTime.UtcNow;
+            var ownerId = Guid.NewGuid();
+            DbContext.Users.Add(new UserEntity { Uuid = ownerId, Mcid = "market-buyer",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = accountId, UpdatedBy = accountId });
             DbContext.Accounts.Add(new AccountEntity
             {
                 Uuid = accountId,
-                UserId = Guid.NewGuid(),
+                UserId = ownerId,
                 AccountName = "market-buyer",
                 IsActive = true,
                 CreatedAt = now,

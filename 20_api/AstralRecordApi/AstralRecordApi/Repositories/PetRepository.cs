@@ -218,13 +218,27 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
         Func<PetMasterResponse, DateTime, List<Guid>, Task<PetMutationResult>> action)
     {
         if (accountId == Guid.Empty || request.OperationId == Guid.Empty || request.UpdatedBy == Guid.Empty) return Failure("request_invalid");
+        // Runtime authority gates the write but is not part of the gameplay operation.
+        // Preserve receipts written before these optional proof fields existed.
+        PetOperationRequest hashableRequest = request is PetProgressRequest progressRequest
+            ? new PetProgressRequest
+            {
+                OperationId = progressRequest.OperationId, UpdatedBy = progressRequest.UpdatedBy,
+                ExpectedVersion = progressRequest.ExpectedVersion, Experience = progressRequest.Experience,
+                HealthRatio = progressRequest.HealthRatio, IsDead = progressRequest.IsDead,
+                Cooldowns = progressRequest.Cooldowns,
+            }
+            : request;
         var requestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            accountId + ":" + kind + ":" + instanceId + ":" + JsonSerializer.Serialize(request, request.GetType(), JsonOptions))));
+            accountId + ":" + kind + ":" + instanceId + ":" + JsonSerializer.Serialize(hashableRequest, hashableRequest.GetType(), JsonOptions))));
         var strategy = db.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
             await using var transaction = await db.Database.BeginTransactionAsync(db.Database.IsSqlServer() ? IsolationLevel.ReadCommitted : IsolationLevel.Serializable);
+            // Start/Apply take the user lock first. A final progress flush may finish
+            // only with the account session captured before that edit began.
+            var editBlocked = await PlayerAdminEditWriteGuard.IsBlockedAsync(db, [accountId]);
             var account = db.Database.IsSqlServer()
                 ? await db.Accounts.FromSqlInterpolated($"SELECT * FROM [dbo].[account] WITH (UPDLOCK,HOLDLOCK) WHERE [uuid]={accountId} AND [is_deleted]=0").SingleOrDefaultAsync()
                 : await db.Accounts.SingleOrDefaultAsync(a => a.Uuid == accountId && !a.IsDeleted);
@@ -235,6 +249,11 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
                 if (receipt.AccountId != accountId || receipt.RequestHash != requestHash) return Failure("operation_conflict");
                 return new PetMutationResult(await ReplayAsync(receipt));
             }
+            if (editBlocked && (kind != "progress" || request is not PetProgressRequest progress
+                || !await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(db,
+                    accountId, account.UserId, progress.ServerId, progress.ServerSessionId,
+                    progress.AccountSessionId, progress.AccountLeaseToken)))
+                return Failure("player_editing");
             var master = await GetMasterAsync();
             if (master is null) return Failure("master_not_found");
             // Keep the account -> inventory -> entry lock order used by player-state/trade.

@@ -10,12 +10,30 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
     public DbSet<ManagedNetworkSettingsEntity> NetworkSettings => Set<ManagedNetworkSettingsEntity>();
     public DbSet<ManagedNetworkBanEntity> NetworkBans => Set<ManagedNetworkBanEntity>();
     public DbSet<NetworkManagementAuditEntity> NetworkAudits => Set<NetworkManagementAuditEntity>();
+    public DbSet<PlayerAdminEditAuditEntity> PlayerAdminEditAudits => Set<PlayerAdminEditAuditEntity>();
     public DbSet<WebCredentialEntity> WebCredentials => Set<WebCredentialEntity>();
     public DbSet<WebCredentialLoginAttemptEntity> WebCredentialLoginAttempts => Set<WebCredentialLoginAttemptEntity>();
     public DbSet<WebTrustedBrowserEntity> WebTrustedBrowsers => Set<WebTrustedBrowserEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PlayerAdminEditAuditEntity>(entity =>
+        {
+            entity.ToTable("player_admin_edit_audit", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.EditSessionId).HasColumnName("edit_session_id");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.TargetUserUuid).HasColumnName("target_user_uuid");
+            entity.Property(x => x.ActorUserUuid).HasColumnName("actor_user_uuid");
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(500);
+            entity.Property(x => x.Action).HasColumnName("action").HasColumnType("varchar(16)");
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasColumnType("char(64)");
+            entity.Property(x => x.BeforeJson).HasColumnName("before_json");
+            entity.Property(x => x.AfterJson).HasColumnName("after_json");
+            entity.Property(x => x.OccurredAtUtc).HasColumnName("occurred_at_utc");
+            entity.Property(x => x.ProjectionStatus).HasColumnName("projection_status").HasColumnType("varchar(16)");
+        });
         DonationMapping.Configure(modelBuilder);
         DonationDiscordMapping.Configure(modelBuilder);
         modelBuilder.Entity<ManagedNetworkSettingsEntity>(entity =>

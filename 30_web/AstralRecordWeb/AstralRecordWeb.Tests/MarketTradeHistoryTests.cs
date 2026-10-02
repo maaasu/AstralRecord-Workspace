@@ -181,7 +181,7 @@ public sealed class MarketTradeHistoryTests
 
     private sealed class MarketHistoryFactory(TradeHistoryHandler handler) : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             services.AddHttpClient<MarketApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler));
     }
 }

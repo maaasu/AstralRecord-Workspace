@@ -42,6 +42,7 @@
 | 36 | [[36_0-概要]] | アカウント有償特典、チャンネルブースト、Web保留操作の保存境界 | `feature/vip`, `feature/channelboost` |
 
 | 37 | [[37_0-概要]] | ペット卵、成長・配合個体、召喚・支援戦闘、孵化・復活施設 | `feature/pet` |
+| 40 | [[40_0-概要]] | Web管理編集の参加制限、ゲーム操作凍結、最終保存・退出確認 | `feature/playeradmin` |
 
 ## 更新規則
 
@@ -367,3 +368,9 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 ### [[37_0-概要|37-pet]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/pet/*`
+
+### [[40_0-概要|40-player-admin-edit]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playeradmin/*`
+- `feature/player` のjoin/quit境界、`feature/inventory` の保存・操作凍結を依存境界として利用
+- `AstralRecordProxy` / `AstralRecordLobby` の参加制限・退避確認は [[33_0-概要]] を主所有者とする

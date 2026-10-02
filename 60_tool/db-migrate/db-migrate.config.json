@@ -1639,6 +1639,345 @@
           ]
         }
       ]
+    },
+    {
+      "id": "20261002_player_admin_edit",
+      "fileName": "20261002_player_admin_edit.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "player_admin_edit_session",
+        "primaryKey": "PK_player_admin_edit_session",
+        "columns": [
+          {
+            "name": "edit_session_id",
+            "sqlType": "uniqueidentifier",
+            "maxLengthBytes": 16,
+            "isNullable": false
+          },
+          {
+            "name": "user_uuid",
+            "sqlType": "uniqueidentifier",
+            "maxLengthBytes": 16,
+            "isNullable": false
+          },
+          {
+            "name": "account_id",
+            "sqlType": "uniqueidentifier",
+            "maxLengthBytes": 16,
+            "isNullable": false
+          },
+          {
+            "name": "actor_user_uuid",
+            "sqlType": "uniqueidentifier",
+            "maxLengthBytes": 16,
+            "isNullable": false
+          },
+          {
+            "name": "reason",
+            "sqlType": "nvarchar",
+            "maxLengthBytes": 1000,
+            "isNullable": false
+          },
+          {
+            "name": "status",
+            "sqlType": "varchar",
+            "maxLengthBytes": 32,
+            "isNullable": false
+          },
+          {
+            "name": "revision",
+            "sqlType": "bigint",
+            "maxLengthBytes": 8,
+            "isNullable": false
+          },
+          {
+            "name": "expected_server_count",
+            "sqlType": "int",
+            "maxLengthBytes": 4,
+            "isNullable": false
+          },
+        {
+          "name": "item_catalog_hash",
+          "sqlType": "char",
+          "maxLengthBytes": 64,
+          "isNullable": true
+        },
+        {
+          "name": "class_catalog_hash",
+          "sqlType": "char",
+          "maxLengthBytes": 64,
+          "isNullable": true
+        },
+          {
+            "name": "created_at_utc",
+            "sqlType": "datetime2",
+            "precision": 23,
+            "scale": 3,
+            "isNullable": false
+          },
+          {
+            "name": "updated_at_utc",
+            "sqlType": "datetime2",
+            "precision": 23,
+            "scale": 3,
+            "isNullable": false
+          },
+          {
+            "name": "expires_at_utc",
+            "sqlType": "datetime2",
+            "precision": 23,
+            "scale": 3,
+            "isNullable": false
+          },
+          {
+            "name": "completed_at_utc",
+            "sqlType": "datetime2",
+            "precision": 23,
+            "scale": 3,
+            "isNullable": true
+          }
+        ],
+        "checkConstraints": [
+          "CK_player_admin_edit_session_status",
+          "CK_player_admin_edit_session_revision",
+          "CK_player_admin_edit_session_expected_servers",
+        "CK_player_admin_edit_session_catalog_hash",
+        "CK_player_admin_edit_session_class_catalog_hash",
+          "CK_player_admin_edit_session_times"
+        ],
+        "indexes": [
+          "UX_player_admin_edit_session_active_user",
+          "IX_player_admin_edit_session_account_status"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "UX_player_admin_edit_session_active_user",
+            "columns": [
+              "user_uuid"
+            ]
+          },
+          {
+            "name": "IX_player_admin_edit_session_account_status",
+            "columns": [
+              "account_id",
+              "status"
+            ]
+          }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "player_admin_server_runtime",
+          "primaryKey": "PK_player_admin_server_runtime",
+          "columns": [
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 128,
+              "isNullable": false
+            },
+            {
+              "name": "server_session_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "role",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "enabled",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            },
+          {
+            "name": "item_catalog_hash",
+            "sqlType": "char",
+            "maxLengthBytes": 64,
+            "isNullable": true
+          },
+          {
+            "name": "class_catalog_hash",
+            "sqlType": "char",
+            "maxLengthBytes": 64,
+            "isNullable": true
+          },
+            {
+              "name": "registered_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "last_seen_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_player_admin_server_runtime_role",
+            "CK_player_admin_server_runtime_seen",
+            "CK_player_admin_server_runtime_catalog_hash",
+            "CK_player_admin_server_runtime_class_catalog_hash"
+          ],
+          "indexes": [],
+          "indexDefinitions": []
+        },
+        {
+          "schema": "dbo",
+          "table": "player_admin_edit_drain",
+          "primaryKey": "PK_player_admin_edit_drain",
+          "columns": [
+            {
+              "name": "edit_session_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 128,
+              "isNullable": false
+            },
+            {
+              "name": "server_session_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "saved",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            },
+            {
+              "name": "offline",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            },
+            {
+              "name": "ack_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": true
+            },
+            {
+              "name": "acknowledged_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            }
+          ],
+          "checkConstraints": [
+            "CK_player_admin_edit_drain_ack"
+          ],
+          "indexes": [
+            "IX_player_admin_edit_drain_server_ack"
+          ],
+          "indexDefinitions": [
+            {
+              "name": "IX_player_admin_edit_drain_server_ack",
+              "columns": [
+                "server_id",
+                "server_session_id",
+                "acknowledged_at_utc"
+              ]
+            }
+          ]
+        },
+        {
+          "schema": "dbo",
+          "table": "player_admin_edit_operation",
+          "primaryKey": "PK_player_admin_edit_operation",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "edit_session_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "char",
+              "maxLengthBytes": 64,
+              "isNullable": false
+            },
+            {
+              "name": "action",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "response_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "before_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "after_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "audit_projected_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            }
+          ],
+          "checkConstraints": [
+            "CK_player_admin_edit_operation_hash",
+            "CK_player_admin_edit_operation_action",
+            "CK_player_admin_edit_operation_json",
+            "CK_player_admin_edit_operation_projection_time"
+          ],
+          "indexes": [
+            "IX_player_admin_edit_operation_projection"
+          ],
+          "indexDefinitions": [
+            {
+              "name": "IX_player_admin_edit_operation_projection",
+              "columns": [
+                "created_at_utc"
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

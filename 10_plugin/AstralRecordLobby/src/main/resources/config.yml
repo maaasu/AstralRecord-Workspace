@@ -6,6 +6,11 @@ api:
   timeoutMillis: 3000
   # 開発環境の自己署名証明書でのみ使用する。本番では必ず false にする。
   allowInsecureTls: false
+runtime:
+  # PlayerAdmin.RequiredServerIds に含める、このLobbyプロセス固有のID。
+  serverId: lobby
+  # API の PlayerAdmin:RuntimeKey と一致させる。Web用キーや通常の api.apiKey と分離する。
+  playerAdminKey: ""
 discord:
   enabled: true
   gameChannel: global

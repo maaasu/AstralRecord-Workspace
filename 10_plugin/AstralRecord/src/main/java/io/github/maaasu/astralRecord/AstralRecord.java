@@ -419,6 +419,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerService playerService;
     private final PlayerSessionTransitionGuard playerSessionTransitionGuard = new PlayerSessionTransitionGuard();
     private PlayerJoinEventHandler playerJoinEventHandler;
+    private io.github.maaasu.astralRecord.feature.playeradmin.service.PlayerAdminDrainService playerAdminDrainService;
     private PlayerMessageService playerMessageService;
     private GlobalChatBridge globalChatBridge;
     private NetworkBridgeService networkBridgeService;
@@ -723,6 +724,10 @@ public final class AstralRecord extends JavaPlugin {
         if (masterDataAutoReloadService != null) {
             masterDataAutoReloadService.stop();
             masterDataAutoReloadService = null;
+        }
+        if (playerAdminDrainService != null) {
+            playerAdminDrainService.stop();
+            playerAdminDrainService = null;
         }
         if (networkBridgeService != null) {
             networkBridgeService.stop();
@@ -1401,6 +1406,7 @@ public final class AstralRecord extends JavaPlugin {
         mobCombatService.setDamageService(damageService);
         petService=new io.github.maaasu.astralRecord.feature.pet.service.PetService(
             this,playerStateExecutor,inventoryService,inventorySaveCoordinator,itemService,itemStackFactory);
+        petService.setProgressAuthorityProvider(skillTreeService::snapshotRuntimeAccountAuthority);
         petRuntimeService=new io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService(
             this,petService,statusService,statusService.getBuffService(),damageService,playerDeathService);
         inventoryService.setPetService(petService);
@@ -2370,6 +2376,15 @@ public final class AstralRecord extends JavaPlugin {
             }
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
+        playerAdminDrainService = new io.github.maaasu.astralRecord.feature.playeradmin.service.PlayerAdminDrainService(
+            this, playerService, inventorySaveCoordinator, playerJoinEventHandler, skillTreeService,
+            ConfigProperties.getInstance().getApiServerId(), skillTreeService.getRuntimeServerSessionId(),
+            itemService::getApiItemCatalogHash, playerClassService::getClassCatalogHash
+        );
+        playerAdminDrainService.start();
+        getServer().getPluginManager().registerEvents(
+            new io.github.maaasu.astralRecord.feature.playeradmin.event.PlayerAdminFreezeEventHandler(
+                playerAdminDrainService::isBlocked), this);
         eventManager.registerHandler(
             new AfkPlayerEventHandler(afkService),
             getServer().getPluginManager()

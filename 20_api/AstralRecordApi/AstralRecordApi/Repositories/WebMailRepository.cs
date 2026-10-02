@@ -29,6 +29,7 @@ public sealed class WebMailRepository(AstralRecordDbContext db, IMailRepository 
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var editBlocked = await PlayerAdminEditWriteGuard.IsBlockedAsync(db, [request.AccountId]);
             var account = await LockedAccountAsync(request.AccountId);
             if (account is null || account.IsDeleted || account.UserId != actor)
                 return Rejected("account_not_current");
@@ -36,6 +37,7 @@ public sealed class WebMailRepository(AstralRecordDbContext db, IMailRepository 
             if (existing is not null)
                 return existing.ActorUserUuid == actor && existing.RequestHash == hash
                     ? Receipt(existing) : Rejected("operation_conflict");
+            if (editBlocked) return Rejected("player_editing");
             if (!await IsCurrentAsync(actor, request.AccountId))
                 return Rejected("account_not_current");
             var already = await db.WebMailCurrencyClaims.AsNoTracking()
@@ -87,10 +89,20 @@ public sealed class WebMailRepository(AstralRecordDbContext db, IMailRepository 
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var editBlocked = await PlayerAdminEditWriteGuard.IsBlockedAsync(db, [request.AccountId]);
             var account = await LockedAccountAsync(request.AccountId);
             if (account is null || account.IsDeleted) return null;
             var operation = await LockedClaimAsync(operationId);
             if (operation is null || operation.AccountId != account.Uuid || operation.ActorUserUuid != account.UserId)
+                return null;
+            if (operation.Status != "PENDING")
+            {
+                await tx.CommitAsync();
+                return await FreshProcessReceiptAsync(operation);
+            }
+            if (editBlocked && !await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(
+                    db, account.Uuid, account.UserId, request.ServerId, request.ServerSessionId,
+                    request.AccountSessionId, request.AccountLeaseToken, operation.CreatedAt))
                 return null;
             if (operation.Status == "PENDING")
             {

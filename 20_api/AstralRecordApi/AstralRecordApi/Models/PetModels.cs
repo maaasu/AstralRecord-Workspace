@@ -174,6 +174,14 @@ public class PetBreedRequest : PetFacilityRequest
 }
 public class PetProgressRequest : PetOperationRequest
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ServerId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? ServerSessionId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? AccountSessionId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AccountLeaseToken { get; set; }
     public long ExpectedVersion { get; set; }
     public long Experience { get; set; }
     public double HealthRatio { get; set; }

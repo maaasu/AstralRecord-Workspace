@@ -1,0 +1,138 @@
+@page "/admin/players/{userUuid:guid}/accounts/{accountId:guid}/edit"
+@model AstralRecordWeb.Pages.Admin.PlayerEditModel
+@{ ViewData["Title"] = "プレイヤー状態の管理者編集"; }
+<section class="ar-portal"><div class="container">
+    <header class="ar-portal-heading">
+        <div><p class="ar-portal-eyebrow">管理者専用</p><h1>プレイヤー状態の編集</h1><p class="ar-portal-sub">接続を停止し、保存済み状態を確認してから編集します。</p></div>
+        <a class="btn ar-btn-outline" asp-page="/Players/Detail" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId" asp-route-includePrivate="true">プレイヤー詳細へ戻る</a>
+    </header>
+    @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+    @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    @if (Model.Profile?.CurrentAccount is { } account)
+    {
+        <section class="ar-panel" aria-labelledby="player-edit-target"><h2 id="player-edit-target">対象</h2>
+            <dl><div><dt>MCID</dt><dd>@Model.Profile.Mcid</dd></div><div><dt>User UUID</dt><dd>@Model.UserUuid</dd></div>
+                <div><dt>アカウント</dt><dd>スロット @account.SlotIndex: @account.AccountName</dd></div><div><dt>Account ID</dt><dd>@Model.AccountId</dd></div></dl>
+        </section>
+        @if (Model.PendingStart)
+        {
+            <section class="ar-panel"><h2>編集開始の確認</h2><p>対象ユーザーの新規参加を停止し、オンライン中の保存と切断を開始します。画面を閉じても、この編集IDで再開できます。</p>
+                <form method="post" asp-page-handler="RetryStart"><button type="submit" class="btn ar-btn-primary">編集開始を確定・同じ要求を再送</button></form>
+            </section>
+        }
+        @if (Model.Session is null && Model.ErrorMessage is null && !Model.PendingStart)
+        {
+            <section class="ar-panel" aria-labelledby="player-edit-start"><h2 id="player-edit-start">編集を開始</h2>
+                <p>対象ユーザーの新規参加を停止します。オンライン中ならゲームサーバーが保存し、切断を確認します。開始後は管理者が適用または取消を完了するまで参加できません。</p>
+                <form method="post" asp-page-handler="Start" autocomplete="off">
+                    <input type="hidden" asp-for="EditSessionId" value="@(Model.EditSessionId == Guid.Empty ? Guid.NewGuid() : Model.EditSessionId)" />
+                    <label asp-for="Reason" class="form-label">編集理由</label><textarea asp-for="Reason" class="form-control mb-3" maxlength="500" rows="3" required></textarea>
+                    <label class="form-check mb-3"><input asp-for="ConfirmTarget" class="form-check-input" required /><span class="form-check-label">対象と参加停止を確認しました。</span></label>
+                    <button type="submit" class="btn ar-btn-primary">編集開始の内容を確認</button>
+                </form>
+            </section>
+        }
+        @if (Model.Session is { } session)
+        {
+            <section class="ar-panel" aria-labelledby="player-edit-state"><h2 id="player-edit-state">編集状態: @session.Status</h2>
+                <p>理由: @session.Reason</p><p>保存・切断の確認: @session.AcknowledgedServerCount / @session.ExpectedServerCount サーバー</p>
+                <p>編集期限: @session.ExpiresAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm zzz")</p>
+                @if (!Model.IsOwner && session.Status is not ("COMPLETED" or "CANCELED"))
+                { <p class="alert alert-warning">別の管理者が編集中です。この画面から変更や解除はできません。</p> }
+                @if (session.Status == "DRAINING")
+                { <p class="alert alert-warning">全サーバーの保存・切断確認を待っています。編集はまだできません。</p> }
+                @if (session.Status == "RECOVERY_REQUIRED")
+                { <p class="alert alert-warning">安全確認に失敗しています。参加停止を維持しています。状態を更新し、復旧が必要なサーバーを確認してください。</p> }
+                @if (session.Status == "APPLYING")
+                { <p class="alert alert-warning">適用結果を確認中です。再度編集せず、状態を更新してください。</p> }
+                @if (session.Status is "COMPLETED" or "CANCELED")
+                {
+                    <p>編集セッションは終了しました。プレイヤーは自動再接続されません。</p>
+                    @if (Model.IsOwner)
+                    { <form method="post" asp-page-handler="New"><button type="submit" class="btn ar-btn-outline">新しい編集を開始</button></form> }
+                }
+                @if (Model.PendingOperation is { } pending)
+                {
+                    <div class="alert alert-warning">@(pending.Action == "APPLY" ? "適用" : "取消")を確定する前、または送信結果を確認中です。別の操作は送信できません。</div>
+                    @if (pending.Action == "APPLY")
+                    {
+                        <dl><div><dt>プレイヤーレベル</dt><dd>@(pending.Level?.ToString() ?? "変更しない")</dd></div>
+                            <div><dt>クラスID</dt><dd>@(pending.ClassId ?? "変更しない")</dd></div>
+                            <div><dt>インベントリ</dt><dd>@(pending.InventoryChanges.Count == 0 ? "変更しない" : $"{pending.InventoryChanges[0].Action}: {pending.InventoryChanges[0].ItemId ?? pending.InventoryChanges[0].InventoryEntryId?.ToString()} × {pending.InventoryChanges[0].Quantity?.ToString() ?? "—"}")</dd></div></dl>
+                    }
+                    <form method="post" asp-page-handler="RetryOperation"><button type="submit" class="btn ar-btn-primary">同じ@(pending.Action == "APPLY" ? "変更" : "取消")を確定・再送</button></form>
+                }
+                <a class="btn ar-btn-outline" asp-page="/Admin/PlayerEdit" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId">状態を再読み込み</a>
+                @if (Model.IsOwner && Model.PendingOperation is null && session.Status is ("DRAINING" or "READY" or "RECOVERY_REQUIRED"))
+                {
+                    <form method="post" asp-page-handler="Refresh" class="mt-3">
+                        <input type="hidden" name="EditSessionId" value="@session.EditSessionId" /><input type="hidden" name="ExpectedRevision" value="@session.Revision" />
+                        <button type="submit" class="btn ar-btn-outline">保存・切断確認を更新</button>
+                    </form>
+                }
+            </section>
+            @if (Model.CanEdit && Model.Editor is { Account: { } state } editor)
+            {
+                <section class="ar-panel" aria-labelledby="player-edit-form"><h2 id="player-edit-form">保存済み状態を編集</h2>
+                    <p>空欄のレベル・クラスは変更しません。インベントリ操作は一度に1件です。変更を適用すると編集が完了します。</p>
+                    <form method="post" asp-page-handler="Apply" autocomplete="off">
+                        <input type="hidden" name="EditSessionId" value="@session.EditSessionId" /><input type="hidden" name="ExpectedRevision" value="@session.Revision" />
+                        <input type="hidden" name="ExpectedStateHash" value="@editor.ExpectedStateHash" />
+                        <input type="hidden" name="ExpectedCatalogVersion" value="@editor.CatalogVersion" />
+                        <input type="hidden" asp-for="OperationId" value="@(Model.OperationId == Guid.Empty ? Guid.NewGuid() : Model.OperationId)" />
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6"><label asp-for="LevelText" class="form-label">プレイヤーレベル（現在 @state.Level）</label>
+                                <input asp-for="LevelText" type="number" min="1" max="100" step="1" class="form-control" placeholder="変更しない" /></div>
+                            <div class="col-md-6"><label asp-for="ClassId" class="form-label">クラス（現在 @state.ClassId）</label>
+                                <select asp-for="ClassId" class="form-select"><option value="">変更しない</option>
+                                    @foreach (var availableClass in editor.AvailableClasses.OrderBy(x => x.Name))
+                                    { <option value="@availableClass.ClassId">@availableClass.Name (@availableClass.ClassId)</option> }
+                                </select></div>
+                        </div>
+                        <fieldset class="mb-3"><legend>インベントリ操作</legend>
+                            <label asp-for="InventoryAction" class="form-label">操作</label>
+                            <select asp-for="InventoryAction" class="form-select mb-2"><option value="NONE">変更しない</option><option value="GRANT">アイテムを付与</option><option value="SET_QUANTITY">既存項目の数量を変更</option><option value="DELETE">既存項目を削除</option></select>
+                            <label asp-for="ItemId" class="form-label">付与するアイテム（付与時）</label>
+                            <select asp-for="ItemId" class="form-select mb-2"><option value="">選択してください</option>
+                                @foreach (var item in editor.AvailableItems.Where(x => AstralRecordWeb.Pages.Admin.PlayerEditModel.IsGrantableCategory(x.Category)).OrderBy(x => x.Category).ThenBy(x => x.Name))
+                                { <option value="@item.ItemId">@item.Name (@item.ItemId / @item.Category) → バッグ@(item.Category.Equals("EQUIPMENT", StringComparison.OrdinalIgnoreCase) ? "（数量1のみ）" : "")</option> }
+                            </select>
+                            <label asp-for="InventoryEntryId" class="form-label">既存項目（数量変更・削除時）</label>
+                            <select asp-for="InventoryEntryId" class="form-select mb-2"><option value="">選択してください</option>
+                                @foreach (var inventory in editor.Inventories.Where(x => x.IsEnabled && x.InventoryType == "BAG" && x.InventoryProfile == "GAME"))
+                                {
+                                    @foreach (var entry in inventory.Entries.Where(x => AstralRecordWeb.Pages.Admin.PlayerEditModel.IsOrdinaryCategory(x.ItemCategory) && x.InstanceId is null && string.IsNullOrEmpty(x.InstanceType) && string.IsNullOrEmpty(x.MetadataJson)))
+                                    { <option value="@entry.InventoryEntryId">@inventory.InventoryType / スロット @entry.SlotIndex: @entry.ItemId × @entry.Quantity (@entry.InventoryEntryId)</option> }
+                                }
+                            </select>
+                            <label asp-for="QuantityText" class="form-label">数量（付与・数量変更時）</label><input asp-for="QuantityText" type="number" min="1" step="1" class="form-control" />
+                        </fieldset>
+                        <label class="form-check mb-3"><input asp-for="ConfirmTarget" class="form-check-input" required /><span class="form-check-label">対象アカウントと変更内容を確認しました。</span></label>
+                        <button type="submit" class="btn ar-btn-primary">変更内容を確認</button>
+                    </form>
+                </section>
+                <section class="ar-panel"><h2>現在のインベントリ</h2>
+                    @foreach (var inventory in editor.Inventories)
+                    {
+                        <h3>@inventory.InventoryType / @inventory.InventoryProfile</h3>
+                        @if (inventory.Entries.Count == 0) { <p>項目はありません。</p> }
+                        <ul>@foreach (var entry in inventory.Entries.OrderBy(x => x.SlotIndex))
+                        { <li>スロット @entry.SlotIndex: @(entry.DisplayName ?? entry.ResolvedItemId ?? entry.ItemId ?? "不明なアイテム") (@(entry.ResolvedItemId ?? entry.ItemId ?? "ID 不明")) × @entry.Quantity （項目 @entry.InventoryEntryId@if (entry.InstanceId is { } instanceId) { <text> / 個体 @instanceId</text> }）</li> }</ul>
+                    }
+                </section>
+            }
+            @if (Model.IsOwner && Model.PendingOperation is null && session.Status is ("DRAINING" or "READY" or "RECOVERY_REQUIRED"))
+            {
+                <section class="ar-panel"><h2>編集を取り消す</h2><p>安全な解除条件が確認できる場合にだけ参加停止を解除します。復旧が必要な状態ではロックが残ることがあります。</p>
+                    <form method="post" asp-page-handler="Cancel">
+                        <input type="hidden" name="EditSessionId" value="@session.EditSessionId" /><input type="hidden" name="ExpectedRevision" value="@session.Revision" />
+                        <input type="hidden" name="OperationId" value="@(Model.OperationId == Guid.Empty ? Guid.NewGuid() : Model.OperationId)" />
+                        <label class="form-check mb-3"><input asp-for="ConfirmTarget" class="form-check-input" required /><span class="form-check-label">この編集を取り消すことを確認しました。</span></label>
+                        <button type="submit" class="btn ar-btn-outline">取消内容を確認</button>
+                    </form>
+                </section>
+            }
+        }
+    }
+</div></section>

@@ -94,6 +94,16 @@ class PlayerClassService @JvmOverloads constructor(
     /** 実際に公開中のクラス定義をコピーする。再読込やAPI通信は行わない。 */
     fun snapshotLoadedClasses(): Map<String, ClassModel> = classService.getLoadedClasses().associateBy { it.id }
 
+    /** 管理編集APIとのクラス選択整合性を確認する公開クラス詳細応答のハッシュ。 */
+    fun getClassCatalogHash(): String {
+        val classes = classService.getLoadedClasses().sortedBy { it.id }
+        if (classes.any { it.responseBodySha256.isBlank() }) return ""
+        val canonical = classes.joinToString(separator = "") { "${it.id}\t${it.responseBodySha256}\n" }
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(canonical.toByteArray(Charsets.UTF_8))
+        return java.util.HexFormat.of().formatHex(digest)
+    }
+
     fun getDisplayName(classId: String): String {
         val model = classService.getLoadedClass(classId) ?: return classId
         return ColorCodeUtil.toLegacyText(model.name, classId)

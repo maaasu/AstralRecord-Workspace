@@ -33,9 +33,11 @@
 | `AstralRecord` | `AstralRecord/migrations/20260921_skilltree_batch_editor.sql` | スキルツリー一括変更JSONとaction制約。safe_editor適用後、新API配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260926_market_web_purchase.sql` | Web購入要求の冪等台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20261001_pet.sql` | ペット/卵・装備選択・操作台帳3表とactive個体一意制約。新API配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20261002_player_admin_edit.sql` | 管理者編集の排他セッション・サーバー退避・操作監査outbox。新API/Plugin/Web配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
+| `ManagementDB` | `ManagementDB/migrations/20261002_player_admin_edit.sql` | 管理者編集の長期保持監査を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `HistoryDB` | `HistoryDB/migrations/20260921_player_activity.sql` | プレイヤー行動履歴8表を追加。HistoryDB用manifestでAPI配置前に適用 |
 
 AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json`、HistoryDBの本番 migration は `60_tool/db-migrate/history-db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に両manifestとManagementDB専用manifestの適用・対象スキーマ検査を実行する。どれかが失敗した場合、API/Webの配置を開始しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
@@ -54,6 +56,10 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.pet_instance` | `AstralRecord/dbo.pet_instance.md` |
 | `dbo.account_pet_state` | `AstralRecord/dbo.account_pet_state.md` |
 | `dbo.pet_operation` | `AstralRecord/dbo.pet_operation.md` |
+| `dbo.player_admin_server_runtime` | `AstralRecord/dbo.player_admin_server_runtime.md` |
+| `dbo.player_admin_edit_session` | `AstralRecord/dbo.player_admin_edit_session.md` |
+| `dbo.player_admin_edit_drain` | `AstralRecord/dbo.player_admin_edit_drain.md` |
+| `dbo.player_admin_edit_operation` | `AstralRecord/dbo.player_admin_edit_operation.md` |
 | `dbo.account_benefit_operation` | `AstralRecord/dbo.account_benefit_operation.md` |
 | `dbo.user` | `AstralRecord/dbo.user.md` |
 | `dbo.user_setting` | `AstralRecord/dbo.user_setting.md` |
@@ -130,3 +136,4 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | `dbo.web_credential` | `ManagementDB/dbo.web_credential.md` |
 | `dbo.web_credential_login_attempt` | `ManagementDB/dbo.web_credential_login_attempt.md` |
 | `dbo.web_trusted_browser` | `ManagementDB/dbo.web_trusted_browser.md` |
+| `dbo.player_admin_edit_audit` | `ManagementDB/dbo.player_admin_edit_audit.md` |

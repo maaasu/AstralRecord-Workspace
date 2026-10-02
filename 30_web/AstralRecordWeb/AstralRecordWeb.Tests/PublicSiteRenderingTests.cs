@@ -261,6 +261,7 @@ public sealed class PublicSiteRenderingTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.WithIsolatedWebDependencies();
             builder.ConfigureServices(services => services.AddSingleton<IMinecraftStatusProbe, FixedOnlineStatusProbe>());
             builder.ConfigureAppConfiguration((_, configurationBuilder) =>
             {

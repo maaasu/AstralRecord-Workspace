@@ -115,6 +115,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
     private Consumer<AstPlayer> playerQuitListener = ignored -> { };
+    private java.util.function.Predicate<UUID> adminEditBlocked = ignored -> false;
+    private QuitSaveListener quitSaveListener = (ignored, accountId, result) -> { };
     private Consumer<AccountModel> accountLoadingListener = ignored -> { };
     private Consumer<UUID> playerStateRecoveryAccountDiscarder = ignored -> { };
     private Consumer<Player> playerStateRecoveryRuntimeClearer = ignored -> { };
@@ -522,6 +524,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     public void onPlayerJoin(PlayerJoinEvent event) {
         var player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
+        if (adminEditBlocked.test(playerUuid)) {
+            event.joinMessage(null);
+            player.kick(PlayerMsgResource.formatComponent(PlayerMsgId.P_9052.getId()));
+            return;
+        }
         String playerName = player.getName();
 
         // アカウント読み込み前は MCID をゲーム内表示へ出さず、読み込み完了後にアカウント名で通知する。
@@ -703,7 +710,14 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 guideService.releaseProgress(accountId);
             }
         }
-        runSafely(() -> playerService.onPlayerQuit(player), LogId.E_5070, playerName);
+        CompletableFuture<Boolean> quitSave;
+        try {
+            quitSave = playerService.onPlayerQuit(player);
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_5070, failure, playerName);
+            quitSave = CompletableFuture.failedFuture(failure);
+        }
+        quitSaveListener.accept(playerUuid, astPlayer == null ? null : astPlayer.getAccount().getUuid(), quitSave);
         if (attempt != null) {
             finishJoinLoading(attempt, false);
         }
@@ -1431,6 +1445,27 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
      */
     public boolean isLoading(Player player) {
         return isJoinLoading(player);
+    }
+
+    /** 対象UUIDに現在進行中のログイン読込があるか返します。 */
+    public boolean hasJoinAttempt(@NotNull UUID playerId) {
+        return joinAttempts.containsKey(playerId);
+    }
+
+    /** 管理編集で参加を遮断する判定を設定します。 */
+    public void setAdminEditBlocked(@NotNull java.util.function.Predicate<UUID> blocked) {
+        adminEditBlocked = java.util.Objects.requireNonNull(blocked);
+    }
+
+    /** 退出時の最終保存結果を管理編集の退避処理へ渡します。 */
+    public void setQuitSaveListener(@NotNull QuitSaveListener listener) {
+        quitSaveListener = java.util.Objects.requireNonNull(listener);
+    }
+
+    @FunctionalInterface
+    public interface QuitSaveListener {
+        void accept(@NotNull UUID userUuid, @Nullable UUID accountId,
+                    @NotNull CompletableFuture<Boolean> save);
     }
 
     private boolean isJoinLoading(Player player) {

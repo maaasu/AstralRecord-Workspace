@@ -212,7 +212,7 @@ public sealed class ActivityHistoryTests
         var body = await client.GetStringAsync($"/Admin/History/{page}?Sort=fastest&PageNumber=2&{idKey}={id}&From=2026-09-01&To=2026-09-02&AccountId={HistoryHandler.ActorId}");
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(api.LastHistoryUri!.Query);
         Assert.Equal("fastest", query["sort"]);
-        Assert.Equal(id, query[idKey]);
+        Assert.Equal(id, query[idKey == "dungeonId" ? "dungeonSearch" : "bossSearch"]);
         Assert.Equal("2", query["page"]);
         Assert.Contains("51 位", WebUtility.HtmlDecode(body));
         var nextHref = Regex.Matches(body, "href=\"([^\"]+)\"").Select(x => WebUtility.HtmlDecode(x.Groups[1].Value)).Single(x => x.Contains("PageNumber=3"));
@@ -259,7 +259,7 @@ public sealed class ActivityHistoryTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["AstralRecordApi:ApiKey"] = "fixture-history-key" }));
-            builder.ConfigureTestServices(services =>
+            builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             {
                 services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<ActivityHistoryApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);

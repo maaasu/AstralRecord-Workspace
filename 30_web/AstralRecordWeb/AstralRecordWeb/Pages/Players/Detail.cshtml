@@ -23,6 +23,14 @@
             <partial name="_PlayerProfile" model="profile" />
             @if (Model.IsWebAdmin)
             {
+                @if (profile.CurrentAccount is { } selectedAccount)
+                {
+                    <section class="ar-panel" aria-labelledby="player-admin-edit-link">
+                        <h2 id="player-admin-edit-link">管理者操作: プレイヤー状態</h2>
+                        <p class="ar-portal-sub">表示中のアカウントの編集を開始します。編集開始後、対象ユーザーの新規参加を停止します。</p>
+                        <a class="btn ar-btn-outline" asp-page="/Admin/PlayerEdit" asp-route-userUuid="@profile.UserUuid" asp-route-accountId="@selectedAccount.AccountId">このアカウントを編集</a>
+                    </section>
+                }
                 <section class="ar-panel ar-ban-management" aria-labelledby="ban-management-title" data-ban-management data-target-mcid="@profile.Mcid" data-target-uuid="@profile.UserUuid">
                     <h2 id="ban-management-title">管理者操作: 利用停止</h2>
                     <p class="ar-portal-sub">アカウントではなく、このプレイヤーの User UUID 全体に適用します。</p>

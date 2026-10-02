@@ -111,6 +111,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await EnsureUserNotEditingAsync(request.UserId);
             var created = await CreateInTransactionAsync(request);
             await transaction.CommitAsync();
             return created;
@@ -194,6 +195,12 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var sourceUserId = await dbContext.Accounts.AsNoTracking()
+                .Where(x => x.Uuid == sourceUuid && !x.IsDeleted)
+                .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+            if (sourceUserId.HasValue)
+                foreach (var userId in new[] { sourceUserId.Value, request.TargetUserId }.Distinct().OrderBy(x => x))
+                    await EnsureUserNotEditingAsync(userId);
             var cloned = await CloneInTransactionAsync(sourceUuid, request, cloneUuid, replacedAccountId);
             if (cloned is null)
                 return null;
@@ -248,6 +255,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             throw new AccountCloneConflictException("TARGET_CHANGED", "The target account changed after confirmation.", target.Uuid);
         if (target is null && request.ExpectedTargetAccountId.HasValue)
             throw new AccountCloneConflictException("TARGET_CHANGED", "The target account no longer exists.");
+        if (target is not null) await EnsureAuditProjectedBeforeDeleteAsync(target.Uuid);
 
         var now = DateTime.UtcNow;
         var targetWasActive = target?.IsActive == true;
@@ -317,6 +325,23 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 """).SingleOrDefaultAsync();
         }
         return await dbContext.Users.SingleOrDefaultAsync(user => user.Uuid == userId && !user.IsDeleted);
+    }
+
+    private async Task EnsureUserNotEditingAsync(Guid userId)
+    {
+        if (await FindUserForUpdateAsync(userId) is null) return;
+        if (await dbContext.PlayerAdminEditSessions.AnyAsync(x => x.UserUuid == userId
+            && (x.Status == "DRAINING" || x.Status == "READY"
+                || x.Status == "APPLYING" || x.Status == "RECOVERY_REQUIRED")))
+            throw new PlayerAdminEditConflictException("Player is locked for a Web admin edit.");
+    }
+
+    private async Task EnsureAuditProjectedBeforeDeleteAsync(Guid accountId)
+    {
+        if (await dbContext.PlayerAdminEditOperations.AnyAsync(x => x.AuditProjectedAtUtc == null
+            && dbContext.PlayerAdminEditSessions.Any(s => s.EditSessionId == x.EditSessionId
+                && s.AccountId == accountId)))
+            throw new PlayerAdminEditConflictException("Player admin audit is awaiting ManagementDB projection.");
     }
 
     private async Task<List<AccountEntity>> FindAccountsForCloneAsync(Guid sourceUuid, Guid targetUserId, int targetSlotIndex)
@@ -656,6 +681,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var userId = await dbContext.Accounts.AsNoTracking().Where(x => x.Uuid == uuid && !x.IsDeleted)
+                .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+            if (userId.HasValue) await EnsureUserNotEditingAsync(userId.Value);
             var updated = await UpdateCoreAsync(uuid, request);
             if (updated is null)
                 return null;
@@ -904,6 +932,10 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var userId = await dbContext.Accounts.AsNoTracking().Where(x => x.Uuid == uuid && !x.IsDeleted)
+                .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+            if (userId.HasValue) await EnsureUserNotEditingAsync(userId.Value);
+            await EnsureAuditProjectedBeforeDeleteAsync(uuid);
             var result = await DeleteInTransactionAsync(uuid, request);
             if (result is null)
                 return null;

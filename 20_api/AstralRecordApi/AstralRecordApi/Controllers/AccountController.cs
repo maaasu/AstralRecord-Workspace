@@ -33,6 +33,10 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         {
             return Conflict(new { code = ex.Code, message = ex.Message, targetAccountId = ex.TargetAccountId });
         }
+        catch (PlayerAdminEditConflictException ex)
+        {
+            return Conflict(new { code = "PLAYER_ADMIN_EDIT_LOCKED", message = ex.Message });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -81,6 +85,10 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         {
             return Conflict(new { code = ex.Code, message = ex.Message, targetAccountId = ex.TargetAccountId });
         }
+        catch (PlayerAdminEditConflictException ex)
+        {
+            return Conflict(new { code = "PLAYER_ADMIN_EDIT_LOCKED", message = ex.Message });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -113,6 +121,10 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         catch (AccountNameConflictException ex)
         {
             return Conflict(new { message = ex.Message });
+        }
+        catch (PlayerAdminEditConflictException ex)
+        {
+            return Conflict(new { code = "PLAYER_ADMIN_EDIT_LOCKED", message = ex.Message });
         }
         catch (ArgumentException ex)
         {
@@ -159,7 +171,14 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     {
         if (request.DeletedBy == Guid.Empty)
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "deletedBy is required.");
-        var deleted = await accountRepository.DeleteAsync(uuid, request);
-        return deleted is null ? NotFound() : Ok(deleted);
+        try
+        {
+            var deleted = await accountRepository.DeleteAsync(uuid, request);
+            return deleted is null ? NotFound() : Ok(deleted);
+        }
+        catch (PlayerAdminEditConflictException ex)
+        {
+            return Conflict(new { code = "PLAYER_ADMIN_EDIT_LOCKED", message = ex.Message });
+        }
     }
 }

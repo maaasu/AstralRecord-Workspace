@@ -16,6 +16,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
+    public DbSet<PlayerAdminEditSessionEntity> PlayerAdminEditSessions => Set<PlayerAdminEditSessionEntity>();
+    public DbSet<PlayerAdminEditDrainEntity> PlayerAdminEditDrains => Set<PlayerAdminEditDrainEntity>();
+    public DbSet<PlayerAdminServerRuntimeEntity> PlayerAdminServerRuntimes => Set<PlayerAdminServerRuntimeEntity>();
+    public DbSet<PlayerAdminEditOperationEntity> PlayerAdminEditOperations => Set<PlayerAdminEditOperationEntity>();
     public DbSet<PetInstanceEntity> PetInstances => Set<PetInstanceEntity>();
     public DbSet<AccountPetStateEntity> AccountPetStates => Set<AccountPetStateEntity>();
     public DbSet<PetOperationEntity> PetOperations => Set<PetOperationEntity>();
@@ -70,6 +74,67 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PlayerAdminEditSessionEntity>(entity =>
+        {
+            entity.ToTable("player_admin_edit_session", "dbo");
+            entity.HasKey(x => x.EditSessionId);
+            entity.Property(x => x.EditSessionId).HasColumnName("edit_session_id");
+            entity.Property(x => x.UserUuid).HasColumnName("user_uuid");
+            entity.Property(x => x.AccountId).HasColumnName("account_id");
+            entity.Property(x => x.ActorUserUuid).HasColumnName("actor_user_uuid");
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(500);
+            entity.Property(x => x.Status).HasColumnName("status").HasColumnType("varchar(32)");
+            entity.Property(x => x.Revision).HasColumnName("revision");
+            entity.Property(x => x.ExpectedServerCount).HasColumnName("expected_server_count");
+            entity.Property(x => x.ItemCatalogHash).HasColumnName("item_catalog_hash").HasColumnType("char(64)");
+            entity.Property(x => x.ClassCatalogHash).HasColumnName("class_catalog_hash").HasColumnType("char(64)");
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
+            entity.Property(x => x.ExpiresAtUtc).HasColumnName("expires_at_utc");
+            entity.Property(x => x.CompletedAtUtc).HasColumnName("completed_at_utc");
+            entity.HasIndex(x => x.UserUuid).IsUnique()
+                .HasFilter("[status] IN ('DRAINING','READY','APPLYING','RECOVERY_REQUIRED')")
+                .HasDatabaseName("UX_player_admin_edit_session_active_user");
+        });
+        modelBuilder.Entity<PlayerAdminEditDrainEntity>(entity =>
+        {
+            entity.ToTable("player_admin_edit_drain", "dbo");
+            entity.HasKey(x => new { x.EditSessionId, x.ServerId });
+            entity.Property(x => x.EditSessionId).HasColumnName("edit_session_id");
+            entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
+            entity.Property(x => x.ServerSessionId).HasColumnName("server_session_id");
+            entity.Property(x => x.Saved).HasColumnName("saved");
+            entity.Property(x => x.Offline).HasColumnName("offline");
+            entity.Property(x => x.AckId).HasColumnName("ack_id");
+            entity.Property(x => x.AcknowledgedAtUtc).HasColumnName("acknowledged_at_utc");
+        });
+        modelBuilder.Entity<PlayerAdminServerRuntimeEntity>(entity =>
+        {
+            entity.ToTable("player_admin_server_runtime", "dbo");
+            entity.HasKey(x => x.ServerId);
+            entity.Property(x => x.ServerId).HasColumnName("server_id").HasMaxLength(64);
+            entity.Property(x => x.ServerSessionId).HasColumnName("server_session_id");
+            entity.Property(x => x.Role).HasColumnName("role").HasColumnType("varchar(16)");
+            entity.Property(x => x.Enabled).HasColumnName("enabled");
+            entity.Property(x => x.ItemCatalogHash).HasColumnName("item_catalog_hash").HasColumnType("char(64)");
+            entity.Property(x => x.ClassCatalogHash).HasColumnName("class_catalog_hash").HasColumnType("char(64)");
+            entity.Property(x => x.RegisteredAtUtc).HasColumnName("registered_at_utc");
+            entity.Property(x => x.LastSeenUtc).HasColumnName("last_seen_utc");
+        });
+        modelBuilder.Entity<PlayerAdminEditOperationEntity>(entity =>
+        {
+            entity.ToTable("player_admin_edit_operation", "dbo");
+            entity.HasKey(x => x.OperationId);
+            entity.Property(x => x.OperationId).HasColumnName("operation_id");
+            entity.Property(x => x.EditSessionId).HasColumnName("edit_session_id");
+            entity.Property(x => x.RequestHash).HasColumnName("request_hash").HasColumnType("char(64)");
+            entity.Property(x => x.Action).HasColumnName("action").HasColumnType("varchar(16)");
+            entity.Property(x => x.ResponseJson).HasColumnName("response_json");
+            entity.Property(x => x.BeforeJson).HasColumnName("before_json");
+            entity.Property(x => x.AfterJson).HasColumnName("after_json");
+            entity.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(x => x.AuditProjectedAtUtc).HasColumnName("audit_projected_at_utc");
+        });
         PetMapping.Configure(modelBuilder);
         modelBuilder.Entity<WebMailCurrencyClaimEntity>(entity =>
         {

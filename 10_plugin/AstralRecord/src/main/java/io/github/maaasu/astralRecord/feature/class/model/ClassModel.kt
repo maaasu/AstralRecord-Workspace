@@ -25,4 +25,6 @@ data class ClassModel @JvmOverloads constructor(
     val iconTexture: String? = null,
     val classGui: ClassGuiSetting? = null,
     val adminChangeOnly: Boolean = false,
+    /** API詳細応答の原文バイトをSHA-256化した照合値。runtime JSONへは出さない。 */
+    @field:Transient val responseBodySha256: String = "",
 )

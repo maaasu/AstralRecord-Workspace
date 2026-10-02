@@ -244,7 +244,7 @@ public sealed class DonationTests
                 ["Donations:WebKey"] = "fixture-donation-key", ["Donations:DiscordClientId"] = "fixture-client",
                 ["Donations:DiscordClientSecret"] = "fixture-secret", ["Donations:DiscordRedirectUri"] = "https://localhost/Donations/Discord",
             }));
-            builder.ConfigureTestServices(services =>
+            builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             {
                 services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<DonationApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);

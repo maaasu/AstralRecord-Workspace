@@ -11,12 +11,19 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         EquipmentInstanceEntity instance,
         IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls)
     {
-        await dbContext.EquipmentInstances.AddAsync(instance);
-
-        if (statRolls.Count > 0)
-            await dbContext.EquipmentInstanceStatRolls.AddRangeAsync(statRolls);
-
-        await dbContext.SaveChangesAsync();
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [instance.AccountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
+            await dbContext.EquipmentInstances.AddAsync(instance);
+            if (statRolls.Count > 0)
+                await dbContext.EquipmentInstanceStatRolls.AddRangeAsync(statRolls);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        });
     }
 
     public async Task<EquipmentInstanceEntity?> FindInstanceAsync(Guid instanceId)
@@ -52,6 +59,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [accountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
             var live = await FindInstanceForUpdateAsync(instanceId);
             if (live is null || live.IsDeleted || live.AccountId != accountId)
                 return false;
@@ -81,6 +90,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [accountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
             var live = await FindInstanceForUpdateAsync(instanceId);
             if (live is null || live.IsDeleted || live.AccountId != accountId)
                 return false;
@@ -114,6 +125,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [accountId]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
             var live = await FindInstanceForUpdateAsync(instanceId);
             if (live is null || live.IsDeleted || live.AccountId != accountId)
                 return false;
@@ -142,6 +155,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [updatedBy]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
             var live = await FindInstanceForUpdateAsync(instanceId);
             if (live is null
                 || live.IsDeleted
@@ -162,15 +177,24 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
 
     public async Task<bool> SoftDeleteInstanceAsync(Guid instanceId)
     {
-        var instance = await dbContext.EquipmentInstances
-            .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && !x.IsDeleted);
-
-        if (instance is null)
-            return false;
-
-        instance.IsDeleted = true;
-        await dbContext.SaveChangesAsync();
-        return true;
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            var owner = await dbContext.EquipmentInstances.AsNoTracking()
+                .Where(x => x.EquipmentInstanceId == instanceId && !x.IsDeleted)
+                .Select(x => (Guid?)x.AccountId).SingleOrDefaultAsync();
+            if (!owner.HasValue) return false;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [owner.Value]))
+                throw new PlayerAdminEditConflictException("A player edit is in progress.");
+            var instance = await FindInstanceForUpdateAsync(instanceId);
+            if (instance is null || instance.IsDeleted || instance.AccountId != owner.Value) return false;
+            instance.IsDeleted = true;
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
     private async Task<EquipmentInstanceEntity?> FindInstanceForUpdateAsync(Guid instanceId)

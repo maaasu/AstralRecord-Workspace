@@ -50,7 +50,7 @@ public sealed class MarketWebPurchaseController(IMarketRepository repository, IC
         if (purchase is null || purchase.BuyerAccountId != request.BuyerAccountId) return NotFound();
         var result = await repository.PurchaseListingAsync(purchase.ListingId, request);
         if (!result.Succeeded && result.StatusCode is >= 400 and < 500
-            && result.ErrorCode != "market.online_session")
+            && result.ErrorCode is not ("market.online_session" or "player_editing"))
             await repository.RejectWebPurchaseAsync(operationId, result.ErrorCode ?? "market.purchase_rejected");
         return result.Succeeded ? Ok(result.Value) : Problem(
             statusCode: result.StatusCode, title: result.ErrorCode, detail: result.Detail);

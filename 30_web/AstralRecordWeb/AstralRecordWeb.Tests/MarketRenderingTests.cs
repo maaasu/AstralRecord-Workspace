@@ -80,7 +80,7 @@ public sealed class MarketRenderingTests
 
     private sealed class MarketRenderingFactory : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
         {
             services.AddAuthentication(options =>
             {

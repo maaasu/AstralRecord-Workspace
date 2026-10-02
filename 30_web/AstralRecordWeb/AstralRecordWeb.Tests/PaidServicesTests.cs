@@ -191,7 +191,7 @@ public sealed class PaidServicesTests
         {
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             { ["Donations:WebKey"] = "fixture-web-key" }));
-            builder.ConfigureTestServices(services =>
+            builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             {
                 services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
                 services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);

@@ -395,39 +395,8 @@ public class AccountRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
-            await setupContext.Database.ExecuteSqlRawAsync(@"
-                CREATE TABLE account (
-                    uuid TEXT NOT NULL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    account_name TEXT NOT NULL,
-                    slot_index INTEGER NOT NULL,
-                    is_active INTEGER NOT NULL,
-                    mode INTEGER NOT NULL,
-                    menu_shortcuts_json TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    total_experience INTEGER NOT NULL,
-                    highest_level INTEGER NOT NULL,
-                    rebirth_original_level INTEGER NULL,
-                    rebirth_experience_remainder INTEGER NOT NULL,
-                    class_id TEXT NOT NULL,
-                    class_level INTEGER NOT NULL,
-                    class_experience INTEGER NOT NULL,
-                    progress_version INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    created_by TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    is_deleted INTEGER NOT NULL
-                );
-                CREATE TABLE account_class_progress (
-                    account_id TEXT NOT NULL,
-                    class_id TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    experience INTEGER NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    PRIMARY KEY (account_id, class_id)
-                );");
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, accountId, now));
 
             setupContext.Accounts.Add(new AccountEntity
             {
@@ -480,39 +449,8 @@ public class AccountRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
-            await setupContext.Database.ExecuteSqlRawAsync(@"
-                CREATE TABLE account (
-                    uuid TEXT NOT NULL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    account_name TEXT NOT NULL,
-                    slot_index INTEGER NOT NULL,
-                    is_active INTEGER NOT NULL,
-                    mode INTEGER NOT NULL,
-                    menu_shortcuts_json TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    total_experience INTEGER NOT NULL,
-                    highest_level INTEGER NOT NULL,
-                    rebirth_original_level INTEGER NULL,
-                    rebirth_experience_remainder INTEGER NOT NULL,
-                    class_id TEXT NOT NULL,
-                    class_level INTEGER NOT NULL,
-                    class_experience INTEGER NOT NULL,
-                    progress_version INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    created_by TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    is_deleted INTEGER NOT NULL
-                );
-                CREATE TABLE account_class_progress (
-                    account_id TEXT NOT NULL,
-                    class_id TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    experience INTEGER NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    PRIMARY KEY (account_id, class_id)
-                );");
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, accountId, now));
 
             setupContext.Accounts.Add(new AccountEntity
             {
@@ -605,39 +543,8 @@ public class AccountRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
-            await setupContext.Database.ExecuteSqlRawAsync(@"
-                CREATE TABLE account (
-                    uuid TEXT NOT NULL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    account_name TEXT NOT NULL,
-                    slot_index INTEGER NOT NULL,
-                    is_active INTEGER NOT NULL,
-                    mode INTEGER NOT NULL,
-                    menu_shortcuts_json TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    total_experience INTEGER NOT NULL,
-                    highest_level INTEGER NOT NULL,
-                    rebirth_original_level INTEGER NULL,
-                    rebirth_experience_remainder INTEGER NOT NULL,
-                    class_id TEXT NOT NULL,
-                    class_level INTEGER NOT NULL,
-                    class_experience INTEGER NOT NULL,
-                    progress_version INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    created_by TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    is_deleted INTEGER NOT NULL
-                );
-                CREATE TABLE account_class_progress (
-                    account_id TEXT NOT NULL,
-                    class_id TEXT NOT NULL,
-                    level INTEGER NOT NULL,
-                    experience INTEGER NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    PRIMARY KEY (account_id, class_id)
-                );");
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, accountId, now));
 
             setupContext.Accounts.Add(new AccountEntity
             {

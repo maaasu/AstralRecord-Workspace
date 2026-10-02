@@ -25,4 +25,6 @@ data class ItemModel @JvmOverloads constructor(
     val sigil: ItemSigil? = null,
     val orb: ItemOrb? = null,
     val iconTexture: String? = null,
+    /** API詳細応答の原文バイトをSHA-256化した照合値。runtime JSONへは出さない。 */
+    @field:Transient val responseBodySha256: String = "",
 )

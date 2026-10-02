@@ -37,6 +37,18 @@ public class EquipmentOrbOperationRepository(
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
+            if (await PlayerAdminEditWriteGuard.IsBlockedAsync(dbContext, [request.AccountId]))
+            {
+                // A pre-lock committed operation may be retried after its HTTP reply
+                // was lost. The immutable receipt is safe to replay without mutation.
+                var prior = await FindLedgerForUpdateAsync(request.OperationId);
+                if (prior is null || prior.AccountId != request.AccountId
+                    || !string.Equals(prior.RequestHash, requestHash, StringComparison.Ordinal))
+                    return Conflict(request.OperationId);
+                return await WithCurrentEquipmentAsync(Deserialize(prior.ResultPayloadJson),
+                    prior.AccountId, prior.EquipmentInstanceId);
+            }
+
             // account を全プレイヤー状態更新の先頭ロックにして、snapshot 保存との逆順待機を防ぐ。
             await LockAccountAsync(request.AccountId);
             var existing = await FindLedgerForUpdateAsync(request.OperationId);

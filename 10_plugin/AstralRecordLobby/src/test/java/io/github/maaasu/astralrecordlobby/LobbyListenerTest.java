@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,38 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings({"deprecation", "removal"})
 class LobbyListenerTest {
+    @Test
+    void editingAdmissionRejectsLobbyLoginWithDedicatedReason() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        LobbyApiClient api = mock(LobbyApiClient.class);
+        AsyncPlayerPreLoginEvent event = mock(AsyncPlayerPreLoginEvent.class);
+        UUID playerId = UUID.randomUUID();
+        when(plugin.api()).thenReturn(api);
+        when(event.getUniqueId()).thenReturn(playerId);
+        when(api.getAdmission(playerId)).thenReturn(
+            new LobbyApiClient.Admission(false, 0, "player_editing", null, null));
+
+        new LobbyListener(plugin, mock(ServerSelector.class)).onPreLogin(event);
+
+        verify(event).disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+            "管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。");
+        verify(plugin).finishLogin(event);
+    }
+
+    @Test
+    void laterPreLoginDenialClearsCachedAdmissionAndPendingAttempt() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        AsyncPlayerPreLoginEvent event = mock(AsyncPlayerPreLoginEvent.class);
+        UUID playerId = UUID.randomUUID();
+        when(event.getUniqueId()).thenReturn(playerId);
+        when(event.getLoginResult()).thenReturn(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+
+        new LobbyListener(plugin, mock(ServerSelector.class)).onPreLoginComplete(event);
+
+        verify(plugin).finishLogin(event);
+        verify(plugin).clearPermission(playerId);
+    }
+
     @Test
     void detectsOnlyCoordinatesBelowWorldMinimum() {
         assertTrue(LobbyListener.isBelowWorld(-64, -64.01));

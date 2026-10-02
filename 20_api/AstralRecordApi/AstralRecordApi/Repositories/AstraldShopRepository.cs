@@ -37,6 +37,7 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var editBlocked = await PlayerAdminEditWriteGuard.IsBlockedAsync(db, [request.AccountId]);
             var account = await LockedAccountAsync(request.AccountId);
             if (account is null || account.IsDeleted || account.UserId != actor)
                 return Rejected("account_not_current");
@@ -47,6 +48,7 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
                     return Rejected("operation_conflict");
                 return Receipt(existing);
             }
+            if (editBlocked) return Rejected("player_editing");
             if (!await db.Users.AnyAsync(x => x.Uuid == actor && !x.IsDeleted && x.AccountId == request.AccountId))
                 return Rejected("account_not_current");
             var offers = await ReadOffersAsync();
@@ -97,10 +99,20 @@ public sealed class AstraldShopRepository(AstralRecordDbContext db, MasterDataDb
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var editBlocked = await PlayerAdminEditWriteGuard.IsBlockedAsync(db, [request.AccountId]);
             var account = await LockedAccountAsync(request.AccountId);
             if (account is null || account.IsDeleted) return null;
             var operation = await LockedPurchaseAsync(operationId);
             if (operation is null || operation.AccountId != request.AccountId || account.UserId != operation.ActorUserUuid)
+                return null;
+            if (operation.Status != "PENDING")
+            {
+                await tx.CommitAsync();
+                return await FreshProcessReceiptAsync(operation);
+            }
+            if (editBlocked && !await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(
+                    db, account.Uuid, account.UserId, request.ServerId, request.ServerSessionId,
+                    request.AccountSessionId, request.AccountLeaseToken, operation.CreatedAt))
                 return null;
             if (operation.Status == "PENDING")
             {

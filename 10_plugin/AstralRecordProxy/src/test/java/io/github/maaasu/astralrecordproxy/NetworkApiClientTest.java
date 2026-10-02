@@ -1,23 +1,28 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.sun.net.httpserver.HttpServer;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletionException;
 import java.util.UUID;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -122,6 +127,87 @@ class NetworkApiClientTest {
         assertEquals("banned", admission.denyReason());
         assertEquals("2026-09-18T00:00Z", admission.banExpiresAtUtc().toString());
         assertEquals("不正利用", admission.banReason());
+    }
+
+    @Test
+    void editDrainRequiresPositiveRpgSaveBeforeProxyDisconnect() {
+        UUID editId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        String base = "{\"editSessionId\":\"" + editId + "\",\"accountId\":\"" + accountId
+            + "\",\"userUuid\":\"" + playerId + "\"";
+
+        var waiting = NetworkApiClient.EditDrain.fromJson(JsonParser.parseString(base + "}").getAsJsonObject());
+        var saved = NetworkApiClient.EditDrain.fromJson(JsonParser.parseString(
+            base + ",\"safeToDisconnect\":true}").getAsJsonObject());
+
+        assertEquals(false, waiting.safeToDisconnect());
+        assertEquals(true, saved.safeToDisconnect());
+        assertEquals(accountId, saved.accountId());
+        assertEquals(playerId, saved.userUuid());
+    }
+
+    @Test
+    void runtimeRequestsRequireDedicatedKeyWithoutLeakingItToOrdinaryAdmissions() throws Exception {
+        List<String> requests = java.util.Collections.synchronizedList(new ArrayList<>());
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            requests.add(path + "|" + exchange.getRequestHeaders().getFirst("X-Api-Key") + "|"
+                + exchange.getRequestHeaders().getFirst("X-Player-Admin-Runtime-Key"));
+            String payload = path.contains("/drains") ? "[]" : path.contains("/admissions/")
+                ? "{\"admitted\":true,\"permission\":0}" : "{}";
+            byte[] body = payload.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+        server.start();
+        try {
+            ProxyConfig config = new ProxyConfig(
+                "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
+                "http://127.0.0.1:" + server.getAddress().getPort(), "common-key", "sync-key",
+                3000, 500L, 5L, false, "mc.astralrecord.com", List.of(), java.util.Set.of(),
+                "proxy", "runtime-secret");
+            NetworkApiClient api = new NetworkApiClient(config);
+            UUID boot = UUID.randomUUID();
+            UUID player = UUID.randomUUID();
+            NetworkApiClient.EditDrain drain = new NetworkApiClient.EditDrain(
+                UUID.randomUUID(), UUID.randomUUID(), player, true);
+
+            api.registerRuntimeServer("proxy", boot).join();
+            api.getEditDrains("proxy", boot).join();
+            api.acknowledgeEditDrain("proxy", boot, drain, UUID.randomUUID()).join();
+            api.getAdmission(player, "lobby").join();
+
+            assertEquals(4, requests.size());
+            requests.subList(0, 3).forEach(value -> assertEquals(true,
+                value.contains("|common-key|runtime-secret")));
+            assertEquals(true, requests.get(0).startsWith("/api/player-admin/runtime/servers/proxy|"));
+            assertEquals(true, requests.get(1).contains("/drains|"));
+            assertEquals(true, requests.get(2).contains("/drain-ack|"));
+            assertEquals(true, requests.get(3).startsWith("/api/network/admissions/"));
+            assertEquals(true, requests.get(3).endsWith("|common-key|null"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void missingOrSharedRuntimeKeyRefusesRegistrationBeforeSending() {
+        for (String key : List.of("", "common-key")) {
+            ProxyConfig config = new ProxyConfig(
+                "lobby", List.of(), Map.of(), Map.of(), 30L, 2L, 10L,
+                "http://127.0.0.1:1", "common-key", "sync-key", 500, 500L, 5L, false,
+                "mc.astralrecord.com", List.of(), java.util.Set.of(), "proxy", key);
+
+            CompletionException exception = assertThrows(CompletionException.class,
+                () -> new NetworkApiClient(config).registerRuntimeServer("proxy", UUID.randomUUID()).join());
+
+            assertEquals("Player admin runtime key is missing or is not separate from the API key",
+                exception.getCause().getMessage());
+        }
     }
 
     private SSLContext createServerContext() throws Exception {

@@ -6,18 +6,32 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
+import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class AstralRecordLobbyPlugin extends JavaPlugin {
     private final Map<UUID, LobbyApiClient.Admission> admissions = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> permissions = new ConcurrentHashMap<>();
     private final Set<UUID> administrators = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Set<AsyncPlayerPreLoginEvent>> pendingLogins = new ConcurrentHashMap<>();
+    private final AtomicReference<Set<UUID>> editingPlayers = new AtomicReference<>(Set.of());
+    private final AtomicReference<Set<UUID>> safeToDisconnect = new AtomicReference<>(Set.of());
+    private final Map<UUID, UUID> editAckIds = new ConcurrentHashMap<>();
+    private final UUID runtimeSessionId = UUID.randomUUID();
+    private final AtomicBoolean editDrainPollRunning = new AtomicBoolean();
+    private final AtomicBoolean editDrainFailureLogged = new AtomicBoolean();
+    private volatile boolean runtimeRegistered;
     private LobbyApiClient api;
     private ServerSelector selector;
     private DiscordNetworkBridge discordBridge;
@@ -44,6 +58,7 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, () ->
             getServer().getOnlinePlayers().forEach(this::applyLobbyPermission), 20L, 20L);
         getServer().getScheduler().runTaskTimer(this, this::publishServerMetrics, 20L, 100L);
+        getServer().getScheduler().runTaskTimerAsynchronously(this, this::pollEditDrains, 1L, 20L);
     }
 
     @Override
@@ -68,6 +83,90 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
     LobbyApiClient api() { return api; }
     String serverId() { return getConfig().getString("serverId", "lobby"); }
     String channelName() { return getConfig().getString("channelName", "ロビー"); }
+
+    static String editingDisconnectReason() {
+        return "管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。";
+    }
+
+    boolean isEditing(UUID playerId) { return editingPlayers.get().contains(playerId); }
+    boolean canDisconnectForEdit(UUID playerId) { return safeToDisconnect.get().contains(playerId); }
+    void beginLogin(AsyncPlayerPreLoginEvent event) {
+        pendingLogins.compute(event.getUniqueId(), (ignored, attempts) -> {
+            Set<AsyncPlayerPreLoginEvent> active = attempts == null ? ConcurrentHashMap.newKeySet() : attempts;
+            active.add(event);
+            return active;
+        });
+    }
+
+    void finishLogin(AsyncPlayerPreLoginEvent event) {
+        pendingLogins.computeIfPresent(event.getUniqueId(), (ignored, attempts) -> {
+            attempts.remove(event);
+            return attempts.isEmpty() ? null : attempts;
+        });
+    }
+
+    void finishConnection(UUID playerId) {
+        pendingLogins.computeIfPresent(playerId, (ignored, attempts) -> {
+            var iterator = attempts.iterator();
+            if (iterator.hasNext()) attempts.remove(iterator.next());
+            return attempts.isEmpty() ? null : attempts;
+        });
+    }
+
+    /** Polls the durable edit session list and disconnects Lobby players after RPG save acknowledgement. */
+    private void pollEditDrains() {
+        if (!editDrainPollRunning.compareAndSet(false, true)) return;
+        try {
+            String runtimeServerId = getConfig().getString("runtime.serverId", serverId());
+            if (!runtimeRegistered) {
+                api.registerRuntimeServer(runtimeServerId, runtimeSessionId);
+                runtimeRegistered = true;
+            }
+            List<LobbyApiClient.EditDrain> drains = api.getEditDrains(runtimeServerId, runtimeSessionId);
+            Set<UUID> active = new HashSet<>();
+            Set<UUID> safe = new HashSet<>();
+            for (LobbyApiClient.EditDrain drain : drains) {
+                active.add(drain.userUuid());
+                if (drain.safeToDisconnect()) safe.add(drain.userUuid());
+            }
+            editingPlayers.set(Set.copyOf(active));
+            safeToDisconnect.set(Set.copyOf(safe));
+            editAckIds.keySet().retainAll(drains.stream()
+                .map(LobbyApiClient.EditDrain::editSessionId).collect(java.util.stream.Collectors.toSet()));
+            editDrainFailureLogged.set(false);
+            getServer().getScheduler().runTask(this, () -> {
+                for (LobbyApiClient.EditDrain drain : drains) {
+                    if (!drain.safeToDisconnect()) continue;
+                    Player player = getServer().getPlayer(drain.userUuid());
+                    if (player != null && player.isOnline()) {
+                        player.kick(Component.text(editingDisconnectReason()));
+                        continue;
+                    }
+                    if (!pendingLogins.containsKey(drain.userUuid())
+                        && getServer().getPlayer(drain.userUuid()) == null) {
+                        UUID ackId = editAckIds.computeIfAbsent(drain.editSessionId(), ignored -> UUID.randomUUID());
+                        getServer().getScheduler().runTaskAsynchronously(this, () -> {
+                            if (pendingLogins.containsKey(drain.userUuid())) return;
+                            try {
+                                api.acknowledgeEditDrain(runtimeServerId, runtimeSessionId, drain, ackId);
+                            } catch (RuntimeException exception) {
+                                getLogger().warning("Failed to acknowledge player edit drain " + drain.editSessionId()
+                                    + ": " + exception.getMessage());
+                            }
+                        });
+                    }
+                }
+            });
+        } catch (RuntimeException exception) {
+            runtimeRegistered = false;
+            if (editDrainFailureLogged.compareAndSet(false, true)) {
+                getLogger().warning("Player edit runtime is unavailable; retrying registration and drain polling: "
+                    + exception.getMessage());
+            }
+        } finally {
+            editDrainPollRunning.set(false);
+        }
+    }
 
     void cachePermission(UUID playerId, int permission) {
         permissions.put(playerId, permission);

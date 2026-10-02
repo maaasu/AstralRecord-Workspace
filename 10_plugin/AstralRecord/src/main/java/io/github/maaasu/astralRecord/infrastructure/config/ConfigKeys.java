@@ -64,6 +64,7 @@ public final class ConfigKeys {
     public static final String API_SERVER_ID = "api.serverId";
     public static final String API_NETWORK_MODERATION_KEY = "api.networkModerationKey";
     public static final String API_SKILL_TREE_RUNTIME_KEY = "api.skillTreeRuntimeKey";
+    public static final String API_PLAYER_ADMIN_RUNTIME_KEY = "api.playerAdminRuntimeKey";
 
     // マスターデータ自動再読込
     public static final String MASTER_DATA_AUTO_RELOAD_ENABLED = "masterData.autoReload.enabled";

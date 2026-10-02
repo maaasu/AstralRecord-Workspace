@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -14,6 +16,42 @@ namespace AstralRecordApi.Tests.Repositories;
 /// <summary>設計契約: 39-pet。固定マスターで孵化非公開・原子消費・遺伝・死亡・移管禁止を検証する。</summary>
 public class PetRepositoryTests
 {
+    [Fact]
+    public async Task ProgressDuringEdit_RequiresCapturedRuntimeProofAndPreservesReplay()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        // The editor targets another account owned by the same user; the online
+        // account still has to finish its captured pet flush before the user drains.
+        var proof = await fixture.StartEditWithRuntimeAsync(editAnotherOwnedAccount: true);
+        var operationId = Guid.NewGuid();
+        var missing = new PetProgressRequest { OperationId = operationId, UpdatedBy = fixture.Account,
+            ExpectedVersion = pet.Version, Experience = 5, HealthRatio = 1 };
+        Assert.Equal("player_editing", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, missing)).Failure);
+        var authorized = new PetProgressRequest { OperationId = operationId, UpdatedBy = fixture.Account,
+            ExpectedVersion = pet.Version, Experience = 5, HealthRatio = 1,
+            ServerId = proof.ServerId, ServerSessionId = proof.Boot,
+            AccountSessionId = proof.Session, AccountLeaseToken = proof.Token };
+        Assert.Equal("player_editing", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            withWrongToken())).Failure);
+        Assert.True((await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, authorized)).Succeeded);
+        await fixture.Player.PlayerAdminEditSessions.ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, "READY"));
+        Assert.True((await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, missing)).Succeeded);
+        Assert.Equal("player_editing", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+                ExpectedVersion = pet.Version + 1, Experience = 6, HealthRatio = 1,
+                ServerId = proof.ServerId, ServerSessionId = proof.Boot,
+                AccountSessionId = proof.Session, AccountLeaseToken = proof.Token })).Failure);
+
+        PetProgressRequest withWrongToken() => new() { OperationId = authorized.OperationId,
+            UpdatedBy = authorized.UpdatedBy, ExpectedVersion = authorized.ExpectedVersion,
+            Experience = authorized.Experience, HealthRatio = authorized.HealthRatio,
+            ServerId = authorized.ServerId, ServerSessionId = authorized.ServerSessionId,
+            AccountSessionId = authorized.AccountSessionId, AccountLeaseToken = new string('0', 64) };
+    }
+
     [Fact]
     public async Task EggHatch_HidesPrivateDetailsAndReplaysWithoutRerollOrDoubleConsumption()
     {
@@ -277,6 +315,7 @@ public class PetRepositoryTests
         public Guid Account { get; } = Guid.NewGuid();
         public Guid Bag { get; } = Guid.NewGuid();
         public Guid Material { get; } = Guid.NewGuid();
+        public Guid Owner { get; } = Guid.NewGuid();
         public PetMasterResponse Master { get; } = MakeMaster();
         public static async Task<Fixture> CreateAsync()
         {
@@ -286,7 +325,11 @@ public class PetRepositoryTests
             var masters = new MasterDataDbContext(new DbContextOptionsBuilder<MasterDataDbContext>().UseSqlite(m).Options);
             await db.Database.EnsureCreatedAsync(); await MasterDataTestSeed.CreateSchemaAsync(masters);
             var fixture = new Fixture(p, m, db, masters);
-            db.Accounts.Add(new AccountEntity { Uuid = fixture.Account, UserId = Guid.NewGuid(), AccountName = "pet-test" });
+            var now = DateTime.UtcNow;
+            db.Users.Add(new UserEntity { Uuid = fixture.Owner, Mcid = "pet-fixture",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = fixture.Account, UpdatedBy = fixture.Account });
+            db.Accounts.Add(new AccountEntity { Uuid = fixture.Account, UserId = fixture.Owner, AccountName = "pet-test" });
             db.Inventories.Add(new InventoryEntity { InventoryId = fixture.Bag, AccountId = fixture.Account, InventoryType = "BAG", InventoryProfile = "GAME", IsEnabled = true });
             db.InventoryEntries.Add(new InventoryEntryEntity { InventoryEntryId = fixture.Material, InventoryId = fixture.Bag, ItemId = "flower", ItemCategory = "material", Quantity = 400 });
             await db.SaveChangesAsync();
@@ -297,6 +340,30 @@ public class PetRepositoryTests
         }
         public Task<PetMutationResult> EggAsync(Guid? operation = null) => Repository.CreateEggAsync(Account,
             new PetEggCreateRequest { OperationId = operation ?? Guid.NewGuid(), UpdatedBy = Account, SpeciesId = "wolf" });
+        public async Task<(string ServerId, Guid Boot, Guid Session, string Token)> StartEditWithRuntimeAsync(
+            bool editAnotherOwnedAccount = false)
+        {
+            const string token = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+            var boot = Guid.NewGuid(); var session = Guid.NewGuid(); var editId = Guid.NewGuid();
+            var before = DateTime.UtcNow.AddMinutes(-1);
+            Player.PlayerAdminServerRuntimes.Add(new() { ServerId = "rpg-1", ServerSessionId = boot,
+                Role = "RPG", RegisteredAtUtc = before, LastSeenUtc = before });
+            Player.SkillTreeAccountSessions.Add(new() { AccountSessionId = session, AccountId = Account,
+                ServerId = "rpg-1", ServerSessionId = boot, DefinitionGenerationId = "g",
+                LeaseTokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant(),
+                CreatedAtUtc = before, ExpiresAtUtc = before.AddSeconds(1) });
+            var now = DateTime.UtcNow;
+            var editedAccount = editAnotherOwnedAccount ? Guid.NewGuid() : Account;
+            if (editAnotherOwnedAccount)
+                Player.Accounts.Add(new AccountEntity { Uuid = editedAccount, UserId = Owner,
+                    AccountName = "other-offline-account" });
+            Player.PlayerAdminEditSessions.Add(new() { EditSessionId = editId, AccountId = editedAccount,
+                UserUuid = Owner, ActorUserUuid = Owner, Reason = "test", Status = "DRAINING",
+                ExpectedServerCount = 1, CreatedAtUtc = now, UpdatedAtUtc = now, ExpiresAtUtc = now.AddMinutes(30) });
+            Player.PlayerAdminEditDrains.Add(new() { EditSessionId = editId, ServerId = "rpg-1", ServerSessionId = boot });
+            await Player.SaveChangesAsync();
+            return ("rpg-1", boot, session, token);
+        }
         public async Task ReplaceMasterAsync()
         {
             var entry = await MasterDb.Entries.SingleAsync();

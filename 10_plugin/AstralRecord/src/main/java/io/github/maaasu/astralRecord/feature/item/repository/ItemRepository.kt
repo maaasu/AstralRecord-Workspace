@@ -160,9 +160,14 @@ class ItemRepository {
         try {
             ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
                 return when (response.statusCode()) {
-                    200 -> parseItem(response.body())
+                    200 -> {
+                        val bytes = response.body()
+                        val hash = java.util.HexFormat.of().formatHex(
+                            java.security.MessageDigest.getInstance("SHA-256").digest(bytes))
+                        parseItem(String(bytes, StandardCharsets.UTF_8)).copy(responseBodySha256 = hash)
+                    }
                     404 -> {
                         Logger.log(LogId.W_5200, categoryForLog, itemId)
                         null

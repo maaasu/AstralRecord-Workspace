@@ -2,6 +2,8 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,51 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class PaidServicesRepositoryTests
 {
+    [Fact]
+    public async Task PendingShopSettlement_RequiresCapturedRuntimeProofWhileEditing_AndReplaysTerminalReceipt()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.SeedOffer("30a00007", 500, "INSTANCE_PRIORITY", 5);
+        await f.Master.SaveChangesAsync();
+        var proof = await f.AddRuntimeSessionAsync();
+        var repo = new AstraldShopRepository(f.Db, f.Master, f.Network, f.Items, TimeProvider.System);
+        var operationId = Guid.NewGuid();
+        Assert.Equal("PENDING", (await repo.CreateAsync(f.UserId,
+            new(operationId, f.AccountId, "30a00007", 500, null))).Status);
+        await f.StartEditAsync();
+        Assert.Null(await repo.ProcessAsync(operationId, new(f.AccountId, true)));
+        Assert.Null(await repo.ProcessAsync(operationId, proof with { AccountLeaseToken = new string('0', 64) }));
+        Assert.Equal("PENDING", (await f.Db.AstraldShopPurchases.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal("COMPLETED", (await repo.ProcessAsync(operationId, proof))!.Status);
+        await f.Db.PlayerAdminEditSessions.ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, "READY"));
+        Assert.Equal("COMPLETED", (await repo.ProcessAsync(operationId, new(f.AccountId, true)))!.Status);
+        Assert.Equal(500, (await f.Db.InventoryEntries.SingleAsync(x => x.ItemId == "99a00021")).Quantity);
+    }
+
+    [Fact]
+    public async Task PendingMailSettlement_RequiresCapturedRuntimeProofAndRejectsReady()
+    {
+        await using var f = await Fixture.CreateAsync();
+        f.SeedMail("proof-mail", mixed: false);
+        await f.Master.SaveChangesAsync();
+        var shopProof = await f.AddRuntimeSessionAsync();
+        var proof = new WebMailClaimProcessRequest(shopProof.AccountId, shopProof.PreparedOnline,
+            shopProof.ServerId, shopProof.ServerSessionId, shopProof.AccountSessionId, shopProof.AccountLeaseToken);
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var repo = new WebMailRepository(f.Db, new MailRepository(f.Db, f.Master, cache), f.Items, TimeProvider.System);
+        var operationId = Guid.NewGuid();
+        Assert.Equal("PENDING", (await repo.CreateAsync(f.UserId, "proof-mail",
+            new(operationId, f.AccountId))).Status);
+        await f.StartEditAsync();
+        Assert.Null(await repo.ProcessAsync(operationId, new(f.AccountId, true)));
+        await f.Db.PlayerAdminEditSessions.ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, "READY"));
+        Assert.Null(await repo.ProcessAsync(operationId, proof));
+        Assert.Equal("PENDING", (await f.Db.WebMailCurrencyClaims.AsNoTracking().SingleAsync()).Status);
+        await f.Db.PlayerAdminEditSessions.ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, "RECOVERY_REQUIRED"));
+        Assert.Equal("COMPLETED", (await repo.ProcessAsync(operationId, proof))!.Status);
+        Assert.Equal("COMPLETED", (await repo.ProcessAsync(operationId, new(f.AccountId, true)))!.Status);
+    }
+
     [Fact]
     public async Task WebBoostNeedsOptInButGameTicketAndLocalEffectRemainAvailable()
     {
@@ -323,6 +370,34 @@ public sealed class PaidServicesRepositoryTests
         public Guid UserId = Guid.NewGuid();
         public Guid AccountId = Guid.NewGuid();
         public Guid BagId = Guid.NewGuid();
+        private Guid bootId;
+        private Guid accountSessionId;
+        private const string LeaseToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        public async Task<AstraldShopProcessRequest> AddRuntimeSessionAsync()
+        {
+            bootId = Guid.NewGuid(); accountSessionId = Guid.NewGuid();
+            var now = DateTime.UtcNow.AddMinutes(-1);
+            Db.PlayerAdminServerRuntimes.Add(new() { ServerId = "rpg-1", ServerSessionId = bootId,
+                Role = "RPG", Enabled = true, RegisteredAtUtc = now, LastSeenUtc = now });
+            Db.SkillTreeAccountSessions.Add(new() { AccountSessionId = accountSessionId, AccountId = AccountId,
+                ServerId = "rpg-1", ServerSessionId = bootId, DefinitionGenerationId = "g",
+                LeaseTokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(LeaseToken))).ToLowerInvariant(),
+                CreatedAtUtc = now, ExpiresAtUtc = now.AddSeconds(1) });
+            await Db.SaveChangesAsync();
+            return new(AccountId, true, "rpg-1", bootId, accountSessionId, LeaseToken);
+        }
+        public async Task<PlayerAdminEditSessionEntity> StartEditAsync()
+        {
+            var now = DateTime.UtcNow;
+            var edit = new PlayerAdminEditSessionEntity { EditSessionId = Guid.NewGuid(), AccountId = AccountId,
+                UserUuid = UserId, ActorUserUuid = UserId, Reason = "test", Status = "DRAINING",
+                ExpectedServerCount = 1, CreatedAtUtc = now, UpdatedAtUtc = now, ExpiresAtUtc = now.AddMinutes(30) };
+            Db.PlayerAdminEditSessions.Add(edit);
+            Db.PlayerAdminEditDrains.Add(new() { EditSessionId = edit.EditSessionId,
+                ServerId = "rpg-1", ServerSessionId = bootId });
+            await Db.SaveChangesAsync();
+            return edit;
+        }
         public static async Task<Fixture> CreateAsync()
         {
             var gameConnection = new SqliteConnection("Data Source=:memory:");

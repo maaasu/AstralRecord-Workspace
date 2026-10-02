@@ -237,12 +237,24 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         return new() { LeaseToken = token, LeaseExpiresAtUtc = item.LeaseExpiresAtUtc.Value, Operation = Map(item) };
     }
 
-    public async Task<bool> ValidateRuntimeStateSaveAsync(Guid accountId, string serverId, Guid serverSessionId, string definitionGenerationId, Guid accountSessionId, string accountLeaseToken)
+    public async Task<bool> ValidateRuntimeStateSaveAsync(Guid accountId, string serverId, Guid serverSessionId, string definitionGenerationId, Guid accountSessionId, string accountLeaseToken, bool allowCapturedDrain = false)
     {
         if (!ValidServer(serverId) || !ValidHash(definitionGenerationId)) return false;
         var runtime = await VerifyRuntimeAsync(serverId, serverSessionId);
+        if (runtime is null) return false;
         var owner = await MatchingSessionAsync(accountId, serverId, serverSessionId, accountSessionId, accountLeaseToken);
-        return runtime is not null && owner?.DefinitionGenerationId == definitionGenerationId;
+        if (owner is not null) return owner.DefinitionGenerationId == definitionGenerationId;
+        if (!allowCapturedDrain) return false;
+        // An expired lease is never proof of logout. During the edit drain only,
+        // an exact pre-edit, still-open account session may finish its snapshot.
+        var userUuid = await dbContext.Accounts.AsNoTracking().Where(x => x.Uuid == accountId)
+            .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+        if (!userUuid.HasValue || !await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(
+                dbContext, accountId, userUuid.Value, serverId, serverSessionId,
+                accountSessionId, accountLeaseToken)) return false;
+        return await SkillTreeSessionReads.Query(dbContext).AsNoTracking().AnyAsync(x =>
+            x.AccountSessionId == accountSessionId && x.AccountId == accountId
+            && x.DefinitionGenerationId == definitionGenerationId);
     }
 
     public async Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now)

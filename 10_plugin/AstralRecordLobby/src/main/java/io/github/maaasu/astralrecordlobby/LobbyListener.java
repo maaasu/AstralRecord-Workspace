@@ -1,7 +1,9 @@
 package io.github.maaasu.astralrecordlobby;
 
+import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -54,18 +56,44 @@ final class LobbyListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        UUID playerId = event.getUniqueId();
+        plugin.beginLogin(event);
         try {
-            LobbyApiClient.Admission admission = plugin.api().getAdmission(event.getUniqueId());
+            LobbyApiClient.Admission admission = plugin.api().getAdmission(playerId);
+            if (plugin.isEditing(playerId) || "player_editing".equalsIgnoreCase(admission.denyReason())) {
+                plugin.finishLogin(event);
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+                    AstralRecordLobbyPlugin.editingDisconnectReason());
+                return;
+            }
             if (!admission.admitted()) {
+                plugin.finishLogin(event);
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, "このサーバーへの参加は禁止されています。");
                 return;
             }
-            plugin.cacheAdmission(event.getUniqueId(), admission);
+            plugin.cacheAdmission(playerId, admission);
         } catch (RuntimeException exception) {
+            plugin.finishLogin(event);
             plugin.getLogger().warning("Admission check failed for " + event.getName() + ": " + exception.getMessage());
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
-                "認証サーバーに接続できません。しばらくしてから再度お試しください。");
+                plugin.isEditing(playerId) ? AstralRecordLobbyPlugin.editingDisconnectReason() :
+                    "認証サーバーに接続できません。しばらくしてから再度お試しください。");
         }
+    }
+
+    /** A later listener may deny the same pre-login attempt after admission succeeds. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPreLoginComplete(AsyncPlayerPreLoginEvent event) {
+        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
+            plugin.finishLogin(event);
+            plugin.clearPermission(event.getUniqueId());
+        }
+    }
+
+    /** Paper emits this for admitted attempts even when they never reach PlayerJoinEvent. */
+    @EventHandler
+    public void onConnectionClose(PlayerConnectionCloseEvent event) {
+        plugin.finishConnection(event.getPlayerUniqueId());
     }
 
     /**
@@ -76,6 +104,10 @@ final class LobbyListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (plugin.isEditing(player.getUniqueId()) && plugin.canDisconnectForEdit(player.getUniqueId())) {
+            player.kick(Component.text(AstralRecordLobbyPlugin.editingDisconnectReason()));
+            return;
+        }
         plugin.applyLobbyPermission(player);
         keepFoodFull(player);
     }

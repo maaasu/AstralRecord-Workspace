@@ -296,6 +296,36 @@ public class ItemService {
     }
 
     /**
+     * API と管理編集で照合する、現在公開中の API 由来詳細応答のハッシュです。
+     * Plugin が後から注入する通貨アイテムは API マスタに含まれないため除外します。
+     *
+     * @return 公開前は空文字、公開済みなら UTF-8 正規行の SHA-256 小文字16進数
+     */
+    public @NotNull String getApiItemCatalogHash() {
+        if (!masterDataSnapshotPublished) return "";
+        java.util.Set<String> builtinIds = java.util.Arrays.stream(GoldDenomination.values())
+            .map(GoldDenomination::itemId)
+            .collect(java.util.stream.Collectors.toSet());
+        builtinIds.add(ASTRALD_CURRENCY_ITEM_ID);
+        StringBuilder canonical = new StringBuilder();
+        List<ItemModel> apiItems = loadedMasterData.items().values().stream()
+            .filter(item -> !builtinIds.contains(item.getId()))
+            .sorted(Comparator.comparing(ItemModel::getId))
+            .toList();
+        if (apiItems.stream().anyMatch(item -> item.getResponseBodySha256().isBlank())) return "";
+        apiItems.stream()
+            .forEach(item -> canonical.append(item.getId()).append('\t')
+                .append(item.getResponseBodySha256()).append('\n'));
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
+    }
+
+    /**
      * 指定カテゴリでロード済みアイテムを絞り込みます。
      */
     public @NotNull List<ItemModel> getLoadedItemsByCategory(@NotNull String category) {

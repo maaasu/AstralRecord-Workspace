@@ -167,6 +167,100 @@
           "uniqueIndexes": ["UX_donation_discord_user"]
         }
       ]
+    },
+    {
+      "id": "20261002_player_admin_edit",
+      "fileName": "20261002_player_admin_edit.sql",
+      "commandTimeoutSeconds": 120,
+      "tables": [
+        {
+          "name": "player_admin_edit_audit",
+          "primaryKey": "PK_player_admin_edit_audit",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "edit_session_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "actor_user_uuid",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "target_user_uuid",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "reason",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 1000,
+              "isNullable": false
+            },
+            {
+              "name": "action",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "char",
+              "maxLengthBytes": 64,
+              "isNullable": false
+            },
+            {
+              "name": "before_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "after_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "occurred_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "projection_status",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_player_admin_edit_audit_action",
+            "CK_player_admin_edit_audit_hash",
+            "CK_player_admin_edit_audit_json",
+            "CK_player_admin_edit_audit_projection"
+          ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": []
+        }
+      ]
     }
   ]
 }

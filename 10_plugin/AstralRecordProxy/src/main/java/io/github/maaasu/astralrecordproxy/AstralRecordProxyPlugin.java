@@ -76,6 +76,13 @@ public final class AstralRecordProxyPlugin {
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
     private final Map<UUID, AuthorityTransferPreparation> authorityTransferPreparations = new ConcurrentHashMap<>();
     private final Set<UUID> pendingGameConnections = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> pendingLogins = ConcurrentHashMap.newKeySet();
+    private final AtomicReference<Set<UUID>> editingPlayers = new AtomicReference<>(Set.of());
+    private final Map<UUID, UUID> editAckIds = new ConcurrentHashMap<>();
+    private final UUID runtimeSessionId = UUID.randomUUID();
+    private final AtomicBoolean editDrainPollRunning = new AtomicBoolean();
+    private final AtomicBoolean editDrainFailureLogged = new AtomicBoolean();
+    private volatile boolean runtimeRegistered;
     private final Map<String, AtomicInteger> serverReservations = new ConcurrentHashMap<>();
     private final Map<String, ServerMetric> serverMspt = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, PlayerMetadata>> tabDisplayCache = new ConcurrentHashMap<>();
@@ -125,6 +132,8 @@ public final class AstralRecordProxyPlugin {
             .repeat(Duration.ofMillis(config.discordPollMillis())).schedule();
         proxy.getScheduler().buildTask(this, this::refreshManagedSettings)
             .repeat(Duration.ofSeconds(config.settingsRefreshSeconds())).schedule();
+        proxy.getScheduler().buildTask(this, this::pollEditDrains)
+            .repeat(Duration.ofSeconds(1)).schedule();
         refreshManagedSettings();
         logger.info("AstralRecordProxy enabled. Waiting for Management DB network settings.");
     }
@@ -177,7 +186,7 @@ public final class AstralRecordProxyPlugin {
                 .forEach(ban -> active.put(ban.playerId(), ban));
             proxy.getAllPlayers().forEach(player -> {
                 NetworkApiClient.BanState ban = active.get(player.getUniqueId());
-                if (ban != null) player.disconnect(banDisconnectReason(
+                if (ban != null && !editingPlayers.get().contains(player.getUniqueId())) player.disconnect(banDisconnectReason(
                     ban.indefinite(), ban.expiresAtUtc(), ban.reason(), OffsetDateTime.now()));
             });
         });
@@ -192,36 +201,65 @@ public final class AstralRecordProxyPlugin {
     /** Proxyログイン時にManagement DBのBAN・ロビー入場可否を確認する。 */
     @Subscribe
     public EventTask onLogin(LoginEvent event) {
+        UUID playerId = event.getPlayer().getUniqueId();
+        pendingLogins.add(playerId);
         NetworkSettings settings = settings();
         if (settings == null) {
+            pendingLogins.remove(playerId);
             event.setResult(ResultedEvent.ComponentResult.denied(
                 Component.text("認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED)));
             return EventTask.async(() -> { });
         }
         return EventTask.withContinuation(continuation -> api.getAdmission(
-            event.getPlayer().getUniqueId(), settings.lobbyServer()).whenComplete((admission, failure) -> {
+            playerId, settings.lobbyServer()).whenComplete((admission, failure) -> {
                 if (failure != null) {
-                    event.setResult(ResultedEvent.ComponentResult.denied(Component.text(
-                        "認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED)));
-                } else if (!admission.admitted()) {
-                    event.setResult(ResultedEvent.ComponentResult.denied(admissionDenyComponent(admission)));
+                    pendingLogins.remove(playerId);
+                    event.setResult(ResultedEvent.ComponentResult.denied(editingPlayers.get().contains(playerId)
+                        ? editingDisconnectReason()
+                        : Component.text("認証サーバーに接続できません。しばらくしてから再度お試しください。",
+                            NamedTextColor.RED)));
+                } else if (editingPlayers.get().contains(playerId) || !admission.admitted()) {
+                    if ("player_editing".equalsIgnoreCase(admission.denyReason())) markEditing(playerId);
+                    pendingLogins.remove(playerId);
+                    event.setResult(ResultedEvent.ComponentResult.denied(
+                        editingPlayers.get().contains(playerId) ? editingDisconnectReason() : admissionDenyComponent(admission)));
                 }
                 continuation.resume();
             }));
     }
 
     @Subscribe
-    public void onServerPreConnect(ServerPreConnectEvent event) {
+    public EventTask onServerPreConnect(ServerPreConnectEvent event) {
+        if (editingPlayers.get().contains(event.getPlayer().getUniqueId())) {
+            event.setResult(ServerPreConnectEvent.ServerResult.denied());
+            return EventTask.async(() -> { });
+        }
         NetworkSettings settings = settings();
         if (settings == null) {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            return;
+            return EventTask.async(() -> { });
         }
-        if (event.getPlayer().getCurrentServer().isPresent()) return;
         String target = event.getOriginalServer().getServerInfo().getName();
-        if (!target.equalsIgnoreCase(settings.lobbyServer())) {
+        if (event.getPlayer().getCurrentServer().isEmpty() && !target.equalsIgnoreCase(settings.lobbyServer())) {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
+            return EventTask.async(() -> { });
         }
+        UUID playerId = event.getPlayer().getUniqueId();
+        return EventTask.withContinuation(continuation -> api.getAdmission(playerId, target)
+            .whenComplete((admission, failure) -> {
+                boolean editing = failure == null && "player_editing".equalsIgnoreCase(admission.denyReason());
+                if (editing) markEditing(playerId);
+                if (failure != null || !admission.admitted() || editingPlayers.get().contains(playerId)) {
+                    event.setResult(ServerPreConnectEvent.ServerResult.denied());
+                    if (event.getPlayer().getCurrentServer().isPresent()) {
+                        event.getPlayer().sendMessage(editingPlayers.get().contains(playerId)
+                            ? editingDisconnectReason()
+                            : failure == null ? admissionDenyComponent(admission)
+                                : Component.text("認証サーバーに接続できません。", NamedTextColor.RED));
+                    }
+                }
+                continuation.resume();
+            }));
     }
 
     @Subscribe
@@ -248,6 +286,7 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
+        pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
         if (settings == null) return;
         Player player = event.getPlayer();
@@ -295,6 +334,7 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
+        pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
         if (settings == null) return;
         UUID playerId = event.getPlayer().getUniqueId();
@@ -529,14 +569,22 @@ public final class AstralRecordProxyPlugin {
      */
     /** backend切替の直前にManagement DBのBAN・チャンネルアクセスを再照会する。 */
     private void requestConnectionWithAdmission(Player player, String sourceServer, String targetServer) {
+        if (editingPlayers.get().contains(player.getUniqueId())) {
+            player.sendMessage(editingDisconnectReason());
+            return;
+        }
         api.getAdmission(player.getUniqueId(), targetServer).whenComplete((admission, failure) -> {
             if (failure != null) {
                 player.sendMessage(Component.text("認証サーバーに接続できません。しばらくしてから再度お試しください。", NamedTextColor.RED));
                 return;
             }
-            if (!admission.admitted()) {
-                Component reason = admissionDenyComponent(admission);
-                if (isBanDeny(admission)) {
+            if ("player_editing".equalsIgnoreCase(admission.denyReason())) {
+                markEditing(player.getUniqueId());
+            }
+            if (editingPlayers.get().contains(player.getUniqueId()) || !admission.admitted()) {
+                Component reason = editingPlayers.get().contains(player.getUniqueId())
+                    ? editingDisconnectReason() : admissionDenyComponent(admission);
+                if (!editingPlayers.get().contains(player.getUniqueId()) && isBanDeny(admission)) {
                     player.disconnect(reason);
                 } else {
                     player.sendMessage(reason);
@@ -1236,11 +1284,70 @@ public final class AstralRecordProxyPlugin {
     }
 
     static Component admissionDenyComponent(NetworkApiClient.Admission admission) {
+        if ("player_editing".equalsIgnoreCase(admission.denyReason())) {
+            return editingDisconnectReason();
+        }
         if (isBanDeny(admission)) {
             return banDisconnectReason(
                 admission.banIndefinite(), admission.banExpiresAtUtc(), admission.banReason(), OffsetDateTime.now());
         }
         return Component.text("このチャンネルは許可されたプレイヤーのみ参加できます。", NamedTextColor.RED);
+    }
+
+    static Component editingDisconnectReason() {
+        return Component.text("管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。",
+            NamedTextColor.RED);
+    }
+
+    private void markEditing(UUID playerId) {
+        editingPlayers.updateAndGet(previous -> {
+            Set<UUID> updated = new HashSet<>(previous);
+            updated.add(playerId);
+            return Set.copyOf(updated);
+        });
+    }
+
+    /** Re-register this boot after API recovery and drain only after RPG has saved its state. */
+    private void pollEditDrains() {
+        if (!editDrainPollRunning.compareAndSet(false, true)) return;
+        CompletableFuture<Void> registered = runtimeRegistered
+            ? CompletableFuture.completedFuture(null)
+            : api.registerRuntimeServer(config.runtimeServerId(), runtimeSessionId)
+                .thenRun(() -> runtimeRegistered = true);
+        registered.thenCompose(ignored -> api.getEditDrains(config.runtimeServerId(), runtimeSessionId))
+            .whenComplete((drains, failure) -> {
+                editDrainPollRunning.set(false);
+                if (failure != null) {
+                    runtimeRegistered = false;
+                    if (editDrainFailureLogged.compareAndSet(false, true)) {
+                        logger.warn("Player edit runtime is unavailable; retrying registration and drain polling.", failure);
+                    }
+                    return;
+                }
+                editDrainFailureLogged.set(false);
+                Set<UUID> active = new HashSet<>();
+                for (NetworkApiClient.EditDrain drain : drains) active.add(drain.userUuid());
+                editingPlayers.set(Set.copyOf(active));
+                editAckIds.keySet().retainAll(drains.stream()
+                    .map(NetworkApiClient.EditDrain::editSessionId).collect(java.util.stream.Collectors.toSet()));
+                for (NetworkApiClient.EditDrain drain : drains) {
+                    if (!drain.safeToDisconnect()) continue;
+                    Player player = proxy.getPlayer(drain.userUuid()).orElse(null);
+                    if (player != null) {
+                        player.disconnect(editingDisconnectReason());
+                        continue;
+                    }
+                    if (pendingLogins.contains(drain.userUuid()) || pendingGameConnections.contains(drain.userUuid())) {
+                        continue;
+                    }
+                    UUID ackId = editAckIds.computeIfAbsent(drain.editSessionId(), ignored -> UUID.randomUUID());
+                    api.acknowledgeEditDrain(config.runtimeServerId(), runtimeSessionId, drain, ackId)
+                        .exceptionally(ackFailure -> {
+                            logger.warn("Failed to acknowledge player edit drain {}", drain.editSessionId(), ackFailure);
+                            return null;
+                        });
+                }
+            });
     }
 
     /** BAN種別・期限・理由を含むプレイヤー向けの切断理由を生成する。 */

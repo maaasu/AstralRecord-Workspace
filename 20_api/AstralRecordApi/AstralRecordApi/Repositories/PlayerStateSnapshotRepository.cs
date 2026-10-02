@@ -54,9 +54,42 @@ public sealed class PlayerStateSnapshotRepository(
                     : Success(replay);
             }
 
+            // Edit start and snapshot save take the same user lock before the account lock.
+            var ownerUserId = await dbContext.Accounts.AsNoTracking()
+                .Where(x => x.Uuid == request.AccountId && !x.IsDeleted)
+                .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+            if (!ownerUserId.HasValue)
+                return Failure(PlayerStateSnapshotSaveFailure.AccountNotFound, "Account was not found.");
+            var userQuery = dbContext.Database.IsSqlServer()
+                ? dbContext.Users.FromSqlInterpolated($"SELECT * FROM [dbo].[user] WITH (UPDLOCK,HOLDLOCK) WHERE [uuid] = {ownerUserId.Value}")
+                : dbContext.Users.Where(x => x.Uuid == ownerUserId.Value);
+            if (!await userQuery.AnyAsync(x => !x.IsDeleted))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Account owner is unavailable.");
             var account = await FindAccountForUpdateAsync(request.AccountId);
             if (account is null)
                 return Failure(PlayerStateSnapshotSaveFailure.AccountNotFound, "Account was not found.");
+            if (account.UserId != ownerUserId.Value)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Account owner changed.");
+            var edit = await dbContext.PlayerAdminEditSessions.AsNoTracking().SingleOrDefaultAsync(x =>
+                x.UserUuid == account.UserId && (x.Status == "DRAINING" || x.Status == "READY"
+                    || x.Status == "APPLYING" || x.Status == "RECOVERY_REQUIRED"));
+            if (edit is not null)
+            {
+                if (edit.Status is not ("DRAINING" or "RECOVERY_REQUIRED"))
+                    return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Player admin edit blocks gameplay snapshots.");
+                var proofJson = request.RuntimeAuthority ?? request.SkillTree;
+                var proof = proofJson.HasValue ? TryDeserializeSection<PlayerStateSkillTreeSection>(proofJson.Value) : null;
+                if (proof?.ServerId is null || proof.ServerSessionId is null || proof.AccountSessionId is null
+                    || !await dbContext.SkillTreeAccountSessions.AsNoTracking().AnyAsync(x =>
+                        x.AccountId == request.AccountId && x.AccountSessionId == proof.AccountSessionId.Value
+                        && x.ServerId == proof.ServerId && x.ServerSessionId == proof.ServerSessionId.Value
+                        && x.CreatedAtUtc <= edit.CreatedAtUtc && !x.Closed)
+                    || !await dbContext.PlayerAdminEditDrains.AsNoTracking().AnyAsync(x =>
+                        x.EditSessionId == edit.EditSessionId && x.ServerId == proof.ServerId
+                        && x.ServerSessionId == proof.ServerSessionId.Value))
+                    return Failure(PlayerStateSnapshotSaveFailure.Conflict,
+                        "Only a pre-existing gameplay session may complete its final drain snapshot.");
+            }
             if (await skillTreeOperationRepository.RequiresRuntimeAuthorityAsync(request.AccountId))
             {
                 var proofJson = request.RuntimeAuthority ?? request.SkillTree;
@@ -65,7 +98,7 @@ public sealed class PlayerStateSnapshotRepository(
                     || proof.AccountLeaseToken is null || proof.DefinitionGenerationId is null
                     || !await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(request.AccountId,
                         proof.ServerId, proof.ServerSessionId.Value, proof.DefinitionGenerationId,
-                        proof.AccountSessionId.Value, proof.AccountLeaseToken))
+                        proof.AccountSessionId.Value, proof.AccountLeaseToken, allowCapturedDrain: true))
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Player session no longer owns state persistence.");
             }
             if (!await ChildIdsBelongToSnapshotParentsAsync(request))
@@ -665,7 +698,7 @@ public sealed class PlayerStateSnapshotRepository(
                 && !string.IsNullOrWhiteSpace(section.ServerId)
                 && section.ServerSessionId.HasValue
                 && section.AccountSessionId.HasValue && section.AccountLeaseToken is not null
-                && await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(request.AccountId, section.ServerId, section.ServerSessionId.Value, section.DefinitionGenerationId, section.AccountSessionId.Value, section.AccountLeaseToken);
+                && await skillTreeOperationRepository.ValidateRuntimeStateSaveAsync(request.AccountId, section.ServerId, section.ServerSessionId.Value, section.DefinitionGenerationId, section.AccountSessionId.Value, section.AccountLeaseToken, allowCapturedDrain: true);
             if (section.Operation is null && !string.IsNullOrWhiteSpace(section.DefinitionGenerationId) && !runtimeSaveVerified)
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "skillTree runtime generation or session conflicts with current state.");
             var applied = await ApplySkillTreeAsync(section, request, now, runtimeSaveVerified);

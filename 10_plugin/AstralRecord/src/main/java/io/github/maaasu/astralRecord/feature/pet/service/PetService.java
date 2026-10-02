@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.pet.service;
 import com.google.gson.*;
 import io.github.maaasu.astralRecord.feature.pet.model.*;
 import io.github.maaasu.astralRecord.feature.pet.repository.PetRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.RuntimeAccountAuthority;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.inventory.service.*;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
@@ -35,6 +36,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private volatile PetMaster master = new PetMaster(new JsonObject());
     private volatile Consumer<AstPlayer> refreshListener = ignored -> { };
     private volatile Consumer<AstPlayer> pauseListener = ignored -> { };
+    private volatile java.util.function.Function<UUID, RuntimeAccountAuthority> progressAuthorityProvider = ignored -> null;
     private volatile java.util.function.Predicate<AstPlayer> activityEligible=ignored->false;
     private volatile boolean stopped;
 
@@ -60,6 +62,11 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @param snapshot 契約に従った入力値
      */
     public void publishMasterSnapshot(PetMaster snapshot){master=snapshot;}
+
+    /** 通常進行保存と退出時の最終保存に、既存 account session の証拠を固定する。 */
+    public void setProgressAuthorityProvider(java.util.function.Function<UUID, RuntimeAccountAuthority> provider) {
+        progressAuthorityProvider = java.util.Objects.requireNonNull(provider);
+    }
     /**
      * 移管で未ロードになった個体を非同期取得します。同accountの重複要求を抑止します。
      * @param accountId 所有アカウントID
@@ -286,9 +293,11 @@ public final class PetService implements PetRuntimeService.StateBridge {
                 if(progress.request==null){
                     JsonObject body=new JsonObject();body.addProperty("operationId",UUID.randomUUID().toString());
                     body.addProperty("updatedBy",state.id.toString());body.addProperty("expectedVersion",pet.version());
-                    body.addProperty("experience",progress.experience);body.addProperty("healthRatio",progress.health);
-                    body.addProperty("isDead",progress.dead);body.add("cooldowns",new Gson().toJsonTree(progress.cooldowns));
-                    progress.request=new ProgressRequest(body,progress.experience,progress.revision);
+                     body.addProperty("experience",progress.experience);body.addProperty("healthRatio",progress.health);
+                     body.addProperty("isDead",progress.dead);body.add("cooldowns",new Gson().toJsonTree(progress.cooldowns));
+                     RuntimeAccountAuthority authority = progressAuthorityProvider.apply(state.id);
+                     if (authority != null) authority.writeTo(body);
+                     progress.request=new ProgressRequest(body,progress.experience,progress.revision);
                 }
                 request=progress.request;
             }

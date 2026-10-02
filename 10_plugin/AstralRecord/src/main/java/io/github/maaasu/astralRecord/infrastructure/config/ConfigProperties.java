@@ -74,6 +74,7 @@ public class ConfigProperties {
     private String apiServerId;
     private String apiNetworkModerationKey;
     private String apiSkillTreeRuntimeKey;
+    private String apiPlayerAdminRuntimeKey;
 
     // マスターデータ自動再読込
     private boolean masterDataAutoReloadEnabled;
@@ -230,6 +231,7 @@ public class ConfigProperties {
         this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
         this.apiNetworkModerationKey = configManager.getConfig().getString(ConfigKeys.API_NETWORK_MODERATION_KEY, "");
         this.apiSkillTreeRuntimeKey = configManager.getConfig().getString(ConfigKeys.API_SKILL_TREE_RUNTIME_KEY, "");
+        this.apiPlayerAdminRuntimeKey = configManager.getConfig().getString(ConfigKeys.API_PLAYER_ADMIN_RUNTIME_KEY, "");
         this.masterDataAutoReloadEnabled = configManager.getConfig().getBoolean(
                 ConfigKeys.MASTER_DATA_AUTO_RELOAD_ENABLED,
                 true
@@ -564,6 +566,11 @@ public class ConfigProperties {
      */
     public String getApiSkillTreeRuntimeKey() {
         return apiSkillTreeRuntimeKey;
+    }
+
+    /** 管理者編集の runtime API 専用キー。未設定時は空文字を返す。 */
+    public String getApiPlayerAdminRuntimeKey() {
+        return apiPlayerAdminRuntimeKey;
     }
 
     /**

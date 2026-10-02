@@ -3,17 +3,22 @@ package io.github.maaasu.astralrecordlobby;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import com.sun.net.httpserver.HttpServer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
+import com.google.gson.JsonParser;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,6 +47,85 @@ class LobbyApiClientTest {
         assertFalse(new LobbyApiClient.Admission(true, 0, null, "DONER", "2000-01-01T00:00:00Z").hasActiveVip());
         assertFalse(new LobbyApiClient.Admission(true, 0, null, "UNKNOWN", "2099-01-01T00:00:00Z").hasActiveVip());
         assertFalse(new LobbyApiClient.Admission(true, 0, null, "DONER", "invalid").hasActiveVip());
+    }
+
+    @Test
+    void editDrainDefaultsToUnsafeUntilRpgSaveAcknowledged() {
+        UUID editId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        String base = "{\"editSessionId\":\"" + editId + "\",\"accountId\":\"" + accountId
+            + "\",\"userUuid\":\"" + playerId + "\"";
+
+        var waiting = LobbyApiClient.EditDrain.fromJson(JsonParser.parseString(base + "}").getAsJsonObject());
+        var saved = LobbyApiClient.EditDrain.fromJson(JsonParser.parseString(
+            base + ",\"safeToDisconnect\":true}").getAsJsonObject());
+
+        assertFalse(waiting.safeToDisconnect());
+        assertTrue(saved.safeToDisconnect());
+        assertEquals(accountId, saved.accountId());
+        assertEquals(playerId, saved.userUuid());
+    }
+
+    @Test
+    void runtimeRequestsRequireDedicatedKeyWithoutLeakingItToOrdinaryAdmissions() throws Exception {
+        List<String> requests = java.util.Collections.synchronizedList(new ArrayList<>());
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            requests.add(path + "|" + exchange.getRequestHeaders().getFirst("X-Api-Key") + "|"
+                + exchange.getRequestHeaders().getFirst("X-Player-Admin-Runtime-Key"));
+            String payload = path.contains("/drains") ? "[]" : path.contains("/admissions/")
+                ? "{\"admitted\":true,\"permission\":0}" : "{}";
+            byte[] body = payload.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+        server.start();
+        try {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("api.baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            config.set("api.apiKey", "common-key");
+            config.set("runtime.playerAdminKey", "runtime-secret");
+            LobbyApiClient api = new LobbyApiClient(config);
+            UUID boot = UUID.randomUUID();
+            UUID player = UUID.randomUUID();
+            LobbyApiClient.EditDrain drain = new LobbyApiClient.EditDrain(
+                UUID.randomUUID(), UUID.randomUUID(), player, true);
+
+            api.registerRuntimeServer("lobby", boot);
+            api.getEditDrains("lobby", boot);
+            api.acknowledgeEditDrain("lobby", boot, drain, UUID.randomUUID());
+            api.getAdmission(player);
+
+            assertEquals(4, requests.size());
+            requests.subList(0, 3).forEach(value -> assertTrue(value.contains("|common-key|runtime-secret")));
+            assertTrue(requests.get(0).startsWith("/api/player-admin/runtime/servers/lobby|"));
+            assertTrue(requests.get(1).contains("/drains|"));
+            assertTrue(requests.get(2).contains("/drain-ack|"));
+            assertTrue(requests.get(3).startsWith("/api/network/admissions/"));
+            assertTrue(requests.get(3).endsWith("|common-key|null"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void missingOrSharedRuntimeKeyRefusesRegistrationBeforeSending() {
+        for (String key : List.of("", "common-key")) {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("api.baseUrl", "http://127.0.0.1:1");
+            config.set("api.apiKey", "common-key");
+            config.set("runtime.playerAdminKey", key);
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> new LobbyApiClient(config).registerRuntimeServer("lobby", UUID.randomUUID()));
+
+            assertEquals("Player admin runtime key is missing or is not separate from the API key",
+                exception.getMessage());
+        }
     }
 
     @Test

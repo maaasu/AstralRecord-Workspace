@@ -361,7 +361,6 @@ public class PlayerService {
                     boolean saved = playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT)
                             && !accountService.hasPendingClassProgress(accountId)
                             && (state == null || !inventoryPersistence.hasPendingChanges(state));
-                    if (saved) logoutStateSavedListener.accept(astPlayer);
                     return saved;
                 }
             );
@@ -374,16 +373,27 @@ public class PlayerService {
             statusService.clearShieldRuntimeState(player.getUniqueId());
         }
         AstPlayerCache.remove(player.getUniqueId());
-        if(petService!=null&&astPlayer!=null){
-            CompletableFuture<Boolean> inventorySave=save;
-            UUID petAccountId=astPlayer.getAccount().getUuid();
-            long petGeneration=petService.generation(petAccountId);
-            save=petService.flush(petAccountId).thenCombine(inventorySave,(ignored,saved)->{
-                if(saved)petService.releaseSavedAccount(petAccountId,petGeneration);
-                return saved;
+        if (astPlayer != null) {
+            AstPlayer logoutPlayer = astPlayer;
+            UUID accountId = logoutPlayer.getAccount().getUuid();
+            long petGeneration = petService == null ? -1 : petService.generation(accountId);
+            CompletableFuture<Void> petFlush = petService == null
+                ? CompletableFuture.completedFuture(null) : petService.flush(accountId);
+            return finishLogoutAfterRelatedSaves(save, petFlush, () -> {
+                if (petService != null) petService.releaseSavedAccount(accountId, petGeneration);
+                logoutStateSavedListener.accept(logoutPlayer);
             });
         }
         return save;
+    }
+
+    /** Core と pet の保存が両方成功した後だけ旧 runtime account session の終了を始める。 */
+    static CompletableFuture<Boolean> finishLogoutAfterRelatedSaves(
+        CompletableFuture<Boolean> coreSave, CompletableFuture<Void> petFlush, Runnable onSaved) {
+        return coreSave.thenCombine(petFlush, (saved, ignored) -> saved).thenApply(saved -> {
+            if (saved) onSaved.run();
+            return saved;
+        });
     }
 
     /**

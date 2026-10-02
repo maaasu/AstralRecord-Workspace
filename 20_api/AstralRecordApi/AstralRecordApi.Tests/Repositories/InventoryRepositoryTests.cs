@@ -30,6 +30,7 @@ public class InventoryRepositoryTests
         var existingEntryId = Guid.NewGuid();
         var clientGeneratedEntryId = Guid.NewGuid();
         var now = DateTime.UtcNow.AddMinutes(1);
+        SeedAccount(dbContext, accountId, now);
         dbContext.Inventories.Add(new InventoryEntity
         {
             InventoryId = inventoryId,
@@ -116,6 +117,7 @@ public class InventoryRepositoryTests
         var firstId = Guid.NewGuid();
         var secondId = Guid.NewGuid();
         var now = DateTime.UtcNow;
+        SeedAccount(dbContext, accountId, now);
         dbContext.Inventories.Add(CreateInventory(inventoryId, accountId, now));
         dbContext.InventoryEntries.AddRange(
             CreateEntry(firstId, inventoryId, 1, "first", accountId, now),
@@ -174,6 +176,7 @@ public class InventoryRepositoryTests
         var inventoryId = Guid.NewGuid();
         var consumedEntryId = Guid.NewGuid();
         var now = DateTime.UtcNow;
+        SeedAccount(dbContext, accountId, now);
         dbContext.Inventories.Add(CreateInventory(inventoryId, accountId, now));
         var consumed = CreateEntry(
             consumedEntryId,
@@ -230,6 +233,7 @@ public class InventoryRepositoryTests
         var inventoryId = Guid.NewGuid();
         var entryId = Guid.NewGuid();
         var currentVersion = DateTime.UtcNow;
+        SeedAccount(dbContext, accountId, currentVersion);
         dbContext.Inventories.Add(CreateInventory(inventoryId, accountId, currentVersion));
         var current = CreateEntry(entryId, inventoryId, 1, "cooldown_sigil", accountId, currentVersion);
         current.ItemCategory = "sigil";
@@ -283,6 +287,7 @@ public class InventoryRepositoryTests
         var inventoryId = Guid.NewGuid();
         var equipmentId = Guid.NewGuid();
         var now = DateTime.UtcNow;
+        SeedAccount(dbContext, accountId, now);
         dbContext.Inventories.Add(CreateInventory(inventoryId, accountId, now));
         dbContext.EquipmentInstances.Add(new EquipmentInstanceEntity
         {
@@ -343,6 +348,8 @@ public class InventoryRepositoryTests
         var equipmentId = Guid.NewGuid();
         var otherEquipmentId = Guid.NewGuid();
         var now = DateTime.UtcNow;
+        SeedAccount(dbContext, accountId, now);
+        SeedAccount(dbContext, otherAccountId, now);
         dbContext.Inventories.AddRange(
             CreateInventory(inventoryId, accountId, now),
             CreateInventory(otherInventoryId, otherAccountId, now));
@@ -359,10 +366,15 @@ public class InventoryRepositoryTests
         var repaired = await new InventoryRepository(dbContext).RepairEquipmentEntryItemIdsAsync(accountId);
 
         Assert.Equal(1, repaired);
-        Assert.Equal("iron_sword", eligible.ItemId);
-        Assert.Equal("kept", nonEmpty.ItemId);
-        Assert.Null(wrongQuantity.ItemId);
-        Assert.Null(otherOwner.ItemId);
+        dbContext.ChangeTracker.Clear();
+        Assert.Equal("iron_sword", (await dbContext.InventoryEntries.SingleAsync(x =>
+            x.InventoryEntryId == eligible.InventoryEntryId)).ItemId);
+        Assert.Equal("kept", (await dbContext.InventoryEntries.SingleAsync(x =>
+            x.InventoryEntryId == nonEmpty.InventoryEntryId)).ItemId);
+        Assert.Null((await dbContext.InventoryEntries.SingleAsync(x =>
+            x.InventoryEntryId == wrongQuantity.InventoryEntryId)).ItemId);
+        Assert.Null((await dbContext.InventoryEntries.SingleAsync(x =>
+            x.InventoryEntryId == otherOwner.InventoryEntryId)).ItemId);
     }
 
     private static InventoryEntity CreateInventory(Guid inventoryId, Guid accountId, DateTime now) => new()
@@ -437,60 +449,22 @@ public class InventoryRepositoryTests
         UpdatedBy = accountId,
     };
 
+    private static void SeedAccount(AstralRecordDbContext dbContext, Guid accountId, DateTime now)
+    {
+        dbContext.Users.Add(new UserEntity { Uuid = accountId, Mcid = $"inventory-{accountId:N}",
+            JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+            CreatedBy = accountId, UpdatedBy = accountId });
+        dbContext.Accounts.Add(new AccountEntity { Uuid = accountId, UserId = accountId,
+            AccountName = "inventory", CreatedAt = now, UpdatedAt = now,
+            CreatedBy = accountId, UpdatedBy = accountId });
+    }
+
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
     {
+        await dbContext.Database.EnsureCreatedAsync();
         await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE inventory (
-                inventory_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                inventory_type TEXT NOT NULL,
-                inventory_profile TEXT NOT NULL,
-                slot_capacity INTEGER NULL,
-                is_enabled INTEGER NOT NULL,
-                metadata_json TEXT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );
-
-            CREATE TABLE inventory_entry (
-                inventory_entry_id TEXT NOT NULL PRIMARY KEY,
-                inventory_id TEXT NOT NULL,
-                slot_index INTEGER NULL,
-                item_category TEXT NOT NULL,
-                item_id TEXT NULL,
-                instance_type TEXT NULL,
-                instance_id TEXT NULL,
-                quantity INTEGER NOT NULL,
-                metadata_json TEXT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );
-
-            CREATE UNIQUE INDEX ux_inventory_entry_slot_active
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_inventory_entry_slot_active
                 ON inventory_entry (inventory_id, slot_index)
                 WHERE is_deleted = 0 AND slot_index IS NOT NULL;");
-
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance (
-                equipment_instance_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                enhance_level INTEGER NOT NULL,
-                rune_max_slots INTEGER NOT NULL,
-                transcendence_rank INTEGER NOT NULL,
-                durability_max INTEGER NULL,
-                durability_value INTEGER NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
     }
 }

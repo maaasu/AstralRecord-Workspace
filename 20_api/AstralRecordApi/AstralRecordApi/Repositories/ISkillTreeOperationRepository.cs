@@ -17,7 +17,7 @@ public interface ISkillTreeOperationRepository
     Task<SkillTreeOperationResponse?> CancelAsync(Guid accountId, Guid operationId, Guid actorUserId);
     Task<IReadOnlyList<SkillTreeOperationResponse>?> GetClaimableAsync(string serverId, Guid serverSessionId, Guid accountId);
     Task<SkillTreeOperationClaimResponse?> ClaimAsync(string serverId, Guid operationId, SkillTreeOperationClaimRequest request);
-    Task<bool> ValidateRuntimeStateSaveAsync(Guid accountId, string serverId, Guid serverSessionId, string definitionGenerationId, Guid accountSessionId, string accountLeaseToken);
+    Task<bool> ValidateRuntimeStateSaveAsync(Guid accountId, string serverId, Guid serverSessionId, string definitionGenerationId, Guid accountSessionId, string accountLeaseToken, bool allowCapturedDrain = false);
     Task<bool> AcquireAccountSessionAsync(string serverId, Guid accountId, SkillTreeAccountSessionRequest request);
     Task<bool> CloseAccountSessionAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request);
     Task<bool> CompleteFromSnapshotAsync(Guid accountId, PlayerStateSkillTreeOperationSection section, DateTime now);

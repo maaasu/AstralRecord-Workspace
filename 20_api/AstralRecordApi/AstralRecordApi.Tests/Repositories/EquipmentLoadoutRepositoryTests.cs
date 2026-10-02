@@ -30,6 +30,12 @@ public class EquipmentLoadoutRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
+            setupContext.Users.Add(new UserEntity { Uuid = userId, Mcid = "loadout-owner",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = userId, UpdatedBy = userId });
+            setupContext.Accounts.Add(new AccountEntity { Uuid = accountId, UserId = userId,
+                AccountName = "loadout", CreatedAt = now, UpdatedAt = now,
+                CreatedBy = userId, UpdatedBy = userId });
             await setupContext.EquipmentLoadouts.AddRangeAsync(
                 new EquipmentLoadoutEntity
                 {
@@ -98,6 +104,12 @@ public class EquipmentLoadoutRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
+            setupContext.Users.Add(new UserEntity { Uuid = userId, Mcid = "loadout-owner",
+                JoinDate = now, LastJoinDate = now, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = userId, UpdatedBy = userId });
+            setupContext.Accounts.Add(new AccountEntity { Uuid = accountId, UserId = userId,
+                AccountName = "loadout", CreatedAt = now, UpdatedAt = now,
+                CreatedBy = userId, UpdatedBy = userId });
             await setupContext.EquipmentLoadouts.AddAsync(new EquipmentLoadoutEntity
             {
                 EquipmentLoadoutId = loadoutId,
@@ -166,6 +178,13 @@ public class EquipmentLoadoutRepositoryTests
 
         await using (var setupContext = new AstralRecordDbContext(options))
         {
+            setupContext.Users.Add(new UserEntity { Uuid = accountId, Mcid = "loadout-owner",
+                JoinDate = futureBaseline, LastJoinDate = futureBaseline,
+                CreatedAt = futureBaseline, UpdatedAt = futureBaseline,
+                CreatedBy = accountId, UpdatedBy = accountId });
+            setupContext.Accounts.Add(new AccountEntity { Uuid = accountId, UserId = accountId,
+                AccountName = "loadout", CreatedAt = futureBaseline, UpdatedAt = futureBaseline,
+                CreatedBy = accountId, UpdatedBy = accountId });
             await setupContext.EquipmentLoadouts.AddAsync(new EquipmentLoadoutEntity
             {
                 EquipmentLoadoutId = loadoutId,
@@ -211,57 +230,9 @@ public class EquipmentLoadoutRepositoryTests
     private static async Task CreateLoadoutTablesAsync(DbContextOptions<AstralRecordDbContext> options)
     {
         await using var setupContext = new AstralRecordDbContext(options);
-
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_loadout (
-                equipment_loadout_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                loadout_profile TEXT NOT NULL,
-                loadout_name TEXT NOT NULL,
-                sort_order INTEGER NOT NULL,
-                is_active INTEGER NOT NULL,
-                metadata_json TEXT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
-
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_loadout_slot (
-                equipment_loadout_slot_id TEXT NOT NULL PRIMARY KEY,
-                equipment_loadout_id TEXT NOT NULL,
-                slot_type TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
-                equipment_instance_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
+        await setupContext.Database.EnsureCreatedAsync();
     }
 
-    private static async Task CreateEquipmentInstanceTableAsync(DbContextOptions<AstralRecordDbContext> options)
-    {
-        await using var setupContext = new AstralRecordDbContext(options);
-
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance (
-                equipment_instance_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                enhance_level INTEGER NOT NULL,
-                rune_max_slots INTEGER NOT NULL,
-                transcendence_rank INTEGER NOT NULL,
-                durability_max INTEGER NULL,
-                durability_value INTEGER NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
-    }
+    private static Task CreateEquipmentInstanceTableAsync(DbContextOptions<AstralRecordDbContext> _) =>
+        Task.CompletedTask;
 }

@@ -44,7 +44,7 @@ public sealed class PlayerProfileTests
         Assert.Contains("100 ～ 200", detailBody);
         Assert.Contains("2026/09/15 21:34", detailBody);
         Assert.Contains("森のかけら", detailBody);
-        Assert.Contains("標準レベル", detailBody);
+        Assert.Contains("選択中のレベル（Lv. 5）", detailBody);
         Assert.Contains("data-mob-viewer", detailBody);
         var header = Regex.Match(body, "<div[^>]*class=\"ar-header-session\"[\\s\\S]*?</div>").Value;
         Assert.Contains("ログイン中", header);
@@ -291,7 +291,7 @@ public sealed class PlayerProfileTests
 
     private sealed class ProfileFactory(ProfileHandler handler) : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
         {
             services.AddHttpClient<WebAuthApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             services.AddHttpClient<PlayerProfileApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler);

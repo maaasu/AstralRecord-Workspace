@@ -171,7 +171,7 @@ public sealed partial class LoginTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.ConfigureTestServices(services =>
+            builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             {
                 services.AddHttpClient<WebAuthApiClient>()
                     .ConfigurePrimaryHttpMessageHandler(() => apiHandler);

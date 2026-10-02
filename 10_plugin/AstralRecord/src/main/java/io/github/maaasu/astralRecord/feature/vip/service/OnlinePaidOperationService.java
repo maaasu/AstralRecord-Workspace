@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.vip.repository.OnlinePaidOperationRepository;
 import io.github.maaasu.astralRecord.feature.vip.repository.OnlinePaidOperationRepository.Kind;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.RuntimeAccountAuthority;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import java.util.ArrayList;
@@ -92,16 +93,19 @@ public final class OnlinePaidOperationService {
                 inFlight.remove(pending.accountId());
                 return;
             }
-            complete(player, pending, prepared, false);
+            RuntimeAccountAuthority authority = plugin.getSkillTreeService()
+                .snapshotRuntimeAccountAuthority(pending.accountId());
+            complete(player, pending, prepared, authority, false);
         });
     }
 
     /** 確定結果とinventory正本を同じ保存境界で照合し、通信不明時は再試行します。 */
     private void complete(AstPlayer player, Pending pending,
-                          InventorySaveCoordinator.PreparedExternalOperation prepared, boolean reported) {
+                          InventorySaveCoordinator.PreparedExternalOperation prepared,
+                          RuntimeAccountAuthority authority, boolean reported) {
         saves.completePreparedExternalOperation(prepared, baseline -> {
             JsonObject result;
-            try { result = repository.process(pending.kind(), pending.operationId(), pending.accountId()); }
+            try { result = repository.process(pending.kind(), pending.operationId(), pending.accountId(), authority); }
             catch (InterruptedException error) {
                 Thread.currentThread().interrupt();
                 throw new java.util.concurrent.CompletionException(error);
@@ -129,7 +133,7 @@ public final class OnlinePaidOperationService {
                 }
                 if (!reported) Logger.error(LogId.E_7611, error, pending.accountId());
                 if (!closing && plugin.isEnabled()) Bukkit.getScheduler().runTaskLaterAsynchronously(plugin,
-                    () -> complete(player, pending, prepared, true), 40L);
+                    () -> complete(player, pending, prepared, authority, true), 40L);
                 return;
             }
             inFlight.remove(pending.accountId());

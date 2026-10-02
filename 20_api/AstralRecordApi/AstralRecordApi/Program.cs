@@ -125,6 +125,8 @@ builder.Services.AddScoped<IChannelBoostRepository, ChannelBoostRepository>();
 builder.Services.AddScoped<IAstraldShopRepository, AstraldShopRepository>();
 builder.Services.AddScoped<IWebMailRepository, WebMailRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IPlayerAdminEditRepository, PlayerAdminEditRepository>();
+builder.Services.AddHostedService<PlayerAdminAuditProjectionHostedService>();
 builder.Services.AddScoped<IPetRepository, PetRepository>();
 builder.Services.AddScoped<IPlayerStateSnapshotRepository, PlayerStateSnapshotRepository>();
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
@@ -200,6 +202,16 @@ app.UseExceptionHandler(handler =>
     handler.Run(async context =>
     {
         var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+        if (exception is PlayerAdminEditConflictException)
+        {
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await Results.Problem(
+                title: "Player edit in progress",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status409Conflict).ExecuteAsync(context);
+            return;
+        }
 
         if (IsDatabaseUnavailable(exception))
         {

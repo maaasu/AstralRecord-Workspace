@@ -398,7 +398,7 @@ public sealed class MarketBrowserTests
 
     private sealed class MarketFactory(MarketFixtureHandler handler) : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
             services.AddHttpClient<MarketApiClient>().ConfigurePrimaryHttpMessageHandler(() => handler));
     }
 }

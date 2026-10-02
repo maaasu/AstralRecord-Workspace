@@ -134,7 +134,7 @@ public sealed class SkillTreeEditorTests
 
     internal sealed class EditorFactory(EditorHandler api) : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
         {
             services.AddAuthentication(options => { options.DefaultAuthenticateScheme = "EditorTests"; options.DefaultChallengeScheme = "EditorTests"; })
                 .AddScheme<AuthenticationSchemeOptions, EditorAuthentication>("EditorTests", _ => { });

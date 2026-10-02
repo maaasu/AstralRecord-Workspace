@@ -44,6 +44,35 @@ import static org.mockito.Mockito.when;
 class AccountServicePendingProgressTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
+     * 章・見出し: # 40_player-admin-edit 概要 > ## オフライン訂正と計算
+     * 検証契約: 管理編集APIとの共有ベクトルで、UUIDごとのレベル開始累計EXPと最高到達レベルを固定する。
+     */
+    @Test
+    void adminLevelStartExperienceMatchesSharedVectors() {
+        int[] levels = {1, 2, 49, 50, 99, 100};
+        long[][] expected = {
+            {0L, 707L, 4_701_267L, 4_993_486L, 38_761_396L, 39_946_185L},
+            {0L, 670L, 4_701_065L, 4_993_267L, 38_760_316L, 39_944_980L}
+        };
+        for (int accountNumber = 1; accountNumber <= 2; accountNumber++) {
+            UUID accountId = UUID.fromString("00000000-0000-0000-0000-00000000000" + accountNumber);
+            UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000010");
+            AccountService service = createFixture(mock(AccountRepository.class)).service();
+            AccountModel current = account(accountId, userId, 0L);
+            for (int index = 0; index < levels.length; index++) {
+                current = service.setPlayerLevelCached(current, levels[index], userId).updatedAccount();
+                assertEquals(levels[index], current.getLevel());
+                assertEquals(expected[accountNumber - 1][index], current.getTotalExperience());
+            }
+            current = service.setPlayerLevelCached(current, 1, userId).updatedAccount();
+            assertEquals(1, current.getLevel());
+            assertEquals(0L, current.getTotalExperience());
+            assertEquals(100, current.getHighestLevel());
+        }
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
      * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生開始
      * 検証契約: レベル30の非転生アカウントは最高到達レベルを維持したままレベル1・EXP 0・端数0の転生状態へ遷移する。

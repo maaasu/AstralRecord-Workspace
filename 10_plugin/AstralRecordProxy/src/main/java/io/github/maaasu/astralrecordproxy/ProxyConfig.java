@@ -31,8 +31,35 @@ record ProxyConfig(
     boolean allowInsecureTls,
     String tabServerAddress,
     List<String> discordExcludedSourceServers,
-    Set<UUID> serverAuthorityUsers
+    Set<UUID> serverAuthorityUsers,
+    String runtimeServerId,
+    String runtimePlayerAdminKey
 ) implements NetworkSettings {
+    ProxyConfig(String lobbyServer, List<String> gameServers, Map<String, String> channelNames,
+                Map<String, ServerCapacity> serverCapacities, long transferCooldownSeconds,
+                long tabRefreshSeconds, long presenceHeartbeatSeconds, String apiBaseUrl,
+                String apiKey, String authoritySyncKey, int apiTimeoutMillis, long discordPollMillis,
+                long settingsRefreshSeconds, boolean allowInsecureTls, String tabServerAddress,
+                List<String> discordExcludedSourceServers, Set<UUID> serverAuthorityUsers) {
+        this(lobbyServer, gameServers, channelNames, serverCapacities, transferCooldownSeconds,
+            tabRefreshSeconds, presenceHeartbeatSeconds, apiBaseUrl, apiKey, authoritySyncKey,
+            apiTimeoutMillis, discordPollMillis, settingsRefreshSeconds, allowInsecureTls,
+            tabServerAddress, discordExcludedSourceServers, serverAuthorityUsers, "proxy", "");
+    }
+
+    ProxyConfig(String lobbyServer, List<String> gameServers, Map<String, String> channelNames,
+                Map<String, ServerCapacity> serverCapacities, long transferCooldownSeconds,
+                long tabRefreshSeconds, long presenceHeartbeatSeconds, String apiBaseUrl,
+                String apiKey, String authoritySyncKey, int apiTimeoutMillis, long discordPollMillis,
+                long settingsRefreshSeconds, boolean allowInsecureTls, String tabServerAddress,
+                List<String> discordExcludedSourceServers, Set<UUID> serverAuthorityUsers,
+                String runtimeServerId) {
+        this(lobbyServer, gameServers, channelNames, serverCapacities, transferCooldownSeconds,
+            tabRefreshSeconds, presenceHeartbeatSeconds, apiBaseUrl, apiKey, authoritySyncKey,
+            apiTimeoutMillis, discordPollMillis, settingsRefreshSeconds, allowInsecureTls,
+            tabServerAddress, discordExcludedSourceServers, serverAuthorityUsers, runtimeServerId, "");
+    }
+
     static ProxyConfig load(Path dataDirectory) throws IOException {
         Files.createDirectories(dataDirectory);
         Path path = dataDirectory.resolve("config.yml");
@@ -80,7 +107,9 @@ record ProxyConfig(
             bool(api, "allowInsecureTls", false),
             text(tab, "serverAddress", "mc.astralrecord.com"),
             textList(discord, "excludedSourceServers"),
-            uuidSet(root, "serverAuthorityUsers")
+            uuidSet(root, "serverAuthorityUsers"),
+            text(child(root, "runtime"), "serverId", "proxy"),
+            text(child(root, "runtime"), "playerAdminKey", "")
         );
     }
 

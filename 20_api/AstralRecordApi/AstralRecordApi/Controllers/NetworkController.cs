@@ -15,7 +15,8 @@ public sealed class NetworkController(
     INetworkRuntimeService runtimeService,
     TimeProvider timeProvider,
     IConfiguration configuration,
-    INetworkManagementRepository management) : ControllerBase
+    INetworkManagementRepository management,
+    IPlayerAdminEditRepository? playerAdminEdits = null) : ControllerBase
 {
     private const string AuthoritySyncHeader = "X-Authority-Sync-Key";
     /// <summary>選択中アカウントの有効VIPとチャンネル参加権限を都度判定します。</summary>
@@ -31,8 +32,9 @@ public sealed class NetworkController(
         var banDate = ban is null ? user?.BanDate : ban.ExpiresAtUtc is DateTimeOffset expiry
             ? TimeZoneInfo.ConvertTime(expiry, timeProvider.LocalTimeZone).DateTime : (DateTime?)null;
         var authorityPermission = runtimeService.IsAuthority(uuid) || user?.Permission == 99 ? 99 : 0;
+        var editing = playerAdminEdits is not null && await playerAdminEdits.IsUserLockedAsync(uuid);
         return Ok(new NetworkAdmissionResponse(uuid, user?.Mcid ?? ban?.Mcid ?? string.Empty, user is not null,
-            !banned && (settings is null || access.Allowed), banned ? "banned" : settings is not null && !access.ChannelKnown ? "unknown_channel" : settings is not null && !access.Allowed ? (access.DonorOnly && !access.IsVip ? "vip_required" : "not_whitelisted") : null,
+            !editing && !banned && (settings is null || access.Allowed), editing ? "player_editing" : banned ? "banned" : settings is not null && !access.ChannelKnown ? "unknown_channel" : settings is not null && !access.Allowed ? (access.DonorOnly && !access.IsVip ? "vip_required" : "not_whitelisted") : null,
             settings is null ? authorityPermission : access.Permission, ban?.IsIndefinite ?? user?.BanIndefinite ?? false, banDate, user?.AccountId,
             timeProvider.GetUtcNow().UtcDateTime, ban?.Reason, ban?.ExpiresAtUtc,
             access.DebugUser, access.Whitelisted, access.ChannelKnown, settings is not null, access.VipTier, access.VipExpiresAt));

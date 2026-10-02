@@ -59,10 +59,13 @@ class ClassRepository {
         try {
             ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
                 return when (response.statusCode()) {
                     200 -> {
-                        val model = parseClass(response.body())
+                        val bytes = response.body()
+                        val hash = java.util.HexFormat.of().formatHex(
+                            java.security.MessageDigest.getInstance("SHA-256").digest(bytes))
+                        val model = parseClass(String(bytes, StandardCharsets.UTF_8)).copy(responseBodySha256 = hash)
                         model
                     }
                     404 -> {
