@@ -169,7 +169,12 @@ public class EquipmentOrbOperationRepository(
             var affectedEntryIds = new HashSet<Guid>();
             var requiredMaterials = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             string? returnedRuneItemId = null;
-            long requiredGold = effect.ChargeSaleValue ? Math.Max(0, orbItem!.SaleValue) : 0L;
+            long requiredGold = effect.ChargeSaleValue
+                && (IdEquals(operationType, "ENHANCE")
+                    || IdEquals(operationType, "REPAIR")
+                    || IdEquals(operationType, "TRANSCENDENCE"))
+                ? Math.Max(0, orbItem!.SaleValue)
+                : 0L;
             var currentEnchants = await dbContext.EquipmentInstanceEnchants
                 .Where(enchant => enchant.EquipmentInstanceId == instance.EquipmentInstanceId)
                 .OrderBy(enchant => enchant.SlotIndex)

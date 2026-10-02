@@ -288,6 +288,28 @@ public class EquipmentOrbOperationRepositoryTests
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
+    [Fact]
+    public async Task RuneAttach_IgnoresUnsupportedChargeSaleValueFlag()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: CreateEquipment(
+            tag: "SWORD", rune: new ItemEquipmentRuneResponse { MaxSlots = "1" }));
+        await harness.SetEquipmentStateAsync(instance => instance.RuneMaxSlots = 1);
+        var orb = await harness.AddOrbAsync("unsupported_charge_rune_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_ATTACH", ChargeSaleValue = true,
+        }, saleValue: 100);
+        await harness.AddRuneAsync("supported_rune", ["WEAPON"], ["SWORD"]);
+        var request = harness.CreateRequest(Guid.NewGuid(), "unsupported_charge_rune_orb", orb);
+        request.RuneItemId = "supported_rune";
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(0, await harness.GetGoldValueAsync());
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
     /**
      * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
      * 章・見出し: # 14_3.02 登録系 > #### 支払い entry の消費順
