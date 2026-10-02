@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -88,6 +89,8 @@ final class SkillTreeVisualizer {
     /** 前回実際にviewerを描画した位置。微小移動を累積して判定します。 */
     private final Map<UUID, Location> lastViewerRefreshLocations = new HashMap<>();
     private boolean structureDirty = true;
+    /** 起動・定義再読込の表示準備だけ、件数と割合を集約して出力します。 */
+    private boolean visualProgressPending;
     private int maintenanceTicksSinceViewerRefresh = (int) (VIEWER_REFRESH_INTERVAL_TICKS / MAINTENANCE_INTERVAL_TICKS) - 1;
     private BukkitTask task;
     private BukkitTask beamScaleTask;
@@ -96,6 +99,13 @@ final class SkillTreeVisualizer {
         this(plugin, service, null);
     }
 
+    /**
+     * 表示の同期担当を生成し、定義公開済みの場合だけ初回の進捗出力を予約します。
+     *
+     * @param plugin メインスレッドの表示処理を登録するプラグイン
+     * @param service 公開済みスキルツリー定義と表示状態の取得元
+     * @param particleDisplayService Bedrock向け共通粒子表示。未使用時はnull
+     */
     SkillTreeVisualizer(
             @NotNull Plugin plugin,
             @NotNull SkillTreeService service,
@@ -105,6 +115,7 @@ final class SkillTreeVisualizer {
         this.service = service;
         this.particleDisplayService = particleDisplayService;
         this.packetDisplay = new SkillTreePacketDisplay(plugin);
+        this.visualProgressPending = !service.definitionGenerationId().isBlank();
     }
 
     void start() {
@@ -147,6 +158,12 @@ final class SkillTreeVisualizer {
     void markStructureDirty() {
         structureDirty = true;
         currentOnlineViewerIds().forEach(this::markViewerDirty);
+    }
+
+    /** 定義再読込後の全体同期と進捗出力を予約します。チャンク更新では使用しません。 */
+    void markDefinitionsDirty() {
+        visualProgressPending = true;
+        markStructureDirty();
     }
 
     void markViewerDirty(@NotNull UUID viewerId) {
@@ -260,6 +277,7 @@ final class SkillTreeVisualizer {
         if (structureDirty) {
             syncVisuals();
             structureDirty = false;
+            visualProgressPending = false;
             currentOnlineViewerIds().forEach(this::markViewerDirty);
         }
 
@@ -411,8 +429,15 @@ final class SkillTreeVisualizer {
         return !partialNodeRefresh;
     }
 
+    /**
+     * 読込済み構造と表示を同期し、起動・定義再読込時は表示準備済み件数を集約します。
+     * 解決不能な位置、未ロードのチャンク、定義のないノードは成功件数に含めません。
+     * 通常のチャンク更新では進捗を出力せず、位置解決失敗の既存警告は維持します。
+     */
     private void syncVisuals() {
         Collection<SkillTreePosition> positions = service.getPositions();
+        MasterDataLoadProgress nodeProgress = visualProgressPending
+                ? new MasterDataLoadProgress(LogId.I_9002, positions.size()) : null;
         Set<String> activeNodeIds = new HashSet<>();
         for (SkillTreePosition position : positions) {
             Location location = position.toLocation();
@@ -420,11 +445,13 @@ final class SkillTreeVisualizer {
                 if (loggedInvalidPositions.add(position.nodeId())) {
                     Logger.log(LogId.W_9000, position.nodeId(), position.worldName(), "location_resolve_failed");
                 }
+                if (nodeProgress != null) nodeProgress.record(false);
                 continue;
             }
             if (!isChunkLoaded(location)) {
                 removeAdminPositionVisual(position.nodeId());
                 removeNodeVisual(position.nodeId());
+                if (nodeProgress != null) nodeProgress.record(false);
                 continue;
             }
             ensureNodeLight(location);
@@ -444,6 +471,7 @@ final class SkillTreeVisualizer {
             SkillTreeNodeDefinition node = service.getNode(position.nodeId());
             if (node == null) {
                 removeNodeVisual(position.nodeId());
+                if (nodeProgress != null) nodeProgress.record(false);
                 continue;
             }
 
@@ -454,6 +482,7 @@ final class SkillTreeVisualizer {
             } else {
                 nodeVisual.teleport(location);
             }
+            if (nodeProgress != null) nodeProgress.record(true);
         }
 
         adminPositionVisuals.entrySet().removeIf(entry -> {
@@ -470,12 +499,17 @@ final class SkillTreeVisualizer {
             entry.getValue().remove();
             return true;
         });
+        if (nodeProgress != null) nodeProgress.finish();
 
+        Collection<SkillTreeEdge> edges = service.getEdges();
+        MasterDataLoadProgress edgeProgress = visualProgressPending
+                ? new MasterDataLoadProgress(LogId.I_9004, edges.size()) : null;
         Set<String> activeEdgeKeys = new HashSet<>();
-        for (SkillTreeEdge edge : service.getEdges()) {
+        for (SkillTreeEdge edge : edges) {
             SkillTreePosition left = service.getPosition(edge.sourceNodeId());
             SkillTreePosition right = service.getPosition(edge.targetNodeId());
             if (left == null || right == null) {
+                if (edgeProgress != null) edgeProgress.record(false);
                 continue;
             }
             Location leftLocation = left.toLocation();
@@ -492,10 +526,12 @@ final class SkillTreeVisualizer {
                             "edge_location_resolve_failed"
                     );
                 }
+                if (edgeProgress != null) edgeProgress.record(false);
                 continue;
             }
             if (!isChunkLoaded(leftLocation) || !isChunkLoaded(rightLocation)) {
                 removeEdgeVisual(edge.key());
+                if (edgeProgress != null) edgeProgress.record(false);
                 continue;
             }
             loggedInvalidEdges.remove(edge.key());
@@ -510,6 +546,7 @@ final class SkillTreeVisualizer {
             } else {
                 edgeVisual.teleport(leftLocation, rightLocation);
             }
+            if (edgeProgress != null) edgeProgress.record(true);
         }
 
         edgeVisuals.entrySet().removeIf(entry -> {
@@ -519,6 +556,7 @@ final class SkillTreeVisualizer {
             entry.getValue().remove();
             return true;
         });
+        if (edgeProgress != null) edgeProgress.finish();
     }
 
     /**
@@ -965,15 +1003,6 @@ final class SkillTreeVisualizer {
             this.marker = packetTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
             this.label = packetTextDisplay(labelLocation, component("&d" + nodeId), ADMIN_TEXT_SCALE);
-            Logger.log(
-                    LogId.I_9002,
-                    "admin",
-                    nodeId,
-                    location.getWorld() == null ? "null" : location.getWorld().getName(),
-                    location.getX(),
-                    location.getY(),
-                    location.getZ()
-            );
         }
 
         private @NotNull Location baseLocation() {
@@ -1079,15 +1108,6 @@ final class SkillTreeVisualizer {
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            Logger.log(
-                    LogId.I_9002,
-                    "node",
-                    node.nodeId(),
-                    location.getWorld() == null ? "null" : location.getWorld().getName(),
-                    location.getX(),
-                    location.getY(),
-                    location.getZ()
-            );
         }
 
         private @NotNull SkillTreeNodeDefinition node() {
@@ -1350,15 +1370,6 @@ final class SkillTreeVisualizer {
             this.rightLocation = right.clone();
             this.midpoint = interpolate(left, right, 0.5D);
             this.bedrockParticleLocations = bedrockEdgeParticleLocations(left, right);
-            Logger.log(
-                    LogId.I_9002,
-                    "edge",
-                    edge.key(),
-                    midpoint.getWorld() == null ? "null" : midpoint.getWorld().getName(),
-                    midpoint.getX(),
-                    midpoint.getY(),
-                    midpoint.getZ()
-            );
         }
 
         private @NotNull SkillTreeEdge edge() {

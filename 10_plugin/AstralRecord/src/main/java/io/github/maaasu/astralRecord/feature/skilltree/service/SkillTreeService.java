@@ -591,7 +591,7 @@ public class SkillTreeService {
         playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
         if (visualizer != null) {
-            visualizer.markStructureDirty();
+            visualizer.markDefinitionsDirty();
         }
         Logger.log(LogId.I_9000, nodesById.size(), positionsByNodeId.size(), edgesByKey.size());
     }
