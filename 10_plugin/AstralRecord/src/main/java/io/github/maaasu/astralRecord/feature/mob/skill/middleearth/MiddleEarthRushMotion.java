@@ -18,6 +18,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /** ミドルアースの突進スキルで共有する、壁停止・対象命中を備えた直進移動です。 */
 final class MiddleEarthRushMotion {
@@ -68,6 +69,38 @@ final class MiddleEarthRushMotion {
             @NotNull DamageElement damageElement,
             @NotNull Runnable onComplete
     ) {
+        start(mobService, damageService, caster, entity, targetLocation, target,
+                speed, damageRatio, damageElement, ignored -> { }, onComplete);
+    }
+
+    /**
+     * 命中時の表示処理を受け取り、ダメージ適用直後に命中地点を通知します。
+     *
+     * @param mobService Mobの存続確認と位置更新先
+     * @param damageService 命中ダメージの適用先
+     * @param caster 発動元Mob
+     * @param entity 発動開始時の実体
+     * @param targetLocation 突進先として固定した位置
+     * @param target 命中判定対象
+     * @param speed 1tickあたりの移動距離
+     * @param damageRatio 攻撃力倍率
+     * @param damageElement ダメージ属性
+     * @param onHit ダメージ適用直後の命中地点通知
+     * @param onComplete 正常終了・中断時の後続処理
+     */
+    static void start(
+            @NotNull MobService mobService,
+            @NotNull DamageService damageService,
+            @NotNull MobInstance caster,
+            @NotNull Entity entity,
+            @NotNull Location targetLocation,
+            @NotNull LivingEntity target,
+            double speed,
+            double damageRatio,
+            @NotNull DamageElement damageElement,
+            @NotNull Consumer<Location> onHit,
+            @NotNull Runnable onComplete
+    ) {
         if (!isTargetAvailable(entity, target, targetLocation, damageService)) {
             onComplete.run();
             return;
@@ -105,11 +138,14 @@ final class MiddleEarthRushMotion {
                     Location hit = position.clone().add(direction.clone().multiply(hitDistance));
                     activeEntity.teleport(hit);
                     active.currentLocation(hit);
-                    damageService.attack(
+                    var result = damageService.attack(
                             AstEntity.mob(caster), damageService.resolveEntity(target), AttackType.MELEE,
                             List.of(new DamageComponent(damageElement, damageRatio)), DamageSource.SKILL
                     );
                     complete();
+                    if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+                        onHit.accept(hit);
+                    }
                     return;
                 }
                 activeEntity.teleport(next);

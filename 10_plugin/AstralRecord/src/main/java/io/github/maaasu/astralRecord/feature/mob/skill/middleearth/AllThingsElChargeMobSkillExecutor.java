@@ -7,6 +7,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
@@ -23,11 +26,14 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
     private static final Set<String> PARAMETER_KEYS = Set.of("speed", "damageRatio", "holdTicks");
     private final MobService mobService;
     private final DamageService damageService;
+    private final ParticleDisplayService particleDisplayService;
 
-    /** 実体移動と突進ダメージの依存先を指定して構築します。 */
-    public AllThingsElChargeMobSkillExecutor(@NotNull MobService mobService, @NotNull DamageService damageService) {
+    /** 実体移動、突進ダメージ、命中演出の依存先を指定して構築します。 */
+    public AllThingsElChargeMobSkillExecutor(@NotNull MobService mobService, @NotNull DamageService damageService,
+                                               @NotNull ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
         this.damageService = damageService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     @Override public @NotNull String id() { return SKILL_ID; }
@@ -106,6 +112,9 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
                 activeEntity.getWorld().playSound(activeEntity.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.9F, 1.0F);
                 MiddleEarthRushMotion.start(
                         mobService, damageService, caster, activeEntity, targetSnapshot, context.target(), speed, damageRatio,
+                        DamageElement.NONE,
+                        hit -> particleDisplayService.spawnForNearbyViewers(
+                                hit, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION),
                         () -> startNextCharge(caster, context, remainingCharges - 1, speed, damageRatio, holdTicks)
                 );
             }

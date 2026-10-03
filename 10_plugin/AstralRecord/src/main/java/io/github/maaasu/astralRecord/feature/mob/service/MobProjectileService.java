@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReque
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -311,6 +312,12 @@ public final class MobProjectileService {
                         ));
                     }
                     finish();
+                    if (caster.template().category() == MobCategory.BOSS
+                            && !result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+                        particleDisplayService.spawnForNearbyViewers(
+                                impact.location(), SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
+                        );
+                    }
                     return;
                 }
                 RayTraceResult blockHit = position.getWorld().rayTraceBlocks(

@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.skill.BossMobDamageEffect;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -205,6 +207,9 @@ public final class RyushelFlowerLeapMobSkillExecutor implements MobSkillExecutor
         temporarySkillEffectService.applyDefenseAndEvasionMultipliers(
                 caster.instanceId(), EXPOSED_EFFECT_ID, EXPOSED_TICKS,
                 EXPOSED_DEFENSE_MULTIPLIER, EXPOSED_EVASION_MULTIPLIER);
+        if (caster.template().category() == MobCategory.BOSS) {
+            BossMobDamageEffect.showCircle(particleDisplayService, landing, radius);
+        }
     }
 
     private @NotNull List<Location> ring(@NotNull Location center, double radius) {

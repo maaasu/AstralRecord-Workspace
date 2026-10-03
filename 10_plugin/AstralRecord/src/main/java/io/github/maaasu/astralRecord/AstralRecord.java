@@ -1850,11 +1850,11 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new MiddleEarthPiglinRushMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new AllThingsElIceSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new SavannaWitchEmberBoltMobSkillExecutor(damageService, conditionService, mobProjectileService));
-        mobSkillRegistry.register(new AllThingsElChargeMobSkillExecutor(mobService, damageService));
+        mobSkillRegistry.register(new AllThingsElChargeMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new AinuaBiteRushMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new AinurindaleFangWaveMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new IluvatarFireSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));
-        mobSkillRegistry.register(new IluvatarFlameChargeMobSkillExecutor(mobService, damageService));
+        mobSkillRegistry.register(new IluvatarFlameChargeMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new TwilightColossusGateSlamSkillExecutor(damageService, particleDisplayService));
         mobSkillRegistry.register(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));
         PurpleTreeMobSkillExecutor.createAll(mobService, damageService, particleDisplayService, statusService)

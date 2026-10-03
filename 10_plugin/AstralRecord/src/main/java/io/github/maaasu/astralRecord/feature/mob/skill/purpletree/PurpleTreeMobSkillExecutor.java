@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
@@ -117,6 +118,9 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                         && (relative.lengthSquared() <= 0.01D || facing.dot(relative.normalize()) >= 0.5D)) {
                     damage(context.mob(), player, AttackType.MELEE, 0.95D);
                 }
+            }
+            if (context.mob().template().category() == MobCategory.BOSS) {
+                particles.spawnForNearbyViewers(center, warning, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
             }
             burst(center, warning);
         });

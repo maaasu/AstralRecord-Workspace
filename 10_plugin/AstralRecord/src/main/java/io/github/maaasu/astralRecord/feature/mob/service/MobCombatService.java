@@ -294,7 +294,7 @@ public class MobCombatService {
         }
         AstEntity combatTarget = damageService.resolveEntity(target);
         if (!combatTarget.isManaged()) return;
-        damageService.attack(
+        var result = damageService.attack(
                 AstEntity.mob(instance),
                 combatTarget,
                 attackType(combat.style()),
@@ -302,6 +302,13 @@ public class MobCombatService {
                 DamageSource.NORMAL_ATTACK
         );
         instance.lastAttackTick(serverTick);
+        if (instance.template().category() == MobCategory.BOSS
+                && !result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+            particleDisplayService.spawnForNearbyViewers(
+                    target.getLocation().clone().add(0.0D, 0.9D, 0.0D),
+                    SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
+            );
+        }
     }
 
     private @NotNull AttackType attackType(@NotNull CombatStyle style) {

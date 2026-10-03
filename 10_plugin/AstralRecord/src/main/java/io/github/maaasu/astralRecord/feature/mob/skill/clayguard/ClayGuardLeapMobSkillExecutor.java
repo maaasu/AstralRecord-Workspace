@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.skill.BossMobDamageEffect;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -256,6 +258,9 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
                     List.of(new DamageComponent(DamageElement.NONE, damageRatio)),
                     DamageSource.SKILL
             );
+        }
+        if (caster.template().category() == MobCategory.BOSS) {
+            BossMobDamageEffect.showCircle(particleDisplayService, landing, radius);
         }
     }
 
