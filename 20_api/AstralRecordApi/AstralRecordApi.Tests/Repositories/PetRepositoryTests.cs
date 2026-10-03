@@ -416,6 +416,42 @@ public class PetRepositoryTests
         Assert.NotNull(await new InventoryRepository(fixture.Player).UpdateEntryAsync(entry.InventoryEntryId,
             new InventoryEntryUpdateRequest { SlotIndex = 2, ItemCategory = "pet", ItemId = pet.ItemId,
                 InstanceType = "PET", InstanceId = pet.InstanceId, Quantity = 1, UpdatedBy = fixture.Account }));
+
+        var unusedEquip = new InventoryEntity { InventoryId = Guid.NewGuid(), AccountId = fixture.Account,
+            InventoryType = "EQUIP_SLOT", InventoryProfile = "GAME", SlotCapacity = 6, IsEnabled = true };
+        fixture.Player.Inventories.Add(unusedEquip);
+        await fixture.Player.SaveChangesAsync();
+        Assert.NotNull(await new InventoryRepository(fixture.Player).UpdateAsync(unusedEquip.InventoryId,
+            new InventoryUpdateRequest { InventoryProfile = "ADMIN", SlotCapacity = 6,
+                IsEnabled = false, UpdatedBy = fixture.Account }));
+    }
+
+    [Fact]
+    public async Task InventoryUpdate_CannotDisableOrShrinkSelectedPetEquipmentInventory()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var equip = await fixture.Player.Inventories.AsNoTracking().SingleAsync(i => i.InventoryType == "EQUIP_SLOT");
+        var repository = new InventoryRepository(fixture.Player);
+        Assert.Null(await repository.UpdateAsync(equip.InventoryId,
+            new InventoryUpdateRequest { SlotCapacity = 7, IsEnabled = false, UpdatedBy = fixture.Account }));
+        Assert.Null(await repository.UpdateAsync(equip.InventoryId,
+            new InventoryUpdateRequest { InventoryProfile = "ADMIN", SlotCapacity = 7,
+                IsEnabled = true, UpdatedBy = fixture.Account }));
+        Assert.Null(await repository.UpdateAsync(equip.InventoryId,
+            new InventoryUpdateRequest { SlotCapacity = 6, IsEnabled = true, UpdatedBy = fixture.Account }));
+
+        var metadata = await repository.UpdateAsync(equip.InventoryId,
+            new InventoryUpdateRequest { MetadataJson = "{\"layout\":\"saved\"}", UpdatedBy = fixture.Account });
+        Assert.NotNull(metadata);
+        Assert.Equal(7, metadata.SlotCapacity);
+        Assert.True(metadata.IsEnabled);
+        Assert.Equal("GAME", metadata.InventoryProfile);
+        Assert.Equal("{\"layout\":\"saved\"}", metadata.MetadataJson);
+        Assert.True(await fixture.Player.InventoryEntries.AsNoTracking().AnyAsync(e => e.InstanceId == pet.InstanceId
+            && !e.IsDeleted && e.InventoryId == equip.InventoryId && e.SlotIndex == 7));
     }
 
     [Fact]

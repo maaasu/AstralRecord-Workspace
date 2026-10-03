@@ -104,7 +104,14 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         if (entity is null)
             return null;
 
-        entity.SlotCapacity = request.SlotCapacity;
+        var containsSelectedPet = await ContainsSelectedPetEquipmentEntryAsync(entity);
+        if (containsSelectedPet && (request.IsEnabled == false
+            || !string.IsNullOrWhiteSpace(request.InventoryProfile) && request.InventoryProfile != "GAME"
+            || (request.SlotCapacity ?? entity.SlotCapacity) is null or < PetEquipSlotIndex))
+            return null;
+
+        // A metadata-only update omits slotCapacity; keep slot 7 while its selected PET occupies it.
+        entity.SlotCapacity = containsSelectedPet ? request.SlotCapacity ?? entity.SlotCapacity : request.SlotCapacity;
 
         if (request.IsEnabled.HasValue)
             entity.IsEnabled = request.IsEnabled.Value;
@@ -707,6 +714,17 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             && inventory.InventoryType == "EQUIP_SLOT" && inventory.InventoryProfile == "GAME"
             && await dbContext.AccountPetStates.AnyAsync(state => state.AccountId == inventory.AccountId
                 && state.EquippedPetId == entry.InstanceId);
+
+    private async Task<bool> ContainsSelectedPetEquipmentEntryAsync(InventoryEntity inventory)
+    {
+        if (inventory.InventoryType != "EQUIP_SLOT" || inventory.InventoryProfile != "GAME") return false;
+        var selectedPetId = await dbContext.AccountPetStates.AsNoTracking()
+            .Where(state => state.AccountId == inventory.AccountId)
+            .Select(state => state.EquippedPetId).SingleOrDefaultAsync();
+        return selectedPetId.HasValue && await dbContext.InventoryEntries.AnyAsync(entry =>
+            entry.InventoryId == inventory.InventoryId && !entry.IsDeleted && entry.SlotIndex == PetEquipSlotIndex
+            && entry.InstanceType == "PET" && entry.InstanceId == selectedPetId);
+    }
 
     private static bool PreservesSelectedPetEntry(InventoryEntryEntity current, int? slotIndex,
         string category, string? itemId, string? instanceType, Guid? instanceId, long quantity)
