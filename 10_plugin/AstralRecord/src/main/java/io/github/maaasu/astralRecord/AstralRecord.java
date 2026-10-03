@@ -67,6 +67,7 @@ import io.github.maaasu.astralRecord.feature.hud.event.AdminMessageBossBarEventH
 import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.DebugFishingRodInteractionEventHandler;
+import io.github.maaasu.astralRecord.feature.fishing.event.FishingEntityEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
@@ -2496,6 +2497,7 @@ public final class AstralRecord extends JavaPlugin {
         eventManager.registerHandler(itemInteractionBlockEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(hookshotInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(debugFishingRodInteractionEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(new FishingEntityEventHandler(), getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
             menuView,

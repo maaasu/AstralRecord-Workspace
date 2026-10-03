@@ -46,6 +46,7 @@ public final class FishingPrototypeSession {
     private static final double MIN_FISH_SEPARATION_SQUARED = 3.0D;
     private static final double FISH_SPEED = 0.13D;
     private static final double FLEE_SPEED = 0.26D;
+    private static final double RELEASE_SPEED = 0.14D;
     private static final double FISH_FORCE_PER_TICK = 0.008D;
     private static final double REEL_MULTIPLIER = 0.30D;
     private static final double SLACK_DISTANCE = 0.65D;
@@ -54,7 +55,7 @@ public final class FishingPrototypeSession {
     private static final int TURN_TICKS = 80;
     private static final int LANDING_TICKS = 14;
     private static final int HANGING_TICKS = 100;
-    private static final int MAX_ESCAPE_TICKS = 120;
+    private static final int MAX_ESCAPE_TICKS = 1_200;
     private static final int MAX_WAITING_TICKS = 1_200;
     private static final int MAX_TRAVEL_STEPS = 256;
     private static final double TRAVEL_SAMPLE_STEP = 0.12D;
@@ -89,6 +90,7 @@ public final class FishingPrototypeSession {
     private int lastReelTick = Integer.MIN_VALUE / 2;
     private int hp = FISH_MAX_HP;
     private double distance;
+    private double escapeProgress;
     private double surfaceY;
     private int surfaceBlockX = Integer.MIN_VALUE;
     private int surfaceBlockZ = Integer.MIN_VALUE;
@@ -510,6 +512,7 @@ public final class FishingPrototypeSession {
      */
     private void moveSelectedWithLine(Location rodTip) {
         Location current = selected.entity.getLocation();
+        if (current.getY() < surfaceY - 0.25D) return;
         Vector radial = new Vector(current.getX() - rodTip.getX(), 0.0D, current.getZ() - rodTip.getZ());
         if (radial.lengthSquared() < 1.0E-6D) {
             radial = player.getEyeLocation().getDirection().setY(0.0D);
@@ -621,8 +624,9 @@ public final class FishingPrototypeSession {
             escape();
             return;
         }
-        double progress = Math.min(1.0D, phaseTicks / 60.0D);
         Vector travel = escapeTarget.toVector().subtract(escapeStart.toVector());
+        // 遠いキャストでも逃走速度を上げず、障害物で停止した間の進捗は蓄積しない。
+        double progress = Math.min(1.0D, escapeProgress + RELEASE_SPEED / Math.max(0.01D, travel.length()));
         Location next = escapeStart.clone().add(travel.multiply(progress))
             .add(0.0D, Math.abs(Math.sin(phaseTicks * 0.42D)) * 0.45D, 0.0D);
         Location current = selected.entity.getLocation();
@@ -637,6 +641,7 @@ public final class FishingPrototypeSession {
         }
         next.setDirection(next.toVector().subtract(current.toVector()));
         selected.entity.teleport(next);
+        escapeProgress = progress;
         hook = next.clone();
         if (phaseTicks % 9 == 0) {
             world.playSound(next, Sound.ENTITY_COD_FLOP, SoundCategory.NEUTRAL, 0.8F, 1.0F);
@@ -672,7 +677,7 @@ public final class FishingPrototypeSession {
         for (int step = 1; step <= steps; step++) {
             Location point = from.clone().add(travel.clone().multiply(step / (double) steps));
             if (!world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
-                || point.getBlock().getType().isSolid()) return TravelResult.BLOCKED;
+                || !point.getBlock().isPassable()) return TravelResult.BLOCKED;
             if (detectWater && isWaterAt(point)) return TravelResult.WATER;
         }
         return TravelResult.CLEAR;

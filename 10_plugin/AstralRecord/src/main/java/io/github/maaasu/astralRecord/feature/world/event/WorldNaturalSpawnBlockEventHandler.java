@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.fishing.model.FishingEntityProtection;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -155,8 +156,10 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
         }
     }
 
+    /** 釣り魚も生成時から管理対象とし、遅延spawn検査とチャンク掃除の両方から保護します。 */
     private boolean isManagedMob(@NotNull Entity entity) {
-        return mobService.entityController().readInstanceId(entity) != null || isActiveSummon.test(entity);
+        return FishingEntityProtection.isManaged(entity)
+            || mobService.entityController().readInstanceId(entity) != null || isActiveSummon.test(entity);
     }
 
     private boolean isManagedWorld(@NotNull World world) {

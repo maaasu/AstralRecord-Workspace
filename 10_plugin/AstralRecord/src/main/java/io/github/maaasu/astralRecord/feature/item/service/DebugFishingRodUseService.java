@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingPrototypeSession;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -14,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
@@ -25,6 +28,7 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitTask;
@@ -46,8 +50,8 @@ import java.util.UUID;
  * デバッグ釣り竿の仮想キャストを扱います。
  * <p>
  * バニラの {@code FishHook} は生成せず、針を {@link BlockDisplay}、糸を小さい黒色dustとして表示します。
- * 糸は竿先と針を結ぶ浅い曲線として毎tick描画し、針へ物理的な力を加えません。
- * 固体へ接触した針は回収まで固定し、水中ではキャスト距離の範囲内で沈下します。
+ * 糸は竿先と針を結ぶ浅い曲線として2tick間隔で描画し、食いつき後は張った直線へ切り替えます。
+ * 固体へ接触した針は回収まで固定し、水中に沈んだ針から釣りセッションへ移行します。
  */
 public final class DebugFishingRodUseService {
     static final double ROD_TIP_RIGHT_OFFSET = 0.35D;
@@ -58,7 +62,7 @@ public final class DebugFishingRodUseService {
     static final double WATER_SINK_SPEED_PER_TICK = 0.08D;
     static final int ROPE_SEGMENT_COUNT = 20;
     static final int ROPE_NODE_COUNT = ROPE_SEGMENT_COUNT + 1;
-    static final int LINE_PARTICLE_INTERVAL_TICKS = 1;
+    static final int LINE_PARTICLE_INTERVAL_TICKS = 2;
     static final int MAX_LINE_POINTS_PER_SEGMENT = 4;
     private static final double LINE_PARTICLE_SPACING = 0.15D;
     private static final double MAX_LINE_SAG = 0.35D;
@@ -74,6 +78,7 @@ public final class DebugFishingRodUseService {
     private static final double MAX_RAY_TRACE_DISTANCE = 2.0D;
     private static final int PARTICLE_INTERVAL_TICKS = 2;
     private static final String HOOK_DISPLAY_TAG = "astralrecord_fishing_rod_hook";
+    private static final double PROTOTYPE_ROD_ATTACK = 10.0D;
 
     private final AstralRecord plugin;
     private final InventoryService inventoryService;
@@ -124,6 +129,53 @@ public final class DebugFishingRodUseService {
         return instanceId != null
             && activeCasts.containsKey(player.getBukkit().getUniqueId())
             && activeCasts.get(player.getBukkit().getUniqueId()).equipmentInstanceId.equalsIgnoreCase(instanceId);
+    }
+
+    /**
+     * 竿の持ち替え後も継続する、外した魚との戦闘を含めて釣り中かを返します。
+     * @param player 判定対象
+     * @return 未終了の釣りセッションが存在する場合true
+     */
+    public boolean isFishing(@NotNull AstPlayer player) {
+        ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
+        return active != null && active.fishing != null && !active.fishing.isFinished();
+    }
+
+    /**
+     * 左クリックを巻き取り、または入力側が命中を検証した魚への攻撃に接続します。
+     * @param player 所有プレイヤー
+     * @param hitTarget 射程と遮蔽を検証した対象。空振りはnull
+     */
+    public void fishingLeftClick(@NotNull AstPlayer player, @Nullable Entity hitTarget) {
+        ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
+        if (active == null || active.fishing == null) {
+            return;
+        }
+        if (active.fishing.isReleased()) {
+            if (hitTarget != null) {
+                active.fishing.hit(hitTarget);
+            }
+        } else if (isCurrentFishingRod(player, active.equipmentInstanceId)) {
+            active.fishing.leftClick();
+        }
+    }
+
+    /**
+     * 右クリックを待機中の回収、リール開放、魚の取り外しへ接続します。
+     * @param player 所有プレイヤー
+     */
+    public void fishingRightClick(@NotNull AstPlayer player) {
+        ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
+        if (active != null && active.fishing != null
+            && (active.fishing.isReleased() || isCurrentFishingRod(player, active.equipmentInstanceId))) {
+            if (!active.fishing.isTaut() && !active.fishing.isReleased()) {
+                active.fishing.close();
+                active.fishing = null;
+                retract(player);
+                return;
+            }
+            active.fishing.rightClick();
+        }
     }
 
     /** 右クリック時点で新しいキャストを開始可能か判定します。 */
@@ -199,10 +251,12 @@ public final class DebugFishingRodUseService {
             false,
             hookDisplay
         );
+        double attack = status.rollValue(StatusType.ATTACK);
+        active.rodAttack = Double.isFinite(attack) && attack > 0.0D ? attack : PROTOTYPE_ROD_ATTACK;
         activeCasts.put(playerId, active);
         active.task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            () -> tick(playerId),
+            () -> tickSafely(playerId),
             1L,
             1L
         );
@@ -239,7 +293,7 @@ public final class DebugFishingRodUseService {
      */
     public boolean moveHook(@NotNull UUID playerId, @NotNull Location target) {
         ActiveCast active = activeCasts.get(playerId);
-        if (active == null || active.phase == CastPhase.GROUNDED || !isFinite(target) || target.getWorld() == null
+        if (active == null || active.fishing != null || active.phase == CastPhase.GROUNDED || !isFinite(target) || target.getWorld() == null
             || !target.getWorld().equals(active.currentHook.getWorld())) {
             return false;
         }
@@ -257,6 +311,9 @@ public final class DebugFishingRodUseService {
         }
         if (active.task != null) {
             active.task.cancel();
+        }
+        if (active.fishing != null) {
+            active.fishing.close();
         }
         removeDisplay(active.hookDisplay);
     }
@@ -288,6 +345,17 @@ public final class DebugFishingRodUseService {
         return eye.clone().add(offset);
     }
 
+    /** 例外が発生したセッションも魚・表示・ボスバー・taskを回収し、繰り返し実行を停止します。 */
+    private void tickSafely(@NotNull UUID playerId) {
+        try {
+            tick(playerId);
+        } catch (RuntimeException exception) {
+            cancel(playerId);
+            Logger.log(LogId.E_3002, exception, "fishing_tick:" + playerId);
+        }
+    }
+
+    /** 所有者・竿・worldを検証して、キャストまたは釣りセッションをメインスレッドで進めます。 */
     private void tick(@NotNull UUID playerId) {
         ActiveCast active = activeCasts.get(playerId);
         Player player = plugin.getServer().getPlayer(playerId);
@@ -298,7 +366,8 @@ public final class DebugFishingRodUseService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null
             || astPlayer.getAccount().getMode() != AccountMode.PLAYER
-            || !isCurrentFishingRod(astPlayer, active.equipmentInstanceId)
+            || (!(active.fishing != null && active.fishing.isReleased())
+                && !isCurrentFishingRod(astPlayer, active.equipmentInstanceId))
             || !player.getWorld().equals(active.currentHook.getWorld())) {
             cancel(playerId);
             return;
@@ -312,11 +381,40 @@ public final class DebugFishingRodUseService {
         }
         active.rodTip = rodTip.clone();
 
+        if (active.fishing != null) {
+            tickFishing(playerId, player, active, rodTip);
+            return;
+        }
         if (active.retrieved || active.currentHook.distance(rodTip) > active.maxLineLength + 1.0E-8D) {
             cancel(playerId);
             return;
         }
         active.retrieved = advanceHook(active);
+        if (active.phase != CastPhase.RETRACTING && active.inWater
+            && isWater(active.currentHook.getBlock().getType())) {
+            emitWaterImpact(active);
+            active.fishing = new FishingPrototypeSession(plugin, particleDisplayService, astPlayer,
+                active.currentHook.clone(), active.maxLineLength, active.rodAttack);
+            tickFishing(playerId, player, active, rodTip);
+            return;
+        }
+        advanceRope(active);
+        render(player, active, rodTip);
+    }
+
+    /** 魚が所有する針位置と張力を既存の針・糸表示へ反映し、終了時は全表示を回収します。 */
+    private void tickFishing(UUID playerId, Player player, ActiveCast active, Location rodTip) {
+        active.fishing.tick(rodTip);
+        if (active.fishing.isFinished()) {
+            cancel(playerId);
+            return;
+        }
+        active.currentHook = active.fishing.hookLocation();
+        active.taut = active.fishing.isTaut();
+        if (active.fishing.isReleased()) {
+            removeDisplay(active.hookDisplay);
+            return;
+        }
         advanceRope(active);
         render(player, active, rodTip);
     }
@@ -367,7 +465,7 @@ public final class DebugFishingRodUseService {
         Vector delta = active.currentHook.toVector().subtract(active.rodTip.toVector());
         double distance = delta.length();
         double horizontal = Math.hypot(delta.getX(), delta.getZ());
-        double sag = Math.min(MAX_LINE_SAG, Math.min(horizontal * 0.05D,
+        double sag = active.taut ? 0.0D : Math.min(MAX_LINE_SAG, Math.min(horizontal * 0.05D,
             Math.max(0.0D, active.maxLineLength - distance) * 0.5D));
         for (int index = 0; index < ROPE_NODE_COUNT; index++) {
             double progress = (double) index / ROPE_SEGMENT_COUNT;
@@ -770,6 +868,9 @@ public final class DebugFishingRodUseService {
         private int renderTicks;
         private boolean retrieved;
         private @Nullable BukkitTask task;
+        private @Nullable FishingPrototypeSession fishing;
+        private double rodAttack = PROTOTYPE_ROD_ATTACK;
+        private boolean taut;
 
         ActiveCast(
             @NotNull String equipmentInstanceId,
