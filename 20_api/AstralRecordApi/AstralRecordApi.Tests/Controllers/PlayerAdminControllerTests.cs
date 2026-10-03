@@ -3,7 +3,6 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Controllers;
@@ -14,40 +13,23 @@ public sealed class PlayerAdminControllerTests
     private static readonly Guid Account = Guid.NewGuid();
 
     [Fact]
-    public async Task WebEditRequiresDistinctDedicatedKeyAndWebAdminActor()
+    public async Task WebEditRequiresWebAdminActorWithoutDedicatedKey()
     {
         var edits = new EditRepository();
         var auth = new WebAuthRepository { IsAdmin = true };
         var request = new PlayerAdminEditStartRequest(Guid.NewGuid(), "maintenance");
-        var missing = MakeController(edits, auth);
-        Assert.IsType<UnauthorizedResult>(await missing.Start(Account, Actor, request));
-        Assert.Equal(0, edits.StartCalls);
-        Assert.Equal(0, auth.AdminChecks);
-
-        var commonOnly = MakeController(edits, auth, "common-secret");
-        Assert.IsType<UnauthorizedResult>(await commonOnly.Start(Account, Actor, request));
-        Assert.Equal(0, edits.StartCalls);
-
-        var reusedCommon = MakeController(edits, auth, "admin-secret", "admin-secret");
-        Assert.IsType<UnauthorizedResult>(await reusedCommon.Start(Account, Actor, request));
-        Assert.Equal(0, edits.StartCalls);
-
-        var wrong = MakeController(edits, auth, "wrong-secret");
-        Assert.IsType<UnauthorizedResult>(await wrong.Start(Account, Actor, request));
-        Assert.Equal(0, edits.StartCalls);
-
-        var noActor = MakeController(edits, auth, "admin-secret");
+        var noActor = MakeController(edits, auth);
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(await noActor.Start(Account, Guid.Empty, request)).StatusCode);
         Assert.Equal(0, edits.StartCalls);
 
         auth.IsAdmin = false;
-        var noAdmin = MakeController(edits, auth, "admin-secret");
+        var noAdmin = MakeController(edits, auth);
         Assert.Equal(403, Assert.IsType<StatusCodeResult>(await noAdmin.Start(Account, Actor, request)).StatusCode);
         Assert.Equal(0, edits.StartCalls);
         Assert.Equal(1, auth.AdminChecks);
 
         auth.IsAdmin = true;
-        var allowed = MakeController(edits, auth, "admin-secret");
+        var allowed = MakeController(edits, auth);
         var response = Assert.IsType<ObjectResult>(await allowed.Start(Account, Actor, request));
         Assert.Equal(201, response.StatusCode);
         Assert.Equal(1, edits.StartCalls);
@@ -57,7 +39,26 @@ public sealed class PlayerAdminControllerTests
     }
 
     [Fact]
-    public async Task ApplyAndCancelGuardCredentialsBeforeRepositoryMutation()
+    public async Task ActiveSessionRequiresWebAdminWithoutDedicatedKey()
+    {
+        var edits = new EditRepository();
+        var auth = new WebAuthRepository();
+        var controller = MakeController(edits, auth);
+
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.GetActive(Account, Guid.Empty)).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.GetActive(Account, Actor)).StatusCode);
+        Assert.Equal(0, edits.GetActiveCalls);
+
+        auth.IsAdmin = true;
+        var response = Assert.IsType<ObjectResult>(await controller.GetActive(Account, Actor));
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal(1, edits.GetActiveCalls);
+        Assert.Equal(Account, edits.LastAccount);
+        Assert.Equal(Actor, edits.LastActor);
+    }
+
+    [Fact]
+    public async Task ApplyAndCancelRequireWebAdminBeforeRepositoryMutation()
     {
         var edits = new EditRepository();
         var auth = new WebAuthRepository { IsAdmin = true };
@@ -66,18 +67,16 @@ public sealed class PlayerAdminControllerTests
         var cancel = new PlayerAdminEditCancelRequest(Guid.NewGuid(), 1);
         var session = Guid.NewGuid();
 
-        Assert.IsType<UnauthorizedResult>(await MakeController(edits, auth)
-            .Apply(session, Actor, apply));
-        Assert.IsType<UnauthorizedResult>(await MakeController(edits, auth)
-            .Cancel(session, Actor, cancel));
         auth.IsAdmin = false;
-        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await MakeController(edits, auth, "admin-secret")
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await MakeController(edits, auth)
             .Apply(session, Actor, apply)).StatusCode);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await MakeController(edits, auth)
+            .Cancel(session, Actor, cancel)).StatusCode);
         Assert.Equal(0, edits.ApplyCalls);
         Assert.Equal(0, edits.CancelCalls);
 
         auth.IsAdmin = true;
-        var controller = MakeController(edits, auth, "admin-secret");
+        var controller = MakeController(edits, auth);
         Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.Apply(session, Actor, apply)).StatusCode);
         Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.Cancel(session, Actor, cancel)).StatusCode);
         Assert.Equal(1, edits.ApplyCalls);
@@ -88,7 +87,7 @@ public sealed class PlayerAdminControllerTests
     public async Task RepositoryConflictRemainsConflictResponse()
     {
         var edits = new EditRepository { StartResult = new(409, Error: "User already has an edit lock.") };
-        var result = await MakeController(edits, new WebAuthRepository { IsAdmin = true }, "admin-secret")
+        var result = await MakeController(edits, new WebAuthRepository { IsAdmin = true })
             .Start(Account, Actor, new(Guid.NewGuid(), "maintenance"));
 
         var response = Assert.IsType<ObjectResult>(result);
@@ -123,27 +122,16 @@ public sealed class PlayerAdminControllerTests
         Assert.Equal(0, edits.CancelCalls);
     }
 
-    private static PlayerAdminController MakeController(EditRepository edits, WebAuthRepository auth,
-        string? provided = null, string common = "common-secret")
-    {
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["PlayerAdmin:WebKey"] = "admin-secret",
-            ["ApiKey:Key"] = common,
-        }).Build();
-        var controller = new PlayerAdminController(edits, auth, config)
+    private static PlayerAdminController MakeController(EditRepository edits, WebAuthRepository auth) =>
+        new(edits, auth)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
-        if (provided is not null)
-            controller.Request.Headers["X-Player-Admin-Web-Key"] = provided;
-        controller.Request.Headers["X-Api-Key"] = common;
-        return controller;
-    }
 
     private sealed class EditRepository : IPlayerAdminEditRepository
     {
         public int StartCalls { get; private set; }
+        public int GetActiveCalls { get; private set; }
         public int ApplyCalls { get; private set; }
         public int CancelCalls { get; private set; }
         public int RegisterCalls { get; private set; }
@@ -184,7 +172,13 @@ public sealed class PlayerAdminControllerTests
         }
 
         public Task<bool> IsUserLockedAsync(Guid userUuid) => throw new NotSupportedException();
-        public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> GetActiveAsync(Guid accountId, Guid actor) => throw new NotSupportedException();
+        public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> GetActiveAsync(Guid accountId, Guid actor)
+        {
+            GetActiveCalls++;
+            LastAccount = accountId;
+            LastActor = actor;
+            return Task.FromResult(StartResult with { StatusCode = 200 });
+        }
         public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> GetByIdAsync(Guid editSessionId, Guid actor) => throw new NotSupportedException();
         public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> RefreshAsync(Guid editSessionId, Guid actor) => throw new NotSupportedException();
         public Task<PlayerAdminResult<PlayerAdminEditorResponse>> GetEditorAsync(Guid editSessionId, Guid actor) => throw new NotSupportedException();

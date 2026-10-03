@@ -154,10 +154,7 @@ builder.Services.AddHttpClient<PlayerAdminApiClient>((serviceProvider, httpClien
     httpClient.Timeout = TimeSpan.FromSeconds(30);
     if (!string.IsNullOrWhiteSpace(api.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
-    var adminWebKey = serviceProvider.GetRequiredService<IConfiguration>()["Api:PlayerAdminWebKey"];
-    if (!string.IsNullOrWhiteSpace(adminWebKey))
-        httpClient.DefaultRequestHeaders.Add("X-Player-Admin-Web-Key", adminWebKey);
-}).RedactLoggedHeaders(new[] { "X-Api-Key", "X-Player-Admin-Web-Key" });
+}).RedactLoggedHeaders(new[] { "X-Api-Key" });
 builder.Services.AddHttpClient<ActivityHistoryApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

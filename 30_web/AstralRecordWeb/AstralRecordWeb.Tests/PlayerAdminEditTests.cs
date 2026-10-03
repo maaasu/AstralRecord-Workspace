@@ -24,7 +24,7 @@ public sealed class PlayerAdminEditTests
     private static string Path => $"/admin/players/{Target:D}/accounts/{Account:D}/edit";
 
     [Fact]
-    public async Task StartRequiresAdminAndCsrfAndUsesCookieActorAndDedicatedKey()
+    public async Task StartRequiresAdminAndCsrfAndUsesCookieActorAndCommonApiKey()
     {
         var api = new AdminHandler();
         await using var factory = new AdminFactory(api);
@@ -55,7 +55,7 @@ public sealed class PlayerAdminEditTests
         Assert.Equal(HttpStatusCode.Found, dispatched.StatusCode);
         Assert.Equal(1, api.StartPosts);
         Assert.Equal(Actor.ToString("D"), api.LastActor);
-        Assert.Equal("fixture-player-admin-key", api.LastAdminKey);
+        Assert.Null(api.LastAdminKey);
         Assert.Equal("fixture-api-key", api.LastApiKey);
     }
 
@@ -276,7 +276,7 @@ public sealed class PlayerAdminEditTests
             builder.WithIsolatedWebDependencies();
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["AstralRecordApi:ApiKey"] = "fixture-api-key", ["Api:PlayerAdminWebKey"] = "fixture-player-admin-key",
+                ["AstralRecordApi:ApiKey"] = "fixture-api-key",
             }));
             builder.ConfigureTestServices(services =>
             {

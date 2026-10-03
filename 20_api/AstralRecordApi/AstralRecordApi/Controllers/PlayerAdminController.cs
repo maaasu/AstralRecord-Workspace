@@ -1,58 +1,50 @@
-using System.Security.Cryptography;
-using System.Text;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AstralRecordApi.Controllers;
 
-/// <summary>管理者によるプレイヤーの安全なオフライン編集とサーバー退避を扱います。</summary>
+/// <summary>共通APIキー認証と管理者権限確認でプレイヤーの安全なオフライン編集とサーバー退避を扱います。</summary>
 [ApiController]
 [Route("api/player-admin")]
 public sealed class PlayerAdminController(
     IPlayerAdminEditRepository edits,
-    IWebAuthRepository webAuth,
-    IConfiguration configuration) : ControllerBase
+    IWebAuthRepository webAuth) : ControllerBase
 {
     /// <summary>ユーザーの全ゲーム接続を止める編集セッションを開始します。</summary>
     [HttpPost("accounts/{accountId:guid}/edit-sessions")]
     public async Task<IActionResult> Start(Guid accountId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor,
         [FromBody] PlayerAdminEditStartRequest request)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.StartAsync(accountId, actor, request));
 
     /// <summary>指定アカウントの有効な編集セッションを返します。</summary>
     [HttpGet("accounts/{accountId:guid}/edit-session")]
     public async Task<IActionResult> GetActive(Guid accountId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.GetActiveAsync(accountId, actor));
 
     /// <summary>完了済みも含めて編集セッションの結果を返します。</summary>
     [HttpGet("edit-sessions/{editSessionId:guid}")]
     public async Task<IActionResult> GetById(Guid editSessionId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.GetByIdAsync(editSessionId, actor));
 
     /// <summary>保存済みのサーバー退避証明を確認して編集権を更新します。</summary>
     [HttpPost("edit-sessions/{editSessionId:guid}/refresh")]
     public async Task<IActionResult> Refresh(Guid editSessionId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.RefreshAsync(editSessionId, actor));
 
     /// <summary>安全に退避したアカウントの編集用スナップショットを返します。</summary>
     [HttpGet("edit-sessions/{editSessionId:guid}/editor")]
     public async Task<IActionResult> GetEditor(Guid editSessionId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.GetEditorAsync(editSessionId, actor));
 
     /// <summary>期待版を検証して変更と監査用領収書を一つのトランザクションで確定します。</summary>
@@ -60,8 +52,7 @@ public sealed class PlayerAdminController(
     public async Task<IActionResult> Apply(Guid editSessionId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor,
         [FromBody] PlayerAdminEditOperationRequest request)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.ApplyAsync(editSessionId, actor, request));
 
     /// <summary>全サーバー退避確認後、変更せずに編集ロックを解除します。</summary>
@@ -69,8 +60,7 @@ public sealed class PlayerAdminController(
     public async Task<IActionResult> Cancel(Guid editSessionId,
         [FromQuery(Name = "actor_user_uuid")] Guid actor,
         [FromBody] PlayerAdminEditCancelRequest request)
-        => !HasWebCredential() ? Unauthorized()
-            : !await CanEditAsync(actor) ? StatusCode(403)
+        => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.CancelAsync(editSessionId, actor, request));
 
     /// <summary>共通APIキー認証でゲーム・ロビー・Proxyの起動個体を永続登録します。</summary>
@@ -93,18 +83,6 @@ public sealed class PlayerAdminController(
 
     private Task<bool> CanEditAsync(Guid actor) => actor == Guid.Empty
         ? Task.FromResult(false) : webAuth.IsWebAdminAsync(actor);
-
-    private bool HasWebCredential()
-    {
-        var expected = configuration["PlayerAdmin:WebKey"];
-        var provided = Request.Headers["X-Player-Admin-Web-Key"].FirstOrDefault();
-        var common = configuration["ApiKey:Key"];
-        if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(provided)
-            || string.Equals(expected, common, StringComparison.Ordinal)) return false;
-        var left = Encoding.UTF8.GetBytes(expected);
-        var right = Encoding.UTF8.GetBytes(provided);
-        return left.Length == right.Length && CryptographicOperations.FixedTimeEquals(left, right);
-    }
 
     private IActionResult Respond<T>(PlayerAdminResult<T> result) => result.Value is not null
         ? StatusCode(result.StatusCode, result.Value)
