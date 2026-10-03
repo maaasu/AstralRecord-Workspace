@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.pet.model.*;
 import io.github.maaasu.astralRecord.feature.pet.repository.PetRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.RuntimeAccountAuthority;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.inventory.service.*;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryOperationSnapshotParser;
@@ -35,6 +37,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private final InventorySaveCoordinator saves;
     private final Map<UUID, AccountState> accounts = new ConcurrentHashMap<>();
     private final Map<UUID, ExternalOperation> unresolved = new ConcurrentHashMap<>();
+    private final Map<UUID,LegacyEquipAttempt> legacyEquipAttempts=new ConcurrentHashMap<>();
     private volatile PetMaster master = new PetMaster(new JsonObject());
     private volatile Consumer<AstPlayer> refreshListener = ignored -> { };
     private volatile Consumer<AstPlayer> pauseListener = ignored -> { };
@@ -193,6 +196,15 @@ public final class PetService implements PetRuntimeService.StateBridge {
         UUID selected=equippedId(accountId);
         PetInstance pet=selected==null?null:find(accountId,selected);
         if(pet==null||pet.isEgg())return null;
+        if(!inventory.isPetInEquipmentSlot(accountId,selected)){
+            if(org.bukkit.Bukkit.isPrimaryThread()&&AccountModeGuard.isGameplayPlayer(owner)
+                &&AstPlayerCache.get(owner.getBukkit())==owner&&inventory.isPetInGameBag(accountId,selected)){
+                LegacyEquipAttempt attempt=new LegacyEquipAttempt(selected,generation(accountId));
+                if(!attempt.equals(legacyEquipAttempts.put(accountId,attempt)))
+                    equip(owner,selected).whenComplete((ignored,failure)->{if(failure!=null)log(failure);});
+            }
+            return null;
+        }
         JsonObject species=master.species(pet.speciesId());if(species.isEmpty())return null;
         JsonObject details=pet.details(),stats=object(details,"stats"),definitions=object(species,"stats");
         List<PetRuntimeService.PetSkill> skills=new ArrayList<>();
@@ -429,20 +441,48 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @return 説明した契約に従う結果。通信を伴う処理の失敗は例外またはfutureで通知します
      */
     public CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,JsonObject body,Map<String,Long> payment) {
-        return mutate(owner, operationId, suffix, method, body, payment, null);
+        return mutate(owner, operationId, suffix, method, body, payment, null,null);
+    }
+
+    /**
+     * 物理GAME装備枠7への移動・交換・解除を、BAG返却予約付きの原子操作で確定します。メインスレッド専用です。
+     * @param owner 読み込み済みの所有者
+     * @param petId 装備するPET個体ID。解除の場合はnull
+     * @return API確定結果。事前拒否はfailureを含む完了future、通信失敗は例外future
+     */
+    public CompletableFuture<JsonObject> equip(AstPlayer owner,@Nullable UUID petId){
+        UUID accountId=owner.getAccount().getUuid();
+        if(unresolved.containsKey(accountId))return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));
+        InventoryService.PetEquipmentPreparation prepared=inventory.preparePetEquipmentChange(owner,equippedId(accountId),petId);
+        if(prepared.plan()==null){
+            JsonObject denied=new JsonObject();denied.addProperty("failure",prepared.bagFull()?"bag_full":"pet_not_available");
+            return CompletableFuture.completedFuture(denied);
+        }
+        JsonObject body=new JsonObject();
+        if(petId==null)body.add("petId",JsonNull.INSTANCE);else body.addProperty("petId",petId.toString());
+        if(prepared.plan().returnBagSlotIndex()!=null)body.addProperty("returnBagSlotIndex",prepared.plan().returnBagSlotIndex());
+        return mutate(owner,UUID.randomUUID(),"/equipped","PUT",body,Map.of(),null,prepared.plan());
     }
 
     /** 卵付与のBAG予約を未確定操作へ接続し、同じ操作IDの復旧まで保持します。メインスレッド専用です。 */
     private CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,
         JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation) {
+        return mutate(owner,operationId,suffix,method,body,payment,reservation,null);
+    }
+    /** 卵生成または既存PETの装備移動予約を保持したまま原子APIへ渡します。 */
+    private CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,
+        JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation,
+        InventoryService.PetEquipmentPlan equipmentPlan) {
         UUID accountId=owner.getAccount().getUuid();
         if(unresolved.containsKey(accountId)) {
             releaseSlotReservation(reservation);
+            inventory.releasePetEquipmentPlan(equipmentPlan);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));
         }
         var bagEntries = PetBagAccess.entries(inventory.getStateRegistry().get(accountId));
         if (payment.entrySet().stream().anyMatch(cost -> PetBagAccess.materialAmount(bagEntries, cost.getKey()) < cost.getValue())) {
             releaseSlotReservation(reservation);
+            inventory.releasePetEquipmentPlan(equipmentPlan);
             JsonObject result = new JsonObject();
             result.addProperty("failure", "insufficient_materials");
             Logger.log(LogId.W_9601, accountId, suffix, 0, "insufficient_materials");
@@ -450,21 +490,22 @@ public final class PetService implements PetRuntimeService.StateBridge {
         }
         if (!inventory.reserveOrbOperationPayment(accountId,operationId,payment,0)) {
             releaseSlotReservation(reservation);
+            inventory.releasePetEquipmentPlan(equipmentPlan);
             JsonObject result = new JsonObject();
             result.addProperty("failure", "payment_unavailable");
             Logger.log(LogId.W_9601, accountId, suffix, 0, "payment_unavailable");
             return CompletableFuture.completedFuture(result);
         }
         body=body.deepCopy();body.addProperty("operationId",operationId.toString());body.addProperty("updatedBy",accountId.toString());
-        ExternalOperation operation=new ExternalOperation(owner,operationId,suffix,method,body,reservation);
-        if(unresolved.putIfAbsent(accountId,operation)!=null){releaseSlotReservation(reservation);inventory.releaseOrbOperationPayment(accountId,operationId);return CompletableFuture.failedFuture(new IllegalStateException("Pet operation busy"));}
+        ExternalOperation operation=new ExternalOperation(owner,operationId,suffix,method,body,reservation,equipmentPlan);
+        if(unresolved.putIfAbsent(accountId,operation)!=null){releaseSlotReservation(reservation);inventory.releasePetEquipmentPlan(equipmentPlan);inventory.releaseOrbOperationPayment(accountId,operationId);return CompletableFuture.failedFuture(new IllegalStateException("Pet operation busy"));}
         if(!org.bukkit.Bukkit.isPrimaryThread()){
-            releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
+            releaseSlotReservation(reservation);inventory.releasePetEquipmentPlan(equipmentPlan);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet operation must begin on Bukkit main thread"));
         }
         pauseListener.accept(owner);
         AccountState state=accounts.get(accountId);
-        if(state==null){releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
+        if(state==null){releaseSlotReservation(reservation);inventory.releasePetEquipmentPlan(equipmentPlan);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet account is not loaded"));}
         CompletableFuture<JsonObject> future;
         synchronized(state){
@@ -476,7 +517,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         }
         return future.whenComplete((result,failure)->{
             if(failure==null){finish(operation);}
-            else if(operation.baseline==null){releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);notifyRefresh(owner);}
+            else if(operation.baseline==null){releaseSlotReservation(reservation);inventory.releasePetEquipmentPlan(equipmentPlan);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);notifyRefresh(owner);}
             else {log(failure);}
         });
     }
@@ -496,8 +537,10 @@ public final class PetService implements PetRuntimeService.StateBridge {
                 if(snapshot!=null) {
                     if (operation.reservation != null)
                         inventory.reconcileReservedPetGrant(accountId, operation.baseline, snapshot, operation.reservation);
+                    else if(operation.equipmentPlan!=null)
+                        inventory.reconcileReservedPetEquipment(accountId,operation.baseline,snapshot,operation.equipmentPlan);
                     else inventory.reconcileExternalInventoryEntries(accountId,snapshot.getCoveredEntryIds(),operation.baseline,snapshot);
-                } else if(operation.result.has("inventorySnapshot") || operation.reservation != null)
+                } else if(operation.result.has("inventorySnapshot") || operation.reservation != null||operation.equipmentPlan!=null)
                     throw new IllegalStateException("Invalid pet inventory snapshot");
                 // 個体cacheの再取得に失敗しても、同じAPI差分を二度取り込まない。
                 operation.inventoryApplied = true;
@@ -510,6 +553,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     }
     private void finish(ExternalOperation operation) {
         releaseSlotReservation(operation.reservation);
+        inventory.releasePetEquipmentPlan(operation.equipmentPlan);
         UUID accountId=operation.owner.getAccount().getUuid();unresolved.remove(accountId,operation);
         notifyRefresh(operation.owner);
     }
@@ -559,7 +603,9 @@ public final class PetService implements PetRuntimeService.StateBridge {
         AccountState state=accounts.get(accountId);if(state==null)return;
         synchronized(state){
             if(state.generation==generation&&state.tail.isDone()&&!unresolved.containsKey(accountId)
-                &&state.progress.values().stream().allMatch(value->value.request==null&&value.revision==value.acknowledged))accounts.remove(accountId,state);
+                &&state.progress.values().stream().allMatch(value->value.request==null&&value.revision==value.acknowledged)){
+                accounts.remove(accountId,state);legacyEquipAttempts.remove(accountId);
+            }
         }
     }
     /**
@@ -568,7 +614,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
      */
     public void forgetAccount(UUID accountId){
         if(unresolved.containsKey(accountId))throw new IllegalStateException("Pet operation unresolved during account discard");
-        accounts.remove(accountId);
+        accounts.remove(accountId);legacyEquipAttempts.remove(accountId);
     }
     /**
      * API確定拒否かどうかを返します。未解決通信は別の失敗です。
@@ -582,6 +628,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         final Map<UUID,Progress> progress=new LinkedHashMap<>();CompletableFuture<Void> tail=CompletableFuture.completedFuture(null);
         AccountState(UUID id){this.id=id;}
     }
+    private record LegacyEquipAttempt(UUID petId,long generation) { }
     private static final class Progress {
         long experience,revision,acknowledged;double health;boolean dead;Map<String,Long> cooldowns=new HashMap<>();ProgressRequest request;
         Progress(PetInstance pet){health=number(pet.details(),"healthRatio",1);dead=pet.dead();object(pet.details(),"cooldowns").entrySet().forEach(row->cooldowns.put(row.getKey(),row.getValue().getAsLong()));}
@@ -590,11 +637,12 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private static final class ExternalOperation {
         final AstPlayer owner;final UUID id;final String suffix,method;final JsonObject body;
         final InventoryService.PreparedInstanceSlotReservation reservation;
+        final InventoryService.PetEquipmentPlan equipmentPlan;
         volatile InventoryPersistence.PersistedInventoryBaseline baseline;volatile JsonObject result;
         volatile PetRepository.RejectedOperation rejected;volatile boolean inventoryApplied,applied,recovering;
         ExternalOperation(AstPlayer owner,UUID id,String suffix,String method,JsonObject body,
-            InventoryService.PreparedInstanceSlotReservation reservation){
-            this.owner=owner;this.id=id;this.suffix=suffix;this.method=method;this.body=body;this.reservation=reservation;
+            InventoryService.PreparedInstanceSlotReservation reservation,InventoryService.PetEquipmentPlan equipmentPlan){
+            this.owner=owner;this.id=id;this.suffix=suffix;this.method=method;this.body=body;this.reservation=reservation;this.equipmentPlan=equipmentPlan;
         }
     }
 }

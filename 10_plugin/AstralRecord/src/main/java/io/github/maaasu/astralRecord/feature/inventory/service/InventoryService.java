@@ -37,7 +37,10 @@ import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementSe
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageCapacity;
@@ -187,6 +190,154 @@ public class InventoryService {
      */
     /** ペットの個体表示を接続します。構築時に一度呼び、通信は行いません。 */
     public void setPetService(io.github.maaasu.astralRecord.feature.pet.service.PetService service){petService=service;itemStackResolver.setPetService(service);}
+
+    /**
+     * GAME装備枠7に指定個体のPET entryが存在するかを、読み込み済みstateだけで確認します。
+     * @param accountId 所有アカウント
+     * @param petId 確認するPET個体ID
+     * @return 装備枠7の正本entryと一致する場合true
+     */
+    public boolean isPetInEquipmentSlot(@NotNull UUID accountId,@NotNull UUID petId){
+        PlayerInventoryState state=getState(accountId);if(state==null)return false;
+        synchronized(state){
+            InventoryModel equip=state.findInventory(DEFAULT_PROFILE,InventoryType.EQUIP_SLOT);
+            if(equip!=null&&(equip.isDeleted()||!equip.isEnabled()))return new PetEquipmentPreparation(null,false);
+            return equip!=null&&equip.isEnabled()&&!equip.isDeleted()&&state.snapshotEntries(equip.getInventoryId()).stream()
+                .anyMatch(entry->isPetEntry(entry,petId)&&Objects.equals(entry.getSlotIndex(),EquipSlotLayout.SLOT_PET));
+        }
+    }
+
+    /**
+     * 指定PETが有効なGAME BAGに存在するかを、API通信なしで確認します。
+     * @param accountId 所有アカウント
+     * @param petId 確認するPET個体ID
+     * @return BAG内の正本entryと一致する場合true
+     */
+    public boolean isPetInGameBag(@NotNull UUID accountId,@NotNull UUID petId){
+        return io.github.maaasu.astralRecord.feature.pet.service.PetBagAccess.entries(getState(accountId)).stream()
+            .anyMatch(entry->isPetEntry(entry,petId));
+    }
+
+    /**
+     * BAGと装備枠を照合し、旧装備の返却先を予約してAPI操作前の配置計画を作ります。
+     * 予約は未確定操作の復旧が完了するまで保持します。メインスレッド専用です。
+     * @param owner 操作する読み込み済みプレイヤー
+     * @param selectedId APIが選択中の旧PET ID。未装備ならnull
+     * @param requestedId 新たに装備するPET ID。解除ならnull
+     * @return 成功時の計画、または満杯か不整合かを示す失敗結果
+     */
+    public @NotNull PetEquipmentPreparation preparePetEquipmentChange(@NotNull AstPlayer owner,
+        @Nullable UUID selectedId,@Nullable UUID requestedId){
+        UUID accountId=owner.getAccount().getUuid();PlayerInventoryState state=getState(accountId);
+        if(state==null)return new PetEquipmentPreparation(null,false);
+        synchronized(state){
+            if(getState(accountId)!=state)return new PetEquipmentPreparation(null,false);
+            InventoryModel bag=state.findInventory(DEFAULT_PROFILE,InventoryType.BAG);
+            if(bag==null||bag.isDeleted()||!bag.isEnabled())return new PetEquipmentPreparation(null,false);
+            InventoryModel equip=state.findInventory(DEFAULT_PROFILE,InventoryType.EQUIP_SLOT);
+            InventoryEntryModel equipped=equip==null?null:state.snapshotEntries(equip.getInventoryId()).stream()
+                .filter(entry->!entry.isDeleted()&&Objects.equals(entry.getSlotIndex(),EquipSlotLayout.SLOT_PET))
+                .findFirst().orElse(null);
+            InventoryEntryModel oldBag=selectedId==null?null:findBagPet(state,bag,selectedId);
+            if(equipped!=null&&(selectedId==null||!isPetEntry(equipped,selectedId)))
+                return new PetEquipmentPreparation(null,false);
+            if(selectedId!=null&&equipped==null&&oldBag==null)
+                return new PetEquipmentPreparation(null,false);
+            InventoryEntryModel incoming=requestedId==null||equipped!=null&&requestedId.equals(selectedId)
+                ?null:findBagPet(state,bag,requestedId);
+            if(requestedId!=null&&incoming==null&&!(equipped!=null&&requestedId.equals(selectedId)))
+                return new PetEquipmentPreparation(null,false);
+            UUID returningId=equipped!=null&&!Objects.equals(selectedId,requestedId)?selectedId:null;
+            Integer returnSlot=null;PreparedInstanceSlotReservation reservation=null;
+            if(returningId!=null){
+                int capacity=inventoryCapacity(bag);
+                Integer sourceSlot=incoming==null?null:incoming.getSlotIndex();
+                Set<Integer> used=collectUsedSlots(state,bag);
+                if(sourceSlot!=null&&NormalInventoryLayout.isManagedSlot(sourceSlot,capacity))returnSlot=sourceSlot;
+                else returnSlot=findNextFreeSlot(bag,used);
+                if(returnSlot==null)return new PetEquipmentPreparation(null,true);
+                UUID reservationId=UUID.randomUUID();
+                pendingBagSlotReservationsByAccount.computeIfAbsent(accountId,ignored->new ConcurrentHashMap<>())
+                    .put(reservationId,new PendingBagSlotReservation(reservationId,state,bag.getInventoryId(),returnSlot));
+                reservation=new PreparedInstanceSlotReservation(reservationId,accountId);
+            }
+            if(equip==null)equip=ensureInventory(state,InventoryType.EQUIP_SLOT,EquipSlotLayout.SLOT_PET,accountId,DEFAULT_PROFILE);
+            else if(equip.getSlotCapacity()==null||equip.getSlotCapacity()<EquipSlotLayout.SLOT_PET){
+                state.putInventory(new InventoryModel(equip.getInventoryId(),accountId,InventoryType.EQUIP_SLOT,DEFAULT_PROFILE.getCode(),
+                    EquipSlotLayout.SLOT_PET,equip.isEnabled(),equip.getMetadataJson(),equip.getCreatedAt(),equip.getUpdatedAt(),
+                    equip.getCreatedBy(),accountId,equip.isDeleted()));
+                state.markDirty();
+            }
+            return new PetEquipmentPreparation(new PetEquipmentPlan(accountId,state,bag.getInventoryId(),equip.getInventoryId(),
+                requestedId,incoming==null?null:incoming.getInventoryEntryId(),returningId,
+                equipped==null?null:equipped.getInventoryEntryId(),returnSlot,reservation),false);
+        }
+    }
+
+    private static boolean isPetEntry(InventoryEntryModel entry,UUID petId){
+        return !entry.isDeleted()&&petId.equals(entry.getInstanceId())&&entry.getQuantity()==1
+            &&InventoryInstanceType.PET.getCode().equalsIgnoreCase(entry.getInstanceType());
+    }
+    private static InventoryEntryModel findBagPet(PlayerInventoryState state,InventoryModel bag,UUID petId){
+        return state.snapshotEntries(bag.getInventoryId()).stream().filter(entry->isPetEntry(entry,petId)).findFirst().orElse(null);
+    }
+
+    /**
+     * 装備変更のBAG返却予約を解除します。確定または操作前失敗の境界だけで呼びます。
+     * @param plan 解除する計画。nullなら何もしません
+     */
+    public void releasePetEquipmentPlan(@Nullable PetEquipmentPlan plan){
+        if(plan!=null&&plan.reservation()!=null)releasePreparedInstanceReservation(plan.reservation());
+    }
+
+    /**
+     * BAGでクリックしたPETの装備変更を開始し、確定後だけ通知と効果音を主スレッドで反映します。
+     * @param owner 操作する読み込み済みプレイヤー
+     * @param petId 装備するPET ID。解除ならnull
+     * @return 非同期操作を受理した場合true。事前拒否ではfalse
+     */
+    public boolean requestPetEquipmentChange(@NotNull AstPlayer owner,@Nullable UUID petId){
+        Player player=owner.getBukkit();
+        if(petService==null||!AccountModeGuard.isGameplayPlayer(owner)||AstPlayerCache.get(player)!=owner){
+            GuiSound.DENY.play(player);return false;
+        }
+        CompletableFuture<JsonObject> operation;
+        try{operation=petService.equip(owner,petId);}
+        catch(RuntimeException failure){
+            PlayerMessageService.getInstance().send(player,PlayerMsgId.P_9624);
+            GuiSound.DENY.play(player);return false;
+        }
+        boolean accepted=true;
+        if(operation.isDone()){
+            if(operation.isCompletedExceptionally())accepted=false;
+            else accepted=!petService.rejected(operation.getNow(null));
+        }
+        io.github.maaasu.astralRecord.AstralRecord plugin=io.github.maaasu.astralRecord.AstralRecord.getInstance();
+        operation.whenComplete((result,failure)->{
+            if(!plugin.isEnabled())return;
+            plugin.getServer().getScheduler().runTask(plugin,()->{
+                if(!player.isOnline()||AstPlayerCache.get(player)!=owner)return;
+                if(failure==null&&!petService.rejected(result)){
+                    PlayerMessageService.getInstance().send(player,PlayerMsgId.P_9601);
+                    (petId==null?GuiSound.UNEQUIP:GuiSound.EQUIP).play(player);
+                }else{
+                    boolean full=result!=null&&"bag_full".equals(io.github.maaasu.astralRecord.feature.pet.model.PetJson.text(result,"failure",""));
+                    PlayerMessageService.getInstance().send(player,petService.hasUnresolved(owner.getAccount().getUuid())
+                        ?PlayerMsgId.P_9603:full?PlayerMsgId.P_9623:PlayerMsgId.P_9624);
+                    GuiSound.DENY.play(player);
+                }
+            });
+        });
+        return accepted;
+    }
+
+    /** 装備開始前の配置と返却先予約を保持する結果です。 */
+    public record PetEquipmentPreparation(@Nullable PetEquipmentPlan plan,boolean bagFull) { }
+    /** 同じentry IDのBAG/装備枠移動をAPI正本へ反映する計画です。 */
+    public record PetEquipmentPlan(UUID accountId,PlayerInventoryState stateGeneration,UUID bagInventoryId,
+        UUID equipmentInventoryId,@Nullable UUID incomingPetId,@Nullable UUID incomingEntryId,
+        @Nullable UUID returningPetId,@Nullable UUID returningEntryId,@Nullable Integer returnBagSlotIndex,
+        @Nullable PreparedInstanceSlotReservation reservation) { }
 
     public @NotNull InventoryClickGuard getClickGuard() {
         return clickGuard;
@@ -3489,6 +3640,23 @@ public class InventoryService {
             snapshot, reservation);
     }
 
+    /**
+     * 既存PET entryのBAG/装備枠移動を三者マージし、返却予約を同じstate lockで解除します。
+     * @param accountId 操作アカウント
+     * @param baseline API直前に保存したインベントリ正本
+     * @param snapshot APIの操作後entry正本
+     * @param plan 事前に検証・予約した移動計画
+     */
+    public void reconcileReservedPetEquipment(UUID accountId,InventoryPersistence.PersistedInventoryBaseline baseline,
+        InventoryOperationSnapshot snapshot,PetEquipmentPlan plan){
+        if(!accountId.equals(plan.accountId()))throw new IllegalArgumentException("Pet equipment plan owner mismatch");
+        Set<UUID> expected=new HashSet<>();
+        if(plan.incomingEntryId()!=null)expected.add(plan.incomingEntryId());
+        if(plan.returningEntryId()!=null)expected.add(plan.returningEntryId());
+        if(!snapshot.covers(accountId,expected))throw new IllegalStateException("Pet equipment snapshot incomplete");
+        reconcileExternalInventoryEntries(accountId,snapshot.getCoveredEntryIds(),baseline,null,null,snapshot,null,plan);
+    }
+
     private @NotNull Set<UUID> reconcileExternalInventoryEntries(
         @NotNull UUID accountId,
         @NotNull Collection<UUID> affectedEntryIds,
@@ -3497,6 +3665,20 @@ public class InventoryService {
         @Nullable ExternalReturnNormalization returnNormalization,
         @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot,
         @Nullable PreparedInstanceSlotReservation consumedReservation
+    ) {
+        return reconcileExternalInventoryEntries(accountId,affectedEntryIds,baseline,beforePublish,
+            returnNormalization,snapshot,consumedReservation,null);
+    }
+
+    private @NotNull Set<UUID> reconcileExternalInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish,
+        @Nullable ExternalReturnNormalization returnNormalization,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot,
+        @Nullable PreparedInstanceSlotReservation consumedReservation,
+        @Nullable PetEquipmentPlan petEquipmentPlan
     ) {
         if (!baseline.accountId().equals(accountId)) {
             throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
@@ -3594,6 +3776,8 @@ public class InventoryService {
                         : List.copyOf(entries));
                 }
             }
+            if(petEquipmentPlan!=null)
+                placePetEquipmentEntries(state,petEquipmentPlan,snapshot,finalizedEntries,result.entriesByInventoryId());
             InventoryStateSnapshot prePublish = new InventoryStateSnapshot(
                 accountId,
                 currentEntries,
@@ -3622,6 +3806,8 @@ public class InventoryService {
                     persistence.acknowledgeExternalInventory(state, currencyInventoryId, authoritativeCurrency);
                 }
                 if (consumedReservation != null) removePendingBagSlotReservation(consumedReservation);
+                if (petEquipmentPlan!=null&&petEquipmentPlan.reservation()!=null)
+                    removePendingBagSlotReservation(petEquipmentPlan.reservation());
                 return result.apiAddedEntryIds();
             } catch (RuntimeException exception) {
                 restoreState(prePublish);
@@ -4125,6 +4311,60 @@ public class InventoryService {
             throw new IllegalStateException("Reserved egg slot is occupied");
         return entries.stream().map(entry -> entry.getInventoryEntryId().equals(addedId)
             ? withSlot(entry, pending.slotIndex(), state.getAccountId()) : entry).toList();
+    }
+
+    /** 三者マージ済みの個体entryだけをAPI確定配置へ移し、他entryのローカル増減を保持します。 */
+    private void placePetEquipmentEntries(PlayerInventoryState state,PetEquipmentPlan plan,
+        InventoryOperationSnapshot snapshot,Map<UUID,List<InventoryEntryModel>> finalized,
+        Map<UUID,List<InventoryEntryModel>> merged){
+        if(plan.stateGeneration()!=state||getState(plan.accountId())!=state)
+            throw new IllegalStateException("Pet equipment inventory generation changed");
+        InventoryModel bag=state.findInventoryById(plan.bagInventoryId());
+        InventoryModel equip=state.findInventoryById(plan.equipmentInventoryId());
+        if(bag==null||equip==null||bag.isDeleted()||equip.isDeleted()||!bag.isEnabled()||!equip.isEnabled()
+            ||bag.getInventoryType()!=InventoryType.BAG||equip.getInventoryType()!=InventoryType.EQUIP_SLOT)
+            throw new IllegalStateException("Pet equipment target inventory unavailable");
+        if(plan.reservation()!=null){
+            PendingBagSlotReservation pending=findPendingBagSlotReservation(plan.reservation());
+            if(pending==null||pending.stateGeneration()!=state||!pending.inventoryId().equals(bag.getInventoryId())
+                ||!Objects.equals(pending.slotIndex(),plan.returnBagSlotIndex()))
+                throw new IllegalStateException("Pet equipment return slot reservation changed");
+        }
+        Map<UUID,InventoryEntryModel> authoritative=new HashMap<>();
+        for(InventoryEntryModel entry:snapshot.getEntries())authoritative.put(entry.getInventoryEntryId(),entry);
+        List<InventoryEntryModel> moves=new ArrayList<>();
+        if(plan.incomingEntryId()!=null){
+            InventoryEntryModel row=authoritative.get(plan.incomingEntryId());
+            if(row==null||!isPetEntry(row,plan.incomingPetId())
+                ||!row.getInventoryId().equals(equip.getInventoryId())
+                ||!Objects.equals(row.getSlotIndex(),EquipSlotLayout.SLOT_PET))
+                throw new IllegalStateException("Equipped PET entry does not match API snapshot");
+            moves.add(row);
+        }
+        if(plan.returningEntryId()!=null){
+            InventoryEntryModel row=authoritative.get(plan.returningEntryId());
+            if(row==null||!isPetEntry(row,plan.returningPetId())
+                ||!row.getInventoryId().equals(bag.getInventoryId())
+                ||!Objects.equals(row.getSlotIndex(),plan.returnBagSlotIndex()))
+                throw new IllegalStateException("Returned PET entry does not match API snapshot");
+            moves.add(row);
+        }
+        if(moves.isEmpty())return;
+        Set<UUID> movedIds=moves.stream().map(InventoryEntryModel::getInventoryEntryId).collect(Collectors.toSet());
+        for(InventoryModel inventory:state.snapshotInventories()){
+            UUID inventoryId=inventory.getInventoryId();
+            List<InventoryEntryModel> rows=new ArrayList<>(finalized.getOrDefault(inventoryId,
+                merged.getOrDefault(inventoryId,state.snapshotEntries(inventoryId))));
+            if(rows.removeIf(entry->movedIds.contains(entry.getInventoryEntryId())))finalized.put(inventoryId,rows);
+        }
+        for(InventoryEntryModel row:moves){
+            UUID inventoryId=row.getInventoryId();
+            List<InventoryEntryModel> rows=new ArrayList<>(finalized.getOrDefault(inventoryId,
+                merged.getOrDefault(inventoryId,state.snapshotEntries(inventoryId))));
+            if(rows.stream().anyMatch(entry->Objects.equals(entry.getSlotIndex(),row.getSlotIndex())))
+                throw new IllegalStateException("Pet equipment target slot occupied locally");
+            rows.add(row);finalized.put(inventoryId,List.copyOf(rows));
+        }
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(
@@ -6050,6 +6290,9 @@ public class InventoryService {
         }
         if (category == ItemCategory.BUNDLE || category == ItemCategory.CONSUMABLE) {
             return assignHotbarItem(astPlayer, state, sourceEntry, model);
+        }
+        if (category == ItemCategory.PET && sourceEntry.getInstanceId() != null) {
+            return requestPetEquipmentChange(astPlayer, sourceEntry.getInstanceId());
         }
         return false;
     }
