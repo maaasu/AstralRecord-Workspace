@@ -85,7 +85,8 @@ public final class WizardElementalBallExecutor extends PlayerActiveSkillExecutor
     private static @NotNull SkillProjectileSpec projectile(double range, double speed, double hitRadius) {
         return new SkillProjectileSpec(
                 range, speed, hitRadius, false, 1,
-                SharedParticleDefinitions.WIZARD_ELEMENTAL_BALL_TRAIL, null
+                SharedParticleDefinitions.WIZARD_ELEMENTAL_BALL_TRAIL, null,
+                SharedParticleDefinitions.WIZARD_SPELL_CORE
         );
     }
 

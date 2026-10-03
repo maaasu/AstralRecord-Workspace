@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
@@ -56,6 +57,12 @@ public final class WizardElementalPrismExecutor extends PlayerActiveSkillExecuto
                 params.getInt("durationTicks", 7200),
                 params.getDouble("projectileSpeed", 1.5D)
         );
+        Location core = base.clone().add(0.0D, 1.45D, 0.0D);
+        context.services().effects().line(context.eyeLocation(), core, 0.35D,
+                SharedParticleDefinitions.WIZARD_PRISM_CORE_DUST);
+        context.services().effects().line(context.eyeLocation(), core, 0.55D,
+                SharedParticleDefinitions.WIZARD_SPELL_CORE);
+        context.services().effects().point(core, SharedParticleDefinitions.WIZARD_ARCANE_BURST);
         return context.success();
     }
 

@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
  * @param maxHits 1 projectile の最大命中数
  * @param trail 軌跡パーティクル
  * @param impact 命中パーティクル。不要なら {@code null}
+ * @param accentTrail 軌跡へ重ねる追加パーティクル。不要なら {@code null}
  */
 public record SkillProjectileSpec(
         double range,
@@ -22,8 +23,26 @@ public record SkillProjectileSpec(
         boolean piercing,
         int maxHits,
         @NotNull SharedParticleDefinition trail,
-        @Nullable SharedParticleDefinition impact
+        @Nullable SharedParticleDefinition impact,
+        @Nullable SharedParticleDefinition accentTrail
 ) {
+
+    /**
+     * 追加粒子を使わない既存の飛翔体仕様を構成します。
+     *
+     * @param range 最大飛距離
+     * @param speed 1 tickあたりの移動距離
+     * @param hitRadius 衝突判定半径
+     * @param piercing 貫通の有無
+     * @param maxHits 最大命中数
+     * @param trail 軌跡粒子
+     * @param impact 命中粒子。不要ならnull
+     */
+    public SkillProjectileSpec(double range, double speed, double hitRadius, boolean piercing, int maxHits,
+                               @NotNull SharedParticleDefinition trail,
+                               @Nullable SharedParticleDefinition impact) {
+        this(range, speed, hitRadius, piercing, maxHits, trail, impact, null);
+    }
 
     /**
      * projectile の数値を安全な範囲へ正規化します。

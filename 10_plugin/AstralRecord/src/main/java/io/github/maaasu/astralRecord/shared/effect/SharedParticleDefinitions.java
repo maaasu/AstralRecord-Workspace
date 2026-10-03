@@ -1173,6 +1173,12 @@ public final class SharedParticleDefinitions {
             "wizard_meteor_sigil_ring", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 112, 10), 1.35F)
         );
+    public static final SharedParticleDefinition WIZARD_SPELL_CORE =
+        new SharedParticleDefinition("wizard_spell_core", Particle.END_ROD, 1, 0.025D, 0.025D, 0.025D, 0.0D);
+    public static final SharedParticleDefinition WIZARD_ARCANE_BURST =
+        new SharedParticleDefinition("wizard_arcane_burst", Particle.ENCHANT, 36, 0.7D, 0.6D, 0.7D, 0.15D);
+    public static final SharedParticleDefinition WIZARD_METEOR_SHOCKWAVE =
+        new SharedParticleDefinition("wizard_meteor_shockwave", Particle.FLAME, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition WIZARD_METEOR_SIGIL_RUNE =
         new SharedParticleDefinition(
             "wizard_meteor_sigil_rune", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,

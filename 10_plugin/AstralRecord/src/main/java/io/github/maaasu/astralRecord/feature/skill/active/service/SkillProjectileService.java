@@ -254,7 +254,7 @@ public final class SkillProjectileService {
                 }
             }
 
-            effectService.line(current[0], next, 0.45D, spec.trail());
+            drawTrail(current[0], next, spec);
             travelled[0] += actualDistance;
             current[0] = next;
             if (blockImpact != null) {
@@ -562,7 +562,7 @@ public final class SkillProjectileService {
                                     false
                             ).isEmpty()) {
                         if (trailRenderer == null) {
-                            effectService.line(current[0], interception.location(), 0.45D, spec.trail());
+                            drawTrail(current[0], interception.location(), spec);
                         } else {
                             renderVisualTrail(current[0], interception.location(), trailRenderer);
                         }
@@ -577,7 +577,7 @@ public final class SkillProjectileService {
                 }
             }
             if (trailRenderer == null) {
-                effectService.line(current[0], next, 0.45D, spec.trail());
+                drawTrail(current[0], next, spec);
             }
 
             List<AstEntity> candidates = blockImpact == null
@@ -640,6 +640,14 @@ public final class SkillProjectileService {
                 );
             }
         });
+    }
+
+    /** 飛翔区間へ既存の軌跡と任意の追加粒子を重ね、衝突判定とは独立して描画します。 */
+    private void drawTrail(@NotNull Location start, @NotNull Location end, @NotNull SkillProjectileSpec spec) {
+        effectService.line(start, end, 0.45D, spec.trail());
+        if (spec.accentTrail() != null) {
+            effectService.line(start, end, 0.65D, spec.accentTrail());
+        }
     }
 
     /** 対象中心を進行線分へ投影し、命中tickの表示を到達位置で止めます。 */
