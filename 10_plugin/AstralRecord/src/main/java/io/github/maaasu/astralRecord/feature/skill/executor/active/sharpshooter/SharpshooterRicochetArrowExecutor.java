@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -42,13 +43,16 @@ public final class SharpshooterRicochetArrowExecutor extends SharpshooterBuildSu
         SkillParamReader p = c.params();
         Location origin = c.eyeLocation();
         SharpshooterSignatureEffects.refrainCast(c, origin, c.direction());
-        c.services().projectiles().launch(c.player(), origin, c.direction(),
+        c.services().projectiles().launchVisual(c.player(), origin, c.direction(),
                 new SkillProjectileSpec(p.getDouble("range", 19.0D),
                         p.getDouble("projectileSpeed", 1.8D),
                         p.getDouble("projectileHitRadius", 0.6D), false, 1,
-                        SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_TRAIL,
-                        SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_IMPACT),
-                (first, impact) -> chain(c, first, impact, 1.0D), ignored -> { });
+                        SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_TRAIL, null),
+                (first, impact) -> chain(c, first, impact, 1.0D), termination -> {
+                    if (termination.type() == SkillProjectileTermination.Type.BLOCK) {
+                        SharpshooterSignatureEffects.refrainImpact(c, termination.effectLocation());
+                    }
+                }, null, (from, to) -> SharpshooterSignatureEffects.refrainTrail(c, from, to));
         grantInheritance(c, this::hasEffectiveMobImpact, (impact, multiplier) ->
                 chain(c, java.util.Objects.requireNonNull(impact.target()),
                         impact.location(), multiplier));
@@ -72,22 +76,50 @@ public final class SharpshooterRicochetArrowExecutor extends SharpshooterBuildSu
         if (first.currentHealth() > 0.0D) {
             hit(context, first, DamageElement.NONE, ratio);
         }
-        Location origin = impact.clone();
-        for (int index = 0; index < params.getInt("bounceCount", 2); index++) {
-            Location from = origin;
-            AstEntity next = context.services().targeting().inSphere(context.player(), from,
-                    params.getDouble("bounceRadius", 5.0D), 10, true).stream()
-                    .filter(candidate -> !damaged.contains(candidate.id()))
-                    .filter(candidate -> visible(context, from, candidate))
-                    .findFirst().orElse(null);
-            if (next == null) break;
-            damaged.add(next.id());
-            Location destination = next.location().clone().add(0.0D, 1.0D, 0.0D);
-            SharpshooterSignatureEffects.refrainBounce(context, origin, destination, index + 1);
-            ratio *= params.getDouble("bounceDecay", 0.7D);
-            hit(context, next, DamageElement.NONE, ratio);
-            origin = destination;
-        }
+        scheduleBounces(context, impact, damaged, ratio);
+    }
+
+    /**
+     * 三ティック間隔の有限タスクで、命中・矢線・音程を一段ずつ同期します。
+     * 各段で対象の生存と遮蔽を再評価し、候補がなくなれば連鎖を終了します。
+     * @param context 元スキルの実行値
+     * @param impact 最初の着弾位置
+     * @param damaged 同一連鎖で既に命中した対象
+     * @param initialRatio 先頭へ適用した倍率
+     */
+    private void scheduleBounces(@NotNull PlayerActiveSkillContext context,
+                                 @NotNull Location impact, @NotNull Set<UUID> damaged,
+                                 double initialRatio) {
+        SkillParamReader params = context.params();
+        Location[] origin = {impact.clone()};
+        double[] ratio = {initialRatio};
+        UUID owner = context.caster().casterId();
+        String scope = "sharpshooter-refrain:" + UUID.randomUUID();
+        context.services().tasks().repeat(owner, scope, 3L, 3L,
+                params.getInt("bounceCount", 2), index -> {
+                    if (!context.player().isOnline() || context.player().isDead()
+                            || context.caster().player().getStatusSnapshot().getCurrentHp() <= 0.0D
+                            || context.player().getWorld() != impact.getWorld()) {
+                        context.services().tasks().cancel(owner, scope);
+                        return;
+                    }
+                    Location from = origin[0];
+                    AstEntity next = context.services().targeting().inSphere(context.player(), from,
+                            params.getDouble("bounceRadius", 5.0D), 10, true).stream()
+                            .filter(candidate -> !damaged.contains(candidate.id()))
+                            .filter(candidate -> visible(context, from, candidate))
+                            .findFirst().orElse(null);
+                    if (next == null) {
+                        context.services().tasks().cancel(owner, scope);
+                        return;
+                    }
+                    damaged.add(next.id());
+                    Location destination = next.location().clone().add(0.0D, 1.0D, 0.0D);
+                    SharpshooterSignatureEffects.refrainBounce(context, from, destination, index + 1);
+                    ratio[0] *= params.getDouble("bounceDecay", 0.7D);
+                    hit(context, next, DamageElement.NONE, ratio[0]);
+                    origin[0] = destination;
+                });
     }
 
     /**

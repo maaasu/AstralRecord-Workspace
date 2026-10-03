@@ -2,7 +2,7 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "2446",
-  "name": "&e反跳矢",
+  "name": "&eリフレインアロー",
   "icon": "SMALL_AMETHYST_BUD",
   "tags": [
     "offense"

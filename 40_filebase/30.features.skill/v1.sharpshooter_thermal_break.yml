@@ -1,16 +1,25 @@
 # design:
-#   motif: "火氷 / 温度差"
+#   motif: "相反する火氷 / 交差"
 #   progression: 2
 schemaVersion: 1
 id: sharpshooter_thermal_break
 type: SKILL
 implementationId: sharpshooter_thermal_break
-name: "&d熱冷交差"
-description: "&7温度差を軸にした射撃技。"
+name: "&dパラドックスボルト"
+description: "&7相反する火と氷を束ね、弱った標的を撃ち抜く。"
 icon: ORANGE_GLAZED_TERRACOTTA
 lore:
   - "&7単体へ火と氷を半分ずつ合わせた{skill.effectiveDamageRatio:percent}%の間接ダメージ。"
   - "&7炎上または凍結中なら合計倍率に{skill.statusBonusRatio:percent}%を加算。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7継承の心得が有効なら、継承バフを{skill.inheritanceDurationTicks:seconds}秒付与。"
+      - "&7通常攻撃の命中対象へ火氷の追撃を継承し、炎上・凍結への特効も引き継ぐ。"
+      - "&7通常攻撃が敵へ有効命中したときだけ追撃する。地形・回避では消費しない。"
+      - "&7追撃のダメージは継承の心得の倍率に従う。"
+      - "&7追撃1回につき残り時間を{skill.inheritanceConsumptionTicks:seconds}秒消費する。"
+      - "&7追撃時はこのスキルのリソースを再消費。足りない場合は発動・消費しない。"
 cooldownTicks: 160
 resourceType: MANA
 resourceCost: 26
@@ -32,6 +41,8 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 params:
+  inheritanceDurationTicks: 2980
+  inheritanceConsumptionTicks: 600
   damageRatio: 1.2
   statusBonusRatio: 0.9
   range: 18

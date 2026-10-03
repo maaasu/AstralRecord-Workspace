@@ -70,6 +70,8 @@
 
 `sourceSkillId` も固定リソース定義もない継承バフは、追加リソースを消費しません。
 
+シャープシューターの追加4技（`sharpshooter_piercing_line` / `sharpshooter_thermal_break` / `sharpshooter_ricochet_arrow` / `sharpshooter_glacial_trap`）は、この既存契約で各専用継承バフへ対応付けます。`consumeSourceSkillResources: true`、`durationConsumptionTicks: 600` とし、バフの `durationTicks: 2980` を正本にします。各skillの `params.inheritanceDurationTicks` / `params.inheritanceConsumptionTicks` はLore表示用の同期値です。通常攻撃が管理対象MobのHPまたはShieldへ有効命中した場合だけ、元の解決済み効果・消費を使って追撃します。地形着弾・回避・無効ダメージでは消費しません。
+
 `swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`params.consumeAllCurrentMana: true` と `params.levelFiveRequiredManaRatio: 0.80` は、反撃成立時の現在MP全消費とLv.5の必要MP比率を定義します。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` は共通消費を重ねないための定義であり、反撃成立時のMP全消費はexecutorが行います。
 
 複合消費では `ENERGY_COST_REDUCTION` と `MANA_COST_REDUCTION` を各消費へ個別に適用します。片方でも残量不足なら発動前に全消費を拒否し、executor成功時だけ両方を消費します。GUIも主ENGと副MPを別行で表示します。

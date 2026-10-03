@@ -2,7 +2,7 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "2438",
-  "name": "&f貫通線",
+  "name": "&fホライゾンブレイカー",
   "icon": "POINTED_DRIPSTONE",
   "tags": [
     "offense"

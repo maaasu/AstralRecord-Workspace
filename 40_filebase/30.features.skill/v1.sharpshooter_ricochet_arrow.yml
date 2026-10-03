@@ -1,17 +1,27 @@
 # design:
-#   motif: "反跳 / 連鎖"
+#   motif: "旋律 / 反響"
 #   progression: 2
 schemaVersion: 1
 id: sharpshooter_ricochet_arrow
 type: SKILL
 implementationId: sharpshooter_ricochet_arrow
-name: "&e反跳矢"
-description: "&7連鎖を軸にした射撃技。"
+name: "&eリフレインアロー"
+description: "&7旋律を刻むように敵を渡る矢を放つ。"
 icon: SMALL_AMETHYST_BUD
 lore:
   - "&7単体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7命中後、半径{skill.bounceRadius}m内の別の敵へ最大{skill.bounceCount}回反跳する。"
+  - "&7反跳は3ティック間隔。各段で別の敵と遮蔽を確認する。"
   - "&7反跳ごとに倍率を{skill.bounceDecay:percent}%へ減衰。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7継承の心得が有効なら、継承バフを{skill.inheritanceDurationTicks:seconds}秒付与。"
+      - "&7通常攻撃の命中対象から、別の敵を渡る跳弾を継承する。"
+      - "&7通常攻撃が敵へ有効命中したときだけ追撃する。地形・回避では消費しない。"
+      - "&7追撃のダメージは継承の心得の倍率に従う。"
+      - "&7追撃1回につき残り時間を{skill.inheritanceConsumptionTicks:seconds}秒消費する。"
+      - "&7追撃時はこのスキルのリソースを再消費。足りない場合は発動・消費しない。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 22
@@ -33,6 +43,8 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 params:
+  inheritanceDurationTicks: 2980
+  inheritanceConsumptionTicks: 600
   damageRatio: 1.2
   bounceRadius: 5
   bounceCount: 2

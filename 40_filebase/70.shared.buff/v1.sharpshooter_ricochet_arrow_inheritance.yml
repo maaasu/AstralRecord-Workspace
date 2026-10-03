@@ -1,0 +1,14 @@
+# design:
+#   motif: "旋律 / 反響 / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_ricochet_arrow_inheritance
+type: BUFF
+name: "&e継承・リフレインアロー"
+lore:
+  - "&7通常攻撃の命中対象から、別の敵を渡る跳弾を継承する。"
+  - "&7継承の心得のダメージ倍率を適用し、追撃時に元スキルのリソースを消費する。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

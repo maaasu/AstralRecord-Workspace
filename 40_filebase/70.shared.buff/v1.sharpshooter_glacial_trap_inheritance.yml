@@ -1,0 +1,14 @@
+# design:
+#   motif: "冬の庭園 / 氷晶 / 技の継承"
+#   progression: 2
+schemaVersion: 1
+id: sharpshooter_glacial_trap_inheritance
+type: BUFF
+name: "&b継承・フロストガーデン"
+lore:
+  - "&7通常攻撃の着弾点へ氷晶の予兆を継承し、遅れて凍結範囲を咲かせる。"
+  - "&7継承の心得のダメージ倍率を適用し、追撃時に元スキルのリソースを消費する。"
+durationTicks: 2980
+resetOnChallenge: true
+isDebuff: false
+modifiers: []

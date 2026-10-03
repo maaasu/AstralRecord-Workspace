@@ -21,6 +21,8 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
+
 import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -79,16 +81,6 @@ public final class InheritanceBuffService {
         Map<String, Inheritance> current = active.get(player.getBukkit().getUniqueId());
         return current != null && current.values().stream()
                 .anyMatch(value -> statusService.getActiveBuffs(player).contains(value.buff()));
-    }
-
-    /**
-     * 継承の心得を有効にしたまま、新規射撃の継承増幅を使えるか判定します。
-     * 既存の残存バフ照会は変更せず、バインド解除中の増幅だけを抑止します。
-     * @param player メインスレッドで判定する発動者
-     * @return 心得が有効かつ有効期間内の継承バフが存在すればtrue
-     */
-    public boolean canUseInheritanceBonus(@NotNull AstPlayer player) {
-        return isActive(player) && hasActiveInheritanceBuff(player);
     }
 
     /**
@@ -185,9 +177,11 @@ public final class InheritanceBuffService {
                     effect
             );
             active.computeIfAbsent(id, ignored -> new HashMap<>()).put(buffId, inherited);
-            // lifecycleの中断でもcleanupが走り、死亡・退出・world移動後へ効果を持ち越さない。
+            // 持続補正を含む付与個体の寿命まで追跡し、中断時もcleanupで破棄する。
+            long lifetimeTicks = Math.max(1L, Duration.between(
+                    buff.getStartedAt(), buff.getExpiresAt()).toMillis() / 50L);
             context.services().tasks().repeat(id, "inheritance:" + buffId,
-                    buff.getType().getDurationTicks(), 1L, 1, ignored -> { }, () -> {
+                    lifetimeTicks, 1L, 1, ignored -> { }, () -> {
                         Map<String, Inheritance> values = active.get(id);
                         if (values != null && values.remove(buffId, inherited)) {
                             if (values.isEmpty()) active.remove(id);

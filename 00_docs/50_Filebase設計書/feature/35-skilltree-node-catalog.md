@@ -452,7 +452,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## シャープシューター専門枝
 
-シャープシューターは共通射撃24、Sniper48、Rapid48、属性矢強化12の計132status nodeと、共用ヒールアローαを含む18skill nodeを配置する。全nodeは1CP、職業条件sharpshooter。追加12技能は末尾のTier2追加表に記載する。既存skill node `2240`、`2241`、`2242`、`2255`、`2257`、`2258`も配置済みとする。
+シャープシューターは共通射撃24、Sniper48、Rapid48、属性矢強化12の計132status nodeと、共用ヒールアローαを含む10skill nodeを配置する。全nodeは1CP、職業条件sharpshooter。追加4技能は末尾のTier2追加表に記載する。既存skill node `2240`、`2241`、`2242`、`2255`、`2257`、`2258`も配置済みとする。
 
 | カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
 |:--|:--|:--|:--|:--|:--|
@@ -589,7 +589,7 @@ ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG
 
 ## Tier2職の追加ビルド技能
 
-既存職業枝から接続する35個のskill node。各1CPで、職業条件とskill masterの習得素材を維持する。
+既存職業枝から接続する27個のskill node。各1CPで、職業条件とskill masterの習得素材を維持する。
 
 | nodeId | 職業 | スキル | skill ID | icon |
 |:--|:--|:--|:--|:--|
@@ -597,18 +597,10 @@ ENG消費軽減群 `2287`〜`2292` は全取得で30%軽減となり、基礎ENG
 | `2434` | パラディン | ホーリーリプリーヴ | `paladin_holy_reprieve` | `WHITE_CANDLE` |
 | `2435` | パラディン | ガーディアンブルワーク | `paladin_guardian_bulwark` | `IRON_DOOR` |
 | `2436` | パラディン | ガーディアンリニューアル | `paladin_guardian_renewal` | `TURTLE_SCUTE` |
-| `2437` | シャープシューター | 静眼狙撃 | `sharpshooter_steady_sight` | `SPYGLASS` |
-| `2438` | シャープシューター | 貫通線 | `sharpshooter_piercing_line` | `POINTED_DRIPSTONE` |
-| `2439` | シャープシューター | 破盾針 | `sharpshooter_shield_needle` | `COPPER_NUGGET` |
-| `2440` | シャープシューター | 終局標的 | `sharpshooter_execution_mark` | `BLACK_CANDLE` |
-| `2441` | シャープシューター | 火華弾 | `sharpshooter_ember_bloom` | `NETHER_WART` |
-| `2442` | シャープシューター | 霜貫矢 | `sharpshooter_frost_shard` | `PACKED_ICE` |
-| `2443` | シャープシューター | 熱冷交差 | `sharpshooter_thermal_break` | `ORANGE_GLAZED_TERRACOTTA` |
-| `2444` | シャープシューター | 氷結陣 | `sharpshooter_glacial_trap` | `SNOW_BLOCK` |
-| `2445` | シャープシューター | 分岐矢 | `sharpshooter_split_arrow` | `PINK_GLAZED_TERRACOTTA` |
-| `2446` | シャープシューター | 反跳矢 | `sharpshooter_ricochet_arrow` | `SMALL_AMETHYST_BUD` |
-| `2447` | シャープシューター | 制圧雨 | `sharpshooter_suppressive_rain` | `OCHRE_FROGLIGHT` |
-| `2448` | シャープシューター | 無尽連射 | `sharpshooter_relentless_volley` | `REDSTONE_LAMP` |
+| `2438` | シャープシューター | ホライゾンブレイカー | `sharpshooter_piercing_line` | `POINTED_DRIPSTONE` |
+| `2443` | シャープシューター | パラドックスボルト | `sharpshooter_thermal_break` | `ORANGE_GLAZED_TERRACOTTA` |
+| `2444` | シャープシューター | フロストガーデン | `sharpshooter_glacial_trap` | `SNOW_BLOCK` |
+| `2446` | シャープシューター | リフレインアロー | `sharpshooter_ricochet_arrow` | `SMALL_AMETHYST_BUD` |
 | `2449` | ウィザード | シンダーランス | `wizard_cinder_lance` | `ORANGE_CANDLE` |
 | `2450` | ウィザード | ライムノヴァ | `wizard_rime_nova` | `BLUE_CANDLE` |
 | `2451` | ウィザード | ストームチェイン | `wizard_storm_chain` | `LIGHTNING_ROD` |

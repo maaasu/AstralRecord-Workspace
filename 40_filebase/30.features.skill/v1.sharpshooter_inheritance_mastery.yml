@@ -63,6 +63,22 @@ params:
       consumeSourceSkillResources: false
       normalAttackExtraCount: 2
       normalAttackExtraIntervalTicks: 5
+    - buffId: buff:sharpshooter_piercing_line_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_piercing_line
+      consumeSourceSkillResources: true
+    - buffId: buff:sharpshooter_thermal_break_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_thermal_break
+      consumeSourceSkillResources: true
+    - buffId: buff:sharpshooter_ricochet_arrow_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_ricochet_arrow
+      consumeSourceSkillResources: true
+    - buffId: buff:sharpshooter_glacial_trap_inheritance
+      durationConsumptionTicks: 600
+      sourceSkillId: skill:sharpshooter_glacial_trap
+      consumeSourceSkillResources: true
 tags:
   - passive
   - ranged

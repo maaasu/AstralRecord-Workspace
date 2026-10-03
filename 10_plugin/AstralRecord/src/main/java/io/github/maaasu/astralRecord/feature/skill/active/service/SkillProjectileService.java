@@ -67,30 +67,6 @@ public final class SkillProjectileService {
     }
 
     /**
-     * 指定対象を命中数に含めず、進行方向へ仮想 projectile を発射します。
-     *
-     * @param player 発動者
-     * @param origin 発射位置
-     * @param excludedTargetId 発射済み攻撃が命中したため再命中させない対象
-     * @param direction 発射方向
-     * @param spec projectile 仕様
-     * @param onHit 命中対象と命中位置を受け取る処理
-     * @param onFinish 終端位置を受け取る処理
-     */
-    public void launchExcludingTarget(
-            @NotNull Player player,
-            @NotNull Location origin,
-            @NotNull UUID excludedTargetId,
-            @NotNull Vector direction,
-            @NotNull SkillProjectileSpec spec,
-            @NotNull BiConsumer<AstEntity, Location> onHit,
-            @NotNull Consumer<Location> onFinish
-    ) {
-        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null,
-                candidate -> !excludedTargetId.equals(candidate.id()), null);
-    }
-
-    /**
      * 実際に進んだ飛翔区間を描画側へ渡す仮想 projectile を発射します。
      * 既に命中した対象の除外は命中数へ加算する前に行います。
      *

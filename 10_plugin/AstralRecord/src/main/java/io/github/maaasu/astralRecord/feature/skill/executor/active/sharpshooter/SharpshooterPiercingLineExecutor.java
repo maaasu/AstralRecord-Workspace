@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.sharpshooter
 
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.UUID;
@@ -95,12 +96,13 @@ public final class SharpshooterPiercingLineExecutor extends SharpshooterBuildSup
                     params.getDouble("damageRatio", 1.0D) * multiplier
                             * Math.pow(params.getDouble("pierceDecay", 0.8D), hitIndex));
         };
-        if (excludedTargetId == null) {
-            context.services().projectiles().launch(context.player(), origin, direction, spec,
-                    onHit, ignored -> { });
-        } else {
-            context.services().projectiles().launchExcludingTarget(context.player(), origin,
-                    excludedTargetId, direction, spec, onHit, ignored -> { });
-        }
+        context.services().projectiles().launchVisual(context.player(), origin, direction, spec,
+                onHit, termination -> {
+                    if (termination.type() == SkillProjectileTermination.Type.BLOCK) {
+                        SharpshooterSignatureEffects.horizonPierce(context, termination.effectLocation(),
+                                hits.get());
+                    }
+                }, excludedTargetId, (from, to) ->
+                        SharpshooterSignatureEffects.horizonTrail(context, from, to));
     }
 }

@@ -43,12 +43,11 @@ public final class SharpshooterThermalBreakExecutor extends SharpshooterBuildSup
         SkillParamReader p = c.params();
         Location origin = c.eyeLocation();
         SharpshooterSignatureEffects.paradoxCast(c, origin, c.direction());
-        c.services().projectiles().launchWithTermination(c.player(), origin, c.direction(),
+        c.services().projectiles().launchVisual(c.player(), origin, c.direction(),
                 new SkillProjectileSpec(p.getDouble("range", 18.0D),
                         p.getDouble("projectileSpeed", 1.8D),
                         p.getDouble("projectileHitRadius", 0.6D), false, 1,
-                        SharedParticleDefinitions.SHARPSHOOTER_PARADOX_TRAIL,
-                        SharedParticleDefinitions.SHARPSHOOTER_PARADOX_IMPACT),
+                        SharedParticleDefinitions.SHARPSHOOTER_PARADOX_TRAIL, null),
                 (target, impact) -> {
                     applyThermal(c, target, 1.0D);
                     SharpshooterSignatureEffects.paradoxImpact(c, impact);
@@ -57,7 +56,7 @@ public final class SharpshooterThermalBreakExecutor extends SharpshooterBuildSup
                     if (termination.type() == SkillProjectileTermination.Type.BLOCK) {
                         SharpshooterSignatureEffects.paradoxImpact(c, termination.effectLocation());
                     }
-                });
+                }, null, (from, to) -> SharpshooterSignatureEffects.paradoxTrail(c, from, to));
         grantInheritance(c, this::hasEffectiveMobImpact, (impact, multiplier) -> {
             SharpshooterSignatureEffects.paradoxImpact(c, impact.location());
             AstEntity target = java.util.Objects.requireNonNull(impact.target());

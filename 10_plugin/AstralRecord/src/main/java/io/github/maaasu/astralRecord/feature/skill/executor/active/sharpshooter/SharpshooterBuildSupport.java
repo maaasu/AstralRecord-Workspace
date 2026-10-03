@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
-import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
@@ -16,13 +15,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceEffect;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceImpact;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
-import org.bukkit.Location;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 /** 個別射撃スキルが共有する命中処理です。 */
@@ -39,7 +33,7 @@ public abstract class SharpshooterBuildSupport extends PlayerActiveSkillExecutor
     }
 
     /**
-     * 既存継承バフの所持判定を注入します。
+     * 通常攻撃へ固有効果を引き継ぐサービスを注入します。
      * @param service 継承バフサービス
      */
     public final void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
@@ -54,27 +48,6 @@ public abstract class SharpshooterBuildSupport extends PlayerActiveSkillExecutor
         for (String key : new String[]{"range", "damageRatio", "projectileSpeed", "projectileHitRadius"}) {
             positive(p, key);
         }
-    }
-
-    /**
-     * 既存の遮蔽・Mob対象規則を通る有限飛翔体を発射します。
-     * @param c 発動者と共有サービス
-     * @param origin 発射位置
-     * @param direction 発射方向
-     * @param maxHits 貫通を含む最大命中数
-     * @param trail 軌跡の共有粒子定義
-     * @param onHit Mob命中時に実行する処理
-     */
-    protected final void projectile(@NotNull PlayerActiveSkillContext c, @NotNull Location origin,
-                                    @NotNull Vector direction, int maxHits,
-                                    @NotNull SharedParticleDefinition trail,
-                                    @NotNull BiConsumer<AstEntity, Location> onHit) {
-        SkillParamReader p = c.params();
-        c.services().projectiles().launch(c.player(), origin, direction,
-                new SkillProjectileSpec(p.getDouble("range", 18.0D), p.getDouble("projectileSpeed", 1.6D),
-                        p.getDouble("projectileHitRadius", 0.6D), maxHits > 1, maxHits, trail,
-                        SharedParticleDefinitions.SHARPSHOOTER_PHANTOM_SHOT_IMPACT),
-                onHit, ignored -> { });
     }
 
     /**
@@ -101,17 +74,6 @@ public abstract class SharpshooterBuildSupport extends PlayerActiveSkillExecutor
                 && impact.damageResult() != null && !impact.damageResult().evaded()
                 && (impact.damageResult().finalDamage() > 0.0D
                 || impact.damageResult().shieldDamage() > 0.0D);
-    }
-
-    /**
-     * 旧射撃スキルの継承バフ所持ボーナスを判定します。
-     * 削除予定の旧スキルが参照している間だけ互換性のために残します。
-     * @param context 発動者
-     * @return 心得が有効で継承バフを保有していればtrue
-     */
-    protected final boolean inherited(@NotNull PlayerActiveSkillContext context) {
-        return inheritanceBuffService != null
-                && inheritanceBuffService.canUseInheritanceBonus(context.caster().player());
     }
 
     /**

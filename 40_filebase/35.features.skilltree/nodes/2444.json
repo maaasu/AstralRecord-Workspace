@@ -2,7 +2,7 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "2444",
-  "name": "&b氷結陣",
+  "name": "&bフロストガーデン",
   "icon": "SNOW_BLOCK",
   "tags": [
     "offense"

@@ -1,17 +1,26 @@
 # design:
-#   motif: "氷域 / 凍結"
+#   motif: "冬の庭園 / 氷晶"
 #   progression: 2
 schemaVersion: 1
 id: sharpshooter_glacial_trap
 type: SKILL
 implementationId: sharpshooter_glacial_trap
-name: "&b氷結陣"
-description: "&7凍結を軸にした射撃技。"
+name: "&bフロストガーデン"
+description: "&7氷晶の庭を咲かせ、敵の足を封じる。"
 icon: SNOW_BLOCK
 lore:
   - "&7視線先の地面へ予兆を置き、12ティック後に半径{skill.radius}mを攻撃。"
   - "&7最大{skill.maxTargets}体へ氷属性{skill.effectiveDamageRatio:percent}%のダメージ。"
   - "&7有効命中時に{skill.conditionChance}%で{skill.conditionTicks:seconds}秒凍結。"
+conditionalLore:
+  - requiredSkillId: skill:sharpshooter_inheritance_mastery
+    lines:
+      - "&7継承の心得が有効なら、継承バフを{skill.inheritanceDurationTicks:seconds}秒付与。"
+      - "&7通常攻撃の着弾点へ氷晶の予兆を継承し、遅れて凍結範囲を咲かせる。"
+      - "&7通常攻撃が敵へ有効命中したときだけ追撃する。地形・回避では消費しない。"
+      - "&7追撃のダメージは継承の心得の倍率に従う。"
+      - "&7追撃1回につき残り時間を{skill.inheritanceConsumptionTicks:seconds}秒消費する。"
+      - "&7追撃時はこのスキルのリソースを再消費。足りない場合は発動・消費しない。"
 cooldownTicks: 240
 resourceType: MANA
 resourceCost: 32
@@ -33,6 +42,8 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 params:
+  inheritanceDurationTicks: 2980
+  inheritanceConsumptionTicks: 600
   damageRatio: 0.9
   radius: 3
   maxTargets: 5

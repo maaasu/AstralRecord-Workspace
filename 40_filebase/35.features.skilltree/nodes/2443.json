@@ -2,7 +2,7 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "2443",
-  "name": "&d熱冷交差",
+  "name": "&dパラドックスボルト",
   "icon": "ORANGE_GLAZED_TERRACOTTA",
   "tags": [
     "offense"
