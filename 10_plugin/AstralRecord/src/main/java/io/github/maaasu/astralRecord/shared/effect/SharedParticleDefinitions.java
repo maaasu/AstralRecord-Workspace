@@ -41,6 +41,18 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition PHANTOM_ARCHER_SENTRY =
         new SharedParticleDefinition("phantom_archer_sentry", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(135, 185, 210), 0.85F));
+    public static final SharedParticleDefinition PHANTOM_ARCHER_BOW_VIOLET =
+        new SharedParticleDefinition("phantom_archer_bow_violet", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(172, 95, 245), 1.15F));
+    public static final SharedParticleDefinition PHANTOM_ARCHER_ARROW_CYAN =
+        new SharedParticleDefinition("phantom_archer_arrow_cyan", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(74, 235, 224), 0.95F));
+    public static final SharedParticleDefinition PHANTOM_ARCHER_GHOST_PALE =
+        new SharedParticleDefinition("phantom_archer_ghost_pale", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(211, 239, 255), 0.7F));
+    public static final SharedParticleDefinition PHANTOM_ARCHER_SHADOW =
+        new SharedParticleDefinition("phantom_archer_shadow", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(53, 39, 103), 1.0F));
 
     public static final SharedParticleDefinition SKILL_ASTRAL_RAY_VIOLET =
         new SharedParticleDefinition("skill_astral_ray_violet", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
