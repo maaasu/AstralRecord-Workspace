@@ -60,6 +60,32 @@ public final class SharpshooterSignatureEffects {
     }
 
     /**
+     * 実際の飛翔区間に金の螺旋と白い矢軸を描きます。区間間の位相は世界座標で接続します。
+     *
+     * @param context 発動者と共有演出サービス
+     * @param from このtickの飛翔開始位置
+     * @param to このtickの飛翔終了位置
+     */
+    public static void horizonTrail(@NotNull PlayerActiveSkillContext context,
+                                    @NotNull Location from, @NotNull Location to) {
+        Basis frame = segmentBasis(from, to);
+        if (frame == null) return;
+        double length = from.distance(to);
+        double phase = from.toVector().dot(frame.forward()) * 3.2D;
+        List<Location> gold = new ArrayList<>(16);
+        List<Location> white = new ArrayList<>(16);
+        for (int i = 0; i < 16; i++) {
+            double along = length * i / 15.0D;
+            double angle = phase + along * 3.2D;
+            white.add(at(from, frame, along, 0.0D, 0.0D));
+            gold.add(at(from, frame, along,
+                    Math.cos(angle) * 0.19D, Math.sin(angle) * 0.19D));
+        }
+        show(context.services().effects(), from, white, SharedParticleDefinitions.SHARPSHOOTER_HORIZON_WHITE);
+        show(context.services().effects(), from, gold, SharedParticleDefinitions.SHARPSHOOTER_HORIZON_GOLD);
+    }
+
+    /**
      * 貫通した対象ごとに白い衝撃十字と広がる金の輪を描き、命中音を再生します。
      *
      * @param context 発動者と共有演出サービス
@@ -120,6 +146,33 @@ public final class SharpshooterSignatureEffects {
     }
 
     /**
+     * 飛翔区間に対向する火と氷の螺旋を描きます。発射音は繰り返しません。
+     *
+     * @param context 発動者と共有演出サービス
+     * @param from このtickの飛翔開始位置
+     * @param to このtickの飛翔終了位置
+     */
+    public static void paradoxTrail(@NotNull PlayerActiveSkillContext context,
+                                    @NotNull Location from, @NotNull Location to) {
+        Basis frame = segmentBasis(from, to);
+        if (frame == null) return;
+        double length = from.distance(to);
+        double phase = from.toVector().dot(frame.forward()) * 4.1D;
+        List<Location> fire = new ArrayList<>(16);
+        List<Location> ice = new ArrayList<>(16);
+        for (int i = 0; i < 16; i++) {
+            double along = length * i / 15.0D;
+            double angle = phase + along * 4.1D;
+            double right = Math.cos(angle) * 0.25D;
+            double up = Math.sin(angle) * 0.25D;
+            fire.add(at(from, frame, along, right, up));
+            ice.add(at(from, frame, along, -right, -up));
+        }
+        show(context.services().effects(), from, fire, SharedParticleDefinitions.SHARPSHOOTER_PARADOX_FIRE);
+        show(context.services().effects(), from, ice, SharedParticleDefinitions.SHARPSHOOTER_PARADOX_ICE);
+    }
+
+    /**
      * 火と氷が交差して裂ける二色の衝撃片を描きます。
      *
      * @param context 発動者と共有演出サービス
@@ -170,6 +223,34 @@ public final class SharpshooterSignatureEffects {
         show(context.services().effects(), origin, shaft, SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_GOLD);
         show(context.services().effects(), origin, head, SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_GREEN);
         context.services().effects().sound(origin, Sound.ENTITY_ARROW_SHOOT, 0.75F, 1.35F);
+    }
+
+    /**
+     * 飛翔区間に金の矢軸と緑の矢尻を描きます。跳弾音は命中時だけ鳴らします。
+     *
+     * @param context 発動者と共有演出サービス
+     * @param from このtickの飛翔開始位置
+     * @param to このtickの飛翔終了位置
+     */
+    public static void refrainTrail(@NotNull PlayerActiveSkillContext context,
+                                    @NotNull Location from, @NotNull Location to) {
+        Basis frame = segmentBasis(from, to);
+        if (frame == null) return;
+        double length = from.distance(to);
+        List<Location> shaft = new ArrayList<>(12);
+        List<Location> head = new ArrayList<>(12);
+        for (int i = 0; i < 12; i++) {
+            shaft.add(at(from, frame, length * i / 11.0D, 0.0D, 0.0D));
+        }
+        for (int side : new int[] {-1, 1}) {
+            for (int i = 0; i < 6; i++) {
+                double t = i / 5.0D;
+                head.add(at(from, frame, length * (0.56D + 0.44D * t),
+                        side * (1.0D - t) * 0.2D, side * (1.0D - t) * 0.08D));
+            }
+        }
+        show(context.services().effects(), from, shaft, SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_GOLD);
+        show(context.services().effects(), from, head, SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_GREEN);
     }
 
     /**
@@ -312,6 +393,15 @@ public final class SharpshooterSignatureEffects {
     /** 非有限値を既定値に戻して描画半径を制限します。 */
     private static double clamp(double value, double min, double max, double fallback) {
         return Double.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+    }
+
+    /** 同じworldにある非退化区間の座標系だけを作成します。 */
+    private static Basis segmentBasis(Location from, Location to) {
+        if (from.getWorld() == null || from.getWorld() != to.getWorld()) return null;
+        Vector span = to.toVector().subtract(from.toVector());
+        double lengthSquared = span.lengthSquared();
+        if (!Double.isFinite(lengthSquared) || lengthSquared <= 1.0E-8D) return null;
+        return basis(span);
     }
 
     /** 垂直射撃でも退化しない局所座標を返します。 */
