@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -251,7 +252,8 @@ public final class InheritanceBuffService {
                     refreshBuffReference(player, inherited);
                     inherited.effect().apply(
                             new InheritanceImpact(
-                                    impact.location().clone(), impact.target(), impact.damageResult()
+                                    impact.location().clone(), impact.target(), impact.damageResult(),
+                                    impact.direction() == null ? null : impact.direction().clone()
                             ),
                             inherited.damageMultiplier()
                     );
@@ -360,15 +362,37 @@ public final class InheritanceBuffService {
         private InheritanceEffect effect() { return effect; }
     }
 
-    /** 通常攻撃の最初の着弾位置と、その直接命中対象・ダメージ結果を保持します。 */
+    /**
+     * 通常攻撃の最初の着弾内容を保持します。
+     * @param location 最初の着弾位置
+     * @param target 直接命中対象。地形ではnull
+     * @param damageResult 通常攻撃の直接ダメージ結果。地形ではnull
+     * @param direction 着弾直前の飛行方向。近接ではnull
+     */
     public record InheritanceImpact(
             @NotNull Location location,
             @Nullable AstEntity target,
-            @Nullable DamageResult damageResult
+            @Nullable DamageResult damageResult,
+            @Nullable Vector direction
     ) {
-        /** 地形着弾などダメージ結果を持たない通知を作成します。 */
+        /**
+         * 地形着弾などダメージ結果を持たない通知を作成します。
+         * @param location 着弾位置
+         * @param target 直接命中対象。地形ではnull
+         */
         public InheritanceImpact(@NotNull Location location, @Nullable AstEntity target) {
-            this(location, target, null);
+            this(location, target, null, null);
+        }
+
+        /**
+         * 飛行方向を持たない近接などの命中通知を作成します。
+         * @param location 着弾位置
+         * @param target 直接命中対象
+         * @param damageResult 通常攻撃の直接ダメージ結果
+         */
+        public InheritanceImpact(@NotNull Location location, @Nullable AstEntity target,
+                                 @Nullable DamageResult damageResult) {
+            this(location, target, damageResult, null);
         }
     }
 

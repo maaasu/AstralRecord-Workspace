@@ -14,6 +14,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceEffect;
+import io.github.maaasu.astralRecord.feature.skill.service.InheritanceBuffService.InheritanceImpact;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -21,8 +23,9 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
-/** 個別射撃スキルが共有する命中処理と継承バフ判定です。 */
+/** 個別射撃スキルが共有する命中処理です。 */
 public abstract class SharpshooterBuildSupport extends PlayerActiveSkillExecutor {
     private InheritanceBuffService inheritanceBuffService;
 
@@ -75,13 +78,40 @@ public abstract class SharpshooterBuildSupport extends PlayerActiveSkillExecutor
     }
 
     /**
-     * 継承の心得が有効で継承バフを一つ以上保有しているかを返します。
-     * @param c 発動者
-     * @return 有効な継承バフがある場合はtrue
+     * 元スキルの成功時に、継承の心得が有効なら通常攻撃へ効果を引き継ぎます。
+     * @param context 成功した元スキルの実行値
+     * @param condition 通常攻撃の最初の着弾で満たすべき条件
+     * @param effect 継承倍率を受けて実行する元スキル効果
      */
-    protected final boolean inherited(@NotNull PlayerActiveSkillContext c) {
+    protected final void grantInheritance(@NotNull PlayerActiveSkillContext context,
+                                          @NotNull Predicate<InheritanceImpact> condition,
+                                          @NotNull InheritanceEffect effect) {
+        if (inheritanceBuffService != null) {
+            inheritanceBuffService.grant(context, condition, effect);
+        }
+    }
+
+    /**
+     * 通常攻撃がMobに有効命中したか判定します。致死打も起点に含めます。
+     * @param impact 最初の着弾
+     * @return 回避されずHPかシールドへダメージを与えたならtrue
+     */
+    protected final boolean hasEffectiveMobImpact(@NotNull InheritanceImpact impact) {
+        return impact.target() != null && impact.target().isMob()
+                && impact.damageResult() != null && !impact.damageResult().evaded()
+                && (impact.damageResult().finalDamage() > 0.0D
+                || impact.damageResult().shieldDamage() > 0.0D);
+    }
+
+    /**
+     * 旧射撃スキルの継承バフ所持ボーナスを判定します。
+     * 削除予定の旧スキルが参照している間だけ互換性のために残します。
+     * @param context 発動者
+     * @return 心得が有効で継承バフを保有していればtrue
+     */
+    protected final boolean inherited(@NotNull PlayerActiveSkillContext context) {
         return inheritanceBuffService != null
-                && inheritanceBuffService.canUseInheritanceBonus(c.caster().player());
+                && inheritanceBuffService.canUseInheritanceBonus(context.caster().player());
     }
 
     /**

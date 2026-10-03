@@ -509,6 +509,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     retargetMagicProjectile(currentLocation, velocity, homingRange, homingStrength, projectileSpeed, attacker);
                 }
 
+                Vector impactDirection = velocity.clone().normalize();
                 currentLocation.add(velocity);
                 traveledDistance += velocity.length();
                 if (attackType == AttackType.RANGED) {
@@ -517,7 +518,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
                 if (!currentLocation.getBlock().isPassable()) {
                     spawnInheritedElementEffects(currentLocation, inheritedElements, true);
-                    inheritanceHit.accept(new InheritanceImpact(currentLocation, null));
+                    inheritanceHit.accept(new InheritanceImpact(currentLocation, null, null, impactDirection));
                     cancel();
                     return;
                 }
@@ -569,7 +570,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         }
                     }
                     spawnInheritedElementEffects(currentLocation, inheritedElements, true);
-                    inheritanceHit.accept(new InheritanceImpact(currentLocation, victim, directResult));
+                    inheritanceHit.accept(new InheritanceImpact(currentLocation, victim, directResult, impactDirection));
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }
