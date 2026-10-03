@@ -56,6 +56,12 @@ public final class FishingPrototypeSession {
     private static final int HANGING_TICKS = 100;
     private static final int MAX_ESCAPE_TICKS = 120;
     private static final int MAX_WAITING_TICKS = 1_200;
+    private static final int MAX_TRAVEL_STEPS = 256;
+    private static final double TRAVEL_SAMPLE_STEP = 0.12D;
+    private static final int NIBBLE_TICKS = 24;
+    private static final int NIBBLE_CYCLE_TICKS = 8;
+    private static final double NIBBLE_DISTANCE = 0.15D;
+    private static final int MAX_SURFACE_SCAN = 64;
     private static final int REEL_COOLDOWN_TICKS = 6;
     private static final int[] DELTA_X = {1, -1, 0, 0, 0, 0};
     private static final int[] DELTA_Y = {0, 0, 1, -1, 0, 0};
@@ -83,6 +89,9 @@ public final class FishingPrototypeSession {
     private int lastReelTick = Integer.MIN_VALUE / 2;
     private int hp = FISH_MAX_HP;
     private double distance;
+    private double surfaceY;
+    private int surfaceBlockX = Integer.MIN_VALUE;
+    private int surfaceBlockZ = Integer.MIN_VALUE;
 
     /**
      * 針と連続する読み込み済み水域へ4～6匹の魚を生成します。
@@ -238,7 +247,8 @@ public final class FishingPrototypeSession {
      * @param target 近接攻撃が命中した実エンティティ
      */
     public void hit(@NotNull Entity target) {
-        if (phase != Phase.RELEASED || selected == null || target != selected.entity || !target.isValid()) return;
+        if (phase != Phase.RELEASED || selected == null || !target.isValid()
+            || !target.getUniqueId().equals(selected.entity.getUniqueId())) return;
         hp--;
         particles.spawnForNearbyViewers(target.getLocation(), SharedParticleDefinitions.FISHING_ROD_SPLASH);
         player.playSound(target.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 1.0F, 1.2F);
@@ -259,7 +269,7 @@ public final class FishingPrototypeSession {
      */
     public boolean owns(@NotNull Entity entity) {
         for (Swimmer swimmer : fish) {
-            if (swimmer.entity == entity) return true;
+            if (swimmer.entity.getUniqueId().equals(entity.getUniqueId())) return true;
         }
         return false;
     }
@@ -360,10 +370,13 @@ public final class FishingPrototypeSession {
             }
             if (swimmer.pathIndex == 0 && swimmer.direction < 0) {
                 swimmer.nibbleTicks++;
-                if (swimmer.nibbleTicks == 1) {
+                nibble(swimmer);
+                if (swimmer.nibbleTicks % NIBBLE_CYCLE_TICKS == NIBBLE_CYCLE_TICKS / 2) {
                     particles.spawnForNearbyViewers(submergedHook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
+                    player.playSound(submergedHook, Sound.ENTITY_FISHING_BOBBER_SPLASH,
+                        SoundCategory.NEUTRAL, 0.5F, 1.45F);
                 }
-                if (swimmer.nibbleTicks >= 8) {
+                if (swimmer.nibbleTicks >= NIBBLE_TICKS) {
                     if (ThreadLocalRandom.current().nextDouble() < 0.45D) {
                         beginBattle(swimmer);
                         return;
@@ -378,11 +391,23 @@ public final class FishingPrototypeSession {
                 swimmer.restTicks = 8;
                 continue;
             }
-            if (movePath(swimmer, swimmer.direction, FISH_SPEED) && swimmer.pathIndex == 0) {
-                player.playSound(submergedHook, Sound.ENTITY_FISHING_BOBBER_SPLASH,
-                    SoundCategory.NEUTRAL, 0.5F, 1.5F);
-            }
+            movePath(swimmer, swimmer.direction, FISH_SPEED);
         }
+    }
+
+    /** 魚を針から約0.15m離して戻す往復を8tickずつ3回行います。 */
+    private void nibble(Swimmer swimmer) {
+        if (swimmer.path.size() < 2) return;
+        Vector outward = swimmer.path.get(1).toVector().subtract(submergedHook.toVector());
+        if (outward.lengthSquared() < 1.0E-6D) return;
+        double phase = (swimmer.nibbleTicks % NIBBLE_CYCLE_TICKS) / (double) NIBBLE_CYCLE_TICKS;
+        double offset = NIBBLE_DISTANCE * (1.0D + Math.cos(2.0D * Math.PI * phase)) * 0.5D;
+        Location next = submergedHook.clone().add(outward.normalize().multiply(offset));
+        Location current = swimmer.entity.getLocation();
+        if (!isWaterAt(next) || !canTravel(current, next)) return;
+        Vector motion = next.toVector().subtract(current.toVector());
+        if (motion.lengthSquared() > 1.0E-8D) next.setDirection(motion);
+        swimmer.entity.teleport(next);
     }
 
     /** @param winner 最初に食いついた魚 */
@@ -391,6 +416,9 @@ public final class FishingPrototypeSession {
         phase = Phase.BATTLE;
         phaseTicks = 0;
         hook = winner.entity.getLocation();
+        surfaceY = surfaceYAt(hook);
+        surfaceBlockX = hook.getBlockX();
+        surfaceBlockZ = hook.getBlockZ();
         distance = Math.min(player.getEyeLocation().distance(hook), maxLineLength * 0.65D);
         previousRodTip = player.getEyeLocation();
         for (Swimmer swimmer : fish) {
@@ -435,20 +463,45 @@ public final class FishingPrototypeSession {
         }
     }
 
-    /** 選択魚を現在の水柱の水面へ浮上させます。 */
+    /** 選択魚を現在の水柱の水面へ浮上させ、空中へ無限上昇させません。 */
     private void riseSelected() {
         if (selected == null || !selected.entity.isValid()) return;
         Location current = selected.entity.getLocation();
-        int x = current.getBlockX();
-        int z = current.getBlockZ();
-        int y = current.getBlockY();
-        int top = y;
-        for (int step = 0; step < 16 && top < world.getMaxHeight() - 1 && isWater(x, top + 1, z); step++) top++;
-        double targetY = top + 0.65D;
-        if (current.getY() < targetY) {
-            Location next = current.clone().add(0.0D, Math.min(0.10D, targetY - current.getY()), 0.0D);
+        boolean columnChanged = current.getBlockX() != surfaceBlockX || current.getBlockZ() != surfaceBlockZ;
+        boolean scanLimitReached = current.getY() >= surfaceY - 0.05D
+            && isWater(current.getBlockX(), (int) Math.floor(surfaceY + 0.05D), current.getBlockZ());
+        if (columnChanged || scanLimitReached) {
+            double columnSurface = surfaceYAt(current);
+            if (Double.isFinite(columnSurface)) {
+                surfaceY = columnSurface;
+                surfaceBlockX = current.getBlockX();
+                surfaceBlockZ = current.getBlockZ();
+            }
+        }
+        double vertical = Math.max(-0.10D, Math.min(0.10D, surfaceY - current.getY()));
+        if (Math.abs(vertical) > 1.0E-4D) {
+            Location next = current.clone().add(0.0D, vertical, 0.0D);
             if (canTravel(current, next)) selected.entity.teleport(next);
         }
+    }
+
+    /**
+     * 現在座標の真下16ブロックと上方64ブロックまでで連続水柱の水面を求めます。
+     * @return 水面上の魚中心Y。水柱がなければNaN
+     */
+    private double surfaceYAt(Location point) {
+        int x = point.getBlockX();
+        int z = point.getBlockZ();
+        int waterY = Integer.MIN_VALUE;
+        for (int depth = 0; depth <= 16; depth++) {
+            int y = point.getBlockY() - depth;
+            if (isWater(x, y, z)) { waterY = y; break; }
+        }
+        if (waterY == Integer.MIN_VALUE) return Double.NaN;
+        int top = waterY;
+        for (int step = 0; step < MAX_SURFACE_SCAN && top < world.getMaxHeight() - 1
+            && isWater(x, top + 1, z); step++) top++;
+        return top + 1.02D;
     }
 
     /**
@@ -457,17 +510,35 @@ public final class FishingPrototypeSession {
      */
     private void moveSelectedWithLine(Location rodTip) {
         Location current = selected.entity.getLocation();
-        Vector radial = current.toVector().subtract(rodTip.toVector());
-        if (radial.lengthSquared() < 1.0E-6D) radial = player.getEyeLocation().getDirection();
+        Vector radial = new Vector(current.getX() - rodTip.getX(), 0.0D, current.getZ() - rodTip.getZ());
+        if (radial.lengthSquared() < 1.0E-6D) {
+            radial = player.getEyeLocation().getDirection().setY(0.0D);
+        }
+        if (radial.lengthSquared() < 1.0E-6D) radial = new Vector(1.0D, 0.0D, 0.0D);
         radial.normalize();
-        Vector lateral = radial.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
-        if (lateral.lengthSquared() > 1.0E-6D) lateral.normalize().multiply(Math.sin(phaseTicks * 0.25D) * 0.15D);
-        Location desired = rodTip.clone().add(radial.multiply(distance)).add(lateral);
+        Vector lateral = radial.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D)).normalize();
+        double height = current.getY() - rodTip.getY();
+        double horizontalDistance = Math.sqrt(Math.max(0.0D, distance * distance - height * height));
+        Location desired = new Location(world,
+            rodTip.getX() + radial.getX() * horizontalDistance + lateral.getX() * Math.sin(phaseTicks * 0.25D) * 0.18D,
+            current.getY(),
+            rodTip.getZ() + radial.getZ() * horizontalDistance + lateral.getZ() * Math.sin(phaseTicks * 0.25D) * 0.18D);
+        if (moveOnSurface(current, desired)) return;
+        // 岸に引っかかるときも、同じ水面内で横方向へ暴れる。
+        Location side = current.clone().add(lateral.multiply(Math.sin(phaseTicks * 0.35D) * 0.13D));
+        moveOnSurface(current, side);
+    }
+
+    /** @return 同じ水面の読込済み位置へ魚を動かせた場合はtrue */
+    private boolean moveOnSurface(Location current, Location desired) {
         Vector delta = desired.toVector().subtract(current.toVector());
-        if (delta.lengthSquared() < 1.0E-6D) return;
+        if (delta.lengthSquared() < 1.0E-6D) return false;
         Vector motion = delta.length() > 0.24D ? delta.normalize().multiply(0.24D) : delta;
         Location next = current.clone().add(motion).setDirection(motion);
-        if (canTravel(current, next)) selected.entity.teleport(next);
+        if (!isWater(next.getBlockX(), (int) Math.floor(surfaceY - 0.10D), next.getBlockZ())
+            || !canTravel(current, next)) return false;
+        selected.entity.teleport(next);
+        return true;
     }
 
     /** @return 攻撃ターンの往復ゲージ、休止ターンでは0.01 */
@@ -477,7 +548,7 @@ public final class FishingPrototypeSession {
         return Math.max(0.0D, 1.0D - Math.abs(turn - ATTACK_TICKS / 2.0D) / (ATTACK_TICKS / 2.0D));
     }
 
-    /** 残り糸距離をtitleへ表示します。 */
+    /** 残り糸距離をボスバーの題名へ表示します。 */
     private void showDistance() {
         bar.setTitle(FishingFeedback.text(FishingMsgId.BATTLE) + " | "
             + FishingFeedback.text(FishingMsgId.REELING, String.format(Locale.ROOT, "%.1f", distance)));
@@ -555,10 +626,13 @@ public final class FishingPrototypeSession {
         Location next = escapeStart.clone().add(travel.multiply(progress))
             .add(0.0D, Math.abs(Math.sin(phaseTicks * 0.42D)) * 0.45D, 0.0D);
         Location current = selected.entity.getLocation();
-        if (touchesWater(current, next)) { escape(); return; }
-        if (!canTravel(current, next)) {
+        TravelResult result = traceTravel(current, next, true);
+        if (result == TravelResult.WATER) { escape(); return; }
+        if (result == TravelResult.BLOCKED) {
             Location hop = next.clone().add(0.0D, 0.45D, 0.0D);
-            if (!canTravel(current, hop)) return;
+            result = traceTravel(current, hop, true);
+            if (result == TravelResult.WATER) { escape(); return; }
+            if (result == TravelResult.BLOCKED) return;
             next = hop;
         }
         next.setDirection(next.toVector().subtract(current.toVector()));
@@ -578,28 +652,30 @@ public final class FishingPrototypeSession {
         close();
     }
 
-    /** @return 線分が水または泡柱へ触れる場合はtrue */
-    private boolean touchesWater(Location from, Location to) {
-        Vector travel = to.toVector().subtract(from.toVector());
-        int steps = Math.max(1, (int) Math.ceil(travel.length() / 0.12D));
-        for (int step = 1; step <= steps; step++) {
-            Location point = from.clone().add(travel.clone().multiply(step / (double) steps));
-            if (isWaterAt(point)) return true;
-        }
-        return false;
-    }
-
     /** @return 移動線分が読込済みで固体ブロックを通らない場合はtrue */
     private boolean canTravel(Location from, Location to) {
-        if (from.getWorld() != world || to.getWorld() != world) return false;
+        return traceTravel(from, to, false) == TravelResult.CLEAR;
+    }
+
+    /**
+     * 線分を近い側から上限付きで走査します。解除後は固体より先の水を誤検出しません。
+     * @return 水へ先に触れたときWATER、未読込・固体・上限超過ならBLOCKED
+     */
+    private TravelResult traceTravel(Location from, Location to, boolean detectWater) {
+        if (from.getWorld() != world || to.getWorld() != world) return TravelResult.BLOCKED;
         Vector travel = to.toVector().subtract(from.toVector());
-        int steps = Math.max(1, (int) Math.ceil(travel.length() / 0.12D));
+        double length = travel.length();
+        if (!Double.isFinite(length) || length > MAX_TRAVEL_STEPS * TRAVEL_SAMPLE_STEP) {
+            return TravelResult.BLOCKED;
+        }
+        int steps = Math.max(1, (int) Math.ceil(length / TRAVEL_SAMPLE_STEP));
         for (int step = 1; step <= steps; step++) {
             Location point = from.clone().add(travel.clone().multiply(step / (double) steps));
             if (!world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
-                || point.getBlock().getType().isSolid()) return false;
+                || point.getBlock().getType().isSolid()) return TravelResult.BLOCKED;
+            if (detectWater && isWaterAt(point)) return TravelResult.WATER;
         }
-        return true;
+        return TravelResult.CLEAR;
     }
 
     /** @return 読込済みの水または泡柱に位置する場合はtrue */
@@ -620,11 +696,13 @@ public final class FishingPrototypeSession {
         Vector delta = target.toVector().subtract(current.toVector());
         if (delta.lengthSquared() <= speed * speed) {
             if (!canTravel(current, target)) return false;
-            swimmer.entity.teleport(target);
+            Location destination = target.clone();
+            if (delta.lengthSquared() > 1.0E-8D) destination.setDirection(delta);
+            swimmer.entity.teleport(destination);
             swimmer.pathIndex = nextIndex;
             return true;
         }
-        Location next = current.add(delta.normalize().multiply(speed));
+        Location next = current.add(delta.normalize().multiply(speed)).setDirection(delta);
         if (!canTravel(swimmer.entity.getLocation(), next)) return false;
         swimmer.entity.teleport(next);
         return true;
@@ -644,6 +722,8 @@ public final class FishingPrototypeSession {
     }
 
     private enum Phase { WAITING, BATTLE, LANDING, HANGING, RELEASED, FINISHED }
+
+    private enum TravelResult { CLEAR, WATER, BLOCKED }
 
     private record BlockPos(int x, int y, int z) {
         /** @return ブロック中央の位置 */
