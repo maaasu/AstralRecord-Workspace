@@ -17,8 +17,13 @@ public final class ArchmageVigorCircleExecutor extends ArchmageFieldSkillExecuto
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                          double radius, double power) {
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.VIGOR);
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, 2.0D)) {
-            context.services().combat().recoverEnergyByMaxRatio(target, power);
+            if (context.services().combat().recoverEnergyByMaxRatio(target, power) > 0.0D) {
+                Location feet = target.getBukkit().getLocation();
+                feedback.affected(feet, feet.clone().add(0.0D, 0.9D, 0.0D));
+            }
         }
+        feedback.render();
     }
 }

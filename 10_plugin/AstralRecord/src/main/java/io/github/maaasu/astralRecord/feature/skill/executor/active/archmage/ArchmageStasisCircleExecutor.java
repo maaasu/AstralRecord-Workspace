@@ -18,10 +18,14 @@ public final class ArchmageStasisCircleExecutor extends ArchmageFieldSkillExecut
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                          double radius, double power) {
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.STASIS);
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 2.5D, 8, true)) {
             double speed = target.statValue(StatusType.MOVEMENT_SPEED);
-            context.services().combat().applyTemporaryMovementSpeedReduction(
-                    target, (speed > 0.0D ? speed : 100.0D) * power, 30L);
+            if (context.services().combat().applyTemporaryMovementSpeedReduction(
+                    target, (speed > 0.0D ? speed : 100.0D) * power, 30L)) {
+                feedback.affected(target.location(), context.services().targeting().center(target));
+            }
         }
+        feedback.render();
     }
 }

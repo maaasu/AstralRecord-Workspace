@@ -17,8 +17,11 @@ public final class ArchmageRepulsionCircleExecutor extends ArchmageFieldSkillExe
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                          double radius, double power) {
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.REPULSION);
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 2.5D, 8, true)) {
-            context.services().combat().knockback(target, center, power, 0.12D);
+            Location body = context.services().targeting().center(target);
+            feedback.pushed(body, ArchmageTargetEffects.push(context, target, center, power, 0.12D));
         }
+        feedback.render();
     }
 }

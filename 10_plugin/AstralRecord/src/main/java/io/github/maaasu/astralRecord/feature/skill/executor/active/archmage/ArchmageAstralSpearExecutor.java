@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -27,10 +28,16 @@ public final class ArchmageAstralSpearExecutor extends ArchmageStrikeSkillExecut
             return;
         }
         AstEntity target = targets.getFirst();
+        Location feet = target.location().clone();
         Location impact = context.services().targeting().center(target);
         context.services().effects().line(context.eyeLocation(), impact, 0.4D,
                 SharedParticleDefinitions.SKILL_ASTRAL_RAY_BEAM);
-        context.services().combat().hit(context.source().skill(), context.attacker(), target,
+        DamageResult result = context.services().combat().hit(context.source().skill(), context.attacker(), target,
                 AttackType.MAGIC, DamageElement.NONE, power * (1.0D + circles * 0.3D));
+        if (ArchmageTargetEffects.damaged(result)) {
+            ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.SPEAR);
+            feedback.affected(feet, impact);
+            feedback.render();
+        }
     }
 }

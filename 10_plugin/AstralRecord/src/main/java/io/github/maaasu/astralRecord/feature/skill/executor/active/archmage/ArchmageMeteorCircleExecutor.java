@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import org.bukkit.Location;
@@ -19,9 +20,16 @@ public final class ArchmageMeteorCircleExecutor extends ArchmageFieldSkillExecut
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                          double radius, double power) {
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.METEOR);
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 5, true)) {
-            context.services().combat().hit(context.source().skill(), context.attacker(), target,
+            Location feet = target.location().clone();
+            Location body = context.services().targeting().center(target);
+            DamageResult result = context.services().combat().hit(context.source().skill(), context.attacker(), target,
                     AttackType.MAGIC, DamageElement.NONE, power);
+            if (ArchmageTargetEffects.damaged(result)) {
+                feedback.affected(feet, body);
+            }
         }
+        feedback.render();
     }
 }

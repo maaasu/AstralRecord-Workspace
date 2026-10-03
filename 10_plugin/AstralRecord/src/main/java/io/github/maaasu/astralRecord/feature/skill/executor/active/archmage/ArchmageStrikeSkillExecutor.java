@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.jetbrains.annotations.NotNull;
 
 /** 発動時に魔法陣数を固定する星術の共通部分です。 */
@@ -43,6 +44,7 @@ abstract class ArchmageStrikeSkillExecutor extends PlayerActiveSkillExecutor {
             return SkillCastResult.failure(null);
         }
         int circles = ArchmageBuildSupport.circleBonus(context);
+        context.services().effects().sound(center, Sound.BLOCK_BEACON_POWER_SELECT, 0.5F, 1.7F);
         strike(context, center, p.getDouble("radius", 3.0D), p.getDouble("power", 1.0D), circles);
         return context.success();
     }

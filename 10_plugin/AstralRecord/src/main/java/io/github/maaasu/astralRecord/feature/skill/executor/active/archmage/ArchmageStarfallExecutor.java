@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import org.bukkit.Location;
@@ -21,9 +22,16 @@ public final class ArchmageStarfallExecutor extends ArchmageStrikeSkillExecutor 
                           double radius, double power, int circles) {
         ArchmageBuildSupport.drawCircle(context, center, radius, true);
         double ratio = power * (1.0D + circles * 0.2D);
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.STARFALL);
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 6, true)) {
-            context.services().combat().hit(context.source().skill(), context.attacker(), target,
+            Location feet = target.location().clone();
+            Location body = context.services().targeting().center(target);
+            DamageResult result = context.services().combat().hit(context.source().skill(), context.attacker(), target,
                     AttackType.MAGIC, DamageElement.NONE, ratio);
+            if (ArchmageTargetEffects.damaged(result)) {
+                feedback.affected(feet, body);
+            }
         }
+        feedback.render();
     }
 }

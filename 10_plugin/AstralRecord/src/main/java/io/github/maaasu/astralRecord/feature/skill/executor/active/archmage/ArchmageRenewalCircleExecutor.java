@@ -22,9 +22,14 @@ public final class ArchmageRenewalCircleExecutor extends ArchmageFieldSkillExecu
                          double radius, double power) {
         HealthRecoveryContext source = HealthRecoveryContext.by(context.caster().player(),
                 SkillPresentationUtil.plainName(context.source().skill(), "スキル"));
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.RENEWAL);
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, 2.0D)) {
             double maximum = target.getStatusSnapshot().getMaxValue(StatusType.MAX_HEALTH);
-            context.services().combat().recoverHp(target, maximum * power, source);
+            if (context.services().combat().recoverHp(target, maximum * power, source) > 0.0D) {
+                Location feet = target.getBukkit().getLocation();
+                feedback.affected(feet, feet.clone().add(0.0D, 0.9D, 0.0D));
+            }
         }
+        feedback.render();
     }
 }

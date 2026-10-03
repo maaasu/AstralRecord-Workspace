@@ -23,13 +23,19 @@ public final class ArchmageGravityNovaExecutor extends ArchmageStrikeSkillExecut
                           double radius, double power, int circles) {
         double expanded = radius + circles * 0.75D;
         ArchmageBuildSupport.drawCircle(context, center, expanded, true);
+        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.NOVA);
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, expanded, 3.0D, 8, true)) {
+            Location feet = target.location().clone();
+            Location body = context.services().targeting().center(target);
             DamageResult result = hitWithoutNormalKnockback(context, target, power);
-            if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)
-                    && target.currentHealth() > 0.0D) {
-                context.services().combat().knockback(target, center, 0.75D, 0.2D);
+            if (ArchmageTargetEffects.damaged(result)) {
+                feedback.affected(feet, body);
+                if (target.currentHealth() > 0.0D) {
+                    feedback.pushed(body, ArchmageTargetEffects.push(context, target, center, 0.75D, 0.2D));
+                }
             }
         }
+        feedback.render();
     }
 
     /** 通常の押し出しだけを同期命中中に抑止し、他の効果を保って直ちに解除します。 */

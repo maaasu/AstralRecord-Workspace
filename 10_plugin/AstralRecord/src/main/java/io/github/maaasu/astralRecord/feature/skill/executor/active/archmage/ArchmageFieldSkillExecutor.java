@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -82,6 +83,7 @@ abstract class ArchmageFieldSkillExecutor extends PlayerActiveSkillExecutor {
                 : context.services().circles().register(casterId);
         try {
             ArchmageBuildSupport.drawCircle(context, center, radius, !affectsPlayers);
+            context.services().effects().sound(center, Sound.BLOCK_BEACON_ACTIVATE, 0.55F, affectsPlayers ? 1.5F : 0.9F);
             context.services().tasks().repeat(casterId, scope, 1L, TASK_INTERVAL_TICKS,
                     duration / TASK_INTERVAL_TICKS + 1,
                     index -> {
