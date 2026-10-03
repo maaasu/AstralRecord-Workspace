@@ -83,17 +83,8 @@ final class OrbLocalMutationCalculator {
             case DECREASE_ONE -> Math.max(0, current.getEnhanceLevel() - 1);
             case NONE -> current.getEnhanceLevel();
         };
-        int durabilityDelta = durabilityBonus(equipment, appliedLevel) - durabilityBonus(equipment, current.getEnhanceLevel());
-        int durabilityMax = current.getDurabilityMax() + durabilityDelta;
-        int durabilityValue = Math.max(0, Math.min(durabilityMax, current.getDurabilityValue() + durabilityDelta));
-        return LocalResult.enhancement(replace(current, appliedLevel, current.getRuneMaxSlots(), current.getTranscendenceRank(),
-            durabilityMax, durabilityValue, current.getEnchants(), current.getRunes()), succeeded, successRate, failAction);
-    }
-
-    private static int durabilityBonus(@NotNull ItemEquipment equipment, int level) {
-        return equipment.getEnhance().getLevels().stream().filter(definition -> definition.getLevel() <= level)
-            .map(ItemEquipmentEnhanceLevel::getDurabilityBonus).filter(java.util.Objects::nonNull)
-            .mapToInt(Integer::intValue).sum();
+        return LocalResult.enhancement(EquipmentEnhanceCalculator.withLevel(equipment, current, appliedLevel),
+            succeeded, successRate, failAction);
     }
 
     private static @Nullable LocalResult repair(@NotNull ItemOrbEffect effect, @NotNull ItemModel model,

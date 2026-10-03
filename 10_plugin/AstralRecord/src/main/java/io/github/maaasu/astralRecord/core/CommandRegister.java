@@ -27,10 +27,13 @@ import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarServ
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;
+import io.github.maaasu.astralRecord.feature.item.command.EnhanceCommand;
+import io.github.maaasu.astralRecord.feature.item.command.EnhanceTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemChatShareCommand;
 import io.github.maaasu.astralRecord.feature.item.command.ItemChatShareTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemEnhanceService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.market.command.MarketCommand;
@@ -232,6 +235,10 @@ public class CommandRegister {
         ItemChatShareTabCompleter itemChatShareTabCompleter = new ItemChatShareTabCompleter(itemChatShareService);
         cm.registerCommand("showitem", itemChatShareCommand, itemChatShareTabCompleter);
         cm.registerCommand("si", itemChatShareCommand, itemChatShareTabCompleter);
+        ItemEnhanceService itemEnhanceService = new ItemEnhanceService(
+            itemService, AstralRecord.getInstance().getInventoryService(), itemChatShareService);
+        cm.registerCommand("enhance", new EnhanceCommand(itemEnhanceService, AstralRecord.getInstance().getInventoryService()),
+            new EnhanceTabCompleter(itemEnhanceService));
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
         cm.registerCommand("mobspawnerdisplay", new MobSpawnerDisplayCommand(spawnerService, gatheringSpawnerService), new MobSpawnerDisplayTabCompleter(spawnerService));
         cm.registerCommand("dummy", new TrainingDummyCommand(trainingDummyService, trainingDummyGui), new TrainingDummyTabCompleter(trainingDummyService));
