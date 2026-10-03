@@ -115,6 +115,27 @@
 
 ## 共通攻撃 executor の params
 
+### ファントムアーチャーの `params`
+
+専用アクティブ7種と専用パッシブ3種は、`phantom_archer_` で始まる固有の `implementationId` を使用する。既存パッシブ3種も同名の固有実装へ切り替え、`modifiers` のステータス補正を維持する。固有パッシブは `maxLevel: 1`、`passive.bindRequired: true`、成長差分なし・シジル枠なしを必須とし、固有倍率は公開済みLv1定義から解決する。以下は対応する実装だけが使う追加項目であり、他職の必須項目にはしない。
+
+| キー | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `markDamageRatio` | Double | 対応実装のみ | `soul_pierce` / `eclipse_shot` で必要な有限正数。命中前の自分の霊印1層ごとに加算する間接攻撃倍率。レベル差分で加算可能 |
+| `shotCount` | Integer | 対応実装のみ | `spectral_sentry` は1～16の射撃機会数、`echo_volley` は2～6の射撃数。対象不在の設置弓の機会も消費する |
+| `chargeTicks` | Integer | 対応実装のみ | `eclipse_shot` の内部準備時間。1～40tick。詠唱とは別で、消費とCDは発動成功時に開始。中断時の返還なし |
+| `markBonusRatio` | Double | 対応実装のみ | `curse_weaving` の有限正数。ソウルピアースの霊印1層の加算倍率へ加える。エクリプスショットには適用しない |
+| `phantomDamageRatio` | Double | 対応実装のみ | `wraith_step` の有限正数。後退後の幻影矢に、発射元の基礎 `damageRatio` へ掛けて使う。霊印・弱体特効の追加倍率は含めない |
+| `readyDurationTicks` | Integer | 対応実装のみ | `wraith_step` の幻影矢準備の有効tick。1～400。ミストリトリートで後退成功時だけ開始し、次の専用直射で1回消費する |
+
+霊印は状態異常カタログを増やさず、発動者×Mobごとの専用ランタイム状態として扱う。上限3層、最後の付与から120tickという固定契約。ステッチ・ブルーム・セントリー・エコーの有効命中で1層増加し、スペクトラルアチューンメント有効中は弓・短弓・長弓の通常攻撃でも増加する。ピアース・エクリプスは命中前の層を倍率へ加算し、同じ命中がHPまたはShieldへ正のダメージを与えたときだけその対象の印を消費する。回避では消費しない。
+
+ソウルピアースは `(damageRatio + 層数 × (markDamageRatio + 有効なカースのmarkBonusRatio)) × 弱体特効倍率`。エクリプスショットは `damageRatio + 層数 × markDamageRatio`。レイスステップの追加矢は `damageRatio × phantomDamageRatio` で、印の付与・消費・弱体特効を行わない。
+
+ローカル編集サイトはこの表から `/params/markDamageRatio` 等の型と日本語説明を動的に読み、キーと実装IDを元の表記で保持する。共通YAML/APIの型や保存形式は変更しない。実装固有の範囲検証はPluginの `validateParams` を正本とする。
+
+### 共通攻撃の `params`
+
 既存の `normal_attack` など、1つの executor を複数マスタで共有する実装は次の戦闘パラメータを使用します。職業発動スキルにはこの一覧を機械的に複製しません。
 
 | キー | 型 | 必須 | 既定値 | 説明 |

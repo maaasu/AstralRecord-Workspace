@@ -22,10 +22,12 @@ public final class PhantomArcherWeaponLifecycleListener implements Listener {
         PhantomArcherCastLifecycle.clearOwner(event.getPlayer().getUniqueId());
     }
 
-    /** @param event 所持品の投棄 */
+    /** 主手を空にする投棄だけを解除対象にします。@param event 所持品の投棄 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
-        PhantomArcherCastLifecycle.clearOwner(event.getPlayer().getUniqueId());
+        if (event.getPlayer().getInventory().getItemInMainHand().getType().isAir()) {
+            PhantomArcherCastLifecycle.clearOwner(event.getPlayer().getUniqueId());
+        }
     }
 
     /** @param event ワールド移動 */

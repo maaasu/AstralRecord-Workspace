@@ -6994,6 +6994,12 @@
       "x": -63.3,
       "y": 0,
       "z": -1.5
+    },
+    {
+      "nodeId": "2540",
+      "x": 16.7,
+      "y": 0,
+      "z": 0.6
     }
   ],
   "edges": [
@@ -10036,6 +10042,10 @@
     {
       "sourceNodeId": "2060",
       "targetNodeId": "2425"
+    },
+    {
+      "sourceNodeId": "2060",
+      "targetNodeId": "2540"
     },
     {
       "sourceNodeId": "2061",

@@ -4,14 +4,15 @@
 schemaVersion: 1
 id: phantom_archer_curse_weaving
 type: SKILL
-implementationId: status_passive
+implementationId: phantom_archer_curse_weaving
 name: "&5カースウィービング"
-description: "&7状態異常を長く深く刻む。"
+description: "&7弱体と霊印を編み、貫通矢の破裂を深める。"
 icon: SCULK_VEIN
 lore:
   - "&7パッシブスロットへのバインド中のみ有効。"
   - "&7衰弱・盲目付与確率増加を各+15%、状態異常持続時間増加を+10%する。"
-  - "&7各補正はノードや装備の同じステータスに加算される。"
+  - "&7ソウルピアースの霊印1層あたりの加算倍率をさらに{skill.markBonusRatio:percent}%増やす。"
+  - "&7エクリプスショットにはこの加算を適用しない。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0
@@ -25,6 +26,7 @@ levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 passive:
   bindRequired: true
 params:
+  markBonusRatio: 0.25
   modifiers:
     - { status: WEAKNESS_APPLY_CHANCE, type: FLAT, value: 15 }
     - { status: BLINDNESS_APPLY_CHANCE, type: FLAT, value: 15 }

@@ -6,11 +6,13 @@ id: phantom_archer_mist_retreat
 type: SKILL
 implementationId: phantom_archer_mist_retreat
 name: "&5ミストリトリート"
-description: "&7霧を残して素早く後退する。"
+description: "&7幻影を残して後退し、次の射線を作る。"
 icon: LIGHT_GRAY_DYE
 lore:
+  - "&7弓・短弓・長弓を装備して使用する。"
   - "&7移動可能なとき後退し、{skill.durationTicks:seconds}秒間回避率を{skill.evasionMultiplier}倍にする。"
   - "&7後退できない場合は回避効果を得ない。通常ドッジの無敵時間は変更しない。"
+  - "&7レイスステップのバインド中は、後退成功時に次の直射へ幻影矢を準備する。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 18
@@ -64,3 +66,4 @@ tags:
   - active
   - support
   - mobility
+  - bow

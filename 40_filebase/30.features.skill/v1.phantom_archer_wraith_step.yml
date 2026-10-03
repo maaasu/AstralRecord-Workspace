@@ -4,13 +4,16 @@
 schemaVersion: 1
 id: phantom_archer_wraith_step
 type: SKILL
-implementationId: status_passive
+implementationId: phantom_archer_wraith_step
 name: "&5レイスステップ"
-description: "&7危険を避けて身軽に動く。"
+description: "&7退く足取りを次の幻影射撃へ変える。"
 icon: PALE_OAK_LEAVES
 lore:
   - "&7パッシブスロットへのバインド中のみ有効。"
   - "&7回避率を5ポイント増やし、ENG消費を8%軽減する。"
+  - "&7ミストリトリートで後退に成功すると、{skill.readyDurationTicks:seconds}秒間、幻影矢を1回準備する。"
+  - "&7次のシャドウステッチ・ソウルピアース・エクリプスショットへ、基礎倍率の{skill.phantomDamageRatio:percent}%の矢を追加する。"
+  - "&7追加矢は霊印の付与・消費、弱体特効を行わない。再準備は重ならない。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0
@@ -24,6 +27,8 @@ levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 passive:
   bindRequired: true
 params:
+  phantomDamageRatio: 0.6
+  readyDurationTicks: 120
   modifiers:
     - { status: EVASION, type: FLAT, value: 5 }
     - { status: ENERGY_COST_REDUCTION, type: FLAT, value: 8 }

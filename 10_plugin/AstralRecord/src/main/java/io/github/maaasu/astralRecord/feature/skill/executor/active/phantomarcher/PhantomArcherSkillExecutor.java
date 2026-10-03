@@ -158,8 +158,9 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
                                         : new ActiveSkillCondition[] {condition(p, condition)});
                     }
                 }, termination -> {
-                    if (cast.active() && area && termination.type() == SkillProjectileTermination.Type.BLOCK) {
-                        bloom(context, cast, termination.location(), p);
+                    if (cast.active() && termination.type() == SkillProjectileTermination.Type.BLOCK) {
+                        if (area) bloom(context, cast, termination.location(), p);
+                        else blockImpact(context, cast, termination.location());
                     }
                 });
         if (!area) launchReadyArrow(context, cast, origin, direction, p);
@@ -176,8 +177,9 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
         if (offset.lengthSquared() <= 1.0E-8D) offset = new Vector(1, 0, 0);
         Location shifted = origin.clone().add(offset.normalize().multiply(0.35D));
         PhantomArcherEffects.launch(context, shifted, direction, false);
-        context.services().projectiles().launch(context.player(), shifted, direction, spec(p, false),
-                (target, impact) -> hit(context, cast, target, ratio, false, true), ignored -> { });
+        context.services().projectiles().launchWithTermination(context.player(), shifted, direction, spec(p, false),
+                (target, impact) -> hit(context, cast, target, ratio, false, true),
+                termination -> blockTermination(context, cast, termination));
     }
 
     /** 印と衰弱・盲目を読んで、本体の着弾倍率を計算します。 */
@@ -238,9 +240,9 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
             PhantomArcherEffects.drawBow(context, origin, direction, 2.0D);
             PhantomArcherEffects.launch(context, origin, direction, true);
             context.services().effects().sound(origin, Sound.ENTITY_ARROW_SHOOT, 1.4F, 0.5F);
-            context.services().projectiles().launch(context.player(), origin, direction, spec(p, true),
+            context.services().projectiles().launchWithTermination(context.player(), origin, direction, spec(p, true),
                     (target, impact) -> hit(context, cast, target, damageRatio(context, target, p), true, false),
-                    ignored -> { });
+                    termination -> blockTermination(context, cast, termination));
             launchReadyArrow(context, cast, origin, direction, p);
         });
         return context.success();
@@ -254,9 +256,14 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
         if (previousCast != null) previousCast.close();
         cast.onClose(() -> SENTRIES.remove(owner, cast));
         Location eye = context.eyeLocation();
+        double placementRange = p.getDouble("placementRange", 12.0D);
         Location ground = context.services().targeting().groundTarget(
-                context.player(), p.getDouble("placementRange", 12.0D));
-        Location center = ground.clone().add(0.0D, 1.4D, 0.0D);
+                context.player(), placementRange);
+        Location surfaceCenter = ground.clone().add(0.0D, 1.4D, 0.0D);
+        // 地表探索は崖下まで届くため、弓の中心が射程外なら遮蔽済みの視線終点へ浮かべます。
+        Location center = eye.distanceSquared(surfaceCenter) <= placementRange * placementRange
+                ? surfaceCenter
+                : context.services().targeting().clippedEnd(eye, context.direction(), placementRange);
         World world = center.getWorld();
         ItemDisplay bow = world.spawn(center, ItemDisplay.class, display -> {
             display.setItemStack(new ItemStack(Material.BOW));
@@ -295,13 +302,13 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
             Location facing = center.clone().setDirection(direction);
             bow.setRotation(facing.getYaw(), facing.getPitch());
             PhantomArcherEffects.sentry(context, center, direction, index);
-            context.services().projectiles().launch(context.player(), center, direction.normalize(),
+            context.services().projectiles().launchWithTermination(context.player(), center, direction.normalize(),
                     new SkillProjectileSpec(p.getDouble("targetRadius", 10.0D),
                             p.getDouble("projectileSpeed", 1.8D), p.getDouble("projectileHitRadius", 0.35D),
                             false, 1, SharedParticleDefinitions.PHANTOM_ARCHER_TRAIL,
                             SharedParticleDefinitions.PHANTOM_ARCHER_IMPACT),
                     (victim, ignored) -> hit(context, cast, victim, p.getDouble("damageRatio", 0.8D),
-                            false, false), ignored -> { });
+                            false, false), termination -> blockTermination(context, cast, termination));
             context.services().effects().sound(center, Sound.ENTITY_ARROW_SHOOT, 0.6F, 1.25F);
         }, () -> {
             SENTRY_SCOPES.remove(owner, scope);
@@ -327,10 +334,10 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
                     Vector direction = context.direction();
                     PhantomArcherEffects.drawBow(context, origin, direction, 0.75D);
                     PhantomArcherEffects.launch(context, origin, direction, false);
-                    context.services().projectiles().launch(context.player(), origin, direction, spec(p, true),
+                    context.services().projectiles().launchWithTermination(context.player(), origin, direction, spec(p, true),
                             (target, ignored) -> hit(context, cast, target, p.getDouble("damageRatio", 0.7D),
                                     false, false),
-                            ignored -> { });
+                            termination -> blockTermination(context, cast, termination));
                     context.services().effects().sound(origin, Sound.ENTITY_ARROW_SHOOT, 0.6F, 1.6F);
                 });
         return context.success();
@@ -392,6 +399,23 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
             PhantomArcherRuntime.addMark(context.player().getUniqueId(), target.id());
             PhantomArcherEffects.resonance(context, target.location(),
                     PhantomArcherRuntime.marks(context.player().getUniqueId(), target.id()));
+        }
+    }
+
+    /** 地形に止められた霊矢にも固有の着弾演出と音を付けます。攻撃や印付与は行いません。 */
+    private void blockImpact(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast,
+                             Location impact) {
+        if (cast.active() && active(context, impact.getWorld())
+                && PhantomArcherRuntime.hasBow(context.caster().player())) {
+            PhantomArcherEffects.impact(context, impact, "eclipse_shot".equals(action));
+        }
+    }
+
+    /** 命中・射程切れを着弾演出へ重複通知せず、地形衝突だけを表示します。 */
+    private void blockTermination(PlayerActiveSkillContext context, PhantomArcherCastLifecycle.Cast cast,
+                                  SkillProjectileTermination termination) {
+        if (termination.type() == SkillProjectileTermination.Type.BLOCK) {
+            blockImpact(context, cast, termination.location());
         }
     }
 

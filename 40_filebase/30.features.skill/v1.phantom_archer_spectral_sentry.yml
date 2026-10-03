@@ -6,30 +6,32 @@ id: phantom_archer_spectral_sentry
 type: SKILL
 implementationId: phantom_archer_spectral_sentry
 name: "&5スペクトラルセントリー"
-description: "&7幻影の弓を置いて敵を追撃する。"
+description: "&7幻影の弓と十字射線を組み、霊印を重ねる。"
 icon: SOUL_LANTERN
 lore:
-  - "&7視線先{skill.placementRange}m以内へ幻影の弓を設置し、射程{skill.targetRadius}mの敵へ6回射撃を試みる。"
+  - "&7弓・短弓・長弓を装備して使用する。"
+  - "&7視線先{skill.placementRange}m以内へ幻影弓を設置し、射程{skill.targetRadius}mの敵へ{skill.shotCount}回射撃を試みる。"
+  - "&7範囲内の地面に置けないときは、視線先へ浮かべて設置する。"
   - "&7各射撃は間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。間隔は{skill.shotIntervalTicks}ティック。"
-  - "&7射撃時に対象がいなければ発射しない。その回の射撃機会は消費する。"
-  - "&7幻影は1人につき1体まで。新たに置くと以前の幻影は消える。"
-cooldownTicks: 220
+  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
+  - "&7対象がいない射撃機会は消費する。幻影は1人1体までで、再設置すると旧幻影とその矢は無効になる。"
+cooldownTicks: 200
 resourceType: ENERGY
-resourceCost: 26
-manaCost: 22
+resourceCost: 24
+manaCost: 18
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 10
 levels:
-  - { level: 2, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 3, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 4, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 5, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 6, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 7, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 8, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 9, paramDeltas: { damageRatio: 0.08 } }
-  - { level: 10, paramDeltas: { damageRatio: 0.08 } }
+  - { level: 2, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.1 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.1 } }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 4, slots: 2 }
@@ -59,12 +61,13 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 params:
-  placementRange: 12
-  targetRadius: 10
-  damageRatio: 0.8
-  projectileSpeed: 1.8
-  projectileHitRadius: 0.35
-  shotIntervalTicks: 20
+  shotCount: 8
+  placementRange: 16
+  targetRadius: 16
+  damageRatio: 1.15
+  projectileSpeed: 2.2
+  projectileHitRadius: 0.45
+  shotIntervalTicks: 12
 tags:
   - active
   - ranged

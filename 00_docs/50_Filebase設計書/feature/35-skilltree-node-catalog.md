@@ -369,7 +369,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 
 ## ファントムアーチャー専門枝
 
-共通24node、Shadow 48node、Specter 48node、skill 16nodeを `starter` に配置する。全nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer`。スキル許可はskillだけの独立leafへ分け、status nodeへ混載しない。配置・接続は [[35-skilltree#ファントムアーチャー専門枝]] を参照する。
+共通24node、Shadow 48node、Specter 48node、skill 17nodeを `starter` に配置する。全nodeは `pointCost: 1`、`unlockCondition.classId: phantom_archer`。スキル許可はskillだけの独立leafへ分け、status nodeへ混載しない。配置・接続は [[35-skilltree#ファントムアーチャー専門枝]] を参照する。
 
 ### スキル解放
 
@@ -391,6 +391,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `2430` | `phantom_archer_curse_weaving` | `&5カースウィービング` | `SCULK_VEIN` | `condition`, `dark` |
 | `2431` | `phantom_archer_spectral_attunement` | `&5スペクトラルアチューンメント` | `CALIBRATED_SCULK_SENSOR` | `resource`, `mana`, `astral` |
 | `2432` | `phantom_archer_wraith_step` | `&5レイスステップ` | `PALE_OAK_LEAVES` | `agility`, `defense`, `dark` |
+| `2540` | `phantom_archer_eclipse_shot` | `&5エクリプスショット` | `OBSIDIAN` | `offense`, `dark` |
 | `2256` | `archer_heal_arrow_alpha` | `&aヒールアローα` | `GLOW_BERRIES` | `light` |
 | `2259` | `sharpshooter_phantom_shot` | `&5ファントムショット` | `GLOW_INK_SAC` | `offense`, `dark`, `astral` |
 

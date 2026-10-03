@@ -6,12 +6,15 @@ id: phantom_archer_soul_pierce
 type: SKILL
 implementationId: phantom_archer_soul_pierce
 name: "&5ソウルピアース"
-description: "&7弱った敵を貫く霊矢を放つ。"
+description: "&7刻んだ霊印ごと敵の魂を射抜く。"
 icon: SCULK_CATALYST
 lore:
-  - "&7射程{skill.range}mへ細い貫通霊矢を放ち、最大{skill.maxHits}体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7衰弱か盲目の敵への倍率はさらに{skill.conditionBonusRatio:percent}%増える。"
-cooldownTicks: 120
+  - "&7弓・短弓・長弓を装備して使用する。"
+  - "&7射程{skill.range}m、最大{skill.maxHits}体を貫く無属性の霊矢を放つ。"
+  - "&7基礎は間接攻撃力{skill.effectiveDamageRatio:percent}%。自分の霊印1層ごとに倍率を{skill.markDamageRatio:percent}%加算する。"
+  - "&7衰弱か盲目の敵には、霊印の加算後の倍率がさらに{skill.conditionBonusRatio:percent}%増える。"
+  - "&7霊印は有効命中した対象だけ全層消費する。回避・無効化では消費しない。"
+cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 21
 manaCost: 12
@@ -19,15 +22,15 @@ castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 10
 levels:
-  - { level: 2, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 3, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 4, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 5, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 6, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 7, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 8, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 9, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
-  - { level: 10, paramDeltas: { damageRatio: 0.12, conditionBonusRatio: 0.01 } }
+  - { level: 2, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.2, conditionBonusRatio: 0.01, markDamageRatio: 0.05 } }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 4, slots: 2 }
@@ -57,10 +60,11 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 params:
-  range: 18
-  damageRatio: 1.5
-  projectileSpeed: 2.0
-  projectileHitRadius: 0.35
+  markDamageRatio: 0.65
+  range: 24
+  damageRatio: 2.8
+  projectileSpeed: 2.6
+  projectileHitRadius: 0.45
   maxHits: 4
   conditionBonusRatio: 0.4
 tags:

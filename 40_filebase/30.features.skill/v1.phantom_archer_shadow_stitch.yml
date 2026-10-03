@@ -6,11 +6,13 @@ id: phantom_archer_shadow_stitch
 type: SKILL
 implementationId: phantom_archer_shadow_stitch
 name: "&5シャドウステッチ"
-description: "&7影の矢で敵の攻勢を弱める。"
+description: "&7霊印を刻み、狙った敵の攻勢を弱める。"
 icon: SCULK_SENSOR
 lore:
+  - "&7弓・短弓・長弓を装備して使用する。"
   - "&7射程{skill.range}mの敵1体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7有効命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の衰弱を付与する。"
+  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14
@@ -19,15 +21,15 @@ castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 10
 levels:
-  - { level: 2, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 3, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 4, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 5, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 6, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 7, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 8, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 9, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
-  - { level: 10, paramDeltas: { damageRatio: 0.15, conditionChance: 2 } }
+  - { level: 2, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.2, conditionChance: 2 } }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 4, slots: 2 }
@@ -57,9 +59,9 @@ allowedSigilIds:
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 params:
-  range: 16
-  damageRatio: 2.0
-  projectileSpeed: 1.8
+  range: 20
+  damageRatio: 2.6
+  projectileSpeed: 2.2
   projectileHitRadius: 0.4
   conditionChance: 70
   conditionTicks: 100

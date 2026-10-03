@@ -1,0 +1,73 @@
+# design:
+#   motif: "日蝕 / 幻影の大弓"
+#   progression: 2
+schemaVersion: 1
+id: phantom_archer_eclipse_shot
+type: SKILL
+implementationId: phantom_archer_eclipse_shot
+name: "&5エクリプスショット"
+description: "&7幻影の大弓を引き、霊印を日蝕の一矢で砕く。"
+icon: OBSIDIAN
+lore:
+  - "&7弓・短弓・長弓を装備して使用する。"
+  - "&7発動から{skill.chargeTicks:seconds}秒後、その時の位置と照準へ大きな霊矢を放つ。準備中も移動・照準変更できる。"
+  - "&7射程{skill.range}m、最大{skill.maxHits}体を貫く無属性ダメージ。基礎は間接攻撃力{skill.effectiveDamageRatio:percent}%。"
+  - "&7自分の霊印1層ごとに倍率を{skill.markDamageRatio:percent}%加算し、有効命中した対象の霊印だけ全層消費する。"
+  - "&7発動時に消費・クールダウンが始まり、主手の持ち替えや死亡等で中断しても返還しない。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 30
+manaCost: 24
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 6, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 7, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 8, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 9, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+  - { level: 10, paramDeltas: { damageRatio: 0.4, markDamageRatio: 0.08 } }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - 70a00001
+  - 70a00002
+  - 70a00004
+  - 70a00005
+  - 70a00006
+  - 70a00007
+  - 70a00008
+  - 70a00009
+  - 70a00010
+  - 70a00011
+  - 70a00017
+  - 70a00018
+  - 70a00019
+  - 70a00020
+  - 70a00021
+  - 70a00022
+  - 70a00023
+  - 70a00024
+  - 70a00025
+  - 70a00026
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+params:
+  range: 28
+  damageRatio: 6.0
+  projectileSpeed: 3.0
+  projectileHitRadius: 0.65
+  maxHits: 6
+  markDamageRatio: 1.2
+  chargeTicks: 16
+tags:
+  - active
+  - ranged
+  - bow

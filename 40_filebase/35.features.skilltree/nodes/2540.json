@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2540",
+  "name": "&5エクリプスショット",
+  "icon": "OBSIDIAN",
+  "tags": [
+    "offense",
+    "dark"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "phantom_archer_eclipse_shot"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "phantom_archer"
+  }
+}
