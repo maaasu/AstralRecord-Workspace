@@ -69,7 +69,9 @@ public final class PetItemView {
             int learned=0;
             for(JsonElement row:array(details,"skills")) {
                 JsonObject owned=row.getAsJsonObject();JsonObject skill=service.master().skill(pet.speciesId(),text(owned,"id",""));
-                detailsLore.add(line(" ▸ スキル "+(int)number(owned,"slotIndex",++learned)+": "+text(skill,"name","未登録のスキル")+" (T"+(int)number(owned,"tier",0)+")",NamedTextColor.LIGHT_PURPLE));
+                int displayedSlot=(int)number(owned,"slotIndex",learned++)+1;
+                detailsLore.add(line(" ▸ スキル "+displayedSlot+": "+text(skill,"name","未登録のスキル"),NamedTextColor.LIGHT_PURPLE)
+                    .append(line(" (T"+(int)number(owned,"tier",0)+")",NamedTextColor.GRAY)));
             }
             for(int slot=array(details,"skills").size()+1;slot<=3;slot++)detailsLore.add(line(" ▸ スキル "+slot+": 未解放",NamedTextColor.DARK_GRAY));
         }

@@ -39,6 +39,9 @@ final class InventoryItemStackResolver {
         "クリックで使用",
         NamedTextColor.LIGHT_PURPLE
     ).decoration(TextDecoration.ITALIC, false);
+    private static final Component PET_EQUIP_LORE = Component.text(
+        "クリックでペットを装備", NamedTextColor.GREEN
+    ).decoration(TextDecoration.ITALIC, false);
     private static final NamespacedKey BAG_SLOT_NUMBER_KEY = new NamespacedKey("astralrecord", "bag_slot_number");
 
     private final ItemService itemService;
@@ -158,7 +161,9 @@ final class InventoryItemStackResolver {
                 if(petService==null)return null;
                 var pet=expectedAccountId==null?petService.findLoaded(entry.getInstanceId()):petService.find(expectedAccountId,entry.getInstanceId());
                 if(pet==null){if(expectedAccountId!=null)petService.ensureLoaded(expectedAccountId);return null;}
-                return petService.itemStack(pet);
+                ItemStack petItem=petService.itemStack(pet);
+                ItemModel petModel=itemService.findLoadedById(pet.itemId());
+                return appendBagActionLore&&petModel!=null?appendBagActionLore(petItem,entry,petModel):petItem;
             }
             return resolveEquipment(entry, expectedAccountId, appendBagActionLore, equippedSetCounts);
         }
@@ -295,6 +300,7 @@ final class InventoryItemStackResolver {
         @NotNull ItemModel itemModel
     ) {
         ItemCategory category = ItemCategory.fromApiValue(entry.getItemCategory());
+        if (category == ItemCategory.PET) return PET_EQUIP_LORE;
         if (category == ItemCategory.BUNDLE || category == ItemCategory.CONSUMABLE) {
             return HOTBAR_ASSIGNMENT_LORE;
         }

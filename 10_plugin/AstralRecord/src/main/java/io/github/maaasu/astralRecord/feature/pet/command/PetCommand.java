@@ -11,15 +11,16 @@ import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
-/** ペット管理と、装備中の個体の名前変更を提供します。 */
+/** 管理者がGAME BAGのペット施設操作と個体の名前変更を行うコマンドです。 */
 public final class PetCommand extends AstCommand {
     /** プレイヤー専用のペット管理コマンドを登録します。 */
-    public PetCommand(){super("pet","ペット管理画面を開きます。","/pet [name <名前>]",true);}
+    public PetCommand(){super("pet","管理者用のペット施設画面を開きます。","/pet [name <名前>]",true,99);}
     /** 読み込み済み本人の個体だけを操作し、保存処理はサービスへ委譲します。 */
     @Override protected void executePlayerCommand(@NotNull AstPlayer player,@NotNull String[] args){
+        if(!player.hasAdminPermission()){PlayerMessageService.getInstance().send(player.getBukkit(),PlayerMsgId.P_5061);return;}
         if(!requireGameplayMode(player))return;
         AstralRecord plugin=AstralRecord.getInstance();
-        if(args.length==0){if(plugin.getPetGui()!=null)plugin.getPetGui().open(player.getBukkit());return;}
+        if(args.length==0){if(plugin.getPetGui()!=null)plugin.getPetGui().openAdminFacility(player.getBukkit());return;}
         if(!args[0].equalsIgnoreCase("name")||args.length<2){sendUsage(player.getBukkit());return;}
         var service=plugin.getPetService();var id=service.equippedId(player.getAccount().getUuid());
         if(id==null){PlayerMessageService.getInstance().send(player,PlayerMsgId.P_9600);return;}

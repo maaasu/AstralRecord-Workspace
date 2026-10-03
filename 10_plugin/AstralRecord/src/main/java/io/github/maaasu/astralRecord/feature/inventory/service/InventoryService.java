@@ -201,7 +201,7 @@ public class InventoryService {
         PlayerInventoryState state=getState(accountId);if(state==null)return false;
         synchronized(state){
             InventoryModel equip=state.findInventory(DEFAULT_PROFILE,InventoryType.EQUIP_SLOT);
-            if(equip!=null&&(equip.isDeleted()||!equip.isEnabled()))return new PetEquipmentPreparation(null,false);
+            if(equip!=null&&(equip.isDeleted()||!equip.isEnabled()))return false;
             return equip!=null&&equip.isEnabled()&&!equip.isDeleted()&&state.snapshotEntries(equip.getInventoryId()).stream()
                 .anyMatch(entry->isPetEntry(entry,petId)&&Objects.equals(entry.getSlotIndex(),EquipSlotLayout.SLOT_PET));
         }
@@ -235,6 +235,7 @@ public class InventoryService {
             InventoryModel bag=state.findInventory(DEFAULT_PROFILE,InventoryType.BAG);
             if(bag==null||bag.isDeleted()||!bag.isEnabled())return new PetEquipmentPreparation(null,false);
             InventoryModel equip=state.findInventory(DEFAULT_PROFILE,InventoryType.EQUIP_SLOT);
+            if(equip!=null&&(equip.isDeleted()||!equip.isEnabled()))return new PetEquipmentPreparation(null,false);
             InventoryEntryModel equipped=equip==null?null:state.snapshotEntries(equip.getInventoryId()).stream()
                 .filter(entry->!entry.isDeleted()&&Objects.equals(entry.getSlotIndex(),EquipSlotLayout.SLOT_PET))
                 .findFirst().orElse(null);
@@ -270,7 +271,7 @@ public class InventoryService {
             }
             return new PetEquipmentPreparation(new PetEquipmentPlan(accountId,state,bag.getInventoryId(),equip.getInventoryId(),
                 requestedId,incoming==null?null:incoming.getInventoryEntryId(),returningId,
-                equipped==null?null:equipped.getInventoryEntryId(),returnSlot,reservation),false);
+                returningId==null?null:equipped.getInventoryEntryId(),returnSlot,reservation),false);
         }
     }
 

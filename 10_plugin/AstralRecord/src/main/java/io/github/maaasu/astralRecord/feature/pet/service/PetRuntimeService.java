@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -23,6 +25,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -51,6 +54,7 @@ public final class PetRuntimeService implements Listener {
     private ConditionService conditionService;
     private final Map<UUID, Session> byOwner = new HashMap<>();
     private final Map<UUID, Session> byEntity = new HashMap<>();
+    private final Set<UUID> summonedEntityIds = new HashSet<>();
     private final Map<UUID, TimedAmount> defenseBreaks = new HashMap<>();
     private BukkitTask task;
     private long tick;
@@ -109,7 +113,31 @@ public final class PetRuntimeService implements Listener {
         }
         dismiss(owner);
         Location location = behind(owner.getBukkit());
-        LivingEntity entity = (LivingEntity) location.getWorld().spawnEntity(location, selected.entityType());
+        Class<? extends Entity> entityClass = selected.entityType().getEntityClass();
+        if (entityClass == null || !LivingEntity.class.isAssignableFrom(entityClass)) return;
+        LivingEntity[] creating = new LivingEntity[1];
+        LivingEntity entity;
+        try {
+            entity = location.getWorld().spawn(location, entityClass.asSubclass(LivingEntity.class),
+                CreatureSpawnEvent.SpawnReason.CUSTOM, false, spawned -> {
+                    creating[0] = spawned;
+                    // 管理外Mob除去の生成イベントより前に、サービス所有の召喚体として登録する。
+                    summonedEntityIds.add(spawned.getUniqueId());
+                });
+            if (!entity.isValid() || entity.isDead()) {
+                summonedEntityIds.remove(entity.getUniqueId());
+                entity.remove();
+                return;
+            }
+        } catch (RuntimeException failure) {
+            if (creating[0] != null) {
+                summonedEntityIds.remove(creating[0].getUniqueId());
+                creating[0].remove();
+            }
+            Logger.log(LogId.E_9602, failure, ownerId);
+            return;
+        }
+        try {
         entity.setPersistent(false);
         entity.setRemoveWhenFarAway(false);
         entity.setSilent(false);
@@ -134,6 +162,13 @@ public final class PetRuntimeService implements Listener {
         byOwner.put(ownerId, session);
         byEntity.put(entity.getUniqueId(), session);
         session.publish();
+        } catch (RuntimeException failure) {
+            byOwner.remove(ownerId);
+            byEntity.remove(entity.getUniqueId());
+            summonedEntityIds.remove(entity.getUniqueId());
+            entity.remove();
+            Logger.log(LogId.E_9602, failure, ownerId);
+        }
     }
 
     /**
@@ -145,10 +180,20 @@ public final class PetRuntimeService implements Listener {
         if (session != null) {
             session.publish();
             byEntity.remove(session.entity.getUniqueId());
+            summonedEntityIds.remove(session.entity.getUniqueId());
             if (conditionService != null) conditionService.clearAll(AstEntity.pet(session));
             session.entity.remove();
         }
         removePetBuffs(owner);
+    }
+
+    /**
+     * 管理外Mob除去に対して、生成中または召喚中のペット実体を識別します。メインスレッド専用です。
+     * @param entity ワールド生成・チャンク読込時に検査する実体
+     * @return このサービスが現在所有する実体ならtrue。退場済みの実体は含みません
+     */
+    public boolean ownsSummon(@NotNull Entity entity) {
+        return summonedEntityIds.contains(entity.getUniqueId());
     }
 
     /**

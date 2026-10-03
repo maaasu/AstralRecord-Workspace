@@ -549,6 +549,18 @@ public class MenuView {
             && holder.equipmentReadOnly();
     }
 
+    /**
+     * 本人が開いている装備画面のペット枠だけを、非同期装備確定後に更新します。
+     * @param player 操作した本人。他者の参照画面は更新しません
+     */
+    public void refreshPetEquipmentSlot(@NotNull Player player) {
+        Inventory inventory=player.getOpenInventory().getTopInventory();
+        if(inventory.getHolder() instanceof MenuInventoryHolder holder
+            && holder.screen()==MenuScreen.EQUIPMENT_GUI && !holder.equipmentReadOnly()){
+            equipmentMenuScreenView.renderPetSlot(inventory,player);
+        }
+    }
+
     public @Nullable EquipmentType getEquipmentTypeAtSlot(int rawSlot) {
         return equipmentMenuScreenView.getEquipmentTypeAtSlot(rawSlot);
     }

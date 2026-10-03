@@ -23,6 +23,7 @@ import java.util.Map;
  *   <li>4 = 脚 (LEGS)</li>
  *   <li>5 = 足 (FEET)</li>
  *   <li>6 = スキルブック (SKILLBOOK)</li>
+ *   <li>7 = ペット (PET)。Bukkit防具欄には反映せずペットサービスが管理する</li>
  * </ul>
  */
 final class EquipSlotLayout {
@@ -33,14 +34,15 @@ final class EquipSlotLayout {
     static final int SLOT_LEGS = 4;
     static final int SLOT_FEET = 5;
     static final int SLOT_SKILLBOOK = 6;
+    static final int SLOT_PET = 7;
     static final int SLOT_MIN = SLOT_HEAD;
-    static final int SLOT_MAX = SLOT_SKILLBOOK;
+    static final int SLOT_MAX = SLOT_PET;
 
     private EquipSlotLayout() {
     }
 
     static boolean isManagedSlot(int slotIndex) {
-        return slotIndex >= SLOT_MIN && slotIndex <= SLOT_MAX;
+        return slotIndex >= SLOT_MIN && slotIndex <= SLOT_SKILLBOOK;
     }
 
     /**

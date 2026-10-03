@@ -128,7 +128,7 @@ species:
     sizeMax: 1.2
     hatchMaterials:
       - itemId: item:10a00084
-        quantity: 256
+        quantity: 32
       - itemId: item:10a00085
         quantity: 16
       - itemId: item:10a00076
@@ -561,7 +561,7 @@ species:
     sizeMax: 1.15
     hatchMaterials:
       - itemId: item:10a00084
-        quantity: 256
+        quantity: 32
       - itemId: item:10a00085
         quantity: 16
       - itemId: item:10a00077
@@ -990,7 +990,7 @@ species:
     sizeMax: 1.25
     hatchMaterials:
       - itemId: item:10a00084
-        quantity: 256
+        quantity: 32
       - itemId: item:10a00085
         quantity: 16
       - itemId: item:10a00074

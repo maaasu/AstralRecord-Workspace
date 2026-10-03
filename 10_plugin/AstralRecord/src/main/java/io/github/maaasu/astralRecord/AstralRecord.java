@@ -1416,6 +1416,7 @@ public final class AstralRecord extends JavaPlugin {
             if(AstPlayerCache.get(owner.getBukkit())!=owner)return;
             petRuntimeService.refresh(owner);
             inventoryService.applyInventoriesToGuiOnJoin(owner);
+            menuView.refreshPetEquipmentSlot(owner.getBukkit());
             if(petGui!=null)petGui.refreshCurrent(owner.getBukkit());
         });
         petGui=new io.github.maaasu.astralRecord.feature.pet.gui.PetGui(this,petService,inventoryService,itemService,itemStackFactory,mobService);
@@ -2416,7 +2417,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new WorldNaturalSpawnBlockEventHandler(
-                    this, worldService, mobService, archmagePhoenixRuntimeService::ownsSummon),
+                    this, worldService, mobService,
+                    entity -> archmagePhoenixRuntimeService.ownsSummon(entity) || petRuntimeService.ownsSummon(entity)),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

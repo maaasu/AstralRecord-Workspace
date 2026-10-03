@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.*;
 
-/** 所有個体の確認・装備保存と、施設での孵化・配合・復活を提供します。 */
+/** バッグ内の個体選択と、施設・管理者による孵化・配合・復活を提供します。 */
 public final class PetGui implements Listener {
     private static final int PAGE_SIZE=27;
     private static final int PREVIOUS_SLOT=45;

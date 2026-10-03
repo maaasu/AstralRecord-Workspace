@@ -240,8 +240,14 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if(event.getRawSlot()==io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView.PET_SLOT){
+            AstPlayer owner=AstPlayerCache.get(player);
+            var pets=AstralRecord.getInstance().getPetService();
+            if(owner==null||pets==null||pets.equippedId(owner.getAccount().getUuid())==null
+                ||event.getCursor().getType()!=Material.AIR||event.isShiftClick()){
+                GuiSound.DENY.play(player);return;
+            }
             saveEquipmentMenuSnapshot(player,topInventory);
-            var petGui=AstralRecord.getInstance().getPetGui();if(petGui!=null)petGui.open(player);
+            inventoryService.requestPetEquipmentChange(owner,null);
             return;
         }
         if (!menuView.isEquipmentItemSlot(event.getRawSlot())) {
@@ -428,6 +434,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         EquipmentType equipmentType = inventoryService.getEquipmentTypeForEntry(sourceEntry);
+        if(io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType.PET.getCode().equalsIgnoreCase(sourceEntry.getInstanceType())){
+            if(!inventoryService.getClickGuard().tryAcquire(astPlayer.getAccount().getUuid(),InventoryClickGuard.ClickAction.DISPLAYED_ITEM))return;
+            saveEquipmentMenuSnapshot(player,topInventory);
+            if(sourceEntry.getInstanceId()==null){GuiSound.DENY.play(player);return;}
+            inventoryService.requestPetEquipmentChange(astPlayer,sourceEntry.getInstanceId());
+            return;
+        }
         AccessorySlotType accessorySlotType = inventoryService.getAccessorySlotTypeForEntry(sourceEntry);
         if (equipmentType == EquipmentType.UNSUPPORTED && accessorySlotType == null) {
             if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
@@ -619,6 +632,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         event.setCancelled(true);
         if (!inventoryService.getClickGuard().tryAcquire(
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
+            return;
+        }
+        if(io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType.PET.getCode().equalsIgnoreCase(displayedEntry.getInstanceType())){
+            if(displayedEntry.getInstanceId()==null){GuiSound.DENY.play(player);return;}
+            inventoryService.requestPetEquipmentChange(astPlayer,displayedEntry.getInstanceId());
             return;
         }
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);

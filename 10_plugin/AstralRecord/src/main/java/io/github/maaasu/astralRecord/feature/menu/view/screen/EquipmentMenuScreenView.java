@@ -94,13 +94,30 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(GAUGE_LARGE_SLOT, futureSlot(Material.SPAWNER, "ラージゲージ"));
         inventory.setItem(GAUGE_MEDIUM_SLOT, futureSlot(Material.SPAWNER, "ミディアムゲージ"));
         inventory.setItem(GAUGE_SMALL_SLOT, futureSlot(Material.SPAWNER, "スモールゲージ"));
-        var petService=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetService();
-        AstPlayer petOwner=AstPlayerCache.get(player);
-        var petId=petOwner==null||petService==null?null:petService.equippedId(petOwner.getAccount().getUuid());
-        var pet=petId==null?null:petService.find(petOwner.getAccount().getUuid(),petId);
-        inventory.setItem(PET_SLOT,pet==null?createItem(Material.SADDLE,
-            Component.text("ペットスロット",NamedTextColor.GREEN),List.of(Component.text("クリックで選択・保存",NamedTextColor.GRAY))):petService.itemStack(pet));
+        renderPetSlot(inventory, player);
         inventory.setItem(EQUIPMENT_BACK_SLOT, backItem());
+    }
+
+    /**
+     * ペット装備枠だけを更新し、他の装備枠で編集中のアイテムを上書きしません。
+     * @param inventory 装備画面
+     * @param player 装備を表示するプレイヤー
+     */
+    public void renderPetSlot(@NotNull Inventory inventory, @NotNull Player player) {
+        var service=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetService();
+        AstPlayer owner=AstPlayerCache.get(player);
+        var id=owner==null||service==null?null:service.equippedId(owner.getAccount().getUuid());
+        var pet=id==null?null:service.find(owner.getAccount().getUuid(),id);
+        if(pet!=null&&!io.github.maaasu.astralRecord.AstralRecord.getInstance().getInventoryService()
+            .isPetInEquipmentSlot(owner.getAccount().getUuid(),id)){
+            inventory.setItem(PET_SLOT,equipmentPlaceholder(Material.CLOCK,"ペット装備を確認中","装備位置の確認・移行が完了すると表示されます"));
+            return;
+        }
+        if(pet==null){
+            inventory.setItem(PET_SLOT,equipmentPlaceholder(Material.SADDLE,"ペット","バッグのペットをクリックして装備"));
+        }else{
+            inventory.setItem(PET_SLOT,service.itemStack(pet));
+        }
     }
 
     /**

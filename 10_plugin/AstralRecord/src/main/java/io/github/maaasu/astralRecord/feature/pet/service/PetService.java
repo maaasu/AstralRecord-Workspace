@@ -199,9 +199,14 @@ public final class PetService implements PetRuntimeService.StateBridge {
         if(!inventory.isPetInEquipmentSlot(accountId,selected)){
             if(org.bukkit.Bukkit.isPrimaryThread()&&AccountModeGuard.isGameplayPlayer(owner)
                 &&AstPlayerCache.get(owner.getBukkit())==owner&&inventory.isPetInGameBag(accountId,selected)){
-                LegacyEquipAttempt attempt=new LegacyEquipAttempt(selected,generation(accountId));
-                if(!attempt.equals(legacyEquipAttempts.put(accountId,attempt)))
-                    equip(owner,selected).whenComplete((ignored,failure)->{if(failure!=null)log(failure);});
+                long generation=generation(accountId),now=System.nanoTime();
+                LegacyEquipAttempt previous=legacyEquipAttempts.get(accountId);
+                if(previous==null||!previous.petId().equals(selected)||previous.generation()!=generation
+                    ||now-previous.retryAfterNanos()>=0){
+                    legacyEquipAttempts.put(accountId,new LegacyEquipAttempt(selected,generation,now+TimeUnit.SECONDS.toNanos(5)));
+                    try{equip(owner,selected).whenComplete((ignored,failure)->{if(failure!=null)log(failure);});}
+                    catch(RuntimeException failure){log(failure);}
+                }
             }
             return null;
         }
@@ -628,7 +633,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         final Map<UUID,Progress> progress=new LinkedHashMap<>();CompletableFuture<Void> tail=CompletableFuture.completedFuture(null);
         AccountState(UUID id){this.id=id;}
     }
-    private record LegacyEquipAttempt(UUID petId,long generation) { }
+    private record LegacyEquipAttempt(UUID petId,long generation,long retryAfterNanos) { }
     private static final class Progress {
         long experience,revision,acknowledged;double health;boolean dead;Map<String,Long> cooldowns=new HashMap<>();ProgressRequest request;
         Progress(PetInstance pet){health=number(pet.details(),"healthRatio",1);dead=pet.dead();object(pet.details(),"cooldowns").entrySet().forEach(row->cooldowns.put(row.getKey(),row.getValue().getAsLong()));}
