@@ -10,9 +10,10 @@ description: "&8【概要】 &7炎の魔法陣へ隕石を呼び寄せる範囲�
 icon: GILDED_BLACKSTONE
 lore:
   - "&b【効果】 &f視点方向の{skill.range}m以内へ魔法陣を描き、{skill.impactDelayTicks:seconds}秒後に隕石を落とす。"
-  - "&b【攻撃】 &f着弾地点から半径{skill.radius}mの敵へ、&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
+  - "&b【効果】 &f着弾時に中心へ爆発し、約1秒かけて半径{skill.radius}mへ火の波が広がる。"
+  - "&b【攻撃】 &f爆発や波の先端にいる敵へ1回、&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
   - "&d【状態】 &f命中時、{skill.burningChance}%で{skill.burningDurationTicks:seconds}秒間の&d燃焼&fを付与。"
-cooldownTicks: 160
+cooldownTicks: 240
 resourceType: MANA
 resourceCost: 80
 castTimeTicks: 20
@@ -20,64 +21,42 @@ requiredLevel: 1
 maxLevel: 5
 levels:
   - level: 2
-    paramDeltas: { damageRatio: 0.30 }
+    paramDeltas: { damageRatio: 0.45 }
   - level: 3
-    paramDeltas: { damageRatio: 0.30 }
+    paramDeltas: { damageRatio: 0.45 }
   - level: 4
-    paramDeltas: { damageRatio: 0.30 }
+    paramDeltas: { damageRatio: 0.45 }
   - level: 5
-    paramDeltas: { damageRatio: 0.30 }
+    paramDeltas: { damageRatio: 0.45 }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
   - { level: 5, slots: 3 }
 allowedSigilIds:
   - 70a00001
-  - 70a00027
   - 70a00002
-  - 70a00028
   - 70a00004
-  - 70a00029
   - 70a00005
-  - 70a00030
   - 70a00006
-  - 70a00031
   - 70a00007
-  - 70a00032
   - 70a00008
-  - 70a00033
   - 70a00009
-  - 70a00034
   - 70a00010
-  - 70a00035
   - 70a00011
   - 70a00012
-  - 70a00036
   - 70a00013
-  - 70a00037
   - 70a00014
-  - 70a00038
   - 70a00015
-  - 70a00039
   - 70a00016
   - 70a00017
-  - 70a00040
   - 70a00018
-  - 70a00041
   - 70a00019
-  - 70a00042
   - 70a00020
-  - 70a00043
   - 70a00021
-  - 70a00044
   - 70a00022
-  - 70a00045
   - 70a00023
-  - 70a00046
   - 70a00024
-  - 70a00047
   - 70a00025
-  - 70a00048
   - 70a00026
 learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
@@ -89,12 +68,12 @@ tags:
   - fire
 # behavior:
 #   target: "詠唱完了時の視線を射程16mまでBlockへ照射し、命中面の手前を着弾地点に固定する。Blockがなければ最大射程の地点を使う。"
-#   visual: "Block命中面に関係なく着弾まで水平な赤橙の魔法陣を表示する。隕石は発動ごとに方位と鉛直からの角度を変え、斜め上空から60tickで着弾する。BlockDisplayと粒子は着弾または中断時に破棄する。"
-#   impact: "着弾時に爆発粒子を表示し、半径5mの管理対象MobへMAGIC/FIREの基礎倍率420%（Lv.5は540%）を1回与える。命中ごとに25%で5秒の燃焼を付与する。地形破壊とPvPは発生しない。"
+#   visual: "Block命中面に関係なく着弾まで水平な赤橙の魔法陣を表示する。隕石は発動ごとに方位と鉛直からの角度を変え、斜め上空から60tickで着弾する。BlockDisplayは着弾または中断時に破棄し、着弾後は約20tickで火の波が広がる。"
+#   impact: "着弾時に中心半径3mへ即時ダメージ、その後20tickで半径8mまで波が広がる。2tickごとに前回半径より外側の新規到達帯を瞬間判定し、管理対象MobへMAGIC/FIREの基礎倍率630%（Lv.5は810%）を同一発動で1回だけ与える。波の通過後の内側は攻撃しない。命中ごとに25%で5秒の燃焼を付与する。地形破壊とPvPは発生しない。"
 params:
   range: 16.0
-  radius: 5.0
-  damageRatio: 4.20
+  radius: 8.0
+  damageRatio: 6.30
   burningChance: 25.0
   burningDurationTicks: 100
   impactDelayTicks: 60

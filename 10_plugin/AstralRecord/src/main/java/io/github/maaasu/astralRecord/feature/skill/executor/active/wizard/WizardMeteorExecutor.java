@@ -31,7 +31,9 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -40,7 +42,9 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "wizard_meteor";
     private static final int ANIMATION_STEP_TICKS = 2;
-    private static final int ARRIVAL_HOLD_TICKS = 4;
+    private static final int WAVE_TICKS = 20;
+    private static final int WAVE_STEP_TICKS = 2;
+    private static final double IMPACT_RADIUS = 3.0D;
     private static final int SIGIL_STEP_TICKS = 4;
     private static final double METEOR_HEIGHT = 18.0D;
     private static final int DISPLAY_COUNT = 7;
@@ -70,8 +74,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             throw new SkillParameterException("burningDurationTicks", "メテオの燃焼時間は1tick以上が必要です");
         }
         int delayTicks = params.getInt("impactDelayTicks", 0);
-        if (delayTicks <= ARRIVAL_HOLD_TICKS || delayTicks % ANIMATION_STEP_TICKS != 0) {
-            throw new SkillParameterException("impactDelayTicks", "メテオの着弾遅延は6tick以上の偶数が必要です");
+        if (delayTicks <= ANIMATION_STEP_TICKS || delayTicks % ANIMATION_STEP_TICKS != 0) {
+            throw new SkillParameterException("impactDelayTicks", "メテオの着弾遅延は4tick以上の偶数が必要です");
         }
     }
 
@@ -80,8 +84,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 16.0D);
-        double radius = params.getDouble("radius", 5.0D);
-        double damageRatio = params.getDouble("damageRatio", 4.20D);
+        double radius = params.getDouble("radius", 8.0D);
+        double damageRatio = params.getDouble("damageRatio", 6.30D);
         int delayTicks = params.getInt("impactDelayTicks", 60);
         MeteorTarget target = impactTarget(context, range);
         ActiveSkillCondition burning = new ActiveSkillCondition(
@@ -90,7 +94,12 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                 params.getInt("burningDurationTicks", 100),
                 1.0D
         );
-        summon(context.services(), context.player(), context.attacker(), target, radius, damageRatio, delayTicks, 1.0D, burning);
+        summon(context.services(), context.player(), context.attacker(), target, radius, damageRatio,
+                delayTicks, 1.0D, true, burning);
+        context.services().effects().line(context.eyeLocation(), target.location(), 0.5D,
+                SharedParticleDefinitions.SKILL_MAGE_FIRE);
+        context.services().effects().ring(target.location(), 0.65D, 18,
+                SharedParticleDefinitions.SKILL_MAGE_FIRE);
         return context.success();
     }
 
@@ -110,7 +119,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
     ) {
         summon(services, caster.getBukkit(), attacker,
                 new MeteorTarget(impact.clone()),
-                2.5D, 1.5D, 20, 0.75D);
+                2.5D, 1.5D, 20, 0.75D, false);
     }
 
     /**
@@ -141,10 +150,10 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         );
         summon(services, caster.getBukkit(), AstEntity.player(caster),
                 new MeteorTarget(impact.clone()),
-                maxLevelParam(meteorDefinition, params, "radius", 5.0D),
-                maxLevelParam(meteorDefinition, params, "damageRatio", 4.20D),
+                maxLevelParam(meteorDefinition, params, "radius", 8.0D),
+                maxLevelParam(meteorDefinition, params, "damageRatio", 6.30D),
                 (int) Math.round(maxLevelParam(meteorDefinition, params, "impactDelayTicks", 60.0D)),
-                1.0D, burning);
+                1.0D, true, burning);
     }
 
     /** 基礎値へ最大レベルまでの各段階のパラメーター加算値を適用します。 */
@@ -170,10 +179,11 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
      * @param caster 発動者
      * @param attacker 発動時点の攻撃者
      * @param target 固定した着弾地点
-     * @param radius 爆発範囲
+     * @param radius 最終的な爆発範囲
      * @param damageRatio 魔法攻撃倍率
      * @param delayTicks 着弾までの時間
      * @param visualScale 演出倍率
+     * @param expandingWave 中央から外周へ広がる衝撃波を使うか。小型追撃は使わない
      * @param conditions 命中時の状態異常。空なら状態異常を付与しない
      */
     private static void summon(
@@ -185,11 +195,15 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             double damageRatio,
             int delayTicks,
             double visualScale,
+            boolean expandingWave,
             @NotNull ActiveSkillCondition... conditions
     ) {
-        int flightTicks = delayTicks - ARRIVAL_HOLD_TICKS;
+        // BlockDisplayの補間2tickを含め、表示の着地と着弾判定をdelayTicksへ揃える。
+        int flightTicks = delayTicks - ANIMATION_STEP_TICKS;
+        int waveTicks = expandingWave && radius > IMPACT_RADIUS ? WAVE_TICKS : 0;
         Location impact = target.location();
-        MeteorState state = new MeteorState(target, visualScale);
+        MeteorState state = new MeteorState(target, radius, visualScale);
+        Set<UUID> hitTargets = new HashSet<>();
         UUID casterId = caster.getUniqueId();
         String scope = "wizard-meteor:" + UUID.randomUUID();
         UUID circleId = null;
@@ -202,13 +216,34 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                     casterId,
                     scope,
                     0L,
-                    1L,
-                    delayTicks + 1,
-                    elapsedTicks -> {
-                        if (elapsedTicks >= delayTicks) {
+                    WAVE_STEP_TICKS,
+                    (delayTicks + waveTicks) / WAVE_STEP_TICKS + 1,
+                    step -> {
+                        int elapsedTicks = step * WAVE_STEP_TICKS;
+                        if (elapsedTicks == delayTicks) {
                             services.circles().remove(registeredCircleId);
                             state.destroy();
-                            detonate(services, caster, attacker, impact, radius, damageRatio, visualScale, conditions);
+                            detonate(services, impact, visualScale);
+                            damageInSphere(services, caster, attacker, impact,
+                                    waveTicks == 0 ? radius : IMPACT_RADIUS,
+                                    damageRatio, hitTargets, conditions);
+                            return;
+                        }
+                        if (elapsedTicks > delayTicks) {
+                            int waveTick = elapsedTicks - delayTicks;
+                            double previousRadius = IMPACT_RADIUS
+                                    + (radius - IMPACT_RADIUS) * (waveTick - WAVE_STEP_TICKS) / waveTicks;
+                            double waveRadius = IMPACT_RADIUS
+                                    + (radius - IMPACT_RADIUS) * waveTick / waveTicks;
+                            services.effects().ring(impact.clone().add(0.0D, 0.12D, 0.0D),
+                                    waveRadius, Math.max(24, (int) Math.ceil(waveRadius * 6.0D)),
+                                    SharedParticleDefinitions.WIZARD_METEOR_SHOCKWAVE);
+                            services.effects().ring(impact.clone().add(0.0D, 0.40D, 0.0D),
+                                    Math.max(IMPACT_RADIUS, waveRadius - 0.45D),
+                                    Math.max(20, (int) Math.ceil(waveRadius * 4.0D)),
+                                    SharedParticleDefinitions.WIZARD_METEOR_SHOCKWAVE);
+                            damageInWave(services, caster, attacker, impact,
+                                    previousRadius, waveRadius, damageRatio, hitTargets, conditions);
                             return;
                         }
                         if (elapsedTicks <= flightTicks && elapsedTicks % ANIMATION_STEP_TICKS == 0) {
@@ -252,33 +287,83 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
     }
 
     /**
-     * 隕石と魔法陣を消し、爆発演出と球形範囲への一撃を適用します。
+     * 着弾時の爆発演出を表示します。範囲ダメージは中央と後続の波へ分けます。
      *
-     * @param services 戦闘、対象判定、演出の共有サービス
-     * @param caster 発動者
-     * @param attacker 発動時点の攻撃者
+     * @param services 演出の共有サービス
      * @param impact 固定した着弾地点
-     * @param radius 爆発範囲
-     * @param damageRatio 魔法攻撃倍率
      * @param visualScale 演出倍率
-     * @param conditions 命中時の状態異常。空なら状態異常を付与しない
      */
     private static void detonate(
             @NotNull ActiveSkillServices services,
-            @NotNull Player caster,
-            @NotNull AstEntity attacker,
             @NotNull Location impact,
-            double radius,
-            double damageRatio,
-            double visualScale,
-            @NotNull ActiveSkillCondition... conditions
+            double visualScale
     ) {
         Location burst = impact.clone().add(0.0D, 0.45D, 0.0D);
         services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_EXPLOSION, visualScale));
         services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_FLAME_BURST, visualScale));
         services.effects().point(burst, scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_SMOKE_BURST, visualScale));
         services.effects().sound(impact, Sound.ENTITY_GENERIC_EXPLODE, (float) (2.0D * visualScale), 0.72F);
-        services.targeting().inSphere(caster, impact, radius, Integer.MAX_VALUE, true)
+    }
+
+    /**
+     * 管理対象Mobと遮蔽の共通判定を通し、この発動で未命中の対象へ一度だけ火ダメージを与えます。
+     *
+     * @param services 戦闘と対象判定の共有サービス
+     * @param caster 発動者
+     * @param attacker 発動時点の攻撃者
+     * @param impact 固定した着弾地点
+     * @param radius このtickまでに波が到達した球形半径
+     * @param damageRatio 魔法攻撃倍率
+     * @param hitTargets この発動で攻撃判定済みのMob ID
+     * @param conditions 命中時の状態異常
+     */
+    private static void damageInSphere(
+            @NotNull ActiveSkillServices services,
+            @NotNull Player caster,
+            @NotNull AstEntity attacker,
+            @NotNull Location impact,
+            double radius,
+            double damageRatio,
+            @NotNull Set<UUID> hitTargets,
+            @NotNull ActiveSkillCondition... conditions
+    ) {
+        services.targeting().inSphere(caster, impact, radius, Integer.MAX_VALUE, true).stream()
+                .filter(target -> hitTargets.add(target.id()))
+                .forEach(target -> services.combat().hit(
+                        attacker, target, AttackType.MAGIC, DamageElement.FIRE, damageRatio, conditions
+                ));
+    }
+
+    /**
+     * 前回の波より外側に新しく到達した帯だけを攻撃し、通過後の内側を持続判定にしません。
+     *
+     * @param services 戦闘と対象判定の共有サービス
+     * @param caster 発動者
+     * @param attacker 発動時点の攻撃者
+     * @param impact 固定した着弾地点
+     * @param previousRadius 前回までの波の半径
+     * @param radius 現在の波の半径
+     * @param damageRatio 魔法攻撃倍率
+     * @param hitTargets この発動で攻撃判定済みのMob ID
+     * @param conditions 命中時の状態異常
+     */
+    private static void damageInWave(
+            @NotNull ActiveSkillServices services,
+            @NotNull Player caster,
+            @NotNull AstEntity attacker,
+            @NotNull Location impact,
+            double previousRadius,
+            double radius,
+            double damageRatio,
+            @NotNull Set<UUID> hitTargets,
+            @NotNull ActiveSkillCondition... conditions
+    ) {
+        Set<UUID> insidePreviousRadius = new HashSet<>();
+        services.targeting().inSphere(caster, impact, previousRadius, Integer.MAX_VALUE, true)
+                .forEach(target -> insidePreviousRadius.add(target.id()));
+        services.targeting().inSphere(caster, impact, radius, Integer.MAX_VALUE, true).stream()
+                .filter(target -> !insidePreviousRadius.contains(target.id()))
+                .filter(target -> hitTargets.add(target.id()))
                 .forEach(target -> services.combat().hit(
                         attacker, target, AttackType.MAGIC, DamageElement.FIRE, damageRatio, conditions
                 ));
@@ -331,7 +416,7 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         private Location meteorCenter;
 
         /** ランダムな方位と鉛直角を固定し、水平な魔法陣の粒子座標を準備します。 */
-        private MeteorState(@NotNull MeteorTarget target, double visualScale) {
+        private MeteorState(@NotNull MeteorTarget target, double radius, double visualScale) {
             this.impact = target.location().clone();
             this.visualScale = visualScale;
             double azimuth = ThreadLocalRandom.current().nextDouble(Math.PI * 2.0D);
@@ -345,10 +430,10 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             this.meteorCenter = this.impact.clone().add(sourceOffset);
             this.sigilRings = new ArrayList<>(96);
             this.sigilRunes = new ArrayList<>(72);
-            addRing(sigilRings, 4.6D * visualScale, 48);
-            addRing(sigilRings, 3.65D * visualScale, 36);
-            addRing(sigilRings, 1.3D * visualScale, 20);
-            addStar(sigilRunes);
+            addRing(sigilRings, radius * visualScale, 48);
+            addRing(sigilRings, radius * 0.8D * visualScale, 36);
+            addRing(sigilRings, Math.min(1.3D, radius * 0.35D) * visualScale, 20);
+            addStar(sigilRunes, Math.min(2.65D, radius * 0.55D) * visualScale);
         }
 
         /** 一時的な BlockDisplay の核と破片を生成します。 */
@@ -435,15 +520,15 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         }
 
         /** 魔法陣中央の五芒星を線分群として追加します。 */
-        private void addStar(@NotNull List<Location> points) {
+        private void addStar(@NotNull List<Location> points, double radius) {
             for (int edge = 0; edge < 5; edge++) {
                 double fromAngle = -Math.PI / 2.0D + Math.PI * 2.0D * edge / 5.0D;
                 double toAngle = -Math.PI / 2.0D + Math.PI * 2.0D * ((edge + 2) % 5) / 5.0D;
                 for (int step = 0; step <= 10; step++) {
                     double progress = step / 10.0D;
                     points.add(sigilPoint(
-                            ((1.0D - progress) * Math.cos(fromAngle) + progress * Math.cos(toAngle)) * 2.65D * visualScale,
-                            ((1.0D - progress) * Math.sin(fromAngle) + progress * Math.sin(toAngle)) * 2.65D * visualScale
+                            ((1.0D - progress) * Math.cos(fromAngle) + progress * Math.cos(toAngle)) * radius,
+                            ((1.0D - progress) * Math.sin(fromAngle) + progress * Math.sin(toAngle)) * radius
                     ));
                 }
             }
