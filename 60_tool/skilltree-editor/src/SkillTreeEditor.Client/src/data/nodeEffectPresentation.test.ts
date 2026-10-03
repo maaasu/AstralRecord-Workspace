@@ -8,7 +8,6 @@ const node: NodeMaster = {
   nodeId: '1000',
   name: '&d旅立ちの記録',
   icon: 'NETHER_STAR',
-  lore: [],
   tags: [],
   pointType: 'PP',
   pointCost: 1,
@@ -22,7 +21,6 @@ const node: NodeMaster = {
 const skills: SkillMasterSummary[] = [{
   id: 'adventurer_astral_edge',
   name: '&bアストラルエッジ',
-  description: '&7流れるような二段攻撃を繰り出す近接技。',
   type: 'SKILL',
 }]
 
@@ -40,7 +38,7 @@ describe('nodeEffectPresentation', () => {
     expect(effects[0].detail).toContain('CRITICAL_RATE')
     expect(effects[1].title).toBe('最大HP +10%')
     expect(effects[2].title).toBe('アストラルエッジ')
-    expect(effects[2].detail).toContain('流れるような二段攻撃を繰り出す近接技。')
+    expect(effects[2].detail).toBe('adventurer_astral_edge · SKILL')
     expect(describeNodeCost(node)).toEqual({
       kind: 'pp',
       title: 'PP 1',

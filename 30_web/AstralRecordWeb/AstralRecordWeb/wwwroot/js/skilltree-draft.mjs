@@ -86,7 +86,7 @@ export function searchNodes(nodes, query, mode = 'all') {
     const terms = String(query).normalize('NFKC').toLocaleLowerCase('ja-JP').trim().split(/\s+/).filter(Boolean);
     if (!terms.length) return [];
     return nodes.filter(node => {
-        const fields = mode === 'name' ? [node.name] : mode === 'effect' ? (node.displayEffects ?? []) : [node.name, ...(node.displayEffects ?? []), ...(node.lore ?? [])];
+        const fields = mode === 'name' ? [node.name] : mode === 'effect' ? (node.displayEffects ?? []) : [node.name, ...(node.displayEffects ?? [])];
         const text = fields.join(' ').normalize('NFKC').toLocaleLowerCase('ja-JP');
         return terms.every(term => text.includes(term));
     });

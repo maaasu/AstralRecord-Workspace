@@ -53,14 +53,13 @@ public sealed class WorkspaceValidationTests
     }
 
     [Fact]
-    public async Task SkillCatalogExposesJapaneseSkillInformation()
+    public async Task SkillCatalogExposesJapaneseSkillIdentity()
     {
         var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
         var skills = await new SkillMasterCatalog(new WorkspacePaths(root)).ReadAllAsync(CancellationToken.None);
 
         var meditation = Assert.Single(skills, value => value.Id == "adventurer_meditation");
         Assert.Contains("メディテーション", meditation.Name);
-        Assert.Contains("MP / EN", meditation.Description);
         Assert.Equal("SKILL", meditation.Type);
     }
 

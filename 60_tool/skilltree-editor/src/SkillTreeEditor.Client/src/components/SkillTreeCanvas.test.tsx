@@ -20,11 +20,11 @@ const structure: StructureDocument = {
 const masters: NodeMaster[] = [
   {
     $schema: '../schemas/node.v1.schema.json', schemaVersion: 1, nodeId: '1000', name: 'Root node',
-    icon: 'NETHER_STAR', lore: [], tags: ['root'], pointType: 'PP', pointCost: 0, effects: [],
+    icon: 'NETHER_STAR', tags: ['root'], pointType: 'PP', pointCost: 0, effects: [],
   },
   {
     $schema: '../schemas/node.v1.schema.json', schemaVersion: 1, nodeId: '1001', name: 'Second node',
-    icon: 'BOOK', lore: [], tags: [], pointType: 'PP', pointCost: 1, effects: [],
+    icon: 'BOOK', tags: [], pointType: 'PP', pointCost: 1, effects: [],
   },
 ]
 

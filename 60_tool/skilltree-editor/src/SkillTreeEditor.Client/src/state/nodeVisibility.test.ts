@@ -16,7 +16,6 @@ const node = (unlockCondition?: Record<string, string | number>): NodeMaster => 
   nodeId: '1000',
   name: 'node',
   icon: 'STONE',
-  lore: [],
   tags: [],
   pointType: 'CP',
   pointCost: 1,

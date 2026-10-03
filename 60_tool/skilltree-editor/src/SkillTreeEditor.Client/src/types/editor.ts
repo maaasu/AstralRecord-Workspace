@@ -8,7 +8,6 @@ export interface NodeMaster extends JsonObject {
   nodeId: string
   name: string
   icon: JsonValue
-  lore?: JsonValue[]
   tags: string[]
   pointType: string
   pointCost: number
@@ -87,7 +86,6 @@ export interface ClassMasterSummary {
 export interface SkillMasterSummary {
   id: string
   name: string
-  description: string
   type: string
 }
 

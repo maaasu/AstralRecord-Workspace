@@ -52,7 +52,6 @@ public sealed class WebSkillTreeNodeProfileResponse
     public required string NodeId { get; init; }
     public required string Name { get; init; }
     public required string Icon { get; init; }
-    public IReadOnlyList<string> Lore { get; init; } = [];
     public IReadOnlyList<string> Tags { get; init; } = [];
     public required string PointType { get; init; }
     public required int PointCost { get; init; }

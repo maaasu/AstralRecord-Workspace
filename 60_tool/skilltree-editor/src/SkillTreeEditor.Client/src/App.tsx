@@ -352,10 +352,9 @@ function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean; onDirt
     const template: JsonObject = schemaDefault && typeof schemaDefault === 'object' && !Array.isArray(schemaDefault)
       ? schemaDefault
       : {
-          $schema: '../schemas/node.v1.schema.json', schemaVersion: 1, nodeId: '', name: '', icon: '', lore: [], tags: [],
+          $schema: '../schemas/node.v1.schema.json', schemaVersion: 1, nodeId: '', name: '', icon: '', tags: [],
           pointType: 'CP', pointCost: 1, effects: [],
         }
-    if (Array.isArray(template.lore) && template.lore.length === 0) delete template.lore
     if (selectedSchema) template.$schema = `../schemas/${selectedSchema.summary.fileName}`
     template.nodeId = ''
     setNodeEditor({ node: template, isNew: true })

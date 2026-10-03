@@ -22,7 +22,7 @@ class SkillTreeVisualizerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
-     * 検証契約: 同一node IDでもdisplay/icon/lore/tag/point/condition/effect内容差を変更として検出する。
+     * 検証契約: 同一node IDでもdisplay/icon/tag/point/condition/effect内容差を変更として検出する。
      */
     @Test
     void nodeDefinitionComparisonDetectsContentChangeWithSameNodeId() {
@@ -76,7 +76,6 @@ class SkillTreeVisualizerTest {
                 "Skill Node",
                 Material.NETHER_STAR,
                 List.of(),
-                List.of(),
                 SkillTreePointType.PASSIVE_POINT,
                 0,
                 List.of(new SkillTreeSkillEffect("test-skill"))
@@ -85,7 +84,6 @@ class SkillTreeVisualizerTest {
                 "1000",
                 "Status Node",
                 Material.NETHER_STAR,
-                List.of(),
                 List.of(),
                 SkillTreePointType.PASSIVE_POINT,
                 1,
@@ -144,7 +142,6 @@ class SkillTreeVisualizerTest {
                 "1000",
                 name,
                 Material.NETHER_STAR,
-                List.of("Lore"),
                 List.of("root"),
                 SkillTreePointType.PASSIVE_POINT,
                 0,

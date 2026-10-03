@@ -261,8 +261,6 @@ public sealed class ValidationService(
         RequireString(node, "name", fileName, report);
         if (!node.ContainsKey("icon"))
             report.AddError("NODE_FIELD_REQUIRED", "icon is required.", fileName, "/icon");
-        if (node.ContainsKey("lore"))
-            RequireArray(node, "lore", fileName, report);
         RequireArray(node, "tags", fileName, report);
         RequireString(node, "pointType", fileName, report);
         var pointCost = RequireInt32(node, "pointCost", fileName, report);

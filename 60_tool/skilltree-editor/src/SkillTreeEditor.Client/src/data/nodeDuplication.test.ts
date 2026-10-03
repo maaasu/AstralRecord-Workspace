@@ -10,7 +10,6 @@ describe('duplicateNodeDraft', () => {
       nodeId: '1042',
       name: '基礎体力',
       icon: 'RED_DYE',
-      lore: ['最大HPを増加する。'],
       tags: ['status'],
       pointType: 'PP',
       pointCost: 2,

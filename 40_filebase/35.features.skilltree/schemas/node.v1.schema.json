@@ -35,13 +35,6 @@
       "minLength": 1,
       "pattern": ".*\\S.*"
     },
-    "lore": {
-      "type": "array",
-      "description": "任意のノード説明。省略時はノード説明を表示しません。",
-      "items": {
-        "type": "string"
-      }
-    },
     "tags": {
       "type": "array",
       "items": {

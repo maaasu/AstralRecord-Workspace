@@ -9,7 +9,6 @@ const master: NodeMaster = {
   nodeId: '1012',
   name: '&d旅立ちの記録',
   icon: 'NETHER_STAR',
-  lore: ['最初の一歩'],
   tags: ['root'],
   pointType: 'PP',
   pointCost: 1,
@@ -157,7 +156,7 @@ describe('PlacementInspector', () => {
     }))
   })
 
-  it('omits optional lore when the inline field is cleared', async () => {
+  it('does not offer a node description field in the inline editor', async () => {
     const onSaveMaster = vi.fn(async (node: NodeMaster) => node)
 
     render(
@@ -174,7 +173,7 @@ describe('PlacementInspector', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Lore'), { target: { value: '' } })
+    expect(screen.queryByLabelText('Lore')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'マスター定義を保存' }))
 
     await waitFor(() => expect(onSaveMaster).toHaveBeenCalledTimes(1))

@@ -64,7 +64,6 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDuplicate, 
       $schema: `../schemas/${selected.summary.fileName}`,
       nodeId: '',
     }
-    if (Array.isArray(next.lore) && next.lore.length === 0) delete next.lore
     updateDraft(next)
   }
 

@@ -49,7 +49,6 @@ public sealed record ClassMasterSummary(
 public sealed record SkillMasterSummary(
     string Id,
     string Name,
-    string Description,
     string Type);
 
 public sealed record MasterTagSummary(

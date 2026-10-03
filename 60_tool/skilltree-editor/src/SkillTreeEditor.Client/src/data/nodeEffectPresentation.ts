@@ -86,8 +86,7 @@ function describeEffect(
     const skillId = stringValue(effect?.skillId)
     const skill = skills.get(skillId)
     const name = skill ? stripMinecraftFormatting(skill.name) : `未定義スキル ${skillId || '(空)'}`
-    const description = skill ? stripMinecraftFormatting(skill.description) : ''
-    const detail = [skillId, skill?.type, description].filter(Boolean).join(' · ')
+    const detail = [skillId, skill?.type].filter(Boolean).join(' · ')
     return { kind: 'skill', title: name, detail, searchText: `${name} ${detail}` }
   }
 

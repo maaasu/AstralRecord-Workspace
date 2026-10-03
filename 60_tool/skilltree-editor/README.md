@@ -188,8 +188,8 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 - 未配置ノードを左ペインからキャンバスへドラッグして配置します。
 - キャンバスの空白を左ドラッグすると画面を移動します。Shiftを押しながら空白をドラッグすると範囲選択になります。
-- キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。タグは共有カタログの日本語名・説明、ステータス効果は日本語名と値、スキル効果は日本語名と説明をノードのホバー情報へ表示し、ノード一覧と詳細には概要も直接表示します。
-- キャンバスでノードを選択すると、右側でX/Y/Z、名前、Material、ポイント、タグ、Loreを直接編集できます。Loreは任意項目で、空にして保存するとJSONからキーを省略します。Effects、Schema、Raw JSONは「Effects・Schema・Raw JSONを編集」から編集します。
+- キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。タグは共有カタログの日本語名・説明、ステータス効果は日本語名と値、スキル効果は日本語名と種別をノードのホバー情報へ表示し、ノード一覧と詳細には概要も直接表示します。
+- キャンバスでノードを選択すると、右側でX/Y/Z、名前、Material、ポイント、タグを直接編集できます。Effects、Schema、Raw JSONは「Effects・Schema・Raw JSONを編集」から編集します。
 - ノード編集画面の「複製して新規作成」では、編集中の内容をすべて引き継ぎ、nodeIdだけを保存時に自動採番したノードを作成できます。基本ステータスなど、同一定義を複数ノードで使う場合に利用します。
 - ノード一覧・ホバー・詳細には、ステータス効果などに加えてCP/PPの消費種別と消費量を色分けして表示します。`unlockCondition.classId` があるノードは、クラスマスターの表示名を使って `CP[クラス名] コスト` 形式で表示します。
 - キャンバス上のノードを右クリックすると、マスター編集、ROOT設定、nodeIdコピー、接続削除、配置削除を選べます。複数選択中の配置削除にも対応します。
@@ -201,7 +201,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 - Ctrl+Z / Ctrl+Y、またはヘッダーのボタンでUndo / Redoします。
 - 「補助自動配置」はrootからのBFSレイヤー配置をX/Zへ明示反映します。通常の編集履歴に入るためUndoでき、結果は保存時に構造JSONの座標として確定します。
 - ノードマスターはJSON Schemaから生成したフォームとRaw JSONの両方で編集できます。既存文書は `$schema` のファイル名から対応Schemaを選び、新規文書では最新の既定Schemaを選択できます。新しいSchema項目はフォームへ自動的に反映され、未対応の複雑な表現はRaw JSONで編集できます。
-- `icon` は自由入力を維持しつつ、Paper 1.21.11でアイテムとして使用可能なMaterial候補を表示します。候補は `src/SkillTreeEditor.Client/src/data/minecraft-materials.1.21.11.json` に固定しているため、サーバーバージョンを変更するときに公式server data generatorの `generated/reports/items.json` から更新してください。タグとステータスは共有カタログから生成した日本語名・説明付き候補、スキルはfilebaseから読み取った日本語名付き候補を表示しますが、JSONへ保存する値はいずれもIDです。
+- `icon` は自由入力を維持しつつ、Paper 1.21.11でアイテムとして使用可能なMaterial候補を表示します。候補は `src/SkillTreeEditor.Client/src/data/minecraft-materials.1.21.11.json` に固定しているため、サーバーバージョンを変更するときに公式server data generatorの `generated/reports/items.json` から更新してください。タグとステータスは共有カタログから生成した日本語名・説明付き候補、スキルはfilebaseから読み取った日本語名・種別付き候補を表示しますが、JSONへ保存する値はいずれもIDです。
 - 検証に成功するまで構造JSONは保存されません。
 
 ## Minecraftアイコン

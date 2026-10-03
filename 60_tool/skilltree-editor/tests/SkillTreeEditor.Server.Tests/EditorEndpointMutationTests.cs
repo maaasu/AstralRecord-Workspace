@@ -153,11 +153,10 @@ public sealed class EditorEndpointMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task NodeSaveAllowsUndefinedLore()
+    public async Task NodeSaveWithoutLoreDoesNotIntroduceIt()
     {
         await using var host = await StartAsync();
         var node = Node("1000", "Without lore");
-        node.Remove("lore");
 
         using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
 
@@ -171,24 +170,11 @@ public sealed class EditorEndpointMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task NodeSaveAllowsEmptyLore()
+    public async Task NodeSaveRejectsDeprecatedLore()
     {
         await using var host = await StartAsync();
-        var node = Node("1000", "Empty lore");
-
-        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var saved = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
-        Assert.Empty(saved["lore"]!.AsArray());
-    }
-
-    [Fact]
-    public async Task NodeSaveRejectsNullLore()
-    {
-        await using var host = await StartAsync();
-        var node = Node("1000", "Null lore");
-        node["lore"] = null;
+        var node = Node("1000", "Deprecated lore");
+        node["lore"] = new JsonArray("Old node description");
 
         using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
 
@@ -272,7 +258,6 @@ public sealed class EditorEndpointMutationTests : IDisposable
         ["nodeId"] = nodeId,
         ["name"] = name,
         ["icon"] = "STONE",
-        ["lore"] = new JsonArray(),
         ["tags"] = new JsonArray(),
         ["pointType"] = "CP",
         ["pointCost"] = 1,

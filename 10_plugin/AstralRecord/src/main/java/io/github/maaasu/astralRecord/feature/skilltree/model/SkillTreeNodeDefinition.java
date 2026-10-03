@@ -12,7 +12,6 @@ public record SkillTreeNodeDefinition(
         @NotNull String nodeId,
         @NotNull String name,
         @NotNull Material icon,
-        @NotNull List<String> lore,
         @NotNull List<String> tags,
         @NotNull SkillTreePointType pointType,
         int pointCost,
@@ -21,7 +20,6 @@ public record SkillTreeNodeDefinition(
 ) {
     public SkillTreeNodeDefinition {
         pointCost = Math.max(0, pointCost);
-        lore = List.copyOf(lore);
         tags = List.copyOf(tags);
         unlockCondition = unlockCondition == null ? SkillTreeUnlockCondition.NONE : unlockCondition;
         effects = List.copyOf(effects);
@@ -31,13 +29,12 @@ public record SkillTreeNodeDefinition(
             @NotNull String nodeId,
             @NotNull String name,
             @NotNull Material icon,
-            @NotNull List<String> lore,
             @NotNull List<String> tags,
             @NotNull SkillTreePointType pointType,
             int pointCost,
             @NotNull List<SkillTreeNodeEffect> effects
     ) {
-        this(nodeId, name, icon, lore, tags, pointType, pointCost, SkillTreeUnlockCondition.NONE, effects);
+        this(nodeId, name, icon, tags, pointType, pointCost, SkillTreeUnlockCondition.NONE, effects);
     }
 
     /**

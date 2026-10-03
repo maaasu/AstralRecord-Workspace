@@ -7,7 +7,7 @@ namespace SkillTreeEditor.Server.Services;
 public static class StableJson
 {
     private static readonly string[] NodeOrder =
-        ["$schema", "schemaVersion", "nodeId", "name", "icon", "lore", "tags", "pointType", "pointCost", "effects"];
+        ["$schema", "schemaVersion", "nodeId", "name", "icon", "tags", "pointType", "pointCost", "effects"];
     private static readonly string[] StructureOrder =
         ["$schema", "schemaVersion", "structureId", "name", "rootNodeId", "nodes", "edges"];
     private static readonly string[] SequenceOrder = ["$schema", "schemaVersion", "lastIssuedNodeId"];

@@ -4,7 +4,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace SkillTreeEditor.Server.Services;
 
-/** SkillTreeノードの候補と補足表示に必要なスキル情報をfilebaseから読み取ります。 */
+/** SkillTreeノードの候補表示に必要なスキル情報をfilebaseから読み取ります。 */
 public sealed class SkillMasterCatalog(WorkspacePaths paths)
 {
     private readonly IDeserializer _deserializer = new DeserializerBuilder()
@@ -37,13 +37,9 @@ public sealed class SkillMasterCatalog(WorkspacePaths paths)
                 continue;
 
             var id = master.Id.Trim().ToLowerInvariant();
-            var description = string.IsNullOrWhiteSpace(master.Description)
-                ? master.Lore.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line)) ?? string.Empty
-                : master.Description;
             var summary = new SkillMasterSummary(
                 id,
                 string.IsNullOrWhiteSpace(master.Name) ? id : master.Name,
-                description,
                 master.Type.Trim());
             if (!summaries.TryAdd(id, summary))
                 throw new InvalidOperationException($"Duplicate skill master id '{id}'.");
@@ -56,8 +52,6 @@ public sealed class SkillMasterCatalog(WorkspacePaths paths)
     {
         public string Id { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
-        public string Description { get; init; } = string.Empty;
         public string Type { get; init; } = string.Empty;
-        public List<string> Lore { get; init; } = [];
     }
 }

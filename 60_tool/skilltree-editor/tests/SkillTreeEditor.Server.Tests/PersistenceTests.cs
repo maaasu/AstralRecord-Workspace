@@ -260,7 +260,6 @@ public sealed class PersistenceTests : IDisposable
         ["nodeId"] = nodeId,
         ["name"] = name,
         ["icon"] = new JsonObject(),
-        ["lore"] = new JsonArray(),
         ["tags"] = new JsonArray(),
         ["pointType"] = "skill",
         ["pointCost"] = 1,

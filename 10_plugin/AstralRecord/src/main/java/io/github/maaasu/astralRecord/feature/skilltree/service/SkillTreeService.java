@@ -694,9 +694,6 @@ public class SkillTreeService {
                     var definition = skillService == null ? null : skillService.registry().getDefinition(skill.skillId());
                     effectValue.addProperty("displayName", definition == null ? "未読込スキル"
                             : SkillPresentationUtil.plainName(definition, "未定義スキル"));
-                    if (definition != null) {
-                        effectValue.addProperty("description", firstSkillDescription(definition));
-                    }
                 } else if (effect instanceof SkillTreeStatusEffect status) {
                     effectValue.addProperty("type", "status");
                     effectValue.addProperty("status", status.statusType().name());
@@ -1009,9 +1006,6 @@ public class SkillTreeService {
             nodeView.addProperty("x", position.x());
             nodeView.addProperty("y", position.y());
             nodeView.addProperty("z", position.z());
-            JsonArray nodeLore = new JsonArray();
-            node.lore().forEach(line -> nodeLore.add(ColorCodeUtil.toPlainText(line, "")));
-            nodeView.add("lore", nodeLore);
             boolean unlocked = state.isUnlocked(node.nodeId());
             boolean canUnlock = conditionMet && canUnlockNode(snapshot, node);
             boolean canRelock = unlocked && canRelockNode(state, node, snapshot.knownUnlockedNodeIds(), conditionMet)
@@ -3493,10 +3487,6 @@ public class SkillTreeService {
             lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
             lore.add(component("&e左クリック&7でノードを解放"));
             lore.add(component("&6右クリック&7でノードを解除 &8（100ゴールド）"));
-            if (!node.lore().isEmpty()) {
-                lore.add(component(""));
-                node.lore().forEach(line -> lore.add(component("&7" + line)));
-            }
             meta.lore(lore);
             itemStack.setItemMeta(meta);
         }
@@ -3560,10 +3550,6 @@ public class SkillTreeService {
                 continue;
             }
             lore.add(component("&7- &f" + SkillPresentationUtil.plainName(definition, "未定義スキル")));
-            String description = firstSkillDescription(definition);
-            if (!description.isBlank()) {
-                lore.add(component("&8  " + stripLegacy(description)));
-            }
         }
     }
 
@@ -3602,23 +3588,7 @@ public class SkillTreeService {
                 continue;
             }
             lines.add((unlocked ? "&7- &f" : "&8- &7") + SkillPresentationUtil.plainName(definition, "未定義スキル"));
-            String description = firstSkillDescription(definition);
-            if (!description.isBlank()) {
-                lines.add("&8  " + stripLegacy(description));
-            }
         }
-    }
-
-    private @NotNull String firstSkillDescription(@NotNull io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition definition) {
-        if (definition.getDescription() != null && !definition.getDescription().isBlank()) {
-            return SkillPresentationUtil.renderSkillTemplate(definition, definition.getDescription());
-        }
-        for (String line : definition.getLore()) {
-            if (line != null && !line.isBlank()) {
-                return SkillPresentationUtil.renderSkillTemplate(definition, line);
-            }
-        }
-        return "";
     }
 
     private @NotNull String formatNodeStatusModifier(@NotNull SkillTreeStatusEffect status) {
@@ -3818,9 +3788,6 @@ public class SkillTreeService {
         if (labelDetail == NodeLabelDetail.DETAILED) {
             appendNodeFieldStatusLines(lines, node, emphasized);
             appendNodeFieldPassiveLines(lines, node, emphasized);
-        }
-        if (labelDetail == NodeLabelDetail.DETAILED && !node.lore().isEmpty()) {
-            lines.add((emphasized ? "&7" : "&8") + stripLegacy(node.lore().getFirst()));
         }
         return component(String.join("\n", lines));
     }

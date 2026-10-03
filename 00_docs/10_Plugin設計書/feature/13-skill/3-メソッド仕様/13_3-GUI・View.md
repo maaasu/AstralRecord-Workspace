@@ -96,6 +96,6 @@ NPC の `SKILL_FORGET` アクションからだけ開く、54 slot・45件/ペ�
 
 表示中のビームは左右の幅0.36・奥行0.08・高さ12のクリック対象を持つ。ビームへの視線判定は80 blockまで行い、プレイヤーが表示中のビームを左クリックしてノード基準位置までのXZ平面上の距離が5m以上80m以下なら、現在のY座標・yaw・pitchを維持してノード基準位置のX/Zへ移動する。5m未満の左クリックは従来どおりノード解放操作として扱う。ビームのscaleはviewerごとにXZ平面上の距離で制御し、5m以上は1、1m以下は0、1m超から5m未満は`(距離 - 1) / 4`の一様scaleとする。scale 0のビームは表示されない。ビームだけを2 tickごとに再評価し、scale変形は2 tickで補間して距離変化へ滑らかに追従する。通常ノード・ラベル・edgeはviewerから27 block以内だけに表示し、クライアントが同時に保持するDisplay entity数を制限する。node本体・ラベル・edgeの通常再描画は10 tickごととし、`PlayerMoveEvent`の移動先と前回実描画位置の距離が累積1 block以上のときだけdirty化する。teleport、world変更、手持ち枠・表示設定・node状態変更は移動しきい値にかかわらず再描画する。部分node更新と同周期に全体更新が要求された場合は、通知順にかかわらず全体更新を優先し、部分更新だけでは移動基準位置を進めない。構造の再読込およびskill tree worldのchunk load/unload時は、移動していない近傍viewerを含めて構造packetを同期する。Bedrock edge粒子は従来どおり10 tickごとに再表示する。
 
-`SKILL_TREE_COMPACT_DISPLAY` は user 単位で保存する boolean 設定で、`/setting skill_tree_compact_display <on|off>` とプレイヤー設定 GUI の slot 33 から変更する。既定は `false`。有効時の node ラベルはノード名、状態・条件・lore、`ステータス` / `スキル` の区切りを表示せず、Cost 行、各ステータス補正、解放するスキル名だけを表示する。設定変更と login warmup 完了時は、本人のスキルツリー表示をdirty化して再描画する。
+`SKILL_TREE_COMPACT_DISPLAY` は user 単位で保存する boolean 設定で、`/setting skill_tree_compact_display <on|off>` とプレイヤー設定 GUI の slot 33 から変更する。既定は `false`。有効時の node ラベルはノード名、状態・条件、`ステータス` / `スキル` の区切りを表示せず、Cost 行、各ステータス補正、解放するスキル名だけを表示する。ノード固有の説明文とスキルの説明文は表示しない。設定変更と login warmup 完了時は、本人のスキルツリー表示をdirty化して再描画する。
 
 ノードのステータス補正値は、`75.shared.status` 共有カタログの `decimalPlaces` に従って表示し、小数値を整数へ丸めて表示しない。

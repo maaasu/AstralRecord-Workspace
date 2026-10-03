@@ -78,7 +78,6 @@
                         <div class="ar-tree-detail-header"><span>ノード詳細</span><span data-node-id></span><button type="button" data-tree-detail-close aria-label="ノード詳細を閉じる">閉じる ×</button></div>
                         <div class="ar-tree-relic" data-node-relic><span class="ar-tree-relic-orbit" aria-hidden="true"></span><img data-node-icon alt="" hidden /><span class="ar-tree-relic-fallback" data-node-icon-fallback aria-hidden="true">✦</span></div>
                         <div class="ar-tree-detail-title"><span data-node-type class="ar-tree-point-kind"></span><h3 data-node-name>ノードを選択</h3><span class="ar-tree-state" data-node-state>習得状況と効果を確認できます。</span></div>
-                        <p class="ar-tree-lore" data-node-lore></p>
                         <div class="ar-tree-cost"><span>解放コスト</span><strong data-node-cost>—</strong></div>
                         <section class="ar-tree-detail-section"><h4><span aria-hidden="true">✧</span>得られる効果</h4><ul data-node-effects class="ar-tree-effect-list"></ul></section>
                         <section class="ar-tree-detail-section"><h4><span aria-hidden="true">◇</span>必要条件</h4><p data-node-requirement></p></section>
@@ -101,6 +100,6 @@
                     </aside>
                 </div>
                 <footer class="ar-tree-map-footer"><div class="ar-tree-legend"><span><i class="edge is-unlocked"></i>解放済み同士</span><span><i class="edge"></i>未解放を含む経路</span><span><i class="edge is-selected"></i>選択ノードの接続</span><span>＋ 解放可能</span></div><span>ノードを選ぶと詳細が開きます</span></footer>
-                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in Model.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@n.RequirementText<br />@string.Join(" / ", n.Lore)<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
+                <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in Model.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@n.RequirementText<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
             </div>
     </section>

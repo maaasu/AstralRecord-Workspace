@@ -32,7 +32,7 @@ public class SkillTreeNodeRepository {
     private static final String RELATIVE_PATH = "35.features.skilltree" + File.separator + "nodes";
     private static final String SCHEMA_REFERENCE = "../schemas/node.v1.schema.json";
     private static final Set<String> NODE_KEYS = Set.of(
-            "$schema", "schemaVersion", "nodeId", "name", "icon", "lore", "tags",
+            "$schema", "schemaVersion", "nodeId", "name", "icon", "tags",
             "pointType", "pointCost", "unlockCondition", "effects"
     );
     private static final Set<String> UNLOCK_CONDITION_KEYS = Set.of("classId", "playerLevel");
@@ -129,7 +129,6 @@ public class SkillTreeNodeRepository {
         String nodeId = digitId(node, "nodeId", file, "node");
         String name = SkillTreeJsonReader.requiredString(node, "name", file, "node");
         Material icon = parseMaterial(SkillTreeJsonReader.requiredString(node, "icon", file, "node"), file);
-        List<String> lore = optionalStringArray(node, "lore", file);
         List<String> tags = tags(node, file);
         SkillTreePointType pointType = parsePointType(
                 SkillTreeJsonReader.requiredString(node, "pointType", file, "node"),
@@ -143,7 +142,6 @@ public class SkillTreeNodeRepository {
                 nodeId,
                 name,
                 icon,
-                lore,
                 tags,
                 pointType,
                 pointCost,
@@ -241,10 +239,6 @@ public class SkillTreeNodeRepository {
             result.add(element.getAsString());
         }
         return List.copyOf(result);
-    }
-
-    private @NotNull List<String> optionalStringArray(JsonObject object, String key, File file) {
-        return object.has(key) ? stringArray(object, key, file) : List.of();
     }
 
     private @NotNull List<String> tags(JsonObject object, File file) {

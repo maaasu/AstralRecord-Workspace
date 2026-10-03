@@ -127,7 +127,6 @@
 .ar-tree-state { font-size: .68rem; color: #b8aac4; }
 [data-state="unlocked"] .ar-tree-state { color: #e8c487; }
 .ar-tree-detail .ar-condition-unmet { color: #f2a5a5; }
-.ar-tree-lore { color: #bfb2cb; font-size: .75rem; white-space: pre-line; text-align: center; line-height: 1.9; margin: 1.2rem 0; }
 .ar-tree-cost { display: flex; justify-content: space-between; align-items: center; border-block: 1px solid #d9b97c33; padding: .9rem 0; margin-top: 1.4rem; gap: 1rem; }
 .ar-tree-cost > span { font-size: .65rem; color: #beb2c9; }
 .ar-tree-cost strong { font: 1.3rem 'Cinzel', serif; color: #e8ce98; }

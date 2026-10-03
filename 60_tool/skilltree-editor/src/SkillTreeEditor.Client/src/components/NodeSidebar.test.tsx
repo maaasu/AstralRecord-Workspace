@@ -9,7 +9,6 @@ const node: NodeMaster = {
   nodeId: '1000',
   name: '始まりのノード',
   icon: 'NETHER_STAR',
-  lore: [],
   tags: ['root'],
   pointType: 'PP',
   pointCost: 0,

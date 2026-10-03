@@ -135,8 +135,6 @@ export function initializeViewer(viewer, viewState) {
         viewer.querySelector('[data-node-requirement]').textContent = node.requirementText || 'クラス・プレイヤーレベルの指定条件なし';
         viewer.querySelector('[data-node-requirement]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
         viewer.querySelector('[data-node-cost]').textContent = nodeCost(node);
-        const lore = viewer.querySelector('[data-node-lore]');
-        lore.textContent = (node.lore ?? []).join('\n'); lore.hidden = !lore.textContent;
         const effects = viewer.querySelector('[data-node-effects]'); effects.replaceChildren();
         for (const text of node.displayEffects?.length ? node.displayEffects : ['追加効果の指定はありません']) {
             const li = document.createElement('li'); li.textContent = text; effects.append(li);

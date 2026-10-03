@@ -35,7 +35,6 @@ export function buildNodeFieldSuggestions(
   const skillSuggestions: readonly FieldSuggestion[] = skills.map((skill) => ({
     value: skill.id,
     label: `${stripMinecraftFormatting(skill.name)}（${skill.id}）`,
-    description: stripMinecraftFormatting(skill.description),
   }))
   return {
     '/icon': minecraftMaterialSuggestions,
