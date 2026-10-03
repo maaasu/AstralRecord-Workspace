@@ -964,6 +964,63 @@ public final class SharedParticleDefinitions {
             "sharpshooter_phantom_shot_ring", Particle.SOUL_FIRE_FLAME,
             1, 0.02D, 0.02D, 0.02D, 0.0D
         );
+
+    public static final SharedParticleDefinition SHARPSHOOTER_HORIZON_GOLD =
+        new SharedParticleDefinition("sharpshooter_horizon_gold", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 206, 101), 1.25F));
+    public static final SharedParticleDefinition SHARPSHOOTER_HORIZON_WHITE =
+        new SharedParticleDefinition("sharpshooter_horizon_white", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(245, 250, 232), 1.0F));
+    public static final SharedParticleDefinition SHARPSHOOTER_HORIZON_TRAIL =
+        new SharedParticleDefinition("sharpshooter_horizon_trail", Particle.END_ROD,
+            2, 0.03D, 0.03D, 0.03D, 0.0D);
+    public static final SharedParticleDefinition SHARPSHOOTER_HORIZON_IMPACT =
+        new SharedParticleDefinition("sharpshooter_horizon_impact", Particle.CRIT,
+            6, 0.15D, 0.15D, 0.15D, 0.04D);
+
+    public static final SharedParticleDefinition SHARPSHOOTER_PARADOX_FIRE =
+        new SharedParticleDefinition("sharpshooter_paradox_fire", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 97, 39), 1.15F));
+    public static final SharedParticleDefinition SHARPSHOOTER_PARADOX_ICE =
+        new SharedParticleDefinition("sharpshooter_paradox_ice", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(84, 220, 255), 1.15F));
+    public static final SharedParticleDefinition SHARPSHOOTER_PARADOX_TRAIL =
+        new SharedParticleDefinition("sharpshooter_paradox_trail", Particle.ENCHANT,
+            3, 0.09D, 0.09D, 0.09D, 0.0D);
+    public static final SharedParticleDefinition SHARPSHOOTER_PARADOX_IMPACT =
+        new SharedParticleDefinition("sharpshooter_paradox_impact", Particle.FLASH,
+            1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
+
+    public static final SharedParticleDefinition SHARPSHOOTER_REFRAIN_GOLD =
+        new SharedParticleDefinition("sharpshooter_refrain_gold", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 216, 80), 1.15F));
+    public static final SharedParticleDefinition SHARPSHOOTER_REFRAIN_GREEN =
+        new SharedParticleDefinition("sharpshooter_refrain_green", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(123, 239, 125), 1.0F));
+    public static final SharedParticleDefinition SHARPSHOOTER_REFRAIN_TRAIL =
+        new SharedParticleDefinition("sharpshooter_refrain_trail", Particle.CRIT,
+            2, 0.06D, 0.06D, 0.06D, 0.0D);
+    public static final SharedParticleDefinition SHARPSHOOTER_REFRAIN_IMPACT =
+        new SharedParticleDefinition("sharpshooter_refrain_impact", Particle.ENCHANTED_HIT,
+            6, 0.2D, 0.2D, 0.2D, 0.0D);
+
+    public static final SharedParticleDefinition SHARPSHOOTER_FROST_GARDEN_BLUE =
+        new SharedParticleDefinition("sharpshooter_frost_garden_blue", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(90, 205, 255), 1.1F));
+    public static final SharedParticleDefinition SHARPSHOOTER_FROST_GARDEN_WHITE =
+        new SharedParticleDefinition("sharpshooter_frost_garden_white", Particle.DUST,
+            1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(235, 250, 255), 1.0F));
+    public static final SharedParticleDefinition SHARPSHOOTER_FROST_GARDEN_BURST =
+        new SharedParticleDefinition("sharpshooter_frost_garden_burst", Particle.SNOWFLAKE,
+            12, 0.5D, 0.35D, 0.5D, 0.02D);
     public static final SharedParticleDefinition SHARPSHOOTER_PHANTOM_SHOT_RECOVERY =
         new SharedParticleDefinition(
             "sharpshooter_phantom_shot_recovery", Particle.END_ROD,
