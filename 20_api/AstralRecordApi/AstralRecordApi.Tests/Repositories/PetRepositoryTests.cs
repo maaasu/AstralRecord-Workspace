@@ -175,6 +175,28 @@ public class PetRepositoryTests
     }
 
     [Fact]
+    public async Task Equip_ReplaysReceiptWrittenBeforeReturnBagSlotIndexWasAdded()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var request = new PetEquipRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId };
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, request)).Succeeded);
+        var oldPayload = JsonSerializer.SerializeToNode(request, new JsonSerializerOptions(JsonSerializerDefaults.Web))!.AsObject();
+        oldPayload.Remove("returnBagSlotIndex");
+        var oldRequestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            fixture.Account + ":equip::" + oldPayload.ToJsonString(new JsonSerializerOptions(JsonSerializerDefaults.Web)))));
+        var receipt = await fixture.Player.PetOperations.SingleAsync(o => o.OperationId == request.OperationId);
+        receipt.RequestHash = oldRequestHash;
+        await fixture.Player.SaveChangesAsync();
+
+        var replay = await fixture.Repository.EquipAsync(fixture.Account, request);
+        Assert.True(replay.Succeeded, replay.Failure);
+        Assert.Equal(pet.InstanceId, replay.Response!.EquippedPetId);
+        Assert.Single(await fixture.Player.PetOperations.AsNoTracking().Where(o => o.OperationId == request.OperationId).ToArrayAsync());
+        Assert.Single(await fixture.Player.InventoryEntries.AsNoTracking().Where(e => e.InstanceId == pet.InstanceId && !e.IsDeleted).ToArrayAsync());
+    }
+
+    [Fact]
     public async Task Equip_ExchangesIntoTheIncomingBagSlotAndRejectsOccupiedReturnSlot()
     {
         await using var fixture = await Fixture.CreateAsync();

@@ -192,6 +192,7 @@ public class PetReviveRequest : PetFacilityRequest { public Guid? OrbInventoryEn
 public class PetEquipRequest : PetOperationRequest
 {
     public Guid? PetId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? ReturnBagSlotIndex { get; set; }
 }
 public class PetRenameRequest : PetOperationRequest { public string Name { get; set; } = ""; }
