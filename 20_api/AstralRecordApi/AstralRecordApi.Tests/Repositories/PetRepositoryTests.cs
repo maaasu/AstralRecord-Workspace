@@ -140,8 +140,8 @@ public class PetRepositoryTests
             OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, ExpectedVersion = 2, HealthRatio = 1,
         });
         Assert.Equal("pet_dead", resurrection.Failure);
-        await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = null });
-        await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId });
+        Assert.Equal(7, (await fixture.Player.InventoryEntries.AsNoTracking()
+            .SingleAsync(e => e.InstanceId == pet.InstanceId)).SlotIndex);
         Assert.True((await fixture.Repository.GetInstanceAsync(fixture.Account, pet.InstanceId))!.Details!.IsDead);
         var revive = await fixture.Repository.ReviveAsync(fixture.Account, pet.InstanceId, new PetReviveRequest
             { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, FacilityId = "pet_center" });
@@ -149,6 +149,136 @@ public class PetRepositoryTests
         Assert.False(revive.Response!.Instance!.Details!.IsDead);
         Assert.Equal(1, revive.Response.Instance.Details.HealthRatio);
         Assert.Equal(12345678, revive.Response.Instance.Details.Cooldowns[firstSkill]);
+    }
+
+    [Fact]
+    public async Task Equip_MovesPetEntryToReservedSlotAndReplaysWithoutAnotherMove()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var request = new PetEquipRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId };
+        var equipped = await fixture.Repository.EquipAsync(fixture.Account, request);
+        Assert.True(equipped.Succeeded);
+        var entry = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        var equip = await fixture.Player.Inventories.AsNoTracking().SingleAsync(i => i.InventoryType == "EQUIP_SLOT");
+        Assert.Equal(equip.InventoryId, entry.InventoryId);
+        Assert.Equal(7, entry.SlotIndex);
+        Assert.Equal(7, equip.SlotCapacity);
+        Assert.Contains(entry.InventoryEntryId, equipped.Response!.InventorySnapshot!.CoveredEntryIds);
+        Assert.Contains(equipped.Response.InventorySnapshot.Entries, e => e.InventoryEntryId == entry.InventoryEntryId
+            && e.InventoryId == equip.InventoryId && e.SlotIndex == 7);
+
+        var replay = await fixture.Repository.EquipAsync(fixture.Account, request);
+        Assert.True(replay.Succeeded);
+        Assert.Single(replay.Response!.InventorySnapshot!.CoveredEntryIds);
+        Assert.Single(await fixture.Player.PetOperations.AsNoTracking().Where(o => o.OperationId == request.OperationId).ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task Equip_ExchangesIntoTheIncomingBagSlotAndRejectsOccupiedReturnSlot()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var first = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var second = await fixture.AddPetAsync("WILD", "FEMALE", 1);
+        var firstEntry = await fixture.Player.InventoryEntries.SingleAsync(e => e.InstanceId == first.InstanceId);
+        var secondEntry = await fixture.Player.InventoryEntries.SingleAsync(e => e.InstanceId == second.InstanceId);
+        firstEntry.SlotIndex = 1; secondEntry.SlotIndex = 2;
+        await fixture.Player.SaveChangesAsync();
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = first.InstanceId })).Succeeded);
+        var missingSlot = await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = second.InstanceId });
+        Assert.Equal("bag_slot_required", missingSlot.Failure);
+        var exchanged = await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = second.InstanceId, ReturnBagSlotIndex = 2 });
+        Assert.True(exchanged.Succeeded);
+        var result = await fixture.Player.InventoryEntries.AsNoTracking()
+            .Where(e => e.InstanceId == first.InstanceId || e.InstanceId == second.InstanceId).ToArrayAsync();
+        Assert.Equal(2, result.Single(e => e.InstanceId == first.InstanceId).SlotIndex);
+        Assert.Equal(7, result.Single(e => e.InstanceId == second.InstanceId).SlotIndex);
+        Assert.Equal(second.InstanceId, (await fixture.Repository.GetByAccountAsync(fixture.Account)).EquippedPetId);
+        Assert.Equal(2, exchanged.Response!.InventorySnapshot!.CoveredEntryIds.Count);
+
+        fixture.Player.InventoryEntries.Add(new InventoryEntryEntity { InventoryEntryId = Guid.NewGuid(),
+            InventoryId = fixture.Bag, SlotIndex = 1, ItemId = "filler", ItemCategory = "material", Quantity = 1 });
+        await fixture.Player.SaveChangesAsync();
+        var blocked = await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, ReturnBagSlotIndex = 1 });
+        Assert.Equal("bag_slot_occupied", blocked.Failure);
+        Assert.Equal(second.InstanceId, (await fixture.Repository.GetByAccountAsync(fixture.Account)).EquippedPetId);
+        Assert.Equal(7, (await fixture.Player.InventoryEntries.AsNoTracking()
+            .SingleAsync(e => e.InstanceId == second.InstanceId)).SlotIndex);
+    }
+
+    [Fact]
+    public async Task Equip_RepairsLegacySelectedBagPetWithTheSamePetId()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        fixture.Player.AccountPetStates.Add(new AccountPetStateEntity { AccountId = fixture.Account,
+            EquippedPetId = pet.InstanceId, UpdatedAt = DateTime.UtcNow, UpdatedBy = fixture.Account });
+        await fixture.Player.SaveChangesAsync();
+        var result = await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId });
+        Assert.True(result.Succeeded);
+        Assert.Equal(7, (await fixture.Player.InventoryEntries.AsNoTracking()
+            .SingleAsync(e => e.InstanceId == pet.InstanceId)).SlotIndex);
+    }
+
+    [Fact]
+    public async Task Equip_RemovesSelectedPetToTheReservedBagSlot()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var request = new PetEquipRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+            ReturnBagSlotIndex = 1 };
+        var removed = await fixture.Repository.EquipAsync(fixture.Account, request);
+        Assert.True(removed.Succeeded);
+        Assert.Null(removed.Response!.EquippedPetId);
+        var entry = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        Assert.Equal(fixture.Bag, entry.InventoryId);
+        Assert.Equal(1, entry.SlotIndex);
+        Assert.Contains(entry.InventoryEntryId, removed.Response.InventorySnapshot!.CoveredEntryIds);
+        Assert.Null((await fixture.Repository.GetByAccountAsync(fixture.Account)).EquippedPetId);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, request)).Succeeded);
+    }
+
+    [Fact]
+    public async Task PlayerStateSnapshot_CannotDeleteTheSelectedPetFromItsEquipmentSlot()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var entry = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        var save = await new PlayerStateSnapshotRepository(fixture.Player).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.Account, UpdatedBy = fixture.Account,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = entry.InventoryId, EntryMode = "DELTA",
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry
+                    { InventoryEntryId = entry.InventoryEntryId, UpdatedAt = entry.UpdatedAt }],
+                DeletedEntryIds = [entry.InventoryEntryId],
+            }],
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, save.Failure);
+        fixture.Player.ChangeTracker.Clear();
+        Assert.True(await fixture.Player.InventoryEntries.AsNoTracking().AnyAsync(e => e.InventoryEntryId == entry.InventoryEntryId
+            && !e.IsDeleted && e.SlotIndex == 7));
+        var unchanged = await new PlayerStateSnapshotRepository(fixture.Player).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.Account, UpdatedBy = fixture.Account,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = entry.InventoryId, EntryMode = "DELTA",
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry
+                    { InventoryEntryId = entry.InventoryEntryId, UpdatedAt = entry.UpdatedAt }],
+            }],
+        });
+        Assert.True(unchanged.Succeeded, unchanged.Detail);
     }
 
     [Fact]

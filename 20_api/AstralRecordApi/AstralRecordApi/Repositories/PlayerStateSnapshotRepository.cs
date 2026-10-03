@@ -211,6 +211,14 @@ public sealed class PlayerStateSnapshotRepository(
         if (request.Inventories.Any(snapshot => !inventoriesById.ContainsKey(snapshot.InventoryId)))
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory ownership conflict.");
 
+        var petEquipInventoryIds = inventoriesById.Values
+            .Where(i => i.InventoryType == "EQUIP_SLOT" && i.InventoryProfile == "GAME" && !i.IsDeleted)
+            .Select(i => i.InventoryId).ToHashSet();
+        var selectedPetId = await dbContext.AccountPetStates.AsNoTracking()
+            .Where(s => s.AccountId == request.AccountId).Select(s => s.EquippedPetId).SingleOrDefaultAsync();
+        var selectedPetWasInSlot = selectedPetId.HasValue && accountEntries.Any(e => !e.IsDeleted
+            && petEquipInventoryIds.Contains(e.InventoryId) && e.SlotIndex == 7
+            && e.InstanceType == "PET" && e.InstanceId == selectedPetId);
         var entriesById = accountEntries.ToDictionary(entry => entry.InventoryEntryId);
         var expectedEntriesById = request.Inventories.SelectMany(inventory => inventory.ExpectedEntries)
             .GroupBy(entry => entry.InventoryEntryId).ToDictionary(group => group.Key, group => group.ToArray());
@@ -352,6 +360,14 @@ public sealed class PlayerStateSnapshotRepository(
                 entry.UpdatedBy = request.UpdatedBy;
             }
         }
+
+        var petSlotEntries = entriesById.Values.Where(e => !e.IsDeleted
+            && petEquipInventoryIds.Contains(e.InventoryId) && e.SlotIndex == 7).ToArray();
+        if (petSlotEntries.Any(e => !selectedPetId.HasValue || e.InstanceId != selectedPetId
+                || e.InstanceType != "PET" || e.ItemCategory != "pet")
+            || selectedPetWasInSlot && petSlotEntries.All(e => e.InstanceId != selectedPetId))
+            return Failure(PlayerStateSnapshotSaveFailure.Conflict,
+                "Pet equipment slot does not match the selected pet.");
 
         return Success(new PlayerStateSnapshotAck
         {

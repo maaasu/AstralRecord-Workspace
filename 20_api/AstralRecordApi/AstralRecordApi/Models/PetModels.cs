@@ -189,7 +189,11 @@ public class PetProgressRequest : PetOperationRequest
     public Dictionary<string, long>? Cooldowns { get; set; }
 }
 public class PetReviveRequest : PetFacilityRequest { public Guid? OrbInventoryEntryId { get; set; } }
-public class PetEquipRequest : PetOperationRequest { public Guid? PetId { get; set; } }
+public class PetEquipRequest : PetOperationRequest
+{
+    public Guid? PetId { get; set; }
+    public int? ReturnBagSlotIndex { get; set; }
+}
 public class PetRenameRequest : PetOperationRequest { public string Name { get; set; } = ""; }
 
 public class PetMutationResponse

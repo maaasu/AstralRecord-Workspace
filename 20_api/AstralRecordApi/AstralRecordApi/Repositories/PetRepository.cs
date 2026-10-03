@@ -14,6 +14,7 @@ namespace AstralRecordApi.Repositories;
 public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters) : IPetRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const int PetEquipSlotIndex = 7;
 
     public async Task<PetMasterResponse?> GetMasterAsync()
     {
@@ -163,7 +164,10 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
         {
             var pet = await FindOwnedAsync(accountId, instanceId);
             if (pet is null || pet.IsEgg) return Failure("pet_not_found");
-            if (await FindOwnedBagEntryAsync(accountId, instanceId) is null) return Failure("pet_not_in_bag");
+            var state = await db.AccountPetStates.SingleOrDefaultAsync(s => s.AccountId == accountId);
+            if (await FindOwnedBagEntryAsync(accountId, instanceId) is null
+                && (state?.EquippedPetId != instanceId || await FindOwnedEquipEntryAsync(accountId, instanceId) is null))
+                return Failure("pet_not_available");
             var details = ReadDetails(pet);
             if (!details.IsDead) return Failure("pet_alive");
             if (request.OrbInventoryEntryId is Guid orbId)
@@ -185,15 +189,92 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
         });
 
     public Task<PetMutationResult> EquipAsync(Guid accountId, PetEquipRequest request)
-        => ExecuteAsync(accountId, "equip", request, null, async (_, now, _) =>
+        => ExecuteAsync(accountId, "equip", request, null, async (_, now, affected) =>
         {
+            var bag = await FindBagAsync(accountId);
+            if (bag is null) return Failure("bag_not_found");
+            var equip = await db.Inventories.SingleOrDefaultAsync(i => i.AccountId == accountId
+                && i.InventoryType == "EQUIP_SLOT" && i.InventoryProfile == "GAME" && !i.IsDeleted && i.IsEnabled);
+            if (equip is null)
+            {
+                equip = new InventoryEntity
+                {
+                    InventoryId = Guid.NewGuid(), AccountId = accountId, InventoryType = "EQUIP_SLOT",
+                    InventoryProfile = "GAME", SlotCapacity = PetEquipSlotIndex, IsEnabled = true,
+                    CreatedAt = now, UpdatedAt = now, CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy,
+                };
+                db.Inventories.Add(equip);
+            }
+            else if (equip.SlotCapacity is null or < PetEquipSlotIndex)
+            {
+                equip.SlotCapacity = PetEquipSlotIndex;
+                Touch(equip, now, request.UpdatedBy);
+            }
+
+            var state = await db.AccountPetStates.SingleOrDefaultAsync(s => s.AccountId == accountId);
+            var equippedEntry = await db.InventoryEntries.SingleOrDefaultAsync(e => e.InventoryId == equip.InventoryId
+                && e.SlotIndex == PetEquipSlotIndex && !e.IsDeleted);
+            if (equippedEntry is not null && (state?.EquippedPetId != equippedEntry.InstanceId
+                || equippedEntry.InstanceType != "PET" || equippedEntry.ItemCategory != "pet"
+                || equippedEntry.Quantity != 1))
+                return Failure("pet_slot_conflict");
+            if (equippedEntry is not null)
+            {
+                var selected = await FindOwnedAsync(accountId, equippedEntry.InstanceId!.Value);
+                if (selected is null || selected.IsEgg || selected.ItemId != equippedEntry.ItemId)
+                    return Failure("pet_slot_conflict");
+            }
+            if (state?.EquippedPetId is Guid oldId && equippedEntry is null
+                && await FindOwnedBagEntryAsync(accountId, oldId) is null)
+                return Failure("pet_slot_conflict");
+
             PetInstanceEntity? pet = null;
+            InventoryEntryEntity? incoming = null;
             if (request.PetId.HasValue)
             {
                 pet = await FindOwnedAsync(accountId, request.PetId.Value);
-                if (pet is null || pet.IsEgg || await FindOwnedBagEntryAsync(accountId, pet.InstanceId) is null) return Failure("pet_not_available");
+                if (pet is null || pet.IsEgg) return Failure("pet_not_available");
+                if (equippedEntry?.InstanceId != pet.InstanceId)
+                {
+                    incoming = await FindOwnedBagEntryAsync(accountId, pet.InstanceId);
+                    if (incoming is null || incoming.InstanceType != "PET" || incoming.ItemCategory != "pet"
+                        || incoming.ItemId != pet.ItemId) return Failure("pet_not_available");
+                }
             }
-            var state = await db.AccountPetStates.SingleOrDefaultAsync(s => s.AccountId == accountId);
+
+            if (equippedEntry is not null && equippedEntry.InstanceId != request.PetId)
+            {
+                if (request.ReturnBagSlotIndex is not > 0) return Failure("bag_slot_required");
+                var incomingEntryId = incoming?.InventoryEntryId;
+                var slotOccupied = db.InventoryEntries.Local.Any(e => e.InventoryId == bag.InventoryId
+                    && e.SlotIndex == request.ReturnBagSlotIndex && !e.IsDeleted
+                    && e.InventoryEntryId != incomingEntryId);
+                if (slotOccupied) return Failure("bag_slot_occupied");
+
+                // Exchange releases both filtered unique slots before the returning entry is reactivated.
+                if (incoming is not null)
+                {
+                    equippedEntry.IsDeleted = true;
+                    equippedEntry.UpdatedAt = Advance(equippedEntry.UpdatedAt, now);
+                    equippedEntry.UpdatedBy = request.UpdatedBy;
+                    await db.SaveChangesAsync();
+                    Move(incoming, equip.InventoryId, PetEquipSlotIndex, now, request.UpdatedBy);
+                    await db.SaveChangesAsync();
+                    affected.Add(incoming.InventoryEntryId);
+                }
+                Move(equippedEntry, bag.InventoryId, request.ReturnBagSlotIndex.Value, now, request.UpdatedBy);
+                equippedEntry.IsDeleted = false;
+                affected.Add(equippedEntry.InventoryEntryId);
+                Touch(bag, now, request.UpdatedBy);
+                Touch(equip, now, request.UpdatedBy);
+            }
+            if (incoming is not null && incoming.InventoryId != equip.InventoryId)
+            {
+                Move(incoming, equip.InventoryId, PetEquipSlotIndex, now, request.UpdatedBy);
+                affected.Add(incoming.InventoryEntryId);
+                Touch(bag, now, request.UpdatedBy);
+                Touch(equip, now, request.UpdatedBy);
+            }
             if (state is null) { state = new AccountPetStateEntity { AccountId = accountId }; db.AccountPetStates.Add(state); }
             state.EquippedPetId = request.PetId;
             state.UpdatedAt = now;
@@ -273,7 +354,7 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
             if (!result.Succeeded) return result;
             if (kind != "equip")
                 result.Response!.EquippedPetId = await db.AccountPetStates.Where(s => s.AccountId == accountId).Select(s => s.EquippedPetId).SingleOrDefaultAsync();
-            foreach (var inventory in inventories.Where(i => affected.Any(id => db.InventoryEntries.Local.Any(e => e.InventoryEntryId == id && e.InventoryId == i.InventoryId))))
+            foreach (var inventory in inventories.Where(i => kind != "equip" && affected.Any(id => db.InventoryEntries.Local.Any(e => e.InventoryEntryId == id && e.InventoryId == i.InventoryId))))
                 Touch(inventory, now, request.UpdatedBy);
             db.PetOperations.Add(new PetOperationEntity
             {
@@ -307,7 +388,15 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
     private async Task<InventoryEntryEntity?> FindOwnedBagEntryAsync(Guid accountId, Guid instanceId)
         => await (from entry in db.InventoryEntries join bag in db.Inventories on entry.InventoryId equals bag.InventoryId
                   where bag.AccountId == accountId && bag.InventoryType == "BAG" && bag.InventoryProfile == "GAME" && bag.IsEnabled && !bag.IsDeleted
-                      && entry.InstanceId == instanceId && !entry.IsDeleted && entry.Quantity == 1
+                       && entry.InstanceId == instanceId && (entry.InstanceType == "PET" || entry.InstanceType == "PET_EGG")
+                       && !entry.IsDeleted && entry.Quantity == 1
+                  select entry).SingleOrDefaultAsync();
+    private async Task<InventoryEntryEntity?> FindOwnedEquipEntryAsync(Guid accountId, Guid instanceId)
+        => await (from entry in db.InventoryEntries join equip in db.Inventories on entry.InventoryId equals equip.InventoryId
+                  where equip.AccountId == accountId && equip.InventoryType == "EQUIP_SLOT" && equip.InventoryProfile == "GAME"
+                      && equip.IsEnabled && !equip.IsDeleted && entry.SlotIndex == PetEquipSlotIndex
+                      && entry.InstanceId == instanceId && entry.InstanceType == "PET" && entry.ItemCategory == "pet"
+                      && !entry.IsDeleted && entry.Quantity == 1
                   select entry).SingleOrDefaultAsync();
     private async Task<InventoryEntryEntity?> FindOwnedNormalBagEntryAsync(Guid accountId, Guid entryId)
         => await (from entry in db.InventoryEntries join bag in db.Inventories on entry.InventoryId equals bag.InventoryId
@@ -348,6 +437,11 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
         entry.Quantity = Math.Max(1, remaining); entry.UpdatedAt = Advance(entry.UpdatedAt, now); entry.UpdatedBy = actor;
     }
     private static void Touch(InventoryEntity inventory, DateTime now, Guid actor) { inventory.UpdatedAt = Advance(inventory.UpdatedAt, now); inventory.UpdatedBy = actor; }
+    private static void Move(InventoryEntryEntity entry, Guid inventoryId, int slotIndex, DateTime now, Guid actor)
+    {
+        entry.InventoryId = inventoryId; entry.SlotIndex = slotIndex;
+        entry.UpdatedAt = Advance(entry.UpdatedAt, now); entry.UpdatedBy = actor;
+    }
     private static DateTime Advance(DateTime current, DateTime now)
     {
         var rounded = new DateTime(now.Ticks / TimeSpan.TicksPerMillisecond * TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);

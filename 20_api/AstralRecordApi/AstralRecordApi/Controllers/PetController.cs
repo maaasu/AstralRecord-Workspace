@@ -37,7 +37,7 @@ public class PetController(IPetRepository repository) : ControllerBase
     /// <summary>施設の必要素材または専用オーブを消費して死亡個体を復活します。</summary>
     [HttpPost("accounts/{accountId:guid}/{instanceId:guid}/revive")]
     public async Task<IActionResult> Revive(Guid accountId, Guid instanceId, PetReviveRequest request) => Result(await repository.ReviveAsync(accountId, instanceId, request));
-    /// <summary>所有する孵化済み個体を装備枠に設定します。死亡個体は設定できても召喚できません。</summary>
+    /// <summary>ペットentryをGAME装備枠7とBAGの間で移動し、選択個体を同じ操作で更新します。</summary>
     [HttpPut("accounts/{accountId:guid}/equipped")]
     public async Task<IActionResult> Equipped(Guid accountId, PetEquipRequest request) => Result(await repository.EquipAsync(accountId, request));
     /// <summary>孵化済み個体の名前を変更します。</summary>
