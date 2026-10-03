@@ -270,6 +270,9 @@ import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillEx
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardBurnMeteorStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherCastLifecycle;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherPassiveExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherRuntime;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherWeaponLifecycleListener;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.archmage.ArchmageCelestialCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinDivineChaserRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
@@ -837,6 +840,7 @@ public final class AstralRecord extends JavaPlugin {
         if (weaponAttackSkillExecutor != null) {
             weaponAttackSkillExecutor.stop();
         }
+        PhantomArcherCastLifecycle.clearAll();
         if (adminMessageBossBarService != null) {
             adminMessageBossBarService.stop();
         }
@@ -1818,6 +1822,9 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
+        skillService.registerExecutor(new PhantomArcherPassiveExecutor(PhantomArcherPassiveExecutor.ATTUNEMENT_ID));
+        skillService.registerExecutor(new PhantomArcherPassiveExecutor(PhantomArcherPassiveExecutor.CURSE_ID));
+        skillService.registerExecutor(new PhantomArcherPassiveExecutor(PhantomArcherPassiveExecutor.WRAITH_ID));
         skillService.registerExecutor(new WizardBurnMeteorStrikeSkillExecutor());
         skillService.registerExecutor(new PaladinDivineChaserSkillExecutor());
         skillService.registerExecutor(new PaladinDefenseConversionSkillExecutor());
@@ -1898,6 +1905,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerDeathService.setDeathStartedListener(playerId -> {
             activeSkillLifecycleService.clearAll(playerId);
+            PhantomArcherCastLifecycle.clearOwner(playerId);
             archmagePhoenixRuntimeService.onPlayerDeath(playerId);
         });
         SkillCombatService activeSkillCombatService = new SkillCombatService(
@@ -2114,6 +2122,9 @@ public final class AstralRecord extends JavaPlugin {
         );
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         itemWeaponAttackService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
+        PhantomArcherRuntime.configure(passiveSkillService, skillService, itemWeaponAttackService,
+            activeSkillServices.effects());
+        getServer().getPluginManager().registerEvents(new PhantomArcherWeaponLifecycleListener(), this);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
         skillActionRingHoldService = new SkillActionRingHoldService(
             this,
@@ -2356,6 +2367,7 @@ public final class AstralRecord extends JavaPlugin {
                 archmagePhoenixRuntimeService.clearPlayer(player);
                 passiveSkillService.onPlayerQuit(player);
                 activeSkillLifecycleService.clearAll(playerId);
+                PhantomArcherCastLifecycle.clearOwner(playerId);
                 meditationSkillRuntimeService.interrupt(playerId);
                 justDodgeSkillRuntimeService.clearPlayer(playerId);
                 spellStepSkillRuntimeService.clearPlayer(playerId);

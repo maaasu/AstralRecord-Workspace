@@ -38,11 +38,13 @@ public final class PhantomArcherCastLifecycle {
     public static void clearOwner(@NotNull UUID owner) {
         Set<Cast> casts = CASTS.remove(owner);
         if (casts != null) List.copyOf(casts).forEach(Cast::close);
+        PhantomArcherRuntime.clearOwner(owner);
     }
 
     /** 成功したマスタ公開後に旧定義の全ファントム効果を終了します。メインスレッド専用です。 */
     public static void clearAll() {
         List.copyOf(CASTS.keySet()).forEach(PhantomArcherCastLifecycle::clearOwner);
+        PhantomArcherRuntime.clearAll();
     }
 
     /** task解除・表示解除・発射済み弾の無効化を共有する発動状態です。 */

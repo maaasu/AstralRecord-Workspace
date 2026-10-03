@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherRuntime;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -438,6 +439,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Set<DamageElement> inheritedElements,
             @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
+        PhantomArcherRuntime.ShotEpoch launchEpoch = PhantomArcherRuntime.captureShotEpoch(attacker.id());
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
         double impactRadius = readDoubleParam(skill, "impactRadius", 0.0D);
@@ -556,6 +558,12 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                                 inheritedElements
                         );
                         applyConditions(skill, attacker, impactVictim, attackType, result);
+                        if (attacker.isPlayer() && attacker.player() != null
+                                && (BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW.equals(skill.getId())
+                                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW.equals(skill.getId())
+                                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW.equals(skill.getId()))) {
+                            PhantomArcherRuntime.onNormalBowHit(attacker.player(), impactVictim, result, launchEpoch);
+                        }
                         if (impactVictim.id().equals(victim.id())) {
                             directResult = result;
                         }

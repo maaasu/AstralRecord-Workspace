@@ -13,11 +13,11 @@ public final class PhantomArcherSkillExecutorCatalog {
     /**
      * 登録済みの専用スキル実装を生成します。
      * @param services 発動スキルの共有サービス
-     * @return 六つの専用発動スキル
+     * @return 七つの専用発動スキル
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of("shadow_stitch", "soul_pierce", "dread_bloom", "spectral_sentry",
-                        "echo_volley", "mist_retreat").stream()
+                        "echo_volley", "mist_retreat", "eclipse_shot").stream()
                 .map(action -> (SkillExecutor) new PhantomArcherSkillExecutor(action, services))
                 .toList();
     }
