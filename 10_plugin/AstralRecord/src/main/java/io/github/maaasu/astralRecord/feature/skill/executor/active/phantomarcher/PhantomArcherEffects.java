@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -272,6 +273,19 @@ public final class PhantomArcherEffects {
     public static void resonance(
             @NotNull PlayerActiveSkillContext context, @NotNull Location center, int stacks
     ) {
+        resonance(context.services().effects(), center, stacks);
+    }
+
+    /**
+     * 通常弓の命中処理から、蓄積数に応じた同じ共鳴図形を描きます。
+     *
+     * @param effects 粒子表示に用いる演出サービス
+     * @param center 共鳴中心。world を持たない場合は描画しません
+     * @param stacks 蓄積数。表示は 1 から 5 段までに制限します
+     */
+    public static void resonance(
+            @NotNull SkillEffectService effects, @NotNull Location center, int stacks
+    ) {
         if (center.getWorld() == null || stacks <= 0) return;
         int layers = Math.min(stacks, 5);
         List<Location> rings = new ArrayList<>(layers * 16);
@@ -291,8 +305,8 @@ public final class PhantomArcherEffects {
                 }
             }
         }
-        show(context, center, rings, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
-        show(context, center, arrows, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+        effects.points(center, rings, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
+        effects.points(center, arrows, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
     }
 
     /** 空の点群と world のない中心を除き、近傍閲覧者へ点群をまとめて送ります。 */
