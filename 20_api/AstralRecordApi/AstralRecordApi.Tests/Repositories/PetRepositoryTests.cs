@@ -348,6 +348,55 @@ public class PetRepositoryTests
     }
 
     [Fact]
+    public async Task InventoryDirectWrites_PreserveSelectedPetEquipmentEntry()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var repository = new InventoryRepository(fixture.Player);
+        var current = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        InventoryEntryUpdateRequest Update(int? slot, string category = "pet", string? type = "PET", Guid? id = null)
+            => new() { SlotIndex = slot, ItemCategory = category, ItemId = category == "pet" ? pet.ItemId : "flower",
+                InstanceType = type, InstanceId = id ?? pet.InstanceId, Quantity = 1, UpdatedBy = fixture.Account };
+
+        Assert.NotNull(await repository.UpdateEntryAsync(current.InventoryEntryId, Update(7)));
+        Assert.Null(await repository.UpdateEntryAsync(current.InventoryEntryId, Update(8)));
+        Assert.Null(await repository.UpdateEntryAsync(current.InventoryEntryId, Update(7, type: "pet")));
+        Assert.Null(await repository.UpdateEntryAsync(current.InventoryEntryId, Update(7, "material", null)));
+        Assert.Null(await repository.DeleteEntryAsync(current.InventoryEntryId, fixture.Account));
+
+        current = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        InventoryEntryReplaceRequest Replace(int? slot) => new() { UpdatedBy = fixture.Account,
+            Entries = [new InventoryEntryReplaceItemRequest { InventoryEntryId = current.InventoryEntryId,
+                ExpectedUpdatedAt = current.UpdatedAt, SlotIndex = slot, ItemCategory = "pet", ItemId = pet.ItemId,
+                InstanceType = "PET", InstanceId = pet.InstanceId, Quantity = 1 }] };
+        Assert.Null(await repository.ReplaceEntriesAsync(current.InventoryId, new InventoryEntryReplaceRequest
+            { UpdatedBy = fixture.Account }));
+        Assert.Null(await repository.ReplaceEntriesAsync(current.InventoryId, Replace(8)));
+        Assert.Null(await repository.ReplaceEntriesAsync(fixture.Bag, Replace(7)));
+        Assert.NotNull(await repository.ReplaceEntriesAsync(current.InventoryId, Replace(7)));
+        fixture.Player.ChangeTracker.Clear();
+        Assert.True(await fixture.Player.InventoryEntries.AsNoTracking().AnyAsync(e => e.InventoryEntryId == current.InventoryEntryId
+            && !e.IsDeleted && e.InventoryId == current.InventoryId && e.SlotIndex == 7));
+        Assert.Equal(pet.InstanceId, (await fixture.Repository.GetByAccountAsync(fixture.Account)).EquippedPetId);
+    }
+
+    [Fact]
+    public async Task InventoryDirectWrite_AllowsLegacySelectedPetStillInBag()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        fixture.Player.AccountPetStates.Add(new AccountPetStateEntity { AccountId = fixture.Account,
+            EquippedPetId = pet.InstanceId, UpdatedAt = DateTime.UtcNow, UpdatedBy = fixture.Account });
+        await fixture.Player.SaveChangesAsync();
+        var entry = await fixture.Player.InventoryEntries.AsNoTracking().SingleAsync(e => e.InstanceId == pet.InstanceId);
+        Assert.NotNull(await new InventoryRepository(fixture.Player).UpdateEntryAsync(entry.InventoryEntryId,
+            new InventoryEntryUpdateRequest { SlotIndex = 2, ItemCategory = "pet", ItemId = pet.ItemId,
+                InstanceType = "PET", InstanceId = pet.InstanceId, Quantity = 1, UpdatedBy = fixture.Account }));
+    }
+
+    [Fact]
     public async Task OperationId_RejectsDifferentRequestAndResultLookupIsOwnerLimited()
     {
         await using var fixture = await Fixture.CreateAsync();

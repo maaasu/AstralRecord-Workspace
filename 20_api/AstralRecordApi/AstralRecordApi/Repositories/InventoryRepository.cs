@@ -10,6 +10,7 @@ namespace AstralRecordApi.Repositories;
 
 public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRepository
 {
+    private const int PetEquipSlotIndex = 7;
     public async Task<IReadOnlyList<InventoryResponse>> GetByAccountIdAsync(Guid accountId)
     {
         var inventories = await dbContext.Inventories
@@ -199,12 +200,14 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryEntryResponse?> UpdateEntryAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request)
     {
-        if (PetInstanceAccess.IsPetType(request.InstanceType))
+        var current = await dbContext.InventoryEntries.AsNoTracking()
+            .Where(e => e.InventoryEntryId == inventoryEntryId && !e.IsDeleted)
+            .Select(e => new { e.InventoryId, e.InstanceType }).SingleOrDefaultAsync();
+        if (current is null) return null;
+        if (PetInstanceAccess.IsPetType(request.InstanceType) || PetInstanceAccess.IsPetType(current.InstanceType))
         {
-            var inventoryId = await dbContext.InventoryEntries.AsNoTracking().Where(e => e.InventoryEntryId == inventoryEntryId && !e.IsDeleted)
-                .Select(e => (Guid?)e.InventoryId).SingleOrDefaultAsync();
-            if (!inventoryId.HasValue) return null;
-            return await ExecutePetEntryWriteAsync(inventoryId.Value, inventoryEntryId, () => UpdateEntryCoreAsync(inventoryEntryId, request));
+            return await ExecutePetEntryWriteAsync(current.InventoryId, inventoryEntryId,
+                () => UpdateEntryCoreAsync(inventoryEntryId, request));
         }
         var owner = await FindEntryAccountIdAsync(inventoryEntryId);
         return owner.HasValue
@@ -231,6 +234,10 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             request.InstanceId,
             inventory.AccountId, request.ItemCategory, request.Quantity);
         if (itemId is null)
+            return null;
+        if (await IsSelectedPetEquipmentEntryAsync(entity, inventory)
+            && !PreservesSelectedPetEntry(entity, request.SlotIndex, request.ItemCategory, itemId,
+                request.InstanceType, request.InstanceId, request.Quantity))
             return null;
 
         entity.SlotIndex = request.SlotIndex;
@@ -342,6 +349,27 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 .ToListAsync();
             if (affectedInventories.Count != affectedInventoryIds.Length)
                 return null;
+
+            var selectedPetId = await dbContext.AccountPetStates.AsNoTracking()
+                .Where(state => state.AccountId == inventory.AccountId)
+                .Select(state => state.EquippedPetId).SingleOrDefaultAsync();
+            if (selectedPetId.HasValue)
+            {
+                var affectedById = affectedInventories.ToDictionary(parent => parent.InventoryId);
+                foreach (var current in currentEntries.Concat(knownEntries.Values).DistinctBy(entry => entry.InventoryEntryId))
+                {
+                    if (current.InstanceId != selectedPetId || current.InstanceType != "PET"
+                        || current.SlotIndex != PetEquipSlotIndex
+                        || !affectedById.TryGetValue(current.InventoryId, out var parent)
+                        || parent.InventoryType != "EQUIP_SLOT" || parent.InventoryProfile != "GAME") continue;
+                    var requestedIndex = request.Entries.FindIndex(entry => entry.InventoryEntryId == current.InventoryEntryId);
+                    if (requestedIndex < 0 || inventoryId != current.InventoryId
+                        || !PreservesSelectedPetEntry(current, request.Entries[requestedIndex].SlotIndex,
+                            request.Entries[requestedIndex].ItemCategory, resolvedItemIds[requestedIndex],
+                            request.Entries[requestedIndex].InstanceType, request.Entries[requestedIndex].InstanceId,
+                            request.Entries[requestedIndex].Quantity)) return null;
+                }
+            }
 
             // 部分一意インデックスへ途中配置が衝突しないよう、移動対象と現在配置を一度無効化する。
             var entriesToDisable = currentEntries
@@ -551,6 +579,8 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             .FirstOrDefaultAsync(inventory => inventory.InventoryId == entity.InventoryId && !inventory.IsDeleted);
         if (inventory is null)
             return null;
+        if (await IsSelectedPetEquipmentEntryAsync(entity, inventory))
+            return null;
 
         var now = DateTime.UtcNow;
         entity.IsDeleted = true;
@@ -671,6 +701,19 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             ? authoritativeItemId
             : null;
     }
+
+    private async Task<bool> IsSelectedPetEquipmentEntryAsync(InventoryEntryEntity entry, InventoryEntity inventory)
+        => entry.InstanceType == "PET" && entry.SlotIndex == PetEquipSlotIndex
+            && inventory.InventoryType == "EQUIP_SLOT" && inventory.InventoryProfile == "GAME"
+            && await dbContext.AccountPetStates.AnyAsync(state => state.AccountId == inventory.AccountId
+                && state.EquippedPetId == entry.InstanceId);
+
+    private static bool PreservesSelectedPetEntry(InventoryEntryEntity current, int? slotIndex,
+        string category, string? itemId, string? instanceType, Guid? instanceId, long quantity)
+        => slotIndex == PetEquipSlotIndex && category == "pet" && quantity == 1
+            && instanceType == "PET"
+            && instanceId == current.InstanceId
+            && itemId == current.ItemId;
 
     private static InventoryResponse MapInventory(InventoryEntity entity) => new()
     {
