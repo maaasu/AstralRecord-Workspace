@@ -1,0 +1,16 @@
+# design:
+#   motif: "坑道 / 煤けた鐘片"
+#   progression: 25
+schemaVersion: 1
+id: 10a00096
+category: material
+name: "&6煤けた鐘片"
+icon: BELL
+rarity: EPIC
+maxStack: 64
+saleValue: 1000
+lore:
+  - "&7廃坑の鐘守が残した、煤をまとった鐘の欠片。"
+  - "&7討伐の証。売却して換金できる。"
+unTradeable: false
+unSellable: false

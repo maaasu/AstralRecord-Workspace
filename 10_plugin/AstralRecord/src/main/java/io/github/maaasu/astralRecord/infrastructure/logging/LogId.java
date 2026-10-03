@@ -1111,6 +1111,8 @@ public enum LogId {
     E_6505(6505),
     /** エンプーサの詠唱進行失敗。{0}: 術、{1}: world */
     E_6506(6506),
+    /** クノッカーの進行に失敗しました: boss=%s */
+    E_6507(6507),
     // endregion
 
     // region /feature/adventurerecord/ 6550-6559

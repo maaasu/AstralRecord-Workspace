@@ -21,6 +21,18 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    public static final SharedParticleDefinition KNOCKER_WARNING =
+        new SharedParticleDefinition("knocker_warning", Particle.DUST, 4, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 145, 50), 1.15F));
+    public static final SharedParticleDefinition KNOCKER_SAFE =
+        new SharedParticleDefinition("knocker_safe", Particle.DUST, 4, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(70, 235, 245), 1.10F));
+    public static final SharedParticleDefinition KNOCKER_BOUNDARY =
+        new SharedParticleDefinition("knocker_boundary", Particle.DUST, 4, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(155, 160, 165), 0.8F));
+    public static final SharedParticleDefinition KNOCKER_IMPACT =
+        new SharedParticleDefinition("knocker_impact", Particle.CRIT, 3, 0.10D, 0.18D, 0.10D, 0.025D);
+
     public static final SharedParticleDefinition PHANTOM_ARCHER_TRAIL =
         new SharedParticleDefinition("phantom_archer_trail", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(94, 57, 148), 0.75F));

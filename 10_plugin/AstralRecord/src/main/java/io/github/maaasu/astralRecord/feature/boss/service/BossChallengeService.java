@@ -567,6 +567,20 @@ public final class BossChallengeService {
     }
 
     /**
+     * 進行中のボス挑戦に属する確定参加者IDの不変スナップショットを返します。
+     * 生存・接続・距離の条件は、各ギミックが共通戦闘サービスで判定します。
+     *
+     * @param mobInstanceId 同期スレッド上で照会するボスMobの個体ID
+     * @return 確定参加者ID。未開始・終了中・挑戦外の個体では空集合
+     */
+    public @NotNull Set<UUID> participantIdsForBossMob(@NotNull UUID mobInstanceId) {
+        UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
+        BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+        return challenge == null || challenge.state() != BossChallengeState.IN_PROGRESS
+            ? Set.of() : Set.copyOf(challenge.participantIds());
+    }
+
+    /**
      * Records effective damage dealt to a boss by a challenge participant.
      *
      * @param mobInstanceId boss mob instance ID

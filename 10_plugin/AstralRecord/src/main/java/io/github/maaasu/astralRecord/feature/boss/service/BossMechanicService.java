@@ -153,6 +153,7 @@ public final class BossMechanicService {
     private final ParticleDisplayService particleDisplayService;
     private final CharonRitualController charonRitualController;
     private final EmpusaSpellController empusaSpellController;
+    private final KnockerEncounterController knockerEncounterController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -206,6 +207,12 @@ public final class BossMechanicService {
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
             (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)
         );
+        this.knockerEncounterController = new KnockerEncounterController(
+            mobService,
+            particleDisplayService,
+            this::knockerParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MELEE, DamageElement.NONE, ratio)
+        );
     }
 
     /**
@@ -215,6 +222,7 @@ public final class BossMechanicService {
      */
     public void setTemporarySkillEffectService(@Nullable TemporarySkillEffectService temporarySkillEffectService) {
         this.temporarySkillEffectService = temporarySkillEffectService;
+        knockerEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
     }
 
     /**
@@ -251,6 +259,7 @@ public final class BossMechanicService {
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
         empusaSpellController.clear(bossInstanceId);
+        knockerEncounterController.clear(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -283,6 +292,7 @@ public final class BossMechanicService {
         runtimes.clear();
         charonRitualController.clearAll();
         empusaSpellController.clearAll();
+        knockerEncounterController.clearAll();
     }
 
     /**
@@ -296,14 +306,31 @@ public final class BossMechanicService {
 
         Set<UUID> activeBosses = new HashSet<>();
         Set<UUID> activeEmpusas = new HashSet<>();
+        Set<UUID> activeKnockers = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
-            if ((profile == null && !empusa) || boss.currentHealth() <= 0.0D) {
+            boolean knocker = KnockerEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (knocker) {
+                activeKnockers.add(boss.instanceId());
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    knockerEncounterController.clear(boss.instanceId());
+                } else if ((boss.state() != MobState.AGGRO && boss.state() != MobState.COMBAT)
+                    || knockerParticipants(boss).isEmpty()
+                    || !conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    knockerEncounterController.cancelCast(boss.instanceId());
+                } else {
+                    knockerEncounterController.tick(boss, entity, clockTicks);
+                }
                 continue;
             }
 
@@ -401,6 +428,7 @@ public final class BossMechanicService {
             }
         }
         empusaSpellController.retain(activeEmpusas);
+        knockerEncounterController.retain(activeKnockers);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -2217,6 +2245,72 @@ public final class BossMechanicService {
         double x = left.getX() - right.getX();
         double z = left.getZ() - right.getZ();
         return x * x + z * z;
+    }
+
+    /**
+     * クノッカーの攻撃・鐘操作を、生存中の確定参加者へ限定します。
+     * 管理者による直接召喚時だけ、現在の標的とそのパーティーを対象にします。
+     *
+     * @param boss 同期tickで処理中のクノッカー
+     * @return 同じworldのスポーン地点から32m以内にいる戦闘可能な参加者
+     */
+    private @NotNull List<Player> knockerParticipants(@NotNull MobInstance boss) {
+        Set<UUID> ids;
+        if (bossChallengeService.isBossMob(boss.instanceId())) {
+            ids = bossChallengeService.participantIdsForBossMob(boss.instanceId());
+        } else {
+            UUID targetId = boss.targetId();
+            if (targetId == null) {
+                return List.of();
+            }
+            Entity target = Bukkit.getEntity(targetId);
+            var owner = target == null ? null : damageService.resolveEntity(target).combatOwner();
+            if (owner == null) {
+                return List.of();
+            }
+            UUID ownerId = owner.getBukkit().getUniqueId();
+            Party party = partyService.findParty(ownerId);
+            ids = party == null ? Set.of(ownerId) : Set.copyOf(party.members());
+        }
+        Location center = boss.spawnLocation();
+        return ids.stream().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
+            .filter(player -> player.getWorld() == center.getWorld())
+            .filter(player -> horizontalDistanceSquared(player.getLocation(), center) <= TARGET_RANGE * TARGET_RANGE)
+            .filter(damageService::isMobCombatTarget)
+            .filter(player -> player.getGameMode() != org.bukkit.GameMode.CREATIVE
+                && player.getGameMode() != org.bukkit.GameMode.SPECTATOR)
+            .toList();
+    }
+
+    /**
+     * クノッカーへの攻撃を、同じ会場内でギミックに参加できる所有者へ限定します。
+     * ペット・遅延攻撃も所有者の現在位置で判定し、環境や対象外からの攻撃を拒否します。
+     *
+     * @param attacker 共通戦闘の攻撃者。環境ダメージではnull
+     * @param victim 共通戦闘の被弾者
+     * @return クノッカー以外はtrue。クノッカーでは場内参加者または直接召喚の初撃だけtrue
+     */
+    public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (!victim.isMob() || !KnockerEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            return true;
+        }
+        var owner = attacker == null ? null : attacker.combatOwner();
+        if (owner == null) {
+            return false;
+        }
+        Player player = owner.getBukkit();
+        MobInstance boss = victim.mob();
+        if (!damageService.isMobCombatTarget(player)
+            || player.getGameMode() == org.bukkit.GameMode.CREATIVE
+            || player.getGameMode() == org.bukkit.GameMode.SPECTATOR
+            || !KnockerEncounterController.inArena(player.getLocation(), boss.spawnLocation())) {
+            return false;
+        }
+        if (!bossChallengeService.isBossMob(boss.instanceId())
+            && (boss.state() == MobState.IDLE || boss.targetId() == null)) {
+            return true;
+        }
+        return knockerParticipants(boss).contains(player);
     }
 
     private @NotNull List<Player> nearbyManagedPlayers(@NotNull Location center, double radius) {

@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -112,6 +113,16 @@ public final class DamageService {
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
     private MobPlayerDamageListener mobPlayerDamageListener = (mob, victim, damage, lethal) -> { };
+    private @Nullable BossMechanicService bossMechanicService;
+
+    /**
+     * ボス固有の会場・参加者による被弾可否を共通ダメージ入口へ接続します。
+     *
+     * @param service 同期スレッドで判定するボスサービス。未設定時は追加制限なし
+     */
+    public void setBossMechanicService(@Nullable BossMechanicService service) {
+        this.bossMechanicService = service;
+    }
 
     /**
      * サービスを構築します。
@@ -841,6 +852,9 @@ public final class DamageService {
         if (!canApplyPlayerDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
+        if (bossMechanicService != null && !bossMechanicService.canApplyCombatDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(permissionEntity(attacker), permissionEntity(victim))) {
             return new DamageResult(0.0D);
         }
@@ -1145,6 +1159,9 @@ public final class DamageService {
             @Nullable Double superStarCriticalRateOverride
     ) {
         if (!canApplyPlayerDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
+        if (bossMechanicService != null && !bossMechanicService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(permissionEntity(attacker), permissionEntity(victim))) {

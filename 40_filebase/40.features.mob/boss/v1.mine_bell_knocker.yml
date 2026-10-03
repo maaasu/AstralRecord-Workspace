@@ -1,0 +1,67 @@
+# design:
+#   motif: "ヨーロッパ民間伝承 / 坑道のノッカーと鐘"
+#   progression: 25
+schemaVersion: 1
+id: mine_bell_knocker
+type: MOB
+category: BOSS
+name: "&6&l廃坑の鐘守 クノッカー"
+title: "&7-- 三鐘を告げる坑夫 --"
+level: 25
+entityType: HUSK
+variant:
+  age: BABY
+  scale: 1.0
+icon: HUSK_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7古い坑道で鐘を鳴らし、落盤を呼ぶ小さな坑夫。"
+  - "&7光る直線を避け、落石の印から離れよ。"
+  - "&7内外の輪を見極め、鐘を順に解除して反撃せよ。"
+tags:
+  - boss
+  - humanoid
+  - undead
+  - melee
+  - magic
+equipment:
+  mainHand: IRON_PICKAXE
+  offHand: BELL
+  helmet: LEATHER_HELMET
+baseStats:
+  - status: MAX_HEALTH
+    value: 104000
+  - status: ATTACK
+    value: 2826
+  - status: DEFENSE
+    value: 2604
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 28
+    deaggroRange: 38
+    leashRange: 42
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+drops:
+  exp: 10000
+  items:
+    - itemId:
+        ref: item:10a00096
+      rate: 100.0
+      amount: 1
+      luckAffected: false
+      hidden: false

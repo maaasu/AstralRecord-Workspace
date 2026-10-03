@@ -1553,6 +1553,7 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService
         );
         bossChallengeCancelGui = new BossChallengeCancelGui();
+        damageService.setBossMechanicService(bossMechanicService);
         playerHudService = new PlayerHudService(
             statusService,
             playerClassService,
