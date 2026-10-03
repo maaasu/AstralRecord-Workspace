@@ -5,12 +5,15 @@ import io.github.maaasu.astralRecord.feature.pet.model.*;
 import io.github.maaasu.astralRecord.feature.pet.service.PetService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.*;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import org.bukkit.*;
 import org.bukkit.inventory.*;
 import org.bukkit.persistence.PersistentDataType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.*;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import java.util.*;
 import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.*;
 
@@ -18,6 +21,8 @@ import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.*;
 public final class PetItemView {
     public static final NamespacedKey INSTANCE_KEY=new NamespacedKey("astralrecord","pet_instance_id");
     private static final Map<String,String> STAT_NAMES=Map.of("VITALITY","生命力","POWER","攻撃力","DEFENSE","防御力","EVASION","回避力","SUPPORT","支援力");
+    private static final Map<String,StatusType> STAT_COLORS=Map.of("VITALITY",StatusType.VITALITY,"POWER",StatusType.ATTACK,
+        "DEFENSE",StatusType.DEFENSE,"EVASION",StatusType.EVASION,"SUPPORT",StatusType.SUPPORT_POWER);
     private PetItemView() { }
     /**
      * マスターの共通アイテム表示に、所有個体の公開情報だけを追加します。
@@ -32,31 +37,54 @@ public final class PetItemView {
         ItemStack stack=item==null?new ItemStack(pet.isEgg()?Material.EGG:Material.SADDLE):factory.create(item,1);
         var meta=stack.getItemMeta();
         List<Component> lore=meta.lore()==null?new ArrayList<>():new ArrayList<>(meta.lore());
+        int footer=footerStart(lore);
+        List<Component> detailsLore=new ArrayList<>();
         meta.getPersistentDataContainer().set(INSTANCE_KEY,PersistentDataType.STRING,pet.id().toString());
-        lore.add(Component.empty());
         if(pet.isEgg()) {
-            lore.add(line("孵化するまで個体の能力は分かりません",NamedTextColor.GRAY));
+            detailsLore.add(line("❖ 魔法の卵",NamedTextColor.LIGHT_PURPLE));
+            detailsLore.add(line("孵化するまで個体の能力は分かりません",NamedTextColor.GRAY));
         } else {
             JsonObject details=pet.details();
             meta.displayName(ColorCodeUtil.toComponent(pet.name(),"ペット").decoration(TextDecoration.ITALIC,false));
-            lore.add(line("性別: "+(text(details,"sex","").equals("MALE")?"オス":"メス"),NamedTextColor.GRAY));
-            lore.add(line("成長度: "+(int)number(details,"level",1),NamedTextColor.AQUA));
-            lore.add(line("サイズ: "+String.format(Locale.ROOT,"%.2f",number(details,"size",1)),NamedTextColor.GRAY));
-            lore.add(line(service.dead(pet)?"戦闘不能 — 施設か復活オーブが必要":"HP: "+Math.round(service.healthRatio(pet)*100)+"%",service.dead(pet)?NamedTextColor.RED:NamedTextColor.GREEN));
+            detailsLore.add(line("❖ ペット情報",NamedTextColor.AQUA));
+            detailsLore.add(line(" ▸ 性別: "+(text(details,"sex","").equals("MALE")?"オス":"メス"),NamedTextColor.GRAY));
+            detailsLore.add(line(" ▸ 成長度: "+(int)number(details,"level",1),NamedTextColor.AQUA));
+            detailsLore.add(line(" ▸ サイズ: "+String.format(Locale.ROOT,"%.2f",number(details,"size",1)),NamedTextColor.GRAY));
+            detailsLore.add(line(service.dead(pet)?" ▸ 戦闘不能 — 施設か復活オーブが必要":" ▸ HP: "+Math.round(service.healthRatio(pet)*100)+"%",service.dead(pet)?NamedTextColor.RED:NamedTextColor.GREEN));
+            detailsLore.add(Component.empty());
+            detailsLore.add(line("❖ ステータス",NamedTextColor.GREEN));
             for(var row:object(details,"stats").entrySet()) {
                 JsonObject stat=row.getValue().getAsJsonObject();
-                lore.add(line(STAT_NAMES.getOrDefault(row.getKey(),"能力")+" T"+(int)number(stat,"tier",0)+": "+String.format(Locale.ROOT,"%.1f",number(stat,"currentValue",0)),flag(stat,"potential")?NamedTextColor.GOLD:NamedTextColor.WHITE));
+                StatusType color=STAT_COLORS.get(row.getKey());
+                Component name=Component.text(" ▸ "+STAT_NAMES.getOrDefault(row.getKey(),"能力"),color==null?NamedTextColor.GRAY:color.namedColor());
+                Component value=Component.text(" : ",NamedTextColor.DARK_GRAY)
+                    .append(Component.text(String.format(Locale.ROOT,"%.1f",number(stat,"currentValue",0)),
+                        flag(stat,"potential")?NamedTextColor.GOLD:NamedTextColor.WHITE,TextDecoration.BOLD))
+                    .append(Component.text(" (T"+(int)number(stat,"tier",0)+")",NamedTextColor.GRAY));
+                if(flag(stat,"potential"))value=value.append(Component.text(" ★",NamedTextColor.GOLD));
+                detailsLore.add(name.append(value).decoration(TextDecoration.ITALIC,false));
             }
-            lore.add(Component.empty());
+            detailsLore.add(Component.empty());
+            detailsLore.add(line("❖ スキル",NamedTextColor.LIGHT_PURPLE));
             int learned=0;
             for(JsonElement row:array(details,"skills")) {
                 JsonObject owned=row.getAsJsonObject();JsonObject skill=service.master().skill(pet.speciesId(),text(owned,"id",""));
-                lore.add(line("スキル "+(int)number(owned,"slotIndex",++learned)+": "+text(skill,"name","未登録のスキル")+" T"+(int)number(owned,"tier",0),NamedTextColor.LIGHT_PURPLE));
+                detailsLore.add(line(" ▸ スキル "+(int)number(owned,"slotIndex",++learned)+": "+text(skill,"name","未登録のスキル")+" (T"+(int)number(owned,"tier",0)+")",NamedTextColor.LIGHT_PURPLE));
             }
-            for(int slot=array(details,"skills").size()+1;slot<=3;slot++)lore.add(line("スキル "+slot+": 未解放",NamedTextColor.DARK_GRAY));
+            for(int slot=array(details,"skills").size()+1;slot<=3;slot++)detailsLore.add(line(" ▸ スキル "+slot+": 未解放",NamedTextColor.DARK_GRAY));
         }
-        lore.add(line(pet.tradeAllowed()?"野生由来・トレード可能":"配合由来・トレード不可",pet.tradeAllowed()?NamedTextColor.GRAY:NamedTextColor.RED));
+        detailsLore.add(Component.empty());
+        lore.addAll(footer,detailsLore);
+        if(!pet.tradeAllowed()&&(item==null||!item.getUnTradeable()))
+            lore.add(footer+detailsLore.size()+1,line("✖ 取引不可",NamedTextColor.RED));
         meta.lore(lore);stack.setItemMeta(meta);return stack;
+    }
+    /** 共通アイテムの末尾区切りの直前を返し、個体情報をフッターより上に配置します。 */
+    private static int footerStart(List<Component> lore) {
+        for(int index=lore.size()-1;index>=0;index--)
+            if(PlainTextComponentSerializer.plainText().serialize(lore.get(index)).contains(DisplaySeparators.SECTION))return index;
+        lore.add(line(DisplaySeparators.SECTION,NamedTextColor.DARK_GRAY));
+        return lore.size()-1;
     }
     /**
      * 内部個体IDをPDCから解決します。表示文字列からは推測しません。
