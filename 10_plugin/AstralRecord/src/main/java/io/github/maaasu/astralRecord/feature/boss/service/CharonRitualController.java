@@ -272,6 +272,10 @@ final class CharonRitualController {
                     hitHandler.hit(state.boss, player, 0.50D);
                 }
             }
+            List<Location> impactPoints = new ArrayList<>();
+            appendBeam(impactPoints, state.beam, BEAM_HALF_WIDTH);
+            draw(state.center, BossDamageAreaEffect.limit(impactPoints),
+                SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
             sound(state.beam.from, "entity.warden.sonic_boom", 1.0F, 1.2F);
         }
         if (tick % DRAW_INTERVAL == 0L) {
@@ -343,6 +347,8 @@ final class CharonRitualController {
             }
             appendBeam(impactPoints, river, RIVER_HALF_WIDTH);
             draw(sequence.center, impactPoints, SharedParticleDefinitions.CHARON_BEAM);
+            draw(sequence.center, BossDamageAreaEffect.limit(impactPoints),
+                SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
         } else {
             Location safe = sequence.safeCenters.get(sequence.step);
             for (Player player : players) {
@@ -361,7 +367,8 @@ final class CharonRitualController {
                     }
                 }
             }
-            draw(sequence.center, impactPoints, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
+            draw(sequence.center, BossDamageAreaEffect.limit(impactPoints),
+                SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
         }
         sound(sequence.center, "entity.generic.explode", 1.4F, 0.7F);
     }

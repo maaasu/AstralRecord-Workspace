@@ -369,6 +369,12 @@ final class EmpusaSpellController {
             burst.add(point.clone().add(0, 0.6D, 0));
         }
         particles.spawnForNearbyViewers(zone.center, burst, SharedParticleDefinitions.EMPUSA_IMPACT);
+        particles.spawnForNearbyViewers(
+            zone.center,
+            BossDamageAreaEffect.sampleArea(zone.center, zone.reach, 1.2D,
+                point -> validCenter(point) && zone.contains(point)),
+            SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
+        );
         sound(zone.center, cast.spell.elementForWave(cast.wave) == DamageElement.LIGHTNING ? "entity.lightning_bolt.impact"
             : "entity.generic.explode", 1.1F, 0.8F);
         DamageElement element = cast.spell.elementForWave(cast.wave);

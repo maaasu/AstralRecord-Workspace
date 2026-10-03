@@ -510,12 +510,17 @@ public final class BossMechanicService {
         @NotNull Location center
     ) {
         double safeRadiusSquared = SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS;
+        List<Location> impactLocations = new ArrayList<>();
         for (Player player : managedPlayersInWorld(center)) {
             if (horizontalDistanceSquared(player.getLocation(), center) <= safeRadiusSquared) {
                 continue;
             }
+            impactLocations.add(player.getLocation().add(0.0D, 0.6D, 0.0D));
             damagePlayer(boss, player, AttackType.MAGIC, DamageElement.FIRE, SUNBIRD_ARENA_DAMAGE_RATIO);
         }
+        particleDisplayService.spawnForNearbyViewers(
+            BossDamageAreaEffect.limit(impactLocations), SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
+        );
     }
 
     /**
@@ -2094,23 +2099,31 @@ public final class BossMechanicService {
         double ratio,
         double pushStrength
     ) {
-        double minimumDot = Math.cos(Math.toRadians(angleDegrees / 2.0D));
-        Vector normalizedDirection = direction.clone().setY(0.0D);
-        if (normalizedDirection.lengthSquared() <= 0.001D) {
-            return;
-        }
-        normalizedDirection.normalize();
         for (Player player : nearbyManagedPlayers(origin, length)) {
-            Vector offset = player.getLocation().toVector().subtract(origin.toVector()).setY(0.0D);
-            double distance = offset.length();
-            if (distance <= 0.001D || distance > length) {
-                continue;
-            }
-            if (offset.normalize().dot(normalizedDirection) >= minimumDot) {
+            if (insideCone(player.getLocation(), origin, direction, length, angleDegrees)) {
                 damagePlayer(boss, player, attackType, element, ratio);
                 pushAway(player, origin, pushStrength);
             }
         }
+    }
+
+    /** 扇形ギミックの被弾判定と発動時表示に共通の水平判定を行います。 */
+    private static boolean insideCone(
+        @NotNull Location point,
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double length,
+        double angleDegrees
+    ) {
+        Vector normalizedDirection = direction.clone().setY(0.0D);
+        if (normalizedDirection.lengthSquared() <= 0.001D) {
+            return false;
+        }
+        Vector offset = point.toVector().subtract(origin.toVector()).setY(0.0D);
+        double distance = offset.length();
+        return distance > 0.001D && distance <= length
+            && offset.normalize().dot(normalizedDirection.normalize())
+                >= Math.cos(Math.toRadians(angleDegrees / 2.0D));
     }
 
     /** 花芯と花弁の重複範囲を和集合として扱い、各Playerへ1回だけダメージを適用します。 */
@@ -2898,6 +2911,85 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT
             );
         }
+        renderDamageArea(pending);
+    }
+
+    /** 発動したギミックの実際の水平命中面へ、最大96地点の爆発を一括表示します。 */
+    private void renderDamageArea(@NotNull PendingMechanic pending) {
+        Location center = pending.anchor();
+        List<Location> locations = switch (pending.mechanic()) {
+            case COLOSSUS_QUAKE -> circleDamageLocations(center, 0.0D, 4.5D);
+            case COLOSSUS_COLLAPSE -> circleDamageLocations(center, 2.8D, 7.0D);
+            case ALDA_PRIMORDIAL_COLLAPSE, ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP ->
+                circleDamageLocations(center, ALDA_COLLAPSE_INNER_RADIUS, ALDA_COLLAPSE_OUTER_RADIUS);
+            case CHARON_TOLL -> circleDamageLocations(center, 0.0D, CHARON_TOLL_RADIUS);
+            case CHARON_LANTERN -> BossDamageAreaEffect.sampleArea(
+                center, CHARON_LANTERN_DANGER_RADIUS, 1.5D,
+                point -> horizontalDistanceSquared(point, center)
+                    > CHARON_LANTERN_SAFE_RADIUS * CHARON_LANTERN_SAFE_RADIUS
+                    && horizontalDistanceSquared(point, center)
+                    <= CHARON_LANTERN_DANGER_RADIUS * CHARON_LANTERN_DANGER_RADIUS
+            );
+            case SUNBIRD_SOLAR_FLARE -> circleDamageLocations(center, 0.0D, SUNBIRD_FLARE_RADIUS);
+            case SUNBIRD_SUNSTRIKE -> circleDamageLocations(center, 0.0D, SUNBIRD_SUNSTRIKE_RADIUS);
+            case SUNBIRD_SOLAR_NOVA -> circleDamageLocations(center, 0.0D, SUNBIRD_NOVA_RADIUS);
+            case COLOSSUS_RUNE_LANES -> crossDamageLocations(
+                center, pending.direction(), COLOSSUS_RUNE_LANES_MAX_LENGTH, COLOSSUS_RUNE_LANES_HALF_WIDTH
+            );
+            case ALDA_RUIN_SHOCKWAVE -> crossDamageLocations(
+                center, pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH, ALDA_SHOCKWAVE_HALF_WIDTH
+            );
+            case CHARON_RIVER -> lineDamageLocations(
+                center, pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH
+            );
+            case SUNBIRD_SOLAR_BEAM -> lineDamageLocations(
+                center, pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH
+            );
+            case SUNBIRD_RETURN_TACKLE -> lineDamageLocations(
+                center, pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH
+            );
+            case GRANBAL_ROOT_FAN -> BossDamageAreaEffect.sampleArea(
+                center, GRANBAL_ROOT_FAN_LENGTH, 1.3D,
+                point -> insideCone(point, center, pending.direction(),
+                    GRANBAL_ROOT_FAN_LENGTH, GRANBAL_ROOT_FAN_ANGLE_DEGREES)
+            );
+            case GRANBAL_PETAL_BURST -> BossDamageAreaEffect.limit(granbalPetalImpactLocations(pending));
+            case SUNBIRD_BIRD_METEOR -> BossDamageAreaEffect.limit(
+                birdMeteorExplosionParticleLocations(center, birdMeteorSafeZoneCenter(pending))
+            );
+        };
+        renderRange(center, locations, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
+    }
+
+    /** 円・環のダメージ判定と同じ水平距離へ表示地点を配置します。 */
+    private static @NotNull List<Location> circleDamageLocations(
+        @NotNull Location center, double innerRadius, double outerRadius
+    ) {
+        double innerSquared = innerRadius * innerRadius;
+        double outerSquared = outerRadius * outerRadius;
+        return BossDamageAreaEffect.sampleArea(center, outerRadius, 1.5D, point -> {
+            double distanceSquared = horizontalDistanceSquared(point, center);
+            return distanceSquared >= innerSquared && distanceSquared <= outerSquared;
+        });
+    }
+
+    /** 線形攻撃の命中判定を使って表示地点を配置します。 */
+    private static @NotNull List<Location> lineDamageLocations(
+        @NotNull Location origin, @NotNull Vector direction, double length, double halfWidth
+    ) {
+        return BossDamageAreaEffect.sampleArea(origin, length + halfWidth, 1.2D,
+            point -> insideLine(point, origin, direction, length, halfWidth));
+    }
+
+    /** 壁で切られた四方向の命中線分内だけへ表示地点を配置します。 */
+    private static @NotNull List<Location> crossDamageLocations(
+        @NotNull Location origin, @NotNull Vector direction, double length, double halfWidth
+    ) {
+        List<LineSegment> segments = resolveCrossSegments(origin, direction, length);
+        return BossDamageAreaEffect.sampleArea(origin, length + halfWidth, 1.2D,
+            point -> segments.stream().anyMatch(segment -> insideLine(
+                point, origin, segment.direction(), segment.length(), halfWidth
+            )));
     }
 
     /**

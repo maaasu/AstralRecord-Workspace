@@ -309,6 +309,9 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_EXPLOSION =
         new SharedParticleDefinition("boss_mechanic_explosion", Particle.EXPLOSION, 2, 0.18D, 0.18D, 0.18D, 0.0D);
+    /** ボス攻撃面の発動時爆発。低い粒子密度でも表示される個数にします。 */
+    public static final SharedParticleDefinition BOSS_DAMAGE_AREA_EXPLOSION =
+        new SharedParticleDefinition("boss_damage_area_explosion", Particle.EXPLOSION, 4, 0.0D, 0.0D, 0.0D, 0.0D);
     /** カロンの河道・柱間ビーム・魂灯裁定の危険予兆です。 */
     public static final SharedParticleDefinition CHARON_DANGER =
         new SharedParticleDefinition("charon_danger", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
