@@ -1843,13 +1843,14 @@ public class MarketRepository(
     }
 
     /// <summary>
-    /// 出品枠COUNTをseller/status索引へ固定し、個体出品判定のinstance索引rangeを横断しないSQLを構築する。
+    /// 出品枠COUNTをseller索引接頭辞へ固定し、範囲ロックを維持して状態・期限切れ条件を評価する。
+    /// statusまでseekを強制すると複合条件で実行計画を作れないため、seller列だけを指定する。
     /// </summary>
     internal static FormattableString BuildUsedListingSlotsForSerializableQuery(Guid accountId) => $"""
         SELECT COUNT(*) AS [Value]
         FROM [dbo].[market_listing] AS listing WITH (
             HOLDLOCK,
-            FORCESEEK([IX_market_listing_seller_status] ([seller_account_id], [status])))
+            FORCESEEK([IX_market_listing_seller_status] ([seller_account_id])))
         WHERE listing.[seller_account_id] = {accountId}
           AND listing.[is_deleted] = 0
           AND (listing.[status] = 'ACTIVE'
