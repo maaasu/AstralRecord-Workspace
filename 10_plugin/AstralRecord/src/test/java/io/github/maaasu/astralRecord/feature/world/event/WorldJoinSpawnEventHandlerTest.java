@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
+import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -15,6 +17,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,6 +39,63 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class WorldJoinSpawnEventHandlerTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
+     * 検証契約: 初参加・再参加とも管理外の初期位置を拠点へ置き換え、保存された視線を保持する。
+     */
+    @Test
+    void initialSpawnOverridesUnmanagedWorldForNewAndReturningPlayers() {
+        WorldService worldService = mock(WorldService.class);
+        World baseWorld = mock(World.class);
+        World unmanagedWorld = mock(World.class);
+        Location snapshot = new Location(baseWorld, 2.5, 72, -4.5, 0, 0);
+        when(worldService.getLoadedSpawnLocationSnapshot("join_base")).thenAnswer(ignored -> snapshot.clone());
+        WorldJoinSpawnEventHandler handler = new WorldJoinSpawnEventHandler(
+                mock(AstralRecord.class), "join_base", worldService);
+
+        for (boolean newPlayer : List.of(true, false)) {
+            AsyncPlayerSpawnLocationEvent event = mock(AsyncPlayerSpawnLocationEvent.class);
+            Location original = new Location(unmanagedWorld, 100, 64, 200, 135, -25);
+            when(event.getSpawnLocation()).thenReturn(original);
+            when(event.isNewPlayer()).thenReturn(newPlayer);
+
+            handler.onPlayerSpawnLocation(event);
+
+            ArgumentCaptor<Location> target = ArgumentCaptor.forClass(Location.class);
+            verify(event).setSpawnLocation(target.capture());
+            assertSame(baseWorld, target.getValue().getWorld());
+            assertEquals(2.5, target.getValue().getX());
+            assertEquals(72, target.getValue().getY());
+            assertEquals(-4.5, target.getValue().getZ());
+            assertEquals(135, target.getValue().getYaw());
+            assertEquals(-25, target.getValue().getPitch());
+            assertSame(unmanagedWorld, original.getWorld());
+        }
+        assertEquals(0, snapshot.getYaw());
+        verify(worldService, never()).getById(any());
+        verify(worldService, never()).resolveOrLoadSpawnLocation(any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
+     * 検証契約: 参加前の拠点が未解決なら警告し、非同期スレッドでワールドをロードしない。
+     */
+    @Test
+    void unresolvedInitialSpawnLogsWithoutLoadingWorldAsynchronously() {
+        WorldService worldService = mock(WorldService.class);
+        AsyncPlayerSpawnLocationEvent event = mock(AsyncPlayerSpawnLocationEvent.class);
+        WorldJoinSpawnEventHandler handler = new WorldJoinSpawnEventHandler(
+                mock(AstralRecord.class), "join_base", worldService);
+        try (MockedStatic<Logger> logger = mockStatic(Logger.class)) {
+            handler.onPlayerSpawnLocation(event);
+            logger.verify(() -> Logger.log(LogId.W_5751, "join_base"));
+        }
+        verify(event, never()).setSpawnLocation(any());
+        verify(worldService, never()).resolveOrLoadSpawnLocation(any());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
