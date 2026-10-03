@@ -35,6 +35,7 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
     private static final int PULL_TICKS = 20;
     private static final int BIND_TICKS = 600;
     private static final int SIGIL_INTERVAL_TICKS = 10;
+    private static final int MAX_PULL_FEEDBACK_TARGETS = 24;
     private static final double CIRCLE_RADIUS = 4.0D;
     private final BindCircleRuntimeService binds;
     private final Plugin plugin;
@@ -174,8 +175,12 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
                 return false;
             }
             List<Location> feedback = tick % 5 == 0 ? new ArrayList<>() : null;
-            for (MobInstance mob : touched) {
-                pull(mob, feedback);
+            int start = feedback == null || touched.isEmpty()
+                    ? 0 : (tick / 5 * MAX_PULL_FEEDBACK_TARGETS) % touched.size();
+            for (int index = 0; index < touched.size(); index++) {
+                boolean selected = feedback != null
+                        && (index - start + touched.size()) % touched.size() < MAX_PULL_FEEDBACK_TARGETS;
+                pull(touched.get(index), selected ? feedback : null);
             }
             showPullFeedback(feedback, false);
             return false;
@@ -194,8 +199,8 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
             touched = hits.stream().map(AstEntity::mob).filter(java.util.Objects::nonNull).toList();
             pulledAt = tick;
             List<Location> feedback = new ArrayList<>();
-            for (MobInstance mob : touched) {
-                pull(mob, feedback);
+            for (int index = 0; index < touched.size(); index++) {
+                pull(touched.get(index), index < MAX_PULL_FEEDBACK_TARGETS ? feedback : null);
             }
             showPullFeedback(feedback, true);
         }

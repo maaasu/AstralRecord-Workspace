@@ -25,6 +25,7 @@ import java.util.UUID;
 public final class ArchmageCelestialCircleRuntimeService {
 
     private static final int ANIMATION_TICKS = 40;
+    private static final int MAX_FEEDBACK_TARGETS_PER_WORLD = 32;
     private static final String BUFF_ID = "archmage_celestial_circle";
     private final StatusService statusService;
     private final SkillMagicCircleRegistry circleRegistry;
@@ -211,15 +212,26 @@ public final class ArchmageCelestialCircleRuntimeService {
         if (effects != null && !applied.isEmpty()
                 && (lastFeedbackTick < 0L || lastSynchronizeTick - lastFeedbackTick >= 20L)) {
             lastFeedbackTick = lastSynchronizeTick;
-            Map<World, List<Location>> positions = new HashMap<>();
+            Map<World, List<Map.Entry<UUID, Applied>>> feedbackByWorld = new HashMap<>();
             for (Map.Entry<UUID, Applied> entry : applied.entrySet()) {
-                Applied active = entry.getValue();
-                if (desired.containsKey(entry.getKey()) && active.player.getBukkit().isOnline()) {
-                    Location position = active.player.getBukkit().getLocation();
-                    positions.computeIfAbsent(position.getWorld(), ignored -> new ArrayList<>()).add(position);
+                if (!desired.containsKey(entry.getKey()) || !entry.getValue().player.getBukkit().isOnline()) {
+                    continue;
                 }
+                World world = entry.getValue().player.getBukkit().getWorld();
+                feedbackByWorld.computeIfAbsent(world, ignored -> new ArrayList<>()).add(entry);
             }
-            positions.values().forEach(worldPositions -> ArchmageCircleFeedback.celestial(effects, worldPositions));
+            for (List<Map.Entry<UUID, Applied>> feedbackTargets : feedbackByWorld.values()) {
+                feedbackTargets.sort(Map.Entry.comparingByKey());
+                int start = (int) ((lastFeedbackTick / 20L * MAX_FEEDBACK_TARGETS_PER_WORLD)
+                        % feedbackTargets.size());
+                int count = Math.min(MAX_FEEDBACK_TARGETS_PER_WORLD, feedbackTargets.size());
+                List<Location> positions = new ArrayList<>(count);
+                for (int index = 0; index < count; index++) {
+                    Applied active = feedbackTargets.get((start + index) % feedbackTargets.size()).getValue();
+                    positions.add(active.player.getBukkit().getLocation());
+                }
+                ArchmageCircleFeedback.celestial(effects, positions);
+            }
         }
     }
 
