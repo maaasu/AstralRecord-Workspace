@@ -20,7 +20,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -31,8 +30,10 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -47,6 +48,9 @@ public class GatheringSpawnerService {
     private static final long TICK_INTERVAL = 20L;
     private static final long SAVE_INTERVAL = 20L * 60L;
     private static final int MAX_PLAYER_SCALE = 6;
+    private static final int SEARCH_STEPS_PER_TICK = 1024;
+    private static final long SEARCH_NANOS_PER_TICK = 1_000_000L;
+    private static final long SPAWN_GAP_TICKS = 5L;
 
     private final Plugin plugin;
     private final GatheringService gatheringService;
@@ -56,11 +60,15 @@ public class GatheringSpawnerService {
     private final Map<String, GatheringSpawnerDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, GatheringSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
+    private final Deque<GatheringSpawnerLocation> pendingSpawns = new ArrayDeque<>();
+    private final Set<String> queuedLocations = new HashSet<>();
+    private PendingSpawn activeSpawn;
     private ParticleDisplayService particleDisplayService;
     private GatheringSpawnerVisualizer visualizer;
     private BukkitTask task;
     private BukkitTask saveTask;
     private long tick;
+    private long nextSpawnTick;
     private boolean dirty;
 
     public GatheringSpawnerService(
@@ -106,6 +114,7 @@ public class GatheringSpawnerService {
         }
         locations.clear();
         spawnedByLocation.clear();
+        clearPendingSpawns();
         for (GatheringSpawnerLocation location : snapshot.locations()) {
             locations.put(location.locationKey(), location);
             spawnedByLocation.put(location.locationKey(), new HashSet<>());
@@ -120,9 +129,10 @@ public class GatheringSpawnerService {
     ) {
     }
 
+    /** 同期スレッドで探索を毎tick分割実行し、保存・表示taskを開始します。 */
     public void start() {
         if (task == null) {
-            task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_INTERVAL, TICK_INTERVAL);
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
         }
         if (saveTask == null) {
             saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveIfDirty, SAVE_INTERVAL, SAVE_INTERVAL);
@@ -144,6 +154,7 @@ public class GatheringSpawnerService {
         }
     }
 
+    /** 同期スレッドで全taskと未完了の探索を破棄し、dirty配置を保存します。 */
     public void stop() {
         if (task != null) {
             task.cancel();
@@ -157,6 +168,7 @@ public class GatheringSpawnerService {
             visualizer.stop();
             visualizer = null;
         }
+        clearPendingSpawns();
         saveIfDirty();
     }
 
@@ -347,81 +359,137 @@ public class GatheringSpawnerService {
         return List.copyOf(locations.values());
     }
 
+    /** 同期スレッドで判定対象を重複なく待機列へ追加し、1件の探索だけを予算内で進めます。 */
     private void tick() {
-        tick += TICK_INTERVAL;
-        for (GatheringSpawnerLocation spawnerLocation : List.copyOf(locations.values())) {
-            processSpawner(spawnerLocation);
+        tick++;
+        if (tick % TICK_INTERVAL == 0L) {
+            for (GatheringSpawnerLocation location : locations.values()) {
+                GatheringSpawnerDefinition definition = definitions.get(location.spawnerId());
+                if (definition != null && tick % definition.spawnIntervalTicks() == 0L
+                        && queuedLocations.add(location.locationKey())) {
+                    pendingSpawns.addLast(location);
+                }
+            }
         }
+        if (activeSpawn == null) {
+            GatheringSpawnerLocation location = pendingSpawns.pollFirst();
+            if (location == null) {
+                return;
+            }
+            activeSpawn = beginSpawn(location);
+            if (activeSpawn == null) {
+                queuedLocations.remove(location.locationKey());
+                return;
+            }
+        }
+
+        PendingSpawn pending = activeSpawn;
+        Location origin = pending.location().toLocation();
+        if (locations.get(pending.location().locationKey()) != pending.location()
+                || definitions.get(pending.definition().id()) != pending.definition()
+                || origin == null || origin.getWorld() != pending.world()) {
+            finishPendingSpawn();
+            return;
+        }
+        if (!pending.search().advance(SEARCH_STEPS_PER_TICK, System.nanoTime() + SEARCH_NANOS_PER_TICK)
+                || tick < nextSpawnTick) {
+            return;
+        }
+
+        Location spawnLocation = pending.search().result();
+        if (spawnLocation != null && canSpawn(pending.location(), pending.definition(), origin)
+                && GatheringSpawnSearch.isValidSpawnLocation(spawnLocation, pending.definition())) {
+            GatheringInstance instance = gatheringService.spawn(
+                    pending.entry().gatheringId(), spawnLocation, pending.definition().id());
+            if (instance != null) {
+                spawnedByLocation.computeIfAbsent(pending.location().locationKey(), key -> new HashSet<>())
+                        .add(instance.instanceId());
+                nextSpawnTick = tick + SPAWN_GAP_TICKS;
+            }
+        }
+        finishPendingSpawn();
     }
 
-    private void processSpawner(@NotNull GatheringSpawnerLocation spawnerLocation) {
+    /**
+     * 現在も有効な配置の条件を確認し、同期探索の継続状態を作成します。
+     *
+     * @param spawnerLocation 待機列から取り出した配置
+     * @return 探索状態。配置または生成条件が無効ならnull
+     */
+    private @Nullable PendingSpawn beginSpawn(@NotNull GatheringSpawnerLocation spawnerLocation) {
         GatheringSpawnerDefinition definition = definitions.get(spawnerLocation.spawnerId());
         Location origin = spawnerLocation.toLocation();
-        if (definition == null || origin == null || origin.getWorld() == null) {
-            return;
+        if (locations.get(spawnerLocation.locationKey()) != spawnerLocation
+                || definition == null || origin == null || origin.getWorld() == null
+                || !canSpawn(spawnerLocation, definition, origin)) {
+            return null;
         }
-        if (tick % definition.spawnIntervalTicks() != 0L) {
-            cleanupTracked(spawnerLocation.locationKey());
-            return;
-        }
-
-        long worldTime = origin.getWorld().getTime();
-        NearbyPlayerCounts playerCounts = countNearbyPlayers(origin, definition.radiusMeters());
-        if (playerCounts.playersInRange() <= 0) {
-            cleanupTracked(spawnerLocation.locationKey());
-            return;
-        }
-        if (!definition.canSpawnAt(worldTime)) {
-            cleanupTracked(spawnerLocation.locationKey());
-            return;
-        }
-
-        int nearbyPlayers = playerCounts.gameplayPlayers();
-        if (nearbyPlayers <= 0) {
-            cleanupTracked(spawnerLocation.locationKey());
-            return;
-        }
-
-        int desired = definition.desiredAliveCount(Math.min(MAX_PLAYER_SCALE, nearbyPlayers));
-        int alive = cleanupTracked(spawnerLocation.locationKey());
-        int nearbyGatherings = countNearbyGatherings(origin, definition.radiusMeters());
-        if (alive >= desired || nearbyGatherings >= definition.maxNearbyGatherings()) {
-            return;
-        }
-
         GatheringSpawnerEntry entry = choose(definition.spawnGatherings());
-        if (entry == null) {
-            return;
+        if (entry == null || !gatheringService.hasDefinition(entry.gatheringId())) {
+            return null;
         }
-
-        SpawnLocationSearchResult search = findHighestSpawnLocationResult(origin, definition);
-        Location spawnLocation = search.location();
-        if (spawnLocation == null) {
-            return;
-        }
-
-        GatheringInstance instance = gatheringService.spawn(entry.gatheringId(), spawnLocation, definition.id());
-        if (instance != null) {
-            spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
-                    .add(instance.instanceId());
-        }
+        return new PendingSpawn(spawnerLocation, definition, entry, origin.getWorld(),
+                new GatheringSpawnSearch(origin, definition, ThreadLocalRandom.current()));
     }
 
-    private @NotNull NearbyPlayerCounts countNearbyPlayers(@NotNull Location origin, double radius) {
+    /**
+     * 探索開始前と生成直前に、時刻・周辺プレイヤー・出現数上限を再検証します。
+     *
+     * @param spawnerLocation 対象配置
+     * @param definition 公開中の定義
+     * @param origin ロード済みworldを持つ登録座標
+     * @return 生成枠が残り、生成条件を満たす場合はtrue
+     */
+    private boolean canSpawn(@NotNull GatheringSpawnerLocation spawnerLocation,
+                             @NotNull GatheringSpawnerDefinition definition, @NotNull Location origin) {
+        int alive = cleanupTracked(spawnerLocation.locationKey());
+        long worldTime = origin.getWorld().getTime();
+        int nearbyPlayers = countNearbyGameplayPlayers(origin, definition.radiusMeters());
+        if (nearbyPlayers <= 0 || !definition.canSpawnAt(worldTime)) {
+            return false;
+        }
+        int desired = definition.desiredAliveCount(Math.min(MAX_PLAYER_SCALE, nearbyPlayers));
+        return alive < desired
+                && countNearbyGatherings(origin, definition.radiusMeters()) < definition.maxNearbyGatherings();
+    }
+
+    /** 完了または失効した探索を解除し、次回の判定で再び待機できる状態へ戻します。 */
+    private void finishPendingSpawn() {
+        queuedLocations.remove(activeSpawn.location().locationKey());
+        activeSpawn = null;
+    }
+
+    /** マスタ再読込・停止時に旧配置の待機列と探索を破棄し、直近生成からの間隔は維持します。 */
+    private void clearPendingSpawns() {
+        pendingSpawns.clear();
+        queuedLocations.clear();
+        activeSpawn = null;
+    }
+
+    private record PendingSpawn(GatheringSpawnerLocation location, GatheringSpawnerDefinition definition,
+                                GatheringSpawnerEntry entry, World world, GatheringSpawnSearch search) {
+    }
+
+    /**
+     * 出現数の計算対象になる、同一world・球形範囲内のgameplayプレイヤーを数えます。
+     *
+     * @param origin 登録座標
+     * @param radius 判定半径
+     * @return 対象プレイヤー数
+     */
+    private int countNearbyGameplayPlayers(@NotNull Location origin, double radius) {
         double radiusSq = radius * radius;
-        int playersInRange = 0;
         int gameplayPlayers = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != origin.getWorld() || player.getLocation().distanceSquared(origin) > radiusSq) {
                 continue;
             }
-            playersInRange++;
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null && astPlayer.getAccount().getMode().shouldProcessGameplay()) {
                 gameplayPlayers++;
             }
         }
-        return new NearbyPlayerCounts(playersInRange, gameplayPlayers);
+        return gameplayPlayers;
     }
 
     private int countNearbyGatherings(@NotNull Location origin, double radius) {
@@ -456,140 +524,6 @@ public class GatheringSpawnerService {
             }
         }
         return entries.get(entries.size() - 1);
-    }
-
-    /**
-     * スポナー座標を中心とした半径内から、洞窟層に限定した最上位のスポーン地点を探します。
-     * 水平方向は半径内の X/Z 列をすべて調査し、垂直方向は登録座標の Y 座標から半径分の範囲に限定します。
-     * 各列では足元ブロックの条件と、スポーンブロックの passable / non-liquid 条件を満たす最上位候補を選び、
-     * その中で最も高い候補を返します。
-     *
-     * @param origin     スポナーの登録座標
-     * @param definition スポナー定義
-     * @return 条件を満たす最上位のスポーン地点。候補がない場合は null
-     */
-    static @Nullable Location findHighestSpawnLocation(
-            @NotNull Location origin,
-            @NotNull GatheringSpawnerDefinition definition
-    ) {
-        return findHighestSpawnLocationResult(origin, definition).location();
-    }
-
-    /**
-     * スポーン地点の検索結果と、候補が見つからない場合の切り分け情報を返します。
-     *
-     * @param origin     スポナーの登録座標
-     * @param definition スポナー定義
-     * @return スポーン地点と検索状況
-     */
-    static @NotNull SpawnLocationSearchResult findHighestSpawnLocationResult(
-            @NotNull Location origin,
-            @NotNull GatheringSpawnerDefinition definition
-    ) {
-        World world = origin.getWorld();
-        if (world == null) {
-            return SpawnLocationSearchResult.empty();
-        }
-
-        double radius = definition.radiusMeters();
-        double radiusSq = radius * radius;
-        int horizontalRadius = (int) Math.ceil(radius);
-        int minCandidateY = Math.max(
-                world.getMinHeight() + 1,
-                (int) Math.ceil(origin.getY() - radius)
-        );
-        int maxCandidateY = Math.min(
-                world.getMaxHeight() - 1,
-                (int) Math.floor(origin.getY() + radius)
-        );
-        if (minCandidateY > maxCandidateY) {
-            return new SpawnLocationSearchResult(
-                    null,
-                    0,
-                    0,
-                    0,
-                    minCandidateY,
-                    maxCandidateY,
-                    null
-            );
-        }
-
-        int highestCandidateY = Integer.MIN_VALUE;
-        List<Location> highestCandidates = new ArrayList<>();
-        int columnsChecked = 0;
-        int baseMatches = 0;
-        int passableMatches = 0;
-        for (int x = origin.getBlockX() - horizontalRadius; x <= origin.getBlockX() + horizontalRadius; x++) {
-            double dx = x + 0.5D - origin.getX();
-            for (int z = origin.getBlockZ() - horizontalRadius; z <= origin.getBlockZ() + horizontalRadius; z++) {
-                double dz = z + 0.5D - origin.getZ();
-                double horizontalDistanceSq = dx * dx + dz * dz;
-                if (horizontalDistanceSq > radiusSq) {
-                    continue;
-                }
-                columnsChecked++;
-
-                int highestBlockY = world.getHighestBlockYAt(x, z);
-                int startCandidateY = Math.min(maxCandidateY, highestBlockY + 1);
-                for (int candidateY = startCandidateY; candidateY >= minCandidateY; candidateY--) {
-                    double dy = candidateY - origin.getY();
-                    if (horizontalDistanceSq + dy * dy > radiusSq) {
-                        continue;
-                    }
-
-                    Block base = world.getBlockAt(x, candidateY - 1, z);
-                    if (!base.getType().isSolid()
-                            || (!definition.requiredBaseBlocks().isEmpty()
-                            && !definition.requiredBaseBlocks().contains(base.getType()))) {
-                        continue;
-                    }
-                    baseMatches++;
-                    Location candidate = new Location(world, x + 0.5D, candidateY, z + 0.5D);
-                    Block spawnBlock = world.getBlockAt(x, candidateY, z);
-                    if (!spawnBlock.isPassable() || spawnBlock.isLiquid()) {
-                        continue;
-                    }
-                    passableMatches++;
-                    if (candidateY > highestCandidateY) {
-                        highestCandidateY = candidateY;
-                        highestCandidates.clear();
-                    }
-                    if (candidateY == highestCandidateY) {
-                        highestCandidates.add(candidate);
-                    }
-                    break;
-                }
-            }
-        }
-        Location location = highestCandidates.isEmpty()
-                ? null
-                : highestCandidates.get(ThreadLocalRandom.current().nextInt(highestCandidates.size()));
-        return new SpawnLocationSearchResult(
-                location,
-                columnsChecked,
-                baseMatches,
-                passableMatches,
-                minCandidateY,
-                maxCandidateY,
-                highestCandidateY == Integer.MIN_VALUE ? null : highestCandidateY
-        );
-    }
-
-    private record NearbyPlayerCounts(int playersInRange, int gameplayPlayers) {
-    }
-
-    static record SpawnLocationSearchResult(
-            @Nullable Location location,
-            int columnsChecked,
-            int baseMatches,
-            int passableMatches,
-            int minCandidateY,
-            int maxCandidateY,
-            @Nullable Integer highestCandidateY
-    ) {
-        private static @NotNull SpawnLocationSearchResult empty() {
-            return new SpawnLocationSearchResult(null, 0, 0, 0, 0, 0, null);
-        }
     }
 
     private void saveIfDirty() {
