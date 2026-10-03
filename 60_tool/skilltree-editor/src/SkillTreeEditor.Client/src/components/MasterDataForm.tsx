@@ -3,6 +3,8 @@ import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
 import { summarizeMasterValue } from '../data/masterDataNavigation'
+import { MinecraftText } from './MinecraftText'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
 const typeLabels: Record<ValueType, string> = {
@@ -189,7 +191,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           }}>削除</button></div></details></div>
         {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
-        {structured && onNavigate ? <div className="master-node-link"><span>{summarizeMasterValue(child)}</span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
+        {structured && onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(child)} /></span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
           : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
@@ -225,7 +227,7 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     const structured = entry !== null && typeof entry === 'object'
     return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
     <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={`${path}/${index} 上へ`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${path}/${index} 下へ`} disabled={index === values.length - 1} onClick={() => move(index, 1)}>↓</button><button type="button" className="button compact" onClick={() => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])}>複製</button><button type="button" className="button compact danger subtle" aria-label={`${path}/${index} を削除`} onClick={() => onChange(values.filter((_, item) => item !== index))}>削除</button></div>
-    {structured && inherited.onNavigate ? <div className="master-node-link"><span>{summarizeMasterValue(entry)}</span><button type="button" className="button compact" aria-label={path + '/' + index + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(path + '/' + index)}>編集 →</button></div>
+    {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={path + '/' + index + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(path + '/' + index)}>編集 →</button></div>
       : <MasterDataForm {...inherited} path={path + '/' + index} value={entry} schema={itemSchema} onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />}
   </div>})}
     {paged && pageCount > 1 && <div className="master-pagination"><button type="button" className="button compact" disabled={currentPage === 0 || inherited.navigationDisabled} onClick={() => setPage(currentPage - 1)}>前の要素</button><span>{offset + 1}–{Math.min(offset + pageSize, values.length)} / {values.length}件</span><button type="button" className="button compact" disabled={currentPage + 1 >= pageCount || inherited.navigationDisabled} onClick={() => setPage(currentPage + 1)}>次の要素</button></div>}
@@ -253,9 +255,15 @@ function StringEditor({ value, path, onChange, references, referenceKind, refere
     const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
     return [candidate.value, candidate] as const
   })).values()] : []
-  const search = value.toLocaleLowerCase()
-  const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || entry.label?.toLocaleLowerCase().includes(search)).slice(0, 100)
+  const search = stripMinecraftFormatting(value).toLocaleLowerCase()
+  const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(search)).slice(0, 100)
+  const selected = candidates.find((entry) => entry.value === value)
+  const preview = selected?.label ?? value
+  const formatted = preview !== stripMinecraftFormatting(preview)
   return <div>{value.includes('\n') ? <textarea aria-label={path || '/'} rows={Math.min(12, value.split('\n').length + 1)} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
-    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{entry.label ?? entry.value}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small></>}
+    {formatted && <div className="master-text-preview" aria-label={`${path || '/'} 表示プレビュー`}><MinecraftText value={preview} /></div>}
+    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small>
+      <details className="master-colored-candidates"><summary>名前と色を確認して選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
+    </>}
   </div>
 }

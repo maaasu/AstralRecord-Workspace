@@ -15,6 +15,19 @@ function Editable({ readOnly = false, value: startingValue = initial, schema = {
     <output data-testid="value">{JSON.stringify(value)}</output></>
 }
 describe('master data tree and details', () => {
+  it('renders colored node summaries and searches visible names without changing stored codes', () => {
+    const name = '&6Go&alden'
+    const value = { items: [{ name }] }
+    render(<Editable value={value} />)
+    fireEvent.click(screen.getByRole('button', { name: '/items を開く' }))
+    expect(within(screen.getByRole('button', { name: '/items/0 を編集' })).getByText('Go')).toHaveStyle({ color: '#ffaa00' })
+    const summary = screen.getByRole('button', { name: '/items/0 を開く' }).parentElement!
+    expect(within(summary).getByText(/^lden/)).toHaveStyle({ color: '#55ff55' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'Golden' } })
+    expect(screen.getByRole('button', { name: '/items/0 に移動' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '/items/0/name に移動' })).toBeInTheDocument()
+    expect(screen.getByTestId('value')).toHaveTextContent(JSON.stringify(value))
+  })
   it('edits an escaped deep pointer without dropping unknown fields or array siblings', () => {
     render(<Editable />)
     fireEvent.click(screen.getByRole('button', { name: '/skills を開く' }))

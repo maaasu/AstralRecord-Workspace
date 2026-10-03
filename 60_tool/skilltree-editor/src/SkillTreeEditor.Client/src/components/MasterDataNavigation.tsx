@@ -3,6 +3,8 @@ import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { closestContainerPointer, parentPointer, replaceAtPointer, schemaAtPointer, summarizeMasterValue, valueAtPointer } from '../data/masterDataNavigation'
 import { fieldForPath, MasterDataForm, pointerKey } from './MasterDataForm'
+import { MinecraftText } from './MinecraftText'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 const structured = (value: JsonValue | undefined): value is JsonObject | JsonValue[] => value !== null && typeof value === 'object'
 const decode = (key: string) => key.replaceAll('~1', '/').replaceAll('~0', '~')
@@ -47,7 +49,7 @@ export function MasterDataOutline({ value, fields, schema, selectedPath, disable
     function visit(current: JsonValue, path: string) {
       const label = nodeLabel(value, schema, fields, path)
       const searchableValue = typeof current === 'string' ? current : summarizeMasterValue(current)
-      if (path && (path + ' ' + label + ' ' + searchableValue).toLocaleLowerCase().includes(search)) found.push({ path, label, value: current })
+      if (path && [path, label, searchableValue, stripMinecraftFormatting(searchableValue)].some((text) => text.toLocaleLowerCase().includes(search))) found.push({ path, label, value: current })
       children(current, path).forEach((child) => visit(child.value, child.path))
     }
     visit(value, '')
@@ -68,7 +70,7 @@ export function MasterDataOutline({ value, fields, schema, selectedPath, disable
             return next
           })}>{open ? '▾' : '▸'}</button> : <span className="master-outline-dot" aria-hidden="true">·</span>}
           <button type="button" className={'master-outline-node ' + (selectedPath === child.path ? 'selected' : '')} disabled={disabled} aria-current={selectedPath === child.path ? 'true' : undefined} aria-label={child.path + ' を編集'} onClick={() => onSelect(child.path)}>
-            <span>{nodeLabel(value, schema, fields, child.path)}</span><small>{summarizeMasterValue(child.value)}</small>
+            <span>{nodeLabel(value, schema, fields, child.path)}</span><small><MinecraftText value={summarizeMasterValue(child.value)} /></small>
           </button>
         </div>
         {hasChildren && open && branch(child.value, child.path)}
@@ -78,8 +80,8 @@ export function MasterDataOutline({ value, fields, schema, selectedPath, disable
   return <div className="master-outline">
     <label>フォーム内検索<input aria-label="フォーム内検索" placeholder="項目名 / キー / 値" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
     <nav aria-label="レコード内の構造">
-      <button type="button" className={'master-outline-node master-outline-root ' + (!selectedPath ? 'selected' : '')} disabled={disabled} aria-current={!selectedPath ? 'true' : undefined} aria-label="全体を編集" onClick={() => onSelect('')}>全体<small>{summarizeMasterValue(value)}</small></button>
-      {search ? <><p className="master-muted" role="status">{matches.length}件{matches.length > 100 ? '（先頭100件）' : ''}</p><ul className="master-outline-list master-search-results">{matches.slice(0, 100).map((match) => <li key={match.path}><button type="button" className="master-outline-node" disabled={disabled} aria-label={match.path + ' に移動'} onClick={() => structured(match.value) ? onSelect(match.path) : onFocus(match.path)}><span>{match.label}</span><code>{match.path}</code><small>{summarizeMasterValue(match.value)}</small></button></li>)}</ul></>
+      <button type="button" className={'master-outline-node master-outline-root ' + (!selectedPath ? 'selected' : '')} disabled={disabled} aria-current={!selectedPath ? 'true' : undefined} aria-label="全体を編集" onClick={() => onSelect('')}>全体<small><MinecraftText value={summarizeMasterValue(value)} /></small></button>
+      {search ? <><p className="master-muted" role="status">{matches.length}件{matches.length > 100 ? '（先頭100件）' : ''}</p><ul className="master-outline-list master-search-results">{matches.slice(0, 100).map((match) => <li key={match.path}><button type="button" className="master-outline-node" disabled={disabled} aria-label={match.path + ' に移動'} onClick={() => structured(match.value) ? onSelect(match.path) : onFocus(match.path)}><span>{match.label}</span><code>{match.path}</code><small><MinecraftText value={summarizeMasterValue(match.value)} /></small></button></li>)}</ul></>
         : branch(value, '')}
     </nav>
   </div>

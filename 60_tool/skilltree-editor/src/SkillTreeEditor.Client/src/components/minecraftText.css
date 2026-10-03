@@ -1,0 +1,4 @@
+.minecraft-text { display: inline !important; white-space: pre-wrap; overflow-wrap: anywhere; font-weight: 400; font-style: normal; }
+.minecraft-text span { display: inline !important; }
+/* Preserve the requested dark color while outlining it on the editor's dark surfaces. */
+.minecraft-text .minecraft-dark { -webkit-text-stroke: .25px #c6d3e6; text-shadow: 0 0 1px #c6d3e6; }
