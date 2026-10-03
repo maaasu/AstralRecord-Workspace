@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.pet.service.PetService.EggGrantFailure;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.model.ItemAdminViewOptions;
@@ -214,6 +217,34 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         int requestedAmount = resolveGrantAmount(event.getClick(), Math.clamp(model.getMaxStack(), 1, 64));
         if (requestedAmount <= 0) {
             GuiSound.DENY.play(player);
+            return;
+        }
+
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category == ItemCategory.PET) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_9604);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (category == ItemCategory.PET_EGG) {
+            var pets = AstralRecord.getInstance().getPetService();
+            if (pets == null) {
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_9605);
+                return;
+            }
+            pets.grantEggItems(astPlayer, model, requestedAmount).thenAccept(result -> {
+                if (!AstralRecord.getInstance().isEnabled() || !player.isOnline() || AstPlayerCache.get(player) != astPlayer) return;
+                if (result.grantedAmount() > 0) GuiSound.SELECT.play(player);
+                if (result.failure() != EggGrantFailure.NONE) {
+                    PlayerMessageService.getInstance().send(astPlayer, switch (result.failure()) {
+                        case FULL -> PlayerMsgId.P_5241;
+                        case PENDING -> PlayerMsgId.P_9603;
+                        default -> PlayerMsgId.P_9605;
+                    });
+                    GuiSound.DENY.play(player);
+                }
+                player.updateInventory();
+            });
             return;
         }
 

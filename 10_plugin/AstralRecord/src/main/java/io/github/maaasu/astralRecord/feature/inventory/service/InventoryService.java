@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
@@ -115,6 +116,7 @@ public class InventoryService {
     private final ItemStackFactory itemStackFactory;
     private final ItemReferenceResolver itemReferenceResolver;
     private final InventoryItemStackResolver itemStackResolver;
+    private io.github.maaasu.astralRecord.feature.pet.service.PetService petService;
     private final InventorySnapshotCodec snapshotCodec;
     private final HotbarRenderer hotbarRenderer;
     private final PlayerInventoryStateRegistry stateRegistry;
@@ -181,7 +183,7 @@ public class InventoryService {
      * @return InventoryClickGuard インスタンス
      */
     /** ペットの個体表示を接続します。構築時に一度呼び、通信は行いません。 */
-    public void setPetService(io.github.maaasu.astralRecord.feature.pet.service.PetService service){itemStackResolver.setPetService(service);}
+    public void setPetService(io.github.maaasu.astralRecord.feature.pet.service.PetService service){petService=service;itemStackResolver.setPetService(service);}
 
     public @NotNull InventoryClickGuard getClickGuard() {
         return clickGuard;
@@ -1603,15 +1605,17 @@ public class InventoryService {
     }
 
     /**
-     * 遅延確定する装備個体のために、BAG の空き slot を予約します。
+     * 遅延確定する装備または卵個体のために、BAG の空き slot を予約します。
      * <p>
      * 予約済み slot は通常のアイテム付与・移動処理からも使用済みとして扱われます。
      * 呼び出し元はローカル個体生成と player-state snapshot の準備に成功した場合
      * {@link #completePreparedInstanceReservation(AstPlayer, ItemModel, InventoryInstanceType, UUID, PreparedInstanceSlotReservation)}、
      * 失敗または取消時は {@link #releasePreparedInstanceReservation(PreparedInstanceSlotReservation)} を必ず呼び出してください。
+     * 卵のAPI生成では {@link #reconcileReservedPetGrant(UUID, InventoryPersistence.PersistedInventoryBaseline,
+     * InventoryOperationSnapshot, PreparedInstanceSlotReservation)} が取り込みと予約解除を同じstate lock内で確定します。
      *
      * @param astPlayer 予約対象プレイヤー
-     * @param model     装備のアイテム定義
+     * @param model     装備または卵のアイテム定義
      * @return 予約結果。空きがない場合は reservation が {@code null}、state 未登録または対象外カテゴリでは空き枠数が {@code -1}
      */
     public @NotNull PreparedInstanceSlotReservationResult reserveBagSlotForPreparedInstance(
@@ -1619,7 +1623,7 @@ public class InventoryService {
         @NotNull ItemModel model
     ) {
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category != ItemCategory.EQUIPMENT) {
+        if (category != ItemCategory.EQUIPMENT && category != ItemCategory.PET_EGG) {
             return new PreparedInstanceSlotReservationResult(null, -1);
         }
 
@@ -1932,8 +1936,12 @@ public class InventoryService {
                     InventoryModel targetInventory = ensureInventory(state, inventoryType);
                     changedTypes.add(inventoryType);
 
-                    if (category == ItemCategory.EQUIPMENT) {
-                        InventoryInstanceType expectedType = InventoryInstanceType.EQUIPMENT;
+                    if (category == ItemCategory.EQUIPMENT || category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
+                        InventoryInstanceType expectedType = switch (category) {
+                            case PET -> InventoryInstanceType.PET;
+                            case PET_EGG -> InventoryInstanceType.PET_EGG;
+                            default -> InventoryInstanceType.EQUIPMENT;
+                        };
                         if (reward.instances().size() != reward.amount()
                             || reward.instances().stream().anyMatch(instance -> instance.instanceType() != expectedType)) {
                             succeeded = false;
@@ -2050,6 +2058,17 @@ public class InventoryService {
             }
             return true;
         }
+    }
+
+    /**
+     * メールなどの所有済みペット個体をAPIで照合し、表示用cacheへ準備します。非同期専用です。
+     * @param accountId 受取アカウント
+     * @param instanceId 受取済み所有個体ID
+     * @param model 受取アイテム定義
+     * @return 所有者・アイテム・卵種別が一致する場合だけtrue
+     */
+    public boolean preloadOwnedPetReward(UUID accountId, UUID instanceId, ItemModel model) {
+        return petService != null && petService.preloadOwnedItem(accountId, instanceId, model);
     }
 
     private boolean addPreparedInstanceEntry(
@@ -3436,6 +3455,34 @@ public class InventoryService {
         @Nullable ExternalReturnNormalization returnNormalization,
         @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot
     ) {
+        return reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, beforePublish,
+            returnNormalization, snapshot, null);
+    }
+
+    /**
+     * API生成済み卵を三者マージし、予約枠の利用と解除をstate lock内で確定します。
+     * 通信結果不明または取り込み失敗では予約を保持し、同じ操作IDの復旧に使います。
+     * @param accountId 追加先アカウント
+     * @param baseline 操作前の保存済み状態
+     * @param snapshot APIの所有者限定entry応答
+     * @param reservation 卵生成前に確保したBAG枠
+     */
+    public void reconcileReservedPetGrant(UUID accountId, InventoryPersistence.PersistedInventoryBaseline baseline,
+        InventoryOperationSnapshot snapshot, PreparedInstanceSlotReservation reservation) {
+        if (!accountId.equals(reservation.accountId())) throw new IllegalArgumentException("Reservation owner mismatch");
+        reconcileExternalInventoryEntries(accountId, snapshot.getCoveredEntryIds(), baseline, null, null,
+            snapshot, reservation);
+    }
+
+    private @NotNull Set<UUID> reconcileExternalInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish,
+        @Nullable ExternalReturnNormalization returnNormalization,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot,
+        @Nullable PreparedInstanceSlotReservation consumedReservation
+    ) {
         if (!baseline.accountId().equals(accountId)) {
             throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
         }
@@ -3521,12 +3568,16 @@ public class InventoryService {
                     && (result.inventoryIdsNeedingCompaction().contains(inventoryId)
                         || entries.stream().anyMatch(entry ->
                             !entry.isDeleted() && entry.getSlotIndex() == null));
-                finalizedEntries.put(
-                    inventoryId,
-                    compactBag
+                PendingBagSlotReservation pending = consumedReservation == null ? null
+                    : findPendingBagSlotReservation(consumedReservation);
+                if (pending != null && pending.stateGeneration() == state && pending.inventoryId().equals(inventoryId)) {
+                    // API生成の卵だけを予約slotへ固定し、既存の容量外entryを詰め直さない。
+                    finalizedEntries.put(inventoryId, placeReservedApiEntry(entries, result.apiAddedEntryIds(), pending, state));
+                } else {
+                    finalizedEntries.put(inventoryId, compactBag
                         ? compactMergedEntriesAfterRemoval(state, inventoryId, entries)
-                        : List.copyOf(entries)
-                );
+                        : List.copyOf(entries));
+                }
             }
             InventoryStateSnapshot prePublish = new InventoryStateSnapshot(
                 accountId,
@@ -3555,6 +3606,7 @@ public class InventoryService {
                 if (currencyInventoryId != null) {
                     persistence.acknowledgeExternalInventory(state, currencyInventoryId, authoritativeCurrency);
                 }
+                if (consumedReservation != null) removePendingBagSlotReservation(consumedReservation);
                 return result.apiAddedEntryIds();
             } catch (RuntimeException exception) {
                 restoreState(prePublish);
@@ -4039,6 +4091,25 @@ public class InventoryService {
         }
         reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null,
             new ExternalReturnNormalization(true, true), snapshot);
+    }
+
+    /** API生成で今回追加した卵だけを予約slotへ配置します。既存entryと他予約のslotを変えません。 */
+    private @NotNull List<InventoryEntryModel> placeReservedApiEntry(
+        List<InventoryEntryModel> entries, Set<UUID> addedEntryIds,
+        PendingBagSlotReservation pending, PlayerInventoryState state
+    ) {
+        List<InventoryEntryModel> added = entries.stream()
+            .filter(entry -> addedEntryIds.contains(entry.getInventoryEntryId())).toList();
+        if (added.size() != 1 || added.getFirst().getInstanceId() == null
+            || !InventoryInstanceType.PET_EGG.getCode().equalsIgnoreCase(added.getFirst().getInstanceType())
+            || added.getFirst().getQuantity() != 1)
+            throw new IllegalStateException("Reserved egg response must contain one instance entry");
+        UUID addedId = added.getFirst().getInventoryEntryId();
+        if (entries.stream().anyMatch(entry -> !entry.getInventoryEntryId().equals(addedId)
+            && Objects.equals(entry.getSlotIndex(), pending.slotIndex())))
+            throw new IllegalStateException("Reserved egg slot is occupied");
+        return entries.stream().map(entry -> entry.getInventoryEntryId().equals(addedId)
+            ? withSlot(entry, pending.slotIndex(), state.getAccountId()) : entry).toList();
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(
@@ -4746,7 +4817,7 @@ public class InventoryService {
         }
         Set<Integer> usedSlots = collectUsedSlots(state, inventory);
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
             int freeSlots = 0;
             Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
             for (int i = 0; i < safeAmount; i++) {
@@ -4792,7 +4863,7 @@ public class InventoryService {
         }
         int bagCapacity = state.getBagSlotCapacity();
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
             return bagCapacity >= safeAmount;
         }
         long capacity = (long) bagCapacity * Math.max(1, model.getMaxStack());
@@ -5663,7 +5734,8 @@ public class InventoryService {
         InventoryModel targetInventory = ensureInventory(state, targetType,
             resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
         ItemCategory category = ItemCategory.fromApiValue(hotbarEntry.getItemCategory());
-        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE
+            || category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
             List<InventoryEntryModel> targetEntries = state.snapshotEntries(targetInventory.getInventoryId());
             Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
             Integer targetSlot = findNextFreeSlot(targetInventory, usedSlots);

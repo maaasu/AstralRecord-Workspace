@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.pet.service.PetService.EggGrantFailure;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
@@ -144,6 +145,30 @@ public class ItemCommand extends AstCommand {
             return;
         }
 
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category == ItemCategory.PET) {
+            PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_9604);
+            return;
+        }
+        if (category == ItemCategory.PET_EGG) {
+            var pets = plugin.getPetService();
+            if (pets == null) {
+                PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_9605);
+                return;
+            }
+            pets.grantEggItems(target, model, amount).thenAccept(result -> {
+                if (!plugin.isEnabled()) return;
+                if (result.grantedAmount() > 0) sendGrantSuccess(sender, target, model, result.grantedAmount());
+                if (result.failure() != EggGrantFailure.NONE)
+                    PlayerMessageService.getInstance().send(sender, switch (result.failure()) {
+                        case FULL -> PlayerMsgId.P_5241;
+                        case PENDING -> PlayerMsgId.P_9603;
+                        default -> PlayerMsgId.P_9605;
+                    });
+            });
+            return;
+        }
+
         var granted = inventoryService.addItemToNormalInventory(target, model, amount);
 
         if (granted <= 0) {
@@ -155,13 +180,19 @@ public class ItemCommand extends AstCommand {
         if (inventoryType != InventoryType.CURRENCY) {
             inventoryService.applyInventoryToGui(target, inventoryType);
         }
+        sendGrantSuccess(sender, target, model, granted);
+    }
+
+    /** 確定した付与数だけを送信者と現在の受取プレイヤーへ通知します。メインスレッド専用です。 */
+    private void sendGrantSuccess(CommandSender sender, AstPlayer target, ItemModel model, int granted) {
         PlayerMessageService.getInstance().send(
             sender,
             PlayerMsgId.P_5240,
             ColorCodeUtil.toLegacyText(model.getName(), model.getId()),
             granted
         );
-        if (sender != target.getBukkit()) {
+        if (sender != target.getBukkit() && target.getBukkit().isOnline()
+            && AstPlayerCache.get(target.getBukkit()) == target) {
             PlayerMessageService.getInstance().send(
                 target,
                 PlayerMsgId.P_5240,

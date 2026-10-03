@@ -20,6 +20,15 @@ public final class PetRepository {
      */
     public JsonObject account(UUID accountId) { return request("GET",path(accountId),null); }
     /**
+     * 所有者限定の単一個体を取得します。非同期専用です。
+     * @param accountId 所有アカウントID
+     * @param instanceId 個体ID
+     * @return APIの所有個体応答。取得失敗時は例外
+     */
+    public JsonObject instance(UUID accountId, UUID instanceId) {
+        return request("GET", "/api/pet/instances/" + instanceId + "?account_id=" + accountId, null);
+    }
+    /**
      * 同じoperationIdの確定結果を照会します。未確定はnullです。
      * @param accountId 所有アカウントID
      * @param operationId 再送でも維持する操作ID

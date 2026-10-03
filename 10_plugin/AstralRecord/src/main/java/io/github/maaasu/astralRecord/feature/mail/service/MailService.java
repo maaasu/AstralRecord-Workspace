@@ -193,7 +193,7 @@ public final class MailService {
                 fresh = mailRepository.findAvailable(accountId, MailFilter.ALL).stream()
                     .filter(candidate -> candidate.id().equals(mail.id())).findFirst().orElse(null);
                 prepared = fresh == null ? null : fresh.receiveOnRead()
-                    ? prepareRewards(fresh.rewards()) : new PreparedClaimRewards(List.of());
+                    ? prepareRewards(accountId, fresh.rewards()) : new PreparedClaimRewards(List.of());
             } catch (RuntimeException error) {
                 fresh = null;
                 prepared = null;
@@ -442,6 +442,7 @@ public final class MailService {
     }
 
     private @Nullable PreparedClaimRewards prepareRewards(
+        @NotNull UUID accountId,
         @NotNull List<MailReward> rewards
     ) {
         List<PreparedReward> preparedRewards = new ArrayList<>();
@@ -453,13 +454,18 @@ public final class MailService {
             if (model == null) {
                 return null;
             }
+            ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
             if (reward.instanceId() != null) {
-                if (reward.amount() != 1
-                    || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.EQUIPMENT
-                    || itemService.reloadEquipmentInstances(List.of(reward.instanceId().toString()))
-                        != ItemService.EquipmentPreloadResult.COMPLETE) {
-                    return null;
-                }
+                if (reward.amount() != 1) return null;
+                boolean loaded = switch (category) {
+                    case EQUIPMENT -> itemService.reloadEquipmentInstances(List.of(reward.instanceId().toString()))
+                        == ItemService.EquipmentPreloadResult.COMPLETE;
+                    case PET, PET_EGG -> inventoryService.preloadOwnedPetReward(accountId, reward.instanceId(), model);
+                    default -> false;
+                };
+                if (!loaded) return null;
+            } else if (category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
+                return null;
             }
             preparedRewards.add(new PreparedReward(model, reward.amount(), reward.instanceId()));
         }
@@ -479,7 +485,11 @@ public final class MailService {
             List<InventoryService.PreparedInventoryInstance> instances = new ArrayList<>();
             if (reward.instanceId() != null) {
                 instances.add(new InventoryService.PreparedInventoryInstance(
-                    InventoryInstanceType.EQUIPMENT, reward.instanceId()
+                    switch (ItemCategory.fromApiValue(reward.model().getCategory())) {
+                        case PET -> InventoryInstanceType.PET;
+                        case PET_EGG -> InventoryInstanceType.PET_EGG;
+                        default -> InventoryInstanceType.EQUIPMENT;
+                    }, reward.instanceId()
                 ));
             } else if (ItemCategory.fromApiValue(reward.model().getCategory()) == ItemCategory.EQUIPMENT) {
                 for (int index = 0; index < reward.amount(); index++) {

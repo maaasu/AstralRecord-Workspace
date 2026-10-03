@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.pet.service;
 
 import com.google.gson.*;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.pet.model.*;
 import io.github.maaasu.astralRecord.feature.pet.repository.PetRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.RuntimeAccountAuthority;
@@ -261,6 +263,113 @@ public final class PetService implements PetRuntimeService.StateBridge {
             progress.experience=Math.addExact(progress.experience,amount);progress.revision++;
         }
     }
+    /**
+     * 所有済み報酬個体を照合してcacheへ追加します。HTTPを呼ぶため非同期専用です。
+     * 既存個体の進行やアカウント世代は置き換えません。
+     * @param accountId 受取アカウントID
+     * @param instanceId ペット個体ID
+     * @param model 受取アイテム定義
+     * @return 所有者・アイテム・卵種別が一致し、accountがロード済みならtrue
+     */
+    public boolean preloadOwnedItem(UUID accountId, UUID instanceId,
+        ItemModel model) {
+        var category = ItemCategory.fromApiValue(model.getCategory());
+        if (category != ItemCategory.PET
+            && category != ItemCategory.PET_EGG) return false;
+        PetInstance pet = new PetInstance(repository.instance(accountId, instanceId));
+        if (!pet.id().equals(instanceId) || !pet.accountId().equals(accountId)
+            || !pet.itemId().equalsIgnoreCase(model.getId())
+            || pet.isEgg() != (category == ItemCategory.PET_EGG)) return false;
+        AccountState state = accounts.get(accountId);
+        if (state == null) return false;
+        synchronized (state) {
+            if (accounts.get(accountId) != state) return false;
+            state.pets.compute(instanceId, (id, cached) -> cached == null || cached.version() < pet.version() ? pet : cached);
+            return true;
+        }
+    }
+
+    /** 卵付与の停止理由。通信結果不明は既存操作IDで復旧を継続します。 */
+    public enum EggGrantFailure { NONE, FULL, FAILED, PENDING }
+    /** API確定済みの付与数と停止理由です。部分付与も確定数だけを通知します。 */
+    public record EggGrantResult(int grantedAmount, EggGrantFailure failure) { }
+
+    /**
+     * 管理者の卵アイテム付与を既存の原子API操作へ接続します。メインスレッド専用です。
+     * speciesはマスターのeggItemIdから解決し、1個ずつ容量を確認して異なる個体を作成します。
+     * HTTPと保存は非同期で、結果通知はメインスレッドへ戻します。
+     * @param owner 追加先のロード済みプレイヤー
+     * @param model 卵のアイテム定義
+     * @param amount 要求数。1未満は1へ補正
+     * @return API確定数と停止理由。成功前に通常stackを生成しません
+     */
+    public CompletableFuture<EggGrantResult> grantEggItems(AstPlayer owner,
+        ItemModel model, int amount) {
+        List<String> species = master.speciesIds().stream()
+            .filter(id -> PetMaster.itemId(text(master.species(id), "eggItemId", "")).equalsIgnoreCase(model.getId()))
+            .toList();
+        if (ItemCategory.fromApiValue(model.getCategory())
+                != ItemCategory.PET_EGG || species.size() != 1)
+            return CompletableFuture.completedFuture(new EggGrantResult(0, EggGrantFailure.FAILED));
+        CompletableFuture<EggGrantResult> completion = new CompletableFuture<>();
+        grantNextEgg(owner, model, species.getFirst(), Math.max(1, amount), 0, completion);
+        return completion;
+    }
+
+    /** 各API確定後にメインスレッドで次の1個を開始し、未確定操作の重複生成を防ぎます。 */
+    private void grantNextEgg(AstPlayer owner, ItemModel model,
+        String speciesId, int amount, int granted, CompletableFuture<EggGrantResult> completion) {
+        if (granted == amount) {
+            completion.complete(new EggGrantResult(granted, EggGrantFailure.NONE));
+            return;
+        }
+        if (!plugin.isEnabled() || !owner.getBukkit().isOnline()
+            || io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(owner.getBukkit()) != owner) {
+            completion.complete(new EggGrantResult(granted, EggGrantFailure.FAILED));
+            return;
+        }
+        UUID accountId = owner.getAccount().getUuid();
+        if (hasUnresolved(accountId)) {
+            completion.complete(new EggGrantResult(granted, EggGrantFailure.PENDING));
+            return;
+        }
+        var reserved = inventory.reserveBagSlotForPreparedInstance(owner, model);
+        var reservation = reserved.reservation();
+        if (reservation == null) {
+            completion.complete(new EggGrantResult(granted,
+                reserved.remainingBagSlots() < 0 ? EggGrantFailure.FAILED : EggGrantFailure.FULL));
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("speciesId", speciesId);
+        CompletableFuture<JsonObject> operation;
+        try {
+            operation = mutate(owner, UUID.randomUUID(), "/eggs", "POST", body, Map.of(), reservation);
+        } catch (RuntimeException failure) {
+            inventory.releasePreparedInstanceReservation(reservation);
+            log(failure);
+            completion.complete(new EggGrantResult(granted, EggGrantFailure.FAILED));
+            return;
+        }
+        operation.whenComplete((result, failure) -> {
+            if (!plugin.isEnabled()) {
+                completion.complete(new EggGrantResult(granted, EggGrantFailure.PENDING));
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (failure != null || rejected(result)) {
+                    completion.complete(new EggGrantResult(granted,
+                        hasUnresolved(accountId) ? EggGrantFailure.PENDING : EggGrantFailure.FAILED));
+                    return;
+                }
+                if (owner.getBukkit().isOnline()
+                    && io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(owner.getBukkit()) == owner)
+                    inventory.refreshNormalInventoryGrantUi(owner);
+                grantNextEgg(owner, model, speciesId, amount, granted + 1, completion);
+            });
+        });
+    }
+
     @Override public List<String> eggSpecies(){return master.speciesIds();}
     @Override public double eggDropChance(){return number(master.rules(),"eggDropChance",0);}
     @Override public double eggWeight(String speciesId){return Math.max(0,number(master.species(speciesId),"dropWeight",0));}
@@ -320,20 +429,31 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @return 説明した契約に従う結果。通信を伴う処理の失敗は例外またはfutureで通知します
      */
     public CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,JsonObject body,Map<String,Long> payment) {
+        return mutate(owner, operationId, suffix, method, body, payment, null);
+    }
+
+    /** 卵付与のBAG予約を未確定操作へ接続し、同じ操作IDの復旧まで保持します。メインスレッド専用です。 */
+    private CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,
+        JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation) {
         UUID accountId=owner.getAccount().getUuid();
-        if(unresolved.containsKey(accountId))return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));
-        if(!inventory.reserveOrbOperationPayment(accountId,operationId,payment,0))
+        if(unresolved.containsKey(accountId)) {
+            releaseSlotReservation(reservation);
+            return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));
+        }
+        if(!inventory.reserveOrbOperationPayment(accountId,operationId,payment,0)) {
+            releaseSlotReservation(reservation);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet payment unavailable"));
+        }
         body=body.deepCopy();body.addProperty("operationId",operationId.toString());body.addProperty("updatedBy",accountId.toString());
-        ExternalOperation operation=new ExternalOperation(owner,operationId,suffix,method,body);
-        if(unresolved.putIfAbsent(accountId,operation)!=null){inventory.releaseOrbOperationPayment(accountId,operationId);return CompletableFuture.failedFuture(new IllegalStateException("Pet operation busy"));}
+        ExternalOperation operation=new ExternalOperation(owner,operationId,suffix,method,body,reservation);
+        if(unresolved.putIfAbsent(accountId,operation)!=null){releaseSlotReservation(reservation);inventory.releaseOrbOperationPayment(accountId,operationId);return CompletableFuture.failedFuture(new IllegalStateException("Pet operation busy"));}
         if(!org.bukkit.Bukkit.isPrimaryThread()){
-            unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
+            releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet operation must begin on Bukkit main thread"));
         }
         pauseListener.accept(owner);
         AccountState state=accounts.get(accountId);
-        if(state==null){unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
+        if(state==null){releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet account is not loaded"));}
         CompletableFuture<JsonObject> future;
         synchronized(state){
@@ -345,7 +465,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         }
         return future.whenComplete((result,failure)->{
             if(failure==null){finish(operation);}
-            else if(operation.baseline==null){unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);notifyRefresh(owner);}
+            else if(operation.baseline==null){releaseSlotReservation(reservation);unresolved.remove(accountId,operation);inventory.releaseOrbOperationPayment(accountId,operationId);notifyRefresh(owner);}
             else {log(failure);}
         });
     }
@@ -356,9 +476,17 @@ public final class PetService implements PetRuntimeService.StateBridge {
             catch(PetRepository.RejectedOperation rejected) {operation.rejected=rejected;operation.result=new JsonObject();}
         }
         if(operation.rejected==null&&!operation.applied){
-            InventoryOperationSnapshot snapshot=InventoryOperationSnapshotParser.parse(operation.result.get("inventorySnapshot"));
-            if(snapshot!=null) inventory.reconcileExternalInventoryEntries(accountId,snapshot.getCoveredEntryIds(),operation.baseline,snapshot);
-            else if(operation.result.has("inventorySnapshot"))throw new IllegalStateException("Invalid pet inventory snapshot");
+            if (!operation.inventoryApplied) {
+                InventoryOperationSnapshot snapshot=InventoryOperationSnapshotParser.parse(operation.result.get("inventorySnapshot"));
+                if(snapshot!=null) {
+                    if (operation.reservation != null)
+                        inventory.reconcileReservedPetGrant(accountId, operation.baseline, snapshot, operation.reservation);
+                    else inventory.reconcileExternalInventoryEntries(accountId,snapshot.getCoveredEntryIds(),operation.baseline,snapshot);
+                } else if(operation.result.has("inventorySnapshot") || operation.reservation != null)
+                    throw new IllegalStateException("Invalid pet inventory snapshot");
+                // 個体cacheの再取得に失敗しても、同じAPI差分を二度取り込まない。
+                operation.inventoryApplied = true;
+            }
             publishAccount(accountId,repository.account(accountId));
             operation.applied=true;
         }
@@ -366,8 +494,13 @@ public final class PetService implements PetRuntimeService.StateBridge {
         return operation.result;
     }
     private void finish(ExternalOperation operation) {
+        releaseSlotReservation(operation.reservation);
         UUID accountId=operation.owner.getAccount().getUuid();unresolved.remove(accountId,operation);
         notifyRefresh(operation.owner);
+    }
+    /** 予約がある場合だけ解除します。解除済み予約にも安全に使用できます。 */
+    private void releaseSlotReservation(InventoryService.PreparedInstanceSlotReservation reservation) {
+        if (reservation != null) inventory.releasePreparedInstanceReservation(reservation);
     }
     private void notifyRefresh(AstPlayer owner){
         if(plugin.isEnabled())plugin.getServer().getScheduler().runTask(plugin,()->refreshListener.accept(owner));
@@ -441,8 +574,12 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private record ProgressRequest(JsonObject body,long experience,long revision){}
     private static final class ExternalOperation {
         final AstPlayer owner;final UUID id;final String suffix,method;final JsonObject body;
+        final InventoryService.PreparedInstanceSlotReservation reservation;
         volatile InventoryPersistence.PersistedInventoryBaseline baseline;volatile JsonObject result;
-        volatile PetRepository.RejectedOperation rejected;volatile boolean applied,recovering;
-        ExternalOperation(AstPlayer owner,UUID id,String suffix,String method,JsonObject body){this.owner=owner;this.id=id;this.suffix=suffix;this.method=method;this.body=body;}
+        volatile PetRepository.RejectedOperation rejected;volatile boolean inventoryApplied,applied,recovering;
+        ExternalOperation(AstPlayer owner,UUID id,String suffix,String method,JsonObject body,
+            InventoryService.PreparedInstanceSlotReservation reservation){
+            this.owner=owner;this.id=id;this.suffix=suffix;this.method=method;this.body=body;this.reservation=reservation;
+        }
     }
 }
