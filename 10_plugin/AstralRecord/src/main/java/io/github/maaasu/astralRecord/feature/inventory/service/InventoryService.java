@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -2722,7 +2725,7 @@ public class InventoryService {
     }
 
     /**
-     * BAG またはホットバーのアイテムをストレージへ収納します。
+     * BAG またはホットバーのアイテムをストレージへ収納します。装備中・操作未確定のペットは収納しません。
      *
      * @param astPlayer 対象プレイヤー
      * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
@@ -2745,6 +2748,18 @@ public class InventoryService {
                 : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
             if (sourceEntry == null) {
                 return 0;
+            }
+            if (petService != null && sourceEntry.getInstanceId() != null
+                && (InventoryInstanceType.PET.getCode().equalsIgnoreCase(sourceEntry.getInstanceType())
+                    || InventoryInstanceType.PET_EGG.getCode().equalsIgnoreCase(sourceEntry.getInstanceType()))) {
+                if (petService.hasUnresolved(state.getAccountId())) {
+                    PlayerMessageService.getInstance().send(astPlayer.getBukkit(), PlayerMsgId.P_9603);
+                    return 0;
+                }
+                if (sourceEntry.getInstanceId().equals(petService.equippedId(state.getAccountId()))) {
+                    PlayerMessageService.getInstance().send(astPlayer.getBukkit(), PlayerMsgId.P_9622);
+                    return 0;
+                }
             }
             ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
             if (sourceItem == null || sourceItem.getType() == Material.AIR) {

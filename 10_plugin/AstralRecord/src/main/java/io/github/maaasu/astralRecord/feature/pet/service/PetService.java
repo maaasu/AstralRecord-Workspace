@@ -440,9 +440,20 @@ public final class PetService implements PetRuntimeService.StateBridge {
             releaseSlotReservation(reservation);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));
         }
-        if(!inventory.reserveOrbOperationPayment(accountId,operationId,payment,0)) {
+        var bagEntries = PetBagAccess.entries(inventory.getStateRegistry().get(accountId));
+        if (payment.entrySet().stream().anyMatch(cost -> PetBagAccess.materialAmount(bagEntries, cost.getKey()) < cost.getValue())) {
             releaseSlotReservation(reservation);
-            return CompletableFuture.failedFuture(new IllegalStateException("Pet payment unavailable"));
+            JsonObject result = new JsonObject();
+            result.addProperty("failure", "insufficient_materials");
+            Logger.log(LogId.W_9601, accountId, suffix, 0, "insufficient_materials");
+            return CompletableFuture.completedFuture(result);
+        }
+        if (!inventory.reserveOrbOperationPayment(accountId,operationId,payment,0)) {
+            releaseSlotReservation(reservation);
+            JsonObject result = new JsonObject();
+            result.addProperty("failure", "payment_unavailable");
+            Logger.log(LogId.W_9601, accountId, suffix, 0, "payment_unavailable");
+            return CompletableFuture.completedFuture(result);
         }
         body=body.deepCopy();body.addProperty("operationId",operationId.toString());body.addProperty("updatedBy",accountId.toString());
         ExternalOperation operation=new ExternalOperation(owner,operationId,suffix,method,body,reservation);
@@ -473,7 +484,11 @@ public final class PetService implements PetRuntimeService.StateBridge {
         UUID accountId=operation.owner.getAccount().getUuid();
         if(operation.result==null) {
             try {operation.result=repository.mutate(accountId,operation.suffix,operation.method,operation.body);}
-            catch(PetRepository.RejectedOperation rejected) {operation.rejected=rejected;operation.result=new JsonObject();}
+            catch(PetRepository.RejectedOperation rejected) {
+                operation.rejected=rejected;operation.result=new JsonObject();
+                operation.result.addProperty("failure", rejected.failureCode());
+                Logger.log(LogId.W_9601, accountId, operation.suffix, rejected.status, rejected.failureCode());
+            }
         }
         if(operation.rejected==null&&!operation.applied){
             if (!operation.inventoryApplied) {
@@ -560,7 +575,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @param result 契約に従った入力値
      * @return 説明した契約に従う結果。通信を伴う処理の失敗は例外またはfutureで通知します
      */
-    public boolean rejected(JsonObject result){return result.isEmpty();}
+    public boolean rejected(JsonObject result){return result==null||result.isEmpty()||result.has("failure");}
     private static void log(Throwable failure){Logger.log(LogId.E_9600,failure,"pet");}
     private static final class AccountState {
         final UUID id;Map<UUID,PetInstance> pets=new LinkedHashMap<>();UUID equipped;long generation;

@@ -72,5 +72,19 @@ public final class PetRepository {
         public final int status;
         /** HTTP状態と診断用の応答を保持します。 */
         public RejectedOperation(int status,String response) { super(response);this.status=status; }
+        /**
+         * JSONの短い拒否コードだけを返します。HTMLや内部診断本文は通知へ渡しません。
+         * @return API拒否コード。解釈できない応答はoperation_rejected
+         */
+        public String failureCode() {
+            try {
+                JsonElement value = JsonParser.parseString(getMessage()).getAsJsonObject().get("failure");
+                if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+                    String code = value.getAsString();
+                    if (code.matches("[a-z_]{1,64}")) return code;
+                }
+            } catch (RuntimeException ignored) { }
+            return "operation_rejected";
+        }
     }
 }

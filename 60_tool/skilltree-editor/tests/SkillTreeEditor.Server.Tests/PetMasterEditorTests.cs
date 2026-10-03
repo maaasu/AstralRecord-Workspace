@@ -68,6 +68,21 @@ public sealed class PetMasterEditorTests : IDisposable
             report.Issues.Select(issue => $"{issue.Code}: {issue.Path} {issue.Message}")));
     }
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(.5, true)]
+    [InlineData(1, true)]
+    [InlineData(-.1, false)]
+    [InlineData(1.1, false)]
+    public async Task ActivityRateUsesTheSameClosedBoundsAsSchemaAndApi(double rate, bool valid)
+    {
+        var draft = _master.DeepClone();
+        draft["experience"]!["activityRate"] = rate;
+        var report = await _validation.ValidateAsync(PetPath, Raw(draft), CancellationToken.None);
+        Assert.Equal(valid, report.IsValid);
+        if (!valid) Assert.Contains(report.Issues, issue => issue.Code == "PET_EXPERIENCE");
+    }
+
     [Fact]
     public async Task CatalogDynamicallyLoadsSingletonJapaneseSchemaFieldsAndReferenceCandidates()
     {

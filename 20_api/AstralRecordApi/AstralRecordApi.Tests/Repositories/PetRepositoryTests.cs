@@ -290,6 +290,29 @@ public class PetRepositoryTests
         Assert.Equal(51, replay.Response!.Instance!.Details!.Experience);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(.5)]
+    [InlineData(1)]
+    public void Master_AcceptsActivityRateWithinSchemaBounds(double rate)
+    {
+        var master = MakeMaster();
+        master.Experience.ActivityRate = rate;
+        PetMasterValidator.Validate(master);
+    }
+
+    [Theory]
+    [InlineData(-.1)]
+    [InlineData(1.1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void Master_RejectsActivityRateOutsideSchemaBounds(double rate)
+    {
+        var master = MakeMaster();
+        master.Experience.ActivityRate = rate;
+        Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
+    }
+
     private static PetMasterResponse MakeMaster() => new()
     {
         Rules = new PetRules { BreedMaterials = [new() { ItemId = "flower", Quantity = 64 }], ReviveMaterials = [new() { ItemId = "flower", Quantity = 16 }] },

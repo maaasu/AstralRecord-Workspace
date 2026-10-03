@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.pet.command;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.pet.view.PetOperationFeedback;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -26,7 +27,7 @@ public final class PetCommand extends AstCommand {
         service.mutate(player,UUID.randomUUID(),"/"+id+"/rename","POST",body,Map.of()).whenComplete((result,failure)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->PlayerMessageService.getInstance().send(player,
-                failure==null&&!service.rejected(result)?PlayerMsgId.P_9601:PlayerMsgId.P_9600));
+                PetOperationFeedback.message(result,failure,service.hasUnresolved(player.getAccount().getUuid()))));
         });
     }
 }

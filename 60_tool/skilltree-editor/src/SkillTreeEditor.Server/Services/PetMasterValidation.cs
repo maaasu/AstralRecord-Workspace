@@ -76,7 +76,8 @@ internal static class PetMasterValidation
             && weights.All(value => Number(value) >= 0) && weights.Sum(Number) > 0,
             "PET_POTENTIAL", "/rules/potentialCountWeights", "潜在成長倍率は2固定、継承重みは非負整数3個で合計を正にしてください。", issues);
         if (master["experience"] is JsonObject curve)
-            Check(Number(curve["activityRate"]) > 0, "PET_EXPERIENCE", "/experience/activityRate", "活動経験値比率はAPIと同じ正数で指定してください。", issues);
+            Check(double.IsFinite(Number(curve["activityRate"])) && Number(curve["activityRate"]) is >= 0 and <= 1,
+                "PET_EXPERIENCE", "/experience/activityRate", "活動経験値比率は0以上1以下で指定してください。", issues);
         var definitions = species.OfType<JsonObject>().ToArray();
         Check(definitions.Select(s => JsonValueReader.String(s["id"])).Order().SequenceEqual(new[] { "cat", "chicken", "wolf" }),
             "PET_SPECIES", "/species", "wolf、cat、chickenを各1種類ずつ定義してください。", issues);

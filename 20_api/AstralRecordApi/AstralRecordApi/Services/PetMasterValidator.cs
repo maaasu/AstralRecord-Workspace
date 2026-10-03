@@ -19,7 +19,7 @@ public static class PetMasterValidator
         var curve = master.Experience;
         Require(new[] { curve.Base, curve.Quadratic, curve.TierBonus, curve.MilestoneBase, curve.MilestoneLinear, curve.ActivityRate }.All(double.IsFinite)
             && curve.Base > 0 && curve.Quadratic >= 0 && curve.TierInterval > 0 && curve.MilestoneInterval > 0
-            && curve.Wave.Length > 0 && curve.Wave.All(v => v >= 0) && curve.ActivityRate > 0, "experience curve");
+            && curve.Wave.Length > 0 && curve.Wave.All(v => v >= 0) && curve.ActivityRate is >= 0 and <= 1, "experience curve");
         foreach (var species in master.Species)
         {
             Require(!string.IsNullOrWhiteSpace(species.Id) && !string.IsNullOrWhiteSpace(species.EggItemId) && !string.IsNullOrWhiteSpace(species.PetItemId)

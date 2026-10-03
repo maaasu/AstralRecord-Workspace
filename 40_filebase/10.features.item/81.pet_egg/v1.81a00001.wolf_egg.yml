@@ -1,16 +1,18 @@
 # design:
-#   motif: "動物 / 犬の卵"
+#   motif: "動物 / 犬と魔法の卵"
 #   progression: 21
 schemaVersion: 1
 id: 81a00001
 category: pet_egg
-name: "&d犬の卵"
+name: "&d犬が宿る魔法の卵"
 icon: EGG
+iconGlint: true
 rarity: EPIC
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7孵化施設で素材を使うとペットが生まれる。"
-  - "&7個体の能力は孵化するまで分からない。"
+  - "&7犬の命が宿った、不思議な魔法の卵。"
+  - "&7ペット飼育員に素材を渡すと孵化できる。"
+  - "&7生まれるペットの能力は孵化後に分かる。"
 unTradeable: false
 unSellable: true
