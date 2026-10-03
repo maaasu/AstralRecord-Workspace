@@ -627,7 +627,7 @@ class ItemRepository {
                 value = effectObj.get("value")?.takeIf { !it.isJsonNull }?.asDouble,
                 status = effectObj.get("status")?.takeIf { !it.isJsonNull }?.asString,
                 isPercent = effectObj.get("isPercent")?.asBoolean ?: false,
-                buffId = effectObj.get("buffId")?.takeIf { !it.isJsonNull }?.asString,
+                buffId = normalizeConsumableBuffReference(parseStringOrNull(effectObj, "buffId")),
                 durationSeconds = effectObj.get("durationSeconds")?.takeIf { !it.isJsonNull }?.asLong,
             )
         }
@@ -636,6 +636,22 @@ class ItemRepository {
             onUse = onUse,
             effects = effects,
         )
+    }
+
+    /**
+     * API が保持する参照値から既知の buff: prefix を除去し、表示と付与に使う ID へ変換します。
+     *
+     * @param reference API のバフ参照文字列。素 ID も受け付けます
+     * @return 前後空白と既知の prefix を除いた ID。未指定または空の場合は null
+     */
+    private fun normalizeConsumableBuffReference(reference: String?): String? {
+        val normalized = reference?.trim() ?: return null
+        val buffId = if (normalized.startsWith("buff:", ignoreCase = true)) {
+            normalized.substring("buff:".length).trim()
+        } else {
+            normalized
+        }
+        return buffId.takeIf { it.isNotEmpty() }
     }
 
     private fun parseStringList(array: JsonArray?): List<String> {

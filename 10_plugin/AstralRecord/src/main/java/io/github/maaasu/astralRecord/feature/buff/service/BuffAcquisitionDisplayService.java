@@ -134,6 +134,7 @@ public final class BuffAcquisitionDisplayService {
         return String.format(Locale.ROOT, "%d:%02d", seconds / 60L, seconds % 60L);
     }
 
+    /** 先頭の補正を、固定加算と割合補正を区別する共通書式で通知用に表示します。 */
     private @NotNull String modifierSummary(@NotNull ActiveBuff buff) {
         List<BuffModifier> modifiers = buff.getType().getModifiers();
         if (modifiers.isEmpty()) {
@@ -141,6 +142,7 @@ public final class BuffAcquisitionDisplayService {
         }
         BuffModifier modifier = modifiers.get(0);
         StatusType type = modifier.getStatus();
-        return type.legacyColor() + type.getDisplayName() + ColorCodeUtil.WHITE + " " + type.formatSignedValue(modifier.getValue());
+        return type.legacyColor() + type.getDisplayName() + ColorCodeUtil.WHITE + " "
+            + BuffModifierDisplayFormatter.formatValue(modifier);
     }
 }

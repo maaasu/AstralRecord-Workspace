@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.buff.repository.BuffRepository;
+import io.github.maaasu.astralRecord.feature.buff.service.BuffModifierDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskSettings;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
@@ -162,7 +164,7 @@ public class ItemStackFactory {
     /** 必要クラスの表示名解決に使用します。 */
     private @Nullable PlayerClassService playerClassService;
     private final BuffRepository buffRepository = new BuffRepository();
-    private final Map<String, String> buffDisplayNameCache = new ConcurrentHashMap<>();
+    private final Map<String, BuffType> buffDefinitionCache = new ConcurrentHashMap<>();
 
     /**
      * ItemStackFactory を初期化します。
@@ -437,11 +439,12 @@ public class ItemStackFactory {
     }
 
     /**
-     * テンプレートキャッシュをクリアします。
-     * アイテム定義のリロード時に呼び出してください。
+     * テンプレートと消耗品表示用バフ定義のキャッシュをクリアします。
+     * マスタ定義のリロード時に呼び出してください。
      */
     public void clearCache() {
         templateCache.clear();
+        buffDefinitionCache.clear();
         Logger.log(LogId.D_5210);
     }
 
@@ -1076,6 +1079,13 @@ public class ItemStackFactory {
         lore.add("");
     }
 
+    /**
+     * 回復量またはバフ定義の持続時間・全ステータス補正を効果欄へ追加します。
+     * バフの確定発動率は省略し、確率発動の場合だけ発動率を表示します。
+     *
+     * @param lore 追加先の Lore 行
+     * @param effect 使用時の効果定義
+     */
     private void appendConsumableEffectLore(
             @NotNull List<String> lore,
             @NotNull ItemConsumableEffect effect) {
@@ -1087,10 +1097,28 @@ public class ItemStackFactory {
             return;
         }
         if (effect.getType() == ItemConsumableEffectType.BUFF) {
+            BuffType buffType = resolveConsumableBuff(effect.getBuffId());
+            if (buffType == null) {
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                        + ColorCodeUtil.GRAY + "未登録の効果");
+                return;
+            }
             lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                    + ColorCodeUtil.YELLOW + resolveBuffDisplayName(effect.getBuffId())
-                    + ColorCodeUtil.DARK_GRAY + " : "
-                    + ColorCodeUtil.WHITE + formatRate(effect.getRate()));
+                    + ColorCodeUtil.toLegacyText(buffType.getDisplayName(), "バフ")
+                    + ColorCodeUtil.GRAY + "（基本"
+                    + formatTicksAsSeconds(buffType.getDurationTicks())
+                    + "）");
+            for (BuffModifier modifier : buffType.getModifiers()) {
+                StatusType statusType = modifier.getStatus();
+                lore.add(ColorCodeUtil.DARK_GRAY + "     └ "
+                        + statusType.legacyColor() + statusType.getDisplayName()
+                        + ColorCodeUtil.DARK_GRAY + " : "
+                        + ColorCodeUtil.WHITE + BuffModifierDisplayFormatter.formatValue(modifier));
+            }
+            if (effect.getRate() < 100.0D) {
+                lore.add(ColorCodeUtil.GRAY + "     └ 発動率: "
+                        + ColorCodeUtil.WHITE + formatRate(effect.getRate()));
+            }
             return;
         }
         lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
@@ -1144,17 +1172,17 @@ public class ItemStackFactory {
         return String.format(Locale.ROOT, "%.1f秒", seconds);
     }
 
-    private @NotNull String resolveBuffDisplayName(@Nullable String buffId) {
+    /**
+     * 使用時と同じバフ定義を解決し、取得できた定義だけを表示用にキャッシュします。
+     *
+     * @param buffId バフ ID。未指定の場合は取得しません
+     * @return バフ定義。未指定または未登録の場合は null
+     */
+    private @Nullable BuffType resolveConsumableBuff(@Nullable String buffId) {
         if (buffId == null || buffId.isBlank()) {
-            return "バフ";
+            return null;
         }
-        return buffDisplayNameCache.computeIfAbsent(buffId, id -> {
-            BuffType buffType = buffRepository.findById(id);
-            if (buffType == null || buffType.getDisplayName() == null || buffType.getDisplayName().isBlank()) {
-                return "バフ";
-            }
-            return ColorCodeUtil.toLegacyText(buffType.getDisplayName(), id);
-        });
+        return buffDefinitionCache.computeIfAbsent(buffId, buffRepository::findById);
     }
 
     /**

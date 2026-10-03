@@ -45,6 +45,14 @@ public class BuffService {
     }
 
     /**
+     * マスタ再読込の公開時に取得済み定義を破棄し、次回の付与から更新後の定義を取得します。
+     * すでに付与済みのアクティブバフは、付与時の効果と失効時刻を維持します。
+     */
+    public void clearMasterDataCache() {
+        buffCache.clear();
+    }
+
+    /**
      * バフを付与します。
      * 同一 buffId は重複保持せず、再付与時は時間を更新します。
      *

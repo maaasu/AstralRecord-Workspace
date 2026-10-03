@@ -3201,6 +3201,14 @@ public final class AstralRecord extends JavaPlugin {
         );
     }
 
+    /**
+     * マスタのスナップショットと公開・有効化処理を準備します。
+     * アイテム公開時は、表示用および次回付与用のバフ定義キャッシュも破棄します。
+     *
+     * @param fileDatabaseSnapshot 準備中のファイルマスタスナップショット
+     * @param yamlDbConfig 準備中のファイルマスタ設定
+     * @return メインスレッドで公開する再読込計画
+     */
     private @org.jetbrains.annotations.NotNull MasterDataReloadPlan loadMasterDataReloadPlan(
         @org.jetbrains.annotations.NotNull FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot,
         @org.jetbrains.annotations.NotNull YamlDbConfig yamlDbConfig
@@ -3215,6 +3223,7 @@ public final class AstralRecord extends JavaPlugin {
         loaded += itemSnapshot.size();
         publications.add(() -> {
             itemService.replaceMasterDataSnapshot(itemSnapshot);
+            statusService.getBuffService().clearMasterDataCache();
             itemStackFactory.clearCache();
         });
 
