@@ -174,6 +174,7 @@ describe('PlacementInspector', () => {
     )
 
     expect(screen.queryByLabelText('Lore')).toBeNull()
+    fireEvent.change(screen.getByLabelText('名前'), { target: { value: '&d旅立ちの記録（更新）' } })
     fireEvent.click(screen.getByRole('button', { name: 'マスター定義を保存' }))
 
     await waitFor(() => expect(onSaveMaster).toHaveBeenCalledTimes(1))
