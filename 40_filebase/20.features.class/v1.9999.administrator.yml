@@ -65,6 +65,8 @@ growthPerLevel:
     value: 0.5
   - status: MAGIC_DEFENSE
     value: 0.5
+  - status: MOVEMENT_SPEED
+    value: -0.056169616961
 expRate: 100
 usableSkills:
   - skill:swordsman_shield_activate

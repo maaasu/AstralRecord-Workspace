@@ -67,6 +67,8 @@ growthPerLevel:
     value: 0.05
   - status: SHIELD_BREAK
     value: 0.1
+  - status: MOVEMENT_SPEED
+    value: 0.785254237289
 expRate: 100
 usableSkills:
   - skill:adventurer_mana_burst

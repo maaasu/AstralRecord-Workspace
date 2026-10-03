@@ -96,6 +96,8 @@ growthPerLevel:
     value: 0.8
   - status: MAGIC_DEFENSE
     value: 0.4
+  - status: MOVEMENT_SPEED
+    value: 0.602372881356
 expRate: 100
 usableSkills:
   - skill:adventurer_astral_edge

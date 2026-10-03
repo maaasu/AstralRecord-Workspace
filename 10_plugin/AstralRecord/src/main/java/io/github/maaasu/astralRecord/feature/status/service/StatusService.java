@@ -72,7 +72,7 @@ public class StatusService {
     private static final double VITALITY_MAGIC_DEFENSE_PER_POINT = 1.0D;
     private static final double VITALITY_HP_REGEN_PER_POINT = 0.1D;
     private static final double AGILITY_ATTACK_SPEED_PER_POINT = 1.0D;
-    private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 1.0D;
+    private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 0.1D;
     private static final double AGILITY_EVASION_PER_POINT = 0.1D;
     private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
     private static final String HEAL_ARROW_ALPHA_BUFF_ID = "archer_heal_arrow_alpha";
