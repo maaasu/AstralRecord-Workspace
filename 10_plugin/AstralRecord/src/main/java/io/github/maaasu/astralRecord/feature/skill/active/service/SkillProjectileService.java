@@ -91,6 +91,35 @@ public final class SkillProjectileService {
     }
 
     /**
+     * 実際に進んだ飛翔区間を描画側へ渡す仮想 projectile を発射します。
+     * 既に命中した対象の除外は命中数へ加算する前に行います。
+     *
+     * @param player 発動者
+     * @param origin 発射位置
+     * @param direction 発射方向
+     * @param spec projectile 仕様
+     * @param onHit 命中対象と命中位置を受け取る処理
+     * @param onTerminate Entity・Block・射程終了の種別と地点を受け取る処理
+     * @param excludedTargetId 先行攻撃で既に命中した対象。除外不要ならnull
+     * @param trailRenderer 各tickの実進行区間の始点と終点を受け取る描画処理
+     */
+    public void launchVisual(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            @NotNull BiConsumer<AstEntity, Location> onHit,
+            @NotNull Consumer<SkillProjectileTermination> onTerminate,
+            @Nullable UUID excludedTargetId,
+            @NotNull BiConsumer<Location, Location> trailRenderer
+    ) {
+        Predicate<AstEntity> hitFilter = excludedTargetId == null
+                ? null : candidate -> !excludedTargetId.equals(candidate.id());
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit,
+                ignored -> { }, onTerminate, hitFilter, null, trailRenderer);
+    }
+
+    /**
      * 指定した対象だけを衝突対象として扱う仮想 projectile を発射します。
      *
      * @param player 発動者
@@ -482,6 +511,25 @@ public final class SkillProjectileService {
             @Nullable Predicate<AstEntity> hitFilter,
             @Nullable SkillProjectileInterceptor interceptor
     ) {
+        launchInternal(player, origin, direction, spec, homingStrength, homingRange,
+                onHit, onFinish, onTerminate, hitFilter, interceptor, null);
+    }
+
+    /** 旧入口の描画を保ちつつ、専用描画だけ飛翔区間を通知します。 */
+    private void launchInternal(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            double homingStrength,
+            double homingRange,
+            @NotNull BiConsumer<AstEntity, Location> onHit,
+            @NotNull Consumer<Location> onFinish,
+            Consumer<SkillProjectileTermination> onTerminate,
+            @Nullable Predicate<AstEntity> hitFilter,
+            @Nullable SkillProjectileInterceptor interceptor,
+            @Nullable BiConsumer<Location, Location> trailRenderer
+    ) {
         Vector initialDirection = direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : direction.clone().normalize();
@@ -537,7 +585,11 @@ public final class SkillProjectileService {
                                     1,
                                     false
                             ).isEmpty()) {
-                        effectService.line(current[0], interception.location(), 0.45D, spec.trail());
+                        if (trailRenderer == null) {
+                            effectService.line(current[0], interception.location(), 0.45D, spec.trail());
+                        } else {
+                            renderVisualTrail(current[0], interception.location(), trailRenderer);
+                        }
                         finish(
                                 player.getUniqueId(), scope, interception.location(),
                                 SkillProjectileTermination.Type.INTERCEPTED, interception.location(),
@@ -548,7 +600,9 @@ public final class SkillProjectileService {
                     }
                 }
             }
-            effectService.line(current[0], next, 0.45D, spec.trail());
+            if (trailRenderer == null) {
+                effectService.line(current[0], next, 0.45D, spec.trail());
+            }
 
             List<AstEntity> candidates = blockImpact == null
                     ? targetingService.inLine(
@@ -575,17 +629,25 @@ public final class SkillProjectileService {
                     continue;
                 }
                 Location impact = candidate.location().add(0.0D, 1.0D, 0.0D);
+                boolean terminatesOnEntity = !spec.piercing() || hitIds.size() >= spec.maxHits();
+                if (terminatesOnEntity && trailRenderer != null) {
+                    renderVisualTrail(current[0], clippedTrailEnd(current[0], next, impact), trailRenderer);
+                }
                 if (spec.impact() != null) {
                     effectService.point(impact, spec.impact());
                 }
                 onHit.accept(candidate, impact);
-                if (!spec.piercing() || hitIds.size() >= spec.maxHits()) {
+                if (terminatesOnEntity) {
                     finish(
                             player.getUniqueId(), scope, next, SkillProjectileTermination.Type.ENTITY, impact,
                             onFinish, onTerminate, finished
                     );
                     return;
                 }
+            }
+
+            if (trailRenderer != null) {
+                renderVisualTrail(current[0], next, trailRenderer);
             }
 
             travelled[0] += actualDistance;
@@ -602,6 +664,26 @@ public final class SkillProjectileService {
                 );
             }
         });
+    }
+
+    /** 対象中心を進行線分へ投影し、命中tickの表示を到達位置で止めます。 */
+    private static @NotNull Location clippedTrailEnd(@NotNull Location start,
+                                                     @NotNull Location end,
+                                                     @NotNull Location target) {
+        Vector segment = end.toVector().subtract(start.toVector());
+        double lengthSquared = segment.lengthSquared();
+        if (lengthSquared <= 1.0E-8D) return start.clone();
+        double position = target.toVector().subtract(start.toVector()).dot(segment) / lengthSquared;
+        double bounded = Math.max(0.0D, Math.min(1.0D, position));
+        return start.clone().add(segment.multiply(bounded));
+    }
+
+    /** 専用描画側へ変更されない飛翔区間のコピーを渡します。 */
+    private static void renderVisualTrail(@NotNull Location start, @NotNull Location end,
+                                          @NotNull BiConsumer<Location, Location> trailRenderer) {
+        if (start.distanceSquared(end) > 1.0E-8D) {
+            trailRenderer.accept(start.clone(), end.clone());
+        }
     }
 
     private void finish(
