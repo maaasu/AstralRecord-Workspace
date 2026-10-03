@@ -5,7 +5,7 @@ schemaVersion: 1
 id: eriva_grassboar_lv17_spawner
 type: MOB_SPAWNER
 region: "エリヴァ大草原"
-radiusMeters: 18
+radiusMeters: 32
 
 spawnMobs:
   - mobId: mob:eriva_grassboar
