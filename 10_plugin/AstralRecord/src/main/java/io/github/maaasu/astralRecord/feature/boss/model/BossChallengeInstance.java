@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.combat.model.EncounterCombatStatistics;
 import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.boss.BossBar;
@@ -27,7 +28,7 @@ public final class BossChallengeInstance {
     private List<UUID> expectedParticipantIds;
     private final Set<UUID> waitingAbsentParticipantIds = new LinkedHashSet<>();
     private final long createdAtMs;
-    private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
+    private final EncounterCombatStatistics combatStatistics = new EncounterCombatStatistics();
     private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
     private final Set<UUID> pendingDeaths = new LinkedHashSet<>();
     private volatile List<UUID> participantIds = List.of();
@@ -229,20 +230,22 @@ public final class BossChallengeInstance {
     }
 
     /**
-     * Adds effective boss damage dealt by a participant.
+     * 参加者がボスへ与えた実HP・シールドダメージを加算します。
      *
      * @param playerId participant player UUID
      * @param amount damage amount
      */
     public void addDamage(@NotNull UUID playerId, double amount) {
-        if (amount <= 0.0D) {
-            return;
-        }
-        damageByPlayerId.merge(playerId, amount, Double::sum);
+        combatStatistics.addDamageDealt(playerId, amount);
     }
 
     public @NotNull Map<UUID, Double> damageSnapshot() {
-        return Map.copyOf(damageByPlayerId);
+        return combatStatistics.damageDealtSnapshot();
+    }
+
+    /** @return 挑戦に閉じた与ダメージ・被ダメージ・ヒール量の集計 */
+    public @NotNull EncounterCombatStatistics combatStatistics() {
+        return combatStatistics;
     }
 
     /**

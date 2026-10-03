@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.combat.service.EncounterResultFormatter;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -64,7 +65,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -600,6 +600,37 @@ public final class BossChallengeService {
             return;
         }
         challenge.addDamage(playerId, amount);
+    }
+
+    /**
+     * 戦闘中の同一フィールド参加者の実被ダメージを加算します。
+     * @param player 被弾した参加者
+     * @param amount 過剰分を除く実HP・シールド被害
+     */
+    public void recordParticipantDamageTaken(@NotNull AstPlayer player, double amount) {
+        BossChallengeInstance challenge = activeCombatChallenge(player);
+        if (challenge != null) challenge.combatStatistics().addDamageTaken(player.getBukkit().getUniqueId(), amount);
+    }
+
+    /**
+     * 同じ挑戦内の味方・自分への実回復量を回復者へ加算します。
+     * @param healer 回復者
+     * @param target 回復対象
+     * @param amount 上限適用後の実HP回復量
+     */
+    public void recordParticipantHealing(@NotNull AstPlayer healer, @NotNull AstPlayer target, double amount) {
+        BossChallengeInstance challenge = activeCombatChallenge(healer);
+        if (challenge != null && challenge == activeCombatChallenge(target)) {
+            challenge.combatStatistics().addHealing(healer.getBukkit().getUniqueId(), amount);
+        }
+    }
+
+    /** 同じフィールドにいるゲームプレイヤーの進行中の挑戦だけを返します。 */
+    private @Nullable BossChallengeInstance activeCombatChallenge(@NotNull AstPlayer player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) return null;
+        BossChallengeInstance challenge = findInProgressChallengeByParticipant(player.getBukkit().getUniqueId());
+        return challenge != null && challenge.field() != null
+                && challenge.field().world().getUID().equals(player.getBukkit().getWorld().getUID()) ? challenge : null;
     }
 
     /**
@@ -1720,7 +1751,12 @@ public final class BossChallengeService {
         destroyBossBar(challenge);
 
         notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName(), defeatElapsedSeconds);
-        showDamageResult(challenge, deathLocation, defeatElapsedSeconds);
+        String ranking = EncounterResultFormatter.format(challenge.combatStatistics(), challenge.participantIds(),
+                challenge.deathSnapshot(), this::playerName);
+        for (Player participant : participantsInField(challenge)) {
+            for (String line : ranking.split("\n")) messageService.sendRaw(participant, line);
+        }
+        showDamageResult(challenge, deathLocation, defeatElapsedSeconds, ranking);
         BukkitTask task = Bukkit.getScheduler().runTaskLater(
                 plugin,
                 () -> beginChallengeCompletion(challenge, BossChallengeEndReason.DEFEATED),
@@ -2087,20 +2123,22 @@ public final class BossChallengeService {
                 && challengesById.get(challenge.challengeId()) == challenge;
     }
 
+    /** 討伐地点へ戦績を表示し、帰還までの残秒だけを動的に更新します。 */
     private void showDamageResult(
             @NotNull BossChallengeInstance challenge,
             @NotNull Location deathLocation,
-            long defeatElapsedSeconds
+            long defeatElapsedSeconds,
+            @NotNull String ranking
     ) {
         Location displayLocation = deathLocation.clone().add(0.0D, 2.4D, 0.0D);
         DisplayTextService.ManagedTextDisplay display = displayTextService.create(
                 DisplayAnchor.fixed(displayLocation),
-                DisplayTextOptions.defaults(formatDamageResult(challenge, defeatElapsedSeconds))
+                DisplayTextOptions.defaults(formatDamageResult(challenge, defeatElapsedSeconds, ranking))
                         .withShadowed(true)
-                        .withLineWidth(360)
+                        .withLineWidth(520)
                         .withViewRange(64.0F)
         );
-        display.setDynamicText(() -> formatDamageResult(challenge, defeatElapsedSeconds));
+        display.setDynamicText(() -> formatDamageResult(challenge, defeatElapsedSeconds, ranking));
         challenge.resultDisplay(display);
     }
 
@@ -2112,48 +2150,17 @@ public final class BossChallengeService {
         }
     }
 
+    /** 確定した討伐時間・戦績と現在の帰還残秒を共通リソースで整形します。 */
     private @NotNull String formatDamageResult(
             @NotNull BossChallengeInstance challenge,
-            long defeatElapsedSeconds
+            long defeatElapsedSeconds,
+            @NotNull String ranking
     ) {
-        Map<UUID, Double> damage = challenge.damageSnapshot();
-        double total = damage.values().stream().mapToDouble(Double::doubleValue).sum();
         long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
-        StringBuilder text = new StringBuilder("&6&lボス討伐成功 &f")
-                .append(challenge.bossTemplate().displayName())
-                .append("\n&7討伐時間 &e")
-                .append(defeatElapsedSeconds)
-                .append("秒")
-                .append("\n&7挑戦地点へ戻るまで &e")
-                .append(remainingSeconds)
-                .append("秒")
-                .append("\n&d&lダメージ順位 &7合計 &f")
-                .append(formatDamage(total));
-
-        List<DamageLine> lines = challenge.participantIds().stream()
-                .map(playerId -> new DamageLine(playerId, damage.getOrDefault(playerId, 0.0D)))
-                .sorted(Comparator.comparingDouble(DamageLine::damage).reversed())
-                .toList();
-        for (int index = 0; index < lines.size(); index++) {
-            DamageLine line = lines.get(index);
-            double rate = total <= 0.0D ? 0.0D : line.damage() * 100.0D / total;
-            text.append('\n')
-                    .append("&e")
-                    .append(index + 1)
-                    .append(". &f")
-                    .append(playerName(line.playerId()))
-                    .append(" &a")
-                    .append(formatDamage(line.damage()))
-                    .append(" &7")
-                    .append(String.format(Locale.ROOT, "%.1f%%", rate))
-                    .append(" &c死亡回数 ")
-                    .append(challenge.playerDeathCount(line.playerId()));
-        }
-        return text.toString();
-    }
-
-    private @NotNull String formatDamage(double damage) {
-        return String.format(Locale.ROOT, "%.0f", Math.max(0.0D, damage));
+        return PlayerMsgResource.format(PlayerMsgId.P_6554.getId(), challenge.bossTemplate().displayName())
+                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6556.getId(), defeatElapsedSeconds)
+                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6557.getId(), remainingSeconds)
+                + "\n" + ranking;
     }
 
     private @NotNull String playerName(@NotNull UUID playerId) {
@@ -2868,9 +2875,6 @@ public final class BossChallengeService {
         } catch (RuntimeException ignored) {
             // Plugin disable と競合した非同期完了は stop() 側の同期回収に委ねます。
         }
-    }
-
-    private record DamageLine(@NotNull UUID playerId, double damage) {
     }
 
     private record EntryPromptDisplay(

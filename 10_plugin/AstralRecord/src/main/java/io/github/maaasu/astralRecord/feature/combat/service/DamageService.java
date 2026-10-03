@@ -73,6 +73,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /**
@@ -111,7 +112,7 @@ public final class DamageService {
     private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
     private PetRuntimeService petRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
-    private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
+    private BiConsumer<UUID, Location> mobDeathListener = (mobInstanceId, deathLocation) -> { };
     private MobPlayerDamageListener mobPlayerDamageListener = (mob, victim, damage, lethal) -> { };
     private @Nullable BossMechanicService bossMechanicService;
 
@@ -277,10 +278,10 @@ public final class DamageService {
      * Mob の報酬・破棄処理が完了した直後に呼ぶリスナーを設定します。
      * ダンジョンなど、Mob インスタンス単位で全滅を追跡する機能が利用します。
      *
-     * @param mobDeathListener Mob インスタンス UUID の通知先。null で無効化
+     * @param mobDeathListener Mob インスタンス UUID と破棄前の死亡位置の通知先。null で無効化
      */
-    public void setMobDeathListener(@Nullable Consumer<UUID> mobDeathListener) {
-        this.mobDeathListener = mobDeathListener == null ? mobInstanceId -> { } : mobDeathListener;
+    public void setMobDeathListener(@Nullable BiConsumer<UUID, Location> mobDeathListener) {
+        this.mobDeathListener = mobDeathListener == null ? (mobInstanceId, deathLocation) -> { } : mobDeathListener;
     }
 
     /**
@@ -404,7 +405,7 @@ public final class DamageService {
 
     /**
      * プレイヤーに適用された HP 回復を、回復元と回復手段を含めて表示します。
-     * 回復したプレイヤーの数値表示設定を参照し、詳細メッセージは回復者と対象者へそれぞれ送ります。
+     * 通常回復の実量を挑戦のヒール量へ加算した後、表示設定に従って回復者と対象者へ通知します。
      *
      * @param recovery HP回復の対象・実量・回復元・回復手段
      */
@@ -413,6 +414,11 @@ public final class DamageService {
         double amount = recovery.amount();
         if (!Double.isFinite(amount) || amount <= 0.0D) {
             return;
+        }
+        if (recovery.encounterHealing()) {
+            AstPlayer healingSource = recovery.healer() == null ? target : recovery.healer();
+            if (bossChallengeService != null) bossChallengeService.recordParticipantHealing(healingSource, target, amount);
+            if (dungeonService != null) dungeonService.recordParticipantHealing(healingSource, target, amount);
         }
         UUID playerId = target.getUser().getUuid();
         if (playerSettingService.isDamageLogDisplayEnabled(playerId)) {
@@ -1646,6 +1652,7 @@ public final class DamageService {
     /**
      * ダメージ結果をHP・シールド・報酬用の攻撃記録へ反映します。
      * ターゲット設定のないMobは、被弾しても敵対状態へ遷移しません。
+     * 過剰HP被害を除く実HP・シールドダメージを、死亡・回復・モブ破棄より先に挑戦戦績へ記録します。
      *
      * @param attacker 攻撃者。環境ダメージでは {@code null}
      * @param victim 被弾者
@@ -1663,6 +1670,8 @@ public final class DamageService {
         if (victim.isMob() && victim.mob() != null && victim.mob().state() == MobState.DEAD) {
             return;
         }
+
+        recordEncounterDamage(attacker, victim, effectiveHealthDamage(victim, result) + result.shieldDamage());
 
         if (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D) {
             long currentTick = Bukkit.getCurrentTick();
@@ -1740,9 +1749,6 @@ public final class DamageService {
         var mob = victim.mob();
         if (mob == null) return;
         double healthBefore = mob.currentHealth();
-        double effectiveHealthDamage = mob.nonLethal()
-                ? Math.min(Math.max(0.0D, healthBefore - 1.0D), result.finalDamage())
-                : Math.min(healthBefore, result.finalDamage());
         double effectiveLifeStealDamage = mob.nonLethal()
                 ? Math.min(
                         Math.max(0.0D, healthBefore - 1.0D),
@@ -1769,13 +1775,6 @@ public final class DamageService {
                 // ペット死亡後にも報酬受取人を解決できるよう主人の参加記録を残します。
                 if (attacker.isPet()) mob.threatTable().add(ownerId, Math.ulp(1.0D));
                 mob.lastAttackerUuid(ownerId);
-                if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
-                    bossChallengeService.recordBossDamage(
-                            mob.instanceId(),
-                            ownerId,
-                            effectiveHealthDamage + result.shieldDamage()
-                    );
-                }
                 if (mob.template().targeting() != null && mob.state() == MobState.IDLE) {
                     mob.state(MobState.AGGRO);
                     mob.targetId(attacker.id());
@@ -1795,8 +1794,29 @@ public final class DamageService {
             } else {
                 mobCombatService.handleDeath(mob);
             }
-            mobDeathListener.accept(mob.instanceId());
+            mobDeathListener.accept(mob.instanceId(), deathLocation.clone());
         }
+    }
+
+    /**
+     * 成立した一撃を挑戦へ一度だけ記録します。ペットの攻撃は主人へ帰属させます。
+     * @param attacker 攻撃元。環境・肩代わりダメージは {@code null}
+     * @param victim 被弾対象
+     * @param amount 実HPと実シールド被害の合計
+     */
+    private void recordEncounterDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim, double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0D) return;
+        if (victim.isPlayer() && victim.player() != null) {
+            if (bossChallengeService != null) bossChallengeService.recordParticipantDamageTaken(victim.player(), amount);
+            if (dungeonService != null) dungeonService.recordParticipantDamageTaken(victim.player(), amount);
+        }
+        if (!victim.isMob() || victim.mob() == null || attacker == null || attacker.combatOwner() == null) return;
+        AstPlayer owner = attacker.combatOwner();
+        UUID ownerId = owner.getBukkit().getUniqueId();
+        if (isPlayerDead(ownerId) || !AccountModeGuard.isGameplayPlayer(owner)) return;
+        UUID mobId = victim.mob().instanceId();
+        if (bossChallengeService != null) bossChallengeService.recordBossDamage(mobId, ownerId, amount);
+        if (dungeonService != null) dungeonService.recordMobDamage(mobId, ownerId, amount);
     }
 
     /** Mob によるプレイヤーへの実 HP 被害を、死亡判定とともに受け取ります。 */

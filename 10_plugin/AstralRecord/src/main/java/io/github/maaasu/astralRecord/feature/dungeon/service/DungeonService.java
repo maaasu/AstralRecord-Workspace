@@ -49,6 +49,8 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.combat.model.EncounterCombatStatistics;
+import io.github.maaasu.astralRecord.feature.combat.service.EncounterResultFormatter;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -1943,9 +1945,10 @@ public final class DungeonService {
      * DamageService の死亡確定後フックから呼ばれ、対象部屋の全滅を判定します。
      *
      * @param mobInstanceId 死亡確定した Mob instance UUID
+     * @param deathLocation 破棄前に保存した死亡位置。最終Mobの位置へクリア戦績を表示します
      * @implNote Bukkit のブロック更新とセッション状態を変更するため、メインスレッドから呼び出す必要があります。
      */
-    public void handleMobDefeated(@NotNull UUID mobInstanceId) {
+    public void handleMobDefeated(@NotNull UUID mobInstanceId, @NotNull Location deathLocation) {
         requireMainThread();
         MobBinding binding = mobBindings.remove(mobInstanceId);
         nextMobReturnSearchTick.remove(mobInstanceId);
@@ -1963,6 +1966,7 @@ public final class DungeonService {
         live.remove(mobInstanceId);
         session.roomBossBars.updateNormalRoom(binding.roomId(), live.size());
         if (live.isEmpty() && session.roomStates.get(binding.roomId()) == DungeonMapRoomState.ACTIVE) {
+            session.lastMobDeathLocation = deathLocation.clone();
             clearRoom(session, binding.roomId());
         }
     }
@@ -2208,7 +2212,7 @@ public final class DungeonService {
         return CancelResult.CANCELLED;
     }
 
-    /** ボス部屋クリア時の受取人と報酬を固定し、30秒の受取猶予を開始します。 */
+    /** ボス部屋クリア時の戦績・受取人・報酬を固定し、最終Mob位置へ結果を表示して30秒の受取猶予を開始します。 */
     private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
         if (session.cleared || session.ending || session.instanceWorld == null) return;
         session.cleared = true;
@@ -2246,6 +2250,7 @@ public final class DungeonService {
                         .withLineWidth(300).withViewRange(48.0F).withShadowed(true)
         );
         session.clearReturnEndsAtMs = System.currentTimeMillis() + CLEAR_RETURN_DELAY_TICKS * 50L;
+        showCombatResult(session);
         session.clearReturnTask = Bukkit.getScheduler().runTaskLater(
                 plugin,
                 () -> completeSession(session, EndReason.CLEARED, true),
@@ -2255,6 +2260,33 @@ public final class DungeonService {
             Logger.log(LogId.E_7000, ex, session.id.toString(), session.loaded.definition().id());
             completeSession(session, EndReason.SPAWN_FAILED, false);
         }
+    }
+
+    /** 最終Mobの討伐地点へ戦績を表示し、同じ確定値を現在参加者のチャットへ送ります。 */
+    private void showCombatResult(@NotNull Session session) {
+        session.clearElapsedSeconds = Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1000L);
+        String ranking = EncounterResultFormatter.format(session.combatStatistics, session.originalParticipants,
+                session.deathsByPlayer, this::playerName);
+        session.combatResultRanking = ranking;
+        for (Player participant : activePlayersInWorld(session)) {
+            messageService.send(participant, PlayerMsgId.P_6556, session.clearElapsedSeconds);
+            for (String line : ranking.split("\n")) messageService.sendRaw(participant, line);
+        }
+        if (session.lastMobDeathLocation == null) return;
+        session.resultDisplay = displayTextService.create(
+                DisplayAnchor.fixed(session.lastMobDeathLocation.clone().add(0.0D, 2.4D, 0.0D)),
+                DisplayTextOptions.defaults(formatCombatResult(session))
+                        .withLineWidth(520).withViewRange(64.0F).withShadowed(true));
+        session.resultDisplay.setDynamicText(() -> formatCombatResult(session));
+    }
+
+    /** 確定したクリア戦績と帰還までの残秒をリソースで整形します。 */
+    private @NotNull String formatCombatResult(@NotNull Session session) {
+        long remaining = Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1000L);
+        return PlayerMsgResource.format(PlayerMsgId.P_6555.getId(), session.loaded.definition().displayName())
+                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6556.getId(), session.clearElapsedSeconds)
+                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6557.getId(), remaining)
+                + "\n" + session.combatResultRanking;
     }
 
     private void recordDungeonClearHistory(@NotNull Session session) {
@@ -3491,6 +3523,56 @@ public final class DungeonService {
     }
 
     /**
+     * 攻略中のダンジョンMobへの実ダメージを参加者へ加算します。
+     * @param mobInstanceId 被弾したダンジョンMob
+     * @param playerId 攻撃者またはペットの主人
+     * @param amount 実HP・シールドダメージ
+     */
+    public void recordMobDamage(@NotNull UUID mobInstanceId, @NotNull UUID playerId, double amount) {
+        MobBinding binding = mobBindings.get(mobInstanceId);
+        Session session = binding == null ? null : sessionsById.get(binding.sessionId());
+        if (session != null && session.combatStarted && !session.cleared && !session.ending
+                && session.participants.contains(playerId)
+                && binding.sessionId().equals(sessionIdByParticipant.get(playerId))) {
+            session.combatStatistics.addDamageDealt(playerId, amount);
+        }
+    }
+
+    /**
+     * 攻略中の参加者の実被ダメージを記録します。
+     * @param player 被弾した参加者
+     * @param amount 過剰分を除く実HP・シールド被害
+     */
+    public void recordParticipantDamageTaken(@NotNull AstPlayer player, double amount) {
+        Session session = activeCombatSession(player);
+        if (session != null) session.combatStatistics.addDamageTaken(player.getBukkit().getUniqueId(), amount);
+    }
+
+    /**
+     * 同じ攻略中セッション内の味方・自分への実回復量を回復者へ加算します。
+     * @param healer 回復者
+     * @param target 回復対象
+     * @param amount 上限適用後の実HP回復量
+     */
+    public void recordParticipantHealing(@NotNull AstPlayer healer, @NotNull AstPlayer target, double amount) {
+        Session session = activeCombatSession(healer);
+        if (session != null && session == activeCombatSession(target)) {
+            session.combatStatistics.addHealing(healer.getBukkit().getUniqueId(), amount);
+        }
+    }
+
+    /** 同じインスタンスWorld内で攻略中のゲームプレイヤーに対応するセッションを返します。 */
+    private @Nullable Session activeCombatSession(@NotNull AstPlayer player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) return null;
+        UUID playerId = player.getBukkit().getUniqueId();
+        UUID sessionId = sessionIdByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null && session.combatStarted && !session.cleared && !session.ending
+                && session.participants.contains(playerId) && session.instanceWorld != null
+                && session.instanceWorld.world().getUID().equals(player.getBukkit().getWorld().getUID()) ? session : null;
+    }
+
+    /**
      * ダンジョン参加者の死亡を共有回数へ記録し、許容回数内なら開始地点へ復帰させます。
      *
      * @param astPlayer 死亡プレイヤー
@@ -4227,6 +4309,11 @@ public final class DungeonService {
             cleanupSafely(session, "room_status_display:" + entry.getKey(), entry.getValue()::destroy);
         }
         session.roomStatusDisplays.clear();
+        if (session.resultDisplay != null) {
+            DisplayTextService.ManagedTextDisplay display = session.resultDisplay;
+            session.resultDisplay = null;
+            cleanupSafely(session, "combat_result_display", display::destroy);
+        }
         if (session.rewardDisplay != null) {
             DisplayTextService.ManagedTextDisplay display = session.rewardDisplay;
             session.rewardDisplay = null;
@@ -5168,6 +5255,7 @@ public final class DungeonService {
         private final Map<UUID, Location> returnLocations;
         private final Map<UUID, ActivityPlayerSnapshot> participantHistory;
         private final Map<UUID, DungeonMovement> movementByParticipant = new HashMap<>();
+        private final EncounterCombatStatistics combatStatistics = new EncounterCombatStatistics();
         private final Map<UUID, CompletableFuture<Boolean>> entryTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> cartographTransfers = new HashMap<>();
@@ -5187,6 +5275,10 @@ public final class DungeonService {
         private Location rewardChestLocation;
         private DisplayTextService.ManagedTextDisplay returnGateDisplay;
         private DisplayTextService.ManagedTextDisplay rewardDisplay;
+        private DisplayTextService.ManagedTextDisplay resultDisplay;
+        private Location lastMobDeathLocation;
+        private long clearElapsedSeconds;
+        private String combatResultRanking;
         private BukkitTask startCountdownTask;
         private BukkitTask clearReturnTask;
         private BukkitTask challengeTimeLimitTask;

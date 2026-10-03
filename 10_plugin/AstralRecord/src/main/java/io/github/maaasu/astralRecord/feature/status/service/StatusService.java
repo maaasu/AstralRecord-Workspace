@@ -1055,6 +1055,7 @@ public class StatusService {
      * 現在HP/MP/エネルギーを最大値まで回復し、タンクシールドアクティベートが有効な場合だけShieldも最大値まで回復します。
      * 指定された発生元がある場合だけHP通知を行います。
      * 回復元に不死鳥が存在する間は、HPの不足分に対する回復量を半減します。
+     * 死亡復帰・NPC等の状態復元として扱い、通知の挑戦ヒール集計フラグは無効にします。
      *
      * @param player 対象プレイヤー
      * @param context 回復元と回復手段。{@code null} の場合はHP通知しない
@@ -1089,7 +1090,8 @@ public class StatusService {
                 player,
                 recoveredAmount,
                 context.healer(),
-                context.sourceName()
+                context.sourceName(),
+                false
             ));
         }
         return snapshot;
