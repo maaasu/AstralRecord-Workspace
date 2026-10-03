@@ -510,7 +510,7 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
-    public void SqlServerUsedListingCountQuery_UsesSellerStatusIndex()
+    public void SqlServerUsedListingCountQuery_SeeksSellerPrefixWithoutForcingStatus()
     {
         var accountId = Guid.NewGuid();
 
@@ -518,8 +518,9 @@ public class MarketRepositoryEquipmentListingTests
         var format = query.Format;
         var arguments = query.GetArguments();
 
-        Assert.Contains("FORCESEEK([IX_market_listing_seller_status]", format);
-        Assert.Contains("([seller_account_id], [status])", format);
+        Assert.Contains("HOLDLOCK", format);
+        Assert.Contains("FORCESEEK([IX_market_listing_seller_status] ([seller_account_id]))", format);
+        Assert.DoesNotContain("([seller_account_id], [status])", format);
         Assert.DoesNotContain("IX_market_listing_instance_active_status", format);
         Assert.Contains("listing.[seller_account_id] =", format);
         Assert.Contains(accountId, arguments);

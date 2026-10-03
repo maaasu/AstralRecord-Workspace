@@ -60,6 +60,7 @@ public class WorldService {
     private final Supplier<File> tempWorldRootSupplier;
     private volatile Map<String, WorldMasterData> loadedWorlds = Map.of();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
+    private final Map<String, Location> loadedSpawnLocationsById = new LinkedHashMap<>();
     private final Map<UUID, String> worldIdByBukkitWorldId = new LinkedHashMap<>();
     private final Map<UUID, RuntimeWorldRegistration> runtimeWorldByBukkitWorldId = new LinkedHashMap<>();
     private final Map<String, RuntimeWorldRegistration> pendingWorldByName = new LinkedHashMap<>();
@@ -147,8 +148,23 @@ public class WorldService {
      * @param snapshot WorldMasterData スナップショット
      */
     public synchronized void replaceDefinitionSnapshot(@NotNull DefinitionSnapshot snapshot) {
+        Map<String, Location> retainedSpawns = new LinkedHashMap<>();
+        loadedSpawnLocationsById.forEach((worldId, location) -> {
+            WorldMasterData previous = loadedWorlds.get(worldId);
+            WorldMasterData next = snapshot.worldsById().get(worldId);
+            if (previous != null && next != null
+                    && normalizeWorldPath(previous.baseWorldPath()).equals(normalizeWorldPath(next.baseWorldPath()))) {
+                // 同じ実ワールドの定義再公開では、activation までの間も初期スポーンを使用できる。
+                // TEMP の保存済み spawn は再解決まで保持し、通常 world は新しいマスター座標へ更新する。
+                var spawn = next.spawnLocation();
+                retainedSpawns.put(worldId, isTemporaryWorld(next) ? location.clone()
+                        : new Location(location.getWorld(), spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch()));
+            }
+        });
         loadedWorlds = snapshot.worldsById();
         clearWorldResolutionCaches();
+        loadedSpawnLocationsById.clear();
+        loadedSpawnLocationsById.putAll(retainedSpawns);
         Logger.log(LogId.I_5750, loadedWorlds.size());
     }
 
@@ -292,6 +308,7 @@ public class WorldService {
                 return stillLoaded;
             }
             resolvedBukkitWorldsById.remove(data.id());
+            loadedSpawnLocationsById.remove(data.id());
             worldIdByBukkitWorldId.remove(cached.getUID());
         }
 
@@ -455,11 +472,41 @@ public class WorldService {
     private void cacheResolvedWorld(@NotNull WorldMasterData data, @NotNull org.bukkit.World world) {
         resolvedBukkitWorldsById.put(data.id(), world);
         worldIdByBukkitWorldId.put(world.getUID(), data.id());
+        Location spawnLocation = resolveSpawnLocation(data, world);
+        if (spawnLocation != null) {
+            loadedSpawnLocationsById.put(data.id(), spawnLocation.clone());
+        } else {
+            loadedSpawnLocationsById.remove(data.id());
+        }
     }
 
     private void clearWorldResolutionCaches() {
         resolvedBukkitWorldsById.clear();
         worldIdByBukkitWorldId.clear();
+    }
+
+    /**
+     * メインスレッドで解決済みのスポーン地点のコピーを返します。
+     * ワールド検索・読込・Bukkit のワールド状態へのアクセスを行わず、非同期イベントから利用できます。
+     * 定義再公開では同じ実ワールドの最新座標を保持し、削除・パス変更・アンロードで失効します。
+     *
+     * @param worldId WorldMasterData ID
+     * @return 解決済みのスポーン地点のコピー。未解決・失効時は {@code null}
+     */
+    @Nullable
+    public synchronized Location getLoadedSpawnLocationSnapshot(@NotNull String worldId) {
+        Location location = loadedSpawnLocationsById.get(worldId);
+        return location == null ? null : location.clone();
+    }
+
+    /**
+     * アンロードされるワールドの非同期スポーン地点を失効させます。
+     * メインスレッドの、取消されていない WorldUnloadEvent から呼び出してください。
+     *
+     * @param world アンロード対象ワールド
+     */
+    public synchronized void invalidateSpawnLocationSnapshots(@NotNull org.bukkit.World world) {
+        loadedSpawnLocationsById.values().removeIf(location -> location.getWorld() == world);
     }
 
     /**

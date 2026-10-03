@@ -6,10 +6,14 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,6 +44,61 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
         this.plugin = plugin;
         this.joinSpawnWorldId = joinSpawnWorldId;
         this.worldService = worldService;
+    }
+
+    /**
+     * 参加前イベントを登録する前に、設定された拠点ワールドとスポーン地点を準備します。
+     * メインスレッドから呼び出してください。
+     */
+    @Override
+    public void initialize() {
+        super.initialize();
+        var worldData = worldService.getById(joinSpawnWorldId);
+        if (worldData != null) {
+            worldService.resolveOrLoadSpawnLocation(worldData);
+        }
+    }
+
+    /**
+     * 保存先ワールドが未ロードの場合も、初期ワールド情報の送信前に拠点スポーンを指定します。
+     * 非同期イベントでは事前に解決済みの位置だけを読み、保存された視線方向を保持します。
+     *
+     * @param event 参加前の非同期スポーン位置イベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerSpawnLocation(AsyncPlayerSpawnLocationEvent event) {
+        Location spawnLocation = worldService.getLoadedSpawnLocationSnapshot(joinSpawnWorldId);
+        if (spawnLocation == null) {
+            Logger.log(LogId.W_5751, joinSpawnWorldId);
+            return;
+        }
+        Location originalLocation = event.getSpawnLocation();
+        spawnLocation.setYaw(originalLocation.getYaw());
+        spawnLocation.setPitch(originalLocation.getPitch());
+        event.setSpawnLocation(spawnLocation);
+    }
+
+    /**
+     * 拠点ワールドが再ロードされた場合、メインスレッドでスポーン地点を再公開します。
+     *
+     * @param event ワールドロードイベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldLoad(WorldLoadEvent event) {
+        var worldData = worldService.getById(joinSpawnWorldId);
+        if (worldData != null) {
+            worldService.resolveSpawnLocation(worldData);
+        }
+    }
+
+    /**
+     * アンロードされたワールドを非同期の参加先へ渡さないようスポーン地点を失効させます。
+     *
+     * @param event ワールドアンロードイベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWorldUnload(WorldUnloadEvent event) {
+        worldService.invalidateSpawnLocationSnapshots(event.getWorld());
     }
 
     /**
