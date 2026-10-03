@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -100,6 +101,7 @@ public final class ArchmageRebornProtectCircleExecutor extends PlayerActiveSkill
         String scope = ID + ":circle:" + UUID.randomUUID();
         Sigil sigil = new Sigil(center, radius);
         sigil.draw(context.services());
+        context.services().effects().sound(center, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.75F, 1.05F);
         UUID circleId = context.services().circles().register(casterId);
         try {
             context.services().tasks().repeat(casterId, scope, 1L, 1L, durationTicks, tick -> {
@@ -117,8 +119,7 @@ public final class ArchmageRebornProtectCircleExecutor extends PlayerActiveSkill
                     statusService.applyBuff(target, CONFUSION_BUFF_ID);
                     invulnerabilityVisualService.grantTemporary(player,
                             InvulnerabilityVisualService.THREE_SECONDS_TICKS);
-                    context.services().effects().point(player.getLocation().add(0.0D, 1.0D, 0.0D),
-                            SharedParticleDefinitions.SKILL_REBORN_PROTECT_LIGHT);
+                    ArchmageCircleFeedback.reborn(context.services().effects(), player.getLocation());
                     context.services().tasks().cancel(casterId, scope);
                     return;
                 }

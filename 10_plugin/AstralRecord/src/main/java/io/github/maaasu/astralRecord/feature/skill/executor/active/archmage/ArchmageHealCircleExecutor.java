@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,7 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
         String scope = ID + ":circle:" + UUID.randomUUID();
         Sigil sigil = new Sigil(center, radius);
         sigil.draw(context.services());
+        context.services().effects().sound(center, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.65F, 1.5F);
         UUID circleId = context.services().circles().register(casterId, player ->
                 context.services().targeting().playersInRadius(center, radius, CONTACT_HEIGHT).stream()
                         .anyMatch(target -> target.getBukkit().getUniqueId().equals(player.getUniqueId())));
@@ -103,10 +105,7 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
                         if (recovered <= 0.0D) {
                             continue;
                         }
-                        context.services().effects().point(
-                                target.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D),
-                                SharedParticleDefinitions.MAGE_HEAL_AURA_HEAL
-                        );
+                        ArchmageCircleFeedback.heal(context.services().effects(), target.getBukkit().getLocation());
                         context.services().tasks().cancel(casterId, scope);
                         skillService.clearCooldown(casterId, ID);
                         return;

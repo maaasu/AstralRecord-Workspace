@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -63,6 +64,7 @@ public final class ArchmageClearCircleExecutor extends PlayerActiveSkillExecutor
         String scope = ID + ":circle:" + UUID.randomUUID();
         Sigil sigil = new Sigil(center, radius);
         sigil.draw(context.services());
+        context.services().effects().sound(center, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.65F, 1.35F);
         UUID circleId = context.services().circles().register(casterId, player ->
                 context.services().targeting().playersInRadius(center, radius, CONTACT_HEIGHT).stream()
                         .anyMatch(target -> target.getBukkit().getUniqueId().equals(player.getUniqueId())));
@@ -82,10 +84,7 @@ public final class ArchmageClearCircleExecutor extends PlayerActiveSkillExecutor
                         if (context.services().combat().clearNegativeEffects(target) == 0) {
                             continue;
                         }
-                        context.services().effects().point(
-                                target.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D),
-                                SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_WHITE
-                        );
+                        ArchmageCircleFeedback.clear(context.services().effects(), target.getBukkit().getLocation());
                         context.services().tasks().cancel(casterId, scope);
                         return;
                     }

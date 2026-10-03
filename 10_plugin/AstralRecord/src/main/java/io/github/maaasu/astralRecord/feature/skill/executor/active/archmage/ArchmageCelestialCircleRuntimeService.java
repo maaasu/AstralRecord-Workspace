@@ -3,15 +3,20 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +31,7 @@ public final class ArchmageCelestialCircleRuntimeService {
     private final Map<UUID, Circle> circles = new HashMap<>();
     private final Map<UUID, Applied> applied = new HashMap<>();
     private long lastSynchronizeTick = -1L;
+    private long lastFeedbackTick = -1L;
 
     /**
      * ステータス更新サービスを受け取ります。
@@ -46,13 +52,15 @@ public final class ArchmageCelestialCircleRuntimeService {
      * @param center 地面上の中心
      * @param level スキルレベル
      * @param durationTicks 完成後の持続tick
+     * @param effects 対象への効果成立音と周期表示
      */
-    public void start(@NotNull UUID casterId, @NotNull Location center, int level, int durationTicks) {
+    public void start(@NotNull UUID casterId, @NotNull Location center, int level, int durationTicks,
+                      @NotNull SkillEffectService effects) {
         Circle previous = circles.remove(casterId);
         if (previous != null) {
             circleRegistry.remove(previous.circleId);
         }
-        synchronize();
+        synchronize(effects);
         circles.put(casterId, new Circle(center.clone(), level, durationTicks,
                 circleRegistry.register(casterId, player -> {
                     Circle circle = circles.get(casterId);
@@ -65,9 +73,10 @@ public final class ArchmageCelestialCircleRuntimeService {
      * 発動者の魔法陣を1tick進め、完成後だけ範囲バフを同期します。
      *
      * @param casterId 発動者UUID
+     * @param effects 実際にバフを得た対象の演出
      * @return 魔法陣が継続する場合はtrue
      */
-    public boolean advance(@NotNull UUID casterId) {
+    public boolean advance(@NotNull UUID casterId, @NotNull SkillEffectService effects) {
         Circle circle = circles.get(casterId);
         if (circle == null) {
             return false;
@@ -76,13 +85,13 @@ public final class ArchmageCelestialCircleRuntimeService {
         if (circle.age < ANIMATION_TICKS) {
             circle.age++;
         } else if (--circle.remainingTicks <= 0) {
-            end(casterId);
+            end(casterId, effects);
             return false;
         }
         long currentTick = Bukkit.getCurrentTick();
         if (completedNow || lastSynchronizeTick < 0L
                 || currentTick - lastSynchronizeTick >= 4L) {
-            synchronize();
+            synchronize(effects);
         }
         return true;
     }
@@ -103,12 +112,26 @@ public final class ArchmageCelestialCircleRuntimeService {
      * 発動者の魔法陣を終了し、この魔法陣だけが支えていたバフを解除します。
      *
      * @param casterId 発動者UUID
+     * @param effects 範囲内の対象へ移るバフの効果音
+     */
+    public void end(@NotNull UUID casterId, @NotNull SkillEffectService effects) {
+        Circle circle = circles.remove(casterId);
+        if (circle != null) {
+            circleRegistry.remove(circle.circleId);
+            synchronize(effects);
+        }
+    }
+
+    /**
+     * プラグイン停止処理で発動者の魔法陣を終了します。
+     *
+     * @param casterId 発動者UUID
      */
     public void end(@NotNull UUID casterId) {
         Circle circle = circles.remove(casterId);
         if (circle != null) {
             circleRegistry.remove(circle.circleId);
-            synchronize();
+            synchronize(null);
         }
     }
 
@@ -116,10 +139,15 @@ public final class ArchmageCelestialCircleRuntimeService {
     public void clearAll() {
         circles.values().forEach(circle -> circleRegistry.remove(circle.circleId));
         circles.clear();
-        synchronize();
+        synchronize(null);
     }
 
-    private void synchronize() {
+    /**
+     * 全円の最大レベルを選び、有効バフを持つ対象だけに演出します。
+     *
+     * @param effects 対象への表示と効果音。停止中の同期ではnull
+     */
+    private void synchronize(@Nullable SkillEffectService effects) {
         lastSynchronizeTick = Bukkit.getCurrentTick();
         LocalDateTime now = LocalDateTime.now();
         Map<UUID, Target> desired = new HashMap<>();
@@ -154,13 +182,44 @@ public final class ArchmageCelestialCircleRuntimeService {
                 applied.remove(playerId);
             }
         }
+        Map<World, List<Location>> entrySounds = new HashMap<>();
         for (Map.Entry<UUID, Target> entry : desired.entrySet()) {
             if (applied.containsKey(entry.getKey())) {
                 continue;
             }
             Target target = entry.getValue();
             statusService.applyBuff(target.player, buffId(target.level));
-            applied.put(entry.getKey(), new Applied(target.player, target.level));
+            boolean present = target.player.getActiveBuffs().stream().anyMatch(buff ->
+                    buffId(target.level).equals(buff.getType().getId())
+                            && buff.getExpiresAt().isAfter(now));
+            if (present) {
+                applied.put(entry.getKey(), new Applied(target.player, target.level));
+                if (effects != null) {
+                    Location position = target.player.getBukkit().getLocation();
+                    List<Location> nearbySounds = entrySounds.computeIfAbsent(
+                            position.getWorld(), ignored -> new ArrayList<>());
+                    if (nearbySounds.stream().noneMatch(played -> played.distanceSquared(position) < 144.0D)) {
+                        nearbySounds.add(position);
+                    }
+                }
+            }
+        }
+        if (effects != null) {
+            entrySounds.values().forEach(positions -> positions.forEach(position ->
+                    effects.sound(position, Sound.BLOCK_BEACON_ACTIVATE, 0.55F, 1.6F)));
+        }
+        if (effects != null && !applied.isEmpty()
+                && (lastFeedbackTick < 0L || lastSynchronizeTick - lastFeedbackTick >= 20L)) {
+            lastFeedbackTick = lastSynchronizeTick;
+            Map<World, List<Location>> positions = new HashMap<>();
+            for (Map.Entry<UUID, Applied> entry : applied.entrySet()) {
+                Applied active = entry.getValue();
+                if (desired.containsKey(entry.getKey()) && active.player.getBukkit().isOnline()) {
+                    Location position = active.player.getBukkit().getLocation();
+                    positions.computeIfAbsent(position.getWorld(), ignored -> new ArrayList<>()).add(position);
+                }
+            }
+            positions.values().forEach(worldPositions -> ArchmageCircleFeedback.celestial(effects, worldPositions));
         }
     }
 

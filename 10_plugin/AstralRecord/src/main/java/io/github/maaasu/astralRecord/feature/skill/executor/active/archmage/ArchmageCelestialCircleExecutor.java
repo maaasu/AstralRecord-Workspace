@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,15 +66,17 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
         UUID casterId = context.player().getUniqueId();
         Sigil visual = new Sigil(center, params.getInt("effectLevel", 1));
         context.services().tasks().cancel(casterId, ID);
-        runtimeService.start(casterId, center, params.getInt("effectLevel", 1), params.getInt("durationTicks", 600));
+        runtimeService.start(casterId, center, params.getInt("effectLevel", 1),
+                params.getInt("durationTicks", 600), context.services().effects());
+        context.services().effects().sound(center, Sound.BLOCK_BEACON_POWER_SELECT, 0.8F, 1.2F);
         try {
             context.services().tasks().repeat(
                     casterId, ID, 0L, 1L, Integer.MAX_VALUE,
                     tick -> advance(context, casterId, tick, visual),
-                    () -> runtimeService.end(casterId)
+                    () -> runtimeService.end(casterId, context.services().effects())
             );
         } catch (RuntimeException exception) {
-            runtimeService.end(casterId);
+            runtimeService.end(casterId, context.services().effects());
             throw exception;
         }
         return context.success();
@@ -108,7 +111,7 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
      */
     private void advance(@NotNull PlayerActiveSkillContext context, @NotNull UUID casterId,
                          int tick, @NotNull Sigil visual) {
-        if (!runtimeService.advance(casterId)) {
+        if (!runtimeService.advance(casterId, context.services().effects())) {
             context.services().tasks().cancel(casterId, ID);
             return;
         }

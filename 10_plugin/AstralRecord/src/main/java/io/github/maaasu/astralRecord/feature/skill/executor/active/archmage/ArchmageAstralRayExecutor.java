@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.archmage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
@@ -123,10 +124,15 @@ public final class ArchmageAstralRayExecutor extends PlayerActiveSkillExecutor {
         }
         AstEntity target = targets.get(ThreadLocalRandom.current().nextInt(targets.size()));
         Location impact = context.services().targeting().center(target);
-        context.services().combat().hit(context.source().skill(), context.attacker(), target,
+        DamageResult result = context.services().combat().hit(context.source().skill(), context.attacker(), target,
                 AttackType.MAGIC, DamageElement.NONE, ratio);
-        context.services().effects().point(impact, SharedParticleDefinitions.SKILL_ASTRAL_RAY_IMPACT);
         context.services().effects().sound(visual.center(), Sound.BLOCK_BEACON_ACTIVATE, 0.65F, 1.8F);
+        if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+            context.services().effects().point(impact, SharedParticleDefinitions.SKILL_ASTRAL_RAY_IMPACT);
+            context.services().effects().ring(impact, 0.65D, 20,
+                    SharedParticleDefinitions.SKILL_ASTRAL_RAY_BEAM);
+            context.services().effects().sound(impact, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.8F, 1.5F);
+        }
         return impact;
     }
 }
