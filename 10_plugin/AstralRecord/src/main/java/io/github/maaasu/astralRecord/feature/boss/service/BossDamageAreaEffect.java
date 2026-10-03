@@ -30,6 +30,25 @@ final class BossDamageAreaEffect {
         double spacing,
         @NotNull Predicate<Location> contains
     ) {
+        return sampleArea(center, extent, spacing, contains, point -> true);
+    }
+
+    /**
+     * 水平形状を先に絞り、床投影後に遮蔽などの追加条件を適用します。
+     * @param center 攻撃面の中心
+     * @param extent 水平走査距離
+     * @param spacing 格子間隔
+     * @param contains 水平形状の条件。中心の高さと投影後の高さで判定する
+     * @param surfaceFilter 床面でだけ評価する追加条件
+     * @return 攻撃形状内かつ追加条件を満たす最大96地点
+     */
+    static @NotNull List<Location> sampleArea(
+        @NotNull Location center,
+        double extent,
+        double spacing,
+        @NotNull Predicate<Location> contains,
+        @NotNull Predicate<Location> surfaceFilter
+    ) {
         World world = center.getWorld();
         if (world == null || extent <= 0.0D || spacing <= 0.0D) {
             return List.of();
@@ -40,8 +59,9 @@ final class BossDamageAreaEffect {
         for (int x = -steps; x <= steps; x++) {
             for (int z = -steps; z <= steps; z++) {
                 Location point = center.clone().add(x * step, 0.0D, z * step);
+                if (!contains.test(point)) continue;
                 Location surface = surfaceNear(world, point);
-                if (surface != null && contains.test(surface)) {
+                if (surface != null && contains.test(surface) && surfaceFilter.test(surface)) {
                     candidates.add(surface.add(0.0D, 0.6D, 0.0D));
                 }
             }

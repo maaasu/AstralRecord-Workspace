@@ -21,12 +21,16 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,6 +56,8 @@ final class KnockerEncounterController {
     private static final double RING_RADIUS = 6.0D;
     private static final double SAFE_HALF_WIDTH = 2.4D;
     private static final long DRAW_PERIOD = 10L;
+    private static final int MAX_ATTACK_DISPLAYS = 24;
+    private static final int MAX_IMPACT_POINTS = 192;
     private static final String BELL_EFFECT = "knocker_bell_guard";
     private static final String STAGGER_EFFECT = "knocker_stagger";
 
@@ -133,7 +139,7 @@ final class KnockerEncounterController {
             if (observed > state.completedPhase) {
                 state.pendingPhase = state.completedPhase + 1;
                 announce(state, PlayerMsgId.P_6589, state.pendingPhase);
-                start(state, entity, Stage.BELLS, tick, null);
+                start(state, entity, Stage.CHORUS, tick, null);
                 return;
             }
             Stage next = switch (state.completedPhase) {
@@ -187,11 +193,11 @@ final class KnockerEncounterController {
         }
     }
 
-    /** @return 指定個体の現在の表示段階。HP65%、30%を順に越える */
+    /** @return 指定個体の現在の表示段階。HP50%、20%未満で順に進む */
     private static int phaseFor(@NotNull MobInstance boss) {
         if (boss.maxHealth() <= 0.0D) return 1;
         double ratio = boss.currentHealth() / boss.maxHealth();
-        return ratio <= 0.30D ? 3 : ratio <= 0.65D ? 2 : 1;
+        return ratio < 0.20D ? 3 : ratio < 0.50D ? 2 : 1;
     }
 
     /** 新しい予兆を開始し、対象位置と方向を一度だけ確定します。 */
@@ -225,8 +231,6 @@ final class KnockerEncounterController {
             if (!spawnBells(cast)) {
                 close(state);
                 clearEffect(state.boss, BELL_EFFECT);
-                // 壊れた床によってフェーズ移行を無限に再試行しない。
-                if (state.pendingPhase > 0) completePhase(state, state.pendingPhase);
                 state.nextAt = tick + 20L;
                 return;
             }
@@ -234,6 +238,10 @@ final class KnockerEncounterController {
             applyEffect(state.boss, BELL_EFFECT, stage.duration, 0.35D);
         } else if (stage == Stage.STAGGER) {
             applyEffect(state.boss, STAGGER_EFFECT, stage.duration, 1.5D);
+        }
+        if (stage.harmful) {
+            spawnAttackDisplays(cast);
+            animateAttackDisplays(cast, tick);
         }
         updateBar(state, cast, tick);
         sound(center, stage == Stage.BELLS ? Sound.BLOCK_BELL_USE : Sound.BLOCK_NOTE_BLOCK_HAT, 0.8F);
@@ -253,6 +261,7 @@ final class KnockerEncounterController {
         // castはtick時計、共有倍率は実時間時計なので進行中に再付与して同期する。
         if (cast.stage == Stage.BELLS) applyEffect(state.boss, BELL_EFFECT, Stage.BELLS.duration, 0.35D);
         if (cast.stage == Stage.STAGGER) applyEffect(state.boss, STAGGER_EFFECT, Stage.STAGGER.duration, 1.5D);
+        animateAttackDisplays(cast, tick);
         if ((tick - cast.started) % DRAW_PERIOD == 0L) draw(cast);
         if (cast.stage == Stage.LINE && (tick - cast.started == 20L || tick - cast.started == 40L)) {
             sound(cast.center, Sound.BLOCK_NOTE_BLOCK_HAT, 1.15F);
@@ -285,9 +294,12 @@ final class KnockerEncounterController {
             sound(bell, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.3F);
             if (cast.done >= cast.required) {
                 clearEffect(state.boss, BELL_EFFECT);
-                int advanced = state.pendingPhase;
                 close(state);
-                if (advanced > 0) completePhase(state, advanced);
+                if (phaseFor(state.boss) > state.completedPhase) {
+                    state.combo = false;
+                    state.nextAt = tick;
+                    return;
+                }
                 announce(state, PlayerMsgId.P_6587);
                 start(state, state.lastEntity, Stage.STAGGER, tick, null);
                 return;
@@ -312,15 +324,31 @@ final class KnockerEncounterController {
         }
     }
 
-    /** 現技を閉じ、フェーズに応じて次の予兆または回復時間へ進めます。 */
+    /**
+     * 現技を閉じます。HP境界の崩落は着弾後だけ完了とし、未処理の境界を連続技より優先します。
+     * @param state 個体の進行状態
+     * @param entity 生存中のボス実体
+     * @param cast 完了した技
+     * @param tick 現在の同期時計
+     */
     private void finish(@NotNull Encounter state, @NotNull Entity entity, @NotNull Cast cast, long tick) {
         Stage stage = cast.stage;
         Vector inherited = stage == Stage.BELLS && !cast.bells.isEmpty()
             ? direction(cast.center, cast.bells.get(cast.lit).getLocation())
             : cast.direction.clone();
         close(state);
+        if (stage == Stage.CHORUS && state.pendingPhase > 0) {
+            completePhase(state, state.pendingPhase);
+        }
+        if (stage == Stage.INTRO) state.introduced = true;
+        if (phaseFor(state.boss) > state.completedPhase) {
+            clearEffects(state);
+            state.combo = false;
+            state.nextAt = tick;
+            return;
+        }
         switch (stage) {
-            case INTRO -> { state.introduced = true; state.nextAt = tick + 20L; }
+            case INTRO -> state.nextAt = tick + 20L;
             case LINE -> {
                 if (state.completedPhase >= 2) start(state, entity, Stage.ECHO, tick, inherited);
                 else { state.nextAt = tick + 20L; announce(state, PlayerMsgId.P_6591); }
@@ -340,7 +368,6 @@ final class KnockerEncounterController {
             }
             case BELLS -> {
                 clearEffect(state.boss, BELL_EFFECT);
-                if (state.pendingPhase > 0) completePhase(state, state.pendingPhase);
                 announce(state, PlayerMsgId.P_6588);
                 start(state, entity, Stage.CHORUS, tick, inherited);
             }
@@ -350,7 +377,7 @@ final class KnockerEncounterController {
         }
     }
 
-    /** HP境界儀式を1段だけ完了させ、もう一段の境界が残れば次回tickに実行します。 */
+    /** HP境界の強技を1段だけ完了させ、もう一段の境界が残れば次回tickに実行します。 */
     private static void completePhase(@NotNull Encounter state, int phase) {
         state.completedPhase = phase;
         state.pendingPhase = 0;
@@ -365,6 +392,8 @@ final class KnockerEncounterController {
         cast.bar.removeAll();
         for (BlockDisplay display : cast.bells) if (display.isValid()) display.remove();
         cast.bells.clear();
+        for (AttackDisplay attack : cast.attackDisplays) if (attack.display.isValid()) attack.display.remove();
+        cast.attackDisplays.clear();
         cast.sneakTicks.clear();
         state.cast = null;
         state.boss.scriptedAction(false);
@@ -534,19 +563,141 @@ final class KnockerEncounterController {
             SharedParticleDefinitions.KNOCKER_SAFE);
     }
 
-    /** 着弾の輪郭を描画します。 */
+    /**
+     * ダメージ確定と同じ時点で、危険領域の内部へ爆発と岩片の粒子を一括表示します。
+     * @param cast 着弾する技。安全通路・安全円・遮蔽の先には表示しない
+     */
     private void drawImpact(@NotNull Cast cast) {
-        List<Location> points = new ArrayList<>(96);
-        if (cast.stage == Stage.LINE || cast.stage == Stage.ECHO) linePoints(cast, points, LINE_HALF_WIDTH);
-        else if (cast.stage == Stage.FALL) { for (Location mark : cast.marks) circlePoints(mark, FALL_RADIUS, 20, points); }
-        else if (cast.stage == Stage.CHORUS) corridorPoints(cast, new ArrayList<>(), points);
-        else if (cast.stage == Stage.RETURN) {
-            circlePoints(cast.center, ARENA_RADIUS, 48, points);
-            circlePoints(cast.center, ENGAGEMENT_RADIUS, 48, points);
+        List<Location> points = attackPoints(cast);
+        if (points.isEmpty()) return;
+        particles.spawnForNearbyViewers(cast.center, points, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
+        particles.spawnForNearbyViewers(cast.center, points, SharedParticleDefinitions.KNOCKER_IMPACT);
+    }
+
+    /**
+     * 実際の範囲判定を通した着弾点を最大192点返します。表示密度は人数や経過tickで増加させません。
+     * @param cast 確定済みの攻撃形状
+     * @return 未ロードchunkと安全領域を除いた有限の点群
+     */
+    private static @NotNull List<Location> attackPoints(@NotNull Cast cast) {
+        List<Location> candidates = new ArrayList<>();
+        if (cast.stage == Stage.LINE || cast.stage == Stage.ECHO) {
+            Vector side = new Vector(-cast.direction.getZ(), 0.0D, cast.direction.getX());
+            for (double along = 0.0D; along < ARENA_RADIUS; along += 1.8D) {
+                for (double across : new double[]{-1.1D, 0.0D, 1.1D}) {
+                    candidates.add(cast.center.clone().add(cast.direction.clone().multiply(along))
+                        .add(side.clone().multiply(across)).add(0.0D, 0.15D, 0.0D));
+                }
+            }
+        } else if (cast.stage == Stage.FALL) {
+            for (Location mark : cast.marks) {
+                candidates.add(mark.clone().add(0.0D, 0.15D, 0.0D));
+                circlePoints(mark, 1.3D, 6, candidates);
+                circlePoints(mark, 2.3D, 10, candidates);
+            }
+        } else {
+            if (cast.stage == Stage.INNER) candidates.add(cast.center.clone().add(0.0D, 0.15D, 0.0D));
+            double start = cast.stage == Stage.RETURN ? 20.0D : 2.0D;
+            double end = cast.stage == Stage.RETURN ? ENGAGEMENT_RADIUS
+                : cast.stage == Stage.INNER ? RING_RADIUS : ARENA_RADIUS;
+            double step = cast.stage == Stage.RETURN ? 4.0D : 2.0D;
+            for (double radius = start; radius <= end; radius += step) {
+                circlePoints(cast.center, radius, Math.min(32, (int) Math.ceil(radius * Math.PI)), candidates);
+            }
         }
-        else circlePoints(cast.center, RING_RADIUS, 48, points);
-        if (!points.isEmpty()) particles.spawnForNearbyViewers(cast.center,
-            points.subList(0, Math.min(192, points.size())), SharedParticleDefinitions.KNOCKER_IMPACT);
+        List<Location> valid = new ArrayList<>();
+        for (Location point : candidates) addGroundAttackPoints(cast, point, valid);
+        int count = Math.min(MAX_IMPACT_POINTS, valid.size());
+        List<Location> points = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) points.add(valid.get(index * valid.size() / count));
+        return points;
+    }
+
+    /**
+     * 高さ差3m以内の床上へ候補を投影し、地形内に爆発を隠さず攻撃可能な場所だけを採用します。
+     * @param cast 高さ・形状・遮蔽の判定元
+     * @param point 水平の表示候補。X/Zは変更しない
+     * @param out 床上の表示位置を追加する出力先
+     */
+    private static void addGroundAttackPoints(@NotNull Cast cast, @NotNull Location point,
+                                              @NotNull List<Location> out) {
+        World world = point.getWorld();
+        if (world == null || !loaded(point)) return;
+        int highest = Math.min(world.getMaxHeight() - 3, (int) Math.floor(cast.center.getY() + HEIGHT_TOLERANCE));
+        int lowest = Math.max(world.getMinHeight(), (int) Math.floor(cast.center.getY() - HEIGHT_TOLERANCE) - 1);
+        for (int y = highest; y >= lowest; y--) {
+            Block floor = world.getBlockAt(point.getBlockX(), y, point.getBlockZ());
+            if (!floor.getType().isSolid()
+                || !world.getBlockAt(point.getBlockX(), y + 1, point.getBlockZ()).isPassable()
+                || !world.getBlockAt(point.getBlockX(), y + 2, point.getBlockZ()).isPassable()) continue;
+            Location feet = new Location(world, point.getX(), floor.getBoundingBox().getMaxY(), point.getZ());
+            if (contains(cast, feet)
+                && clearSight(impactOrigin(cast, feet), feet.clone().add(0.0D, 1.62D, 0.0D))) {
+                out.add(feet.add(0.0D, 0.15D, 0.0D));
+            }
+        }
+    }
+
+    /**
+     * 攻撃領域に非永続の岩片を最大24個置き、現在castへ所有権を登録します。
+     * @param cast 表示を所有し、完了・中断時に回収する技
+     */
+    private static void spawnAttackDisplays(@NotNull Cast cast) {
+        World world = cast.center.getWorld();
+        if (world == null) return;
+        List<Location> points = attackPoints(cast);
+        int count = Math.min(MAX_ATTACK_DISPLAYS, points.size());
+        Material material = switch (cast.stage) {
+            case LINE, ECHO -> Material.POLISHED_DEEPSLATE;
+            case FALL, CHORUS -> Material.TUFF;
+            default -> Material.BASALT;
+        };
+        for (int index = 0; index < count; index++) {
+            Location point = points.get(index * points.size() / count);
+            BlockDisplay display = world.spawn(point.clone().add(0.0D, 0.4D, 0.0D), BlockDisplay.class, visual -> {
+                visual.setPersistent(false);
+                visual.setInvulnerable(true);
+                visual.setGravity(false);
+                visual.setBlock(material.createBlockData());
+                visual.setBrightness(new Display.Brightness(15, 15));
+                visual.setDisplayWidth(2.0F);
+                visual.setDisplayHeight(2.0F);
+                visual.setTeleportDuration(5);
+                visual.setInterpolationDuration(5);
+            });
+            cast.attackDisplays.add(new AttackDisplay(display, point));
+        }
+    }
+
+    /**
+     * 5tickの既存時計で岩片を動かします。落盤は降下、掘削線と震動は地面からの隆起で着弾を示します。
+     * @param cast 現在の技と所有表示
+     * @param tick 現在の同期時計。専用の遅延taskは作成しない
+     */
+    private static void animateAttackDisplays(@NotNull Cast cast, long tick) {
+        double progress = Math.clamp((tick - cast.started) / (double) (cast.ends - cast.started), 0.0D, 1.0D);
+        // 次の5tick分を補間し、表示の到着をダメージ確定時刻へ合わせる。
+        double strike = Math.clamp((tick + 5L - (cast.ends - 15L)) / 15.0D, 0.0D, 1.0D);
+        boolean falling = cast.stage == Stage.FALL || cast.stage == Stage.CHORUS;
+        for (int index = 0; index < cast.attackDisplays.size(); index++) {
+            AttackDisplay attack = cast.attackDisplays.get(index);
+            if (!attack.display.isValid()) continue;
+            if (!loaded(attack.point)) {
+                attack.display.remove();
+                continue;
+            }
+            double height = falling ? 3.2D - strike * 2.9D : 0.25D + strike * 0.9D;
+            Location position = attack.point.clone().add(0.0D, height, 0.0D);
+            if (!loaded(position)) continue;
+            attack.display.teleport(position);
+            float scale = falling ? 0.8F : 0.45F + (float) strike * 0.4F;
+            attack.display.setInterpolationDelay(0);
+            attack.display.setTransformation(new Transformation(
+                new Vector3f(-scale / 2.0F, -scale / 2.0F, -scale / 2.0F),
+                new Quaternionf().rotateXYZ((float) progress, (float) (progress * Math.PI + index), 0.2F),
+                new Vector3f(scale, scale, scale), new Quaternionf()
+            ));
+        }
     }
 
     /** フィールド半径を20tick間隔で表示します。 */
@@ -728,6 +879,7 @@ final class KnockerEncounterController {
         private final List<Location> marks;
         private final BossBar bar;
         private final List<BlockDisplay> bells = new ArrayList<>(3);
+        private final List<AttackDisplay> attackDisplays = new ArrayList<>(MAX_ATTACK_DISPLAYS);
         private final Map<UUID, Long> sneakTicks = new HashMap<>();
         private final Set<UUID> hit = new HashSet<>();
         private int lit;
@@ -749,4 +901,7 @@ final class KnockerEncounterController {
             this.bar = bar;
         }
     }
+
+    /** 攻撃用の岩片と、予兆開始時に固定した着弾位置です。 */
+    private record AttackDisplay(BlockDisplay display, Location point) { }
 }
