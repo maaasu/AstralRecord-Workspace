@@ -185,6 +185,61 @@ public sealed partial class SkillTreeOperationRepository
         { return null; }
     }
 
+    /// <summary>旧世代では連結していた解除済みノードのうち、自身の接続変更で新世代から孤立したものだけを返す。</summary>
+    internal static IReadOnlyList<string>? FindChangedDisconnectedNodes(string sourceJson, string targetJson,
+        IEnumerable<AccountSkillTreeUnlockedNodeEntity> unlocked)
+    {
+        try
+        {
+            var retained = unlocked.Select(x => x.NodeId).ToHashSet(StringComparer.Ordinal);
+            using var oldDocument = JsonDocument.Parse(sourceJson);
+            using var newDocument = JsonDocument.Parse(targetJson);
+            var oldRoot = oldDocument.RootElement;
+            var newRoot = newDocument.RootElement;
+            var oldEdges = ReadMigrationAdjacency(oldRoot);
+            var newEdges = ReadMigrationAdjacency(newRoot);
+            var newNodes = newRoot.GetProperty("nodes").EnumerateArray()
+                .Select(x => x.GetProperty("nodeId").GetString()!).ToHashSet(StringComparer.Ordinal);
+            var positions = newRoot.GetProperty("positions").EnumerateArray()
+                .Select(x => x.GetProperty("nodeId").GetString()!).ToHashSet(StringComparer.Ordinal);
+            var rootId = newRoot.GetProperty("rootNodeId").GetString()!;
+            if (!retained.Contains(rootId)) return null;
+            var seen = new HashSet<string>(StringComparer.Ordinal) { rootId };
+            var queue = new Queue<string>(); queue.Enqueue(rootId);
+            while (queue.TryDequeue(out var current))
+                if (newEdges.TryGetValue(current, out var adjacent))
+                    foreach (var next in adjacent)
+                        if (retained.Contains(next) && seen.Add(next)) queue.Enqueue(next);
+            var disconnected = retained.Except(seen, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            if (disconnected.Length == 0) return null;
+            foreach (var nodeId in disconnected)
+            {
+                if (!newNodes.Contains(nodeId) || !positions.Contains(nodeId)) return null;
+                oldEdges.TryGetValue(nodeId, out var previous);
+                newEdges.TryGetValue(nodeId, out var current);
+                if ((previous ?? []).SetEquals(current ?? [])) return null;
+            }
+            return disconnected;
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
+        { return null; }
+    }
+
+    private static Dictionary<string, HashSet<string>> ReadMigrationAdjacency(JsonElement root)
+    {
+        var adjacency = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var edge in root.GetProperty("edges").EnumerateArray())
+        {
+            var ends = edge.GetString()!.Split("->", StringSplitOptions.None);
+            if (ends.Length != 2) throw new InvalidOperationException("Invalid skill tree edge");
+            if (!adjacency.TryGetValue(ends[0], out var from)) adjacency[ends[0]] = from = new(StringComparer.Ordinal);
+            if (!adjacency.TryGetValue(ends[1], out var to)) adjacency[ends[1]] = to = new(StringComparer.Ordinal);
+            from.Add(ends[1]);
+            to.Add(ends[0]);
+        }
+        return adjacency;
+    }
+
     /// <summary>
     /// 解放条件の表示名と、PPノードの必要レベルを完全に撤廃する変更だけを比較対象から除く。
     /// 職業ID・その他の必要レベル変更・未知の条件項目は維持比較する。

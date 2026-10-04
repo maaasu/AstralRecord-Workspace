@@ -60,9 +60,9 @@ public final class SkillTreeRuntimeRepository {
         CURRENT, UPDATE_REQUIRED, APPLIED, CHANNEL_OUTDATED, UNPUBLISHED, INCOMPATIBLE, LEGACY_REQUIRES_REPAIR
     }
 
-    /** preview または apply の結果。UPDATE_REQUIRED の stateVersion は apply の楽観的ロックに使う。 */
+    /** preview または apply の結果。解除対象と stateVersion は apply の確認に使う。 */
     public record LoginPatchResult(@NotNull LoginPatchStatus status, @NotNull String definitionGenerationId,
-                                   int stateVersion) {
+                                    int stateVersion, @NotNull List<String> removedNodeIds) {
     }
 
     public boolean isConfigured() {
@@ -207,25 +207,31 @@ public final class SkillTreeRuntimeRepository {
      * @param generationId このサーバーがロードした定義世代
      * @param apply true の場合だけ UPDATE_REQUIRED のパッチを確定する
      * @param expectedStateVersion preview で返された状態版。preview 時は使用しない
+     * @param removeNodeIds preview で確認した解除対象。apply 時に API が再検証する
      * @return 公開定義と保存状態の照合結果
      * @throws RuntimeException API 通信失敗または不正な応答
      */
     public @NotNull LoginPatchResult loginPatch(String serverId, UUID bootId, UUID accountId,
                                                 AccountSession session, String generationId,
-                                                boolean apply, int expectedStateVersion) {
+                                                boolean apply, int expectedStateVersion, List<String> removeNodeIds) {
         JsonObject body = new JsonObject();
         body.addProperty("serverSessionId", bootId.toString());
         addAccountSession(body, session);
         body.addProperty("definitionGenerationId", generationId);
         body.addProperty("apply", apply);
         if (apply) body.addProperty("expectedStateVersion", expectedStateVersion);
+        JsonArray requestedRemovals = new JsonArray();
+        removeNodeIds.forEach(requestedRemovals::add);
+        body.add("removeNodeIds", requestedRemovals);
         JsonObject response = send("POST", path(serverId) + "/accounts/" + accountId + "/login-patch", body, 200)
                 .getAsJsonObject();
         try {
+            List<String> confirmedRemovals = new ArrayList<>();
+            response.getAsJsonArray("removedNodeIds").forEach(node -> confirmedRemovals.add(node.getAsString()));
             return new LoginPatchResult(
                     LoginPatchStatus.valueOf(response.get("status").getAsString()),
                     response.get("definitionGenerationId").getAsString(),
-                    response.get("stateVersion").getAsInt());
+                    response.get("stateVersion").getAsInt(), List.copyOf(confirmedRemovals));
         } catch (RuntimeException invalid) {
             throw new IllegalStateException("Invalid skill tree login patch response", invalid);
         }

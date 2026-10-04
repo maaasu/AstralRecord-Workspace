@@ -21,6 +21,7 @@ public sealed class SkillTreeLoginPatchRequest
     public string DefinitionGenerationId { get; init; } = string.Empty;
     public bool Apply { get; init; }
     public int ExpectedStateVersion { get; init; }
+    public IReadOnlyList<string> RemoveNodeIds { get; init; } = [];
 }
 
 public static class SkillTreeLoginPatchStatuses
@@ -40,4 +41,6 @@ public sealed class SkillTreeLoginPatchResponse
     public string DefinitionGenerationId { get; init; } = string.Empty;
     public long? PatchVersion { get; init; }
     public int StateVersion { get; init; }
+    public IReadOnlyList<string> RemovedNodeIds { get; init; } = [];
+    public IReadOnlyList<SkillTreeMigrationRefund> Refunds { get; init; } = [];
 }

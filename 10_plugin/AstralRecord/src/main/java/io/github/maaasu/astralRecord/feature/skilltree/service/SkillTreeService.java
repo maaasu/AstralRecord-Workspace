@@ -84,6 +84,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.BiConsumer;
+import java.util.function.IntConsumer;
 import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -1710,14 +1711,14 @@ public class SkillTreeService {
      *
      * @param accountId 読み込み対象アカウント UUID
      * @param userId 補償メール配信対象ユーザー UUID
-     * @param onPatchRequired パッチ確定前に呼ぶ通知処理。Bukkit 操作は呼出側でメインスレッドへ移す
+     * @param onPatchRequired パッチ確定前に解除対象数を渡す通知処理。Bukkit 操作は呼出側でメインスレッドへ移す
      * @return 保持中の未保存状態、または検証済みのAPI / DB読込状態
      * @throws RuntimeException 読み込みまたは補修APIの呼び出しに失敗した場合
      */
     public @NotNull SkillTreePlayerState loadInitialPlayerState(
             @NotNull UUID accountId,
             @NotNull UUID userId,
-            @NotNull Runnable onPatchRequired
+            @NotNull IntConsumer onPatchRequired
     ) {
         SkillTreePlayerState retained = retainInitialPlayerState(accountId);
         if (retained != null) {
@@ -1746,16 +1747,22 @@ public class SkillTreeService {
         SkillTreeRuntimeRepository.AccountSession accountSession = runtimeAccountSessions.get(accountId);
         String serverId = ConfigProperties.getInstance().getApiServerId();
         SkillTreeRuntimeRepository.LoginPatchResult patch = runtimeRepository.loginPatch(
-                serverId, runtimeServerSessionId, accountId, accountSession, definitionGenerationId, false, 0);
+                serverId, runtimeServerSessionId, accountId, accountSession, definitionGenerationId, false, 0, List.of());
         if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.UPDATE_REQUIRED
                 && !definitionGenerationId.equals(patch.definitionGenerationId())) {
             throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
                     "Skill tree login patch target does not match this server.");
         }
         if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.UPDATE_REQUIRED) {
-            onPatchRequired.run();
+            onPatchRequired.accept(patch.removedNodeIds().size());
+            List<String> requestedRemovals = patch.removedNodeIds();
             patch = runtimeRepository.loginPatch(serverId, runtimeServerSessionId, accountId,
-                    accountSession, definitionGenerationId, true, patch.stateVersion());
+                    accountSession, definitionGenerationId, true, patch.stateVersion(), requestedRemovals);
+            if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.APPLIED
+                    && !requestedRemovals.equals(patch.removedNodeIds())) {
+                throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(
+                        "Skill tree login patch removed node set changed during apply.");
+            }
         }
         if (patch.status() == SkillTreeRuntimeRepository.LoginPatchStatus.CHANNEL_OUTDATED) {
             throw new io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException(

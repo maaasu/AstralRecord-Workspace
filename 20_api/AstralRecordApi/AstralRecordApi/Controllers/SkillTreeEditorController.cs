@@ -51,13 +51,14 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
             : !ValidServer(serverId) || sessionId == Guid.Empty || !ValidHash(request.DefinitionGenerationId) ? BadRequest()
             : await repository.PublishPatchAsync(serverId, sessionId, request) is { } result ? Ok(result) : Conflict();
 
-    /// <summary>参加処理の所有者がパッチ適用の要否を確認し、保持可能な進行だけを新しい公開定義へ更新します。</summary>
+    /// <summary>参加前の所有者がパッチを確認し、接続変更で孤立した項目だけを明示解除して公開定義へ移行します。</summary>
     [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/login-patch")]
     public async Task<IActionResult> PrepareLoginPatch(string serverId, Guid accountId, [FromBody] SkillTreeLoginPatchRequest request)
         => !HasRuntimeCredential() ? Unauthorized()
             : !ValidServer(serverId) || accountId == Guid.Empty || !ValidHash(request.DefinitionGenerationId)
                 || request.ServerSessionId == Guid.Empty || request.AccountSessionId == Guid.Empty
-                || !ValidHash(request.AccountLeaseToken) || request.ExpectedStateVersion < 0 ? BadRequest()
+                || !ValidHash(request.AccountLeaseToken) || request.ExpectedStateVersion < 0
+                || request.RemoveNodeIds is null || request.RemoveNodeIds.Any(string.IsNullOrWhiteSpace) ? BadRequest()
             : await repository.PrepareLoginPatchAsync(serverId, accountId, request) is { } result ? Ok(result) : Conflict();
 
     /// <summary>運用者が移行前に、保存済みの不変な定義スナップショットを確認する。</summary>

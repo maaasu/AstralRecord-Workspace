@@ -54,7 +54,8 @@ public sealed partial class SkillTreeOperationRepository
     {
         if (!ValidServer(serverId) || accountId == Guid.Empty || request.ServerSessionId == Guid.Empty
             || request.AccountSessionId == Guid.Empty || !ValidHash(request.DefinitionGenerationId)
-            || !ValidHash(request.AccountLeaseToken) || request.ExpectedStateVersion < 0) return null;
+            || !ValidHash(request.AccountLeaseToken) || request.ExpectedStateVersion < 0
+            || request.RemoveNodeIds is null) return null;
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var account = await LockAccountAsync(accountId);
         var runtime = await VerifyRuntimeAsync(serverId, request.ServerSessionId);
@@ -64,10 +65,13 @@ public sealed partial class SkillTreeOperationRepository
         var target = await dbContext.SkillTreeDefinitionGenerations.FindAsync(request.DefinitionGenerationId);
         var state = await dbContext.AccountSkillTreeStates.Include(x => x.UnlockedNodes)
             .SingleOrDefaultAsync(x => x.AccountId == accountId && !x.IsDeleted);
+        IReadOnlyList<string> removedIds = [];
+        IReadOnlyList<SkillTreeMigrationRefund> refunds = [];
         SkillTreeLoginPatchResponse Result(string status) => new()
         {
             Status = status, DefinitionGenerationId = request.DefinitionGenerationId,
             PatchVersion = target?.PatchVersion, StateVersion = state?.Version ?? 0,
+            RemovedNodeIds = removedIds, Refunds = refunds,
         };
         if (target?.PatchVersion is null or <= 0) return Result(SkillTreeLoginPatchStatuses.Unpublished);
         if (state is null || state.DefinitionGenerationId == target.DefinitionGenerationId
@@ -77,9 +81,24 @@ public sealed partial class SkillTreeOperationRepository
         var source = await dbContext.SkillTreeDefinitionGenerations.FindAsync(state.DefinitionGenerationId);
         if (source?.PatchVersion is null) return Result(SkillTreeLoginPatchStatuses.LegacyRequiresRepair);
         if (source.PatchVersion >= target.PatchVersion) return Result(SkillTreeLoginPatchStatuses.ChannelOutdated);
-        if (ValidateRetirementMigration(source.CanonicalSnapshotJson, target.CanonicalSnapshotJson, state.UnlockedNodes, []) is null)
-            return Result(SkillTreeLoginPatchStatuses.Incompatible);
+        var verifiedRefunds = ValidateRetirementMigration(source.CanonicalSnapshotJson, target.CanonicalSnapshotJson,
+            state.UnlockedNodes, []);
+        if (verifiedRefunds is null)
+        {
+            // 旧状態自体が不正な場合、世代差を口実に解除しない。
+            if (ValidateRetirementMigration(source.CanonicalSnapshotJson, source.CanonicalSnapshotJson,
+                    state.UnlockedNodes, []) is null) return Result(SkillTreeLoginPatchStatuses.Incompatible);
+            var disconnected = FindChangedDisconnectedNodes(source.CanonicalSnapshotJson,
+                target.CanonicalSnapshotJson, state.UnlockedNodes);
+            if (disconnected is null) return Result(SkillTreeLoginPatchStatuses.Incompatible);
+            verifiedRefunds = ValidateRetirementMigration(source.CanonicalSnapshotJson,
+                target.CanonicalSnapshotJson, state.UnlockedNodes, disconnected);
+            if (verifiedRefunds is null) return Result(SkillTreeLoginPatchStatuses.Incompatible);
+            removedIds = disconnected;
+        }
+        refunds = verifiedRefunds;
         if (!request.Apply) return Result(SkillTreeLoginPatchStatuses.UpdateRequired);
+        if (!request.RemoveNodeIds.SequenceEqual(removedIds, StringComparer.Ordinal)) return null;
         if (state.Version != request.ExpectedStateVersion) return null;
         // 一つの参加処理で複数の異なる移行を行わない。応答消失後の同世代再送は上でCURRENTになる。
         if (await dbContext.SkillTreeMigrationOperations.AnyAsync(x => x.OperationId == request.AccountSessionId)) return null;
@@ -87,6 +106,8 @@ public sealed partial class SkillTreeOperationRepository
         var previousVersion = state.Version;
         var now = DateTime.UtcNow;
         var baseline = state.UnlockedNodes.Select(x => x.NodeId).Order(StringComparer.Ordinal).ToArray();
+        dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(state.UnlockedNodes
+            .Where(x => removedIds.Contains(x.NodeId, StringComparer.Ordinal)));
         state.DefinitionGenerationId = target.DefinitionGenerationId;
         state.Version = checked(state.Version + 1);
         state.UpdatedAt = now;
@@ -104,11 +125,11 @@ public sealed partial class SkillTreeOperationRepository
             RequestHash = Hash(JsonSerializer.Serialize(new { accountId, fromGeneration, request.DefinitionGenerationId, previousVersion })),
             ExpectedStateVersion = previousVersion, FromGenerationId = fromGeneration,
             ToGenerationId = target.DefinitionGenerationId, BaselineNodeIdsJson = JsonSerializer.Serialize(baseline),
-            RemovedNodeIdsJson = "[]", Status = "APPLIED", CompletedAtUtc = now,
+            RemovedNodeIdsJson = JsonSerializer.Serialize(removedIds), Status = "APPLIED", CompletedAtUtc = now,
             ResultJson = JsonSerializer.Serialize(new SkillTreeMigrationResponse
             {
                 OperationId = request.AccountSessionId, Status = "APPLIED", StateVersion = state.Version,
-                RemovedNodeIds = [], Refunds = [], ConsumedClassAssignments = [],
+                RemovedNodeIds = removedIds, Refunds = refunds, ConsumedClassAssignments = [],
             }),
         });
         await dbContext.SaveChangesAsync();

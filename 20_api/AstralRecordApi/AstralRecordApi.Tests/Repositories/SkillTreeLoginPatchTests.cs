@@ -34,6 +34,7 @@ public sealed class SkillTreeLoginPatchTests
         var target = await PrepareAsync(f);
         var preview = await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target));
         Assert.Equal("UPDATE_REQUIRED", preview?.Status);
+        Assert.Empty(preview?.RemovedNodeIds ?? []);
         Assert.Equal(1, (await f.Db.AccountSkillTreeStates.AsNoTracking().SingleAsync()).Version);
         Assert.Empty(await f.Db.SkillTreeMigrationOperations.ToArrayAsync());
         Assert.Null(await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target, true, 0)));
@@ -48,6 +49,85 @@ public sealed class SkillTreeLoginPatchTests
         Assert.Empty(await f.Db.SkillTreeServerPlayerViews.ToArrayAsync());
         Assert.True(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server, f.Boot, target, f.Session, f.Token));
         Assert.False(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server, f.Boot, f.Generation, f.Session, f.Token));
+    }
+
+    [Fact]
+    public async Task ChangedOrphanIsRemovedOnlyWhenApplyConfirmsThePreviewedNodeIds()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var state = await f.Db.AccountSkillTreeStates.SingleAsync();
+        f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
+            NodeId = "gain", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            CreatedBy = f.User, UpdatedBy = f.User,
+        });
+        await f.Db.SaveChangesAsync();
+        var target = await PrepareAsync(f, MoveGainBehindBridge(f.Canonical));
+
+        var preview = await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target));
+        Assert.Equal("UPDATE_REQUIRED", preview?.Status);
+        Assert.Equal(["gain"], preview?.RemovedNodeIds);
+        Assert.Collection(preview!.Refunds, refund =>
+        {
+            Assert.Equal("gain", refund.NodeId);
+            Assert.Equal("PP", refund.PointType);
+            Assert.Equal(2, refund.Points);
+        });
+        Assert.Null(await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target, true)));
+        Assert.Equal(1, (await f.Db.AccountSkillTreeStates.AsNoTracking().SingleAsync()).Version);
+        Assert.Equal(2, await f.Db.AccountSkillTreeUnlockedNodes.CountAsync());
+
+        var applied = await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account,
+            Request(f, target, true, removeNodeIds: ["gain"]));
+        Assert.Equal("APPLIED", applied?.Status);
+        Assert.Equal(["gain"], applied?.RemovedNodeIds);
+        Assert.Equal(["root"], await f.Db.AccountSkillTreeUnlockedNodes.Select(x => x.NodeId).ToArrayAsync());
+        Assert.Equal(target, (await f.Db.AccountSkillTreeStates.SingleAsync()).DefinitionGenerationId);
+        Assert.Equal("CURRENT", (await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account,
+            Request(f, target, true, removeNodeIds: ["gain"])))?.Status);
+        Assert.Single(await f.Db.SkillTreeMigrationOperations.ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task UnchangedDescendantIsNotSilentlyRemovedWithChangedOrphan()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var source = JsonNode.Parse(f.Canonical)!;
+        source["nodes"]!.AsArray().Add(JsonNode.Parse("""{"nodeId":"tail","pointType":"PASSIVE_POINT","pointCost":1,"unlockCondition":{"classId":null,"playerLevel":0}}"""));
+        source["positions"]!.AsArray().Add(JsonNode.Parse("""{"nodeId":"tail"}"""));
+        source["edges"]!.AsArray().Add("gain->tail");
+        var sourceJson = source.ToJsonString();
+        var sourceGeneration = SkillTreeOperationRepositoryTests.Hash(sourceJson);
+        await f.CloseAsync();
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, Registration(f, sourceJson, 2)));
+        var state = await f.Db.AccountSkillTreeStates.SingleAsync();
+        state.DefinitionGenerationId = sourceGeneration;
+        foreach (var nodeId in new[] { "gain", "tail" })
+            f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+            {
+                AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
+                NodeId = nodeId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedBy = f.User, UpdatedBy = f.User,
+            });
+        await f.Db.SaveChangesAsync();
+        Assert.Equal(1, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,
+            new() { DefinitionGenerationId = sourceGeneration }))?.PatchVersion);
+        var targetJson = MoveGainBehindBridge(sourceJson);
+        var target = SkillTreeOperationRepositoryTests.Hash(targetJson);
+        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, Registration(f, targetJson, 3)));
+        Assert.Equal(2, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,
+            new() { DefinitionGenerationId = target }))?.PatchVersion);
+        f.Session = Guid.NewGuid();
+        f.Token = SkillTreeOperationRepositoryTests.Hash(f.Session.ToString());
+        Assert.True(await f.Repository.AcquireAccountSessionAsync(f.Server, f.Account, new()
+        {
+            ServerSessionId = f.Boot, AccountSessionId = f.Session, AccountLeaseToken = f.Token,
+            DefinitionGenerationId = target,
+        }));
+        Assert.Equal("INCOMPATIBLE", (await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account,
+            Request(f, target)))?.Status);
+        Assert.Equal(3, await f.Db.AccountSkillTreeUnlockedNodes.CountAsync());
     }
 
     [Fact]
@@ -214,11 +294,24 @@ public sealed class SkillTreeLoginPatchTests
         Assert.Empty(await f.Db.SkillTreeMigrationOperations.ToArrayAsync());
     }
 
-    private static SkillTreeLoginPatchRequest Request(SkillTreeOperationRepositoryTests.Fixture f, string generation, bool apply = false, int version = 1) => new()
+    private static SkillTreeLoginPatchRequest Request(SkillTreeOperationRepositoryTests.Fixture f, string generation,
+        bool apply = false, int version = 1, IReadOnlyList<string>? removeNodeIds = null) => new()
     {
         ServerSessionId = f.Boot, AccountSessionId = f.Session, AccountLeaseToken = f.Token,
         DefinitionGenerationId = generation, Apply = apply, ExpectedStateVersion = version,
+        RemoveNodeIds = removeNodeIds ?? [],
     };
+
+    private static string MoveGainBehindBridge(string sourceJson)
+    {
+        var target = JsonNode.Parse(sourceJson)!;
+        target["nodes"]!.AsArray().Add(JsonNode.Parse("""{"nodeId":"bridge","pointType":"PASSIVE_POINT","pointCost":0,"unlockCondition":{"classId":null,"playerLevel":0}}"""));
+        target["positions"]!.AsArray().Add(JsonNode.Parse("""{"nodeId":"bridge"}"""));
+        target["edges"]!.AsArray().RemoveAt(0);
+        target["edges"]!.AsArray().Add("root->bridge");
+        target["edges"]!.AsArray().Add("bridge->gain");
+        return target.ToJsonString();
+    }
 
     private static SkillTreeServerRegistrationRequest Registration(SkillTreeOperationRepositoryTests.Fixture f, string canonical, long revision) => new()
     {

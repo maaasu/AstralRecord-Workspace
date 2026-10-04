@@ -1300,7 +1300,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         for (int attemptNumber = 1; attemptNumber <= maxAttempts && isJoinLoading(attempt); attemptNumber++) {
             try {
                 return skillTreeService.loadInitialPlayerState(accountId, userId,
-                    () -> notifyPatchApplying(attempt));
+                    removedCount -> notifyPatchApplying(attempt, removedCount));
             } catch (RuntimeException e) {
                 if (e instanceof io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeCompatibilityException compatibility) {
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
@@ -1492,7 +1492,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     /** パッチ確定前にメインスレッドで表示を切り替え、通知完了後にAPI確定処理へ進めます。 */
-    private void notifyPatchApplying(JoinAttempt attempt) {
+    private void notifyPatchApplying(JoinAttempt attempt, int removedCount) {
         CompletableFuture<Void> notified = new CompletableFuture<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             try {
@@ -1502,6 +1502,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 }
                 patchApplyingAttempts.add(attempt);
                 PlayerMessageService.getInstance().send(attempt.player(), PlayerMsgId.P_5085);
+                if (removedCount > 0) {
+                    PlayerMessageService.getInstance().send(attempt.player(), PlayerMsgId.P_9053, removedCount);
+                }
                 showJoinLoadingTitle(attempt);
                 notified.complete(null);
             } catch (RuntimeException failure) {
