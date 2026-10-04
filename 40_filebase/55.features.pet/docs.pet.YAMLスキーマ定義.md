@@ -9,7 +9,7 @@
 | `schemaVersion` | Integer | `1` 固定 |
 | `id` | String | `pets` 固定 |
 | `rules` | Object | 共通ルール |
-| `experience` | Object | プレイヤー同等の必要経験値係数 |
+| `experience` | Object | 必要経験値係数、専用獲得経験値式、個体の成長補正 |
 | `species[]` | List | wolf / cat / chicken 各1定義 |
 
 ## rules
@@ -45,7 +45,24 @@
 | `wave[]` | Integer[] | 成長度1から繰り返す波形加算 |
 | `milestoneInterval` | Integer | 大きな節目の間隔 |
 | `milestoneBase` / `milestoneLinear` | Integer | 大きな節目の基本値と成長度係数 |
-| `activityRate` | Number | 召喚・生存中に実活動で付与する経験値比率（0〜1） |
+| `activityRate` | Number | 専用式の獲得経験値に成長補正と合わせて一度掛ける活動比率（0〜1） |
+| `combatGain` | Object | 討伐獲得EXPの`base`・`perLevel`。非負の有限値、少なくとも片方は正 |
+| `gatheringGain` | Object | 採集獲得EXPの`base`・`perLevel`。非負の有限値、少なくとも片方は正 |
+| `growthRateMin` | Number | 個体の成長補正下限。0より大きく1未満の有限値 |
+
+ペットの獲得EXPは、討伐時は`combatGain`と敵の実効レベル、採集時は`gatheringGain`と採集マスターの`level`から計算します。プレイヤーが獲得したEXP、EXP倍率、プレイヤーと対象のレベル差補正は参照しません。
+
+獲得EXP係数は、最大の対象レベル`2147483647`でも`base + perLevel × 2147483647 < 9223372036854775807`を満たす値にします。APIと編集サイトの保存時検証で整数範囲への変換時のオーバーフローを拒否します。
+
+```text
+活動EXP = floor(base + perLevel × 対象レベル)
+各基礎能力の比率 = clamp((BaseValue − 種族の全ティア最小Min)
+  / (種族の全ティア最大Max − 全ティア最小Min), 0, 1)
+成長補正 = 1 − (1 − growthRateMin) × 5基礎能力の比率平均
+獲得EXP = floor(活動EXP × activityRate × 成長補正)
+```
+
+成長補正は生命力・攻撃力・防御力・回避力・支援力の生まれつきの基礎能力から求めます。基礎能力が高いほど獲得EXP倍率が低くなり、全項目が最低値なら1、全項目が最高値なら`growthRateMin`です。潜在能力と育成後の`currentValue`は計算に含めません。孵化済み個体の説明に成長補正を表示し、卵には表示しません。各能力の成長増分にはこの補正を掛けません。
 
 成長度 `L` から次の成長度へ必要な経験値は次のとおりです。
 

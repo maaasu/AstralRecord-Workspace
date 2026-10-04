@@ -89,6 +89,73 @@ public sealed class PetMasterEditorTests : IDisposable
         if (!valid) Assert.Contains(report.Issues, issue => issue.Code == "PET_EXPERIENCE");
     }
 
+    [Theory]
+    [InlineData(.25, true)]
+    [InlineData(.001, true)]
+    [InlineData(.999, true)]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(-.1, false)]
+    [InlineData(1.1, false)]
+    public async Task IndividualGrowthRateUsesOpenBounds(double rate, bool valid)
+    {
+        var draft = _master.DeepClone(); draft["experience"]!["growthRateMin"] = rate;
+        var report = await _validation.ValidateAsync(PetPath, Raw(draft), CancellationToken.None);
+        Assert.Equal(valid, report.IsValid);
+        if (!valid) Assert.Contains(report.Issues, issue => issue.Code == "PET_GROWTH_RATE");
+    }
+
+    [Theory]
+    [InlineData("combatGain", 0, 25, true)]
+    [InlineData("combatGain", 50, 0, true)]
+    [InlineData("combatGain", .5, .25, true)]
+    [InlineData("combatGain", 0, 0, false)]
+    [InlineData("combatGain", -1, 25, false)]
+    [InlineData("gatheringGain", 20, -1, false)]
+    [InlineData("gatheringGain", 0, 0, false)]
+    [InlineData("gatheringGain", 20, 10, true)]
+    [InlineData("combatGain", 1e19, 0, false)]
+    [InlineData("gatheringGain", 0, 1e12, false)]
+    [InlineData("combatGain", 0, 1e9, true)]
+    public async Task ActivityGainNeedsFiniteNonNegativeCoefficientsAndPositiveGain(string source, double baseValue, double perLevel, bool valid)
+    {
+        var draft = _master.DeepClone();
+        draft["experience"]![source] = new JsonObject { ["base"] = baseValue, ["perLevel"] = perLevel };
+        var report = await _validation.ValidateAsync(PetPath, Raw(draft), CancellationToken.None);
+        Assert.Equal(valid, report.IsValid);
+        if (!valid) Assert.Contains(report.Issues, issue => issue.Code == "PET_EXPERIENCE_GAIN");
+    }
+
+    [Theory]
+    [InlineData("combatGain")]
+    [InlineData("gatheringGain")]
+    public async Task MissingOrNonNumericActivityGainIsRejectedBeforeSaving(string source)
+    {
+        foreach (var invalid in new JsonNode?[] { null, new JsonObject { ["base"] = "NaN", ["perLevel"] = 1 }, new JsonObject { ["base"] = 1 } })
+        {
+            var draft = _master.DeepClone(); draft["experience"]![source] = invalid;
+            var original = await _service.ReadAsync(PetPath, CancellationToken.None);
+            var exception = await Assert.ThrowsAsync<MasterDataValidationException>(() =>
+                _service.SaveAsync(new(PetPath, Raw(draft), original.Revision), CancellationToken.None));
+            Assert.Contains(exception.Report.Issues, issue => issue.Code == "PET_EXPERIENCE_GAIN");
+            Assert.Equal(original.Raw, (await _service.ReadAsync(PetPath, CancellationToken.None)).Raw);
+        }
+    }
+
+    [Fact]
+    public async Task CommittedSchemaDynamicallyExposesDedicatedGainAndGrowthRateFields()
+    {
+        var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var catalog = new MasterDataCatalog(new MasterDataPaths(new WorkspacePaths(root)));
+        var category = await catalog.GetAsync("55.features.pet", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/experience/combatGain/base"
+            && field.Label == "討伐経験値の基本値" && field.Type == "number" && field.Required);
+        Assert.Contains(category.Fields, field => field.Path == "/experience/gatheringGain/perLevel"
+            && field.Label == "採集レベルごとの経験値係数" && field.Type == "number" && field.Required);
+        Assert.Contains(category.Fields, field => field.Path == "/experience/growthRateMin"
+            && field.Label == "個体の成長補正の下限" && field.Type == "number" && field.Required);
+    }
+
     [Fact]
     public async Task GrowthAndAutonomousRulesMatchApiBounds()
     {
@@ -265,7 +332,9 @@ public sealed class PetMasterEditorTests : IDisposable
                 ["breedMaterials"] = Materials(), ["reviveMaterials"] = Materials(),
                 ["sizeGrowth"] = new JsonObject { ["initialScale"] = .5, ["matureScale"] = 1, ["matureLevel"] = 20 },
                 ["autonomousAttackRange"] = 8, ["threatMultiplier"] = .5 },
-            ["experience"] = new JsonObject { ["activityRate"] = 1 }, ["species"] = species,
+            ["experience"] = new JsonObject { ["activityRate"] = 1, ["growthRateMin"] = .25,
+                ["combatGain"] = new JsonObject { ["base"] = 50, ["perLevel"] = 25 },
+                ["gatheringGain"] = new JsonObject { ["base"] = 20, ["perLevel"] = 10 } }, ["species"] = species,
         };
     }
     private void WriteItem(string path, string id, string category, int maxStack, string suffix = "")

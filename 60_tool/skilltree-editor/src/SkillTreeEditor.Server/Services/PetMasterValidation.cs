@@ -85,8 +85,21 @@ internal static class PetMasterValidation
             && Number(rules["threatMultiplier"]) is >= 0 and <= 1,
             "PET_AUTONOMOUS_COMBAT", "/rules", "自律索敵距離は1〜32、実ダメージ由来の脅威度倍率は0〜1にしてください。", issues);
         if (master["experience"] is JsonObject curve)
+        {
             Check(double.IsFinite(Number(curve["activityRate"])) && Number(curve["activityRate"]) is >= 0 and <= 1,
                 "PET_EXPERIENCE", "/experience/activityRate", "活動経験値比率は0以上1以下で指定してください。", issues);
+            Check(Number(curve["growthRateMin"]) is > 0 and < 1,
+                "PET_GROWTH_RATE", "/experience/growthRateMin", "成長補正の下限は0より大きく1未満の有限値で指定してください。", issues);
+            foreach (var source in new[] { "combatGain", "gatheringGain" })
+            {
+                var gain = curve[source] as JsonObject;
+                var baseValue = Number(gain?["base"]); var perLevel = Number(gain?["perLevel"]);
+                Check(gain is not null && baseValue >= 0 && perLevel >= 0 && (baseValue > 0 || perLevel > 0)
+                    && baseValue + perLevel * int.MaxValue < long.MaxValue,
+                    "PET_EXPERIENCE_GAIN", "/experience/" + source,
+                    "獲得経験値の係数は非負の有限値で少なくとも片方を正にし、対象レベル2147483647でも計算結果を9223372036854775807未満にしてください。", issues);
+            }
+        }
         var definitions = species.OfType<JsonObject>().ToArray();
         Check(definitions.Select(s => JsonValueReader.String(s["id"])).Order().SequenceEqual(new[] { "cat", "chicken", "wolf" }),
             "PET_SPECIES", "/species", "wolf、cat、chickenを各1種類ずつ定義してください。", issues);

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fieldForPath, masterDefault, MasterDataForm, normalizeMasterType } from './MasterDataForm'
 import type { JsonValue } from '../types/editor'
 import type { MasterField } from '../types/masterData'
+import petSchema from '../../../../../../40_filebase/55.features.pet/schemas/pet-master.v1.schema.json'
 
 const fields: MasterField[] = [
   { path: '/name', key: 'name', label: '表示名', type: 'string', required: true, description: 'ゲーム内の名前' },
@@ -21,6 +22,21 @@ function openAdd(path: string) {
 }
 
 describe('master form', () => {
+  it('renders committed pet experience coefficients and growth correction as editable numbers', () => {
+    const onChange = vi.fn()
+    const experience = { combatGain: { base: 50, perLevel: 25 }, gatheringGain: { base: 20, perLevel: 10 }, growthRateMin: .25 }
+    render(<MasterDataForm value={experience} path="/experience" schema={petSchema.properties.experience}
+      fields={[]} onChange={onChange} />)
+    expect(screen.getByText('討伐経験値の基本値')).toBeInTheDocument()
+    expect(screen.getByText('採集レベルごとの経験値係数')).toBeInTheDocument()
+    expect(screen.getByText('個体の成長補正の下限')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/experience/combatGain/base' })).toHaveValue('50')
+    expect(screen.getByRole('textbox', { name: '/experience/gatheringGain/perLevel' })).toHaveValue('10')
+    expect(screen.queryByRole('combobox', { name: '/experience/combatGain 定義の種類' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: '/experience/growthRateMin' }), { target: { value: '.4' } })
+    expect(onChange).toHaveBeenLastCalledWith({ ...experience, growthRateMin: .4 })
+    expect(masterDefault(petSchema.properties.experience.properties.combatGain)).toEqual({ base: 50, perLevel: 25 })
+  })
   it('previews names and multiline lore in color while retaining the editable source', () => {
     render(<Editable initial={{ name: '&6&l利用券', lore: ['§a説明\n&r通常'] }} />)
     expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('&6&l利用券')

@@ -229,7 +229,10 @@
         "milestoneInterval",
         "milestoneBase",
         "milestoneLinear",
-        "activityRate"
+        "activityRate",
+        "combatGain",
+        "gatheringGain",
+        "growthRateMin"
       ],
       "properties": {
         "base": {
@@ -281,10 +284,48 @@
           "minimum": 0,
           "maximum": 1,
           "title": "活動経験値の付与比率",
-          "description": "召喚・生存中の実活動の経験値比率。時間経過だけでは成長しない。"
+          "description": "専用式で求めた獲得経験値に、個体の成長補正と合わせて一度掛ける比率。時間経過だけでは成長しない。"
+        },
+        "combatGain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "perLevel"],
+          "title": "討伐で獲得する経験値",
+          "description": "floor(基本値 + 対象レベル係数 × 実効敵レベル)。プレイヤーの獲得EXP・EXP倍率・レベル差補正は参照しない。対象レベル2147483647でも計算結果を9223372036854775807未満にする。",
+          "allOf": [{"anyOf": [
+            {"properties": {"base": {"exclusiveMinimum": 0}}},
+            {"properties": {"perLevel": {"exclusiveMinimum": 0}}}
+          ]}],
+          "properties": {
+            "base": {"type": "number", "minimum": 0, "default": 50, "title": "討伐経験値の基本値"},
+            "perLevel": {"type": "number", "minimum": 0, "default": 25, "title": "敵レベルごとの経験値係数"}
+          }
+        },
+        "gatheringGain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "perLevel"],
+          "title": "採集で獲得する経験値",
+          "description": "floor(基本値 + 対象レベル係数 × 採集マスターのlevel)。プレイヤーの獲得EXP・EXP倍率・レベル差補正は参照しない。対象レベル2147483647でも計算結果を9223372036854775807未満にする。",
+          "allOf": [{"anyOf": [
+            {"properties": {"base": {"exclusiveMinimum": 0}}},
+            {"properties": {"perLevel": {"exclusiveMinimum": 0}}}
+          ]}],
+          "properties": {
+            "base": {"type": "number", "minimum": 0, "default": 20, "title": "採集経験値の基本値"},
+            "perLevel": {"type": "number", "minimum": 0, "default": 10, "title": "採集レベルごとの経験値係数"}
+          }
+        },
+        "growthRateMin": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1,
+          "default": 0.25,
+          "title": "個体の成長補正の下限",
+          "description": "5つの基礎能力が種族の全ティア上限に達した個体のEXP倍率。基礎能力が低いほど1へ近づく。潜在能力・育成済み能力値は計算に含めない。"
         }
       },
-      "title": "必要経験値の成長曲線"
+      "title": "必要経験値・獲得経験値・成長補正"
     },
     "species": {
       "type": "array",

@@ -58,6 +58,13 @@ experience:
   milestoneBase: 600
   milestoneLinear: 80
   activityRate: 1
+  combatGain:
+    base: 50
+    perLevel: 25
+  gatheringGain:
+    base: 20
+    perLevel: 10
+  growthRateMin: 0.25
 species:
   - id: wolf
     displayName: 犬
