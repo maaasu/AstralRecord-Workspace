@@ -79,6 +79,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const batchRequested = useRef(false)
   const importInput = useRef<HTMLInputElement>(null)
   const operationId = useRef(0)
+  const refreshId = useRef(0)
   const latestRenderWarnings = useRef<string[]>([])
   const reviewedRaw = useRef('')
   const history = useHistory(emptyDraft)
@@ -158,21 +159,30 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     setError(reason instanceof Error ? reason.message : String(reason))
   }, [])
   const refresh = useCallback(async () => {
-    const [nextCatalog, nextFiles] = await Promise.all([masterDataApi.catalog(), masterDataApi.files()])
-    setCatalog(nextCatalog); setFiles(nextFiles)
+    const requestId = ++refreshId.current
+    let nextCatalog: MasterCatalog
+    let nextFiles: MasterFileSummary[]
+    let nextFilterIndex: MasterFilterIndex | null
+    try { [nextCatalog, nextFiles, nextFilterIndex] = await Promise.all([
+      masterDataApi.catalog(), masterDataApi.files(), masterDataApi.filterIndex().catch(() => null),
+    ]) }
+    catch (reason) { if (requestId === refreshId.current) throw reason; return }
+    if (requestId !== refreshId.current) return
+    setCatalog(nextCatalog); setFiles(nextFiles); setFilterIndex(nextFilterIndex)
     setCategoryId((current) => nextCatalog.categories.some((entry) => entry.id === current) ? current
       : nextCatalog.categories.find((entry) => entry.id === itemDirectory)?.id
       ?? nextCatalog.categories.find((entry) => entry.id === materialDirectory)?.id
       ?? nextCatalog.categories[0]?.id ?? '')
-    void masterDataApi.candidates().then(setCandidates).catch(() => { /* Free input works while optional candidates are unavailable. */ })
-    void masterDataApi.filterIndex().then(setFilterIndex).catch(() => {
-      setFilterIndex(null); setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
+    void masterDataApi.candidates().then((next) => { if (requestId === refreshId.current) setCandidates(next) }).catch(() => { /* Free input works while optional candidates are unavailable. */ })
+    if (!nextFilterIndex) {
+      setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
       setNotice('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
-    })
+    }
   }, [])
   useEffect(() => {
     void refresh().catch(showError).finally(() => setLoading(false))
   }, [refresh, showError])
+  useEffect(() => () => { refreshId.current++ }, [])
   useEffect(() => {
     if (!filterIndex) return
     const sourceMissing = Boolean(dropSourcePath && !filterIndex.sources.some((source) => source.path === dropSourcePath))

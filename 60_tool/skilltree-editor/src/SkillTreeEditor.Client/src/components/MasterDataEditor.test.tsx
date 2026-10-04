@@ -97,7 +97,7 @@ describe('master editor workflow', () => {
     fireEvent.change(source, { target: { value: '40.features.mob/enemy/mob.yml' } })
     fireEvent.click(screen.getByTitle('一覧と定義メタデータを再読込'))
     await waitFor(() => expect(source).toHaveValue(''))
-    expect(screen.getByText('選択していた絞り込み候補が見つからないため、絞り込みを解除しました。')).toBeInTheDocument()
+    expect(await screen.findByText('選択していた絞り込み候補が見つからないため、絞り込みを解除しました。')).toBeInTheDocument()
   })
 
   it('disables stale filters when the index refresh fails', async () => {
@@ -118,6 +118,35 @@ describe('master editor workflow', () => {
     await waitFor(() => expect(source).toBeDisabled())
     expect(source).toHaveValue('')
     expect(screen.getByText('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
+  })
+
+  it('keeps the newest filter index when two refreshes finish out of order', async () => {
+    const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [item] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '10.features.item/10.material/a.yml', category: '10.features.item/10.material', format: 'yaml', id: 'a', name: '素材A', revision: 'a', size: 10, modifiedUtc: '' },
+      { path: '10.features.item/10.material/b.yml', category: '10.features.item/10.material', format: 'yaml', id: 'b', name: '素材B', revision: 'b', size: 10, modifiedUtc: '' },
+    ])
+    const source = { path: '40.features.mob/enemy/mob.yml', id: 'mob', name: 'モブ', kind: 'mob' as const }
+    let finishOlder!: (value: { sources: (typeof source & { itemIds: string[] })[]; skillTags: []; tags: [] }) => void
+    let finishNewer!: typeof finishOlder
+    vi.mocked(masterDataApi.filterIndex)
+      .mockResolvedValueOnce({ sources: [{ ...source, itemIds: ['a'] }], skillTags: [], tags: [] })
+      .mockImplementationOnce(() => new Promise((resolve) => { finishOlder = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishNewer = resolve }))
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /素材A/ })
+    fireEvent.change(screen.getByRole('combobox', { name: 'ドロップ元' }), { target: { value: source.path } })
+    const refreshButton = screen.getByTitle('一覧と定義メタデータを再読込')
+    fireEvent.click(refreshButton)
+    fireEvent.click(refreshButton)
+    await waitFor(() => expect(masterDataApi.filterIndex).toHaveBeenCalledTimes(3))
+    await act(async () => finishNewer({ sources: [{ ...source, itemIds: ['b'] }], skillTags: [], tags: [] }))
+    expect(screen.getByRole('button', { name: /素材B/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /素材A/ })).not.toBeInTheDocument()
+    await act(async () => finishOlder({ sources: [{ ...source, itemIds: ['a'] }], skillTags: [], tags: [] }))
+    expect(screen.getByRole('button', { name: /素材B/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /素材A/ })).not.toBeInTheDocument()
   })
 
   it('filters skills by tag', async () => {
@@ -194,6 +223,14 @@ describe('master editor workflow', () => {
     fireEvent.click(await screen.findByRole('button', { name: path }))
     await waitFor(() => expect(screen.getByRole('textbox', { name: path })).toHaveFocus())
     expect(screen.getByRole('button', { name: '/a~1b~0c/items/1/params を編集' })).toHaveAttribute('aria-current', 'true')
+  })
+  it('focuses the shared lore textarea for a validation issue at one array element', async () => {
+    vi.mocked(masterDataApi.file).mockResolvedValue({ ...original, content: { id: 'old', lore: ['一行目', '二行目'] } })
+    vi.mocked(masterDataApi.validate).mockResolvedValue({ isValid: false, issues: [{ code: 'lore', severity: 'error', path: '/lore/0', message: '説明を確認してください。' }] })
+    await openFile()
+    fireEvent.click(screen.getByRole('button', { name: '検証' }))
+    fireEvent.click(await screen.findByRole('button', { name: '/lore/0' }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/lore' })).toHaveFocus())
   })
   it('returns to the array list before undoing a reordered element', async () => {
     vi.spyOn(masterDataApi, 'file').mockResolvedValue({ ...original, content: { id: 'old', items: [{ name: 'one', params: { amount: 1 } }, { name: 'two', params: { amount: 2 } }] } })
