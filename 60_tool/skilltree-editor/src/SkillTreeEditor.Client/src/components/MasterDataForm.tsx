@@ -5,12 +5,17 @@ import { MaterialIconInput } from './MaterialIconInput'
 import { summarizeMasterValue } from '../data/masterDataNavigation'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
 const typeLabels: Record<ValueType, string> = {
   string: '文字列', number: '数値', integer: '整数', boolean: '真偽値', object: 'オブジェクト / Map', array: '配列 / List', null: 'null',
 }
 const types = Object.keys(typeLabels) as ValueType[]
+const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~')
+const isDescriptionField = (path: string) => ['description', 'lore'].includes(textFieldName(path) ?? '')
+const isTextLineArray = (path: string, value: JsonValue): value is string[] =>
+  Array.isArray(value) && isDescriptionField(path) && value.every((entry) => typeof entry === 'string')
 export function normalizeMasterType(type: unknown): ValueType | undefined {
   if (typeof type !== 'string') return undefined
   const value = type.trim().toLowerCase()
@@ -126,6 +131,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   }
   if (kind === 'array') {
     const values = Array.isArray(value) ? value : []
+    if (isTextLineArray(path, values)) return <TextLineArrayEditor path={path} values={values} onChange={onChange} />
     const declaredItemType = metadata?.type.match(/^(?:List|Array|Set)\s*<\s*([^>]+)\s*>$/i)?.[1]
     const itemSchema = objectOf(resolved.items) ?? (normalizeMasterType(declaredItemType) ? { type: normalizeMasterType(declaredItemType) } : {})
     return <ArrayEditor {...inherited} path={path} values={values} itemSchema={itemSchema} onChange={onChange} />
@@ -171,6 +177,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const definition = childSchema(key)
       const isRequired = required.has(key) || field?.required === true
       const structured = Array.isArray(child) || objectOf(child)
+      const textLines = isTextLineArray(childPath, child)
       const label = String(definition.title ?? field?.label ?? key)
       const description = String(definition.description ?? field?.description ?? '')
       const declaredType = normalizeMasterType(definition.type ?? field?.type)
@@ -191,11 +198,11 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           }}>削除</button></div></details></div>
         {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
-        {structured && onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(child)} /></span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
+        {structured && onNavigate && !textLines ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(child)} /></span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
           : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (structured || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
+        : <div key={key} className={'master-field ' + (structured || isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
     <details className="master-add-field"><summary>項目を追加</summary><div className="master-add-field-body">
       {optionalKeys.length > 0 && <label>定義済みの項目を追加<select aria-label={`${path || '/'} 定義済みの項目を追加`} value="" onChange={(event) => { if (event.target.value) add(event.target.value) }}><option value="">項目を選択…</option>{optionalKeys.map((key) => {
@@ -205,6 +212,23 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       <div className="master-add-row"><input aria-label={`${path || '/'} 新しいキー`} value={newKey} placeholder="任意のキーを追加" onChange={(event) => setNewKey(event.target.value)} /><select aria-label={`${path || '/'} 追加する型`} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select><button type="button" className="button" onClick={() => add(newKey)}>＋ キー</button></div>
       {addError && <p role="alert" className="error-message">{addError}</p>}
     </div></details>
+  </div>
+}
+
+function TextLineArrayEditor({ values, path, onChange }: { values: string[]; path: string; onChange: (value: JsonValue) => void }) {
+  return <div className="master-line-editor">
+    <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(5, values.length + 2))}
+      value={values.join('\n')} onChange={(event) => {
+        const text = event.target.value.replace(/\r\n?/g, '\n')
+        onChange(text === '' ? [] : text.split('\n'))
+      }} />
+    <small className="master-line-guide">1 行が YAML の配列 1 要素になります。空行は空文字の要素、すべて消すと空配列になります。</small>
+    {values.some((line) => line.includes('\n')) && <small className="master-line-guide">既存の要素内に改行があります。編集するとその改行も別の要素に分かれます。</small>}
+    <div className="master-text-preview master-line-preview" aria-label={`${path || '/'} 表示プレビュー`}>
+      <strong>表示プレビュー</strong>
+      {values.length ? values.map((line, index) => <div className="master-line-preview-row" key={index}><code>{index + 1}</code><span><MinecraftText value={line || ' '} /></span></div>)
+        : <span className="master-muted">表示する行がありません。</span>}
+    </div>
   </div>
 }
 
@@ -260,8 +284,12 @@ function StringEditor({ value, path, onChange, references, referenceKind, refere
   const selected = candidates.find((entry) => entry.value === value)
   const preview = selected?.label ?? value
   const formatted = preview !== stripMinecraftFormatting(preview)
-  return <div>{value.includes('\n') ? <textarea aria-label={path || '/'} rows={Math.min(12, value.split('\n').length + 1)} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
-    {formatted && <div className="master-text-preview" aria-label={`${path || '/'} 表示プレビュー`}><MinecraftText value={preview} /></div>}
+  const description = isDescriptionField(path)
+  const hexColor = textFieldName(path)?.toLowerCase() === 'color' && /^#[0-9a-f]{6}$/i.test(value)
+  return <div>{description || value.includes('\n') ? <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(4, value.split('\n').length + 1))} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
+    {description && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}
+    {(formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
+    {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
     {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small>
       <details className="master-colored-candidates"><summary>名前と色を確認して選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
     </>}
