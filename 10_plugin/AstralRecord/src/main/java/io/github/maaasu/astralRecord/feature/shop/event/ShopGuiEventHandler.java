@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.shop.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.MissingMaterialMessage;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
@@ -217,6 +219,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (!preview.canPurchase()) {
+            sendMissingMaterials(player, preview);
             shopGui.openConfirm(player, shop, entry, quantity, preview, pageIndex);
             GuiSound.DENY.play(player);
             return;
@@ -242,12 +245,16 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                     boolean refreshConfirm = player.getOpenInventory().getTopInventory() == purchaseInventory;
                     if (failure != null || !Boolean.TRUE.equals(purchased)) {
                         inventoryService.applyInventoriesToGui(current);
-                        if (failure != null) {
+                        ShopPurchasePreview currentPreview = shopService.preview(current, entry, quantity);
+                        if (!currentPreview.missingItems().isEmpty()) {
+                            sendMissingMaterials(player, currentPreview);
+                        }
+                        if (failure != null && currentPreview.missingItems().isEmpty()) {
                             PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5252);
                         }
                         if (refreshConfirm) {
                             shopGui.openConfirm(
-                                player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
+                                player, shop, entry, quantity, currentPreview, pageIndex);
                         }
                         GuiSound.DENY.play(player);
                         return;
@@ -265,6 +272,18 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             shopGui.openConfirm(player, shop, entry, quantity, preview, pageIndex);
             throw failure;
         }
+    }
+
+    /**
+     * 購入時点の不足数を、各素材のホバー情報とともに通知します。
+     * @param player オンラインの購入者
+     * @param preview 購入時点に計算した不足情報
+     * @implNote アイテムマスタの解決とプレイヤーへの送信をメインスレッドで行う
+     */
+    private void sendMissingMaterials(@NotNull Player player, @NotNull ShopPurchasePreview preview) {
+        MissingMaterialMessage.send(player, PlayerMsgId.P_5931, preview.missingItems().stream()
+            .map(cost -> new MissingMaterialMessage.MissingItem(shopService.resolveCostItem(cost), cost.amount()))
+            .toList(), AstralRecord.getInstance().getItemStackFactory());
     }
 
     private boolean isInventoryFull(

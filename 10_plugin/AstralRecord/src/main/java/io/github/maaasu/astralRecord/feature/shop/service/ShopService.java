@@ -162,11 +162,18 @@ public final class ShopService {
      * @return アイテム表示名。解決できない場合は itemId
      */
     public @NotNull String resolveItemDisplayName(@NotNull ShopCostItem cost) {
+        return displayNameOrId(resolveCostItem(cost), cost.itemId());
+    }
+
+    /**
+     * 必要素材のマスタを解決します。
+     * @param cost 必要素材
+     * @return 解決済みマスタ。見つからない場合は null
+     * @implNote キャッシュにない場合はマスタを読み込む。購入状態は変更しない
+     */
+    public @Nullable ItemModel resolveCostItem(@NotNull ShopCostItem cost) {
         ItemModel model = itemService.findLoadedById(cost.itemId());
-        if (model == null) {
-            model = itemService.loadItem(cost.itemId(), cost.category());
-        }
-        return displayNameOrId(model, cost.itemId());
+        return model != null ? model : itemService.loadItem(cost.itemId(), cost.category());
     }
 
     public @NotNull ShopPurchasePreview preview(
@@ -187,7 +194,7 @@ public final class ShopService {
         boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
         List<ShopCostItem> missingItems = new ArrayList<>();
         if (ownedGold < requiredGold) {
-            missingItems.add(new ShopCostItem(ItemService.DEFAULT_CURRENCY_ITEM_ID, "currency", (int) (requiredGold - ownedGold)));
+            missingItems.add(new ShopCostItem(ItemService.DEFAULT_CURRENCY_ITEM_ID, "currency", toIntAmount(requiredGold - ownedGold)));
         }
         for (ShopCostItem cost : requiredItems) {
             long owned = getOwnedCostAmount(accountId, cost, hasStorageRemoteAccess);

@@ -291,12 +291,18 @@ public final class PetGui implements Listener {
             PlayerMessageService.getInstance().send(player,PlayerMsgId.P_9608);GuiSound.DENY.play(player);return;
         }
         holder.busy=true;
+        Map<String,Long> requestedPayment=payment;
         pets.mutate(owner,UUID.randomUUID(),suffix,method,body,payment).whenComplete((result,failure)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->{
                 holder.busy=pets.hasUnresolved(holder.accountId);
                 if(AstPlayerCache.get(player)!=owner)return;
-                PlayerMessageService.getInstance().send(player,PetOperationFeedback.message(result,failure,pets.hasUnresolved(holder.accountId)));
+                PlayerMsgId message=PetOperationFeedback.message(result,failure,pets.hasUnresolved(holder.accountId));
+                if(message==PlayerMsgId.P_9606||message==PlayerMsgId.P_9614){
+                    List<MissingMaterialMessage.MissingItem> missing=missingMaterials(holder.accountId,requestedPayment);
+                    if(missing.isEmpty())PlayerMessageService.getInstance().send(player,message);
+                    else MissingMaterialMessage.send(player,message,missing,factory);
+                }else PlayerMessageService.getInstance().send(player,message);
                 if(failure==null&&!pets.rejected(result)){
                     holder.selected=null;holder.male=null;holder.female=null;GuiSound.SUCCESS.play(player);
                 }else GuiSound.DENY.play(player);
@@ -304,6 +310,22 @@ public final class PetGui implements Listener {
                 if(player.getOpenInventory().getTopInventory()==holder.inventory)render(holder);
             });
         });
+    }
+    /**
+     * GAME BAG の現在の所持数から、今回の操作で不足する素材を算出します。
+     * @param accountId 操作するアカウント。読み込み済み状態を参照する
+     * @param payment 操作時に確定した必要素材
+     * @return 不足した素材と数量。所持状態は変更しない
+     */
+    private List<MissingMaterialMessage.MissingItem> missingMaterials(UUID accountId,Map<String,Long> payment){
+        var entries=PetBagAccess.entries(inventory.getStateRegistry().get(accountId));
+        List<MissingMaterialMessage.MissingItem> missing=new ArrayList<>();
+        for(var cost:payment.entrySet()){
+            long owned=PetBagAccess.materialAmount(entries,cost.getKey());
+            if(owned<cost.getValue())missing.add(new MissingMaterialMessage.MissingItem(
+                items.findLoadedById(cost.getKey()),cost.getValue()-owned));
+        }
+        return missing;
     }
     private boolean atFacility(Player player,Holder holder){
         if(holder.adminFacility){

@@ -590,6 +590,8 @@ public enum PlayerMsgId {
     P_5252(5252),
     /** ストレージからのアイテム取得通知。{0}: アイテム表示名、{1}: 取得数量 */
     P_5253(5253),
+    /** 不足素材の表示。{0}: 素材名、{1}: 不足数量 */
+    P_5254(5254),
     // endregion
 
     // region /feature/inventory/service/InventoryAutoSaveTask.java 5280-5289
@@ -1184,6 +1186,8 @@ public enum PlayerMsgId {
 
     // region /feature/shop 5930-5939
     P_5930(5930),
+    /** ショップでの購入・両替に必要な対価が不足しています。 */
+    P_5931(5931),
     // endregion
 
     // region /feature/trade 6200-6212
