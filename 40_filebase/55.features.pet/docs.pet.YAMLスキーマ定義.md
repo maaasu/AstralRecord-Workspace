@@ -27,6 +27,9 @@
 | `potentialCountWeights[]` | Number[3] | 親の多い方の潜在数から−1、維持、＋1する重み。両親0個なら野生と同じ抽選 |
 | `maleChance` | Number | オスの確率。残りはメス |
 | `eggDropChance` | Number | 敵討伐1回の卵抽選確率（0〜1）。味方ペット・NPCは対象外 |
+| `sizeGrowth` | Object | `initialScale`から`matureScale`へ`matureLevel`まで線形補間する外見サイズ倍率。正の値、成体倍率は初期倍率以上で2以下、到達成長度は2〜最大成長度 |
+| `autonomousAttackRange` | Number | 主人の周囲で敵を探す半径。1〜32ブロック |
+| `threatMultiplier` | Number | PET攻撃のHP/Shield由来脅威へ一度だけ掛ける倍率（0〜1） |
 | `reviveOrbItemId` | String | `item:`参照。`PET_REVIVE` オーブ |
 | `facilityId` | String | 孵化・配合・施設復活を提供するNPC ID |
 | `breedMaterials[]` / `reviveMaterials[]` | List | `itemId`（item:参照）と`quantity`（正整数）。実操作で消費する素材 |
@@ -53,7 +56,7 @@ base + quadratic × L²
   + (L % milestoneInterval == 0 ? milestoneBase + L × milestoneLinear : 0)
 ```
 
-累積経験値は成長度1から対象成長度の直前までを合算します。プレイヤーの個人差を作るhash加算はペットには付けず、基礎の曲線を共有します。放置、ログアウト、死亡、未装備中には時間経過だけで経験値を加算しません。
+累積経験値は成長度1から対象成長度の直前までを合算します。個体に保存する`details.experience`は現在の成長度内の残量で、最大成長度では0です。プレイヤーの個人差を作るhash加算はペットには付けず、基礎の曲線を共有します。放置、ログアウト、死亡、未装備中には時間経過だけで経験値を加算しません。
 
 ## species
 
@@ -64,10 +67,13 @@ base + quadratic × L²
 | `eggItemId` / `petItemId` | String | `item:`参照。卵と孵化後個体のitem ID |
 | `dropWeight` | Number | 卵当選後の種類抽選重み |
 | `names[]` | String[] | 50個以上の名前候補。種類内は重複不可。孵化時に1個抽選 |
-| `sizeMin` / `sizeMax` | Number | 孵化時に抽選する外見倍率。性能の補正には使用しない |
+| `sizeMin` / `sizeMax` | Number | 孵化時に抽選する基礎個体サイズ。`sizeGrowth`の倍率を掛けても個体差を保持し、性能の補正には使用しない |
 | `hatchMaterials[]` | List | 孵化時に消費する`itemId`と`quantity` |
 | `stats` | Object | ステータスごとの独立遺伝・成長・主人からの換算設定 |
 | `skills[]` | List | 8個。T0〜T3がそれぞれ2個 |
+| `basicAttack` | Object | 全種必須。`damageRatio`、`cooldownSeconds`、`range`を正数で指定する基本攻撃 |
+
+外見の実倍率は`details.size × (initialScale + (matureScale − initialScale) × clamp((level − 1) / (matureLevel − 1), 0, 1))`です。初期設定はLv1で基礎サイズの半分、Lv20で基礎サイズと一致し、それ以降は固定です。犬・猫の首輪色と猫の毛柄は孵化時（配合卵は卵作成時）に抽選して個体詳細へ保存し、卵の公開応答には出しません。
 
 ## stats
 
@@ -119,6 +125,6 @@ base + quadratic × L²
 
 ATTACK_SPEEDはペット自身、BUFF・REDUCTION・SAVING・HEALは主人を対象とします。HUNT_ORDERは主人とペット双方の攻撃を同じvalueで強化し、MOON_DANCEは主人の防御と回避を同じvalueで強化します。HEALのvalueは各最大リソースに対する割合です。HEAL_ALLのdurationSecondsを指定すると継続回復します。追撃・反撃の攻撃が再びOWNER_HITを発火する循環は許可しません。
 
-## 基本追撃
+## 基本攻撃
 
-`species[].basicAttack` は任意の種族行動で、スキル枠を消費しない。`damageRatio` は算出済みペット攻撃力への倍率、`cooldownSeconds` は秒、`range` は攻撃距離。犬と猫は主人の直接攻撃に反応して接近・追撃する。ニワトリには定義しない。クールダウンは個体へ保存する。
+`species[].basicAttack` は全種類で必須の種族行動で、スキル枠を消費しない。`damageRatio` は算出済みペット攻撃力への倍率、`cooldownSeconds` は秒、`range` は攻撃距離。主人の直接攻撃への追撃と自律攻撃で同じ個体クールダウンを使う。初期設定は犬0.35/3秒、猫0.25/4秒、ニワトリ0.10/5秒とし、射程は各3ブロック。

@@ -75,6 +75,15 @@ internal static class PetMasterValidation
         Check(Number(rules["potentialGrowthMultiplier"]) == 2 && weights?.Count == 3 && weights.All(IsInteger)
             && weights.All(value => Number(value) >= 0) && weights.Sum(Number) > 0,
             "PET_POTENTIAL", "/rules/potentialCountWeights", "潜在成長倍率は2固定、継承重みは非負整数3個で合計を正にしてください。", issues);
+        var sizeGrowth = rules["sizeGrowth"] as JsonObject;
+        Check(sizeGrowth is not null && Number(sizeGrowth["initialScale"]) > 0
+            && Number(sizeGrowth["initialScale"]) <= Number(sizeGrowth["matureScale"])
+            && Number(sizeGrowth["matureScale"]) <= 2 && IsInteger(sizeGrowth["matureLevel"])
+            && Number(sizeGrowth["matureLevel"]) is >= 2 && Number(sizeGrowth["matureLevel"]) <= max,
+            "PET_SIZE_GROWTH", "/rules/sizeGrowth", "初期倍率は正で成体倍率以下、成体倍率は2以下、到達成長度は2以上かつ最大成長度以下にしてください。", issues);
+        Check(Number(rules["autonomousAttackRange"]) is >= 1 and <= 32
+            && Number(rules["threatMultiplier"]) is >= 0 and <= 1,
+            "PET_AUTONOMOUS_COMBAT", "/rules", "自律索敵距離は1〜32、実ダメージ由来の脅威度倍率は0〜1にしてください。", issues);
         if (master["experience"] is JsonObject curve)
             Check(double.IsFinite(Number(curve["activityRate"])) && Number(curve["activityRate"]) is >= 0 and <= 1,
                 "PET_EXPERIENCE", "/experience/activityRate", "活動経験値比率は0以上1以下で指定してください。", issues);
@@ -90,6 +99,10 @@ internal static class PetMasterValidation
             var names = entry["names"] as JsonArray;
             Check(names is not null && names.All(name => JsonValueReader.String(name) is { Length: > 0 and <= 24 }),
                 "PET_SPECIES_NAMES", pointer + "/names", "名前候補はAPIと同じ1〜24文字で指定してください。", issues);
+            var basicAttack = entry["basicAttack"] as JsonObject;
+            Check(basicAttack is not null && Number(basicAttack["damageRatio"]) > 0
+                && Number(basicAttack["cooldownSeconds"]) > 0 && Number(basicAttack["range"]) > 0,
+                "PET_BASIC_ATTACK", pointer + "/basicAttack", "全種類に正の基本攻撃倍率・待機時間・射程を指定してください。", issues);
             if (entry["skills"] is JsonArray skills)
             {
                 var skillRows = skills.OfType<JsonObject>().ToArray();

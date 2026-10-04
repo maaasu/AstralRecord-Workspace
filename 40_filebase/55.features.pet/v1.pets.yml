@@ -22,6 +22,12 @@ rules:
     - 5
   maleChance: 0.5
   eggDropChance: 0.0001
+  sizeGrowth:
+    initialScale: 0.5
+    matureScale: 1
+    matureLevel: 20
+  autonomousAttackRange: 8
+  threatMultiplier: 0.5
   reviveOrbItemId: item:40a00020
   facilityId: pet_center
   breedMaterials:
@@ -922,6 +928,10 @@ species:
   - id: chicken
     displayName: ニワトリ
     entityType: CHICKEN
+    basicAttack:
+      damageRatio: 0.1
+      cooldownSeconds: 5
+      range: 3
     eggItemId: item:81a00003
     petItemId: item:80a00003
     dropWeight: 1

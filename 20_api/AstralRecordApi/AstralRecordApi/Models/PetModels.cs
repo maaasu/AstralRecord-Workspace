@@ -24,10 +24,20 @@ public class PetRules
     public double MaleChance { get; set; } = .5;
     public int[] PotentialCountWeights { get; set; } = [20, 75, 5];
     public double EggDropChance { get; set; } = .0001;
+    public PetSizeGrowthMaster SizeGrowth { get; set; } = new();
+    public double AutonomousAttackRange { get; set; } = 8;
+    public double ThreatMultiplier { get; set; } = .5;
     public string ReviveOrbItemId { get; set; } = "40a00020";
     public string FacilityId { get; set; } = "pet_center";
     public List<PetMaterialMaster> BreedMaterials { get; set; } = [];
     public List<PetMaterialMaster> ReviveMaterials { get; set; } = [];
+}
+
+public class PetSizeGrowthMaster
+{
+    public double InitialScale { get; set; } = .5;
+    public double MatureScale { get; set; } = 1;
+    public int MatureLevel { get; set; } = 20;
 }
 
 public class PetExperienceMaster
@@ -135,6 +145,8 @@ public class PetDetailsResponse
     public string Name { get; set; } = "";
     public string Sex { get; set; } = "";
     public double Size { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PetAppearanceResponse? Appearance { get; set; }
     public int Level { get; set; } = 1;
     public long Experience { get; set; }
     public double HealthRatio { get; set; } = 1;
@@ -143,6 +155,14 @@ public class PetDetailsResponse
     public Dictionary<string, PetStatResponse> Stats { get; set; } = [];
     public List<PetSkillResponse> Skills { get; set; } = [];
     public Dictionary<string, long> Cooldowns { get; set; } = [];
+}
+
+public class PetAppearanceResponse
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CollarColor { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CatType { get; set; }
 }
 
 public class PetStatResponse

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using AstralRecordApi.Models;
 
 namespace AstralRecordApi.Services;
@@ -5,6 +6,17 @@ namespace AstralRecordApi.Services;
 /// <summary>基礎個体値だけを遺伝させ、成長増分と潜在倍率を別に計算する。</summary>
 public static class PetGenetics
 {
+    private static readonly string[] CollarColors =
+    [
+        "WHITE", "ORANGE", "MAGENTA", "LIGHT_BLUE", "YELLOW", "LIME", "PINK", "GRAY",
+        "LIGHT_GRAY", "CYAN", "PURPLE", "BLUE", "BROWN", "GREEN", "RED", "BLACK",
+    ];
+    private static readonly string[] CatTypes =
+    [
+        "ALL_BLACK", "BLACK", "BRITISH_SHORTHAIR", "CALICO", "JELLIE", "PERSIAN",
+        "RAGDOLL", "RED", "SIAMESE", "TABBY", "WHITE",
+    ];
+
     public static PetDetailsResponse HatchWild(PetMasterResponse master, PetSpeciesMaster species, Random random)
     {
         var details = NewDetails(master, species, random);
@@ -110,7 +122,35 @@ public static class PetGenetics
         Name = species.Names[random.Next(species.Names.Length)],
         Sex = random.NextDouble() < master.Rules.MaleChance ? "MALE" : "FEMALE",
         Size = Math.Round(species.SizeMin + random.NextDouble() * (species.SizeMax - species.SizeMin), 3),
+        Appearance = RollAppearance(species.Id, random),
     };
+
+    private static PetAppearanceResponse? RollAppearance(string speciesId, Random random) => speciesId switch
+    {
+        "wolf" => new PetAppearanceResponse { CollarColor = CollarColors[random.Next(CollarColors.Length)] },
+        "cat" => new PetAppearanceResponse
+        {
+            CollarColor = CollarColors[random.Next(CollarColors.Length)],
+            CatType = CatTypes[random.Next(CatTypes.Length)],
+        },
+        _ => null,
+    };
+
+    /// <summary>外見情報を持たない既存個体だけに、個体IDから再現可能な外見を与える。</summary>
+    public static PetAppearanceResponse? LegacyAppearance(string speciesId, Guid instanceId)
+    {
+        var hash = SHA256.HashData(instanceId.ToByteArray());
+        return speciesId switch
+        {
+            "wolf" => new PetAppearanceResponse { CollarColor = CollarColors[hash[0] % CollarColors.Length] },
+            "cat" => new PetAppearanceResponse
+            {
+                CollarColor = CollarColors[hash[0] % CollarColors.Length],
+                CatType = CatTypes[hash[1] % CatTypes.Length],
+            },
+            _ => null,
+        };
+    }
 
     private static double RollValue(PetTierMaster tier, double power, Random random)
     {

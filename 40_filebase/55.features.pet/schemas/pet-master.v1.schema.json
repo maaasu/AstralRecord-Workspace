@@ -35,6 +35,9 @@
         "potentialCountWeights",
         "maleChance",
         "eggDropChance",
+        "sizeGrowth",
+        "autonomousAttackRange",
+        "threatMultiplier",
         "reviveOrbItemId",
         "facilityId",
         "breedMaterials",
@@ -126,6 +129,26 @@
           "maximum": 1,
           "title": "卵のドロップ確率",
           "description": "敵討伐1回に対する確率。0.0001は0.01%。"
+        },
+        "sizeGrowth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["initialScale", "matureScale", "matureLevel"],
+          "properties": {
+            "initialScale": { "type": "number", "exclusiveMinimum": 0, "maximum": 2, "title": "初期の外見サイズ倍率" },
+            "matureScale": { "type": "number", "exclusiveMinimum": 0, "maximum": 2, "title": "成体の外見サイズ倍率" },
+            "matureLevel": { "type": "integer", "minimum": 2, "maximum": 100, "title": "成体サイズに達する成長度" }
+          },
+          "title": "成長による外見サイズ補正",
+          "description": "個体の基礎sizeへ掛ける倍率。初期から成体まで線形補間し、その後は固定する。"
+        },
+        "autonomousAttackRange": {
+          "type": "number", "minimum": 1, "maximum": 32,
+          "title": "自律攻撃の索敵距離", "description": "主人の周囲で敵を探す半径（ブロック）。"
+        },
+        "threatMultiplier": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "title": "ペットの脅威度倍率", "description": "ペット攻撃のHP/Shield由来の脅威度へ一度だけ掛ける倍率。"
         },
         "reviveOrbItemId": {
           "type": "string",
@@ -280,7 +303,8 @@
           "sizeMax",
           "hatchMaterials",
           "stats",
-          "skills"
+          "skills",
+          "basicAttack"
         ],
         "properties": {
           "id": {
@@ -336,15 +360,15 @@
             "type": "number",
             "minimum": 0.0625,
             "maximum": 16,
-            "title": "外見サイズの下限",
-            "description": "外見倍率の下限。能力へ補正を付けない。"
+            "title": "基礎個体サイズの下限",
+            "description": "孵化時に抽選する基礎個体サイズの下限。能力へ補正を付けない。"
           },
           "sizeMax": {
             "type": "number",
             "minimum": 0.0625,
             "maximum": 16,
-            "title": "外見サイズの上限",
-            "description": "外見倍率の上限。下限以上にする。"
+            "title": "基礎個体サイズの上限",
+            "description": "孵化時に抽選する基礎個体サイズの上限。下限以上にする。"
           },
           "hatchMaterials": {
             "type": "array",
@@ -960,11 +984,11 @@
               "range": {
                 "type": "number",
                 "exclusiveMinimum": 0,
-                "title": "基本追撃の距離"
+                "title": "基本攻撃の距離"
               }
             },
-            "title": "スキル枠を使わない基本追撃",
-            "description": "犬と猫の種族行動。スキル枠を消費せず、個体クールダウンを保存する。"
+            "title": "スキル枠を使わない基本攻撃",
+            "description": "全種の基本攻撃。スキル枠を消費せず、個体クールダウンを保存する。"
           }
         }
       },

@@ -33,6 +33,12 @@ public sealed class PetMasterEditorTests : IDisposable
              "schemaVersion":{"const":1},"id":{"const":"pets"},
              "rules":{"type":"object","title":"ペット共通ルール","properties":{
                  "maxLevel":{"type":"integer","title":"最大成長度"},
+                  "sizeGrowth":{"type":"object","title":"成長による外見サイズ補正","properties":{
+                    "initialScale":{"type":"number","title":"初期の外見サイズ倍率"},
+                    "matureScale":{"type":"number","title":"成体の外見サイズ倍率"},
+                    "matureLevel":{"type":"integer","title":"成体サイズに達する成長度"}}},
+                  "autonomousAttackRange":{"type":"number","title":"自律攻撃の索敵距離"},
+                  "threatMultiplier":{"type":"number","title":"ペットの脅威度倍率"},
                  "reviveOrbItemId":{"type":"string","title":"復活オーブ","pattern":"^item:[0-9]{2}[a-z][0-9]{5}$"}}},
              "experience":{"type":"object"},"species":{"type":"array","items":{"type":"object","properties":{
                  "eggItemId":{"type":"string","title":"卵のアイテム参照","pattern":"^item:[0-9]{2}[a-z][0-9]{5}$"},
@@ -84,12 +90,36 @@ public sealed class PetMasterEditorTests : IDisposable
     }
 
     [Fact]
+    public async Task GrowthAndAutonomousRulesMatchApiBounds()
+    {
+        async Task AssertIssueAsync(string path, JsonNode? value, string code)
+        {
+            var draft = _master.DeepClone();
+            draft["rules"]![path] = value;
+            var report = await _validation.ValidateAsync(PetPath, Raw(draft), CancellationToken.None);
+            Assert.Contains(report.Issues, issue => issue.Code == code);
+        }
+        await AssertIssueAsync("autonomousAttackRange", JsonValue.Create(.5), "PET_AUTONOMOUS_COMBAT");
+        await AssertIssueAsync("autonomousAttackRange", JsonValue.Create(33), "PET_AUTONOMOUS_COMBAT");
+        await AssertIssueAsync("threatMultiplier", JsonValue.Create(1.1), "PET_AUTONOMOUS_COMBAT");
+        var growth = _master.DeepClone();
+        growth["rules"]!["sizeGrowth"]!["matureLevel"] = 101;
+        var invalidGrowth = await _validation.ValidateAsync(PetPath, Raw(growth), CancellationToken.None);
+        Assert.Contains(invalidGrowth.Issues, issue => issue.Code == "PET_SIZE_GROWTH");
+        var missingAttack = _master.DeepClone();
+        ((JsonArray)missingAttack["species"]!)[2]!.AsObject().Remove("basicAttack");
+        var invalidAttack = await _validation.ValidateAsync(PetPath, Raw(missingAttack), CancellationToken.None);
+        Assert.Contains(invalidAttack.Issues, issue => issue.Code == "PET_BASIC_ATTACK");
+    }
+
+    [Fact]
     public async Task CatalogDynamicallyLoadsSingletonJapaneseSchemaFieldsAndReferenceCandidates()
     {
         var category = await _catalog.GetAsync("55.features.pet", CancellationToken.None);
         Assert.Equal("ペット", category.Label);
         Assert.Single(category.JsonSchemas); Assert.Single(category.Templates);
         Assert.Contains(category.Fields, field => field.Path == "/rules/maxLevel" && field.Label == "最大成長度" && field.Type == "integer");
+        Assert.Contains(category.Fields, field => field.Path == "/rules/sizeGrowth/initialScale" && field.Type == "number");
         Assert.Contains(category.Fields, field => field.Path == "/species/*/eggItemId" && field.Reference == "item");
         Assert.Contains(category.Fields, field => field.Path == "/species/*/skills/*/trigger" && field.Enum?.Count == 3);
         Assert.DoesNotContain(category.Fields, field => field.Path == "/maxLevel");
@@ -219,6 +249,7 @@ public sealed class PetMasterEditorTests : IDisposable
                 ["eggItemId"] = "item:81a0000" + (index + 1), ["petItemId"] = "item:80a0000" + (index + 1),
                 ["names"] = new JsonArray(Enumerable.Range(0, 50).Select(i => (JsonNode)JsonValue.Create("名前" + i)!).ToArray()),
                 ["sizeMin"] = .8, ["sizeMax"] = 1.2, ["dropWeight"] = 1, ["hatchMaterials"] = Materials(), ["stats"] = stats,
+                 ["basicAttack"] = new JsonObject { ["damageRatio"] = .1, ["cooldownSeconds"] = 5, ["range"] = 3 },
                 ["skills"] = new JsonArray(Enumerable.Range(0, 8).Select(skill => (JsonNode)new JsonObject
                 { ["id"] = ids[index] + "_skill_" + skill, ["name"] = "スキル", ["tier"] = skill / 2,
                     ["trigger"] = "PERIODIC", ["effect"] = "HEAL_HP", ["weight"] = 1, ["cooldownSeconds"] = 20,
@@ -231,7 +262,9 @@ public sealed class PetMasterEditorTests : IDisposable
             { ["maxLevel"] = 100, ["wildMaxTier"] = 4, ["breedMaxTier"] = 10, ["skillSlotLevels"] = new JsonArray(1, 20, 50),
                 ["breedMinLevel"] = 20, ["breedCooldownHours"] = 24, ["potentialGrowthMultiplier"] = 2,
                 ["potentialCountWeights"] = new JsonArray(20, 75, 5), ["reviveOrbItemId"] = "item:40a00020", ["facilityId"] = "pet_center",
-                ["breedMaterials"] = Materials(), ["reviveMaterials"] = Materials() },
+                ["breedMaterials"] = Materials(), ["reviveMaterials"] = Materials(),
+                ["sizeGrowth"] = new JsonObject { ["initialScale"] = .5, ["matureScale"] = 1, ["matureLevel"] = 20 },
+                ["autonomousAttackRange"] = 8, ["threatMultiplier"] = .5 },
             ["experience"] = new JsonObject { ["activityRate"] = 1 }, ["species"] = species,
         };
     }

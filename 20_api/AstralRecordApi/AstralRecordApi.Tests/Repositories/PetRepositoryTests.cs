@@ -550,12 +550,67 @@ public class PetRepositoryTests
         Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
     }
 
+    [Fact]
+    public void Master_RejectsInvalidGrowthAutonomyAndMissingBasicAttack()
+    {
+        var master = MakeMaster();
+        master.Rules.SizeGrowth.MatureLevel = master.Rules.MaxLevel + 1;
+        Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
+        master.Rules.SizeGrowth.MatureLevel = 20;
+        master.Rules.AutonomousAttackRange = .5;
+        Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
+        master.Rules.AutonomousAttackRange = 8;
+        master.Rules.ThreatMultiplier = 1.1;
+        Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
+        master.Rules.ThreatMultiplier = .5;
+        master.Species[0].BasicAttack = null;
+        Assert.Throws<InvalidOperationException>(() => PetMasterValidator.Validate(master));
+    }
+
+    [Fact]
+    public void Genetics_AssignsWolfAndCatAppearanceOnly()
+    {
+        var master = MakeMaster();
+        var species = master.Species[0];
+        Assert.NotNull(PetGenetics.HatchWild(master, species, new Random(17)).Appearance?.CollarColor);
+        species.Id = "cat";
+        var cat = PetGenetics.HatchWild(master, species, new Random(17));
+        Assert.NotNull(cat.Appearance?.CollarColor);
+        Assert.NotNull(cat.Appearance?.CatType);
+        species.Id = "chicken";
+        Assert.Null(PetGenetics.HatchWild(master, species, new Random(17)).Appearance);
+    }
+
+    [Fact]
+    public async Task LegacyAppearance_IsStableOnReadAndPersistsAtTheNextMutation()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var raw = JsonSerializer.SerializeToNode(JsonSerializer.Deserialize<PetDetailsResponse>(pet.DetailsJson)!)!.AsObject();
+        raw.Remove("Appearance"); raw.Remove("appearance");
+        pet.DetailsJson = raw.ToJsonString();
+        await fixture.Player.SaveChangesAsync();
+        var before = pet.DetailsJson;
+        var first = await fixture.Repository.GetInstanceAsync(fixture.Account, pet.InstanceId);
+        var second = await fixture.Repository.GetInstanceAsync(fixture.Account, pet.InstanceId);
+        Assert.NotNull(first!.Details!.Appearance?.CollarColor);
+        Assert.Equal(first.Details.Appearance.CollarColor, second!.Details!.Appearance?.CollarColor);
+        Assert.Equal(before, (await fixture.Player.PetInstances.AsNoTracking().SingleAsync()).DetailsJson);
+
+        Assert.True((await fixture.Repository.RenameAsync(fixture.Account, pet.InstanceId,
+            new PetRenameRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, Name = "コハク" })).Succeeded);
+        var persisted = (await fixture.Player.PetInstances.AsNoTracking().SingleAsync()).DetailsJson;
+        Assert.Equal(first.Details.Appearance.CollarColor,
+            JsonSerializer.Deserialize<PetDetailsResponse>(persisted, new JsonSerializerOptions(JsonSerializerDefaults.Web))!.Appearance?.CollarColor);
+    }
+
     private static PetMasterResponse MakeMaster() => new()
     {
         Rules = new PetRules { BreedMaterials = [new() { ItemId = "flower", Quantity = 64 }], ReviveMaterials = [new() { ItemId = "flower", Quantity = 16 }] },
         Species = [new PetSpeciesMaster
         {
             Id = "wolf", EggItemId = "egg_wolf", PetItemId = "pet_wolf", Names = ["コハク"],
+            BasicAttack = new PetBasicAttackMaster { DamageRatio = .1, CooldownSeconds = 5, Range = 3 },
             HatchMaterials = [new() { ItemId = "flower", Quantity = 256 }],
             Stats = new[] { "VITALITY", "POWER", "DEFENSE", "EVASION", "SUPPORT" }.ToDictionary(id => id, id => new PetStatMaster
             {

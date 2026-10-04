@@ -18,6 +18,11 @@ public final class PetMaster {
      */
     public JsonObject rules() { return object(data,"rules").deepCopy(); }
     /**
+     * APIと共有するペットの必要経験値係数の複製を返します。
+     * @return 成長曲線の公開マスター。元データは変更できません
+     */
+    public JsonObject experience() { return object(data,"experience").deepCopy(); }
+    /**
      * 種類定義の複製を返します。未定義なら空です。
      * @param id 対象種類または個体ID
      * @return 説明した契約に従う結果。通信を伴う処理の失敗は例外またはfutureで通知します

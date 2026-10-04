@@ -461,7 +461,12 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
         ItemId = pet.ItemId, InstanceType = pet.IsEgg ? "PET_EGG" : "PET", InstanceId = pet.InstanceId, Quantity = 1,
         CreatedAt = now, UpdatedAt = now, CreatedBy = actor, UpdatedBy = actor,
     };
-    private static PetDetailsResponse ReadDetails(PetInstanceEntity pet) => JsonSerializer.Deserialize<PetDetailsResponse>(pet.DetailsJson, JsonOptions)!;
+    private static PetDetailsResponse ReadDetails(PetInstanceEntity pet)
+    {
+        var details = JsonSerializer.Deserialize<PetDetailsResponse>(pet.DetailsJson, JsonOptions)!;
+        details.Appearance ??= PetGenetics.LegacyAppearance(pet.SpeciesId, pet.InstanceId);
+        return details;
+    }
     private static void SaveDetails(PetInstanceEntity pet, PetDetailsResponse details, DateTime now, Guid actor)
     {
         pet.DetailsJson = JsonSerializer.Serialize(details, JsonOptions); pet.Version++; pet.UpdatedAt = now; pet.UpdatedBy = actor;

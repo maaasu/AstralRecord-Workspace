@@ -13,6 +13,14 @@ public static class PetMasterValidator
             && rules.SkillSlotLevels[1] > 1 && rules.SkillSlotLevels[2] > rules.SkillSlotLevels[1] && rules.SkillSlotLevels[2] <= rules.MaxLevel
             && rules.BreedMinLevel >= rules.SkillSlotLevels[1] && rules.BreedMinLevel <= rules.MaxLevel, "slot/breed levels");
         Require(rules.BreedCooldownHours > 0 && !string.IsNullOrWhiteSpace(rules.FacilityId) && !string.IsNullOrWhiteSpace(rules.ReviveOrbItemId), "facility/cooldown");
+        var sizeGrowth = rules.SizeGrowth;
+        Require(sizeGrowth is not null && double.IsFinite(sizeGrowth.InitialScale) && double.IsFinite(sizeGrowth.MatureScale)
+            && sizeGrowth.InitialScale > 0 && sizeGrowth.InitialScale <= sizeGrowth.MatureScale
+            && sizeGrowth.MatureScale <= 2 && sizeGrowth.MatureLevel is >= 2 && sizeGrowth.MatureLevel <= rules.MaxLevel,
+            "size growth");
+        Require(double.IsFinite(rules.AutonomousAttackRange) && rules.AutonomousAttackRange is >= 1 and <= 32
+            && double.IsFinite(rules.ThreatMultiplier) && rules.ThreatMultiplier is >= 0 and <= 1,
+            "autonomous attack/threat");
         Require(new[] { rules.MutationChance, rules.WildPotentialChance, rules.MaleChance, rules.EggDropChance }.All(v => double.IsFinite(v) && v >= 0 && v <= 1)
             && rules.PotentialGrowthMultiplier == 2 && rules.PotentialCountWeights.Length == 3 && rules.PotentialCountWeights.All(w => w >= 0)
             && rules.PotentialCountWeights.Sum() > 0, "probabilities/potential");
@@ -43,9 +51,9 @@ public static class PetMasterValidator
                 && species.Skills.All(s => new[] { s.Weight, s.CooldownSeconds, s.Value, s.Chance, s.DurationSeconds }.All(double.IsFinite)
                     && s.Weight > 0 && s.CooldownSeconds > 0 && s.Value >= 0 && s.Chance is >= 0 and <= 1
                     && s.DurationSeconds >= 0 && s.HitCount > 0 && s.AttackCount > 0), "skills");
-            if (species.BasicAttack is { } attack)
-                Require(new[] { attack.DamageRatio, attack.CooldownSeconds, attack.Range }.All(double.IsFinite)
-                    && attack.DamageRatio > 0 && attack.CooldownSeconds > 0 && attack.Range > 0, "basic attack");
+            Require(species.BasicAttack is { } attack
+                && new[] { attack.DamageRatio, attack.CooldownSeconds, attack.Range }.All(double.IsFinite)
+                && attack.DamageRatio > 0 && attack.CooldownSeconds > 0 && attack.Range > 0, "basic attack");
             ValidateMaterials(species.HatchMaterials);
         }
         ValidateMaterials(rules.BreedMaterials); ValidateMaterials(rules.ReviveMaterials);
