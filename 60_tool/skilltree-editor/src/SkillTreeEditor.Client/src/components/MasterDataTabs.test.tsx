@@ -1,0 +1,228 @@
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { masterDataApi } from '../api/masterDataApi'
+import { MasterDataEditor } from './MasterDataEditor'
+import type { MasterDocument, MasterFileSummary } from '../types/masterData'
+
+const a: MasterDocument = { path: '20.features.class/v1.a.yml', format: 'yaml', revision: 'revision-a', raw: 'id: a\nname: ファイルA\nlevel: 1\n', content: { id: 'a', name: 'ファイルA', level: 1 }, issues: [] }
+const b: MasterDocument = { ...a, path: '20.features.class/v1.b.yml', revision: 'revision-b', raw: 'id: b\nname: ファイルB\nlevel: 2\n', content: { id: 'b', name: 'ファイルB', level: 2 } }
+const summaries: MasterFileSummary[] = [a, b].map((document) => ({ path: document.path, category: 'class', format: 'yaml', id: (document.content as { id: string }).id, name: (document.content as { name: string }).name, revision: document.revision, size: 30, modifiedUtc: '' }))
+const panel = () => within(screen.getByRole('tabpanel'))
+const input = (name: string) => panel().getByRole('textbox', { name })
+
+beforeEach(() => {
+  vi.restoreAllMocks()
+  vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ root: '/filebase', backups: '/backups', categories: [{ id: 'class', label: 'クラス', directory: '20.features.class', fileCount: 2, fields: [], documents: [], jsonSchemas: [], templates: [] }] })
+  vi.spyOn(masterDataApi, 'files').mockResolvedValue(summaries)
+  vi.spyOn(masterDataApi, 'filterIndex').mockResolvedValue({ sources: [], skillTags: [], tags: [] })
+  vi.spyOn(masterDataApi, 'candidates').mockResolvedValue([])
+  vi.spyOn(masterDataApi, 'references').mockResolvedValue([])
+  vi.spyOn(masterDataApi, 'file').mockImplementation(async (path) => path === a.path ? structuredClone(a) : structuredClone(b))
+  vi.spyOn(masterDataApi, 'render').mockImplementation(async (_path, content) => ({ raw: JSON.stringify(content), commentsPreserved: true, warnings: [] }))
+  vi.spyOn(masterDataApi, 'validate').mockResolvedValue({ isValid: true, issues: [] })
+  vi.spyOn(masterDataApi, 'save').mockImplementation(async (path, raw) => ({ ...(path === a.path ? a : b), raw, content: JSON.parse(raw), revision: 'saved-revision' }))
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+})
+
+async function open(name: 'ファイルA' | 'ファイルB') {
+  const listButton = screen.queryByRole('button', { name: 'ファイル一覧' })
+  if (listButton) fireEvent.click(listButton)
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(name) }))
+  await waitFor(() => expect(input('/name')).toHaveValue(name))
+}
+
+function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
+
+describe('master file tabs', () => {
+  it('keeps unsaved edits and selects an already open file without reloading it', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    select(/編集A/)
+    expect(input('/name')).toHaveValue('編集A')
+    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
+    fireEvent.click(panel().getByRole('button', { name: /ファイルB/ }))
+    expect(input('/name')).toHaveValue('ファイルB')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+    expect(masterDataApi.catalog).toHaveBeenCalledTimes(1)
+    expect(masterDataApi.files).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves raw mode and the edited raw text when returning to a tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.click(panel().getByRole('button', { name: '原稿 YAML' }))
+    await waitFor(() => expect(input('マスター原稿')).toBeEnabled())
+    fireEvent.change(input('マスター原稿'), { target: { value: 'id: a\nname: 原稿編集中\n' } })
+    await open('ファイルB')
+    select(/ファイルA/)
+    expect(input('マスター原稿')).toHaveValue('id: a\nname: 原稿編集中\n')
+    expect(panel().getByRole('button', { name: '原稿 YAML' })).toHaveClass('active')
+  })
+
+  it('retains invalid numeric text in a hidden tab and guards leaving the page', async () => {
+    const onDirtyChange = vi.fn()
+    render(<MasterDataEditor onDirtyChange={onDirtyChange} />)
+    await open('ファイルA')
+    fireEvent.change(input('/level'), { target: { value: 'invalid' } })
+    await open('ファイルB')
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+    const unload = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(unload)
+    expect(unload.defaultPrevented).toBe(true)
+    select(/ファイルA/)
+    expect(input('/level')).toHaveValue('invalid')
+    expect(input('/level')).toHaveAttribute('aria-invalid', 'true')
+    expect(panel().getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
+  })
+
+  it('keeps independent undo history for each file', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    fireEvent.change(input('/name'), { target: { value: '編集B' } })
+    select(/編集A/)
+    fireEvent.click(panel().getByRole('button', { name: '↶' }))
+    expect(input('/name')).toHaveValue('ファイルA')
+    select(/編集B/)
+    expect(input('/name')).toHaveValue('編集B')
+    fireEvent.click(panel().getByRole('button', { name: '↶' }))
+    expect(input('/name')).toHaveValue('ファイルB')
+  })
+
+  it('remembers the selected hierarchy after closing and reopening the same file', async () => {
+    vi.mocked(masterDataApi.file).mockResolvedValue({ ...a, content: { id: 'a', name: 'ファイルA', params: { amount: 3 } } })
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.click(panel().getByRole('button', { name: '/params を開く' }))
+    expect(input('/params/amount')).toHaveValue('3')
+    fireEvent.click(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' }))
+    fireEvent.click(await screen.findByRole('button', { name: /ファイルA/ }))
+    await waitFor(() => expect(input('/params/amount')).toHaveValue('3'))
+    expect(panel().queryByRole('textbox', { name: '/id' })).not.toBeInTheDocument()
+  })
+
+  it('finishes a save in its own tab while another tab is active', async () => {
+    let finishSave!: (document: MasterDocument) => void
+    vi.mocked(masterDataApi.save).mockImplementation(() => new Promise((resolve) => { finishSave = resolve }))
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    await open('ファイルB')
+    select(/ファイルA/)
+    fireEvent.change(input('/name'), { target: { value: '保存A' } })
+    fireEvent.click(panel().getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledWith(a.path, expect.any(String), a.revision))
+    expect(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' })).toBeDisabled()
+    select(/ファイルB/)
+    fireEvent.change(input('/name'), { target: { value: '編集中B' } })
+    await act(async () => finishSave({ ...a, revision: 'next-a', content: { id: 'a', name: '保存A', level: 1 }, raw: 'id: a\nname: 保存A\nlevel: 1\n' }))
+    expect(input('/name')).toHaveValue('編集中B')
+    expect(screen.getByRole('tab', { name: /編集中B · 未保存/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '保存A' })).toBeInTheDocument()
+    select(/保存A/)
+    expect(input('/name')).toHaveValue('保存A')
+    expect(panel().getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
+  })
+
+  it('confirms closing only the dirty tab and keeps the remaining draft', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    fireEvent.change(input('/name'), { target: { value: '編集B' } })
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.click(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' }))
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    vi.mocked(window.confirm).mockReturnValue(true)
+    fireEvent.click(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' }))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(input('/name')).toHaveValue('編集B')
+    fireEvent.click(screen.getByRole('button', { name: 'v1.b.yml のタブを閉じる' }))
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'マスターデータを編集' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '＋ 新規' })).toHaveFocus()
+  })
+
+  it('reloads only the active file and clears its invalid input while preserving the other draft', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/level'), { target: { value: 'invalid' } })
+    await open('ファイルB')
+    fireEvent.change(input('/name'), { target: { value: '編集B' } })
+    select(/ファイルA/)
+    fireEvent.click(panel().getByRole('button', { name: 'ファイルを再読込' }))
+    await waitFor(() => expect(input('/level')).toHaveValue('1'))
+    expect(input('/level')).not.toHaveAttribute('aria-invalid', 'true')
+    select(/編集B/)
+    expect(input('/name')).toHaveValue('編集B')
+  })
+
+  it('opens a copy in a new tab and preserves the unsaved source', async () => {
+    const copy: MasterDocument = { ...a, path: '20.features.class/v1.c.yml', revision: 'revision-c', content: { id: 'c', name: '複製C', level: 1 }, raw: 'id: c\nname: 複製C\nlevel: 1\n' }
+    vi.spyOn(masterDataApi, 'create').mockResolvedValue(copy)
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '未保存A' } })
+    fireEvent.click(panel().getByRole('button', { name: '保存済みファイルを複製' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toHaveValue(a.raw)
+    fireEvent.change(dialog.getByRole('textbox', { name: '新規マスター原稿' }), { target: { value: copy.raw } })
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    await screen.findByRole('tab', { name: '複製C' })
+    expect(input('/name')).toHaveValue('複製C')
+    select(/未保存A/)
+    expect(input('/name')).toHaveValue('未保存A')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(1)
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it('deletes only the active tab and keeps another dirty tab', async () => {
+    const deleted = vi.spyOn(masterDataApi, 'delete').mockResolvedValue(undefined)
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '未保存A' } })
+    await open('ファイルB')
+    fireEvent.click(panel().getByRole('button', { name: '削除' }))
+    await waitFor(() => expect(deleted).toHaveBeenCalledWith(b.path, b.revision))
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(1))
+    expect(input('/name')).toHaveValue('未保存A')
+  })
+
+  it('sends Ctrl+S only to the active tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    fireEvent.change(input('/name'), { target: { value: '編集B' } })
+    fireEvent.keyDown(input('/name'), { key: 's', ctrlKey: true })
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledTimes(1))
+    expect(masterDataApi.save).toHaveBeenCalledWith(b.path, expect.any(String), b.revision)
+  })
+
+  it('shows a shared refresh failure even when the active tab has a save notice', async () => {
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValueOnce({ sources: [], skillTags: [], tags: [] }).mockRejectedValue(new Error('index unavailable'))
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '保存A' } })
+    fireEvent.click(panel().getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await screen.findByText('v1.a.yml を保存しました。')
+    expect(await screen.findByText('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
+  })
+
+  it('supports arrow-key selection and returns to the adjacent tab when closing the active tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    await open('ファイルB')
+    const tabB = screen.getByRole('tab', { name: 'ファイルB' })
+    fireEvent.keyDown(tabB, { key: 'ArrowLeft' })
+    expect(screen.getByRole('tab', { name: 'ファイルA' })).toHaveFocus()
+    expect(input('/name')).toHaveValue('ファイルA')
+    fireEvent.click(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' }))
+    expect(input('/name')).toHaveValue('ファイルB')
+    expect(screen.getByRole('tab', { name: 'ファイルB' })).toHaveFocus()
+  })
+})

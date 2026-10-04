@@ -6,6 +6,22 @@ body:has(.master-app-content:not([hidden]) .master-editor) { min-width: 0; }
 .master-app-nav .active, .master-editor .button.active { color: var(--gold); background: #30291e; border-color: var(--gold-dark); }
 .master-app-content { flex: 1; min-height: 0; }
 .master-app-content[hidden] { display: none; }
+.master-tabbed-editor { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.master-tabbed-editor > .master-global-message { margin: 0; flex-shrink: 0; border-radius: 0; }
+.master-editor-panel { flex: 1; min-height: 0; }
+.master-editor-panel[hidden] { display: none; }
+.master-document-tabs { display: flex; flex-shrink: 0; overflow-x: auto; background: #101722; border-bottom: 1px solid var(--line); }
+.master-document-tab { display: flex; align-items: center; flex: 0 0 auto; max-width: 270px; border-right: 1px solid var(--line); border-top: 2px solid transparent; }
+.master-document-tab.selected { background: var(--surface); border-top-color: var(--gold); }
+.master-document-tab > [role="tab"] { display: grid; gap: 3px; min-width: 130px; max-width: 235px; padding: 8px 10px; background: transparent; border: 0; color: inherit; text-align: left; cursor: pointer; }
+.master-document-tab > [role="tab"] > span { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.master-document-tab .minecraft-text, .master-document-tab small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.master-document-tab small { color: var(--text-muted); font-size: 10px; }
+.master-tab-dirty { color: var(--gold); font-size: 9px; flex-shrink: 0; }
+.master-tab-close { padding: 6px; margin-right: 5px; border: 0; border-radius: 3px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.master-tab-close:hover { color: var(--text); background: var(--surface-soft); }
+.master-tab-close:disabled { opacity: .4; cursor: default; }
+.master-document-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .master-editor { height: 100%; display: grid; grid-template-columns: 360px minmax(0, 1fr); overflow: hidden; background: var(--surface); }
 .master-sidebar { min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-right: 1px solid var(--line); }
 .master-sidebar h2, .master-document-header h2 { font-size: 16px; margin: 0; }
