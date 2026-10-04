@@ -132,9 +132,22 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.bukkit.playerListName(playerListLabel(astPlayer))
     }
 
-    /** TABとサーバーメッセージで共有するクラス・レベル・AFK・アカウント名を返します。 */
-    fun playerListLabel(astPlayer: AstPlayer): Component {
-        val standardName = io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account)
+    /** TAB用のクラス・レベル・AFK・アカウント名を返します。 */
+    fun playerListLabel(astPlayer: AstPlayer): Component = playerLabel(
+        astPlayer,
+        io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account),
+    )
+
+    /**
+     * メッセージ用の名前装飾を維持しながら、クラス・レベル・AFKラベルを組み立てます。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @param accountName 送信時点の装飾を適用したアカウント名
+     * @return メッセージ用プレイヤーラベル
+     */
+    fun messageLabel(astPlayer: AstPlayer, accountName: Component): Component = playerLabel(astPlayer, accountName)
+
+    private fun playerLabel(astPlayer: AstPlayer, standardName: Component): Component {
         if (astPlayer.account.mode == AccountMode.ADMIN) {
             return standardName
         }

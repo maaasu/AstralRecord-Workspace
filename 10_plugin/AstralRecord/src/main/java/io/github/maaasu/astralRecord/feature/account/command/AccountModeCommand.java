@@ -113,7 +113,7 @@ public class AccountModeCommand extends AstCommand {
                     } else if (accountModeApplicationService.applyPersistedMode(saved)) {
                         sendSuccess(sender, PlayerMsgResource.format(
                             PlayerMsgId.P_5332.getId(),
-                            AccountDisplayNameFormatter.toLegacy(saved.account()),
+                            AccountDisplayNameFormatter.toMessageLegacy(saved.account()),
                             saved.account().getMode().getDisplayName()
                         ));
                     }
@@ -135,7 +135,7 @@ public class AccountModeCommand extends AstCommand {
             AccountModel updated = persisted.account();
             sendSuccess(sender, PlayerMsgResource.format(
                 PlayerMsgId.P_5332.getId(),
-                AccountDisplayNameFormatter.toLegacy(updated),
+                AccountDisplayNameFormatter.toMessageLegacy(updated),
                 updated.getMode().getDisplayName()
             ));
         }));

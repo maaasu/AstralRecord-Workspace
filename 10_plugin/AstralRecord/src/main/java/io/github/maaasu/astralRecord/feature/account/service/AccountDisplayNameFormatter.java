@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,6 +82,50 @@ public final class AccountDisplayNameFormatter {
         return result.append("&r&7#").append(account.getSlotIndex()).toString();
     }
 
+    /**
+     * レガシー文字列のメッセージへ、送信時点のASTRALDER名の光を適用します。
+     *
+     * @param account 表示対象アカウント
+     * @return 送信時点の名前装飾と灰色のスロット番号
+     */
+    public static @NotNull String toMessageLegacy(@NotNull AccountModel account) {
+        return toAnimatedLegacy(account, System.nanoTime() / 100_000_000L);
+    }
+
+    /**
+     * メッセージ送信時点のASTRALDER名を、TABと同じ金色の光で描画します。
+     *
+     * @param account 表示対象アカウント
+     * @param frame 光の位置を決める送信時点のフレーム
+     * @return 名前だけに光を適用し、スロット番号を灰色にしたComponent
+     */
+    public static @NotNull Component toAnimatedComponent(@NotNull AccountModel account, long frame) {
+        return messageNameComponent(account.getAccountName(), tier(account), frame)
+            .append(Component.text("#" + account.getSlotIndex(), NamedTextColor.GRAY)
+                .decoration(TextDecoration.BOLD, false));
+    }
+
+    /**
+     * イベント通知でアカウント名だけを表示する場合の送信時点の装飾です。
+     *
+     * @param name アカウント名
+     * @param tier VIP種別
+     * @param frame 光の位置を決める送信時点のフレーム
+     * @return ASTRALDERだけに移動する光を適用したComponent
+     */
+    public static @NotNull Component messageNameComponent(@NotNull String name, @NotNull String tier, long frame) {
+        if (!"ASTRALDER".equals(tier)) return nameComponent(name, tier);
+        int[] letters = name.codePoints().toArray();
+        int center = (int) Math.floorMod(frame, letters.length + 6L) - 2;
+        Component result = Component.empty();
+        for (int index = 0; index < letters.length; index++) {
+            double strength = Math.max(0.0D, 1.0D - Math.abs(index - center) / 3.0D);
+            result = result.append(Component.text(new String(Character.toChars(letters[index])),
+                TextColor.color(blend(ASTRALDER_GOLD, ASTRALDER_GLOW, strength * strength)), TextDecoration.BOLD));
+        }
+        return result;
+    }
+
     private static void appendHexColor(StringBuilder target, int rgb) {
         target.append("&x");
         for (int shift = 20; shift >= 0; shift -= 4) {
@@ -115,12 +160,14 @@ public final class AccountDisplayNameFormatter {
         };
     }
 
-    /** TABと同じクラス・クラスレベル・AFK・名前色に現在チャンネルを添えます。 */
+    /** メッセージ向けにクラス・レベル・AFK・送信時点の名前の光・チャンネルを添えます。 */
     public static @NotNull Component playerLabel(@NotNull AstPlayer player) {
+        long frame = System.nanoTime() / 100_000_000L;
         var plugin = AstralRecord.getInstance();
         if (plugin == null || plugin.getPlayerClassService() == null)
-            return toComponent(player.getAccount());
-        Component name = plugin.getPlayerClassService().playerListLabel(player);
+            return toAnimatedComponent(player.getAccount(), frame);
+        Component name = plugin.getPlayerClassService().messageLabel(
+            player, toAnimatedComponent(player.getAccount(), frame));
         String channel = ConfigProperties.getInstance().getNetworkChannelName();
         if (channel == null || channel.isBlank()) return name;
         return Component.text("[" + channel + "] ", NamedTextColor.GRAY).append(name);

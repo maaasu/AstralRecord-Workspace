@@ -288,7 +288,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler
         PlayerMessageService.getInstance().send(
             pending.player(),
             PlayerMsgId.P_5332,
-            AccountDisplayNameFormatter.toLegacy(updated),
+            AccountDisplayNameFormatter.toMessageLegacy(updated),
             updated.getMode().getDisplayName()
         );
     }

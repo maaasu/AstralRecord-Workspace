@@ -376,7 +376,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             messageId,
             resolved.targetName(),
             resolved.account().getSlotIndex(),
-            AccountDisplayNameFormatter.toLegacy(resolved.account())
+            AccountDisplayNameFormatter.toMessageLegacy(resolved.account())
         ));
         if (target != null && target.isOnline() && sender != target) {
             AstPlayer targetAstPlayer = AstPlayerCache.get(target);
@@ -385,7 +385,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                     targetAstPlayer,
                     PlayerMsgId.P_5342,
                     resolved.account().getSlotIndex(),
-                    AccountDisplayNameFormatter.toLegacy(resolved.account())
+                    AccountDisplayNameFormatter.toMessageLegacy(resolved.account())
                 );
             }
         }

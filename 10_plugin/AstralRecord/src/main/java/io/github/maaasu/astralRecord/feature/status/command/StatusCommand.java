@@ -67,7 +67,7 @@ public class StatusCommand extends AstCommand {
         playerMessageService.send(
             player,
             PlayerMsgId.P_5100,
-            AccountDisplayNameFormatter.toLegacy(player.getAccount())
+            AccountDisplayNameFormatter.toMessageLegacy(player.getAccount())
         );
         playerMessageService.send(
             player,

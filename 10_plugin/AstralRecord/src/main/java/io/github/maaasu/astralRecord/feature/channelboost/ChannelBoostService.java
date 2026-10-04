@@ -193,6 +193,7 @@ public final class ChannelBoostService {
             case "DROP" -> "DROP";
             default -> "EXP・DROP";
         };
+        long nameFrame = System.nanoTime() / 100_000_000L;
         for (AstPlayer player : AstPlayerCache.getAll()) {
             String accountName = event.get("accountName").getAsString();
             String tier = event.has("vipTier") && !event.get("vipTier").isJsonNull()
@@ -202,7 +203,7 @@ public final class ChannelBoostService {
                 label, event.get("multiplier").getAsDouble(),
                 TIME.format(Instant.parse(event.get("expiresAt").getAsString())));
             message = message.replaceText(builder -> builder.match(Pattern.compile(Pattern.quote(accountName)))
-                .replacement(AccountDisplayNameFormatter.nameComponent(accountName, tier)));
+                .replacement(AccountDisplayNameFormatter.messageNameComponent(accountName, tier, nameFrame)));
             PlayerMessageService.getInstance().sendComponent(player.getBukkit(), message);
         }
     }

@@ -88,7 +88,7 @@ public final class AccountRenameCommand extends AstCommand {
             AstralRecord.getInstance().getPlayerClassService().updatePlayerListName(current);
             sendSuccess(sender, PlayerMsgResource.format(
                 PlayerMsgId.P_5349.getId(),
-                AccountDisplayNameFormatter.toLegacy(updated)
+                AccountDisplayNameFormatter.toMessageLegacy(updated)
             ));
         }));
     }

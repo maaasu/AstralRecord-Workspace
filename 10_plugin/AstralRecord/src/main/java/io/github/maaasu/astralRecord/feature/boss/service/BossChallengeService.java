@@ -2475,7 +2475,10 @@ public final class BossChallengeService {
             @NotNull BossChallengeInstance challenge,
             @NotNull UUID waitingMemberId
     ) {
-        String waitingMemberName = playerName(waitingMemberId);
+        Player waitingMember = Bukkit.getPlayer(waitingMemberId);
+        AstPlayer waitingAccount = waitingMember == null ? null : AstPlayerCache.get(waitingMember);
+        String waitingMemberName = waitingAccount == null ? playerName(waitingMemberId)
+                : AccountDisplayNameFormatter.toMessageLegacy(waitingAccount.getAccount());
         for (UUID participantId : challenge.expectedParticipantIds()) {
             if (participantId.equals(waitingMemberId)
                     || isInHub(participantId)

@@ -88,12 +88,12 @@ public final class AccountCreateCommand extends AstCommand {
                 return;
             }
             sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_7400.getId(), created.targetName(),
-                created.account().getSlotIndex(), AccountDisplayNameFormatter.toLegacy(created.account())));
+                created.account().getSlotIndex(), AccountDisplayNameFormatter.toMessageLegacy(created.account())));
             Player target = Bukkit.getPlayerExact(created.targetName());
             AstPlayer targetAstPlayer = target == null ? null : AstPlayerCache.get(target);
             if (targetAstPlayer != null && target != sender) {
                 PlayerMessageService.getInstance().send(targetAstPlayer, PlayerMsgId.P_7401,
-                    created.account().getSlotIndex(), AccountDisplayNameFormatter.toLegacy(created.account()));
+                    created.account().getSlotIndex(), AccountDisplayNameFormatter.toMessageLegacy(created.account()));
             }
         }));
     }

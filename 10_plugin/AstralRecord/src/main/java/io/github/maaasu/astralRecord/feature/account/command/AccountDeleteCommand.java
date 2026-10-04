@@ -153,7 +153,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             sendSuccess(sender, PlayerMsgResource.format(
                 PlayerMsgId.P_5336.getId(),
                 result.result().getDeletedSlotIndex(),
-                AccountDisplayNameFormatter.toLegacy(account)
+                AccountDisplayNameFormatter.toMessageLegacy(account)
             ));
         }));
     }

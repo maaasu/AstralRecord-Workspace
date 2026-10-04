@@ -841,9 +841,10 @@ public final class AstralRecordProxyPlugin {
 
     private void broadcastMinecraftChat(String sourceServerId, BackendProtocol.Chat chat) {
         PlayerMetadata sender = chatMetadata(metadata.get(chat.playerId()), sourceServerId, chat.displayName());
+        int frame = messageFrame();
         Component message = sender == null
             ? Component.text("[" + chat.channel() + "] " + chat.displayName(), NamedTextColor.WHITE)
-            : tabDisplayName(sender);
+            : tabDisplayName(sender, frame);
         message = message
             .append(Component.text(": ", NamedTextColor.WHITE))
             .append(chatBodyComponent(chat.original(), chat.converted()));
@@ -871,7 +872,7 @@ public final class AstralRecordProxyPlugin {
         PlayerMetadata senderMetadata = metadata.get(senderId);
         Component senderName = senderMetadata != null
             && senderMetadata.serverId().equalsIgnoreCase(sourceServerId)
-            ? tabDisplayName(senderMetadata)
+            ? tabDisplayName(senderMetadata, messageFrame())
             : Component.text(sender.getUsername(), NamedTextColor.YELLOW);
         Component message = Component.text(
                 "[監視] [コマンド] ", NamedTextColor.DARK_GRAY)
@@ -890,17 +891,18 @@ public final class AstralRecordProxyPlugin {
         if (settings == null) return;
         PlayerMetadata senderMetadata = chatMetadata(
             metadata.get(chat.playerId()), sourceServerId, chat.senderName());
+        int frame = messageFrame();
         Component message = Component.text("[監視] [" + settings.channelName(sourceServerId) + "] ", NamedTextColor.DARK_GRAY);
         if ("direct".equalsIgnoreCase(chat.type())) {
             Component targetLabel = chat.participantIds().stream()
                 .filter(id -> !id.equals(chat.playerId()))
                 .map(id -> chatMetadata(metadata.get(id), sourceServerId, chat.targetName()))
                 .filter(java.util.Objects::nonNull)
-                .map(AstralRecordProxyPlugin::tabDisplayName).findFirst()
+                .map(value -> tabDisplayName(value, frame)).findFirst()
                 .orElse(Component.text(chat.targetName(), NamedTextColor.LIGHT_PURPLE));
             message = message.append(Component.text("[DM] ", NamedTextColor.LIGHT_PURPLE))
                 .append(senderMetadata != null
-                    ? tabDisplayName(senderMetadata)
+                    ? tabDisplayName(senderMetadata, frame)
                     : Component.text(chat.senderName(), NamedTextColor.LIGHT_PURPLE))
                 .append(Component.text(" → ", NamedTextColor.LIGHT_PURPLE))
                 .append(targetLabel)
@@ -908,7 +910,7 @@ public final class AstralRecordProxyPlugin {
         } else if ("party".equalsIgnoreCase(chat.type())) {
             message = message.append(Component.text("[パーティー: " + chat.partyName() + "] ", NamedTextColor.AQUA))
                 .append(senderMetadata != null
-                    ? tabDisplayName(senderMetadata)
+                    ? tabDisplayName(senderMetadata, frame)
                     : Component.text(chat.senderName(), NamedTextColor.AQUA))
                 .append(Component.text(": ", NamedTextColor.AQUA));
         } else {
@@ -972,11 +974,12 @@ public final class AstralRecordProxyPlugin {
         }
         PlayerMetadata targetMetadata = metadata.get(target.getUniqueId());
         String targetName = targetMetadata == null ? target.getUsername() : targetMetadata.displayName();
+        int frame = messageFrame();
         Component senderLabel = metadata.containsKey(sender.getUniqueId())
-            ? tabDisplayName(metadata.get(sender.getUniqueId()))
+            ? tabDisplayName(metadata.get(sender.getUniqueId()), frame)
             : Component.text(message.senderName(), NamedTextColor.WHITE);
         Component targetLabel = targetMetadata == null
-            ? Component.text(targetName, NamedTextColor.WHITE) : tabDisplayName(targetMetadata);
+            ? Component.text(targetName, NamedTextColor.WHITE) : tabDisplayName(targetMetadata, frame);
         Component sent = directMessageComponent("DM送信", senderLabel, targetLabel, message);
         Component received = directMessageComponent("DM受信", senderLabel, targetLabel, message);
         sender.sendMessage(sent);
@@ -1137,10 +1140,14 @@ public final class AstralRecordProxyPlugin {
     }
 
     private static Component vipName(String name, String tier) {
-        if ("ASTRALDER".equalsIgnoreCase(tier)) return Component.text(name, NamedTextColor.GOLD)
-            .decorate(TextDecoration.BOLD);
+        if ("ASTRALDER".equalsIgnoreCase(tier)) return animatedAstralderName(name, messageFrame());
         if ("DONER".equalsIgnoreCase(tier)) return Component.text(name, NamedTextColor.AQUA);
         return Component.text(name, NamedTextColor.WHITE);
+    }
+
+    /** チャット履歴は更新できないため、送信時点の演出フレームを使用する。 */
+    private static int messageFrame() {
+        return (int) Math.floorMod(System.nanoTime() / TimeUnit.MILLISECONDS.toNanos(100L), 10_000L);
     }
 
     /** 演出だけを更新し、オンライン一覧の再構築は通常のTab同期周期に任せる。 */

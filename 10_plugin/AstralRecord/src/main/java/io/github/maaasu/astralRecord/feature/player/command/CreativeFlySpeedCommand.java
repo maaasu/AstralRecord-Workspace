@@ -64,7 +64,7 @@ public final class CreativeFlySpeedCommand extends AstCommand {
         AstPlayer targetAstPlayer = AstPlayerCache.get(target);
         String targetDisplayName = targetAstPlayer == null
                 ? target.getName()
-                : AccountDisplayNameFormatter.toLegacy(targetAstPlayer.getAccount());
+                : AccountDisplayNameFormatter.toMessageLegacy(targetAstPlayer.getAccount());
         sendSuccess(
                 sender,
                 PlayerMsgResource.format(

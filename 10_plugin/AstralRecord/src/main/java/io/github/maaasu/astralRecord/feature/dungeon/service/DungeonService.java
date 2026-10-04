@@ -5103,7 +5103,10 @@ public final class DungeonService {
             @NotNull Session session,
             @NotNull UUID waitingMemberId
     ) {
-        String waitingMemberName = playerName(waitingMemberId);
+        Player waitingMember = Bukkit.getPlayer(waitingMemberId);
+        AstPlayer waitingAccount = waitingMember == null ? null : AstPlayerCache.get(waitingMember);
+        String waitingMemberName = waitingAccount == null ? playerName(waitingMemberId)
+                : AccountDisplayNameFormatter.toMessageLegacy(waitingAccount.getAccount());
         for (UUID participantId : session.participants) {
             if (participantId.equals(waitingMemberId) || isInHub(participantId)) {
                 continue;
