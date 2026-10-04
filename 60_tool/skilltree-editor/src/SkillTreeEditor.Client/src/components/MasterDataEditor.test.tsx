@@ -18,6 +18,7 @@ beforeEach(() => {
   vi.spyOn(masterDataApi, 'file').mockResolvedValue(original)
   vi.spyOn(masterDataApi, 'references').mockResolvedValue([])
   vi.spyOn(masterDataApi, 'candidates').mockResolvedValue([])
+  vi.spyOn(masterDataApi, 'filterIndex').mockResolvedValue({ sources: [], skillTags: [], tags: [] })
   vi.spyOn(masterDataApi, 'validate').mockResolvedValue({ isValid: true, issues: [] })
   vi.spyOn(masterDataApi, 'render').mockResolvedValue({ raw: 'id: new\nname: 元クラス\n', commentsPreserved: true, warnings: [] })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
@@ -31,6 +32,143 @@ async function openFile() {
 }
 
 describe('master editor workflow', () => {
+  it('starts from the complete item parent and shows nested category counts', async () => {
+    const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item', fileCount: 0 }
+    const material = { ...item, id: '10.features.item/10.material', label: 'アイテム共通 / 素材', directory: '10.features.item/10.material', fileCount: 1 }
+    const pool = { ...item, id: '80.shared.loot/pool', label: 'ルート / ルートプール', directory: '80.shared.loot/pool', fileCount: 1 }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [item, material, pool] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '10.features.item/10.material/a.yml', category: material.id, format: 'yaml', id: '10a00001', name: '素材A', revision: 'a', size: 10, modifiedUtc: '' },
+      { path: '10.features.item/99.currency/b.yml', category: '10.features.item/99.currency', format: 'yaml', id: '99a00001', name: '通貨B', revision: 'b', size: 10, modifiedUtc: '' },
+      { path: '10.features.item/20.equipment/set_effect/set.yml', category: '10.features.item/20.equipment/set_effect', format: 'yaml', id: 'set', name: 'セット効果', revision: 'set', size: 10, modifiedUtc: '' },
+      { path: '80.shared.loot/pool/pool.yml', category: pool.id, format: 'yaml', id: 'pool', name: 'ルートプール', revision: 'pool', size: 10, modifiedUtc: '' },
+    ])
+    render(<MasterDataEditor />)
+    const selector = await screen.findByRole('combobox', { name: 'マスターのカテゴリ' })
+    await waitFor(() => expect(selector).toHaveValue(item.id))
+    expect(within(selector).getByRole('option', { name: /アイテム共通 \(2\)/ })).toBeInTheDocument()
+    expect(within(selector).getByRole('option', { name: /└ 10 素材 \(1\)/ })).toBeInTheDocument()
+    expect(within(selector).getByRole('option', { name: '80 ルート / ルートプール (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /素材A/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /通貨B/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /セット効果/ })).not.toBeInTheDocument()
+    fireEvent.change(selector, { target: { value: material.id } })
+    expect(screen.queryByRole('button', { name: /通貨B/ })).not.toBeInTheDocument()
+    expect(screen.getByText('1 件')).toBeInTheDocument()
+  })
+
+  it('combines the item category with a mob drop source and keeps shared drops in the list', async () => {
+    const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item' }
+    const material = { ...item, id: '10.features.item/10.material', label: 'アイテム共通 / 素材', directory: '10.features.item/10.material' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [item, material] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '10.features.item/10.material/a.yml', category: material.id, format: 'yaml', id: '10a00001', name: '素材A', revision: 'a', size: 10, modifiedUtc: '' },
+      { path: '10.features.item/99.currency/b.yml', category: '10.features.item/99.currency', format: 'yaml', id: '99a00001', name: '共通ルート由来B', revision: 'b', size: 10, modifiedUtc: '' },
+      { path: '10.features.item/10.material/c.yml', category: material.id, format: 'yaml', id: '10a00002', name: '素材C', revision: 'c', size: 10, modifiedUtc: '' },
+    ])
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValue({
+      sources: [{ path: '40.features.mob/enemy/a.yml', id: 'mob_a', name: '森のモブ', kind: 'mob', itemIds: ['10a00001', '99a00001'] }],
+      skillTags: [], tags: [],
+    })
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /素材A/ })
+    fireEvent.change(await screen.findByRole('textbox', { name: 'ドロップ元を名前で検索' }), { target: { value: '森のモブ' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'ドロップ元' }), { target: { value: '40.features.mob/enemy/a.yml' } })
+    expect(screen.getByRole('button', { name: /素材A/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /共通ルート由来B/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /素材C/ })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByRole('combobox', { name: 'マスターのカテゴリ' }), { target: { value: material.id } })
+    expect(screen.queryByRole('button', { name: /共通ルート由来B/ })).not.toBeInTheDocument()
+  })
+
+  it('clears a selected drop source when it disappears from the refreshed index', async () => {
+    const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [item] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '10.features.item/10.material/a.yml', category: '10.features.item/10.material', format: 'yaml', id: 'a', name: '素材A', revision: 'a', size: 10, modifiedUtc: '' },
+    ])
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValueOnce({
+      sources: [{ path: '40.features.mob/enemy/mob.yml', id: 'mob', name: 'モブ', kind: 'mob', itemIds: ['a'] }], skillTags: [], tags: [],
+    }).mockResolvedValue({ sources: [], skillTags: [], tags: [] })
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /素材A/ })
+    const source = screen.getByRole('combobox', { name: 'ドロップ元' })
+    await waitFor(() => expect(within(source).getByRole('option', { name: /モブ/ })).toBeInTheDocument())
+    fireEvent.change(source, { target: { value: '40.features.mob/enemy/mob.yml' } })
+    fireEvent.click(screen.getByTitle('一覧と定義メタデータを再読込'))
+    await waitFor(() => expect(source).toHaveValue(''))
+    expect(screen.getByText('選択していた絞り込み候補が見つからないため、絞り込みを解除しました。')).toBeInTheDocument()
+  })
+
+  it('disables stale filters when the index refresh fails', async () => {
+    const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [item] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '10.features.item/10.material/a.yml', category: '10.features.item/10.material', format: 'yaml', id: 'a', name: '素材A', revision: 'a', size: 10, modifiedUtc: '' },
+    ])
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValueOnce({
+      sources: [{ path: '40.features.mob/enemy/mob.yml', id: 'mob', name: 'モブ', kind: 'mob', itemIds: ['a'] }], skillTags: [], tags: [],
+    }).mockRejectedValue(new Error('index unavailable'))
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /素材A/ })
+    const source = screen.getByRole('combobox', { name: 'ドロップ元' })
+    await waitFor(() => expect(within(source).getByRole('option', { name: /モブ/ })).toBeInTheDocument())
+    fireEvent.change(source, { target: { value: '40.features.mob/enemy/mob.yml' } })
+    fireEvent.click(screen.getByTitle('一覧と定義メタデータを再読込'))
+    await waitFor(() => expect(source).toBeDisabled())
+    expect(source).toHaveValue('')
+    expect(screen.getByText('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
+  })
+
+  it('filters skills by tag', async () => {
+    const skill = { ...catalog.categories[0], id: '30.features.skill', label: 'スキル', directory: '30.features.skill' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [skill] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '30.features.skill/a.yml', category: skill.id, format: 'yaml', id: 'a', name: 'スキルA', revision: 'a', size: 10, modifiedUtc: '' },
+      { path: '30.features.skill/b.yml', category: skill.id, format: 'yaml', id: 'b', name: 'スキルB', revision: 'b', size: 10, modifiedUtc: '' },
+    ])
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValue({ sources: [], skillTags: [{ path: '30.features.skill/a.yml', tags: ['magic'] }], tags: [{ id: 'magic', name: '魔法' }] })
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /スキルA/ })
+    fireEvent.change(await screen.findByRole('combobox', { name: 'スキルタグ' }), { target: { value: 'magic' } })
+    expect(screen.getByRole('button', { name: /スキルA/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /スキルB/ })).not.toBeInTheDocument()
+  })
+
+  it('adds more files at the bottom without replacing previously shown files', async () => {
+    vi.mocked(masterDataApi.files).mockResolvedValue(Array.from({ length: 60 }, (_, index) => ({
+      path: `20.features.class/v1.item-${index}.yml`, category: 'class', format: 'yaml', id: `item-${index}`,
+      name: `項目${index}`, revision: String(index), size: 10, modifiedUtc: '',
+    })))
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /項目0/ })
+    expect(screen.queryByRole('button', { name: /項目59/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /さらに表示/ }))
+    expect(screen.getByRole('button', { name: /項目0/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /項目59/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /さらに表示/ })).not.toBeInTheDocument()
+  })
+
+  it('loads the next batch when the bottom of the list enters view', async () => {
+    let notify!: IntersectionObserverCallback
+    const observe = vi.fn()
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback: IntersectionObserverCallback) { notify = callback }
+      observe = observe
+      disconnect = vi.fn()
+    })
+    try {
+      vi.mocked(masterDataApi.files).mockResolvedValue(Array.from({ length: 60 }, (_, index) => ({
+        path: `20.features.class/v1.item-${index}.yml`, category: 'class', format: 'yaml', id: `item-${index}`,
+        name: `項目${index}`, revision: String(index), size: 10, modifiedUtc: '',
+      })))
+      render(<MasterDataEditor />)
+      await screen.findByRole('button', { name: /項目0/ })
+      await waitFor(() => expect(observe).toHaveBeenCalled())
+      act(() => notify([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver))
+      expect(screen.getByRole('button', { name: /項目59/ })).toBeInTheDocument()
+    } finally { vi.unstubAllGlobals() }
+  })
   it('renders and saves the complete document after editing a selected deep node', async () => {
     const content = { id: 'old', 'a/b~c': { items: [{ params: { amount: 2, UnknownRpc: 'keep' } }, { untouched: true }] }, other: { keep: 'root' } }
     const loaded = { ...original, content }
@@ -210,7 +348,7 @@ describe('master editor workflow', () => {
   it('uses a YAML template format for a new category after opening JSON', async () => {
     const structureCategory: MasterCategory = { ...catalog.categories[0], id: 'structure', label: '構造', directory: '35.features.skilltree/structures', templates: [] }
     const skillCategory: MasterCategory = { ...catalog.categories[0], id: 'skill', label: 'スキル', directory: '30.features.skill', templates: [{ path: '30.features.skill/v1.new_skill.yml', raw: 'schemaVersion: 1\nid: new_skill\n' }] }
-    vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [structureCategory, skillCategory] })
+    vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [catalog.categories[0], structureCategory, skillCategory] })
     vi.spyOn(masterDataApi, 'file').mockResolvedValue({ ...original, path: '35.features.skilltree/structures/tree.json', format: 'json', raw: '{"id":"old"}' })
     const create = vi.spyOn(masterDataApi, 'create').mockResolvedValue({ ...original, path: '30.features.skill/v1.new_skill.yml' })
     render(<MasterDataEditor />)

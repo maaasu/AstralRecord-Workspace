@@ -61,6 +61,12 @@ export interface MasterReference {
   kind?: string
 }
 
+export interface MasterFilterIndex {
+  sources: { path: string; id: string; name: string; kind: 'mob' | 'gathering'; itemIds: string[] }[]
+  skillTags: { path: string; tags: string[] }[]
+  tags: { id: string; name: string }[]
+}
+
 export interface MasterDraft {
   path: string
   raw: string
