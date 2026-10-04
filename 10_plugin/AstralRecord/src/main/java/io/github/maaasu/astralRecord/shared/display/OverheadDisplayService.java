@@ -269,7 +269,7 @@ public class OverheadDisplayService {
      *
      * @return passenger 基準の頭上余白
      */
-    static @NotNull Vector mobPassengerOverheadOffset() {
+    public static @NotNull Vector mobPassengerOverheadOffset() {
         return new Vector(0.0D, MOB_PASSENGER_TEXT_OFFSET, 0.0D);
     }
 
@@ -394,14 +394,24 @@ public class OverheadDisplayService {
     }
 
     private @NotNull String bar(@NotNull String label, double current, double max, @NotNull String color) {
-        double ratio = max <= 0.0D ? 0.0D : Math.clamp(current / max, 0.0D, 1.0D);
-        int filled = (int) Math.round(ratio * BAR_LENGTH);
+        return resourceBar(label, current, max, color);
+    }
+
+    /** @param label リソース名 @param current 現在値 @param max 最大値 @param color 色コード @return 共通の12目盛りバーと現在値/最大値 */
+    public static @NotNull String resourceBar(@NotNull String label, double current, double max, @NotNull String color) {
+        double ratio = max <= 0.0D ? 0.0D : current / max;
+        return progressBar(label, ratio, color) + " &f" + number(current) + "&7/&f" + number(max);
+    }
+
+    /** @param label バーの名前 @param ratio 0から1の進捗 @param color 色コード @return 共通の12目盛りバー */
+    public static @NotNull String progressBar(@NotNull String label, double ratio, @NotNull String color) {
+        int filled = (int) Math.round((Double.isFinite(ratio) ? Math.clamp(ratio, 0.0D, 1.0D) : 0.0D) * BAR_LENGTH);
         StringBuilder builder = new StringBuilder();
         builder.append(color).append(label).append(" [").append(color);
         builder.repeat("|", Math.max(0, filled));
         builder.append("&8");
         builder.repeat("|", Math.max(0, BAR_LENGTH - filled));
-        builder.append(color).append("] &f").append(number(current)).append("&7/&f").append(number(max));
+        builder.append(color).append("]");
         return builder.toString();
     }
 
@@ -425,7 +435,7 @@ public class OverheadDisplayService {
         return String.format(Locale.ROOT, "\n&b◆ &7x &f%s", number(current));
     }
 
-    private String number(double value) {
+    private static String number(double value) {
         return String.format(Locale.ROOT, "%.0f", Math.max(0.0D, value));
     }
 }

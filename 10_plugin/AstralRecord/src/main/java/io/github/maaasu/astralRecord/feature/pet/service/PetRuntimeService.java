@@ -7,6 +7,10 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.*;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.shared.display.*;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -19,6 +23,8 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.DyeColor;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -52,6 +58,8 @@ public final class PetRuntimeService implements Listener {
     private final DamageService damageService;
     private final PlayerDeathService playerDeathService;
     private ConditionService conditionService;
+    private MobService mobService;
+    private DisplayTextService displayTextService;
     private final Map<UUID, Session> byOwner = new HashMap<>();
     private final Map<UUID, Session> byEntity = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
@@ -88,6 +96,18 @@ public final class PetRuntimeService implements Listener {
     /** @param conditionService ペットへの行動不能と移動速度低下の参照先 */
     public void setConditionService(@Nullable ConditionService conditionService) { this.conditionService = conditionService; }
 
+    /** @param mobService 管理敵の索敵先 @param displayTextService 共通の頭上表示サービス。開始前に接続します */
+    public void setWorldServices(@NotNull MobService mobService, @NotNull DisplayTextService displayTextService) {
+        this.mobService = mobService;
+        this.displayTextService = displayTextService;
+    }
+
+    /** @return ペットが与えた実ダメージに対する脅威倍率。主人より高くしません */
+    public double threatMultiplier() {
+        double value = bridge.threatMultiplier();
+        return Double.isFinite(value) ? Math.clamp(value, 0.0D, 1.0D) : 0.5D;
+    }
+
     /**
      * 装備保存・復活・個体更新の確定後に召喚状態を反映します。
      * @param owner 読み込み済みの主人
@@ -109,6 +129,8 @@ public final class PetRuntimeService implements Listener {
         }
         if (previous != null && previous.pet.instanceId().equals(selected.instanceId())) {
             previous.pet = selected;
+            previous.readOwnerStats();
+            previous.updatePresentation();
             return;
         }
         dismiss(owner);
@@ -141,11 +163,6 @@ public final class PetRuntimeService implements Listener {
         entity.setPersistent(false);
         entity.setRemoveWhenFarAway(false);
         entity.setSilent(false);
-        entity.customName(ColorCodeUtil.toComponent(selected.name(), ""));
-        entity.setCustomNameVisible(true);
-        if (entity.getAttribute(Attribute.SCALE) != null) {
-            entity.getAttribute(Attribute.SCALE).setBaseValue(selected.size());
-        }
         if (entity instanceof Tameable tameable) {
             tameable.setOwner(owner.getBukkit());
             tameable.setTamed(true);
@@ -157,13 +174,17 @@ public final class PetRuntimeService implements Listener {
             mob.setCanPickupItems(false);
             mob.getPathfinder().setCanFloat(true);
         }
+        if (entity instanceof Ageable ageable) ageable.setAdult();
+        if (entity instanceof Breedable breedable) breedable.setAgeLock(true);
         if (entity instanceof Animals animal) animal.setBreed(false);
         Session session = new Session(owner, selected, entity);
         byOwner.put(ownerId, session);
         byEntity.put(entity.getUniqueId(), session);
+        session.updatePresentation();
         session.publish();
         } catch (RuntimeException failure) {
-            byOwner.remove(ownerId);
+            Session failed = byOwner.remove(ownerId);
+            if (failed != null) failed.destroyDisplay();
             byEntity.remove(entity.getUniqueId());
             summonedEntityIds.remove(entity.getUniqueId());
             entity.remove();
@@ -182,6 +203,7 @@ public final class PetRuntimeService implements Listener {
             byEntity.remove(session.entity.getUniqueId());
             summonedEntityIds.remove(session.entity.getUniqueId());
             if (conditionService != null) conditionService.clearAll(AstEntity.pet(session));
+            session.destroyDisplay();
             session.entity.remove();
         }
         removePetBuffs(owner);
@@ -363,19 +385,23 @@ public final class PetRuntimeService implements Listener {
                 }
                 session.pet = current;
                 session.readOwnerStats();
+                session.updatePresentation();
                 session.trigger(SkillTrigger.PERIODIC, null);
-            }
-            if (conditionService != null && !conditionService.canMove(AstEntity.pet(session))) {
-                if (session.entity instanceof Mob mob) mob.getPathfinder().stopPathfinding();
-                continue;
             }
             Location desired = behind(session.owner.getBukkit());
             if(desired.getWorld()!=session.entity.getWorld()){
                 session.basicTarget=null;
-                session.entity.teleport(desired);
+                // 頭上表示はpassengerなので、異ワールド移動の前に外して移動先で作り直す。
+                session.destroyDisplay();
+                if (session.entity.teleport(desired)) session.updatePresentation();
+                else { dismiss(session.owner); refresh(session.owner); }
                 continue;
             }
             if (session.tickBasicAttack()) continue;
+            if (conditionService != null && !conditionService.canMove(AstEntity.pet(session))) {
+                if (session.entity instanceof Mob mob) mob.getPathfinder().stopPathfinding();
+                continue;
+            }
             if (desired.getWorld() != session.entity.getWorld()
                     || desired.distanceSquared(session.entity.getLocation()) > 144.0D) {
                 session.entity.teleport(desired);
@@ -421,6 +447,10 @@ public final class PetRuntimeService implements Listener {
         double eggDropChance();
         /** @param speciesId 卵の種類ID @return マスターの種類抽選重み */
         default double eggWeight(String speciesId){return 1.0D;}
+        /** @return ペットの実ダメージから脅威への換算倍率 */
+        default double threatMultiplier() { return 0.5D; }
+        /** @return 自律索敵半径。ブロック単位 */
+        default double autonomousAttackRange() { return 8.0D; }
     }
 
     /** 個体値・成長・潜在倍率をマスター式へ適用した係数です。すべて比率で保持します。 */
@@ -428,7 +458,8 @@ public final class PetRuntimeService implements Listener {
     /** 召喚に必要な、孵化後だけ取得可能な個体スナップショットです。 */
     public record RuntimePet(UUID instanceId, String name, EntityType entityType, double size,
                              double healthRatio, boolean dead, PetCoefficients coefficients,
-                             List<PetSkill> skills, Map<String, Long> cooldowns, @Nullable BasicAttack basicAttack) {
+                             List<PetSkill> skills, Map<String, Long> cooldowns, @Nullable BasicAttack basicAttack,
+                             int level, String collarColor, String catType) {
         /** マスター・個体の可変コレクションを召喚スナップショットへ持ち込まないよう複製します。 */
         public RuntimePet {
             skills = List.copyOf(skills);
@@ -463,7 +494,10 @@ public final class PetRuntimeService implements Listener {
         private double healthRatio;
         private boolean dead;
         private MobInstance basicTarget;
-        private long basicTargetExpiresAt;
+        private long nextTargetScanTick;
+        private DisplayTextService.ManagedTextDisplay display;
+        private String lastDisplayText;
+        private RuntimePet presentedPet;
 
         /** 読み込み済み個体から召喚の状態を構成します。 */
         private Session(AstPlayer owner, RuntimePet pet, LivingEntity entity) {
@@ -522,6 +556,8 @@ public final class PetRuntimeService implements Listener {
             if (dead || !Double.isFinite(amount) || amount <= 0.0D) return;
             healthRatio = Math.max(0.0D, healthRatio - amount / maxHealth());
             if (healthRatio == 0.0D) dead = true;
+            if (entity.isValid() && !entity.isDead()) entity.playHurtAnimation(0.0F);
+            updatePresentation();
             publish();
             if (dead) dismiss(owner);
         }
@@ -529,15 +565,14 @@ public final class PetRuntimeService implements Listener {
         /** HP・死亡・クールダウンをメインスレッドの保存キャッシュへ反映します。 */
         private void publish() { bridge.updateRuntime(owner, pet.instanceId(), healthRatio, dead, Map.copyOf(cooldowns)); }
 
-        /** 主人が実際に命中した敵だけを、短時間の基本追撃対象として保持します。 */
+        /** 主人が命中させた敵を、自律索敵より優先する基本攻撃対象にします。 */
         private void queueBasicAttack(MobInstance target) {
             if (pet.basicAttack() == null || target.state() == MobState.DEAD) return;
             basicTarget = target;
-            basicTargetExpiresAt = System.currentTimeMillis() + 3000L;
             tickBasicAttack();
         }
 
-        /** 必要なら射程まで接近し、基本追撃を一度適用します。自動索敵は行いません。 */
+        /** 周囲の管理敵を1秒ごとに索敵し、射程内ではクールダウンごとに攻撃します。 */
         private boolean tickBasicAttack() {
             BasicAttack basic = pet.basicAttack();
             if(owner.getBukkit().getWorld()!=entity.getWorld()){
@@ -545,27 +580,100 @@ public final class PetRuntimeService implements Listener {
                 return false;
             }
             long now = System.currentTimeMillis();
-            if (basic == null || basicTarget == null || basicTargetExpiresAt <= now
-                    || basicTarget.state() == MobState.DEAD || basicTarget.currentHealth() <= 0.0D
-                    || basicTarget.template().category() == MobCategory.NPC
-                    || basicTarget.currentLocation().getWorld() != entity.getWorld()
-                    || owner.getBukkit().getLocation().distanceSquared(basicTarget.currentLocation()) > 576.0D
-                    || cooldowns.getOrDefault(BASIC_ATTACK_COOLDOWN, 0L) > now
-                    || conditionService != null && !conditionService.canAttack(AstEntity.pet(this))) return false;
+            if (basic == null) { basicTarget = null; return false; }
+            if (!validTarget(basicTarget)) basicTarget = null;
+            if (basicTarget == null && tick >= nextTargetScanTick) {
+                nextTargetScanTick = tick + 20L;
+                basicTarget = nearestEnemy();
+            }
+            if (basicTarget == null) return false;
+            Entity targetEntity = Bukkit.getEntity(basicTarget.bukkitEntityId());
             double distanceSq = entity.getLocation().distanceSquared(basicTarget.currentLocation());
-            if (distanceSq > basic.range() * basic.range()) {
-                if (entity instanceof Mob mob) {
+            if (distanceSq > basic.range() * basic.range() || !entity.hasLineOfSight(targetEntity)) {
+                if (entity instanceof Mob mob && (conditionService == null || conditionService.canMove(AstEntity.pet(this)))) {
                     double multiplier = conditionService == null ? 1.0D : conditionService.movementSpeedMultiplier(AstEntity.pet(this));
                     mob.getPathfinder().moveTo(basicTarget.currentLocation(), 1.15D * multiplier);
-                }
+                } else if (entity instanceof Mob mob) mob.getPathfinder().stopPathfinding();
                 return true;
             }
+            if (entity instanceof Mob mob) { mob.getPathfinder().stopPathfinding(); mob.lookAt(targetEntity); }
+            if (cooldowns.getOrDefault(BASIC_ATTACK_COOLDOWN, 0L) > now
+                    || conditionService != null && !conditionService.canAttack(AstEntity.pet(this))) return true;
             damageService.attack(AstEntity.pet(this), AstEntity.mob(basicTarget), AttackType.MELEE,
                     List.of(new DamageComponent(DamageElement.NONE, basic.damageRatio())), DamageSource.OTHER);
             cooldowns.put(BASIC_ATTACK_COOLDOWN, now + attackCooldown(basic.cooldownMillis(), now));
-            basicTarget = null;
             publish();
-            return false;
+            return true;
+        }
+
+        /** NPC・死亡・実体消失・主人から24ブロック外を除き、追跡対象の妥当性を確認します。 */
+        private boolean validTarget(@Nullable MobInstance target) {
+            if (target == null || target.state() == MobState.DEAD || target.currentHealth() <= 0.0D
+                    || target.template().category() == MobCategory.NPC || target.nonLethal() || target.damageImmune()
+                    || target.currentLocation().getWorld() != entity.getWorld()
+                    || owner.getBukkit().getWorld() != entity.getWorld()
+                    || owner.getBukkit().getLocation().distanceSquared(target.currentLocation()) > 576.0D
+                    || entity.getLocation().distanceSquared(owner.getBukkit().getLocation()) > 576.0D
+                    || target.bukkitEntityId() == null) return false;
+            Entity actual = Bukkit.getEntity(target.bukkitEntityId());
+            return actual != null && actual.isValid() && !actual.isDead() && !actual.isInvulnerable();
+        }
+
+        /** 周辺チャンクの空間検索から、視線の通る最も近い敵を選びます。 */
+        private @Nullable MobInstance nearestEnemy() {
+            if (mobService == null) return null;
+            double configured = bridge.autonomousAttackRange();
+            double range = Double.isFinite(configured) ? Math.clamp(configured, 1.0D, 32.0D) : 8.0D;
+            double nearest = range * range;
+            MobInstance result = null;
+            Set<UUID> checked = new HashSet<>();
+            for (Entity candidate : entity.getWorld().getNearbyEntities(entity.getLocation(), range, range, range)) {
+                MobInstance target = mobService.getInstanceByEntity(candidate);
+                if (target == null || !checked.add(target.instanceId()) || !validTarget(target)) continue;
+                Entity actual = Bukkit.getEntity(target.bukkitEntityId());
+                double distance = entity.getLocation().distanceSquared(target.currentLocation());
+                if (distance <= nearest && entity.hasLineOfSight(actual)) { nearest = distance; result = target; }
+            }
+            return result;
+        }
+
+        /** 保存された個体外見と成長サイズ、独自HPを共通頭上表示へ反映します。 */
+        private void updatePresentation() {
+            if (!pet.equals(presentedPet)) {
+                if (entity.getAttribute(Attribute.SCALE) != null) entity.getAttribute(Attribute.SCALE).setBaseValue(pet.size());
+                DyeColor collar = null;
+                try { collar = DyeColor.valueOf(pet.collarColor()); } catch (IllegalArgumentException ignored) { }
+                if (collar != null && entity instanceof Wolf wolf) wolf.setCollarColor(collar);
+                if (entity instanceof Cat cat) {
+                    if (collar != null) cat.setCollarColor(collar);
+                    if (!pet.catType().isBlank()) {
+                        Cat.Type type = RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT)
+                                .get(NamespacedKey.minecraft(pet.catType().toLowerCase(Locale.ROOT)));
+                        if (type != null) cat.setCatType(type);
+                    }
+                }
+                presentedPet = pet;
+            }
+            String name = "&e" + ColorCodeUtil.toPlainText(owner.getAccount().getAccountName(), "プレイヤー")
+                    + "のペット（" + ColorCodeUtil.toPlainText(pet.name(), "ペット") + "）";
+            String text = name + "\n&7Lv." + pet.level() + " "
+                    + OverheadDisplayService.resourceBar("HP", currentHealth(), maxHealth(), "&e");
+            if (text.equals(lastDisplayText)) return;
+            entity.customName(ColorCodeUtil.toComponent(name, ""));
+            entity.setCustomNameVisible(displayTextService == null);
+            if (displayTextService != null) {
+                if (display == null) display = displayTextService.create(
+                        DisplayAnchor.entity(entity, OverheadDisplayService.mobPassengerOverheadOffset()),
+                        DisplayTextOptions.overhead(text));
+                else display.setText(text);
+            }
+            lastDisplayText = text;
+        }
+
+        /** 退場・死亡・生成失敗時に頭上表示も同時に解放します。 */
+        private void destroyDisplay() {
+            if (display != null) { display.destroy(); display = null; }
+            lastDisplayText = null;
         }
 
         /** ペット自身の攻撃速度補助をクールダウンへ適用します。 */

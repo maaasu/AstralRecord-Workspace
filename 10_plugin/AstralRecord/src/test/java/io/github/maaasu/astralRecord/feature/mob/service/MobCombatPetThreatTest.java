@@ -5,16 +5,22 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobThreatTable;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
 import io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.UUID;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
@@ -33,7 +39,10 @@ class MobCombatPetThreatTest {
         UUID petId=UUID.randomUUID();
         World world=mock(World.class);
         MobInstance mob=mock(MobInstance.class);
-        MobTemplate template=mock(MobTemplate.class);
+        MobTemplate template=new MobTemplate(1,"enemy:retaliate_test",MobCategory.ENEMY,"Test",null,1,
+            EntityType.ARMOR_STAND,true,null,List.of(),List.of(),null,MobEquipmentConfig.EMPTY,List.of(),
+            MobShieldConfig.EMPTY,MobIdleConfig.defaults(),false,MobInteractionsConfig.EMPTY,
+            new MobTargetingConfig(TargetStrategy.HIGHEST_THREAT,8,16,24,true),null,null);
         MobThreatTable threats=new MobThreatTable();
         threats.add(petId,5.0D);
         LivingEntity pet=mock(LivingEntity.class);
@@ -43,8 +52,6 @@ class MobCombatPetThreatTest {
         when(mob.template()).thenReturn(template);
         when(mob.threatTable()).thenReturn(threats);
         when(mob.currentLocation()).thenReturn(new Location(world,0,64,0));
-        when(template.category()).thenReturn(MobCategory.ENEMY);
-        when(template.targeting()).thenReturn(new MobTargetingConfig(TargetStrategy.HIGHEST_THREAT,8,16,24,true));
         when(pets.target(petId)).thenReturn(pet);
         when(pet.getWorld()).thenReturn(world);
         when(pet.getLocation()).thenReturn(new Location(world,2,64,0));

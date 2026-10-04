@@ -1414,9 +1414,16 @@ public final class AstralRecord extends JavaPlugin {
         petService.setProgressAuthorityProvider(skillTreeService::snapshotRuntimeAccountAuthority);
         petRuntimeService=new io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService(
             this,petService,statusService,statusService.getBuffService(),damageService,playerDeathService);
+        petRuntimeService.setWorldServices(mobService,displayTextService);
         inventoryService.setPetService(petService);
         petService.setPauseListener(petRuntimeService::dismiss);
         petService.setActivityEligibility(petRuntimeService::hasActivePet);
+        petService.setProgressListener(owner->{
+            if(AstPlayerCache.get(owner.getBukkit())!=owner)return;
+            petRuntimeService.refresh(owner);
+            menuView.refreshPetEquipmentSlot(owner.getBukkit());
+            if(petGui!=null)petGui.refreshCurrent(owner.getBukkit());
+        });
         petService.setRefreshListener(owner->{
             if(AstPlayerCache.get(owner.getBukkit())!=owner)return;
             petRuntimeService.refresh(owner);

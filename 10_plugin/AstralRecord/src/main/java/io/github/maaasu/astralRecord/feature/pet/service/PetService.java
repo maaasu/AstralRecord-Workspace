@@ -40,6 +40,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private final Map<UUID,LegacyEquipAttempt> legacyEquipAttempts=new ConcurrentHashMap<>();
     private volatile PetMaster master = new PetMaster(new JsonObject());
     private volatile Consumer<AstPlayer> refreshListener = ignored -> { };
+    private volatile Consumer<AstPlayer> progressListener = ignored -> { };
     private volatile Consumer<AstPlayer> pauseListener = ignored -> { };
     private volatile java.util.function.Function<UUID, RuntimeAccountAuthority> progressAuthorityProvider = ignored -> null;
     private volatile java.util.function.Predicate<AstPlayer> activityEligible=ignored->false;
@@ -111,6 +112,8 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @param listener 呼出threadの契約に従う通知先
      */
     public void setRefreshListener(Consumer<AstPlayer> listener) { refreshListener=listener; }
+    /** @param listener 進行保存後の表示更新先。全インベントリの取り込みは行わずメインスレッドで呼びます */
+    public void setProgressListener(Consumer<AstPlayer> listener) { progressListener=listener; }
     /**
      * 原子操作前に、メインスレッドで旧ペットの最終状態を確定して退場させる通知先です。
      * @param listener 呼出threadの契約に従う通知先
@@ -227,10 +230,11 @@ public final class PetService implements PetRuntimeService.StateBridge {
         AccountState state=accounts.get(accountId);
         synchronized(state){Progress progress=state.progress.get(pet.id());if(progress!=null)cooldowns=new HashMap<>(progress.cooldowns);}
         return new PetRuntimeService.RuntimePet(pet.id(),pet.name(),EntityType.valueOf(text(species,"entityType",EntityType.WOLF.name())),
-            number(details,"size",1),healthRatio(pet),dead(pet),
+            PetGrowthCalculator.effectiveSize(master,number(details,"size",1),(int)number(details,"level",1)),healthRatio(pet),dead(pet),
             new PetRuntimeService.PetCoefficients(coefficient(stats,definitions,"VITALITY"),coefficient(stats,definitions,"POWER"),
                 coefficient(stats,definitions,"DEFENSE"),coefficient(stats,definitions,"EVASION"),coefficient(stats,definitions,"SUPPORT")),
-            List.copyOf(skills),Map.copyOf(cooldowns),basicAttack(species));
+            List.copyOf(skills),Map.copyOf(cooldowns),basicAttack(species),(int)number(details,"level",1),
+            text(object(details,"appearance"),"collarColor",""),text(object(details,"appearance"),"catType",""));
     }
     private static PetRuntimeService.BasicAttack basicAttack(JsonObject species){
         JsonObject basic=object(species,"basicAttack");
@@ -389,6 +393,8 @@ public final class PetService implements PetRuntimeService.StateBridge {
 
     @Override public List<String> eggSpecies(){return master.speciesIds();}
     @Override public double eggDropChance(){return number(master.rules(),"eggDropChance",0);}
+    @Override public double threatMultiplier(){return number(master.rules(),"threatMultiplier",0.5D);}
+    @Override public double autonomousAttackRange(){return number(master.rules(),"autonomousAttackRange",8.0D);}
     @Override public double eggWeight(String speciesId){return Math.max(0,number(master.species(speciesId),"dropWeight",0));}
     @Override public void awardEgg(AstPlayer owner,String speciesId,UUID rewardId) {
         JsonObject body=new JsonObject();body.addProperty("speciesId",speciesId);
@@ -411,6 +417,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         ExternalOperation external=unresolved.get(state.id);
         if(external!=null && external.baseline!=null)return;
         List<UUID> ids; synchronized(state){ids=List.copyOf(state.progress.keySet());}
+        boolean updated=false;
         for(UUID id:ids) {
             Progress progress;ProgressRequest request;
             synchronized(state){
@@ -433,7 +440,13 @@ public final class PetService implements PetRuntimeService.StateBridge {
                 state.pets.put(id,changed);progress.experience-=request.experience;progress.acknowledged=request.revision;progress.request=null;
                 if(progress.revision==progress.acknowledged){progress.health=number(changed.details(),"healthRatio",1);progress.dead=changed.dead();}
             }
+            updated=true;
         }
+        if(updated&&plugin.isEnabled())plugin.getServer().getScheduler().runTask(plugin,()->{
+            if(accounts.get(state.id)!=state)return;
+            for(AstPlayer owner:AstPlayerCache.getAll())
+                if(owner.getAccount().getUuid().equals(state.id))progressListener.accept(owner);
+        });
     }
     /**
      * 原子操作を実行します。支払い予約・事前保存・API・三者マージ・事後保存をまとめます。
