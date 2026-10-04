@@ -17,13 +17,12 @@ lore:
   - "&7反撃・時間切れ時から剣通常攻撃のクールタイムを開始する。"
   - "&7Shiftを押さずに攻撃すると構えを解き、同じ入力で通常攻撃する。"
   - "&7時間切れ時はその場で構えを解き、突進やENG消費は発生しない。"
-  - "&7明鏡止水だけで剣気を貯められる。上限は{skill.maxRiposteStacks}。"
-  - "&7剣気1つにつき、反撃と横薙ぎの威力が{skill.counterDamageBonusPerStack:percent}%増える。"
-  - "&7剣気を所持してカウンターに成功すると、強化が1段階上がる（最大{skill.maxRiposteEmpowerment}段階）。"
-  - "&7強化1段階につき、さらに{skill.counterEmpowermentBonus:percent}%加算。今回の反撃と横薙ぎから適用する。"
-  - "&7カウンターで剣気の個数は増減しない。個数・強化・追加威力をHUDに表示する。"
-  - "&7剣気と強化は時間では消えず、剣気を使い切ると強化も消える。"
-  - "&7死亡・退出・世界移動・転職・バインド解除・チャレンジ初期化で両方解除する。"
+  - "&7明鏡止水では剣気を1つまで蓄積する。"
+  - "&7カウンター成功時に剣気を1つ補充し、最大{skill.maxRiposteStacks}つまで蓄積する。"
+  - "&7補充後の剣気1つにつき、反撃と横薙ぎの威力が{skill.counterDamageBonusPerStack:percent}%増える。"
+  - "&7剣気の個数・反撃の追加威力をHUDに表示する。"
+  - "&7剣気は時間では消えず、返し刃・リヴェンジアクセルで1つ消費する。"
+  - "&7死亡・退出・世界移動・転職・バインド解除・チャレンジ初期化で剣気を解除する。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 0
@@ -54,9 +53,8 @@ params:
   counterSweepMaxTargets: 5
   maxRiposteStacks: 5
   counterDamageBonusPerStack: 0.1
-  maxRiposteEmpowerment: 3
-  counterEmpowermentBonus: 0.1
 tags:
   - passive
   - melee
   - defense
+  - sword_spirit

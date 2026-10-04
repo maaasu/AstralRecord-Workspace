@@ -72,6 +72,8 @@ public static class MasterTagIds
         public const string FIELD = "field";
         /// <summary>プリズム。</summary>
         public const string PRISM = "prism";
+        /// <summary>剣気。</summary>
+        public const string SWORD_SPIRIT = "sword_spirit";
         /// <summary>ステータス。</summary>
         public const string STATUS = "status";
         /// <summary>スキルツリー。</summary>
@@ -100,6 +102,10 @@ public static class MasterTagIds
         public const string DEFENSE = "defense";
         /// <summary>攻撃。</summary>
         public const string OFFENSE = "offense";
+        /// <summary>行動制御。</summary>
+        public const string CONTROL = "control";
+        /// <summary>機動。</summary>
+        public const string MOBILITY = "mobility";
         /// <summary>前衛。</summary>
         public const string FRONT = "front";
         /// <summary>弓。</summary>
@@ -361,6 +367,7 @@ public static class MasterTags
                 ["mob"] = new("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", ["SKILL"]),
                 ["field"] = new("field", "フィールド", "フィールド上の行動・効果に関係する分類。", "ACTIVITY", ["SKILL"]),
                 ["prism"] = new("prism", "プリズム", "エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。", "ACTIVITY", ["SKILL"]),
+                ["sword_spirit"] = new("sword_spirit", "剣気", "剣気の蓄積・消費、または剣気量によって効果が変わるスキル。", "ACTIVITY", ["SKILL"]),
                 ["status"] = new("status", "ステータス", "ステータス効果を持つスキルツリーノード。", "ACTIVITY", ["SKILLTREE_NODE"]),
                 ["skilltree"] = new("skilltree", "スキルツリー", "スキルツリー機能への導線を持つ NPC。", "ACTIVITY", ["MOB"]),
                 ["melee"] = new("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", ["CLASS", "SKILL", "MOB"]),
@@ -373,6 +380,8 @@ public static class MasterTags
                 ["balanced"] = new("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", ["CLASS"]),
                 ["defense"] = new("defense", "防御", "防御能力や耐久力に関係する分類。", "COMBAT_ROLE", ["SKILL", "SKILLTREE_NODE"]),
                 ["offense"] = new("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", ["SKILL", "SKILLTREE_NODE"]),
+                ["control"] = new("control", "行動制御", "敵の移動や行動を制限するスキル。", "COMBAT_ROLE", ["SKILL"]),
+                ["mobility"] = new("mobility", "機動", "使用者の移動や位置取りを変えるスキル。", "COMBAT_ROLE", ["SKILL"]),
                 ["front"] = new("front", "前衛", "前線で戦うクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["bow"] = new("bow", "弓", "弓系統に関係する分類。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
                 ["staff"] = new("staff", "杖", "杖系統に関係する分類。", "COMBAT_ROLE", ["CLASS"]),

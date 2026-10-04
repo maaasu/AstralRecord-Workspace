@@ -111,7 +111,7 @@ public class PlayerHudService {
 
     /**
      * 通常のHP/MP表示へ付加する剣気表示を設定します。
-     * @param renderer 表示対象から剣気の個数・強化段階を返す処理
+     * @param renderer 表示対象から剣気の現在数・上限と反撃の追加威力を返す処理
      */
     public void setSwordSpiritRenderer(@NotNull Function<AstPlayer, Component> renderer) {
         this.swordSpiritRenderer = renderer;

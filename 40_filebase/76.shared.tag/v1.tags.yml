@@ -198,6 +198,11 @@ tags:
     description: エレメンタルプリズムに吸収されて追撃を発生させる無・炎・氷・雷属性の攻撃魔法。
     category: ACTIVITY
     appliesTo: [SKILL]
+  - id: sword_spirit
+    displayName: 剣気
+    description: 剣気の蓄積・消費、または剣気量によって効果が変わるスキル。
+    category: ACTIVITY
+    appliesTo: [SKILL]
   - id: status
     displayName: ステータス
     description: ステータス効果を持つスキルツリーノード。
@@ -259,6 +264,16 @@ tags:
     description: 攻撃能力に関係する分類。
     category: COMBAT_ROLE
     appliesTo: [SKILL, SKILLTREE_NODE]
+  - id: control
+    displayName: 行動制御
+    description: 敵の移動や行動を制限するスキル。
+    category: COMBAT_ROLE
+    appliesTo: [SKILL]
+  - id: mobility
+    displayName: 機動
+    description: 使用者の移動や位置取りを変えるスキル。
+    category: COMBAT_ROLE
+    appliesTo: [SKILL]
   - id: front
     displayName: 前衛
     description: 前線で戦うクラスロール。

@@ -10,10 +10,11 @@ description: "&7呼吸を整え、剣気と活力を蓄える。"
 icon: CHORUS_FLOWER
 lore:
   - "&7自分の最大HPの{skill.healHpRatio:percent}%を回復する。"
-  - "&7静寂一閃をバインド中、剣気を{skill.riposteGain}つ蓄積する。剣気は消費しない。"
+  - "&7静寂一閃をバインド中、剣気が0なら{skill.riposteGain}つ蓄積する。"
+  - "&7明鏡止水による剣気補充は1つまで。剣気は消費しない。"
   - "&7発動前から剣気があれば、最大HPの{skill.riposteHealHpRatio:percent}%を追加回復し、ENGを{skill.energyRecovery}回復する。"
-  - "&7HP満タン・回復阻害中も剣気の蓄積は行う。回復阻害中は回復しない。"
-  - "&7剣気の個数と、カウンター成功で上がる強化段階はHUDで確認できる。"
+  - "&7剣気が0ならHP満タン・回復阻害中も蓄積する。回復阻害中は回復しない。"
+  - "&7剣気の個数と反撃の追加威力はHUDで確認できる。"
 cooldownTicks: 280
 resourceType: MANA
 resourceCost: 10
@@ -50,3 +51,4 @@ params:
 tags:
   - active
   - support
+  - sword_spirit

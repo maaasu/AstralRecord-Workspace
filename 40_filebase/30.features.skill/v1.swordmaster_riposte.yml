@@ -11,9 +11,8 @@ icon: TINTED_GLASS
 lore:
   - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
   - "&7静寂一閃の剣気があれば1つ消費し、威力を{skill.riposteMultiplier}倍にする。"
-  - "&7剣気は明鏡止水で蓄積し、リヴェンジアクセルと共有する。"
+  - "&7剣気は明鏡止水と静寂一閃のカウンターで蓄積し、リヴェンジアクセルと共有する。"
   - "&7剣気を持たない時も通常の威力で発動できる。"
-  - "&7剣気が1つ以上残ればカウンターの強化段階を維持し、使い切ると解除する。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 26
@@ -62,3 +61,4 @@ tags:
   - active
   - melee
   - offense
+  - sword_spirit
