@@ -18,7 +18,6 @@ damageImmune: true
 icon: EGG
 lore:
   - "&7ペットの孵化、配合、復活を手伝う。"
-  - "&7左クリックで復活用品の交換所を開く。"
 tags:
   - npc
 baseStats:
@@ -30,11 +29,6 @@ ai:
   idle:
     behavior: STATIONARY
 interactions:
-  leftClick:
-    - id: gui
-      params:
-        type: SHOP
-        shopId: pet_support_exchange
   rightClick:
     - id: gui
       params:
