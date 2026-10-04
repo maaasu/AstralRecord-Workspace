@@ -7,7 +7,13 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.support.Playe
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** カウンターの剣気を次の範囲斬撃へ乗せる返し刃です。 */
 public final class SwordmasterRiposteExecutor extends SwordmasterSkillSupport {
@@ -28,14 +34,31 @@ public final class SwordmasterRiposteExecutor extends SwordmasterSkillSupport {
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         boolean empowered = counter.consumeRiposte(context.caster().player());
-        slash(context, context.eyeLocation(), context.direction(), value(context, "range"),
-                empowered ? SharedParticleDefinitions.SWORDMASTER_GOLD : SharedParticleDefinitions.SWORDMASTER_SILVER, true);
-        if (empowered) burst(context, context.player().getLocation().add(0.0D, 0.8D, 0.0D),
-                2.0D, SharedParticleDefinitions.SWORDMASTER_GOLD);
-        for (AstEntity target : cone(context)) {
-            hit(context, target, DamageElement.NONE,
-                    value(context, "damageRatio") * (empowered ? value(context, "riposteMultiplier") : 1.0D));
+        Location origin = context.eyeLocation();
+        Vector direction = context.direction();
+        if (empowered) {
+            Vector forward = direction.clone().setY(0.0D);
+            if (forward.lengthSquared() < 1.0E-8D) {
+                forward.setZ(1.0D);
+            }
+            Location crossCenter = origin.clone().add(forward.normalize().multiply(value(context, "range") * 0.6D));
+            counterCross(context, crossCenter, direction, value(context, "range") * 0.4D, 0.9D);
+        } else {
+            context.services().effects().arcSegment(origin, direction, value(context, "range") * 0.75D,
+                    -40.0D, 40.0D, 32, SharedParticleDefinitions.SWORDMASTER_SILVER);
         }
+        context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F,
+                empowered ? 1.5F : 1.0F);
+        List<Location> impacts = new ArrayList<>();
+        for (AstEntity target : cone(context)) {
+            Location impact = empowered ? target.location().clone().add(0.0D, 0.9D, 0.0D) : null;
+            Hit result = hit(context, target, DamageElement.NONE,
+                    value(context, "damageRatio") * (empowered ? value(context, "riposteMultiplier") : 1.0D));
+            if (impact != null && result.landed()) {
+                impacts.add(impact);
+            }
+        }
+        counterShockwaves(context, impacts);
         return context.success();
     }
 }

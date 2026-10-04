@@ -179,6 +179,52 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
         context.services().effects().sound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F, rising ? 1.4F : 0.9F);
     }
 
+    /**
+     * 剣気を放出した二本の剣閃を、視線の前方に金色の交差として描きます。
+     * @param context 発動者と描画サービス
+     * @param center 交差の中心
+     * @param direction 発動者の視線方向
+     * @param halfWidth 交差の左右半幅
+     * @param halfHeight 交差の上下半幅
+     */
+    protected static void counterCross(PlayerActiveSkillContext context, Location center, Vector direction,
+                                       double halfWidth, double halfHeight) {
+        Vector forward = direction.clone().setY(0.0D);
+        if (forward.lengthSquared() < 1.0E-8D) {
+            forward.setZ(1.0D);
+        }
+        forward.normalize();
+        Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
+        List<Location> points = new ArrayList<>(50);
+        for (int step = 0; step <= 24; step++) {
+            double progress = step / 24.0D * 2.0D - 1.0D;
+            Vector lateral = right.clone().multiply(progress * halfWidth);
+            points.add(center.clone().add(lateral).add(0.0D, progress * halfHeight, 0.0D));
+            points.add(center.clone().add(lateral).add(0.0D, -progress * halfHeight, 0.0D));
+        }
+        context.services().effects().points(center, points, SharedParticleDefinitions.SWORDMASTER_GOLD);
+    }
+
+    /**
+     * 剣気を使った攻撃が実際に命中した地点だけへ、円形の衝撃波を一括表示します。
+     * @param context 発動者と描画サービス
+     * @param impacts 同一ワールド内の有効命中地点
+     */
+    protected static void counterShockwaves(PlayerActiveSkillContext context, List<Location> impacts) {
+        if (impacts.isEmpty()) {
+            return;
+        }
+        List<Location> points = new ArrayList<>(impacts.size() * 24);
+        for (Location impact : impacts) {
+            for (int step = 0; step < 24; step++) {
+                double angle = step * Math.PI * 2.0D / 24.0D;
+                points.add(impact.clone().add(Math.cos(angle) * 0.8D, 0.0D,
+                        Math.sin(angle) * 0.8D));
+            }
+        }
+        context.services().effects().pointsNearViewers(points, SharedParticleDefinitions.SWORDMASTER_GOLD);
+    }
+
     /** 二本の剣閃と細い螺旋で前進経路を描きます。 */
     protected static void trail(PlayerActiveSkillContext context, Location from, Location to,
                                 SharedParticleDefinition color) {

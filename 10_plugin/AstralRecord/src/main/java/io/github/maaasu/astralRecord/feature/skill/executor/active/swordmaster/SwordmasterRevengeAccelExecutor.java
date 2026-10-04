@@ -10,7 +10,11 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** 反撃の剣気を命中へつなぎ、二つの突進技を再使用可能にします。 */
 public final class SwordmasterRevengeAccelExecutor extends SwordmasterSkillSupport {
@@ -37,19 +41,37 @@ public final class SwordmasterRevengeAccelExecutor extends SwordmasterSkillSuppo
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         boolean empowered = counter.consumeRiposte(context.caster().player());
         Location origin = context.eyeLocation();
-        slash(context, origin, context.direction(), value(context, "range"),
-                empowered ? SharedParticleDefinitions.SWORDMASTER_GOLD : SharedParticleDefinitions.SWORDMASTER_SILVER,
-                true);
-        boolean landed = false;
+        Vector forward = context.direction().clone().setY(0.0D);
+        if (forward.lengthSquared() < 1.0E-8D) {
+            forward.setZ(1.0D);
+        }
+        forward.normalize();
+        Location end = origin.clone().add(forward.clone().multiply(value(context, "range")));
+        if (empowered) {
+            context.services().effects().line(origin, end, 0.18D, SharedParticleDefinitions.SWORDMASTER_GOLD);
+            counterCross(context, end, forward, 0.95D, 0.9D);
+        } else {
+            Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
+            context.services().effects().line(origin.clone().add(right.clone().multiply(-0.3D)).add(0.0D, 0.35D, 0.0D),
+                    end.clone().add(right.multiply(0.3D)).add(0.0D, -0.35D, 0.0D),
+                    0.18D, SharedParticleDefinitions.SWORDMASTER_SILVER);
+        }
+        context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F,
+                empowered ? 1.6F : 1.1F);
+        List<Location> impacts = new ArrayList<>();
         double ratio = value(context, "damageRatio") * (empowered ? value(context, "riposteMultiplier") : 1.0D);
         for (AstEntity target : cone(context)) {
-            landed |= hit(context, target, DamageElement.NONE, ratio).landed();
+            Location impact = empowered ? target.location().clone().add(0.0D, 0.9D, 0.0D) : null;
+            Hit result = hit(context, target, DamageElement.NONE, ratio);
+            if (impact != null && result.landed()) {
+                impacts.add(impact);
+            }
         }
-        if (empowered && landed) {
+        if (!impacts.isEmpty()) {
             skills.clearCooldown(context.player().getUniqueId(), SwordmasterGaleReaperExecutor.ID);
             skills.clearCooldown(context.player().getUniqueId(), SwordmasterCrimsonDriveExecutor.ID);
-            burst(context, origin, 1.6D, SharedParticleDefinitions.SWORDMASTER_GOLD);
-            context.services().effects().sound(origin, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9F, 1.9F);
+            counterShockwaves(context, impacts);
+            context.services().effects().sound(impacts.get(0), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9F, 1.9F);
         }
         return context.success();
     }
