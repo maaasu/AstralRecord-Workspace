@@ -10,16 +10,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mob 単位の脅威値（ヘイト）を保持するテーブル。
- * プレイヤー UUID をキーとし、加算・減衰・最大値取得を提供する。
+ * プレイヤーまたは召喚ペットの UUID をキーとし、加算・減衰・最大値取得を提供する。
  */
 public final class MobThreatTable {
 
     private final Map<UUID, Double> entries = new ConcurrentHashMap<>();
 
     /**
-     * 指定プレイヤーの脅威値に加算します。
+     * 指定戦闘者の脅威値に加算します。
      *
-     * @param playerId プレイヤー UUID
+     * @param playerId プレイヤーまたは召喚ペットの UUID
      * @param amount   加算量（負値も可）
      */
     public void add(@NotNull UUID playerId, double amount) {
@@ -30,9 +30,9 @@ public final class MobThreatTable {
     }
 
     /**
-     * 指定プレイヤーの脅威値を上書きします。
+     * 指定戦闘者の脅威値を上書きします。
      *
-     * @param playerId プレイヤー UUID
+     * @param playerId プレイヤーまたは召喚ペットの UUID
      * @param amount   新しい値（0 以下なら削除）
      */
     public void set(@NotNull UUID playerId, double amount) {
@@ -44,18 +44,18 @@ public final class MobThreatTable {
     }
 
     /**
-     * 指定プレイヤーのエントリを削除します。
+     * 指定戦闘者のエントリを削除します。
      *
-     * @param playerId プレイヤー UUID
+     * @param playerId プレイヤーまたは召喚ペットの UUID
      */
     public void remove(@NotNull UUID playerId) {
         entries.remove(playerId);
     }
 
     /**
-     * 最大脅威値を持つプレイヤー UUID を返します。
+     * 最大脅威値を持つ戦闘者 UUID を返します。
      *
-     * @return 最大脅威値のプレイヤー UUID。空なら {@code null}
+     * @return 最大脅威値の戦闘者 UUID。空なら {@code null}
      */
     @Nullable
     public UUID top() {
@@ -88,7 +88,7 @@ public final class MobThreatTable {
     /**
      * 現在のエントリ集合を変更不可ビューで返します。
      *
-     * @return プレイヤー UUID -> 脅威値 のマップ（変更不可）
+     * @return 戦闘者 UUID -> 脅威値 のマップ（変更不可）
      */
     @NotNull
     public Map<UUID, Double> snapshot() {

@@ -1771,7 +1771,7 @@ public final class DamageService {
                 return;
             }
             if (AccountModeGuard.isGameplayPlayer(owner)) {
-                mob.threatTable().add(attacker.id(), result.finalDamage());
+                mob.threatTable().add(attacker.id(), threatFromDamage(attacker,result.finalDamage()));
                 // ペット死亡後にも報酬受取人を解決できるよう主人の参加記録を残します。
                 if (attacker.isPet()) mob.threatTable().add(ownerId, Math.ulp(1.0D));
                 mob.lastAttackerUuid(ownerId);
@@ -1844,6 +1844,19 @@ public final class DamageService {
     }
 
     /**
+     * PETの実ダメージだけを脅威倍率で重み付けし、HPとシールドの減算値は変えません。
+     * @param attacker 実ダメージを与えた戦闘主体
+     * @param damage HPまたはシールドへ適用したダメージ
+     * @return 脅威表へ加算する非負の重み付け値
+     */
+    private double threatFromDamage(@NotNull AstEntity attacker,double damage){
+        if(!attacker.isPet())return damage;
+        double configured=petRuntimeService==null?0.5D:petRuntimeService.threatMultiplier();
+        double multiplier=Double.isFinite(configured)?Math.max(0.0D,Math.min(1.0D,configured)):0.5D;
+        return damage*multiplier;
+    }
+
+    /**
      * シールド被害を報酬用の攻撃記録へ加算し、ターゲット設定のあるMobだけを敵対させます。
      *
      * @param attacker 攻撃者。プレイヤー以外は記録しません
@@ -1863,7 +1876,7 @@ public final class DamageService {
             return;
         }
         var mob = victim.mob();
-        mob.threatTable().add(attacker.id(), shieldDamage);
+        mob.threatTable().add(attacker.id(), threatFromDamage(attacker,shieldDamage));
         if (attacker.isPet()) mob.threatTable().add(ownerId, Math.ulp(1.0D));
         mob.lastAttackerUuid(ownerId);
         if (mob.template().targeting() != null && mob.state() == MobState.IDLE) {

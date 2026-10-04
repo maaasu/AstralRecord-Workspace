@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
@@ -198,17 +199,15 @@ public class MobCombatService {
             instance.targetId(null);
             return null;
         }
-        if (targeting.retaliateOnly() && instance.targetId() == null) {
+        if (targeting.retaliateOnly() && instance.targetId() == null && instance.threatTable().isEmpty()) {
             return null;
         }
 
         double aggroSq = targeting.aggroRange() * targeting.aggroRange();
         Location loc = instance.currentLocation();
         if (targeting.retaliateOnly()) {
-            UUID topId = instance.threatTable().top();
-            LivingEntity top = resolveTarget(topId);
-            if (top == null || top.getWorld() != loc.getWorld()
-                    || top.getLocation().distanceSquared(loc) > aggroSq) {
+            LivingEntity top = highestValidThreat(instance, loc, aggroSq, null);
+            if (top == null) {
                 instance.targetId(null);
                 return null;
             }
@@ -232,9 +231,8 @@ public class MobCombatService {
         LivingEntity chosen = switch (targeting.strategy()) {
             case NEAREST -> nearest(candidates, loc);
             case HIGHEST_THREAT -> {
-                UUID top = instance.threatTable().top();
-                LivingEntity p = resolveTarget(top);
-                yield p != null && candidates.contains(p) ? p : nearest(candidates, loc);
+                LivingEntity top = highestValidThreat(instance, loc, aggroSq, candidates);
+                yield top == null ? nearest(candidates, loc) : top;
             }
             case RANDOM -> candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
             case LOWEST_HP -> lowestHp(candidates);
@@ -537,6 +535,26 @@ public class MobCombatService {
 
     private boolean isGameplayTargetPlayer(@NotNull Player player) {
         return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
+    }
+
+    /**
+     * 有効な脅威を値順に調べ、死亡・退場したペットの次に残る主人や別の攻撃者へ切り替えます。
+     * @param instance 脅威値を保持するMob
+     * @param origin Mobの現在位置
+     * @param rangeSquared 有効な三次元距離の二乗
+     * @param candidates 通常索敵の候補。反撃型ではnullとして脅威表だけを調べる
+     * @return 同じワールド・距離内に残る最大脅威のプレイヤーまたはペット。なければnull
+     */
+    private @Nullable LivingEntity highestValidThreat(@NotNull MobInstance instance,@NotNull Location origin,
+        double rangeSquared,@Nullable List<LivingEntity> candidates){
+        return instance.threatTable().snapshot().entrySet().stream()
+            .sorted(Map.Entry.<UUID,Double>comparingByValue().reversed())
+            .map(entry->resolveTarget(entry.getKey()))
+            .filter(Objects::nonNull)
+            .filter(target->target.getWorld()==origin.getWorld()
+                &&target.getLocation().distanceSquared(origin)<=rangeSquared)
+            .filter(target->candidates==null||candidates.contains(target))
+            .findFirst().orElse(null);
     }
 
     @Nullable
