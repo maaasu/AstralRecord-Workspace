@@ -874,6 +874,7 @@ public final class SkillBindGui {
 
     /**
      * バインド枠の状態と習得個体を GUI 表示用 ItemStack へ変換します。
+     * PLAYER_HEAD の場合は定義済み textures 値も適用します。
      *
      * @param type バインド種別
      * @param index 種別内の枠番号
@@ -992,7 +993,8 @@ public final class SkillBindGui {
                             entry.definition(), "未登録のスキル", NamedTextColor.WHITE
                         ))
                         .append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
-        ItemStack item = createItem(material, name, lore);
+        ItemStack item = createItem(material, name, lore,
+            entry == null ? null : entry.definition().getIconTexture());
         if (bindingId == null && (type == SkillBindType.PASSIVE || type == SkillBindType.ACTIVE)) {
             item.setAmount(index + 1);
         }

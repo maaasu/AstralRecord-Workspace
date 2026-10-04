@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -46,6 +47,7 @@ public final class GuiItems {
 
     /**
      * 表示名と lore のイタリックを無効化した GUI 用 ItemStack を生成します。
+     * 鍛冶型とバナーパターンは見た目だけを適用し、素材固有の説明を表示しません。
      *
      * @param material アイテム種別
      * @param name 表示名
@@ -57,7 +59,9 @@ public final class GuiItems {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        var itemStack = new ItemStack(material);
+        boolean modelOnlyIcon = material.name().endsWith("_SMITHING_TEMPLATE")
+            || material.name().endsWith("_BANNER_PATTERN");
+        var itemStack = new ItemStack(modelOnlyIcon ? Material.PAPER : material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(noItalic(name));
@@ -66,6 +70,9 @@ public final class GuiItems {
             itemStack.setItemMeta(meta);
         }
         ItemStackFactory.hideBundleContentsTooltip(itemStack);
+        if (modelOnlyIcon) {
+            itemStack.setData(DataComponentTypes.ITEM_MODEL, material.getKey());
+        }
         return itemStack;
     }
 
