@@ -99,10 +99,15 @@ public final class PlayerAdminDrainService {
         return blockedUsers.contains(userUuid);
     }
 
+    /** カタログハッシュの準備中は登録と取得を保留し、既存のローカル遮断を維持します。 */
     private void poll() {
         if (!polling.compareAndSet(false, true)) return;
         try {
-            repository.register(serverId, serverSessionId, itemCatalogHash.get(), classCatalogHash.get());
+            String currentItemCatalogHash = itemCatalogHash.get();
+            String currentClassCatalogHash = classCatalogHash.get();
+            // 初期マスタ公開前の空ハッシュを登録せず、次回 poll で準備状態を確認する。
+            if (currentItemCatalogHash.isBlank() || currentClassCatalogHash.isBlank()) return;
+            repository.register(serverId, serverSessionId, currentItemCatalogHash, currentClassCatalogHash);
             List<Drain> active = repository.findActive(serverId, serverSessionId);
             pollFailureLogged.set(false);
             plugin.getServer().getScheduler().runTask(plugin, () -> reconcile(active));

@@ -94,9 +94,14 @@ class PlayerClassService @JvmOverloads constructor(
     /** 実際に公開中のクラス定義をコピーする。再読込やAPI通信は行わない。 */
     fun snapshotLoadedClasses(): Map<String, ClassModel> = classService.getLoadedClasses().associateBy { it.id }
 
-    /** 管理編集APIとのクラス選択整合性を確認する公開クラス詳細応答のハッシュ。 */
+    /**
+     * 管理編集APIとのクラス選択整合性を確認する公開クラス詳細応答のハッシュを返します。
+     *
+     * @return 未公開または詳細応答ハッシュが未準備なら空文字、公開済みなら SHA-256 小文字16進数
+     */
     fun getClassCatalogHash(): String {
-        val classes = classService.getLoadedClasses().sortedBy { it.id }
+        val snapshot = classService.snapshotPublishedClasses() ?: return ""
+        val classes = snapshot.values.sortedBy { it.id }
         if (classes.any { it.responseBodySha256.isBlank() }) return ""
         val canonical = classes.joinToString(separator = "") { "${it.id}\t${it.responseBodySha256}\n" }
         val digest = java.security.MessageDigest.getInstance("SHA-256")

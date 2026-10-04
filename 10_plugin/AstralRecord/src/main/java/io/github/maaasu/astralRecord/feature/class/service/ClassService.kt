@@ -20,7 +20,7 @@ class ClassService {
 
     private val classRepository = ClassRepository()
     @Volatile
-    private var loadedClasses: Map<String, ClassModel> = emptyMap()
+    private var loadedClasses: Map<String, ClassModel>? = null
 
     /**
      * 全クラスを API から一括取得してキャッシュへ登録します。
@@ -79,7 +79,7 @@ class ClassService {
      * @return キャッシュ済み ClassModel。未ロードなら null
      */
     fun getLoadedClass(classId: String): ClassModel? {
-        return loadedClasses[normalize(classId)]
+        return loadedClasses?.get(normalize(classId))
     }
 
     /**
@@ -88,14 +88,25 @@ class ClassService {
      * @return ロード済み全 ClassModel
      */
     fun getLoadedClasses(): List<ClassModel> {
-        return loadedClasses.values.sortedWith(compareBy<ClassModel> { it.order }.thenBy { it.id.lowercase(Locale.ROOT) })
+        return loadedClasses?.values
+            ?.sortedWith(compareBy<ClassModel> { it.order }.thenBy { it.id.lowercase(Locale.ROOT) })
+            ?: emptyList()
     }
 
     /**
-     * キャッシュをクリアします。
+     * 公開済みの不変クラススナップショットを返します。API通信は行いません。
+     *
+     * @return 未公開なら null。公開済みの場合は空カタログを含むスナップショット
+     */
+    fun snapshotPublishedClasses(): Map<String, ClassModel>? {
+        return loadedClasses
+    }
+
+    /**
+     * キャッシュをクリアし、カタログを未公開状態へ戻します。
      */
     fun clearCache() {
-        loadedClasses = emptyMap()
+        loadedClasses = null
     }
 
     private fun normalize(value: String): String {

@@ -26,6 +26,8 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,6 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class PlayerAdminDrainServiceTest {
@@ -58,6 +61,10 @@ class PlayerAdminDrainServiceTest {
     private final ArrayDeque<Runnable> async = new ArrayDeque<>();
 
     private PlayerAdminDrainService service() {
+        return service(() -> "items", () -> "classes");
+    }
+
+    private PlayerAdminDrainService service(Supplier<String> itemHash, Supplier<String> classHash) {
         when(plugin.getServer()).thenReturn(server);
         when(server.getScheduler()).thenReturn(scheduler);
         when(scheduler.runTaskAsynchronously(eq(plugin), any(Runnable.class))).thenAnswer(call -> {
@@ -73,12 +80,54 @@ class PlayerAdminDrainServiceTest {
         when(skillTree.retryPendingRuntimeLogout(any())).thenReturn(true);
         AstPlayerCache.put(astPlayer);
         return new PlayerAdminDrainService(plugin, playerService, saves, joins, skillTree, api,
-            "rpg-1", bootId, () -> "items", () -> "classes");
+            "rpg-1", bootId, itemHash, classHash);
     }
 
     @AfterEach
     void clearCache() {
         AstPlayerCache.remove(userId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
+     * 章・見出し: # 40_player-admin-edit 概要 > ## runtime登録とカタログ準備
+     * 検証契約: いずれかのハッシュが空白ならAPI通信と遮断解除をせず、準備後は同じ起動IDで登録・取得を再開する。
+     */
+    @Test
+    void waitsForBothCatalogHashesAndResumesWithTheSameBootWithoutUnblocking() {
+        String readyItemHash = "a".repeat(64);
+        String readyClassHash = "b".repeat(64);
+        var itemHash = new AtomicReference<>("");
+        var classHash = new AtomicReference<>(readyClassHash);
+        var service = service(itemHash::get, classHash::get);
+        var readyDrain = new Drain(drain.editSessionId(), selectedAccountId, userId, "READY", 2);
+        service.reconcile(List.of(readyDrain));
+        service.start();
+        var poll = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler).runTaskTimerAsynchronously(eq(plugin), poll.capture(), eq(1L), eq(40L));
+
+        try (MockedStatic<Logger> logs = mockStatic(Logger.class)) {
+            poll.getValue().run();
+            verifyNoInteractions(api);
+            assertTrue(service.isBlocked(userId));
+
+            itemHash.set(readyItemHash);
+            classHash.set(" ");
+            poll.getValue().run();
+            verifyNoInteractions(api);
+            assertTrue(service.isBlocked(userId));
+            logs.verifyNoInteractions();
+        }
+
+        classHash.set(readyClassHash);
+        when(api.findActive("rpg-1", bootId)).thenReturn(List.of(readyDrain));
+        poll.getValue().run();
+        verify(api).register("rpg-1", bootId, readyItemHash, readyClassHash);
+        verify(api).findActive("rpg-1", bootId);
+        var reconcile = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler).runTask(eq(plugin), reconcile.capture());
+        reconcile.getValue().run();
+        assertTrue(service.isBlocked(userId));
     }
 
     /**
