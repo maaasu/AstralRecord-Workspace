@@ -14,6 +14,9 @@ import io.papermc.paper.registry.RegistryKey;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -550,7 +553,7 @@ public final class PetRuntimeService implements Listener {
             return Arrays.stream(AttackType.values()).mapToDouble(type -> DamageCalculator.calculateAttackPower(source, type)).max().orElse(0.0D);
         }
 
-        /** @param amount 確定ダメージ。死亡で退場し、保存キャッシュへ即時反映します */
+        /** @param amount 確定ダメージ。死亡で退場し、保存キャッシュへ反映して主人へ一度通知します */
         @Override public void damage(double amount) {
             if (dead || !Double.isFinite(amount) || amount <= 0.0D) return;
             healthRatio = Math.max(0.0D, healthRatio - amount / maxHealth());
@@ -558,7 +561,11 @@ public final class PetRuntimeService implements Listener {
             if (entity.isValid() && !entity.isDead()) entity.playHurtAnimation(0.0F);
             updatePresentation();
             publish();
-            if (dead) dismiss(owner);
+            if (dead) {
+                dismiss(owner);
+                PlayerMessageService.getInstance().sendComponent(owner.getBukkit(),
+                    PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_9627.getId(), pet.name()));
+            }
         }
 
         /** HP・死亡・クールダウンをメインスレッドの保存キャッシュへ反映します。 */
