@@ -105,9 +105,7 @@ public final class SeijakuIssenSkillRuntimeService {
                 params.getDouble("counterSweepRange", 5.5D),
                 params.getInt("counterSweepMaxTargets", 5),
                 params.getInt("maxRiposteStacks", 5),
-                params.getDouble("counterDamageBonusPerStack", 0.1D),
-                params.getInt("maxRiposteEmpowerment", 3),
-                params.getDouble("counterEmpowermentBonus", 0.1D)
+                params.getDouble("counterDamageBonusPerStack", 0.1D)
         );
         UUID playerId = context.player().getBukkit().getUniqueId();
         configurations.computeIfAbsent(playerId, ignored -> new ConcurrentHashMap<>())
@@ -193,9 +191,8 @@ public final class SeijakuIssenSkillRuntimeService {
     }
 
     /**
-     * 構え中の直接攻撃を無効化し、成立時の剣気量で反撃と横薙ぎの倍率を確定します。
-     * 剣気の個数を増減させず、所持中だけ強化段階を上げます。
-     * 横薙ぎ中の剣気・強化の増減は今回の倍率に影響しません。
+     * 構え中の直接攻撃を無効化し、剣気を一つ補充して反撃と横薙ぎの倍率を確定します。
+     * 横薙ぎ中の剣気の増減は今回の倍率に影響しません。
      *
      * @param victim 被弾者
      * @param attacker 攻撃元。特定できない場合はnull
@@ -225,11 +222,9 @@ public final class SeijakuIssenSkillRuntimeService {
         }
         finishCounter(playerId, state);
         Location counterTarget = attacker.location().clone();
-        int stacks = riposteStacks(state.player());
-        int empowerment = empowerRiposte(state.player());
+        int stacks = replenishRiposteFromCounter(state.player());
         double damageRatio = state.configuration().counterDamageRatio()
-                * (1.0D + stacks * state.configuration().counterDamageBonusPerStack()
-                + empowerment * state.configuration().counterEmpowermentBonus());
+                * (1.0D + stacks * state.configuration().counterDamageBonusPerStack());
         DamageResult firstHit = combatService.hit(victim, attacker, AttackType.MELEE, DamageElement.NONE,
                 damageRatio);
         if (isSuccessfulHit(firstHit)) {
@@ -271,32 +266,27 @@ public final class SeijakuIssenSkillRuntimeService {
             return 0;
         }
         int stacks = Math.min(configuration.maxRiposteStacks(), reserve.stacks());
-        int empowerment = Math.min(configuration.maxRiposteEmpowerment(), reserve.empowerment());
-        if (stacks != reserve.stacks() || empowerment != reserve.empowerment()) {
-            riposteReserves.put(playerId, new RiposteReserve(stacks, empowerment, reserve.worldId()));
+        if (stacks != reserve.stacks()) {
+            riposteReserves.put(playerId, new RiposteReserve(stacks, reserve.worldId()));
         }
         return stacks;
     }
 
     /**
-     * 明鏡止水の成功時に剣気を上限まで蓄積し、HUDを更新します。
+     * 明鏡止水の成功時、剣気がない場合だけ一つ蓄積してHUDを更新します。
      * 静寂一閃のバインドと生存が前提です。カウンターからは呼び出しません。
      * @param player 発動者
-     * @param amount 正の獲得量
-     * @return 実際の増加量。上限・無効状態なら0
+     * @param amount 正の獲得量。実際の獲得数は最大一つ
+     * @return 実際の増加量。既に剣気を所持中か無効状態なら0
      */
     public int addRiposte(@NotNull AstPlayer player, int amount) {
         Configuration configuration = effectiveConfiguration(player.getBukkit().getUniqueId());
         if (configuration == null || !isAlive(player) || amount <= 0) return 0;
-        int current = riposteStacks(player);
-        int added = Math.min(amount, configuration.maxRiposteStacks() - current);
-        if (added > 0) {
-            int empowerment = riposteEmpowerment(player);
-            riposteReserves.put(player.getBukkit().getUniqueId(), new RiposteReserve(
-                    current + added, empowerment, player.getBukkit().getWorld().getUID()));
-            hudService.refreshActionBar(player);
-        }
-        return added;
+        if (riposteStacks(player) > 0) return 0;
+        riposteReserves.put(player.getBukkit().getUniqueId(), new RiposteReserve(
+                1, player.getBukkit().getWorld().getUID()));
+        hudService.refreshActionBar(player);
+        return 1;
     }
 
     /**
@@ -312,39 +302,34 @@ public final class SeijakuIssenSkillRuntimeService {
         if (stacks == 1) {
             riposteReserves.remove(playerId);
         } else {
-            riposteReserves.put(playerId, new RiposteReserve(stacks - 1, riposteEmpowerment(player), player.getBukkit().getWorld().getUID()));
+            riposteReserves.put(playerId, new RiposteReserve(stacks - 1, player.getBukkit().getWorld().getUID()));
         }
         hudService.refreshActionBar(player);
         return true;
     }
 
     /**
-     * 剣気を所持している間だけ維持する強化段階を返します。
-     * @param player 確認するプレイヤー
-     * @return 有効な強化段階。剣気がなければ0
+     * 反撃成立時に剣気を共通上限まで一つ補充し、HUDへ反映します。
+     * メインスレッド上で、静寂一閃が有効なプレイヤーに対して呼び出します。
+     *
+     * @param player 反撃したプレイヤー
+     * @return 補充後の剣気数。無効状態なら補充前の数
      */
-    public int riposteEmpowerment(@NotNull AstPlayer player) {
-        return riposteStacks(player) <= 0 ? 0
-                : riposteReserves.get(player.getBukkit().getUniqueId()).empowerment();
-    }
-
-    /** 反撃成立時に所持済み剣気だけを強化し、個数を増減させずHUDへ反映します。 */
-    private int empowerRiposte(@NotNull AstPlayer player) {
+    private int replenishRiposteFromCounter(@NotNull AstPlayer player) {
         int stacks = riposteStacks(player);
-        if (stacks <= 0) return 0;
         UUID playerId = player.getBukkit().getUniqueId();
         Configuration configuration = effectiveConfiguration(playerId);
-        RiposteReserve reserve = riposteReserves.get(playerId);
-        int empowerment = Math.min(configuration.maxRiposteEmpowerment(), reserve.empowerment() + 1);
-        if (empowerment != reserve.empowerment()) {
-            riposteReserves.put(playerId, new RiposteReserve(stacks, empowerment, reserve.worldId()));
+        if (configuration == null || !isAlive(player)) return stacks;
+        int replenished = Math.min(configuration.maxRiposteStacks(), stacks + 1);
+        if (replenished != stacks) {
+            riposteReserves.put(playerId, new RiposteReserve(replenished, player.getBukkit().getWorld().getUID()));
             hudService.refreshActionBar(player);
         }
-        return empowerment;
+        return replenished;
     }
 
     /**
-     * 通常HUDと構えHUDへ、剣気の現在数・強化段階・反撃の追加威力を表示します。
+     * 通常HUDと構えHUDへ、剣気の現在数・反撃の追加威力を表示します。
      * @param player 表示対象プレイヤー
      * @return バインド中の剣気表示。バインドしていない場合は空
      */
@@ -352,11 +337,9 @@ public final class SeijakuIssenSkillRuntimeService {
         Configuration configuration = effectiveConfiguration(player.getBukkit().getUniqueId());
         if (configuration == null) return Component.empty();
         int stacks = riposteStacks(player);
-        int empowerment = riposteEmpowerment(player);
-        long bonusPercent = Math.round(100.0D * (stacks * configuration.counterDamageBonusPerStack()
-                + empowerment * configuration.counterEmpowermentBonus()));
+        long bonusPercent = Math.round(100.0D * stacks * configuration.counterDamageBonusPerStack());
         return Component.space().append(PlayerMsgResource.formatComponent(PlayerMsgId.P_7617.getId(),
-                stacks, configuration.maxRiposteStacks(), empowerment, configuration.maxRiposteEmpowerment(), bonusPercent));
+                stacks, configuration.maxRiposteStacks(), bonusPercent));
     }
 
     /** Bukkitの死亡状態と独自HPの両方で生存を確認します。 */
@@ -563,9 +546,7 @@ public final class SeijakuIssenSkillRuntimeService {
             double counterSweepRange,
             int counterSweepMaxTargets,
             int maxRiposteStacks,
-            double counterDamageBonusPerStack,
-            int maxRiposteEmpowerment,
-            double counterEmpowermentBonus
+            double counterDamageBonusPerStack
     ) {
     }
 
@@ -580,6 +561,6 @@ public final class SeijakuIssenSkillRuntimeService {
     ) {
     }
 
-    private record RiposteReserve(int stacks, int empowerment, @NotNull UUID worldId) {
+    private record RiposteReserve(int stacks, @NotNull UUID worldId) {
     }
 }
