@@ -144,7 +144,7 @@
         },
         "autonomousAttackRange": {
           "type": "number", "minimum": 1, "maximum": 32,
-          "title": "自律攻撃の索敵距離", "description": "主人の周囲で敵を探す半径（ブロック）。"
+          "title": "自律攻撃の索敵距離", "description": "召喚ペットの周囲で敵を探す半径（ブロック）。主人から24ブロック以内で追跡する。"
         },
         "threatMultiplier": {
           "type": "number", "minimum": 0, "maximum": 1,

@@ -28,7 +28,7 @@
 | `maleChance` | Number | オスの確率。残りはメス |
 | `eggDropChance` | Number | 敵討伐1回の卵抽選確率（0〜1）。味方ペット・NPCは対象外 |
 | `sizeGrowth` | Object | `initialScale`から`matureScale`へ`matureLevel`まで線形補間する外見サイズ倍率。正の値、成体倍率は初期倍率以上で2以下、到達成長度は2〜最大成長度 |
-| `autonomousAttackRange` | Number | 主人の周囲で敵を探す半径。1〜32ブロック |
+| `autonomousAttackRange` | Number | 召喚ペットの周囲で敵を探す半径。1〜32ブロック。主人から24ブロック以内で追跡する |
 | `threatMultiplier` | Number | PET攻撃のHP/Shield由来脅威へ一度だけ掛ける倍率（0〜1） |
 | `reviveOrbItemId` | String | `item:`参照。`PET_REVIVE` オーブ |
 | `facilityId` | String | 孵化・配合・施設復活を提供するNPC ID |
