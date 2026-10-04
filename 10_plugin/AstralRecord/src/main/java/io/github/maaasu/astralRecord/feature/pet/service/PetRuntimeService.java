@@ -287,16 +287,15 @@ public final class PetRuntimeService implements Listener {
      * 討伐1回につき卵を1回抽選し、有効な受取人の召喚ペットへ討伐経験値を渡します。
      * @param mob 討伐された敵
      * @param recipients 重複のない報酬受取人
-     * @param results 同じ順序の報酬。AFK 対象は呼び出し側で経験値0へ補正します
+     * @param experienceRecipients AFKを除外した経験値受取人。プレイヤー獲得EXP量に依存しません
      */
     public void onMobDefeated(@NotNull MobInstance mob, @NotNull List<AstPlayer> recipients,
-                              @NotNull List<MobDropResult> results) {
+                              @NotNull List<AstPlayer> experienceRecipients) {
         if (mob.template().category() == MobCategory.NPC || mob.nonLethal()) return;
-        for (int i = 0; i < Math.min(recipients.size(), results.size()); i++) {
-            AstPlayer owner = recipients.get(i);
+        for (AstPlayer owner : experienceRecipients) {
             Session session = byOwner.get(owner.getBukkit().getUniqueId());
-            if (session != null && session.active() && results.get(i).exp() > 0) {
-                bridge.grantExperience(owner, results.get(i).exp());
+            if (session != null && session.active()) {
+                bridge.grantCombatExperience(owner, mob.template().level());
             }
         }
         List<String> species = bridge.eggSpecies();
@@ -437,8 +436,8 @@ public final class PetRuntimeService implements Listener {
         /** @param owner 主人 @param instanceId 個体 ID @param healthRatio HP 比率 @param dead 死亡状態 @param cooldowns スキル次回使用時刻 */
         void updateRuntime(@NotNull AstPlayer owner, @NotNull UUID instanceId, double healthRatio,
                            boolean dead, @NotNull Map<String, Long> cooldowns);
-        /** @param owner 主人 @param delta 活動による増分。レベルと習得判定は保存先が確定します */
-        void grantExperience(@NotNull AstPlayer owner, long delta);
+        /** @param owner AFKを除外済みの主人 @param targetLevel 討伐対象の実効レベル。独自EXP式を適用します */
+        void grantCombatExperience(@NotNull AstPlayer owner, int targetLevel);
         /** @param owner 受取人 @param speciesId 卵の種 @param rewardId 討伐ごとの冪等識別子 */
         void awardEgg(@NotNull AstPlayer owner, @NotNull String speciesId, @NotNull UUID rewardId);
         /** @return 卵抽選可能な種類 */

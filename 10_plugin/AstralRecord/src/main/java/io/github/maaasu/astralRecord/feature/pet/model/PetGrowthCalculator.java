@@ -8,9 +8,67 @@ import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.array;
 import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.number;
 import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.object;
 
-/** APIのペット成長曲線と、基礎個体サイズへ掛ける外見倍率を純粋計算します。 */
+/** ペットの必要・獲得EXP、個体成長補正、外見サイズ倍率を純粋計算します。 */
 public final class PetGrowthCalculator {
     private PetGrowthCalculator() { }
+
+    /**
+     * プレイヤー報酬を参照せず、討伐対象のレベルからペット用の基礎獲得EXPを計算します。
+     * @param master 公開済みペットマスター
+     * @param targetLevel 討伐された敵の実効レベル
+     * @return 個体補正・活動倍率を適用する前の獲得EXP
+     * @throws ArithmeticException 結果がlongの範囲外の場合
+     */
+    public static long combatExperience(@NotNull PetMaster master, int targetLevel) {
+        return activityExperience(object(master.experience(), "combatGain"), targetLevel, 50, 25);
+    }
+
+    /**
+     * プレイヤー報酬を参照せず、採集対象のレベルからペット用の基礎獲得EXPを計算します。
+     * @param master 公開済みペットマスター
+     * @param targetLevel 破壊された採集オブジェクトのレベル
+     * @return 個体補正・活動倍率を適用する前の獲得EXP
+     * @throws ArithmeticException 結果がlongの範囲外の場合
+     */
+    public static long gatheringExperience(@NotNull PetMaster master, int targetLevel) {
+        return activityExperience(object(master.experience(), "gatheringGain"), targetLevel, 20, 10);
+    }
+
+    private static long activityExperience(JsonObject gain, int targetLevel, double defaultBase, double defaultPerLevel) {
+        double amount = number(gain, "base", defaultBase)
+            + number(gain, "perLevel", defaultPerLevel) * Math.max(1, targetLevel);
+        if (!Double.isFinite(amount) || amount < 0 || amount >= Long.MAX_VALUE)
+            throw new ArithmeticException("Pet activity experience exceeds long range");
+        return (long) Math.floor(amount);
+    }
+
+    /**
+     * 五つの基礎能力が種族の抽選範囲で高いほど、小さい獲得EXP倍率を返します。
+     * @param master 公開済みペットマスター
+     * @param speciesId 所有個体の種族ID
+     * @param details 孵化済み個体の詳細。基礎能力だけを参照します
+     * @return 成長補正。マスター下限から1までの倍率
+     * @throws IllegalArgumentException 種族の基礎能力定義が不正な場合
+     */
+    public static double growthRate(@NotNull PetMaster master, @NotNull String speciesId, @NotNull JsonObject details) {
+        JsonObject definitions = object(master.species(speciesId), "stats");
+        JsonObject stats = object(details, "stats");
+        double score = 0;
+        for (String id : java.util.List.of("VITALITY", "POWER", "DEFENSE", "EVASION", "SUPPORT")) {
+            JsonArray tiers = array(object(definitions, id), "tiers");
+            double min = Double.POSITIVE_INFINITY, max = Double.NEGATIVE_INFINITY;
+            for (var row : tiers) {
+                JsonObject tier = row.getAsJsonObject();
+                min = Math.min(min, number(tier, "min", 0));
+                max = Math.max(max, number(tier, "max", 0));
+            }
+            if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min)
+                throw new IllegalArgumentException("Invalid pet stat range");
+            score += Math.clamp((number(object(stats, id), "baseValue", min) - min) / (max - min), 0, 1);
+        }
+        double minimum = number(master.experience(), "growthRateMin", .25);
+        return 1 - (1 - minimum) * score / 5;
+    }
 
     /**
      * APIと同じ式で、指定成長度から次の成長度へ必要な経験値を返します。

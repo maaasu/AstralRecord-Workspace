@@ -528,6 +528,9 @@ public class GatheringService {
                     rolledResult.money()
                 );
                 applyExperienceAndSkillPoints(recipient, result);
+                var petService=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetService();
+                if(petService!=null&&(afkService==null||!afkService.isAfk(recipient)))
+                    petService.grantGatheringExperience(recipient,instance.definition().level());
                 if (equipmentDurabilityService != null) {
                     equipmentDurabilityService.consumeOnGathering(
                         recipient,
@@ -690,8 +693,6 @@ public class GatheringService {
                     recipient.getAccount(), result.exp(), recipient.getUser().getUuid())
                 : rebirthService.grantExperience(recipient, result.exp());
             ClassExperienceResult classProgress = playerClassService.grantClassExperience(recipient, result.exp());
-            var petService=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetService();
-            if(petService!=null)petService.grantExperience(recipient,result.exp());
             applyExperienceAndSkillPointsResult(recipient, progress, classProgress);
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5159, ex, recipient.getAccount().getUuid(), result.exp());

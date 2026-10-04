@@ -274,7 +274,25 @@ public final class PetService implements PetRuntimeService.StateBridge {
             progress.health=bounded;progress.dead=dead;progress.cooldowns=Map.copyOf(cooldowns);progress.revision++;
         }
     }
-    @Override public void grantExperience(AstPlayer owner,long amount) {
+    /**
+     * 討伐対象レベルから独自EXPを算出し、活動可能な装備ペットへ蓄積します。
+     * @param owner AFKを除外済みの報酬受取人
+     * @param targetLevel 討伐された敵の実効レベル
+     * @throws ArithmeticException 独自EXPがlongの範囲を超える場合
+     */
+    @Override public void grantCombatExperience(AstPlayer owner,int targetLevel) {
+        grantExperience(owner,PetGrowthCalculator.combatExperience(master,targetLevel));
+    }
+    /**
+     * 採集対象レベルから独自EXPを算出し、活動可能な装備ペットへ蓄積します。
+     * @param owner AFKを除外済みの採集報酬受取人
+     * @param targetLevel 破壊された採集オブジェクトのレベル
+     * @throws ArithmeticException 独自EXPがlongの範囲を超える場合
+     */
+    public void grantGatheringExperience(AstPlayer owner,int targetLevel) {
+        grantExperience(owner,PetGrowthCalculator.gatheringExperience(master,targetLevel));
+    }
+    private void grantExperience(AstPlayer owner,long amount) {
         if(amount<=0||!activityEligible.test(owner))return;
         UUID accountId=owner.getAccount().getUuid();
         if(unresolved.containsKey(accountId)||adminGrowthPending.contains(accountId))return;

@@ -75,6 +75,7 @@ public final class PetItemView {
             detailsLore.add(line(service.dead(pet)?" ▸ 戦闘不能 — 施設か復活オーブが必要":" ▸ HP: "+Math.round(service.healthRatio(pet)*100)+"%",service.dead(pet)?NamedTextColor.RED:NamedTextColor.GREEN));
             detailsLore.add(Component.empty());
             detailsLore.add(line("❖ ステータス",NamedTextColor.GREEN));
+            detailsLore.add(growthRateLore(service.master(),pet.speciesId(),details));
             for(var row:object(details,"stats").entrySet()) {
                 JsonObject stat=row.getValue().getAsJsonObject();
                 StatusType color=STAT_COLORS.get(row.getKey());
@@ -102,6 +103,17 @@ public final class PetItemView {
         if(!pet.tradeAllowed()&&(item==null||!item.getUnTradeable()))
             lore.add(footer+detailsLore.size()+1,line("✖ 取引不可",NamedTextColor.RED));
         meta.lore(lore);stack.setItemMeta(meta);return stack;
+    }
+    /** マスターを解決できない場合は補正を未確認とし、個体の残りの情報も描画します。 */
+    private static Component growthRateLore(PetMaster master,String speciesId,JsonObject details) {
+        try {
+            double rate=PetGrowthCalculator.growthRate(master,speciesId,details);
+            return line(" ▸ 成長補正 : ",NamedTextColor.AQUA)
+                .append(Component.text(String.format(Locale.ROOT,"%.1f%%",rate*100),NamedTextColor.WHITE,TextDecoration.BOLD))
+                .append(line(" (獲得EXP倍率)",NamedTextColor.GRAY));
+        } catch(IllegalArgumentException failure) {
+            return line(" ▸ 成長補正 : 未確認",NamedTextColor.GRAY);
+        }
     }
     /** 共通アイテムの末尾区切りの直前を返し、個体情報をフッターより上に配置します。 */
     private static int footerStart(List<Component> lore) {

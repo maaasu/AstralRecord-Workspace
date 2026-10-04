@@ -396,13 +396,9 @@ public class MobCombatService {
         }
 
         if (petRuntimeService != null) {
-            List<MobDropResult> petResults = new ArrayList<>();
-            for (int index = 0; index < recipients.size(); index++) {
-                MobDropResult result = results.get(index);
-                petResults.add(afkService != null && afkService.isAfk(recipients.get(index))
-                        ? new MobDropResult(result.items(), 0, result.money()) : result);
-            }
-            petRuntimeService.onMobDefeated(instance, recipients, petResults);
+            List<AstPlayer> petExperienceRecipients = recipients.stream()
+                .filter(recipient -> afkService == null || !afkService.isAfk(recipient)).toList();
+            petRuntimeService.onMobDefeated(instance, recipients, petExperienceRecipients);
         }
         mobService.destroy(instance.instanceId());
         return results;
