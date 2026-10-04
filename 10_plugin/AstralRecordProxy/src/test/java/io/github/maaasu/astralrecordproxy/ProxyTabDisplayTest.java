@@ -55,23 +55,12 @@ class ProxyTabDisplayTest {
     }
 
     @Test
-    void animationFrameRequiresAtLeastThreeTicksBetweenAdvances() {
-        long last = 1_000_000_000L;
-        long minimum = AstralRecordProxyPlugin.MIN_TAB_ANIMATION_INTERVAL_NANOS;
-
-        assertEquals(150_000_000L, minimum);
-        assertTrue(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(0L, last));
-        assertFalse(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(last, last + minimum - 1L));
-        assertTrue(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(last, last + minimum));
-    }
-
-    @Test
     void rendersBrandCurrentBackendMsptPingAndTotalPlayers() {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83);
 
-        assertEquals("✦ ASTRAL RECORD ✦\n⌁ mc.astralrecord.com ⌁\n✧━━━━━━━━━━━━━━━━━━✧",
+        assertEquals("A S T R A L   R E C O R D\nmc.astralrecord.com",
             PLAIN.serialize(display.header()));
-        assertEquals("✧━━━━━━━━━━━━━━━━━━✧\nMSPT 12.3  |  PING 48ms\nオンライン 83人",
+        assertEquals("オンライン 83人\nMSPT 12.3    /    PING 48ms",
             PLAIN.serialize(display.footer()));
     }
 
@@ -79,13 +68,13 @@ class ProxyTabDisplayTest {
     void showsMeasuringUntilBackendMetricsArrive() {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", -1L, null, -1);
 
-        assertEquals("✦ ASTRAL RECORD ✦\n✧━━━━━━━━━━━━━━━━━━✧", PLAIN.serialize(display.header()));
-        assertEquals("✧━━━━━━━━━━━━━━━━━━✧\nMSPT 計測中  |  PING 0ms\nオンライン 0人",
+        assertEquals("A S T R A L   R E C O R D", PLAIN.serialize(display.header()));
+        assertEquals("オンライン 0人\nMSPT 計測中    /    PING 0ms",
             PLAIN.serialize(display.footer()));
     }
 
     @Test
-    void changesTabOrnamentsWithoutChangingDisplayedInformation() {
+    void changesTitleShimmerWithoutChangingDisplayedInformation() {
         ProxyTabDisplay.HeaderFooter first = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
             List.of(), 0);
         ProxyTabDisplay.HeaderFooter next = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
@@ -94,7 +83,7 @@ class ProxyTabDisplayTest {
         assertEquals(PLAIN.serialize(first.header()), PLAIN.serialize(next.header()));
         assertEquals(PLAIN.serialize(first.footer()), PLAIN.serialize(next.footer()));
         assertFalse(first.header().equals(next.header()));
-        assertFalse(first.footer().equals(next.footer()));
+        assertEquals(first.footer(), next.footer());
     }
 
     @Test
@@ -108,7 +97,7 @@ class ProxyTabDisplayTest {
 
         Component first = AstralRecordProxyPlugin.tabDisplayName(astralder, 0);
         Component next = AstralRecordProxyPlugin.tabDisplayName(astralder, 1);
-        assertEquals("[rpg] [MAG Lv.4] ✦astral✦#2", PLAIN.serialize(first));
+        assertEquals("[rpg] [MAG Lv.4] astral#2", PLAIN.serialize(first));
         assertEquals(PLAIN.serialize(first), PLAIN.serialize(next));
         assertFalse(first.equals(next));
         assertEquals(AstralRecordProxyPlugin.tabDisplayName(doner, 0),
