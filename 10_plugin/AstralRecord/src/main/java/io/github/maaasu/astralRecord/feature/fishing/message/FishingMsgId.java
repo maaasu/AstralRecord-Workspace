@@ -14,7 +14,8 @@ public enum FishingMsgId {
     DEFEATED(PlayerMsgId.P_9707),
     HIT(PlayerMsgId.P_9708),
     NO_WATER(PlayerMsgId.P_9709),
-    HANGING(PlayerMsgId.P_9710);
+    HANGING(PlayerMsgId.P_9710),
+    FISH_NAME(PlayerMsgId.P_9711);
 
     private final PlayerMsgId message;
 

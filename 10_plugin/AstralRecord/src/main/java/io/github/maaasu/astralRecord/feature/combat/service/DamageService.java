@@ -2480,6 +2480,7 @@ public final class DamageService {
         return entityId == null ? null : Bukkit.getEntity(entityId);
     }
 
+    /** 釣り魚の所有権と接水・終了状態を、通常攻撃と状態異常の両入口で再検査します。 */
     private boolean canDamageFishing(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
         var bridge = mobService.fishingCombat();
         return bridge == null || bridge.canDamage(attacker, victim);

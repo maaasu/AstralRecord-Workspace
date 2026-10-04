@@ -28,7 +28,6 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitTask;
@@ -142,20 +141,26 @@ public final class DebugFishingRodUseService {
     }
 
     /**
-     * 左クリックを巻き取り、または入力側が命中を検証した魚への攻撃に接続します。
-     * @param player 所有プレイヤー
-     * @param hitTarget 射程と遮蔽を検証した対象。空振りはnull
+     * 釣り専用の入力として扱う状態かを返します。
+     * @param player 操作プレイヤー
+     * @param rightClick 右クリックならtrue
+     * @return リール操作または吊り下げ中の取り外し操作を占有する場合true
      */
-    public void fishingLeftClick(@NotNull AstPlayer player, @Nullable Entity hitTarget) {
+    public boolean reservesFishingInput(@NotNull AstPlayer player, boolean rightClick) {
+        ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
+        return active != null && active.fishing != null && active.fishing.reservesInput(rightClick);
+    }
+
+    /**
+     * リール操作中の左クリックを巻き取りへ接続します。通常攻撃には介入しません。
+     * @param player 所有プレイヤー
+     */
+    public void fishingLeftClick(@NotNull AstPlayer player) {
         ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
         if (active == null || active.fishing == null) {
             return;
         }
-        if (active.fishing.isReleased()) {
-            if (hitTarget != null) {
-                active.fishing.hit(hitTarget);
-            }
-        } else if (isCurrentFishingRod(player, active.equipmentInstanceId)) {
+        if (isCurrentFishingRod(player, active.equipmentInstanceId)) {
             active.fishing.leftClick();
         }
     }
@@ -167,7 +172,7 @@ public final class DebugFishingRodUseService {
     public void fishingRightClick(@NotNull AstPlayer player) {
         ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
         if (active != null && active.fishing != null
-            && (active.fishing.isReleased() || isCurrentFishingRod(player, active.equipmentInstanceId))) {
+            && (active.fishing.isCombatPhase() || isCurrentFishingRod(player, active.equipmentInstanceId))) {
             if (!active.fishing.isTaut() && !active.fishing.isReleased()) {
                 active.fishing.close();
                 active.fishing = null;
@@ -366,7 +371,7 @@ public final class DebugFishingRodUseService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null
             || astPlayer.getAccount().getMode() != AccountMode.PLAYER
-            || (!(active.fishing != null && active.fishing.isReleased())
+            || (!(active.fishing != null && active.fishing.isCombatPhase())
                 && !isCurrentFishingRod(astPlayer, active.equipmentInstanceId))
             || !player.getWorld().equals(active.currentHook.getWorld())) {
             cancel(playerId);

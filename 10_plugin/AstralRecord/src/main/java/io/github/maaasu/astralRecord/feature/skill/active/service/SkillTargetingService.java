@@ -437,6 +437,7 @@ public final class SkillTargetingService {
         return inRadiusForOwner(center, radius, height, maxTargets, requireLineOfSight, ownerId);
     }
 
+    /** 所有者の有無を円柱の対象選別へ反映し、対象数制限の前に他人の釣り魚を除外します。 */
     private @NotNull List<AstEntity> inRadiusForOwner(
             @NotNull Location center, double radius, double height, int maxTargets,
             boolean requireLineOfSight, @Nullable UUID ownerId
@@ -802,11 +803,13 @@ public final class SkillTargetingService {
                 .toList();
     }
 
+    /** @return 通常Mob、または指定所有者が現在攻撃できる釣り魚ならtrue */
     private boolean canTargetFishing(@NotNull UUID ownerId, @NotNull MobInstance mob) {
         var bridge = mobService.fishingCombat();
         return bridge == null || bridge.canTarget(ownerId, mob);
     }
 
+    /** @return 通常Mob、または戦闘登録が有効かつ未接水の釣り魚ならtrue */
     private boolean isAvailableFishing(@NotNull MobInstance mob) {
         var bridge = mobService.fishingCombat();
         return bridge == null || bridge.isAvailable(mob);

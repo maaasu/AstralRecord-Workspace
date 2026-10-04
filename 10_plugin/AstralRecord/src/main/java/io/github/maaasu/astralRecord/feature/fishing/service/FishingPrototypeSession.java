@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.feature.fishing.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.fishing.message.FishingMsgId;
 import io.github.maaasu.astralRecord.feature.fishing.model.FishingEntityProtection;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -15,13 +17,13 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Cod;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Salmon;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
@@ -46,11 +48,10 @@ public final class FishingPrototypeSession {
     private static final double MIN_FISH_SEPARATION_SQUARED = 3.0D;
     private static final double FISH_SPEED = 0.13D;
     private static final double FLEE_SPEED = 0.26D;
-    private static final double RELEASE_SPEED = 0.14D;
     private static final double FISH_FORCE_PER_TICK = 0.008D;
     private static final double REEL_MULTIPLIER = 0.30D;
     private static final double SLACK_DISTANCE = 0.65D;
-    private static final int FISH_MAX_HP = 4;
+    private static final double FISH_MAX_HP = 20.0D;
     private static final int ATTACK_TICKS = 40;
     private static final int TURN_TICKS = 80;
     private static final int LANDING_TICKS = 14;
@@ -71,6 +72,7 @@ public final class FishingPrototypeSession {
     private final ParticleDisplayService particles;
     private final AstPlayer owner;
     private final Player player;
+    private final MobService mobService;
     private final World world;
     private final Location submergedHook;
     private final double maxLineLength;
@@ -82,15 +84,15 @@ public final class FishingPrototypeSession {
     private Swimmer selected;
     private Location hook;
     private Location landingStart;
-    private Location escapeStart;
-    private Location escapeTarget;
+    private FishingEscapeMotion escapeMotion;
+    private BoundingBox combatBounds;
+    private FishingCombatBridge.Handle combatHandle;
     private Location previousRodTip;
     private int ticks;
     private int phaseTicks;
     private int lastReelTick = Integer.MIN_VALUE / 2;
-    private int hp = FISH_MAX_HP;
+    private double hp = FISH_MAX_HP;
     private double distance;
-    private double escapeProgress;
     private double surfaceY;
     private int surfaceBlockX = Integer.MIN_VALUE;
     private int surfaceBlockZ = Integer.MIN_VALUE;
@@ -111,6 +113,7 @@ public final class FishingPrototypeSession {
         this.particles = particles;
         this.owner = owner;
         this.player = owner.getBukkit();
+        this.mobService = plugin.getMobService();
         this.world = submergedHook.getWorld();
         this.submergedHook = submergedHook.clone();
         this.hook = submergedHook.clone();
@@ -204,6 +207,24 @@ public final class FishingPrototypeSession {
     }
 
     /**
+     * 釣り上げ済みの魚へ通常戦闘を行える状態かを返します。
+     * @return 吊り下げ中または取り外した後ならtrue。武器持ち替えも許可します
+     */
+    public boolean isCombatPhase() {
+        return phase == Phase.HANGING || phase == Phase.RELEASED;
+    }
+
+    /**
+     * リール操作と魚の取り外しに必要な入力だけを予約します。
+     * @param rightClick 右クリックならtrue
+     * @return 専用操作中ならtrue。釣り上げ後の攻撃入力は予約しません
+     */
+    public boolean reservesInput(boolean rightClick) {
+        return phase != Phase.FINISHED && phase != Phase.RELEASED
+            && (phase != Phase.HANGING || rightClick);
+    }
+
+    /**
      * 戦闘中の左クリックでゲージ値と竿攻撃力に応じて糸を巻きます。
      * 仮式は {@code 0.30 * 竿攻撃力 * ゲージ値} メートルです。
      * 攻撃力10なら最大3m/攻撃ターン、張力は同じ80tickで0.64m増加します。
@@ -234,53 +255,25 @@ public final class FishingPrototypeSession {
             phase = Phase.RELEASED;
             phaseTicks = 0;
             bar.setColor(BarColor.RED);
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, hp));
-            bar.setProgress(1.0D);
+            bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
+            bar.setProgress(hp / FISH_MAX_HP);
             bar.setVisible(true);
-            if (selected != null) escapeStart = selected.entity.getLocation();
-            escapeTarget = submergedHook.clone();
+            if (selected != null) {
+                escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds);
+            }
             FishingFeedback.notify(owner, FishingMsgId.RELEASED);
         }
     }
 
-    /**
-     * 親が所有者の近接攻撃と射程・視線を検証した後、逃走中の魚に1ダメージを与えます。
-     *
-     * @param target 近接攻撃が命中した実エンティティ
-     */
-    public void hit(@NotNull Entity target) {
-        if (phase != Phase.RELEASED || selected == null || !target.isValid()
-            || !target.getUniqueId().equals(selected.entity.getUniqueId())) return;
-        hp--;
-        particles.spawnForNearbyViewers(target.getLocation(), SharedParticleDefinitions.FISHING_ROD_SPLASH);
-        player.playSound(target.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 1.0F, 1.2F);
-        if (hp <= 0) {
-            FishingFeedback.notify(owner, FishingMsgId.DEFEATED);
-            close();
-        } else {
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, hp));
-            bar.setProgress(hp / (double) FISH_MAX_HP);
-            FishingFeedback.notify(owner, FishingMsgId.HIT, hp);
-        }
-    }
-
-    /**
-     * イベント保護や命中判定に使う、所有する試作魚かを判定します。
-     * @param entity 判定対象
-     * @return このセッションが生成した魚ならtrue
-     */
-    public boolean owns(@NotNull Entity entity) {
-        for (Swimmer swimmer : fish) {
-            if (swimmer.entity.getUniqueId().equals(entity.getUniqueId())) return true;
-        }
-        return false;
-    }
-
-    /** 魚、ボスバー、titleを回収します。重複呼び出しは安全です。 */
+    /** 戦闘登録、魚、ボスバーを回収します。重複呼び出しは安全で、終了だけでは釣果を付けません。 */
     public void close() {
         if (phase == Phase.FINISHED) return;
         phase = Phase.FINISHED;
         bar.removeAll();
+        if (combatHandle != null) {
+            combatHandle.unregister();
+            combatHandle = null;
+        }
         for (Swimmer swimmer : fish) {
             if (swimmer.entity.isValid()) swimmer.entity.remove();
         }
@@ -583,6 +576,11 @@ public final class FishingPrototypeSession {
         if (phaseTicks >= LANDING_TICKS) {
             phase = Phase.HANGING;
             phaseTicks = 0;
+            combatBounds = selected.entity.getBoundingBox().clone()
+                .shift(selected.entity.getLocation().toVector().multiply(-1.0D));
+            if (FishingEscapeMotion.touchesWater(next, combatBounds)) { escape(); return; }
+            combatHandle = mobService.fishingCombat().register(owner, selected.entity, FISH_MAX_HP,
+                this::canReceiveCombatDamage, this::onCombatHealthChanged, this::onFishDefeated);
             bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING, "5.0"));
             bar.setColor(BarColor.YELLOW);
             bar.setProgress(1.0D);
@@ -599,6 +597,8 @@ public final class FishingPrototypeSession {
         if (!canTravel(selected.entity.getLocation(), position)) { escape(); return; }
         selected.entity.teleport(position);
         hook = position;
+        if (FishingEscapeMotion.touchesWater(position, combatBounds)) { escape(); return; }
+        combatHandle.syncLocation();
         int remaining = Math.max(0, HANGING_TICKS - phaseTicks);
         bar.setProgress(remaining / (double) HANGING_TICKS);
         if (phaseTicks % 5 == 0) {
@@ -617,38 +617,53 @@ public final class FishingPrototypeSession {
         return rodTip.clone().add(forward.normalize().multiply(1.2D)).add(0.0D, -1.15D, 0.0D);
     }
 
-    /** 解除魚を水まで跳ねさせ、接水または時間切れで報酬なく消します。 */
+    /** 重力で落下し、接地時だけ跳ねて逃走します。元の水域以外への接水も逃走となります。 */
     private void tickReleased() {
-        if (selected == null || escapeStart == null) { close(); return; }
-        if (isWaterAt(selected.entity.getLocation()) || phaseTicks >= MAX_ESCAPE_TICKS) {
+        if (selected == null || escapeMotion == null) { close(); return; }
+        if (phaseTicks >= MAX_ESCAPE_TICKS) {
             escape();
             return;
         }
-        Vector travel = escapeTarget.toVector().subtract(escapeStart.toVector());
-        // 遠いキャストでも逃走速度を上げず、障害物で停止した間の進捗は蓄積しない。
-        double progress = Math.min(1.0D, escapeProgress + RELEASE_SPEED / Math.max(0.01D, travel.length()));
-        Location next = escapeStart.clone().add(travel.multiply(progress))
-            .add(0.0D, Math.abs(Math.sin(phaseTicks * 0.42D)) * 0.45D, 0.0D);
-        Location current = selected.entity.getLocation();
-        TravelResult result = traceTravel(current, next, true);
-        if (result == TravelResult.WATER) { escape(); return; }
-        if (result == TravelResult.BLOCKED) {
-            Location hop = next.clone().add(0.0D, 0.45D, 0.0D);
-            result = traceTravel(current, hop, true);
-            if (result == TravelResult.WATER) { escape(); return; }
-            if (result == TravelResult.BLOCKED) return;
-            next = hop;
+        FishingEscapeMotion.Step step = escapeMotion.tick(selected.entity.getLocation());
+        if (step.escaped()) { escape(); return; }
+        selected.entity.teleport(step.position());
+        hook = step.position();
+        combatHandle.syncLocation();
+        if (step.bounced()) world.playSound(hook, Sound.ENTITY_COD_FLOP, SoundCategory.NEUTRAL, 0.8F, 1.0F);
+    }
+
+    /** @return 戦闘可能な実魚がまだ水へ戻っていない場合true。攻撃直前にも確認します。 */
+    private boolean canReceiveCombatDamage() {
+        return isCombatPhase() && selected != null && selected.entity.isValid()
+            && player.isOnline() && !player.isDead()
+            && owner.getAccount().getMode() == AccountMode.PLAYER
+            && player.getWorld() == world && selected.entity.getWorld() == world
+            && !FishingEscapeMotion.touchesWater(selected.entity.getLocation(), combatBounds);
+    }
+
+    /** 共通DamageServiceで確定したHPを表示へ反映します。ここではダメージを再計算しません。 */
+    private void onCombatHealthChanged(double remaining) {
+        if (!isCombatPhase()) return;
+        hp = Math.max(0.0D, Math.min(FISH_MAX_HP, remaining));
+        if (isReleased()) {
+            bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
+            bar.setProgress(hp / FISH_MAX_HP);
         }
-        next.setDirection(next.toVector().subtract(current.toVector()));
-        selected.entity.teleport(next);
-        escapeProgress = progress;
-        hook = next.clone();
-        if (phaseTicks % 9 == 0) {
-            world.playSound(next, Sound.ENTITY_COD_FLOP, SoundCategory.NEUTRAL, 0.8F, 1.0F);
+        if (hp > 0.0D) {
+            world.playSound(selected.entity.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 0.8F, 1.0F);
         }
-        if (progress >= 1.0D) {
-            escape();
-        }
+    }
+
+    /** 共通戦闘で所有者またはそのペットが倒した場合だけ釣果成立を通知します。 */
+    private void onFishDefeated() {
+        if (phase == Phase.FINISHED) return;
+        FishingFeedback.notify(owner, FishingMsgId.DEFEATED);
+        close();
+    }
+
+    /** @return ボスバーへ表示する残HP。端数を切り上げ、残りがあるとき0に見せません */
+    private int healthLabel() {
+        return (int) Math.ceil(hp);
     }
 
     /** 報酬を付けず魚を逃がし、全表示を回収します。 */
@@ -659,28 +674,19 @@ public final class FishingPrototypeSession {
 
     /** @return 移動線分が読込済みで固体ブロックを通らない場合はtrue */
     private boolean canTravel(Location from, Location to) {
-        return traceTravel(from, to, false) == TravelResult.CLEAR;
-    }
-
-    /**
-     * 線分を近い側から上限付きで走査します。解除後は固体より先の水を誤検出しません。
-     * @return 水へ先に触れたときWATER、未読込・固体・上限超過ならBLOCKED
-     */
-    private TravelResult traceTravel(Location from, Location to, boolean detectWater) {
-        if (from.getWorld() != world || to.getWorld() != world) return TravelResult.BLOCKED;
+        if (from.getWorld() != world || to.getWorld() != world) return false;
         Vector travel = to.toVector().subtract(from.toVector());
         double length = travel.length();
         if (!Double.isFinite(length) || length > MAX_TRAVEL_STEPS * TRAVEL_SAMPLE_STEP) {
-            return TravelResult.BLOCKED;
+            return false;
         }
         int steps = Math.max(1, (int) Math.ceil(length / TRAVEL_SAMPLE_STEP));
         for (int step = 1; step <= steps; step++) {
             Location point = from.clone().add(travel.clone().multiply(step / (double) steps));
             if (!world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
-                || !point.getBlock().isPassable()) return TravelResult.BLOCKED;
-            if (detectWater && isWaterAt(point)) return TravelResult.WATER;
+                || !point.getBlock().isPassable()) return false;
         }
-        return TravelResult.CLEAR;
+        return true;
     }
 
     /** @return 読込済みの水または泡柱に位置する場合はtrue */
@@ -727,8 +733,6 @@ public final class FishingPrototypeSession {
     }
 
     private enum Phase { WAITING, BATTLE, LANDING, HANGING, RELEASED, FINISHED }
-
-    private enum TravelResult { CLEAR, WATER, BLOCKED }
 
     private record BlockPos(int x, int y, int z) {
         /** @return ブロック中央の位置 */

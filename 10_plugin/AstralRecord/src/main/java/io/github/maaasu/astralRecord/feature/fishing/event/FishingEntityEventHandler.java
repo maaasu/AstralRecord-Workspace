@@ -9,10 +9,11 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerBucketEntityEvent;
 import org.jetbrains.annotations.NotNull;
 
-/** 釣りセッション以外のダメージ・捕獲・報酬による、一時魚への干渉を抑止します。 */
+/** 一時魚のバニラHP変更・バケツ捕獲・バニラ報酬を抑止し、管理HPの戦闘処理と分離します。 */
 public final class FishingEntityEventHandler extends AbstractEventHandler {
     /**
-     * 窒息・落下・他人・スキル等で魚が死亡しないようにします。所有者の命中は入力仲裁で別途処理します。
+     * 窒息・落下等でバニラHPが減ることを防ぎます。
+     * 所有者の通常攻撃・スキル・ペットはDamageServiceの管理HPへ反映するため、この取消では妨げません。
      * @param event ダメージイベント
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

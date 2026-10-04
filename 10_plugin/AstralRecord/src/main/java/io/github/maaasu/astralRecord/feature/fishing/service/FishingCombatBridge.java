@@ -68,7 +68,7 @@ public final class FishingCombatBridge {
         return new Handle(instance.instanceId());
     }
 
-    /** @param mob 対象Mob @return 釣り魚として登録済みならtrue */
+    /** @param mob 対象Mob @return 釣り専用の実行時テンプレート由来ならtrue。登録解除後も識別します */
     public boolean isFishingMob(@NotNull MobInstance mob) {
         return TEMPLATE_ID.equals(mob.template().id());
     }
@@ -144,6 +144,7 @@ public final class FishingCombatBridge {
     public final class Handle {
         private final UUID instanceId;
 
+        /** 登録時に採番した個体IDだけを保持します。 */
         private Handle(UUID instanceId) { this.instanceId = instanceId; }
 
         /** @return 登録中の通常戦闘個体。解除済みの場合null */
@@ -173,6 +174,7 @@ public final class FishingCombatBridge {
     private record Registration(UUID ownerId, Fish fish, MobInstance instance,
                                 BooleanSupplier canReceiveDamage, DoubleConsumer onHealthChanged,
                                 Runnable onDefeated) {
+        /** @return 生存・釣りフェーズ・未接水の条件を満たすときtrue */
         private boolean active() {
             return fish.isValid() && !fish.isDead() && instance.state() != MobState.DEAD
                 && canReceiveDamage.getAsBoolean();

@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.fishing.model.FishingEntityProtection;
 import io.github.maaasu.astralRecord.feature.item.service.DebugFishingRodUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
@@ -20,9 +19,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Entity;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -32,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** 釣り竿のキャスト、リール、外した魚への攻撃を共通入力gatewayへ接続します。 */
+/** キャスト・リール・魚の取り外しを仲裁し、釣り上げ後の攻撃は通常の戦闘入力へ委ねます。 */
 public final class DebugFishingRodInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -48,7 +44,8 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
     }
 
     /**
-     * 釣り中の左右クリックを排他的に解決し、バニラ操作や通常スキルとの二重実行を防ぎます。
+     * リール中の左右クリックと吊り下げ中の取り外しだけを占有します。
+     * 釣り上げ後の左クリック、解除後の左右クリックは通常攻撃・スキルへ委ねます。
      * @param context 共通入力の読取専用スナップショット
      * @return 実行直前にも状態を検証する候補
      */
@@ -60,18 +57,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
         if (context.family() != InputFamily.RIGHT_CLICK && context.family() != InputFamily.LEFT_CLICK) {
             return List.of();
         }
-        // 所有者以外のクリックやoffhandからも、魚をバケツ等で取得させない。
-        boolean targetFish = snapshot.targetEntity() != null
-            && FishingEntityProtection.isManaged(snapshot.targetEntity());
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
-        if (targetFish && (!snapshot.isMainHandInput() || !isPlayerMode(astPlayer)
-            || !useService.isFishing(astPlayer))) {
-            return List.of(new PlayerInputCandidate(
-                "fishing-protected-entity", InteractionTier.EXCLUSIVE_CONTEXT, 0.0D,
-                InteractionCandidateOrder.FISHING_ROD, snapshot.directTargetKey(),
-                InputClaimPolicy.CLAIM_AND_CANCEL, () -> { }
-            ));
-        }
         if (!snapshot.isMainHandInput()) {
             return List.of();
         }
@@ -79,7 +65,8 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             return List.of();
         }
         if (useService.isFishing(astPlayer)) {
-            return resolveFishingCandidate(context, astPlayer);
+            return useService.reservesFishingInput(astPlayer, context.family() == InputFamily.RIGHT_CLICK)
+                ? resolveFishingCandidate(context, astPlayer) : List.of();
         }
         if (context.family() != InputFamily.RIGHT_CLICK) {
             return List.of();
@@ -111,35 +98,23 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
         ));
     }
 
-    /** 釣りの入力を一度だけ処理し、解放した魚への攻撃は実体への照準と遮蔽を再検査します。 */
+    /** 専有中の釣り入力だけを一度処理します。命中判定・ダメージ計算は通常戦闘側が担当します。 */
     private Collection<PlayerInputCandidate> resolveFishingCandidate(
         PlayerInputContext<PlayerInteractionSnapshot> context, AstPlayer player
     ) {
         return List.of(new PlayerInputCandidate(
             "fishing-session", InteractionTier.EXCLUSIVE_CONTEXT, 0.0D,
             InteractionCandidateOrder.FISHING_ROD, player.getBukkit().getUniqueId().toString(),
-            InputClaimPolicy.CLAIM_AND_CANCEL, () -> useService.isFishing(player),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> useService.reservesFishingInput(player, context.family() == InputFamily.RIGHT_CLICK),
             () -> runSafely(() -> {
                 if (context.family() == InputFamily.RIGHT_CLICK) {
                     useService.fishingRightClick(player);
                 } else {
-                    useService.fishingLeftClick(player, validatedHit(context.inputSnapshot().refresh()));
+                    useService.fishingLeftClick(player);
                 }
             }, LogId.E_3002, "fishing_input:" + player.getBukkit().getName())
         ));
-    }
-
-    /** 直接クリックされた魚の当たり判定が現在の攻撃射程内かつ遮蔽物の手前なら返します。 */
-    private Entity validatedHit(PlayerInteractionSnapshot snapshot) {
-        Entity target = snapshot.targetEntity();
-        if (target == null || !target.isValid() || !FishingEntityProtection.isManaged(target)
-            || !target.getWorld().equals(snapshot.player().getWorld())) {
-            return null;
-        }
-        Double distance = snapshot.hitDistance(target, 0.10D);
-        AttributeInstance attribute = snapshot.player().getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
-        double reach = attribute == null ? 3.0D : attribute.getValue();
-        return distance != null && distance <= reach && snapshot.isVisible(distance) ? target : null;
     }
 
     /**
