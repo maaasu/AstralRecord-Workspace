@@ -19,6 +19,8 @@ public static class MasterDataEndpoints
             catalog.ReadAsync(paths.Backups, token));
         api.MapGet("/files", (string? category, string? query, MasterDataService service, CancellationToken token) =>
             service.ListAsync(category, query, token));
+        api.MapGet("/filter-index", (MasterDataFilterIndexService service, CancellationToken token) =>
+            service.ReadAsync(token));
         api.MapGet("/file", (string path, MasterDataService service, CancellationToken token) => service.ReadAsync(path, token));
         api.MapPut("/file", (MasterDataSaveRequest request, MasterDataService service, CancellationToken token) => service.SaveAsync(request, token));
         api.MapPost("/file", async (MasterDataCreateRequest request, MasterDataService service, CancellationToken token) =>
