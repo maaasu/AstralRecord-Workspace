@@ -23,7 +23,7 @@ public final class ArchmageGravityNovaExecutor extends ArchmageStrikeSkillExecut
                           double radius, double power, int circles) {
         double expanded = radius + circles * 0.75D;
         ArchmageBuildSupport.drawCircle(context, center, expanded, true);
-        for (AstEntity target : context.services().targeting().inRadius(center, expanded, 3.0D, 8, true)) {
+        for (AstEntity target : context.services().targeting().inRadius(context.player(), center, expanded, 3.0D, 8, true)) {
             DamageResult result = hitWithoutNormalKnockback(context, target, power);
             if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)
                     && target.currentHealth() > 0.0D) {

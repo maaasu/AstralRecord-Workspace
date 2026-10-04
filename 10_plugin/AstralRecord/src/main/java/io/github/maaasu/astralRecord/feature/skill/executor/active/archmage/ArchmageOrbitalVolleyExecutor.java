@@ -32,7 +32,7 @@ public final class ArchmageOrbitalVolleyExecutor extends ArchmageStrikeSkillExec
                 context.services().tasks().cancel(casterId, scope);
                 return;
             }
-            List<AstEntity> targets = context.services().targeting().inRadius(center, radius, 3.0D, 4, true);
+            List<AstEntity> targets = context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 4, true);
             if (targets.isEmpty()) {
                 return;
             }

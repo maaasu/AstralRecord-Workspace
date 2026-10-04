@@ -22,7 +22,7 @@ public final class ArchmageAstralSpearExecutor extends ArchmageStrikeSkillExecut
     @Override
     protected void strike(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                           double radius, double power, int circles) {
-        List<AstEntity> targets = context.services().targeting().inRadius(center, radius, 3.0D, 1, true);
+        List<AstEntity> targets = context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 1, true);
         if (targets.isEmpty()) {
             return;
         }

@@ -21,7 +21,7 @@ public final class ArchmageStarfallExecutor extends ArchmageStrikeSkillExecutor 
                           double radius, double power, int circles) {
         ArchmageBuildSupport.drawCircle(context, center, radius, true);
         double ratio = power * (1.0D + circles * 0.2D);
-        for (AstEntity target : context.services().targeting().inRadius(center, radius, 3.0D, 6, true)) {
+        for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 6, true)) {
             context.services().combat().hit(context.source().skill(), context.attacker(), target,
                     AttackType.MAGIC, DamageElement.NONE, ratio);
         }

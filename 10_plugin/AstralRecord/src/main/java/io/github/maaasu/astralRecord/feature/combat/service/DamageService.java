@@ -855,6 +855,9 @@ public final class DamageService {
             double baseDamage,
             @NotNull ConditionType conditionType
     ) {
+        if (!canDamageFishing(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (!canApplyPlayerDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
@@ -1164,6 +1167,9 @@ public final class DamageService {
             @Nullable Double shieldBreakRatio,
             @Nullable Double superStarCriticalRateOverride
     ) {
+        if (!canDamageFishing(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (!canApplyPlayerDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
@@ -1759,6 +1765,8 @@ public final class DamageService {
         mob.currentHealth(mob.nonLethal()
                 ? Math.max(1.0D, remainingHealth)
                 : Math.max(0.0D, remainingHealth));
+        if (mob.currentHealth() > 0.0D && mobService.fishingCombat() != null)
+            mobService.fishingCombat().healthChanged(mob);
         applyLifeSteal(attacker, effectiveLifeStealDamage);
         playMobHurtEffect(mob.bukkitEntityId(), result.critical() || result.superStarCritical());
         if (knockback) {
@@ -1785,6 +1793,9 @@ public final class DamageService {
             mob.state(MobState.DEAD);
             Location deathLocation = mob.currentLocation();
             playMobDeathEffect(mob.bukkitEntityId(), deathLocation);
+            if (mobService.fishingCombat() != null && mobService.fishingCombat().defeat(mob)) {
+                return;
+            }
             boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
             if (bossMob) {
                 mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()));
@@ -2467,6 +2478,11 @@ public final class DamageService {
 
     private @Nullable Entity resolveBukkitEntity(@Nullable UUID entityId) {
         return entityId == null ? null : Bukkit.getEntity(entityId);
+    }
+
+    private boolean canDamageFishing(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        var bridge = mobService.fishingCombat();
+        return bridge == null || bridge.canDamage(attacker, victim);
     }
 
     private boolean isInvulnerable(@NotNull AstEntity victim) {

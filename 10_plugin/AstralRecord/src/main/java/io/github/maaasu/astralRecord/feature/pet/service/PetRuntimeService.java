@@ -610,6 +610,8 @@ public final class PetRuntimeService implements Listener {
         private boolean validTarget(@Nullable MobInstance target) {
             if (target == null || target.state() == MobState.DEAD || target.currentHealth() <= 0.0D
                     || target.template().category() == MobCategory.NPC || target.nonLethal() || target.damageImmune()
+                    || mobService != null && mobService.fishingCombat() != null
+                        && !mobService.fishingCombat().canTarget(owner.getBukkit().getUniqueId(), target)
                     || target.currentLocation().getWorld() != entity.getWorld()
                     || owner.getBukkit().getWorld() != entity.getWorld()
                     || owner.getBukkit().getLocation().distanceSquared(target.currentLocation()) > 576.0D

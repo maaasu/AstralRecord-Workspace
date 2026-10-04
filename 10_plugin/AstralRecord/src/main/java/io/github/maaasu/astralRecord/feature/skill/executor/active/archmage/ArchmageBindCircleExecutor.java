@@ -140,7 +140,7 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
             }
             if (pulledAt >= 0 && tick >= pulledAt + PULL_TICKS) {
                 List<MobInstance> atBindStart = services.targeting().inRadius(
-                        center, CIRCLE_RADIUS, 0.35D, Integer.MAX_VALUE, false).stream()
+                        casterId, center, CIRCLE_RADIUS, 0.35D, Integer.MAX_VALUE, false).stream()
                         .map(AstEntity::mob).filter(java.util.Objects::nonNull).toList();
                 MobInstance closest = java.util.stream.Stream.concat(touched.stream(), atBindStart.stream())
                         .filter(mob -> mob.state() != MobState.DEAD)
@@ -175,7 +175,7 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
                 return;
             }
             List<AstEntity> hits = services.targeting().inRadius(
-                    center, CIRCLE_RADIUS, 0.35D, Integer.MAX_VALUE, false);
+                    casterId, center, CIRCLE_RADIUS, 0.35D, Integer.MAX_VALUE, false);
             if (hits.isEmpty()) {
                 return;
             }

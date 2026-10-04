@@ -19,7 +19,7 @@ public final class ArchmageMeteorCircleExecutor extends ArchmageFieldSkillExecut
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                          double radius, double power) {
-        for (AstEntity target : context.services().targeting().inRadius(center, radius, 3.0D, 5, true)) {
+        for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 3.0D, 5, true)) {
             context.services().combat().hit(context.source().skill(), context.attacker(), target,
                     AttackType.MAGIC, DamageElement.NONE, power);
         }

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingCombatBridge;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
@@ -75,6 +76,7 @@ public class MobService {
     private final MobRepository repository;
     private final MobEntityController entityController;
     private final NpcPlayerSkinPacketService playerSkinPacketService;
+    private FishingCombatBridge fishingCombat;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private ConditionService conditionService;
     private Consumer<UUID> destroyListener = ignored -> { };
@@ -97,6 +99,12 @@ public class MobService {
         this.repository = repository;
         this.entityController = new MobEntityController(plugin);
         this.playerSkinPacketService = new NpcPlayerSkinPacketService(plugin, this.entityController);
+    }
+
+    /** @return 釣り魚の一時戦闘登録を管理する接続サービス */
+    public @NotNull FishingCombatBridge fishingCombat() {
+        if (fishingCombat == null) fishingCombat = new FishingCombatBridge(this);
+        return fishingCombat;
     }
 
     /**
@@ -592,6 +600,28 @@ public class MobService {
     }
 
     /**
+     * 既存の Bukkit 実体を一時的な Mob として通常戦闘へ登録します。
+     * 実体の生成は行わず、破棄時には通常 Mob と同じく実体を除去します。
+     * @param template 実行時テンプレート
+     * @param entity 登録済みで有効な実体
+     * @return 戦闘用 Mob インスタンス
+     * @throws IllegalArgumentException 実体が無効または登録済みの場合
+     */
+    public @NotNull MobInstance registerExistingEntity(@NotNull MobTemplate template, @NotNull Entity entity) {
+        if (!entity.isValid() || instanceByEntity.containsKey(entity.getUniqueId())) {
+            throw new IllegalArgumentException("Entity must be valid and unmanaged");
+        }
+        UUID instanceId = UUID.randomUUID();
+        MobInstance instance = new MobInstance(instanceId, template, entity.getLocation());
+        instance.bindEntity(entity.getUniqueId(), entity.getEntityId(), entity.getLocation());
+        instances.put(instanceId, instance);
+        trackEntity(instanceId, entity.getUniqueId());
+        viewers.put(instanceId, new HashSet<>());
+        updateViewers(instance);
+        return instance;
+    }
+
+    /**
      * 指定インスタンスを破棄します。
      *
      * @param instanceId インスタンス ID
@@ -600,6 +630,7 @@ public class MobService {
     public boolean destroy(@NotNull UUID instanceId) {
         MobInstance instance = instances.remove(instanceId);
         if (instance == null) return false;
+        if (fishingCombat != null) fishingCombat.forget(instance);
 
         if (conditionService != null) {
             conditionService.clearAll(AstEntity.mob(instance));
@@ -659,6 +690,7 @@ public class MobService {
     public int destroyAll() {
         int count = instances.size();
         for (MobInstance instance : instances.values()) {
+            if (fishingCombat != null) fishingCombat.forget(instance);
             if (conditionService != null) {
                 conditionService.clearAll(AstEntity.mob(instance));
             }

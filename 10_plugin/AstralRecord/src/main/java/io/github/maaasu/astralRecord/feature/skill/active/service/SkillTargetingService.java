@@ -286,6 +286,7 @@ public final class SkillTargetingService {
                 .filter(mob -> mob.state() != MobState.DEAD)
                 .filter(mob -> mob.template().category() != MobCategory.NPC)
                 .filter(mob -> mob.currentLocation().getWorld() == world)
+                .filter(mob -> canTargetFishing(player.getUniqueId(), mob))
                 .map(mob -> new LineTargetCandidate(mob, targetBounds(mob)))
                 .toList();
         return new LineTargetSnapshot(world, candidates);
@@ -342,6 +343,7 @@ public final class SkillTargetingService {
             if (mobService.getInstance(mob.instanceId()) != mob
                     || mob.state() == MobState.DEAD
                     || mob.template().category() == MobCategory.NPC
+                    || !canTargetFishing(player.getUniqueId(), mob)
                     || mob.currentLocation().getWorld() != player.getWorld()) {
                 continue;
             }
@@ -396,7 +398,8 @@ public final class SkillTargetingService {
         if (center.getWorld() != player.getWorld()) {
             return List.of();
         }
-        return inRadius(center, radius, height, maxTargets, requireLineOfSight);
+        return inRadiusForOwner(center, radius, height, maxTargets, requireLineOfSight,
+                player.getUniqueId());
     }
 
     /**
@@ -416,12 +419,37 @@ public final class SkillTargetingService {
             int maxTargets,
             boolean requireLineOfSight
     ) {
+        return inRadiusForOwner(center, radius, height, maxTargets, requireLineOfSight, null);
+    }
+
+    /**
+     * 発動者がログアウトしても残るスキルの円柱判定です。所有者の釣り魚だけを候補にします。
+     * @param ownerId スキル発動時のプレイヤーUUID
+     * @param center 判定中心
+     * @param radius 水平半径
+     * @param height 上下の許容差
+     * @param maxTargets 最大対象数
+     * @param requireLineOfSight 遮蔽判定
+     * @return 命中候補
+     */
+    public @NotNull List<AstEntity> inRadius(@NotNull UUID ownerId, @NotNull Location center,
+            double radius, double height, int maxTargets, boolean requireLineOfSight) {
+        return inRadiusForOwner(center, radius, height, maxTargets, requireLineOfSight, ownerId);
+    }
+
+    private @NotNull List<AstEntity> inRadiusForOwner(
+            @NotNull Location center, double radius, double height, int maxTargets,
+            boolean requireLineOfSight, @Nullable UUID ownerId
+    ) {
         World world = center.getWorld();
         if (world == null) {
             return List.of();
         }
         double radiusSquared = radius * radius;
         return targets(world, mob -> {
+            if (ownerId == null && mobService.fishingCombat() != null
+                    && mobService.fishingCombat().isFishingMob(mob)) return false;
+            if (ownerId != null && !canTargetFishing(ownerId, mob)) return false;
             BoundingBox bounds = targetBounds(mob);
             double nearestX = Math.clamp(center.getX(), bounds.getMinX(), bounds.getMaxX());
             double nearestZ = Math.clamp(center.getZ(), bounds.getMinZ(), bounds.getMaxZ());
@@ -756,7 +784,8 @@ public final class SkillTargetingService {
             @NotNull Player player,
             @NotNull Predicate<MobInstance> shape
     ) {
-        return targets(player.getWorld(), shape);
+        return targets(player.getWorld(), mob ->
+                canTargetFishing(player.getUniqueId(), mob) && shape.test(mob));
     }
 
     /** 指定Worldの管理対象Mobを形状判定へ渡します。 */
@@ -768,8 +797,19 @@ public final class SkillTargetingService {
                 .filter(mob -> mob.state() != MobState.DEAD)
                 .filter(mob -> mob.template().category() != MobCategory.NPC)
                 .filter(mob -> mob.currentLocation().getWorld() == world)
+                .filter(this::isAvailableFishing)
                 .filter(shape)
                 .toList();
+    }
+
+    private boolean canTargetFishing(@NotNull UUID ownerId, @NotNull MobInstance mob) {
+        var bridge = mobService.fishingCombat();
+        return bridge == null || bridge.canTarget(ownerId, mob);
+    }
+
+    private boolean isAvailableFishing(@NotNull MobInstance mob) {
+        var bridge = mobService.fishingCombat();
+        return bridge == null || bridge.isAvailable(mob);
     }
 
     /**
