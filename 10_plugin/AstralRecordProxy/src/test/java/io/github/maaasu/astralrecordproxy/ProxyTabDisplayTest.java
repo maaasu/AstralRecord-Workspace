@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordproxy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.player.TabList;
 import com.velocitypowered.api.proxy.player.TabListEntry;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.UUID;
 
 class ProxyTabDisplayTest {
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
     private static final UUID PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID ONLINE_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final UUID DISCONNECTED_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
@@ -53,45 +55,64 @@ class ProxyTabDisplayTest {
     }
 
     @Test
+    void animationFrameRequiresAtLeastThreeTicksBetweenAdvances() {
+        long last = 1_000_000_000L;
+        long minimum = AstralRecordProxyPlugin.MIN_TAB_ANIMATION_INTERVAL_NANOS;
+
+        assertEquals(150_000_000L, minimum);
+        assertTrue(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(0L, last));
+        assertFalse(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(last, last + minimum - 1L));
+        assertTrue(AstralRecordProxyPlugin.shouldAdvanceTabAnimation(last, last + minimum));
+    }
+
+    @Test
     void rendersBrandCurrentBackendMsptPingAndTotalPlayers() {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83);
 
-        assertEquals(Component.text("✦ ASTRAL RECORD ✦", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
-            .append(Component.newline())
-            .append(Component.text("mc.astralrecord.com", NamedTextColor.AQUA))
-            .append(Component.newline())
-            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY)), display.header());
-        assertEquals(Component.text()
-            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
-            .append(Component.newline())
-            .append(Component.text("MSPT ", NamedTextColor.GRAY))
-            .append(Component.text("12.3", NamedTextColor.GREEN))
-            .append(Component.text("  |  PING ", NamedTextColor.DARK_GRAY))
-            .append(Component.text("48ms", NamedTextColor.GREEN))
-            .append(Component.newline())
-            .append(Component.text("オンライン ", NamedTextColor.GRAY))
-            .append(Component.text("83人", NamedTextColor.AQUA))
-            .build(), display.footer());
+        assertEquals("✦ ASTRAL RECORD ✦\n⌁ mc.astralrecord.com ⌁\n✧━━━━━━━━━━━━━━━━━━✧",
+            PLAIN.serialize(display.header()));
+        assertEquals("✧━━━━━━━━━━━━━━━━━━✧\nMSPT 12.3  |  PING 48ms\nオンライン 83人",
+            PLAIN.serialize(display.footer()));
     }
 
     @Test
     void showsMeasuringUntilBackendMetricsArrive() {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", -1L, null, -1);
 
-        assertEquals(Component.text("✦ ASTRAL RECORD ✦", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
-            .append(Component.newline())
-            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY)), display.header());
-        assertEquals(Component.text()
-            .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
-            .append(Component.newline())
-            .append(Component.text("MSPT ", NamedTextColor.GRAY))
-            .append(Component.text("計測中", NamedTextColor.GRAY))
-            .append(Component.text("  |  PING ", NamedTextColor.DARK_GRAY))
-            .append(Component.text("0ms", NamedTextColor.GREEN))
-            .append(Component.newline())
-            .append(Component.text("オンライン ", NamedTextColor.GRAY))
-            .append(Component.text("0人", NamedTextColor.AQUA))
-            .build(), display.footer());
+        assertEquals("✦ ASTRAL RECORD ✦\n✧━━━━━━━━━━━━━━━━━━✧", PLAIN.serialize(display.header()));
+        assertEquals("✧━━━━━━━━━━━━━━━━━━✧\nMSPT 計測中  |  PING 0ms\nオンライン 0人",
+            PLAIN.serialize(display.footer()));
+    }
+
+    @Test
+    void changesTabOrnamentsWithoutChangingDisplayedInformation() {
+        ProxyTabDisplay.HeaderFooter first = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
+            List.of(), 0);
+        ProxyTabDisplay.HeaderFooter next = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
+            List.of(), 1);
+
+        assertEquals(PLAIN.serialize(first.header()), PLAIN.serialize(next.header()));
+        assertEquals(PLAIN.serialize(first.footer()), PLAIN.serialize(next.footer()));
+        assertFalse(first.header().equals(next.header()));
+        assertFalse(first.footer().equals(next.footer()));
+    }
+
+    @Test
+    void animatesOnlyAstralderAccountNameAndKeepsSlotPlain() {
+        PlayerMetadata astralder = new PlayerMetadata(
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "astral#2", 4, "§dMAG", false, 0, false, false,
+            VipTier.ASTRALDER);
+        PlayerMetadata doner = new PlayerMetadata(
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "doner#2", 4, "§dMAG", false, 0, false, false,
+            VipTier.DONER);
+
+        Component first = AstralRecordProxyPlugin.tabDisplayName(astralder, 0);
+        Component next = AstralRecordProxyPlugin.tabDisplayName(astralder, 1);
+        assertEquals("[rpg] [MAG Lv.4] ✦astral✦#2", PLAIN.serialize(first));
+        assertEquals(PLAIN.serialize(first), PLAIN.serialize(next));
+        assertFalse(first.equals(next));
+        assertEquals(AstralRecordProxyPlugin.tabDisplayName(doner, 0),
+            AstralRecordProxyPlugin.tabDisplayName(doner, 1));
     }
 
     @Test

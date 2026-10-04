@@ -41,6 +41,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
+    static final long MIN_TAB_ANIMATION_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(150L);
     private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
     private static final String LIFECYCLE_ACTION_JOIN = "join";
     private static final String LIFECYCLE_ACTION_CHANNEL_CONNECT = "channel_connect";
@@ -100,6 +102,8 @@ public final class AstralRecordProxyPlugin {
     private NetworkApiClient api;
     private ScheduledTask tabRefreshTask;
     private ScheduledTask presenceHeartbeatTask;
+    private int tabAnimationFrame;
+    private long lastTabAnimationNanos;
 
     @Inject
     public AstralRecordProxyPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -168,7 +172,7 @@ public final class AstralRecordProxyPlugin {
     private void rescheduleManagedTasks(NetworkSettings settings) {
         if (tabRefreshTask != null) tabRefreshTask.cancel();
         if (presenceHeartbeatTask != null) presenceHeartbeatTask.cancel();
-        tabRefreshTask = proxy.getScheduler().buildTask(this, this::refreshTabEntries)
+        tabRefreshTask = proxy.getScheduler().buildTask(this, this::advanceTabAnimation)
             .repeat(Duration.ofSeconds(settings.tabRefreshSeconds())).schedule();
         presenceHeartbeatTask = proxy.getScheduler().buildTask(this, this::refreshPresence)
             .repeat(Duration.ofSeconds(settings.presenceHeartbeatSeconds())).schedule();
@@ -1136,6 +1140,20 @@ public final class AstralRecordProxyPlugin {
         return Component.text(name, NamedTextColor.WHITE);
     }
 
+    /** 管理設定の最短1秒周期でだけ演出フレームを進める。即時同期では進めない。 */
+    private synchronized void advanceTabAnimation() {
+        long nowNanos = System.nanoTime();
+        if (shouldAdvanceTabAnimation(lastTabAnimationNanos, nowNanos)) {
+            tabAnimationFrame = (tabAnimationFrame + 1) % 180;
+            lastTabAnimationNanos = nowNanos;
+        }
+        refreshTabEntries();
+    }
+
+    static boolean shouldAdvanceTabAnimation(long lastNanos, long nowNanos) {
+        return lastNanos == 0L || nowNanos - lastNanos >= MIN_TAB_ANIMATION_INTERVAL_NANOS;
+    }
+
     private synchronized void refreshTabEntries() {
         NetworkSettings settings = settings();
         if (settings == null) return;
@@ -1146,13 +1164,22 @@ public final class AstralRecordProxyPlugin {
         List<Component> boostRows = ProxyChannelBoosts.tabRows(boostSnapshot, Instant.now());
         long nowNanos = System.nanoTime();
         serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
+        Map<UUID, PlayerMetadata> displayMetadata = new HashMap<>();
+        Map<UUID, Component> displayNames = new HashMap<>();
+        for (Player target : connectedPlayers) {
+            PlayerMetadata value = metadata.getOrDefault(
+                target.getUniqueId(), lobbyMetadata(target, settings.lobbyServer()));
+            displayMetadata.put(target.getUniqueId(), value);
+            displayNames.put(target.getUniqueId(), tabDisplayName(value, tabAnimationFrame));
+        }
         for (Player viewer : connectedPlayers) {
             String currentServer = viewer.getCurrentServer()
                 .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
                 .orElse("");
             ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
                 config.tabServerAddress(), viewer.getPing(),
-                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostRows);
+                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostRows,
+                tabAnimationFrame);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             removeStaleTabEntries(tabList, onlineIds);
@@ -1160,9 +1187,8 @@ public final class AstralRecordProxyPlugin {
                 tabDisplayCache.computeIfAbsent(viewer.getUniqueId(), ignored -> new ConcurrentHashMap<>());
             cached.keySet().removeIf(playerId -> !onlineIds.contains(playerId));
             for (Player target : connectedPlayers) {
-                PlayerMetadata value = metadata.getOrDefault(
-                    target.getUniqueId(), lobbyMetadata(target, settings.lobbyServer()));
-                Component displayName = tabDisplayName(value);
+                PlayerMetadata value = displayMetadata.get(target.getUniqueId());
+                Component displayName = displayNames.get(target.getUniqueId());
                 var entry = tabList.getEntry(target.getUniqueId());
                 if (entry.isEmpty()) {
                     tabList.addEntry(TabListEntry.builder()
@@ -1219,9 +1245,14 @@ public final class AstralRecordProxyPlugin {
 
     /** ProxyのTabエントリへ適用するRPG側準拠の表示名を生成する。 */
     static Component tabDisplayName(PlayerMetadata value) {
+        return tabDisplayName(value, -1);
+    }
+
+    /** frameが負の場合はチャット等に使う固定表示を返す。 */
+    static Component tabDisplayName(PlayerMetadata value, int frame) {
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
         if (value.accountNameOnly()) {
-            return prefix.append(accountDisplayName(value));
+            return prefix.append(accountDisplayName(value, frame));
         }
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
@@ -1244,26 +1275,37 @@ public final class AstralRecordProxyPlugin {
         return prefix
             .append(classTag)
             .append(afk)
-            .append(accountDisplayName(value));
+            .append(accountDisplayName(value, frame));
     }
 
-    private static Component accountDisplayName(PlayerMetadata value) {
+    private static Component accountDisplayName(PlayerMetadata value, int frame) {
         String displayName = value.displayName();
         int slotSeparator = displayName.lastIndexOf('#');
         boolean hasSlotSuffix = slotSeparator >= 0
             && slotSeparator < displayName.length() - 1
             && displayName.substring(slotSeparator + 1).chars().allMatch(Character::isDigit);
         String accountName = hasSlotSuffix ? displayName.substring(0, slotSeparator) : displayName;
-        Component name = Component.text(accountName,
-            value.vipTier() == VipTier.ASTRALDER ? NamedTextColor.GOLD
-                : value.vipTier() == VipTier.DONER ? NamedTextColor.AQUA : NamedTextColor.WHITE);
-        if (value.vipTier() == VipTier.ASTRALDER) {
-            name = name.decorate(TextDecoration.BOLD);
-        }
+        Component name = value.vipTier() == VipTier.ASTRALDER && frame >= 0
+            ? animatedAstralderName(accountName, frame)
+            : Component.text(accountName,
+                value.vipTier() == VipTier.ASTRALDER ? NamedTextColor.GOLD
+                    : value.vipTier() == VipTier.DONER ? NamedTextColor.AQUA : NamedTextColor.WHITE);
+        if (value.vipTier() == VipTier.ASTRALDER && frame < 0) name = name.decorate(TextDecoration.BOLD);
         return hasSlotSuffix
             ? name.append(Component.text(displayName.substring(slotSeparator), NamedTextColor.GRAY)
                 .decoration(TextDecoration.BOLD, false))
             : name;
+    }
+
+    private static Component animatedAstralderName(String accountName, int frame) {
+        Component name = Component.text("✦", NamedTextColor.GOLD);
+        for (int index = 0; index < accountName.length(); index++) {
+            int distance = Math.floorMod(index - frame, Math.max(1, accountName.length()));
+            NamedTextColor color = distance == 0 ? NamedTextColor.WHITE
+                : distance == 1 ? NamedTextColor.YELLOW : NamedTextColor.GOLD;
+            name = name.append(Component.text(String.valueOf(accountName.charAt(index)), color, TextDecoration.BOLD));
+        }
+        return name.append(Component.text("✦", NamedTextColor.YELLOW));
     }
 
     private PlayerMetadata lobbyMetadata(Player player, String serverId) {
