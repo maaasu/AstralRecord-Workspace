@@ -174,7 +174,7 @@ public final class FishingCombatBridge {
     private record Registration(UUID ownerId, Fish fish, MobInstance instance,
                                 BooleanSupplier canReceiveDamage, DoubleConsumer onHealthChanged,
                                 Runnable onDefeated) {
-        /** @return 生存・釣りフェーズ・未接水の条件を満たすときtrue */
+        /** @return 生存と、釣りフェーズごとの被弾条件を満たすときtrue */
         private boolean active() {
             return fish.isValid() && !fish.isDead() && instance.state() != MobState.DEAD
                 && canReceiveDamage.getAsBoolean();

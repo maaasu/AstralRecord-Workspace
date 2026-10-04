@@ -809,7 +809,7 @@ public final class SkillTargetingService {
         return bridge == null || bridge.canTarget(ownerId, mob);
     }
 
-    /** @return 通常Mob、または戦闘登録が有効かつ未接水の釣り魚ならtrue */
+    /** @return 通常Mob、または戦闘登録と現在フェーズの被弾条件が有効な釣り魚ならtrue */
     private boolean isAvailableFishing(@NotNull MobInstance mob) {
         var bridge = mobService.fishingCombat();
         return bridge == null || bridge.isAvailable(mob);
