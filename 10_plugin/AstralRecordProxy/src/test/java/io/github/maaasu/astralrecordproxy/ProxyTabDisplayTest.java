@@ -56,29 +56,32 @@ class ProxyTabDisplayTest {
 
     @Test
     void rendersBrandCurrentBackendMsptPingAndTotalPlayers() {
-        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83);
+        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render(
+            "mc.astralrecord.com", "第一チャンネル", 12, 48L, 12.34D, 83);
 
         assertEquals("A S T R A L   R E C O R D\nmc.astralrecord.com",
             PLAIN.serialize(display.header()));
-        assertEquals("オンライン 83人\nMSPT 12.3    /    PING 48ms",
+        assertEquals("接続先  第一チャンネル\n人数  このチャンネル 12人    /    全体 83人"
+                + "\nMSPT 12.3    /    PING 48ms",
             PLAIN.serialize(display.footer()));
     }
 
     @Test
     void showsMeasuringUntilBackendMetricsArrive() {
-        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", -1L, null, -1);
+        ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", null, -1, -1L, null, -1);
 
         assertEquals("A S T R A L   R E C O R D", PLAIN.serialize(display.header()));
-        assertEquals("オンライン 0人\nMSPT 計測中    /    PING 0ms",
+        assertEquals("接続先  接続中\n人数  このチャンネル 0人    /    全体 0人"
+                + "\nMSPT 計測中    /    PING 0ms",
             PLAIN.serialize(display.footer()));
     }
 
     @Test
     void changesTitleShimmerWithoutChangingDisplayedInformation() {
-        ProxyTabDisplay.HeaderFooter first = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
-            List.of(), 0);
-        ProxyTabDisplay.HeaderFooter next = ProxyTabDisplay.render("mc.astralrecord.com", 48L, 12.34D, 83,
-            List.of(), 1);
+        ProxyTabDisplay.HeaderFooter first = ProxyTabDisplay.render(
+            "mc.astralrecord.com", "第一チャンネル", 12, 48L, 12.34D, 83, List.of(), 0);
+        ProxyTabDisplay.HeaderFooter next = ProxyTabDisplay.render(
+            "mc.astralrecord.com", "第一チャンネル", 12, 48L, 12.34D, 83, List.of(), 1);
 
         assertEquals(PLAIN.serialize(first.header()), PLAIN.serialize(next.header()));
         assertEquals(PLAIN.serialize(first.footer()), PLAIN.serialize(next.footer()));

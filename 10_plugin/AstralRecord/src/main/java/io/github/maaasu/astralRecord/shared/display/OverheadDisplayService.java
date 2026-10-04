@@ -341,7 +341,8 @@ public class OverheadDisplayService {
         String shield = recharge == null
                 ? shieldIconLine(snapshot.getCurrentShield(), statusService.getShieldDisplayCapacity(astPlayer))
                 : "\n" + rechargeBar(recharge, System.currentTimeMillis());
-        String accountName = AccountDisplayNameFormatter.toLegacy(astPlayer.getAccount());
+        String accountName = AccountDisplayNameFormatter.toAnimatedLegacy(
+                astPlayer.getAccount(), Bukkit.getCurrentTick() / UPDATE_INTERVAL_TICKS);
         String playerName = afkStateProvider.test(player)
                 ? PlayerMsgResource.format(PlayerMsgId.P_7121.getId()) + " " + accountName
                 : accountName;

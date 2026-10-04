@@ -1152,6 +1152,7 @@ public final class AstralRecordProxyPlugin {
         tabAnimationFrame = (tabAnimationFrame + 1) % 10_000;
         List<Component> boostRows = ProxyChannelBoosts.tabRows(boostSnapshot, Instant.now());
         long nowNanos = System.nanoTime();
+        TabServerSnapshot serverSnapshot = connectedServerSnapshot(connectedPlayers);
         Map<UUID, Component> astralderNames = new HashMap<>();
         for (Player target : connectedPlayers) {
             PlayerMetadata value = metadata.get(target.getUniqueId());
@@ -1160,13 +1161,8 @@ public final class AstralRecordProxyPlugin {
             }
         }
         for (Player viewer : connectedPlayers) {
-            String currentServer = viewer.getCurrentServer()
-                .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
-                .orElse("");
-            ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
-                config.tabServerAddress(), viewer.getPing(),
-                resolveServerMspt(serverMspt.get(currentServer), nowNanos), connectedPlayers.size(), boostRows,
-                tabAnimationFrame);
+            ProxyTabDisplay.HeaderFooter headerFooter = renderTab(viewer, settings, serverSnapshot,
+                connectedPlayers.size(), boostRows, nowNanos);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             for (Map.Entry<UUID, Component> animated : astralderNames.entrySet()) {
@@ -1188,6 +1184,7 @@ public final class AstralRecordProxyPlugin {
         int totalPlayers = onlineIds.size();
         List<Component> boostRows = ProxyChannelBoosts.tabRows(boostSnapshot, Instant.now());
         long nowNanos = System.nanoTime();
+        TabServerSnapshot serverSnapshot = connectedServerSnapshot(connectedPlayers);
         serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
         Map<UUID, PlayerMetadata> displayMetadata = new HashMap<>();
         Map<UUID, Component> displayNames = new HashMap<>();
@@ -1198,13 +1195,8 @@ public final class AstralRecordProxyPlugin {
             displayNames.put(target.getUniqueId(), tabDisplayName(value, tabAnimationFrame));
         }
         for (Player viewer : connectedPlayers) {
-            String currentServer = viewer.getCurrentServer()
-                .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
-                .orElse("");
-            ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
-                config.tabServerAddress(), viewer.getPing(),
-                resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers, boostRows,
-                tabAnimationFrame);
+            ProxyTabDisplay.HeaderFooter headerFooter = renderTab(viewer, settings, serverSnapshot,
+                totalPlayers, boostRows, nowNanos);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             removeStaleTabEntries(tabList, onlineIds);
@@ -1234,6 +1226,36 @@ public final class AstralRecordProxyPlugin {
                 cached.put(target.getUniqueId(), value);
             }
         }
+    }
+
+    private static TabServerSnapshot connectedServerSnapshot(List<Player> players) {
+        Map<UUID, String> serverByPlayer = new HashMap<>();
+        Map<String, Integer> counts = new HashMap<>();
+        for (Player player : players) {
+            String serverId = currentServerId(player);
+            serverByPlayer.put(player.getUniqueId(), serverId);
+            if (!serverId.isEmpty()) counts.merge(serverId, 1, Integer::sum);
+        }
+        return new TabServerSnapshot(Map.copyOf(serverByPlayer), Map.copyOf(counts));
+    }
+
+    private static String currentServerId(Player player) {
+        return player.getCurrentServer()
+            .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
+            .orElse("");
+    }
+
+    private ProxyTabDisplay.HeaderFooter renderTab(Player viewer, NetworkSettings settings,
+                                                    TabServerSnapshot serverSnapshot, int totalPlayers,
+                                                    List<Component> boostRows, long nowNanos) {
+        String serverId = serverSnapshot.serverByPlayer().getOrDefault(viewer.getUniqueId(), "");
+        String channelName = serverId.isEmpty() ? "接続中" : settings.channelName(serverId);
+        return ProxyTabDisplay.render(config.tabServerAddress(), channelName,
+            serverSnapshot.counts().getOrDefault(serverId, 0), viewer.getPing(),
+            resolveServerMspt(serverMspt.get(serverId), nowNanos), totalPlayers, boostRows, tabAnimationFrame);
+    }
+
+    private record TabServerSnapshot(Map<UUID, String> serverByPlayer, Map<String, Integer> counts) {
     }
 
     /**

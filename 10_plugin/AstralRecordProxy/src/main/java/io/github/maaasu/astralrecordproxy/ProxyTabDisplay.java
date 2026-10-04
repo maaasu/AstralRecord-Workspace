@@ -19,27 +19,27 @@ final class ProxyTabDisplay {
     private ProxyTabDisplay() {
     }
 
-    /** 公開接続先、現在backendのMSPT、閲覧者の通信遅延、Proxy全体人数を表示する。 */
-    static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers) {
-        return render(serverAddress, ping, mspt, totalPlayers, List.of());
+    /** 公開接続先、現在チャンネル、人数、MSPT、通信遅延を表示する。 */
+    static HeaderFooter render(String serverAddress, String channelName, int channelPlayers,
+                               long ping, Double mspt, int totalPlayers) {
+        return render(serverAddress, channelName, channelPlayers, ping, mspt, totalPlayers, List.of(), 0);
     }
 
-    /** 有効なネットワークブーストを性能表示の上へ追加する。 */
-    static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers,
-                               List<Component> boostRows) {
-        return render(serverAddress, ping, mspt, totalPlayers, boostRows, 0);
-    }
-
-    /** 銀白の見出しと、余白で整理した状態表示を描画する。 */
-    static HeaderFooter render(String serverAddress, long ping, Double mspt, int totalPlayers,
-                               List<Component> boostRows, int frame) {
+    /** 銀白の見出しと、現在チャンネル・人数・通信状態を描画する。 */
+    static HeaderFooter render(String serverAddress, String channelName, int channelPlayers,
+                               long ping, Double mspt, int totalPlayers, List<Component> boostRows, int frame) {
         Component header = shimmer(TITLE, SILVER, WHITE, frame, true);
         if (serverAddress != null && !serverAddress.isBlank()) {
             header = header.append(Component.newline())
                 .append(Component.text(serverAddress.trim(), MUTED));
         }
 
-        Component footer = Component.text("オンライン ", MUTED)
+        Component footer = Component.text("接続先  ", MUTED)
+            .append(Component.text(channelName == null || channelName.isBlank() ? "接続中" : channelName, WHITE))
+            .append(Component.newline())
+            .append(Component.text("人数  ", MUTED))
+            .append(Component.text("このチャンネル " + Math.max(0, channelPlayers) + "人", SILVER))
+            .append(Component.text("    /    全体 ", MUTED))
             .append(Component.text(Math.max(0, totalPlayers) + "人", WHITE));
         if (!boostRows.isEmpty()) {
             footer = footer.append(Component.newline())
