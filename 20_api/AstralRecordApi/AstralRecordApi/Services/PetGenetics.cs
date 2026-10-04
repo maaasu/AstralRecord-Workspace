@@ -82,7 +82,8 @@ public static class PetGenetics
 
     public static void Grow(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details, long experience, Random random)
     {
-        details.Experience = checked(details.Experience + checked((long)Math.Floor(experience * master.Experience.ActivityRate)));
+        details.Experience = checked(details.Experience + checked((long)Math.Floor(
+            experience * master.Experience.ActivityRate * GrowthRate(master, species, details))));
         while (details.Level < master.Rules.MaxLevel)
         {
             var required = RequiredExperience(master.Experience, details.Level);
@@ -101,6 +102,18 @@ public static class PetGenetics
         details.Experience = 0;
         UnlockSkills(master, species, details, random);
         RefreshValues(master, species, details);
+    }
+
+    /// <summary>種の全ティア範囲で正規化した基礎個体値が高いほど、活動EXPの獲得倍率を下げる。</summary>
+    public static double GrowthRate(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details)
+    {
+        var quality = species.Stats.Average(entry =>
+        {
+            var minimum = entry.Value.Tiers.Min(tier => tier.Min);
+            var maximum = entry.Value.Tiers.Max(tier => tier.Max);
+            return Math.Clamp((details.Stats[entry.Key].BaseValue - minimum) / (maximum - minimum), 0, 1);
+        });
+        return 1 - (1 - master.Experience.GrowthRateMin) * quality;
     }
 
     private static void UnlockSkills(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details, Random random)

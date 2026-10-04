@@ -122,10 +122,10 @@ public class PetRepositoryTests
     }
 
     [Fact]
-    public async Task Progress_UsesPlayerCurveUnlocksSlotsOnceAndPersistsDeathUntilRevive()
+    public async Task Progress_UsesRequiredCurveUnlocksSlotsOnceAndPersistsDeathUntilRevive()
     {
         await using var fixture = await Fixture.CreateAsync();
-        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1, baseValue: 1);
         Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
             { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
         var required = Enumerable.Range(1, 19).Sum(l => PetGenetics.RequiredExperience(fixture.Master.Experience, l));
@@ -563,12 +563,12 @@ public class PetRepositoryTests
     }
 
     [Fact]
-    public async Task Progress_AppliesConfiguredActivityRateOnceAcrossOperationReplay()
+    public async Task Progress_AppliesActivityAndIndividualRatesOnceAcrossOperationReplay()
     {
         await using var fixture = await Fixture.CreateAsync();
         fixture.Master.Experience.ActivityRate = .5;
         await fixture.ReplaceMasterAsync();
-        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1, baseValue: 17);
         Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
             { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
         var request = new PetProgressRequest
@@ -578,10 +578,14 @@ public class PetRepositoryTests
         };
         var result = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
         Assert.True(result.Succeeded);
-        Assert.Equal(51, result.Response!.Instance!.Details!.Experience);
+        Assert.Equal(32, result.Response!.Instance!.Details!.Experience);
         var replay = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
         Assert.True(replay.Succeeded);
-        Assert.Equal(51, replay.Response!.Instance!.Details!.Experience);
+        Assert.Equal(32, replay.Response!.Instance!.Details!.Experience);
+        var saved = JsonSerializer.Deserialize<PetDetailsResponse>((await fixture.Player.PetInstances
+            .AsNoTracking().SingleAsync(p => p.InstanceId == pet.InstanceId)).DetailsJson,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        Assert.Equal(32, saved.Experience);
     }
 
     [Theory]
@@ -742,10 +746,12 @@ public class PetRepositoryTests
             entry.PayloadJson = JsonSerializer.Serialize(Master, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             await MasterDb.SaveChangesAsync();
         }
-        public async Task<PetInstanceEntity> AddPetAsync(string origin, string sex, int level)
+        public async Task<PetInstanceEntity> AddPetAsync(string origin, string sex, int level, double? baseValue = null)
         {
             var details = PetGenetics.HatchWild(Master, Master.Species[0], new Random(10));
             details.Sex = sex; details.Level = level;
+            if (baseValue.HasValue)
+                foreach (var stat in details.Stats.Values) stat.BaseValue = baseValue.Value;
             var pet = new PetInstanceEntity { InstanceId = Guid.NewGuid(), AccountId = Account, SpeciesId = "wolf", ItemId = "pet_wolf",
                 Origin = origin, DetailsJson = JsonSerializer.Serialize(details), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
             Player.PetInstances.Add(pet);

@@ -8,7 +8,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/pet")]
 public class PetController(IPetRepository repository) : ControllerBase
 {
-    /// <summary>全種の成長・遺伝・孵化・スキルを定義する単一ペットマスターを返します。</summary>
+    /// <summary>全種の成長・遺伝・孵化・スキルと、独自活動EXP・個体成長補正を定義する単一ペットマスターを返します。</summary>
     [HttpGet("master")]
     public async Task<IActionResult> Master() => await repository.GetMasterAsync() is { } master ? Ok(master) : NotFound();
     /// <summary>所有個体と選択中のペットを取得します。卵の個体詳細は返しません。</summary>
@@ -31,7 +31,7 @@ public class PetController(IPetRepository repository) : ControllerBase
     /// <summary>同種の成長済みオスとメスを配合し、譲渡不可の卵を作成します。</summary>
     [HttpPost("accounts/{accountId:guid}/breed")]
     public async Task<IActionResult> Breed(Guid accountId, PetBreedRequest request) => Result(await repository.BreedAsync(accountId, request));
-    /// <summary>版を照合して経験値・HP・死亡・クールダウンを保存します。管理者の成長度指定ではスキルと能力も更新します。</summary>
+    /// <summary>版を照合し、未補正の活動EXPへ活動率・個体成長補正を一度掛けて保存します。HP・死亡・クールダウンも保存し、管理者の成長度指定ではスキルと能力も更新します。</summary>
     [HttpPost("accounts/{accountId:guid}/{instanceId:guid}/progress")]
     public async Task<IActionResult> Progress(Guid accountId, Guid instanceId, PetProgressRequest request) => Result(await repository.ProgressAsync(accountId, instanceId, request));
     /// <summary>施設の必要素材または専用オーブを消費して死亡個体を復活します。</summary>

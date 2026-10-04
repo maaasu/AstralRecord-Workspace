@@ -51,6 +51,15 @@ public class PetExperienceMaster
     public double MilestoneBase { get; set; } = 600;
     public double MilestoneLinear { get; set; } = 80;
     public double ActivityRate { get; set; } = 1;
+    public PetActivityGainMaster CombatGain { get; set; } = new() { Base = 50, PerLevel = 25 };
+    public PetActivityGainMaster GatheringGain { get; set; } = new() { Base = 20, PerLevel = 10 };
+    public double GrowthRateMin { get; set; } = .25;
+}
+
+public class PetActivityGainMaster
+{
+    public double Base { get; set; }
+    public double PerLevel { get; set; }
 }
 
 public class PetSpeciesMaster
