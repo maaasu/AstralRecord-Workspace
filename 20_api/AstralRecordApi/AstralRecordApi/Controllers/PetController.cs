@@ -31,7 +31,7 @@ public class PetController(IPetRepository repository) : ControllerBase
     /// <summary>同種の成長済みオスとメスを配合し、譲渡不可の卵を作成します。</summary>
     [HttpPost("accounts/{accountId:guid}/breed")]
     public async Task<IActionResult> Breed(Guid accountId, PetBreedRequest request) => Result(await repository.BreedAsync(accountId, request));
-    /// <summary>版を照合して経験値・HP・死亡・クールダウンを保存し、成長時のスキルを一度だけ抽選します。</summary>
+    /// <summary>版を照合して経験値・HP・死亡・クールダウンを保存します。管理者の成長度指定ではスキルと能力も更新します。</summary>
     [HttpPost("accounts/{accountId:guid}/{instanceId:guid}/progress")]
     public async Task<IActionResult> Progress(Guid accountId, Guid instanceId, PetProgressRequest request) => Result(await repository.ProgressAsync(accountId, instanceId, request));
     /// <summary>施設の必要素材または専用オーブを消費して死亡個体を復活します。</summary>

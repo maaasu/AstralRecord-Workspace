@@ -19,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import static io.github.maaasu.astralRecord.feature.pet.model.PetJson.*;
 
@@ -37,6 +38,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private final InventorySaveCoordinator saves;
     private final Map<UUID, AccountState> accounts = new ConcurrentHashMap<>();
     private final Map<UUID, ExternalOperation> unresolved = new ConcurrentHashMap<>();
+    private final Set<UUID> adminGrowthPending = ConcurrentHashMap.newKeySet();
     private final Map<UUID,LegacyEquipAttempt> legacyEquipAttempts=new ConcurrentHashMap<>();
     private volatile PetMaster master = new PetMaster(new JsonObject());
     private volatile Consumer<AstPlayer> refreshListener = ignored -> { };
@@ -275,7 +277,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     @Override public void grantExperience(AstPlayer owner,long amount) {
         if(amount<=0||!activityEligible.test(owner))return;
         UUID accountId=owner.getAccount().getUuid();
-        if(unresolved.containsKey(accountId))return;
+        if(unresolved.containsKey(accountId)||adminGrowthPending.contains(accountId))return;
         AccountState state=accounts.get(accountId);if(state==null)return;
         synchronized(state){
             PetInstance pet=state.equipped==null?null:state.pets.get(state.equipped);
@@ -283,6 +285,91 @@ public final class PetService implements PetRuntimeService.StateBridge {
             Progress progress=state.progress.computeIfAbsent(pet.id(),ignored->new Progress(pet));
             progress.experience=Math.addExact(progress.experience,amount);progress.revision++;
         }
+    }
+    /**
+     * 管理者指定の成長度まで、装備中ペットの経験値を既存の進行保存経路で付与します。
+     * 保存待ちを先に確定し、APIの成長処理で指定成長度を保存します。
+     * @param owner 対象ペットを装備した、読み込み済みの通常プレイアカウント
+     * @param targetLevel 現在より大きく、マスター上限以下の目標成長度
+     * @return API保存後に確定した成長度。失敗時は例外で完了します
+     * @throws IllegalArgumentException 対象個体または目標成長度が不正な場合
+     * @throws IllegalStateException 操作中、未解決、またはメインスレッド以外から呼ばれた場合
+     */
+    public CompletableFuture<Integer> raiseEquippedLevel(AstPlayer owner,int targetLevel) {
+        if(!org.bukkit.Bukkit.isPrimaryThread())throw new IllegalStateException("Pet admin growth must begin on Bukkit main thread");
+        UUID accountId=owner.getAccount().getUuid();
+        AccountState state=accounts.get(accountId);
+        if(state==null||unresolved.containsKey(accountId)||!adminGrowthPending.add(accountId))
+            throw new IllegalStateException("Pet account is unavailable");
+        try {
+            synchronized(state) {
+                PetInstance pet=state.equipped==null?null:state.pets.get(state.equipped);
+                int maxLevel=(int)number(master.rules(),"maxLevel",100);
+                int current=pet==null?0:(int)number(pet.details(),"level",0);
+                if(pet==null||pet.isEgg()||dead(pet)||targetLevel<=current||targetLevel>maxLevel)
+                    throw new IllegalArgumentException("Invalid pet or target level");
+                pauseListener.accept(owner);
+                UUID petId=pet.id();
+                AtomicBoolean growthSubmitted=new AtomicBoolean();
+                CompletableFuture<Integer> result=state.tail.handle((ignored,failure)->null).thenApplyAsync(ignored->{
+                    flushBlocking(state);
+                    if(unresolved.containsKey(accountId))throw new IllegalStateException("Pet operation unresolved");
+                    synchronized(state) {
+                        PetInstance latest=state.pets.get(petId);
+                        if(latest==null||latest.isEgg()||state.equipped==null||!state.equipped.equals(petId)||dead(latest))
+                            throw new IllegalStateException("Pet changed during admin growth");
+                        int level=(int)number(latest.details(),"level",0);
+                        if(level>=targetLevel)return level;
+                        Progress progress=state.progress.computeIfAbsent(petId,unused->new Progress(latest));
+                        progress.revision++;
+                        JsonObject body=new JsonObject();
+                        body.addProperty("operationId",UUID.randomUUID().toString());
+                        body.addProperty("updatedBy",accountId.toString());
+                        body.addProperty("expectedVersion",latest.version());
+                        body.addProperty("experience",0);
+                        body.addProperty("adminTargetLevel",targetLevel);
+                        body.addProperty("healthRatio",progress.health);
+                        body.addProperty("isDead",progress.dead);
+                        body.add("cooldowns",new Gson().toJsonTree(progress.cooldowns));
+                        RuntimeAccountAuthority authority=progressAuthorityProvider.apply(accountId);
+                        if(authority!=null)authority.writeTo(body);
+                        progress.request=new ProgressRequest(body,0,progress.revision);
+                        growthSubmitted.set(true);
+                    }
+                    try { flushBlocking(state); }
+                    catch(PetRepository.RejectedOperation rejected) {
+                        synchronized(state) {
+                            Progress progress=state.progress.get(petId);
+                            if(progress!=null&&progress.request!=null&&progress.request.body.has("adminTargetLevel"))
+                                state.progress.remove(petId);
+                        }
+                        growthSubmitted.set(false);
+                        throw rejected;
+                    }
+                    synchronized(state){return (int)number(state.pets.get(petId).details(),"level",0);}
+                },executor);
+                state.tail=result.thenApply(ignored->null);
+                CompletableFuture<Integer> reported=result.handle((level,failure)->{
+                    if(failure==null)return level;
+                    if(growthSubmitted.get())throw new CompletionException(new AdminGrowthPendingException());
+                    throw new CompletionException(failure);
+                });
+                return reported.whenComplete((ignored,failure)->{
+                    adminGrowthPending.remove(accountId);
+                    if(plugin.isEnabled())plugin.getServer().getScheduler().runTask(plugin,()->{
+                        if(accounts.get(accountId)==state&&AstPlayerCache.get(owner.getBukkit())==owner)
+                            progressListener.accept(owner);
+                    });
+                });
+            }
+        } catch(RuntimeException failure) {
+            adminGrowthPending.remove(accountId);
+            throw failure;
+        }
+    }
+    /** 管理者による成長EXPが保存待ちで、同じ操作IDの再試行対象であることを示します。 */
+    public static final class AdminGrowthPendingException extends RuntimeException {
+        @java.io.Serial private static final long serialVersionUID=1L;
     }
     /**
      * 所有済み報酬個体を照合してcacheへ追加します。HTTPを呼ぶため非同期専用です。
@@ -444,6 +531,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         }
         if(updated&&plugin.isEnabled())plugin.getServer().getScheduler().runTask(plugin,()->{
             if(accounts.get(state.id)!=state)return;
+            if(adminGrowthPending.contains(state.id))return;
             for(AstPlayer owner:AstPlayerCache.getAll())
                 if(owner.getAccount().getUuid().equals(state.id))progressListener.accept(owner);
         });
@@ -492,7 +580,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation,
         InventoryService.PetEquipmentPlan equipmentPlan) {
         UUID accountId=owner.getAccount().getUuid();
-        if(unresolved.containsKey(accountId)) {
+        if(unresolved.containsKey(accountId)||adminGrowthPending.contains(accountId)) {
             releaseSlotReservation(reservation);
             inventory.releasePetEquipmentPlan(equipmentPlan);
             return CompletableFuture.failedFuture(new IllegalStateException("Pet operation unresolved"));

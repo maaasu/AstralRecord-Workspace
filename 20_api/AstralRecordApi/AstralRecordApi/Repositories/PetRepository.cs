@@ -11,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
 
-public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters) : IPetRepository
+public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters,
+    INetworkManagementRepository? network = null, INetworkRuntimeService? runtime = null) : IPetRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private const int PetEquipSlotIndex = 7;
@@ -138,8 +139,21 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
     public Task<PetMutationResult> ProgressAsync(Guid accountId, Guid instanceId, PetProgressRequest request)
         => ExecuteAsync(accountId, "progress", request, instanceId, async (master, now, _) =>
         {
-            if (request.Experience < 0 || !double.IsFinite(request.HealthRatio) || request.HealthRatio is < 0 or > 1
+            if (request.Experience < 0 || (request.AdminTargetLevel.HasValue && request.Experience != 0)
+                || !double.IsFinite(request.HealthRatio) || request.HealthRatio is < 0 or > 1
                 || request.Cooldowns?.Any(c => c.Value < 0 || c.Key.Length > 128) == true) return Failure("progress_invalid");
+            if (request.AdminTargetLevel.HasValue)
+            {
+                if (request.UpdatedBy != accountId) return Failure("admin_permission_required");
+                var actor = await db.Accounts.Where(a => a.Uuid == accountId && !a.IsDeleted)
+                    .Join(db.Users.Where(u => !u.IsDeleted), a => a.UserId, u => u.Uuid,
+                        (_, u) => new { u.Uuid, u.Permission })
+                    .SingleOrDefaultAsync();
+                if (actor is null || actor.Permission != AccessControlContract.AdminPermission
+                    && (network is null || !await network.CanManageBanFromGameAsync(actor.Uuid))
+                    && (runtime is null || !runtime.IsAuthority(actor.Uuid)))
+                    return Failure("admin_permission_required");
+            }
             var pet = await FindOwnedAsync(accountId, instanceId);
             if (pet is null || pet.IsEgg) return Failure("pet_not_found");
             if (pet.Version != request.ExpectedVersion) return Failure("version_conflict");
@@ -150,7 +164,14 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
             var species = FindSpecies(master, pet.SpeciesId);
             if (species is null) return Failure("species_not_found");
             if (request.Cooldowns?.Keys.Any(id => id != "__basic_attack" && details.Skills.All(s => s.Id != id)) == true) return Failure("cooldown_skill_invalid");
-            try { PetGenetics.Grow(master, species, details, request.Experience, Random.Shared); }
+            if (request.AdminTargetLevel is { } targetLevel && (targetLevel <= details.Level || targetLevel > master.Rules.MaxLevel))
+                return Failure("target_level_invalid");
+            try
+            {
+                if (request.AdminTargetLevel is { } target)
+                    PetGenetics.SetLevel(master, species, details, target, Random.Shared);
+                else PetGenetics.Grow(master, species, details, request.Experience, Random.Shared);
+            }
             catch (OverflowException) { return Failure("experience_overflow"); }
             details.IsDead = request.IsDead || request.HealthRatio <= 0;
             details.HealthRatio = details.IsDead ? 0 : request.HealthRatio;
@@ -306,6 +327,7 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
             {
                 OperationId = progressRequest.OperationId, UpdatedBy = progressRequest.UpdatedBy,
                 ExpectedVersion = progressRequest.ExpectedVersion, Experience = progressRequest.Experience,
+                AdminTargetLevel = progressRequest.AdminTargetLevel,
                 HealthRatio = progressRequest.HealthRatio, IsDead = progressRequest.IsDead,
                 Cooldowns = progressRequest.Cooldowns,
             }
@@ -331,6 +353,7 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
                 return new PetMutationResult(await ReplayAsync(receipt));
             }
             if (editBlocked && (kind != "progress" || request is not PetProgressRequest progress
+                || progress.AdminTargetLevel.HasValue
                 || !await PlayerAdminEditWriteGuard.AllowsCapturedRuntimeFinalizationAsync(db,
                     accountId, account.UserId, progress.ServerId, progress.ServerSessionId,
                     progress.AccountSessionId, progress.AccountLeaseToken)))

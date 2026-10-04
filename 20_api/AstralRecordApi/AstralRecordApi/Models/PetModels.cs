@@ -204,6 +204,8 @@ public class PetProgressRequest : PetOperationRequest
     public string? AccountLeaseToken { get; set; }
     public long ExpectedVersion { get; set; }
     public long Experience { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? AdminTargetLevel { get; set; }
     public double HealthRatio { get; set; }
     public bool IsDead { get; set; }
     public Dictionary<string, long>? Cooldowns { get; set; }

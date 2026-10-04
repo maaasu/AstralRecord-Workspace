@@ -23,6 +23,8 @@ public class PetRepositoryTests
         var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
         Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
             { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        await fixture.Player.Users.Where(u => u.Uuid == fixture.Owner)
+            .ExecuteUpdateAsync(update => update.SetProperty(u => u.Permission, AccessControlContract.AdminPermission));
         // The editor targets another account owned by the same user; the online
         // account still has to finish its captured pet flush before the user drains.
         var proof = await fixture.StartEditWithRuntimeAsync(editAnotherOwnedAccount: true);
@@ -36,6 +38,11 @@ public class PetRepositoryTests
             AccountSessionId = proof.Session, AccountLeaseToken = proof.Token };
         Assert.Equal("player_editing", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
             withWrongToken())).Failure);
+        Assert.Equal("player_editing", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+                ExpectedVersion = pet.Version, AdminTargetLevel = 2, HealthRatio = 1,
+                ServerId = proof.ServerId, ServerSessionId = proof.Boot,
+                AccountSessionId = proof.Session, AccountLeaseToken = proof.Token })).Failure);
         Assert.True((await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, authorized)).Succeeded);
         await fixture.Player.PlayerAdminEditSessions.ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, "READY"));
         Assert.True((await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, missing)).Succeeded);
@@ -149,6 +156,56 @@ public class PetRepositoryTests
         Assert.False(revive.Response!.Instance!.Details!.IsDead);
         Assert.Equal(1, revive.Response.Instance.Details.HealthRatio);
         Assert.Equal(12345678, revive.Response.Instance.Details.Cooldowns[firstSkill]);
+    }
+
+    [Fact]
+    public async Task Progress_AdminTargetLevelWorksWithZeroActivityRateAndReplaysOnce()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Master.Experience.ActivityRate = 0;
+        await fixture.ReplaceMasterAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var request = new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+            ExpectedVersion = pet.Version, Experience = 0, AdminTargetLevel = 20, HealthRatio = 1 };
+        Assert.Equal("admin_permission_required", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request)).Failure);
+        await fixture.Player.Users.Where(u => u.Uuid == fixture.Owner)
+            .ExecuteUpdateAsync(update => update.SetProperty(u => u.Permission, AccessControlContract.AdminPermission));
+        Assert.Equal("admin_permission_required", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = Guid.NewGuid(),
+                ExpectedVersion = pet.Version, AdminTargetLevel = 20, HealthRatio = 1 })).Failure);
+        var grown = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
+        Assert.True(grown.Succeeded);
+        Assert.Equal(20, grown.Response!.Instance!.Details!.Level);
+        Assert.Equal(0, grown.Response.Instance.Details.Experience);
+        Assert.Equal(2, grown.Response.Instance.Details.Skills.Count);
+        var replay = await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId, request);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(20, replay.Response!.Instance!.Details!.Level);
+        Assert.Equal("target_level_invalid", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+                ExpectedVersion = pet.Version + 1, AdminTargetLevel = 20, HealthRatio = 1 })).Failure);
+        Assert.Equal("progress_invalid", (await fixture.Repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+                ExpectedVersion = pet.Version + 1, Experience = 1, AdminTargetLevel = 21, HealthRatio = 1 })).Failure);
+    }
+
+    [Fact]
+    public async Task Progress_AdminTargetLevelAllowsNetworkAuthority()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var pet = await fixture.AddPetAsync("WILD", "MALE", 1);
+        Assert.True((await fixture.Repository.EquipAsync(fixture.Account, new PetEquipRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, PetId = pet.InstanceId })).Succeeded);
+        var runtime = new NetworkRuntimeService(TimeProvider.System);
+        runtime.ReplaceAuthorities(new NetworkAuthorityUpdateRequest([fixture.Owner]));
+        var repository = new PetRepository(fixture.Player, fixture.MasterDb, null, runtime);
+        var result = await repository.ProgressAsync(fixture.Account, pet.InstanceId,
+            new PetProgressRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account,
+                ExpectedVersion = pet.Version, AdminTargetLevel = 2, HealthRatio = 1 });
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Response!.Instance!.Details!.Level);
     }
 
     [Fact]

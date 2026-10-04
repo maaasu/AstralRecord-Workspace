@@ -91,6 +91,20 @@ public static class PetGenetics
             details.Level++;
         }
         if (details.Level >= master.Rules.MaxLevel) details.Experience = 0;
+        UnlockSkills(master, species, details, random);
+        RefreshValues(master, species, details);
+    }
+
+    public static void SetLevel(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details, int targetLevel, Random random)
+    {
+        details.Level = targetLevel;
+        details.Experience = 0;
+        UnlockSkills(master, species, details, random);
+        RefreshValues(master, species, details);
+    }
+
+    private static void UnlockSkills(PetMasterResponse master, PetSpeciesMaster species, PetDetailsResponse details, Random random)
+    {
         foreach (var (unlockLevel, slot) in master.Rules.SkillSlotLevels.Select((value, index) => (value, index)))
         {
             if (details.Level < unlockLevel || details.Skills.Any(s => s.SlotIndex == slot)) continue;
@@ -99,7 +113,6 @@ public static class PetGenetics
             var skill = Weighted(candidates, s => s.Weight, random);
             details.Skills.Add(new PetSkillResponse { Id = skill.Id, Tier = skill.Tier, SlotIndex = slot });
         }
-        RefreshValues(master, species, details);
     }
 
     public static long RequiredExperience(PetExperienceMaster curve, int level)
