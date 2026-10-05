@@ -13,9 +13,9 @@ icon: BOGGED_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7魂灯を掲げ、渡し賃を求める冥河の舟頭。"
-  - "&7冥河は横へ避け、魂灯が灯れば青い輪の内側へ集え。"
-  - "&7魂柱を結ぶ紫の光から離れ、迫る冥舟の河道を避けよ。"
-  - "&7三魂灯の裁定では、青く灯る輪を順に渡れ。"
+  - "&7三方向の冥河を見切り、渡し賃の二度目の輪からも離れよ。"
+  - "&7魂柱が結ぶ交差する光と、押し寄せる冥舟の河道を避けよ。"
+  - "&7魂灯が灯れば青い輪へ。五魂灯の裁定では順に渡れ。"
 tags:
   - boss
   - undead
@@ -23,6 +23,7 @@ tags:
   - humanoid
   - melee
   - magic
+  - shield
 equipment:
   mainHand: NETHERITE_SHOVEL
   offHand: SOUL_LANTERN
@@ -35,7 +36,7 @@ equipment:
     pattern: SILENCE
 baseStats:
   - status: MAX_HEALTH
-    value: 64000
+    value: 192000
   - status: ATTACK
     value: 1391
   - status: DEFENSE
@@ -50,6 +51,9 @@ baseStats:
     value: 100
   - status: SHIELD_BREAK
     value: 9
+shield:
+  enabled: true
+  max: 120
 ai:
   idle:
     behavior: STATIONARY
@@ -60,9 +64,9 @@ ai:
     leashRange: 42
   combat:
     style: MELEE
-    preferredRange: 2.5
+    preferredRange: 3.5
     normalAttack:
-      range: 2.8
+      range: 4.2
       intervalTicks: 30
 challenge:
   fieldWorldId: vanaheim_boss_charon_field

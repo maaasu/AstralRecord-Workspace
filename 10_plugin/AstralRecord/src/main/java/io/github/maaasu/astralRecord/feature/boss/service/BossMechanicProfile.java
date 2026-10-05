@@ -69,8 +69,8 @@ final class BossMechanicProfile {
                 List.of(Mechanic.CHARON_RIVER, Mechanic.CHARON_TOLL, Mechanic.CHARON_RIVER, Mechanic.CHARON_LANTERN),
                 List.of(Mechanic.CHARON_RIVER, Mechanic.CHARON_LANTERN, Mechanic.CHARON_TOLL)
             ),
-            List.of(120L, 100L, 85L),
-            List.of(0.60D, 0.30D)
+            List.of(105L, 90L, 75L),
+            List.of(0.50D, 0.25D)
         ),
         GREAT_TREE_GUARDIAN_GRANBAL,
         new BossMechanicProfile(
@@ -142,6 +142,7 @@ final class BossMechanicProfile {
         GRANBAL_PETAL_BURST,
         CHARON_RIVER,
         CHARON_TOLL,
+        CHARON_TOLL_ECHO,
         CHARON_LANTERN,
         SUNBIRD_SOLAR_FLARE,
         SUNBIRD_SUNSTRIKE,

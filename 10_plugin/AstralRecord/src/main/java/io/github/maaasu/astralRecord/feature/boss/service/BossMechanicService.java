@@ -137,10 +137,12 @@ public final class BossMechanicService {
     private static final double SUNBIRD_TACKLE_DESTINATION_RADIUS = 9.0D;
     private static final double SUNBIRD_TACKLE_HALF_WIDTH = 1.5D;
     private static final long SUNBIRD_TACKLE_TELEGRAPH_TICKS = 10L;
-    private static final double CHARON_RIVER_LENGTH = 13.0D;
-    private static final double CHARON_RIVER_HALF_WIDTH = 2.0D;
-    private static final double CHARON_TOLL_RADIUS = 3.5D;
-    private static final double CHARON_LANTERN_DANGER_RADIUS = 9.0D;
+    private static final double CHARON_RIVER_LENGTH = 22.0D;
+    private static final double CHARON_RIVER_HALF_WIDTH = 2.8D;
+    private static final double CHARON_RIVER_SPREAD = Math.toRadians(28.0D);
+    private static final double CHARON_TOLL_RADIUS = 4.8D;
+    private static final double CHARON_TOLL_FLANK_DISTANCE = 7.0D;
+    private static final double CHARON_LANTERN_DANGER_RADIUS = 20.0D;
     private static final double CHARON_LANTERN_SAFE_RADIUS = 2.5D;
     private static final long CHARON_RECOVERY_TICKS = 40L;
 
@@ -446,7 +448,7 @@ public final class BossMechanicService {
 
             processAldaShieldBreak(boss, entity, runtime);
             if (observedPhase > runtime.phase) {
-                // 一撃で60%・30%を跨いでも、カロンの2つの儀式を順番に開始する。
+                // 一撃で50%・25%を跨いでも、カロンの2つの儀式を順番に開始する。
                 runtime.phase = BossMechanicProfile.CHARON_FERRYMAN.equals(boss.template().id())
                     ? runtime.phase + 1 : observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
@@ -945,7 +947,7 @@ public final class BossMechanicService {
      * ボスのHPフェーズ遷移に伴う固有ギミックとシールド再展開を処理します。
      *
      * <p>サンバードの30%境界ではバードメテオの事前チャージを開始して終了し、シールドを増加・再展開しません。
-     * カロンはHP60%・30%それぞれの境界儀式を開始します。
+     * カロンはHP50%・25%それぞれの境界儀式を開始します。
      * それ以外の対象では、有効なシールドを現在の表示容量まで再展開した後、フェーズ固有の演出を処理します。</p>
      *
      * <p>呼び出し元はメインスレッド上で、{@code runtime.phase} を更新済みの状態で実行する必要があります。
@@ -1291,7 +1293,9 @@ public final class BossMechanicService {
             return true;
         }
         if (mechanic == BossMechanicProfile.Mechanic.CHARON_TOLL) {
-            addPending(boss, mechanic, targetLocation, direction, telegraphTicks);
+            List<Location> anchors = charonTollAnchors(targetLocation, direction, targets, primaryTarget);
+            addPending(boss, mechanic, anchors.getFirst(), direction, telegraphTicks, null,
+                anchors.subList(1, anchors.size()));
             return true;
         }
         if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
@@ -1331,6 +1335,50 @@ public final class BossMechanicService {
 
         addPending(boss, mechanic, anchor, direction, telegraphTicks);
         return true;
+    }
+
+    /**
+     * 渡し賃の中心を対象最大4人の足元と、最寄り対象の左右へ固定します。
+     *
+     * @param primary 最寄り対象の現在位置
+     * @param direction ボスから最寄り対象への水平方向
+     * @param targets 詠唱開始時の有効な対象
+     * @param primaryPlayer 最寄り対象。先頭の円として必ず含めます
+     * @return 最大6地点の円中心。後から対象が動いても追尾しません
+     */
+    private static @NotNull List<Location> charonTollAnchors(
+        @NotNull Location primary, @NotNull Vector direction,
+        @NotNull List<Player> targets, @NotNull Player primaryPlayer
+    ) {
+        List<Location> anchors = new ArrayList<>();
+        anchors.add(primary.clone());
+        targets.stream().filter(player -> !player.getUniqueId().equals(primaryPlayer.getUniqueId()))
+            .limit(3).map(Player::getLocation).forEach(anchors::add);
+        Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).normalize()
+            .multiply(CHARON_TOLL_FLANK_DISTANCE);
+        anchors.add(primary.clone().add(side));
+        anchors.add(primary.clone().subtract(side));
+        return List.copyOf(anchors);
+    }
+
+    /**
+     * 渡し賃の初撃後に対象を再捕捉し、35tickの新しい予兆を伴う追撃を予約します。
+     *
+     * @param boss 初撃を実行したカロン
+     * @param initial 初撃の方向。追撃も円中心を予約時点で固定します
+     */
+    private void queueCharonTollEcho(@NotNull MobInstance boss, @NotNull PendingMechanic initial) {
+        List<Player> targets = nearbyManagedPlayers(boss.currentLocation(), TARGET_RANGE);
+        if (targets.isEmpty()) {
+            return;
+        }
+        Player primary = nearestPlayer(boss.currentLocation(), targets);
+        List<Location> anchors = charonTollAnchors(primary.getLocation(), initial.direction(), targets, primary);
+        PendingMechanic echo = createPending(boss, BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO,
+            anchors.getFirst(), initial.direction(), telegraphTicks(BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO),
+            null, anchors.subList(1, anchors.size()));
+        deferredPendingMechanics.add(echo);
+        announcePending(echo);
     }
 
     /** 始源崩落の2地点を、重ならない円として解決します。 */
@@ -1516,8 +1564,9 @@ public final class BossMechanicService {
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
             case SUNBIRD_BIRD_METEOR -> SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS;
             case SUNBIRD_RETURN_TACKLE -> SUNBIRD_TACKLE_TELEGRAPH_TICKS;
-            case CHARON_RIVER -> 35L;
-            case CHARON_TOLL -> 40L;
+            case CHARON_RIVER -> 40L;
+            case CHARON_TOLL -> 45L;
+            case CHARON_TOLL_ECHO -> 35L;
             case CHARON_LANTERN -> 70L;
         };
     }
@@ -1757,17 +1806,13 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.MOB_GRANBAL_ROOT
             );
             case GRANBAL_PETAL_BURST -> renderGranbalPetalTelegraph(pending);
-            case CHARON_RIVER -> renderLane(
-                pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
-                SharedParticleDefinitions.BOSS_MECHANIC_PORTAL
-            );
-            case CHARON_TOLL -> renderCircle(
-                pending.anchor(), CHARON_TOLL_RADIUS, SharedParticleDefinitions.BOSS_MECHANIC_SPARK, 32
-            );
+            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL);
+            case CHARON_TOLL, CHARON_TOLL_ECHO -> renderCharonToll(pending,
+                SharedParticleDefinitions.BOSS_MECHANIC_SPARK);
             case CHARON_LANTERN -> {
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
-                    SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 48
+                    SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 96
                 );
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
@@ -1807,6 +1852,7 @@ public final class BossMechanicService {
         }
         if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_RIVER
             || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL
+            || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO
             || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
             renderCharonCountdown(pending);
         }
@@ -1822,12 +1868,15 @@ public final class BossMechanicService {
             (double) (pending.executeAtTick() - clockTicks) / telegraphTicks(pending.mechanic()),
             0.0D, 1.0D
         );
-        renderCircle(
-            pending.anchor().clone().add(0.0D, 1.8D, 0.0D),
-            0.3D + remaining * 1.2D,
-            SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE,
-            16
-        );
+        List<Location> centers = pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL
+            || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO
+            ? charonTollCenters(pending) : List.of(pending.anchor());
+        List<Location> points = new ArrayList<>();
+        for (Location center : centers) {
+            points.addAll(circleLocations(center.clone().add(0.0D, 1.8D, 0.0D),
+                0.3D + remaining * 1.2D, 16));
+        }
+        particleDisplayService.spawnForNearbyViewers(points, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE);
     }
 
     /**
@@ -1888,14 +1937,13 @@ public final class BossMechanicService {
                 GRANBAL_ROOT_FAN_DAMAGE_RATIO, GRANBAL_ROOT_FAN_PUSH_STRENGTH
             );
             case GRANBAL_PETAL_BURST -> damageGranbalPetalBurst(boss, pending);
-            case CHARON_RIVER -> damageLine(
-                boss, pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
-                AttackType.MAGIC, DamageElement.NONE, 0.68D, 0.35D
-            );
-            case CHARON_TOLL -> damageCircle(
-                boss, pending.anchor(), 0.0D, CHARON_TOLL_RADIUS,
-                AttackType.MAGIC, DamageElement.NONE, 0.62D, 0.0D
-            );
+            case CHARON_RIVER -> damageCharonRiver(boss, pending);
+            case CHARON_TOLL, CHARON_TOLL_ECHO -> {
+                damageCharonToll(boss, pending);
+                if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL) {
+                    queueCharonTollEcho(boss, pending);
+                }
+            }
             case CHARON_LANTERN -> {
                 damageCharonLantern(boss, pending.anchor());
                 BossRuntime runtime = runtimes.get(boss.instanceId());
@@ -1934,6 +1982,118 @@ public final class BossMechanicService {
             }
         }
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
+    }
+
+    /**
+     * 基準方向と左右28度の河道を、描画と命中判定で共用します。
+     * @param direction 予約時の単位水平方向
+     * @return 独立した3方向のVector
+     */
+    private static @NotNull List<Vector> charonRiverDirections(@NotNull Vector direction) {
+        return List.of(direction.clone().rotateAroundY(-CHARON_RIVER_SPREAD), direction.clone(),
+            direction.clone().rotateAroundY(CHARON_RIVER_SPREAD));
+    }
+
+    /**
+     * 三河道の境界と中央線を一括表示します。
+     * @param pending 予約済みの河道
+     * @param particle 予兆または発動の粒子定義
+     */
+    private void renderCharonRiver(@NotNull PendingMechanic pending, @NotNull SharedParticleDefinition particle) {
+        List<Location> points = new ArrayList<>();
+        for (Vector direction : charonRiverDirections(pending.direction())) {
+            Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).normalize()
+                .multiply(CHARON_RIVER_HALF_WIDTH);
+            appendLine(points, pending.anchor(), direction, CHARON_RIVER_LENGTH);
+            appendLine(points, pending.anchor().clone().add(side), direction, CHARON_RIVER_LENGTH);
+            appendLine(points, pending.anchor().clone().subtract(side), direction, CHARON_RIVER_LENGTH);
+        }
+        renderRange(pending.anchor(), points, particle);
+    }
+
+    /**
+     * 三河道が交わる場所でも、同じ斉射によるダメージと押し出しは一度だけ適用します。
+     * @param boss 攻撃元のカロン
+     * @param pending 予兆と同じ原点・方向を持つ予約
+     */
+    private void damageCharonRiver(@NotNull MobInstance boss, @NotNull PendingMechanic pending) {
+        List<Vector> directions = charonRiverDirections(pending.direction());
+        for (Player player : nearbyManagedPlayers(pending.anchor(), CHARON_RIVER_LENGTH + CHARON_RIVER_HALF_WIDTH)) {
+            if (directions.stream().anyMatch(direction -> insideLine(player.getLocation(), pending.anchor(), direction,
+                CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH))) {
+                damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, 0.68D);
+                pushAway(player, pending.anchor(), 0.35D);
+            }
+        }
+    }
+
+    /**
+     * 予約済みの渡し賃の全円中心を表示・命中判定用に返します。
+     * @param pending 初撃または追撃の予約
+     * @return 原点と追加中心を含む新しいリスト
+     */
+    private static @NotNull List<Location> charonTollCenters(@NotNull PendingMechanic pending) {
+        List<Location> centers = new ArrayList<>(1 + pending.additionalAnchors().size());
+        centers.add(pending.anchor());
+        centers.addAll(pending.additionalAnchors());
+        return centers;
+    }
+
+    /**
+     * 各円の周囲に48点を残し、全円の予兆または発動を一括表示します。
+     * @param pending 固定した円中心を持つ予約
+     * @param particle 予兆または発動の粒子定義
+     */
+    private void renderCharonToll(@NotNull PendingMechanic pending, @NotNull SharedParticleDefinition particle) {
+        List<Location> points = new ArrayList<>();
+        for (Location center : charonTollCenters(pending)) {
+            points.addAll(circleLocations(center, CHARON_TOLL_RADIUS, 48));
+        }
+        particleDisplayService.spawnForNearbyViewers(points, particle);
+    }
+
+    /**
+     * 複数の渡し賃の円に入っていても、1波ごとに各Playerへ一度だけ攻撃します。
+     * @param boss 攻撃元のカロン
+     * @param pending 予兆と同じ円中心を持つ予約
+     */
+    private void damageCharonToll(@NotNull MobInstance boss, @NotNull PendingMechanic pending) {
+        Map<UUID, Player> hits = new HashMap<>();
+        for (Location center : charonTollCenters(pending)) {
+            for (Player player : nearbyManagedPlayers(center, CHARON_TOLL_RADIUS + 1.0D)) {
+                if (horizontalDistanceSquared(player.getLocation(), center) <= CHARON_TOLL_RADIUS * CHARON_TOLL_RADIUS) {
+                    hits.put(player.getUniqueId(), player);
+                }
+            }
+        }
+        for (Player player : hits.values()) {
+            damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, 0.62D);
+        }
+    }
+
+    /**
+     * 全円盤から均等に爆発点を抽出し、後方の円が表示上限から欠落しないようにします。
+     * @param pending 初撃または追撃の予約
+     * @return 全円盤に分散した最大96地点
+     */
+    private static @NotNull List<Location> charonTollDamageLocations(@NotNull PendingMechanic pending) {
+        List<Location> points = new ArrayList<>();
+        for (Location center : charonTollCenters(pending)) {
+            points.addAll(circleDamageLocations(center, 0.0D, CHARON_TOLL_RADIUS));
+        }
+        return BossDamageAreaEffect.limit(points);
+    }
+
+    /**
+     * 三河道の命中面を共通の方向と幅でサンプリングします。
+     * @param pending 河道の予約
+     * @return 命中面に含まれる最大96地点
+     */
+    private static @NotNull List<Location> charonRiverDamageLocations(@NotNull PendingMechanic pending) {
+        List<Vector> directions = charonRiverDirections(pending.direction());
+        return BossDamageAreaEffect.sampleArea(pending.anchor(), CHARON_RIVER_LENGTH + CHARON_RIVER_HALF_WIDTH, 1.2D,
+            point -> directions.stream().anyMatch(direction -> insideLine(point, pending.anchor(), direction,
+                CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH)));
     }
 
     /**
@@ -2927,18 +3087,13 @@ public final class BossMechanicService {
                 granbalPetalImpactLocations(pending),
                 SharedParticleDefinitions.MOB_GRANBAL_IMPACT
             );
-            case CHARON_RIVER -> renderLane(
-                pending.anchor(), pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH,
-                SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
-            );
-            case CHARON_TOLL -> renderCircle(
-                pending.anchor(), CHARON_TOLL_RADIUS,
-                SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 32
-            );
+            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
+            case CHARON_TOLL, CHARON_TOLL_ECHO -> renderCharonToll(pending,
+                SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
             case CHARON_LANTERN -> {
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
-                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 48
+                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 96
                 );
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
@@ -2993,13 +3148,19 @@ public final class BossMechanicService {
 
     /** 発動したギミックの実際の水平命中面へ、最大96地点の爆発を一括表示します。 */
     private void renderDamageArea(@NotNull PendingMechanic pending) {
+        if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL
+            || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO) {
+            particleDisplayService.spawnForNearbyViewers(charonTollDamageLocations(pending),
+                SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
+            return;
+        }
         Location center = pending.anchor();
         List<Location> locations = switch (pending.mechanic()) {
             case COLOSSUS_QUAKE -> circleDamageLocations(center, 0.0D, 4.5D);
             case COLOSSUS_COLLAPSE -> circleDamageLocations(center, 2.8D, 7.0D);
             case ALDA_PRIMORDIAL_COLLAPSE, ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP ->
                 circleDamageLocations(center, ALDA_COLLAPSE_INNER_RADIUS, ALDA_COLLAPSE_OUTER_RADIUS);
-            case CHARON_TOLL -> circleDamageLocations(center, 0.0D, CHARON_TOLL_RADIUS);
+            case CHARON_TOLL, CHARON_TOLL_ECHO -> charonTollDamageLocations(pending);
             case CHARON_LANTERN -> BossDamageAreaEffect.sampleArea(
                 center, CHARON_LANTERN_DANGER_RADIUS, 1.5D,
                 point -> horizontalDistanceSquared(point, center)
@@ -3016,9 +3177,7 @@ public final class BossMechanicService {
             case ALDA_RUIN_SHOCKWAVE -> crossDamageLocations(
                 center, pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH, ALDA_SHOCKWAVE_HALF_WIDTH
             );
-            case CHARON_RIVER -> lineDamageLocations(
-                center, pending.direction(), CHARON_RIVER_LENGTH, CHARON_RIVER_HALF_WIDTH
-            );
+            case CHARON_RIVER -> charonRiverDamageLocations(pending);
             case SUNBIRD_SOLAR_BEAM -> lineDamageLocations(
                 center, pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH
             );
