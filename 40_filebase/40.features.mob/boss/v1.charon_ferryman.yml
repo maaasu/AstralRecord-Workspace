@@ -64,6 +64,22 @@ ai:
     normalAttack:
       range: 2.8
       intervalTicks: 30
+challenge:
+  fieldWorldId: vanaheim_boss_charon_field
+  entryLocation:
+    worldId: vanaheim_supercontinent
+    x: -1641.4
+    y: 112.0
+    z: 1235.5
+  playerSpawnLocation:
+    x: 7.5
+    y: -46.0
+    z: -2.5
+  bossSpawnLocation:
+    x: -1.5
+    y: -45.0
+    z: 8.5
+
 drops:
   exp: 6000
   items:

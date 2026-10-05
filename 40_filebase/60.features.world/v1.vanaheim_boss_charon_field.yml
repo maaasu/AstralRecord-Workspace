@@ -1,0 +1,23 @@
+# design:
+#   motif: "ギリシア神話 / 冥河"
+#   progression: 20
+schemaVersion: 1
+id: vanaheim_boss_charon_field
+displayName: "冥河の渡し守カロン・ボスフィールド"
+worldType: BOSS_FIELD
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/vanaheim_boss_charon_field"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/vanaheim_boss_charon_field"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 7.5
+  y: -46.0
+  z: -2.5
+  yaw: 0.0
+  pitch: 0.0
+description: "冥河の渡し守カロンと戦うインスタンス式のボスフィールド。"
