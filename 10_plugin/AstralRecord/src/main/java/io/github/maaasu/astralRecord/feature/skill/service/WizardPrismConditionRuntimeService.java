@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReque
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -14,6 +15,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -37,6 +39,8 @@ public final class WizardPrismConditionRuntimeService {
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
     private final SkillMagicCircleRegistry circleRegistry;
+    private final SkillEffectService effects;
+    private final Map<UUID, Integer> recoverySoundTicks = new HashMap<>();
     private final Map<UUID, Map<String, Configuration>> configurations = new HashMap<>();
     private final List<Field> fields = new ArrayList<>();
     private BukkitTask task;
@@ -57,6 +61,7 @@ public final class WizardPrismConditionRuntimeService {
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
         this.circleRegistry = circleRegistry;
+        this.effects = new SkillEffectService(particleDisplayService);
     }
 
     /**
@@ -151,6 +156,7 @@ public final class WizardPrismConditionRuntimeService {
      */
     public void clearPlayer(@NotNull UUID casterId) {
         configurations.remove(casterId);
+        recoverySoundTicks.remove(casterId);
         fields.removeIf(field -> {
             if (!field.casterId.equals(casterId)) {
                 return false;
@@ -164,6 +170,7 @@ public final class WizardPrismConditionRuntimeService {
     /** プラグイン終了時に全プレイヤーの設定と魔法陣を消去し、同期taskを停止します。 */
     public void clearAll() {
         configurations.clear();
+        recoverySoundTicks.clear();
         fields.forEach(field -> circleRegistry.remove(field.circleId));
         fields.clear();
         stopIfEmpty();
@@ -207,6 +214,7 @@ public final class WizardPrismConditionRuntimeService {
             double recovery = before.getMaxValue(StatusType.MAX_MANA) * field.configuration.manaRecoveryRatio;
             var after = statusService.recoverFixedMp(recipient, recovery);
             if (after.getCurrentMp() > before.getCurrentMp()) {
+                displayRecovery(field, player);
                 return true;
             }
         }
@@ -228,24 +236,25 @@ public final class WizardPrismConditionRuntimeService {
         Location center = field.center;
         double radius = field.configuration.radius;
         int outerPoints = Math.max(24, (int) Math.ceil(radius * 16.0D));
-        List<Location> locations = new ArrayList<>(outerPoints + 30);
+        List<Location> locations = new ArrayList<>(outerPoints);
+        List<Location> runes = new ArrayList<>(30);
         for (int index = 0; index < outerPoints; index++) {
             double angle = 2.0D * Math.PI * index / outerPoints;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.0D, Math.sin(angle) * radius));
         }
         for (int index = 0; index < 12; index++) {
-            double angle = 2.0D * Math.PI * index / 12;
-            locations.add(center.clone().add(
+            double angle = 2.0D * Math.PI * index / 12 + field.ageTicks * 0.035D;
+            runes.add(center.clone().add(
                     Math.cos(angle) * radius * 0.45D,
                     0.0D,
                     Math.sin(angle) * radius * 0.45D
             ));
         }
         for (int spoke = 0; spoke < 6; spoke++) {
-            double angle = 2.0D * Math.PI * spoke / 6;
+            double angle = 2.0D * Math.PI * spoke / 6 - field.ageTicks * 0.025D;
             for (int step = 1; step <= 3; step++) {
                 double distance = radius * (0.55D + step * 0.10D);
-                locations.add(center.clone().add(
+                runes.add(center.clone().add(
                         Math.cos(angle) * distance,
                         0.0D,
                         Math.sin(angle) * distance
@@ -253,8 +262,25 @@ public final class WizardPrismConditionRuntimeService {
             }
         }
         particleDisplayService.spawnForNearbyViewers(
-                center, locations, SharedParticleDefinitions.SKILL_MAGE_ARCANE_DUST
+                center, locations, SharedParticleDefinitions.WIZARD_PRISM_CORE_DUST
         );
+        particleDisplayService.spawnForNearbyViewers(center, runes, SharedParticleDefinitions.WIZARD_PRISM_ICE_DUST);
+    }
+
+    /** 実MP回復が成立した受け手へ魔力の輪と火花を表示し、回復音は6tickに一度に抑えます。 */
+    private void displayRecovery(@NotNull Field field, @NotNull Player recipient) {
+        Location destination = recipient.getLocation().add(0.0D, 0.9D, 0.0D);
+        effects.line(field.center, destination, 0.25D, SharedParticleDefinitions.WIZARD_PRISM_ICE_DUST);
+        effects.ring(destination, 0.45D, 20, SharedParticleDefinitions.WIZARD_ELEMENTAL_BALL_RING);
+        effects.point(destination, SharedParticleDefinitions.MAGIC_IMPACT_ENCHANT.withCount(10)
+                .withOffsets(0.25D, 0.40D, 0.25D));
+        int tick = Bukkit.getCurrentTick();
+        Integer previous = recoverySoundTicks.get(recipient.getUniqueId());
+        if (previous == null || tick - previous >= 6) {
+            effects.sound(destination, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.50F, 1.60F);
+            effects.sound(destination, Sound.BLOCK_BEACON_POWER_SELECT, 0.25F, 1.40F);
+            recoverySoundTicks.put(recipient.getUniqueId(), tick);
+        }
     }
 
     private @Nullable Configuration effectiveConfiguration(@NotNull UUID casterId) {

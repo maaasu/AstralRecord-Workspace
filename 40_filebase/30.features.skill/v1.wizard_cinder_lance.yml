@@ -6,12 +6,12 @@ id: wizard_cinder_lance
 type: SKILL
 implementationId: wizard_cinder_lance
 name: "&6シンダーランス"
-description: "&8【概要】 &7燃える魔槍で元素連携を始める。"
+description: "&8【概要】 &7螺旋を描く炎の魔槍で、元素連携を切り開く。"
 icon: ORANGE_CANDLE
 lore:
-  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体を貫く。"
+  - "&b【効果】 &f前方{skill.range}mの敵を最大{skill.maxTargets}体まで貫く。"
   - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
-  - "&d【状態】 &f{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の&d燃焼&fを付与。"
+  - "&d【状態】 &f{skill.conditionChance}%で&d燃焼&fを{skill.conditionTicks:seconds}秒間付与。"
 cooldownTicks: 120
 resourceType: MANA
 resourceCost: 24
@@ -31,7 +31,7 @@ allowedSigilIds: [70a00001, 70a00017]
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 onCast:
-  sound: block.amethyst_block.chime
+  sound: item.firecharge.use
 tags: [active, magic, fire]
 params:
   range: 16

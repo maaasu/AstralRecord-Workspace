@@ -6,13 +6,12 @@ id: wizard_mana_siphon
 type: SKILL
 implementationId: wizard_mana_siphon
 name: "&bマナサイフォン"
-description: "&8【概要】 &7敵への命中から魔力を回収する。"
+description: "&8【概要】 &7命中を魔力へ変え、次の詠唱へつなぐ。"
 icon: CLOSED_EYEBLOSSOM
 lore:
-  - "&b【効果】 &f前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
+  - "&b【効果】 &f前方{skill.range}mへ魔力弾を放ち、最初の敵1体へ攻撃。"
   - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
-  - "&a【回復】 &fHPか&aシールド&fへダメージを与えるとMPを{skill.manaRecovery}&a回復&f。"
-  - "&a【回復】 &f回収は1発動につき1回。回避・完全防御・空振りでは&a回復&fしない。"
+  - "&a【回復】 &fHPまたは&aシールド&fにダメージを与えると、MPを{skill.manaRecovery}&a回復&f。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 10
@@ -32,7 +31,7 @@ allowedSigilIds: [70a00001, 70a00017]
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 onCast:
-  sound: block.amethyst_block.chime
+  sound: block.enchantment_table.use
 tags: [active, magic]
 params:
   range: 14

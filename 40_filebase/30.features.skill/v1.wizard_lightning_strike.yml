@@ -6,13 +6,12 @@ id: wizard_lightning_strike
 type: SKILL
 implementationId: wizard_lightning_strike
 name: "&eライトニングストライク"
-description: "&8【概要】 &7感電した敵へ雷を呼ぶパッシブ。"
+description: "&8【概要】 &7感電を呼び水に、敵へ追撃の雷を落とす。"
 icon: YELLOW_CANDLE
 lore:
-  - "&6【条件】 &fパッシブスロットへのバインド中のみ有効。"
-  - "&6【条件】 &f自身から{skill.range}m以内で自身の攻撃が&d感電&fを付与・更新した敵に落雷。"
-  - "&b【攻撃】 &f対象1体へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
-  - "&6【制限】 &fMP不足時は落雷しない。"
+  - "&6【条件】 &fパッシブスロットへのバインド中、自身の攻撃で&d感電&fの付与・更新に成功すると発動。"
+  - "&b【効果】 &f自身から{skill.range}m以内の対象1体へ、MPを消費して落雷。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 56
@@ -34,4 +33,4 @@ tags:
   - lightning
 # behavior:
 #   trigger: "自身の攻撃によるSHOCKEDの新規付与・再付与成功時に、付与対象が自身から半径30m以内ならMPを消費して発動する。"
-#   impact: "対象1体へMAGIC/LIGHTNINGの基礎倍率150%を1回適用する。落雷は屈曲した主幹・枝・着弾火花を粒子で表示し、雷音、バニラダメージ、火災は発生しない。"
+#   impact: "対象1体へMAGIC/LIGHTNINGの基礎倍率150%を1回適用する。屈曲した主幹・枝・着弾火花と短い衝撃音を表示する。"

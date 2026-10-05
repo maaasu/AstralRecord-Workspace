@@ -6,13 +6,13 @@ id: wizard_prism_condition
 type: SKILL
 implementationId: wizard_prism_condition
 name: "&dプリズムコンディション"
-description: "&8【概要】 &7状態異常を魔力の回復へ変えるパッシブ。"
+description: "&8【概要】 &7状態異常を魔法陣へ変え、魔力の補給路を作る。"
 icon: MAGENTA_CARPET
 lore:
-  - "&b【効果】 &f自身の攻撃で&d状態異常&fを付与・更新すると、その場所に半径{skill.radius}mの魔法陣を作る。"
-  - "&b【効果】 &f魔法陣は{skill.durationTicks:seconds}秒間持続する。"
-  - "&a【回復】 &f範囲内のプレイヤー1人のMPを最大MPの{skill.manaRecoveryRatio:percent}%&a回復&fする。"
-  - "&a【回復】 &fMPが実際に&a回復&fしたとき魔法陣は消滅する。"
+  - "&6【条件】 &f自身の攻撃で&d状態異常&fの付与・更新に成功した地点へ魔法陣を作る。"
+  - "&b【効果】 &f魔法陣の半径は{skill.radius}m、持続は{skill.durationTicks:seconds}秒。"
+  - "&a【回復】 &f範囲内のプレイヤー1人のMPを、受け手の&a最大MP&fの{skill.manaRecoveryRatio:percent}%&a回復&f。"
+  - "&6【条件】 &fMPが実際に&a回復&fすると、その魔法陣は消える。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0

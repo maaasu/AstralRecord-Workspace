@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +69,7 @@ public final class WizardLightningStrikeRuntimeService {
     }
 
     /**
-     * 自身の攻撃で感電の新規付与または再付与が成功したとき、MPを消費して無音の粒子落雷を表示し、対象へ雷ダメージを与えます。
+     * 自身の攻撃で感電の新規付与または再付与が成功したとき、MPを消費して粒子と音の落雷を表示し、対象へ雷ダメージを与えます。
      *
      * @param request 成功した状態異常の付与要求
      */
@@ -120,7 +121,7 @@ public final class WizardLightningStrikeRuntimeService {
     }
 
     /**
-     * 対象の頭上から着地点までの屈曲した主幹と枝、着弾火花を粒子だけで描画します。
+     * 対象の頭上から着地点までの屈曲した主幹と枝、着弾火花と短い落雷音を表示します。
      *
      * @param targetLocation 対象の足元。worldを持つことが呼び出し元の前提
      */
@@ -154,5 +155,7 @@ public final class WizardLightningStrikeRuntimeService {
         effects.lines(impact, segments, 0.42D, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_SPARK);
         effects.ring(impact, 0.65D, 14, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_SPARK);
         effects.point(impact, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_IMPACT);
+        effects.sound(impact, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.65F, 1.35F);
+        effects.sound(impact, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.35F, 0.70F);
     }
 }

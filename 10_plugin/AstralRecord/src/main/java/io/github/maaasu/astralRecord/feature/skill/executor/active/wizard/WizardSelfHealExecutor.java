@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.Sound;
 import org.jetbrains.annotations.NotNull;
 
 /** 最大HPに応じて発動者本人を回復するウィザードの魔法です。 */
@@ -39,6 +40,8 @@ public final class WizardSelfHealExecutor extends PlayerActiveSkillExecutor {
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         double healPercent = context.params().getDouble("healPercent", 0.0D);
         double maxHp = context.caster().player().getStatusSnapshot().getMaxValue(StatusType.MAX_HEALTH);
+        context.services().effects().ring(context.player().getLocation(), 0.8D, 28,
+                SharedParticleDefinitions.MAGE_HEAL_AURA_RING.withCount(1).withOffsets(0.0D, 0.0D, 0.0D));
         context.services().effects().point(
                 context.player().getLocation().add(0.0D, 1.0D, 0.0D),
                 SharedParticleDefinitions.MAGE_HEAL_AURA_PULSE
@@ -52,6 +55,8 @@ public final class WizardSelfHealExecutor extends PlayerActiveSkillExecutor {
                 ).withoutFollowUpBonus()
         );
         if (recovered > 0.0D) {
+            WizardSpellPresentation.healingRise(context);
+            context.services().effects().sound(context.player().getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.40F, 1.45F);
             context.services().effects().point(
                     context.player().getLocation().add(0.0D, 1.0D, 0.0D),
                     SharedParticleDefinitions.MAGE_HEAL_AURA_HEAL

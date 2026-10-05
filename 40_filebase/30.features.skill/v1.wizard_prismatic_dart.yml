@@ -6,13 +6,13 @@ id: wizard_prismatic_dart
 type: SKILL
 implementationId: wizard_prismatic_dart
 name: "&dプリズマティックダート"
-description: "&8【概要】 &7小さな魔力弾でプリズムを駆動する。"
+description: "&8【概要】 &7鋭い結晶弾でプリズムの力を引き出す。"
 icon: MAGENTA_CANDLE
 lore:
-  - "&b【効果】 &f前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
+  - "&b【効果】 &f前方{skill.range}mへ結晶弾を放ち、最初の敵1体へ攻撃。"
   - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
-  - "&b【効果】 &f自分のエレメンタルプリズムに先に触れると吸収される。"
-  - "&b【攻撃】 &f吸収時は直撃せず、プリズム自身の倍率と弾数で追撃する。"
+  - "&6【条件】 &f自分のエレメンタルプリズムへ当てると、直撃に代わって屈折追撃を放つ。"
+  - "&b【効果】 &f屈折追撃の威力と弾数は、設置したプリズムの性能に応じる。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 20
@@ -32,7 +32,7 @@ allowedSigilIds: [70a00001, 70a00017]
 learnRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
 onCast:
-  sound: block.amethyst_block.chime
+  sound: block.amethyst_cluster.hit
 tags: [active, magic, prism]
 params:
   range: 16
