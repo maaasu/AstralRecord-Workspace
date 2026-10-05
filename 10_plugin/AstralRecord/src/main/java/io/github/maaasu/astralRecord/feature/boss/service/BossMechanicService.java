@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -153,6 +154,7 @@ public final class BossMechanicService {
     private final ParticleDisplayService particleDisplayService;
     private final CharonRitualController charonRitualController;
     private final EmpusaSpellController empusaSpellController;
+    private final VesperalaEncounterController vesperalaEncounterController;
     private final KnockerEncounterController knockerEncounterController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
@@ -208,6 +210,10 @@ public final class BossMechanicService {
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
             (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)
         );
+        this.vesperalaEncounterController = new VesperalaEncounterController(
+            mobService, particleDisplayService, this::vesperalaParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
+        );
         this.knockerEncounterController = new KnockerEncounterController(
             mobService,
             particleDisplayService,
@@ -224,6 +230,7 @@ public final class BossMechanicService {
     public void setTemporarySkillEffectService(@Nullable TemporarySkillEffectService temporarySkillEffectService) {
         this.temporarySkillEffectService = temporarySkillEffectService;
         knockerEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
+        vesperalaEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
     }
 
     /**
@@ -260,6 +267,7 @@ public final class BossMechanicService {
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
         empusaSpellController.clear(bossInstanceId);
+        vesperalaEncounterController.clear(bossInstanceId);
         knockerEncounterController.clear(bossInstanceId);
     }
 
@@ -293,6 +301,7 @@ public final class BossMechanicService {
         runtimes.clear();
         charonRitualController.clearAll();
         empusaSpellController.clearAll();
+        vesperalaEncounterController.clearAll();
         knockerEncounterController.clearAll();
     }
 
@@ -307,16 +316,33 @@ public final class BossMechanicService {
 
         Set<UUID> activeBosses = new HashSet<>();
         Set<UUID> activeEmpusas = new HashSet<>();
+        Set<UUID> activeVesperalas = new HashSet<>();
         Set<UUID> activeKnockers = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
+            boolean vesperala = VesperalaEncounterController.BOSS_ID.equals(boss.template().id());
             boolean knocker = KnockerEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker) || boss.currentHealth() <= 0.0D) {
+            if ((profile == null && !empusa && !knocker && !vesperala) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (vesperala) {
+                activeVesperalas.add(boss.instanceId());
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    vesperalaEncounterController.clear(boss.instanceId());
+                } else if ((boss.state() != MobState.AGGRO && boss.state() != MobState.COMBAT)
+                    || !conditionService.canRunAi(AstEntity.mob(boss))
+                    || !conditionService.canCastSkill(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    vesperalaEncounterController.cancelCast(boss.instanceId());
+                } else {
+                    vesperalaEncounterController.tick(boss, entity, clockTicks);
+                }
                 continue;
             }
 
@@ -429,6 +455,7 @@ public final class BossMechanicService {
             }
         }
         empusaSpellController.retain(activeEmpusas);
+        vesperalaEncounterController.retain(activeVesperalas);
         knockerEncounterController.retain(activeKnockers);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
@@ -2297,14 +2324,25 @@ public final class BossMechanicService {
     }
 
     /**
-     * クノッカーへの攻撃を、同じ会場内でギミックに参加できる所有者へ限定します。
+     * クノッカーとヴェスパーラへの攻撃を、同じ会場内でギミックに参加できる所有者へ限定します。
      * ペット・遅延攻撃も所有者の現在位置で判定し、環境や対象外からの攻撃を拒否します。
      *
      * @param attacker 共通戦闘の攻撃者。環境ダメージではnull
      * @param victim 共通戦闘の被弾者
-     * @return クノッカー以外はtrue。クノッカーでは場内参加者または直接召喚の初撃だけtrue
+     * @return 専用会場制約のないMobはtrue。対象ボスでは場内参加者または直接召喚の初撃だけtrue
      */
     public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (victim.isMob() && VesperalaEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null) return false;
+            Player player = owner.getBukkit();
+            MobInstance boss = victim.mob();
+            if (!damageService.isMobCombatTarget(player)
+                || !VesperalaEncounterController.inArena(player.getLocation(), boss.spawnLocation())) return false;
+            if (!dungeonService.isDungeonMob(boss.instanceId()) && !bossChallengeService.isBossMob(boss.instanceId())
+                && (boss.state() == MobState.IDLE || boss.targetId() == null)) return true;
+            return vesperalaParticipants(boss).contains(player);
+        }
         if (!victim.isMob() || !KnockerEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
             return true;
         }
@@ -2325,6 +2363,19 @@ public final class BossMechanicService {
             return true;
         }
         return knockerParticipants(boss).contains(player);
+    }
+
+    /**
+     * 館主の対象をダンジョン・挑戦の確定参加者へ限定します。直接召喚では標的所有者のパーティーを使用します。
+     * @param boss 同期処理中の館主
+     * @return 同一worldの生存する戦闘可能な参加者
+     */
+    private @NotNull List<Player> vesperalaParticipants(@NotNull MobInstance boss) {
+        if (dungeonService.isDungeonMob(boss.instanceId())) {
+            return dungeonService.resolveMobRewardRecipients(boss.instanceId()).stream().map(AstPlayer::getBukkit)
+                .filter(damageService::isMobCombatTarget).toList();
+        }
+        return knockerParticipants(boss);
     }
 
     private @NotNull List<Player> nearbyManagedPlayers(@NotNull Location center, double radius) {

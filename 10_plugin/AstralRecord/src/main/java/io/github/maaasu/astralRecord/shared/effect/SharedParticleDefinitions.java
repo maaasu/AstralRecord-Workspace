@@ -21,6 +21,22 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    /** 館主の危険面。最低密度でも一点一粒を残す幽翠色。 */
+    public static final SharedParticleDefinition VESPERALA_WARNING =
+        new SharedParticleDefinition("vesperala_warning", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(65, 225, 140), 1.15F));
+    /** 館主の歩行可能な安全地点と無害な反撃窓。 */
+    public static final SharedParticleDefinition VESPERALA_SAFE =
+        new SharedParticleDefinition("vesperala_safe", Particle.END_ROD, 4, 0, 0, 0, 0);
+    /** 館主の会場16mを示す、攻撃予兆と区別した淡い青灰の境界。 */
+    public static final SharedParticleDefinition VESPERALA_BOUNDARY =
+        new SharedParticleDefinition("vesperala_boundary", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(115, 160, 170), 0.9F));
+    /** 館主の実際の命中面に表示する枝葉の衝撃。 */
+    public static final SharedParticleDefinition VESPERALA_IMPACT =
+        new SharedParticleDefinition("vesperala_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.04D, 0.1D, 0.04D, 0,
+            new Particle.DustTransition(Color.fromRGB(60, 185, 105), Color.fromRGB(215, 255, 225), 1.4F));
+
     public static final SharedParticleDefinition KNOCKER_WARNING =
         new SharedParticleDefinition("knocker_warning", Particle.DUST, 4, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 145, 50), 1.15F));

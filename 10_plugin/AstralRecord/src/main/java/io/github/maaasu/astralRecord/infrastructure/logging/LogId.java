@@ -1113,6 +1113,8 @@ public enum LogId {
     E_6506(6506),
     /** クノッカーの進行に失敗しました: boss=%s */
     E_6507(6507),
+    /** ヴェスパーラの詠唱・表示・命中処理の失敗。 */
+    E_6508(6508),
     // endregion
 
     // region /feature/adventurerecord/ 6550-6559
