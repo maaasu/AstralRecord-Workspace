@@ -180,13 +180,29 @@ public record DungeonDefinition(
             @NotNull Material gateMaterial,
             @NotNull Pillar pillar,
             @NotNull Material lightMaterial,
-            @NotNull Decorations decorations
+            @NotNull Decorations decorations,
+            @NotNull DungeonLandscape landscape
     ) {
         public Theme {
             floor = List.copyOf(floor);
             wall = List.copyOf(wall);
             ceiling = List.copyOf(ceiling);
             corridor = List.copyOf(corridor);
+        }
+
+        /** 屋外生成方式導入前の定義を屋内として保持します。 */
+        public Theme(
+                @NotNull List<WeightedMaterial> floor,
+                @NotNull List<WeightedMaterial> wall,
+                @NotNull List<WeightedMaterial> ceiling,
+                @NotNull List<WeightedMaterial> corridor,
+                @NotNull Material gateMaterial,
+                @NotNull Pillar pillar,
+                @NotNull Material lightMaterial,
+                @NotNull Decorations decorations
+        ) {
+            this(floor, wall, ceiling, corridor, gateMaterial, pillar, lightMaterial,
+                    decorations, DungeonLandscape.INDOOR);
         }
 
         /** 照明・部屋タイプ装飾導入前の呼び出し元向け互換コンストラクタです。 */
@@ -248,8 +264,19 @@ public record DungeonDefinition(
             @NotNull IntRange mobsPerRoom,
             int firstCombatRoomMaxMobLevel,
             @NotNull String bossMobId,
-            Integer bossMobLevel
+            Integer bossMobLevel,
+            boolean ensureMobVariety
     ) {
+        /** 種類保証導入前の定義では、従来どおり全個体を重み付き抽選します。 */
+        public Encounter(
+                @NotNull List<WeightedMob> normalMobPool,
+                @NotNull IntRange mobsPerRoom,
+                int firstCombatRoomMaxMobLevel,
+                @NotNull String bossMobId,
+                Integer bossMobLevel
+        ) {
+            this(normalMobPool, mobsPerRoom, firstCombatRoomMaxMobLevel, bossMobId, bossMobLevel, false);
+        }
         /** 既存の bossMobId のみの定義を維持するコンストラクタです。 */
         public Encounter(
                 @NotNull List<WeightedMob> normalMobPool,

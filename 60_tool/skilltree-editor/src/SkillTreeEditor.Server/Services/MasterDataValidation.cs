@@ -49,6 +49,28 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         }
         if (content is JsonObject obj)
         {
+            if (path.StartsWith("65.features.dungeon/", MasterDataPaths.Comparison)
+                && obj["theme"] is JsonObject dungeonTheme && dungeonTheme.ContainsKey("landscape")
+                && Text(dungeonTheme["landscape"]) is not ("INDOOR" or "PLAINS"))
+                issues.Add(new("error", "DUNGEON_LANDSCAPE", "/theme/landscape",
+                    "地形の生成方式は INDOOR または PLAINS を指定してください。"));
+            if (path.StartsWith("65.features.dungeon/", MasterDataPaths.Comparison)
+                && obj["encounter"] is JsonObject dungeonEncounter
+                && dungeonEncounter["ensureMobVariety"] is JsonValue variety
+                && variety.TryGetValue<bool>(out var ensureVariety) && ensureVariety
+                && dungeonEncounter["normalMobPool"] is JsonArray normalMobPool)
+            {
+                var roomAmounts = dungeonEncounter["mobsPerRoom"] as JsonObject;
+                var minimum = roomAmounts?["min"] is null ? 2
+                    : int.TryParse(Text(roomAmounts["min"]), out var parsedMinimum)
+                        ? parsedMinimum : 0;
+                var varietyCount = normalMobPool.OfType<JsonObject>()
+                    .Select(entry => Text(entry["mobId"]))
+                    .Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).Count();
+                if (minimum < varietyCount)
+                    issues.Add(new("error", "DUNGEON_MOB_VARIETY", "/encounter/mobsPerRoom/min",
+                        "種類保証を有効にする場合、最小出現数は候補の異なるMob ID数以上にしてください。"));
+            }
             await PetMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await FishingMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             var id = Text(obj["id"]);

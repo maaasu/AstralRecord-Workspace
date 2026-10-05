@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.dungeon.repository;
 
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLandscape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
@@ -144,17 +145,39 @@ public final class DungeonDefinitionRepository {
                                 optionalBlock(decorations, "beamMaterial", Material.OAK_PLANKS, true),
                                 parseMaterials(decorations, "rubble", Material.COBBLESTONE),
                                 parseMaterials(decorations, "accent", Material.COAL_ORE)
-                        )
+                        ),
+                        parseLandscape(theme)
                 ),
                 new DungeonDefinition.Encounter(
                         parseMobs(encounter),
                         parseRange(encounter.getConfigurationSection("mobsPerRoom"), "encounter.mobsPerRoom", 2, 4),
                         optionalInt(encounter, "firstCombatRoomMaxMobLevel", 10),
                         stripPrefix(requireString(encounter, "bossMobId")),
-                        optionalNullableInt(encounter, "bossMobLevel")
+                        optionalNullableInt(encounter, "bossMobLevel"),
+                        optionalBoolean(encounter, "ensureMobVariety", false)
                 ),
                 parseClearRewards(clearRewards)
         );
+    }
+
+    /** 省略時は屋内方式とし、明示された生成方式は列挙値として厳密に読み込みます。 */
+    private @NotNull DungeonLandscape parseLandscape(ConfigurationSection theme) {
+        if (theme == null || !theme.contains("landscape")) {
+            return DungeonLandscape.INDOOR;
+        }
+        return DungeonLandscape.valueOf(requireString(theme, "landscape"));
+    }
+
+    /** 任意の真偽値は、省略時だけ既定値を適用します。 */
+    private boolean optionalBoolean(ConfigurationSection section, String key, boolean fallback) {
+        if (section == null || !section.contains(key)) {
+            return fallback;
+        }
+        Object value = section.get(key);
+        if (!(value instanceof Boolean parsed)) {
+            throw new IllegalArgumentException(key + " must be boolean");
+        }
+        return parsed;
     }
 
     /** クリア時のプレイヤー別抽選報酬を既存 drops 形式へ変換します。 */

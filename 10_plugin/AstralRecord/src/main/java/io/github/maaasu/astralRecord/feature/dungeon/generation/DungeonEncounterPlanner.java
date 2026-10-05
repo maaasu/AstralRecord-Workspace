@@ -13,6 +13,7 @@ public final class DungeonEncounterPlanner {
 
     /**
      * 通常部屋の Mob を抽選します。最初の戦闘部屋だけレベル上限を先に適用します。
+     * 種類保証が有効なら、候補の各 Mob ID を一体ずつ先に採用し、残りを重み付き抽選します。
      *
      * @param definition ダンジョン定義
      * @param pool 受付時点の Mob テンプレート
@@ -42,7 +43,18 @@ public final class DungeonEncounterPlanner {
         DungeonDefinition.IntRange range = definition.encounter().mobsPerRoom();
         int count = range.min() + random.nextInt(range.max() - range.min() + 1);
         java.util.ArrayList<MobTemplate> result = new java.util.ArrayList<>(count);
-        for (int index = 0; index < count; index++) {
+        if (definition.encounter().ensureMobVariety()) {
+            java.util.Set<String> includedIds = new java.util.LinkedHashSet<>();
+            for (WeightedTemplate entry : eligible) {
+                if (includedIds.add(entry.template().id())) {
+                    result.add(entry.template());
+                }
+            }
+            if (result.size() > count) {
+                throw new IllegalArgumentException("mobsPerRoom cannot include every eligible mob ID");
+            }
+        }
+        while (result.size() < count) {
             result.add(choose(eligible, random).template());
         }
         return List.copyOf(result);
