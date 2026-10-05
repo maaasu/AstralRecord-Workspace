@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -63,6 +64,12 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
         this.arrivalGuard = arrivalGuard;
     }
 
+    /**
+     * 通常プレイ可能なアカウントのスポーン付近のスニークだけを拠点帰還候補にします。
+     *
+     * @param context 入力コンテキスト
+     * @return 条件を満たす拠点帰還候補。ADMIN状態など対象外の場合は空
+     */
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
@@ -78,7 +85,7 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
         }
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         Double distance = triggerDistance(snapshot.player());
-        if (astPlayer == null || distance == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer) || distance == null) {
             return List.of();
         }
         return List.of(new PlayerInputCandidate(

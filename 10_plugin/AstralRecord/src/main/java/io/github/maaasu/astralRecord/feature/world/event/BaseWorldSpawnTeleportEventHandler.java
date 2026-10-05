@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
@@ -45,6 +46,12 @@ public final class BaseWorldSpawnTeleportEventHandler extends AbstractEventHandl
         this.guiEventHandler = guiEventHandler;
     }
 
+    /**
+     * 通常プレイ可能なアカウントのスポーン付近のスニークだけを転送GUI候補にします。
+     *
+     * @param context 入力コンテキスト
+     * @return 条件を満たす転送GUI候補。ADMIN状態など対象外の場合は空
+     */
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
@@ -53,6 +60,7 @@ public final class BaseWorldSpawnTeleportEventHandler extends AbstractEventHandl
         if (context.family() != InputFamily.SNEAK
             || !(snapshot.event() instanceof PlayerToggleSneakEvent event)
             || !event.isSneaking()
+            || !AccountModeGuard.isGameplayPlayer(snapshot.player())
             || guiEventHandler.isOpen(snapshot.player())
             || !teleportService.isBaseWorld(snapshot.player().getWorld())) {
             return List.of();

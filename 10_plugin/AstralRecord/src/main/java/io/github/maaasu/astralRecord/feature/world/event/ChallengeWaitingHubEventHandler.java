@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -82,6 +83,12 @@ public final class ChallengeWaitingHubEventHandler extends AbstractEventHandler
         this.arrivalGuard = arrivalGuard;
     }
 
+    /**
+     * 通常プレイ可能なアカウントのハブスポーン付近のスニークだけを待機離脱候補にします。
+     *
+     * @param context 入力コンテキスト
+     * @return 条件を満たす待機離脱候補。ADMIN状態など対象外の場合は空
+     */
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
             @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
@@ -89,7 +96,8 @@ public final class ChallengeWaitingHubEventHandler extends AbstractEventHandler
         PlayerInteractionSnapshot snapshot = context.inputSnapshot();
         if (context.family() != InputFamily.SNEAK
                 || !(snapshot.event() instanceof PlayerToggleSneakEvent event)
-                || !event.isSneaking()) {
+                || !event.isSneaking()
+                || !AccountModeGuard.isGameplayPlayer(snapshot.player())) {
             return List.of();
         }
         if (arrivalGuard.isSuppressed(snapshot.player().getUniqueId())) {
