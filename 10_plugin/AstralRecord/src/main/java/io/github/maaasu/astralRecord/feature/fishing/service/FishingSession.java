@@ -19,6 +19,9 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Cod;
 import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PufferFish;
+import io.github.maaasu.astralRecord.feature.fishing.model.FishingMasters.FishDefinition;
+import io.github.maaasu.astralRecord.feature.fishing.model.FishingMasters.Rules;
 import org.bukkit.entity.Salmon;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -36,35 +39,16 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * デバッグ釣り竿の一回分の魚探索、リール操作、陸上での捕獲を管理します。
+ * マスタ定義に従う一回分の魚探索、リール操作、陸上での捕獲を管理します。
  * Bukkit API と実魚の移動は親キャストタスクからメインスレッドで更新します。
  */
-public final class FishingPrototypeSession {
-    private static final double SEARCH_RADIUS = 10.0D;
+public final class FishingSession {
     private static final int MAX_SEARCH_BLOCKS = 5_000;
-    private static final int MIN_FISH = 4;
-    private static final int MAX_FISH = 6;
     private static final double MIN_SPAWN_DISTANCE_SQUARED = 5.0D;
     private static final double MIN_FISH_SEPARATION_SQUARED = 3.0D;
-    private static final double FISH_SPEED = 0.13D;
-    private static final double FLEE_SPEED = 0.26D;
-    private static final double FISH_FORCE_PER_TICK = 0.008D;
-    private static final double REEL_MULTIPLIER = 0.30D;
-    private static final double SLACK_DISTANCE = 0.65D;
-    private static final double FISH_MAX_HP = 20.0D;
-    private static final int ATTACK_TICKS = 40;
-    private static final int TURN_TICKS = 80;
-    private static final int LANDING_TICKS = 14;
-    private static final int HANGING_TICKS = 100;
-    private static final int MAX_ESCAPE_TICKS = 1_200;
-    private static final int MAX_WAITING_TICKS = 1_200;
     private static final int MAX_TRAVEL_STEPS = 256;
     private static final double TRAVEL_SAMPLE_STEP = 0.12D;
-    private static final int NIBBLE_TICKS = 24;
-    private static final int NIBBLE_CYCLE_TICKS = 8;
-    private static final double NIBBLE_DISTANCE = 0.15D;
     private static final int MAX_SURFACE_SCAN = 64;
-    private static final int REEL_COOLDOWN_TICKS = 6;
     private static final int[] DELTA_X = {1, -1, 0, 0, 0, 0};
     private static final int[] DELTA_Y = {0, 0, 1, -1, 0, 0};
     private static final int[] DELTA_Z = {0, 0, 0, 0, 1, -1};
@@ -77,6 +61,10 @@ public final class FishingPrototypeSession {
     private final Location submergedHook;
     private final double maxLineLength;
     private final double rodAttack;
+    private final FishingMasterService masterService;
+    private final FishingMasterService.SessionDefinition definition;
+    private final Rules rules;
+    private static final int MAX_SESSION_TICKS = 72_000;
     private final List<Swimmer> fish = new ArrayList<>();
     private final BossBar bar;
 
@@ -91,25 +79,32 @@ public final class FishingPrototypeSession {
     private int ticks;
     private int phaseTicks;
     private int lastReelTick = Integer.MIN_VALUE / 2;
-    private double hp = FISH_MAX_HP;
+    private double hp;
     private double distance;
     private double surfaceY;
     private int surfaceBlockX = Integer.MIN_VALUE;
     private int surfaceBlockZ = Integer.MIN_VALUE;
 
     /**
-     * 針と連続する読み込み済み水域へ4～6匹の魚を生成します。
+     * 針と連続する読み込み済み水域へ、開始時マスタに従う魚を生成します。
      *
      * @param plugin 実行中のプラグイン。呼び出しはメインスレッドで行うこと
      * @param particles 共通粒子表示サービス
      * @param owner 釣りを開始したプレイヤー
      * @param submergedHook 水中にある仮想針の位置
      * @param maxLineLength 竿から許される糸の最大距離
-     * @param rodAttack キャスト時点の竿の攻撃力
+     * @param rodAttack キャスト時点の竿単体の攻撃力
+     * @param masterService 釣果確定サービス
+     * @param definition 着水ワールドと竿レベルから取得した開始時定義
      */
-    public FishingPrototypeSession(@NotNull AstralRecord plugin, @NotNull ParticleDisplayService particles,
+    public FishingSession(@NotNull AstralRecord plugin, @NotNull ParticleDisplayService particles,
                                    @NotNull AstPlayer owner, @NotNull Location submergedHook,
-                                   double maxLineLength, double rodAttack) {
+                                   double maxLineLength, double rodAttack,
+                          @NotNull FishingMasterService masterService,
+                          @NotNull FishingMasterService.SessionDefinition definition) {
+        this.masterService = masterService;
+        this.definition = definition;
+        this.rules = definition.rules();
         this.particles = particles;
         this.owner = owner;
         this.player = owner.getBukkit();
@@ -151,6 +146,7 @@ public final class FishingPrototypeSession {
         }
         ticks++;
         phaseTicks++;
+        if (ticks >= MAX_SESSION_TICKS) { escape(); return; }
         if (phase == Phase.WAITING && rodTip.distance(submergedHook) > maxLineLength) {
             escape();
             return;
@@ -226,15 +222,14 @@ public final class FishingPrototypeSession {
 
     /**
      * 戦闘中の左クリックでゲージ値と竿攻撃力に応じて糸を巻きます。
-     * 仮式は {@code 0.30 * 竿攻撃力 * ゲージ値} メートルです。
-     * 攻撃力10なら最大3m/攻撃ターン、張力は同じ80tickで0.64m増加します。
+     * 巻き取り距離は {@code マスタ係数 * 竿単体攻撃力 * ゲージ値} メートルです。
      */
     public void leftClick() {
-        if (phase != Phase.BATTLE || phaseTicks % TURN_TICKS >= ATTACK_TICKS
-            || ticks - lastReelTick < REEL_COOLDOWN_TICKS) return;
+        if (phase != Phase.BATTLE || phaseTicks % rules.turnTicks() >= rules.attackTicks()
+            || ticks - lastReelTick < rules.reelCooldownTicks()) return;
         lastReelTick = ticks;
-        distance = Math.max(0.0D, distance - REEL_MULTIPLIER * rodAttack * gauge());
-        phaseTicks = (phaseTicks / TURN_TICKS) * TURN_TICKS + ATTACK_TICKS;
+        distance = Math.max(0.0D, distance - rules.reelMultiplier() * rodAttack * gauge());
+        phaseTicks = (phaseTicks / rules.turnTicks()) * rules.turnTicks() + rules.attackTicks();
         bar.setProgress(0.01D);
         player.swingMainHand();
         player.playSound(player.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE,
@@ -246,7 +241,7 @@ public final class FishingPrototypeSession {
     /** 戦闘中は糸を緩め、吊り下げ中は魚を外して逃走を開始します。 */
     public void rightClick() {
         if (phase == Phase.BATTLE) {
-            distance += SLACK_DISTANCE;
+            distance += rules.slackDistance();
             player.playSound(player.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE,
                 SoundCategory.PLAYERS, 0.4F, 0.7F);
             showDistance();
@@ -256,16 +251,17 @@ public final class FishingPrototypeSession {
         }
     }
 
-    /** 手動操作と5秒経過を同じ取り外しに接続します。取り外すだけでは魚を削除しません。 */
+    /** 手動操作とマスタ時間経過を同じ取り外しに接続します。取り外すだけでは魚を削除しません。 */
     private void releaseFish() {
         if (phase != Phase.HANGING || selected == null) return;
         phase = Phase.RELEASED;
         phaseTicks = 0;
         bar.setColor(BarColor.RED);
         bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
-        bar.setProgress(hp / FISH_MAX_HP);
+        bar.setProgress(hp / selected.definition.maxHealth());
         bar.setVisible(true);
-        escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds);
+        escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds,
+            selected.definition.landFleeSpeed(), selected.definition.hopSpeed());
         FishingFeedback.notify(owner, FishingMsgId.RELEASED);
     }
 
@@ -284,7 +280,7 @@ public final class FishingPrototypeSession {
         fish.clear();
     }
 
-    /** @return 接続した水域へ最低4匹を生成できた場合はtrue */
+    /** @return 接続した水域へ定義された最小匹数を生成できた場合はtrue */
     private boolean spawnFish() {
         if (!isWater(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ())) return false;
         BlockPos root = new BlockPos(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ());
@@ -301,14 +297,14 @@ public final class FishingPrototypeSession {
             for (int side = 0; side < 6 && parents.size() < MAX_SEARCH_BLOCKS; side++) {
                 BlockPos next = new BlockPos(current.x + DELTA_X[side], current.y + DELTA_Y[side],
                     current.z + DELTA_Z[side]);
-                if (parents.containsKey(next) || next.center(world).distanceSquared(submergedHook) > SEARCH_RADIUS * SEARCH_RADIUS
+                if (parents.containsKey(next) || next.center(world).distanceSquared(submergedHook) > rules.searchRadius() * rules.searchRadius()
                     || !isWater(next.x, next.y, next.z)) continue;
                 parents.put(next, current);
                 queue.addLast(next);
             }
         }
         Collections.shuffle(candidates);
-        int targetCount = ThreadLocalRandom.current().nextInt(MIN_FISH, MAX_FISH + 1);
+        int targetCount = ThreadLocalRandom.current().nextInt(rules.fishCountMin(), rules.fishCountMax() + 1);
         List<BlockPos> chosen = new ArrayList<>();
         for (BlockPos candidate : candidates) {
             if (chosen.stream().anyMatch(other -> other.center(world).distanceSquared(candidate.center(world))
@@ -316,7 +312,7 @@ public final class FishingPrototypeSession {
             chosen.add(candidate);
             if (chosen.size() == targetCount) break;
         }
-        if (chosen.size() < MIN_FISH) return false;
+        if (chosen.size() < rules.fishCountMin()) return false;
         for (BlockPos position : chosen) {
             List<Location> path = new ArrayList<>();
             BlockPos cursor = position;
@@ -326,10 +322,13 @@ public final class FishingPrototypeSession {
             }
             path.add(submergedHook.clone());
             Collections.reverse(path);
-            Class<? extends Fish> species = switch (ThreadLocalRandom.current().nextInt(3)) {
-                case 0 -> Cod.class;
-                case 1 -> Salmon.class;
-                default -> TropicalFish.class;
+            FishDefinition fishDefinition = definition.drawFish(ThreadLocalRandom.current().nextDouble(100.0));
+            Class<? extends Fish> species = switch (fishDefinition.entityType()) {
+                case COD -> Cod.class;
+                case SALMON -> Salmon.class;
+                case TROPICAL_FISH -> TropicalFish.class;
+                case PUFFERFISH -> PufferFish.class;
+                default -> throw new IllegalStateException("Unsupported fishing entity");
             };
             Fish[] creating = new Fish[1];
             Fish entity;
@@ -347,14 +346,14 @@ public final class FishingPrototypeSession {
                 entity.remove();
                 return false;
             }
-            fish.add(new Swimmer(entity, path));
+            fish.add(new Swimmer(entity, path, fishDefinition));
         }
         return true;
     }
 
     /** 魚を水路に沿って針へ寄せ、つつきと最初の食いつきを判定します。 */
     private void tickWaiting() {
-        if (phaseTicks >= MAX_WAITING_TICKS
+        if (phaseTicks >= rules.waitingTicks()
             || !isWater(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ())
             || fish.stream().noneMatch(swimmer -> swimmer.entity.isValid())) {
             FishingFeedback.notify(owner, FishingMsgId.ESCAPED);
@@ -370,13 +369,13 @@ public final class FishingPrototypeSession {
             if (swimmer.pathIndex == 0 && swimmer.direction < 0) {
                 swimmer.nibbleTicks++;
                 nibble(swimmer);
-                if (swimmer.nibbleTicks % NIBBLE_CYCLE_TICKS == NIBBLE_CYCLE_TICKS / 2) {
+                if (swimmer.nibbleTicks % rules.nibbleCycleTicks() == rules.nibbleCycleTicks() / 2) {
                     particles.spawnForNearbyViewers(submergedHook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
                     player.playSound(submergedHook, Sound.ENTITY_FISHING_BOBBER_SPLASH,
                         SoundCategory.NEUTRAL, 0.5F, 1.45F);
                 }
-                if (swimmer.nibbleTicks >= NIBBLE_TICKS) {
-                    if (ThreadLocalRandom.current().nextDouble() < 0.45D) {
+                if (swimmer.nibbleTicks >= rules.nibbleTicks()) {
+                    if (ThreadLocalRandom.current().nextDouble(100.0) < swimmer.definition.biteChancePercent()) {
                         beginBattle(swimmer);
                         return;
                     }
@@ -390,7 +389,7 @@ public final class FishingPrototypeSession {
                 swimmer.restTicks = 8;
                 continue;
             }
-            movePath(swimmer, swimmer.direction, FISH_SPEED);
+            movePath(swimmer, swimmer.direction, swimmer.definition.swimSpeed());
         }
     }
 
@@ -399,8 +398,8 @@ public final class FishingPrototypeSession {
         if (swimmer.path.size() < 2) return;
         Vector outward = swimmer.path.get(1).toVector().subtract(submergedHook.toVector());
         if (outward.lengthSquared() < 1.0E-6D) return;
-        double phase = (swimmer.nibbleTicks % NIBBLE_CYCLE_TICKS) / (double) NIBBLE_CYCLE_TICKS;
-        double offset = NIBBLE_DISTANCE * (1.0D + Math.cos(2.0D * Math.PI * phase)) * 0.5D;
+        double phase = (swimmer.nibbleTicks % rules.nibbleCycleTicks()) / (double) rules.nibbleCycleTicks();
+        double offset = rules.nibbleDistance() * (1.0D + Math.cos(2.0D * Math.PI * phase)) * 0.5D;
         Location next = submergedHook.clone().add(outward.normalize().multiply(offset));
         Location current = swimmer.entity.getLocation();
         if (!isWaterAt(next) || !canTravel(current, next)) return;
@@ -412,6 +411,7 @@ public final class FishingPrototypeSession {
     /** @param winner 最初に食いついた魚 */
     private void beginBattle(Swimmer winner) {
         selected = winner;
+        hp = winner.definition.maxHealth();
         phase = Phase.BATTLE;
         phaseTicks = 0;
         hook = winner.entity.getLocation();
@@ -443,7 +443,7 @@ public final class FishingPrototypeSession {
         previousRodTip = rodTip.clone();
         moveSelectedWithLine(rodTip);
         hook = selected.entity.getLocation();
-        distance += FISH_FORCE_PER_TICK;
+        distance += selected.definition.pullPerTick();
         if (distance > maxLineLength) { escape(); return; }
         bar.setProgress(gauge());
         if (phaseTicks % 5 == 0) showDistance();
@@ -457,7 +457,7 @@ public final class FishingPrototypeSession {
     private void fleeLosers() {
         for (Swimmer swimmer : fish) {
             if (swimmer == selected || !swimmer.entity.isValid()) continue;
-            movePath(swimmer, 1, FLEE_SPEED);
+            movePath(swimmer, 1, swimmer.definition.fleeSpeed());
             if (--swimmer.fleeTicks <= 0) swimmer.entity.remove();
         }
     }
@@ -543,9 +543,9 @@ public final class FishingPrototypeSession {
 
     /** @return 攻撃ターンの往復ゲージ、休止ターンでは0.01 */
     private double gauge() {
-        int turn = phaseTicks % TURN_TICKS;
-        if (turn >= ATTACK_TICKS) return 0.01D;
-        return Math.max(0.0D, 1.0D - Math.abs(turn - ATTACK_TICKS / 2.0D) / (ATTACK_TICKS / 2.0D));
+        int turn = phaseTicks % rules.turnTicks();
+        if (turn >= rules.attackTicks()) return 0.01D;
+        return Math.max(0.0D, 1.0D - Math.abs(turn - rules.attackTicks() / 2.0D) / (rules.attackTicks() / 2.0D));
     }
 
     /** 残り糸距離をボスバーの題名へ表示します。 */
@@ -569,7 +569,7 @@ public final class FishingPrototypeSession {
     private void tickLanding(Location rodTip) {
         if (selected == null) { close(); return; }
         fleeLosers();
-        double progress = Math.min(1.0D, phaseTicks / (double) LANDING_TICKS);
+        double progress = Math.min(1.0D, phaseTicks / (double) rules.landingTicks());
         Location end = hangPosition(rodTip);
         Vector travel = end.toVector().subtract(landingStart.toVector());
         Location next = landingStart.clone().add(travel.multiply(progress))
@@ -577,14 +577,15 @@ public final class FishingPrototypeSession {
         if (!canTravel(selected.entity.getLocation(), next)) return;
         selected.entity.teleport(next);
         hook = next;
-        if (phaseTicks >= LANDING_TICKS) {
+        if (phaseTicks >= rules.landingTicks()) {
             phase = Phase.HANGING;
             phaseTicks = 0;
             combatBounds = selected.entity.getBoundingBox().clone()
                 .shift(selected.entity.getLocation().toVector().multiply(-1.0D));
-            combatHandle = mobService.fishingCombat().register(owner, selected.entity, FISH_MAX_HP,
+            combatHandle = mobService.fishingCombat().register(owner, selected.entity, selected.definition.name(), selected.definition.maxHealth(),
                 this::canReceiveCombatDamage, this::onCombatHealthChanged, this::onFishDefeated);
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING, "5.0"));
+            bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING,
+                String.format(Locale.ROOT, "%.1f", rules.hangingTicks() / 20.0)));
             bar.setColor(BarColor.YELLOW);
             bar.setProgress(1.0D);
             bar.setVisible(true);
@@ -592,7 +593,7 @@ public final class FishingPrototypeSession {
         }
     }
 
-    /** @param rodTip 吊り下げ位置を決める現在の竿先。接水・障害物では逃がさず、5秒で自動解除します */
+    /** @param rodTip 吊り下げ位置を決める現在の竿先。接水・障害物では逃がさず、マスタ時間で自動解除します */
     private void tickHanging(Location rodTip) {
         if (selected == null) { close(); return; }
         fleeLosers();
@@ -602,8 +603,8 @@ public final class FishingPrototypeSession {
         }
         hook = selected.entity.getLocation();
         combatHandle.syncLocation();
-        int remaining = Math.max(0, HANGING_TICKS - phaseTicks);
-        bar.setProgress(remaining / (double) HANGING_TICKS);
+        int remaining = Math.max(0, rules.hangingTicks() - phaseTicks);
+        bar.setProgress(remaining / (double) rules.hangingTicks());
         if (phaseTicks % 5 == 0) {
             bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING,
                 String.format(Locale.ROOT, "%.1f", remaining / 20.0D)));
@@ -623,7 +624,7 @@ public final class FishingPrototypeSession {
     /** 重力で落下し、接地時だけ跳ねて逃走します。元の水域以外への接水も逃走となります。 */
     private void tickReleased() {
         if (selected == null || escapeMotion == null) { close(); return; }
-        if (phaseTicks >= MAX_ESCAPE_TICKS) {
+        if (phaseTicks >= rules.escapeTicks()) {
             escape();
             return;
         }
@@ -648,10 +649,10 @@ public final class FishingPrototypeSession {
     /** 共通DamageServiceで確定したHPを表示へ反映します。ここではダメージを再計算しません。 */
     private void onCombatHealthChanged(double remaining) {
         if (!isCombatPhase()) return;
-        hp = Math.max(0.0D, Math.min(FISH_MAX_HP, remaining));
+        hp = Math.max(0.0D, Math.min(selected.definition.maxHealth(), remaining));
         if (isReleased()) {
             bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
-            bar.setProgress(hp / FISH_MAX_HP);
+            bar.setProgress(hp / selected.definition.maxHealth());
         }
         if (hp > 0.0D) {
             world.playSound(selected.entity.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 0.8F, 1.0F);
@@ -661,8 +662,12 @@ public final class FishingPrototypeSession {
     /** 共通戦闘で所有者またはそのペットが倒した場合だけ釣果成立を通知します。 */
     private void onFishDefeated() {
         if (phase == Phase.FINISHED) return;
-        FishingFeedback.notify(owner, FishingMsgId.DEFEATED);
+        FishDefinition caught = selected.definition;
+        Location catchLocation = hook.clone();
+        // 報酬処理より先に終了し、重複コールバックからの二重付与を防ぎます。
         close();
+        masterService.grantCatch(owner, catchLocation, definition, caught);
+        FishingFeedback.notify(owner, FishingMsgId.DEFEATED);
     }
 
     /** @return ボスバーへ表示する残HP。端数を切り上げ、残りがあるとき0に見せません */
@@ -747,6 +752,7 @@ public final class FishingPrototypeSession {
 
     private static final class Swimmer {
         private final Fish entity;
+        private final FishDefinition definition;
         private final List<Location> path;
         private int pathIndex;
         private int restTicks;
@@ -755,7 +761,8 @@ public final class FishingPrototypeSession {
         private int direction = -1;
 
         /** @param entity 接続水域に生成した実魚 @param path 針から魚へ続く水路 */
-        private Swimmer(Fish entity, List<Location> path) {
+        private Swimmer(Fish entity, List<Location> path, FishDefinition definition) {
+            this.definition = definition;
             this.entity = entity;
             this.path = path;
             this.pathIndex = path.size() - 1;

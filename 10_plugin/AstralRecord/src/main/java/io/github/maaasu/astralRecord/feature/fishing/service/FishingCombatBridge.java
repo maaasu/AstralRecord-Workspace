@@ -1,7 +1,7 @@
 package io.github.maaasu.astralRecord.feature.fishing.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
-import io.github.maaasu.astralRecord.feature.fishing.message.FishingMsgId;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
@@ -26,7 +26,7 @@ import java.util.function.DoubleConsumer;
 
 /** 釣りセッションの実魚を通常の Mob 戦闘へ一時的に接続します。 */
 public final class FishingCombatBridge {
-    private static final String TEMPLATE_ID = "__fishing_prototype_combat__";
+    private static final String TEMPLATE_ID = "__fishing_combat__";
     private final MobService mobService;
     private final Map<UUID, Registration> registrations = new HashMap<>();
 
@@ -39,6 +39,7 @@ public final class FishingCombatBridge {
      * 釣り魚の実体を通常戦闘へ登録します。呼び出し元はメインスレッドで魚の生存を確認します。
      * @param owner 釣りの所有者
      * @param fish 既に生成済みの実魚
+     * @param fishName マスタの魚表示名
      * @param maxHealth 独自最大 HP
      * @param canReceiveDamage 現在の釣り状態と接水状態を判定する関数
      * @param onHealthChanged 有効なダメージ後の現在 HP 通知
@@ -46,7 +47,7 @@ public final class FishingCombatBridge {
      * @return 登録解除と位置同期のハンドル
      * @throws IllegalArgumentException 魚が無効、または最大HPが正の有限値でない場合
      */
-    public @NotNull Handle register(@NotNull AstPlayer owner, @NotNull Fish fish, double maxHealth,
+    public @NotNull Handle register(@NotNull AstPlayer owner, @NotNull Fish fish, @NotNull String fishName, double maxHealth,
                                     @NotNull BooleanSupplier canReceiveDamage,
                                     @NotNull DoubleConsumer onHealthChanged,
                                     @NotNull Runnable onDefeated) {
@@ -54,7 +55,7 @@ public final class FishingCombatBridge {
             throw new IllegalArgumentException("Fishing combat requires a living fish and positive HP");
         }
         MobTemplate template = new MobTemplate(1, TEMPLATE_ID, MobCategory.ENEMY,
-            FishingFeedback.text(FishingMsgId.FISH_NAME),
+            ColorCodeUtil.toLegacyText(fishName, fishName),
             null, 1, fish.getType(), false, null, List.of(), List.of(), null,
             MobEquipmentConfig.EMPTY, List.of(new MobBaseStat(StatusType.MAX_HEALTH.name(), maxHealth)),
             MobShieldConfig.EMPTY, MobIdleConfig.defaults(), false,

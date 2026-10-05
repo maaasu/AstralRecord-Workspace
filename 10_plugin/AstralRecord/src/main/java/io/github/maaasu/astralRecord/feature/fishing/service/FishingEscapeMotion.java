@@ -17,14 +17,14 @@ import java.util.Objects;
 public final class FishingEscapeMotion {
     private static final double GRAVITY = 0.08D;
     private static final double TERMINAL_SPEED = 0.75D;
-    private static final double HOP_SPEED = 0.32D;
-    private static final double FLEE_SPEED = 0.16D;
     private static final double MAX_SUBSTEP = 0.04D;
     private static final int MAX_SUBSTEPS = 32;
     private static final double CONTACT_EPSILON = 1.0E-5D;
     private static final double GROUND_PROBE = 0.025D;
 
     private final World world;
+    private final double hopSpeed;
+    private final double fleeSpeed;
     private final Location target;
     private final BoundingBox localBounds;
     private double verticalSpeed;
@@ -36,10 +36,19 @@ public final class FishingEscapeMotion {
      * @param start 逃走開始時の実魚の足元位置。world が必要です
      * @param originalWater 元の釣り上げ位置。start と同じ world が必要です
      * @param localBounds 魚の足元位置からの相対 AABB。毎 tick の衝突判定に使用します
+     * @param fleeSpeed マスタで定義した陸上逃走速度（0より大きく1以下）
+     * @param hopSpeed マスタで定義した跳躍速度（0より大きく1以下）
      * @throws NullPointerException 引数または world が null の場合
      * @throws IllegalArgumentException world が異なる、または AABB が不正な場合
      */
-    public FishingEscapeMotion(Location start, Location originalWater, BoundingBox localBounds) {
+    public FishingEscapeMotion(Location start, Location originalWater, BoundingBox localBounds,
+                               double fleeSpeed, double hopSpeed) {
+        if (!Double.isFinite(fleeSpeed) || fleeSpeed <= 0 || fleeSpeed > 1
+            || !Double.isFinite(hopSpeed) || hopSpeed <= 0 || hopSpeed > 1) {
+            throw new IllegalArgumentException("Invalid fish escape speeds");
+        }
+        this.fleeSpeed = fleeSpeed;
+        this.hopSpeed = hopSpeed;
         Objects.requireNonNull(start, "start");
         Objects.requireNonNull(originalWater, "originalWater");
         this.world = Objects.requireNonNull(start.getWorld(), "start.world");
@@ -77,12 +86,12 @@ public final class FishingEscapeMotion {
 
         boolean onGround = blockedBelow(current);
         boolean bounced = onGround && verticalSpeed <= 0.0D;
-        if (bounced) verticalSpeed = HOP_SPEED;
+        if (bounced) verticalSpeed = hopSpeed;
         verticalSpeed = Math.max(-TERMINAL_SPEED, verticalSpeed - GRAVITY);
         double dx = target.getX() - current.getX();
         double dz = target.getZ() - current.getZ();
         double horizontalDistance = Math.hypot(dx, dz);
-        double horizontalTravel = Math.min(FLEE_SPEED, horizontalDistance);
+        double horizontalTravel = Math.min(fleeSpeed, horizontalDistance);
         double vx = horizontalDistance > CONTACT_EPSILON ? dx / horizontalDistance * horizontalTravel : 0.0D;
         double vz = horizontalDistance > CONTACT_EPSILON ? dz / horizontalDistance * horizontalTravel : 0.0D;
         int steps = (int) Math.ceil(Math.max(Math.max(Math.abs(vx), Math.abs(vz)), Math.abs(verticalSpeed))

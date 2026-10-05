@@ -45,6 +45,7 @@ import org.joml.Vector3f;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -187,6 +188,32 @@ public final class MobDropPresentationService {
     }
 
     /**
+     * セッション開始時に保持したアイテム世代を使って表示・付与します。実行時のAPI取得は行いません。
+     * @param recipient 受取プレイヤー
+     * @param deathLocation 取得位置
+     * @param sourceName 取得元表示名
+     * @param result 確定報酬
+     * @param dropSource インベントリ履歴用取得元
+     * @param itemSnapshot 参照アイテムが全て解決済みの開始時世代
+     */
+    public void presentAndGrantSnapshot(
+        @NotNull AstPlayer recipient,
+        @NotNull Location deathLocation,
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull String dropSource,
+        @NotNull Map<String, ItemModel> itemSnapshot
+    ) {
+        List<ResolvedDropItem> resolved = new ArrayList<>();
+        for (MobDropResultItem reward : result.items()) {
+            ItemModel model = itemSnapshot.get(reward.itemId().trim().toLowerCase(java.util.Locale.ROOT));
+            if (model == null) throw new IllegalArgumentException("Snapshot reward item is missing");
+            resolved.add(new ResolvedDropItem(model, Math.max(1, reward.amount()), reward.dropRate()));
+        }
+        presentResolved(recipient, deathLocation, sourceName, result, dropSource, null, resolved);
+    }
+
+    /**
      * 結果表示、通常・レアドロップ通知、付与用アイテム展開と回収処理をまとめて実行します。
      *
      * @param recipient 受取プレイヤー
@@ -204,6 +231,19 @@ public final class MobDropPresentationService {
         @NotNull String dropSource,
         @Nullable MobCategory mobCategory
     ) {
+        if (!recipient.getBukkit().isOnline() || (afkService != null && afkService.isAfk(recipient))) return;
+        presentResolved(recipient, deathLocation, sourceName, result, dropSource, mobCategory, resolveItems(result));
+    }
+
+    private void presentResolved(
+        @NotNull AstPlayer recipient,
+        @NotNull Location deathLocation,
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull String dropSource,
+        @Nullable MobCategory mobCategory,
+        @NotNull List<ResolvedDropItem> resolvedItems
+    ) {
         Player player = recipient.getBukkit();
         if (!player.isOnline() || (afkService != null && afkService.isAfk(recipient))) {
             return;
@@ -212,7 +252,6 @@ public final class MobDropPresentationService {
         if (result.money() > 0) {
             inventoryService.addGold(recipient, result.money());
         }
-        List<ResolvedDropItem> resolvedItems = resolveItems(result);
         spawnResultText(player, deathLocation, sourceName, result, resolvedItems);
         announceDropLogs(recipient, mobCategory, resolvedItems);
         List<ResolvedDropItem> grantItems = expandInstanceItems(resolvedItems);

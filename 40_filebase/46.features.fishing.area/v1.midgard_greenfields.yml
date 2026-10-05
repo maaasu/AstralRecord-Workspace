@@ -10,7 +10,7 @@ rulesId: {ref: "fishing_rules:default"}
 enabled: true
 levelRanges:
   - minLevel: 0
-    maxLevel: 2147483647
+    maxLevel: 9
     fish:
       - fishId: {ref: "fishing_fish:river_cod"}
         chancePercent: 55
@@ -18,3 +18,12 @@ levelRanges:
         chancePercent: 35
       - fishId: {ref: "fishing_fish:tropical_fish"}
         chancePercent: 10
+  - minLevel: 10
+    maxLevel: 2147483647
+    fish:
+      - fishId: {ref: "fishing_fish:river_cod"}
+        chancePercent: 25
+      - fishId: {ref: "fishing_fish:river_salmon"}
+        chancePercent: 60
+      - fishId: {ref: "fishing_fish:tropical_fish"}
+        chancePercent: 15

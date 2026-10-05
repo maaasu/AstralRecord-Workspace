@@ -1625,8 +1625,48 @@ public class StatusService {
         if (setId != null && !setId.isBlank()) {
             setCounts.merge(setId.trim(), 1, Integer::sum);
         }
+        EquipmentItemBonus itemBonus = resolveEquipmentItemBonus(equipment, instance, false);
+
+        for (StatusType statusType : StatusType.values()) {
+            StatusRange contribution = itemBonus.resolve(statusType);
+            if (contribution != null) {
+                addBonus(bonus, statusType, ItemEquipmentStatType.FLAT, contribution.min(), contribution.max());
+            }
+        }
+    }
+
+    /**
+     * 指定した装備単体の性能を返します。クラス・他装備・Buff・セット効果は含めません。
+     * インスタンスroll、累積強化、エンチャント、ルーンを通常装備と同じ計算で集計します。
+     * @param player 装備条件を判定する所有者
+     * @param model 使用する装備マスタ
+     * @param instance 同じ装備のインスタンス
+     * @param statusType 取得するステータス
+     * @return 装備単体の範囲。破損・条件未達・対応しないインスタンスでは0
+     */
+    public @NotNull StatusValue getEquipmentStatus(
+        @NotNull AstPlayer player,
+        @NotNull ItemModel model,
+        @NotNull EquipmentInstance instance,
+        @NotNull StatusType statusType
+    ) {
+        ItemEquipment equipment = model.getEquipment();
+        if (equipment == null || !model.getId().equalsIgnoreCase(instance.getItemId())
+            || isBrokenEquipment(instance) || !EquipmentRequirementService.check(player, equipment).allowed()) {
+            return new StatusValue(0.0D, 0.0D);
+        }
+        StatusRange range = resolveEquipmentItemBonus(equipment, instance, true).resolve(statusType);
+        return range == null ? new StatusValue(0.0D, 0.0D)
+            : new StatusValue(0.0D, 0.0D, range.min(), range.max());
+    }
+
+    /** 装備1個の共通補正集計。釣りレベルは未移行のインスタンスへだけマスタ値を補完します。 */
+    private @NotNull EquipmentItemBonus resolveEquipmentItemBonus(
+        @NotNull ItemEquipment equipment, @NotNull EquipmentInstance instance, boolean cachedRunesOnly
+    ) {
         EquipmentItemBonus itemBonus = new EquipmentItemBonus();
         boolean hasGatheringLevelRoll = false;
+        boolean hasFishingLevelRoll = false;
 
         for (EquipmentStatRoll roll : instance.getStatRolls()) {
             StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
@@ -1636,6 +1676,7 @@ public class StatusService {
             if (statusType == StatusType.GATHERING_LEVEL) {
                 hasGatheringLevelRoll = true;
             }
+            if (statusType == StatusType.FISHING_LEVEL) hasFishingLevelRoll = true;
             ItemEquipmentStat statDefinition = equipment.findStatDefinition(roll);
             ItemEquipmentStatType statType = statDefinition == null
                 ? ItemEquipmentStatType.FLAT
@@ -1650,6 +1691,14 @@ public class StatusService {
         }
         if (!hasGatheringLevelRoll) {
             applyMissingGatheringLevelMasterBonus(equipment, itemBonus);
+        }
+
+        if (!hasFishingLevelRoll) {
+            for (ItemEquipmentStat stat : equipment.getStats()) {
+                if (StatusType.FISHING_LEVEL.getId().equalsIgnoreCase(stat.getStatus())) {
+                    addItemBonus(itemBonus, StatusType.FISHING_LEVEL, stat.getType(), stat.getMin(), stat.getMax());
+                }
+            }
         }
 
         for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
@@ -1672,7 +1721,8 @@ public class StatusService {
         }
 
         for (var equippedRune : instance.getRunes()) {
-            ItemModel rune = resolveItemModel(equippedRune.getItemId());
+            ItemModel rune = cachedRunesOnly
+                ? itemService.findLoadedById(equippedRune.getItemId()) : resolveItemModel(equippedRune.getItemId());
             if (rune == null || rune.getRune() == null) {
                 continue;
             }
@@ -1684,12 +1734,7 @@ public class StatusService {
             }
         }
 
-        for (StatusType statusType : StatusType.values()) {
-            StatusRange contribution = itemBonus.resolve(statusType);
-            if (contribution != null) {
-                addBonus(bonus, statusType, ItemEquipmentStatType.FLAT, contribution.min(), contribution.max());
-            }
-        }
+        return itemBonus;
     }
 
     /**

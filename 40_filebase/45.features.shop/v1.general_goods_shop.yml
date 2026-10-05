@@ -7,6 +7,22 @@ type: SHOP
 name: "&e雑貨店"
 access: NPC_ONLY
 items:
+  - id: wooden_fishing_rod
+    itemId:
+      ref: item:20a00073
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 100
+  - id: reinforced_fishing_rod
+    itemId:
+      ref: item:20a00074
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 11
+    priceGold: 900
   - id: nox_weapon
     itemId:
       ref: item:20a00001

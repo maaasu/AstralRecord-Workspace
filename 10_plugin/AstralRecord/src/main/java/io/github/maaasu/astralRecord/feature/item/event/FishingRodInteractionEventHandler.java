@@ -2,7 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.item.service.DebugFishingRodUseService;
+import io.github.maaasu.astralRecord.feature.item.service.FishingRodUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -29,17 +29,17 @@ import java.util.Collection;
 import java.util.List;
 
 /** キャスト・リール・魚の取り外しを仲裁し、釣り上げ後の攻撃は通常の戦闘入力へ委ねます。 */
-public final class DebugFishingRodInteractionEventHandler extends AbstractEventHandler
+public final class FishingRodInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
-    private final DebugFishingRodUseService useService;
+    private final FishingRodUseService useService;
 
     /**
-     * デバッグ釣り竿の入力処理を構成します。
+     * 釣り竿の入力処理を構成します。
      *
-     * @param useService デバッグ釣り竿の業務サービス
+     * @param useService 釣り竿の業務サービス
      */
-    public DebugFishingRodInteractionEventHandler(@NotNull DebugFishingRodUseService useService) {
+    public FishingRodInteractionEventHandler(@NotNull FishingRodUseService useService) {
         this.useService = useService;
     }
 
@@ -82,7 +82,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             return List.of();
         }
         return List.of(new PlayerInputCandidate(
-            "debug-fishing-rod-cast",
+            "fishing-rod-cast",
             InteractionTier.WORLD_INTERACTION,
             candidateDistance(snapshot),
             InteractionCandidateOrder.FISHING_ROD,
@@ -93,7 +93,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             () -> runSafely(
                 () -> useService.cast(astPlayer),
                 LogId.E_3002,
-                "debug_fishing_rod_cast:" + snapshot.player().getName()
+                "fishing_rod_cast:" + snapshot.player().getName()
             )
         ));
     }
@@ -131,7 +131,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
         @NotNull String equipmentInstanceId
     ) {
         return List.of(new PlayerInputCandidate(
-            "debug-fishing-rod-active",
+            "fishing-rod-active",
             InteractionTier.WORLD_INTERACTION,
             candidateDistance(snapshot),
             InteractionCandidateOrder.FISHING_ROD,
@@ -142,7 +142,7 @@ public final class DebugFishingRodInteractionEventHandler extends AbstractEventH
             () -> runSafely(
                 () -> useService.retract(astPlayer),
                 LogId.E_3002,
-                "debug_fishing_rod_retract:" + snapshot.player().getName()
+                "fishing_rod_retract:" + snapshot.player().getName()
             )
         ));
     }

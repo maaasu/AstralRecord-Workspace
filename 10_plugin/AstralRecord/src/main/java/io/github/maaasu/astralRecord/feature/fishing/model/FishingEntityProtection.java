@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 /** 釣りセッションが所有する一時魚の識別と、バニラAIからの分離を扱います。 */
 public final class FishingEntityProtection {
-    public static final String TAG = "astralrecord_prototype_fish";
+    public static final String TAG = "astralrecord_fishing_fish";
 
     private FishingEntityProtection() {
     }

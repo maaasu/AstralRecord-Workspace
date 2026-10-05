@@ -15,7 +15,8 @@ public enum FishingMsgId {
     HIT(PlayerMsgId.P_9708),
     NO_WATER(PlayerMsgId.P_9709),
     HANGING(PlayerMsgId.P_9710),
-    FISH_NAME(PlayerMsgId.P_9711);
+    FISH_NAME(PlayerMsgId.P_9711),
+    NO_FISHING_AREA(PlayerMsgId.P_9712);
 
     private final PlayerMsgId message;
 

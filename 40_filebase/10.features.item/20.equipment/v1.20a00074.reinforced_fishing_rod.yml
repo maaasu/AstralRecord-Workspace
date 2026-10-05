@@ -1,0 +1,30 @@
+# design:
+#   motif: "工芸 / 補強した釣り竿"
+#   progression: 10
+schemaVersion: 1
+id: 20a00074
+category: equipment
+name: "丈夫な釣り竿"
+icon: FISHING_ROD
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 10
+lore:
+  - "&7強い引きにも耐えられるよう補強した竿。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: FISHING_ROD
+  requiredLevel: 10
+  stats:
+    - status: FISHING_LEVEL
+      type: FLAT
+      value: 10
+    - status: CAST_DISTANCE
+      type: FLAT
+      value: 24
+    - status: ATTACK
+      type: FLAT
+      value: 15

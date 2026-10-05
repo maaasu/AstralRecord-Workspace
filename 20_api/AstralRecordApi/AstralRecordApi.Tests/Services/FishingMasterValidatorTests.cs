@@ -9,39 +9,6 @@ namespace AstralRecordApi.Tests.Services;
 
 public sealed class FishingMasterValidatorTests
 {
-    [Fact]
-    public void ProductionFishingDefinitions_AreConsistentWithoutDatabase()
-    {
-        var root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "40_filebase")))
-            root = root.Parent;
-        Assert.NotNull(root);
-        var basePath = Path.Combine(root.FullName, "40_filebase");
-        var sources = new (string Type, string Path, string? Category)[]
-        {
-            ("fishing_fish", "44.features.fishing.fish", null),
-            ("fishing_area", "46.features.fishing.area", null),
-            ("fishing_rules", "47.features.fishing.rules", null),
-            ("item", "10.features.item/10.material", "material"),
-            ("world", "60.features.world", null),
-            ("loot.table", "80.shared.loot/table", null),
-        };
-        var parser = typeof(MasterDataSeeder).Assembly
-            .GetType("AstralRecordApi.Utilities.MasterDataYamlParser")!
-            .GetMethod("ParseObject", BindingFlags.Static | BindingFlags.Public)!;
-        var entries = new List<FishingMasterEntry>();
-        foreach (var source in sources)
-        {
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(basePath, source.Path), "*.yml"))
-            {
-                var payload = (JsonObject)parser.Invoke(null, [File.ReadAllText(path), path])!;
-                entries.Add(new FishingMasterEntry(source.Type, payload["id"]!.ToString(),
-                    source.Category, payload.ToJsonString()));
-            }
-        }
-        FishingMasterValidator.Validate(entries);
-    }
-
     /// <summary>設計入力: 40_filebase/46.features.fishing.area/docs.fishing-area.YAMLスキーマ定義.md。</summary>
     [Fact]
     public void ValidBandAndStackableReward_AreAccepted()

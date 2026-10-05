@@ -2,7 +2,9 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.fishing.service.FishingPrototypeSession;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingSession;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingFeedback;
+import io.github.maaasu.astralRecord.feature.fishing.message.FishingMsgId;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -46,13 +48,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * デバッグ釣り竿の仮想キャストを扱います。
+ * 装備マスタの釣り竿による仮想キャストを扱います。
  * <p>
  * バニラの {@code FishHook} は生成せず、針を {@link BlockDisplay}、糸を小さい黒色dustとして表示します。
  * 糸は竿先と針を結ぶ浅い曲線として2tick間隔で描画し、食いつき後は張った直線へ切り替えます。
  * 固体へ接触した針は回収まで固定し、水中に沈んだ針から釣りセッションへ移行します。
  */
-public final class DebugFishingRodUseService {
+public final class FishingRodUseService {
     static final double ROD_TIP_RIGHT_OFFSET = 0.35D;
     static final double ROD_TIP_UP_OFFSET = 0.20D;
     static final double ROD_TIP_FORWARD_OFFSET = 0.35D;
@@ -77,7 +79,7 @@ public final class DebugFishingRodUseService {
     private static final double MAX_RAY_TRACE_DISTANCE = 2.0D;
     private static final int PARTICLE_INTERVAL_TICKS = 2;
     private static final String HOOK_DISPLAY_TAG = "astralrecord_fishing_rod_hook";
-    private static final double PROTOTYPE_ROD_ATTACK = 10.0D;
+    private static final double DEFAULT_ROD_ATTACK = 10.0D;
 
     private final AstralRecord plugin;
     private final InventoryService inventoryService;
@@ -87,7 +89,7 @@ public final class DebugFishingRodUseService {
     private final Map<UUID, ActiveCast> activeCasts = new HashMap<>();
 
     /**
-     * デバッグ釣り竿の表示・移動サービスを構成します。
+     * 釣り竿の表示・移動サービスを構成します。
      *
      * @param plugin taskを所有するPlugin
      * @param inventoryService 主手のアイテム参照を解決するサービス
@@ -95,7 +97,7 @@ public final class DebugFishingRodUseService {
      * @param statusService キャスト距離を取得するステータスサービス
      * @param particleDisplayService viewer設定に従って粒子を送るサービス
      */
-    public DebugFishingRodUseService(
+    public FishingRodUseService(
         @NotNull AstralRecord plugin,
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService,
@@ -256,8 +258,12 @@ public final class DebugFishingRodUseService {
             false,
             hookDisplay
         );
-        double attack = status.rollValue(StatusType.ATTACK);
-        active.rodAttack = Double.isFinite(attack) && attack > 0.0D ? attack : PROTOTYPE_ROD_ATTACK;
+        double attack = statusService.getEquipmentStatus(player, current.model(), current.instance(), StatusType.ATTACK).rollValue();
+        active.rodAttack = Double.isFinite(attack) && attack > 0.0D ? attack : DEFAULT_ROD_ATTACK;
+        double fishingLevel = statusService.getEquipmentStatus(
+            player, current.model(), current.instance(), StatusType.FISHING_LEVEL).getMaxValue();
+        active.fishingLevel = Double.isFinite(fishingLevel)
+            ? (int) Math.max(0.0D, Math.min(Integer.MAX_VALUE, Math.floor(fishingLevel))) : 0;
         activeCasts.put(playerId, active);
         active.task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
@@ -398,8 +404,16 @@ public final class DebugFishingRodUseService {
         if (active.phase != CastPhase.RETRACTING && active.inWater
             && isWater(active.currentHook.getBlock().getType())) {
             emitWaterImpact(active);
-            active.fishing = new FishingPrototypeSession(plugin, particleDisplayService, astPlayer,
-                active.currentHook.clone(), active.maxLineLength, active.rodAttack);
+            var definition = plugin.getFishingMasterService().findDefinition(
+                active.currentHook.getWorld(), active.fishingLevel, plugin.getWorldService());
+            if (definition == null) {
+                FishingFeedback.notify(astPlayer, FishingMsgId.NO_FISHING_AREA);
+                cancel(playerId);
+                return;
+            }
+            active.fishing = new FishingSession(plugin, particleDisplayService, astPlayer,
+                active.currentHook.clone(), active.maxLineLength, active.rodAttack,
+                plugin.getFishingMasterService(), definition);
             tickFishing(playerId, player, active, rodTip);
             return;
         }
@@ -798,7 +812,9 @@ public final class DebugFishingRodUseService {
         ItemReference reference = inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND);
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
-        if (model == null || instance == null || !isFishingRod(model)) {
+        if (model == null || instance == null || !isFishingRod(model)
+            || (instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0)
+            || !EquipmentRequirementService.check(player, model.getEquipment()).allowed()) {
             return null;
         }
         return new CurrentFishingRod(reference, model, instance);
@@ -873,8 +889,9 @@ public final class DebugFishingRodUseService {
         private int renderTicks;
         private boolean retrieved;
         private @Nullable BukkitTask task;
-        private @Nullable FishingPrototypeSession fishing;
-        private double rodAttack = PROTOTYPE_ROD_ATTACK;
+        private @Nullable FishingSession fishing;
+        private double rodAttack = DEFAULT_ROD_ATTACK;
+        private int fishingLevel;
         private boolean taut;
 
         ActiveCast(

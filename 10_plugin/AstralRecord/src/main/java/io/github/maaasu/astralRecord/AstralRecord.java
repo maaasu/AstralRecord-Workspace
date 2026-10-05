@@ -66,8 +66,9 @@ import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService
 import io.github.maaasu.astralRecord.feature.hud.event.AdminMessageBossBarEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
-import io.github.maaasu.astralRecord.feature.item.event.DebugFishingRodInteractionEventHandler;
+import io.github.maaasu.astralRecord.feature.item.event.FishingRodInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.fishing.event.FishingEntityEventHandler;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingMasterService;
 import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
@@ -84,7 +85,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityReminderTask;
-import io.github.maaasu.astralRecord.feature.item.service.DebugFishingRodUseService;
+import io.github.maaasu.astralRecord.feature.item.service.FishingRodUseService;
 import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
@@ -414,6 +415,7 @@ public final class AstralRecord extends JavaPlugin {
     private org.bukkit.scheduler.BukkitTask petSaveTask;
     private org.bukkit.scheduler.BukkitTask petRefreshTask;
     private LootService lootService;
+    private FishingMasterService fishingMasterService;
     private ItemStackFactory itemStackFactory;
     private AccountService accountService;
     private AccountModeApplicationService accountModeApplicationService;
@@ -543,7 +545,7 @@ public final class AstralRecord extends JavaPlugin {
     private ItemWeaponAttackService itemWeaponAttackService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private EquipmentDurabilityReminderTask equipmentDurabilityReminderTask;
-    private DebugFishingRodUseService debugFishingRodUseService;
+    private FishingRodUseService fishingRodUseService;
     private HookshotUseService hookshotUseService;
     private CastDiskUseService castDiskUseService;
     private OrbService orbService;
@@ -604,6 +606,7 @@ public final class AstralRecord extends JavaPlugin {
         itemService = new ItemService();
         adminWorldTeleportItemService = new AdminWorldTeleportItemService();
         lootService = new LootService();
+        fishingMasterService = new FishingMasterService(itemService, lootService);
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         invulnerabilityVisualService = new InvulnerabilityVisualService(this);
         mobService = new MobService(this, new MobRepository());
@@ -930,8 +933,8 @@ public final class AstralRecord extends JavaPlugin {
         if (hookshotUseService != null) {
             hookshotUseService.shutdown();
         }
-        if (debugFishingRodUseService != null) {
-            debugFishingRodUseService.shutdown();
+        if (fishingRodUseService != null) {
+            fishingRodUseService.shutdown();
         }
         if (activeSkillTaskService != null) {
             activeSkillTaskService.stop();
@@ -1331,7 +1334,7 @@ public final class AstralRecord extends JavaPlugin {
         statusService = new StatusService(itemService, inventoryService);
         statusService.setPlayerClassService(playerClassService);
         statusService.setSkillTreeService(skillTreeService);
-        debugFishingRodUseService = new DebugFishingRodUseService(
+        fishingRodUseService = new FishingRodUseService(
             this,
             inventoryService,
             itemService,
@@ -1367,6 +1370,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         mobDropPresentationService.setAfkService(afkService);
         gatheringService.setDropPresentationService(mobDropPresentationService);
+        fishingMasterService.setDropPresentationService(mobDropPresentationService);
         gatheringService.setAfkService(afkService);
         var mobKnockbackService = new MobKnockbackService(mobService, () -> getServer().getCurrentTick());
         mobVanillaEffectProtectionService = new MobVanillaEffectProtectionService();
@@ -2153,6 +2157,7 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
+            fishingMasterService.loadAll();
             petService.reloadMaster();
             var skillDefinitions = skillService.loadDefinitions();
             var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
@@ -2500,10 +2505,10 @@ public final class AstralRecord extends JavaPlugin {
             potionUseService
         );
         var hookshotInteractionEventHandler = new HookshotInteractionEventHandler(hookshotUseService);
-        var debugFishingRodInteractionEventHandler = new DebugFishingRodInteractionEventHandler(debugFishingRodUseService);
+        var fishingRodInteractionEventHandler = new FishingRodInteractionEventHandler(fishingRodUseService);
         eventManager.registerHandler(itemInteractionBlockEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(hookshotInteractionEventHandler, getServer().getPluginManager());
-        eventManager.registerHandler(debugFishingRodInteractionEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(fishingRodInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(new FishingEntityEventHandler(), getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
@@ -2766,7 +2771,7 @@ public final class AstralRecord extends JavaPlugin {
                     overworldSpawnReturnEventHandler,
                     hookshotInteractionEventHandler,
                     castDiskInteractionEventHandler,
-                    debugFishingRodInteractionEventHandler,
+                    fishingRodInteractionEventHandler,
                     adminWorldTeleportItemEventHandler,
                     itemInteractionBlockEventHandler,
                     menuOpenEventHandler,
@@ -3147,6 +3152,11 @@ public final class AstralRecord extends JavaPlugin {
         return worldService;
     }
 
+    /** @return 開始時世代の釣り定義と釣果付与を管理するサービス */
+    public FishingMasterService getFishingMasterService() {
+        return fishingMasterService;
+    }
+
     /**
      * API/filebase 由来のマスターデータ再読込を開始します。
      *
@@ -3243,6 +3253,9 @@ public final class AstralRecord extends JavaPlugin {
         publications.add(() -> lootService.replaceSnapshot(lootSnapshot));
 
         var itemSnapshot = itemService.loadMasterDataSnapshot();
+        var fishingSnapshot = fishingMasterService.loadSnapshot(itemSnapshot.items(), lootSnapshot);
+        loaded += fishingSnapshot.size();
+        publications.add(() -> fishingMasterService.replaceSnapshot(fishingSnapshot));
         loaded += itemSnapshot.size();
         publications.add(() -> {
             itemService.replaceMasterDataSnapshot(itemSnapshot);

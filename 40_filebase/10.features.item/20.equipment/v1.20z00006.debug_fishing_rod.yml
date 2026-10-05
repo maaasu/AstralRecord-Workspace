@@ -24,3 +24,9 @@ equipment:
     - status: CAST_DISTANCE
       type: FLAT
       value: 32
+    - status: FISHING_LEVEL
+      type: FLAT
+      value: 1
+    - status: ATTACK
+      type: FLAT
+      value: 10

@@ -151,7 +151,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
     referencePrefix={fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
-    referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !entry.path.startsWith('10.features.item/20.equipment/') : undefined} />
+    referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {

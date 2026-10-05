@@ -1,0 +1,30 @@
+# design:
+#   motif: "工芸 / 木の釣り竿"
+#   progression: 1
+schemaVersion: 1
+id: 20a00073
+category: equipment
+name: "木の釣り竿"
+icon: FISHING_ROD
+rarity: COMMON
+maxStack: 1
+saleValue: 2
+lore:
+  - "&7水辺で魚を釣るための素朴な竿。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: FISHING_ROD
+  requiredLevel: 0
+  stats:
+    - status: FISHING_LEVEL
+      type: FLAT
+      value: 1
+    - status: CAST_DISTANCE
+      type: FLAT
+      value: 16
+    - status: ATTACK
+      type: FLAT
+      value: 10
