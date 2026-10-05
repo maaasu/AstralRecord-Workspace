@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier;
+import io.github.maaasu.astralRecord.feature.buff.service.BuffModifierDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
@@ -58,6 +59,7 @@ public final class BuffScreenView extends BaseMenuScreenView {
         }
     }
 
+    /** バフの残り時間と、固定加算・割合・最終乗算を区別した補正値を描画します。 */
     private @NotNull ItemStack buffItem(@NotNull ActiveBuff buff) {
         NamedTextColor accent = buff.getType().isDebuff() ? NamedTextColor.RED : NamedTextColor.AQUA;
         Component name = noItalic(Component.text(sanitizeDisplayName(buff.getType().getDisplayName()), accent, TextDecoration.BOLD));
@@ -72,7 +74,7 @@ public final class BuffScreenView extends BaseMenuScreenView {
             StatusType type = modifier.getStatus();
             lore.add(noItalic(Component.empty()
                 .append(Component.text(type.getDisplayName() + " ", type.namedColor()))
-                .append(Component.text(type.formatSignedValue(modifier.getValue()), NamedTextColor.WHITE))));
+                .append(Component.text(BuffModifierDisplayFormatter.formatValue(modifier), NamedTextColor.WHITE))));
         }
         return createItem(buff.getType().isDebuff() ? Material.FERMENTED_SPIDER_EYE : Material.POTION, name, lore);
     }

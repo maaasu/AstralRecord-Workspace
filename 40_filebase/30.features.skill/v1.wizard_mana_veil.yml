@@ -6,12 +6,16 @@ id: wizard_mana_veil
 type: SKILL
 implementationId: wizard_mana_veil
 name: "&bマナヴェール"
-description: "&8【概要】 &7攻勢を抑えて身を守る魔力の薄衣。"
+description: "&8【概要】 &7魔力の薄衣で身を守り、MPを立て直す。"
 icon: PURPLE_CANDLE
 lore:
   - "&a【防御】 &f{skill.durationTicks:seconds}秒間、自身の被ダメージが{skill.incomingMultiplier}倍。"
   - "&b【攻撃】 &f同じ間、自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
-  - "&b【効果】 &f重複発動では同じ効果を置き換える。"
+  - "&b【効果】 &fHP固定ダメージの加算には与・被ダメージ倍率を適用しない。"
+  - "&a【回復】 &f&bMP回復力&fが{skill.manaRegenBonus}増加する（5秒あたりの基礎量）。"
+  - "&a【回復】 &fMP自然回復には&b支援力&f・&d回復阻害&f・最大MPが適用される。"
+  - "&b【効果】 &fバフ一覧で効果と残り時間を確認できる。"
+  - "&b【効果】 &f&bバフ持続時間増加&fが適用され、重複発動では同じ効果を置き換える。"
 cooldownTicks: 360
 resourceType: MANA
 resourceCost: 30
@@ -19,10 +23,10 @@ castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 5
 levels:
-  - { level: 2, paramDeltas: { incomingMultiplier: -0.05 } }
-  - { level: 3, paramDeltas: { incomingMultiplier: -0.05 } }
-  - { level: 4, paramDeltas: { incomingMultiplier: -0.05 } }
-  - { level: 5, paramDeltas: { incomingMultiplier: -0.05 } }
+  - { level: 2, paramDeltas: { incomingMultiplier: -0.05, manaRegenBonus: 5 } }
+  - { level: 3, paramDeltas: { incomingMultiplier: -0.05, manaRegenBonus: 5 } }
+  - { level: 4, paramDeltas: { incomingMultiplier: -0.05, manaRegenBonus: 5 } }
+  - { level: 5, paramDeltas: { incomingMultiplier: -0.05, manaRegenBonus: 5 } }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
@@ -53,6 +57,7 @@ onCast:
   sound: block.amethyst_block.chime
 tags: [active, magic, support]
 params:
-  durationTicks: 60
+  durationTicks: 100
   incomingMultiplier: 0.8
   outgoingMultiplier: 0.8
+  manaRegenBonus: 40

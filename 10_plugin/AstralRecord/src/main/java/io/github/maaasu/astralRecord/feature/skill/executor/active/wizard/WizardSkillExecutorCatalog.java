@@ -25,6 +25,6 @@ public final class WizardSkillExecutorCatalog {
                 new WizardStormChainExecutor(services), new WizardTriadConvergenceExecutor(services),
                 new WizardArcaneLanceExecutor(services), new WizardArcaneOverloadExecutor(services, statusService),
                 new WizardManaSiphonExecutor(services, statusService), new WizardPrismaticDartExecutor(services),
-                new WizardManaVeilExecutor(services));
+                new WizardManaVeilExecutor(services, statusService));
     }
 }

@@ -116,3 +116,4 @@ statuses:
   - { id: INVENTORY_SLOTS, displayName: "インベントリスロット", description: "アイテムを保持できるインベントリの枠数。", category: UTILITY, supportsRange: false }
   - { id: PASSIVE_SKILL_SLOTS, displayName: "パッシブスキルスロット", description: "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", category: UTILITY, supportsRange: false }
   - { id: QUEST_LIMIT, displayName: "クエスト受領上限", description: "同時に受領できるクエスト数の上限。", category: UTILITY, supportsRange: false }
+  - { id: DAMAGE_REDUCTION_RATE, displayName: "被ダメージ軽減率", description: "直接攻撃・環境・継続ダメージを軽減する割合。0〜100%へ補正し、HP固定ダメージの加算を除いて適用する。", category: DEFENSE, suffix: "%", decimalPlaces: 1 }

@@ -1422,6 +1422,13 @@ public final class SharedParticleDefinitions {
             Material.BLUE_ICE.createBlockData());
     public static final SharedParticleDefinition WIZARD_RIME_STEAM =
         new SharedParticleDefinition("wizard_rime_steam", Particle.CLOUD, 12, 0.30D, 0.40D, 0.30D, 0.04D);
+    /** マナヴェールの回転する薄い魔力殻。 */
+    public static final SharedParticleDefinition WIZARD_MANA_VEIL_SHELL =
+        new SharedParticleDefinition("wizard_mana_veil_shell", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(115, 185, 255), 0.75F));
+    /** マナヴェールのMP再生を示す上昇光。 */
+    public static final SharedParticleDefinition WIZARD_MANA_VEIL_RECOVERY =
+        new SharedParticleDefinition("wizard_mana_veil_recovery", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition CLASS_LEVEL_UP_DUST =
         new SharedParticleDefinition(
             "class_level_up_dust",

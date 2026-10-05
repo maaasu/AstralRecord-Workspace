@@ -120,6 +120,7 @@ enum class StatusType(
     INVENTORY_SLOTS("INVENTORY_SLOTS", "インベントリスロット", "アイテムを保持できるインベントリの枠数。", Category.UTILITY, "", 0, false),
     PASSIVE_SKILL_SLOTS("PASSIVE_SKILL_SLOTS", "パッシブスキルスロット", "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", Category.UTILITY, "", 0, false),
     QUEST_LIMIT("QUEST_LIMIT", "クエスト受領上限", "同時に受領できるクエスト数の上限。", Category.UTILITY, "", 0, false),
+    DAMAGE_REDUCTION_RATE("DAMAGE_REDUCTION_RATE", "被ダメージ軽減率", "直接攻撃・環境・継続ダメージを軽減する割合。0〜100%へ補正し、HP固定ダメージの加算を除いて適用する。", Category.DEFENSE, "%", 1, true),
     ;
 
     /** 共有ステータスカテゴリです。 */

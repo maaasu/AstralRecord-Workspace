@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.status.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
+import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -339,6 +340,20 @@ public class StatusService {
     }
 
     /**
+     * 解決済みの実行時バフへ持続時間増加を適用し、ステータスを再計算します。
+     *
+     * @param player 対象プレイヤー
+     * @param type 表示名・補正値・基礎持続tickを解決済みのバフ
+     * @return 実際の失効時刻を持つ今回のバフ個体
+     */
+    public @NotNull ActiveBuff applyBuff(@NotNull AstPlayer player, @NotNull BuffType type) {
+        double durationIncrease = getStatus(player).rollValue(StatusType.BUFF_DURATION_INCREASE);
+        ActiveBuff activeBuff = buffService.apply(player, type, durationIncrease);
+        refreshStatus(player);
+        return activeBuff;
+    }
+
+    /**
      * 指定ステータスを固定値で補正する一時バフを付与し、ステータスを再計算します。
      *
      * @param player          対象プレイヤー
@@ -446,12 +461,13 @@ public class StatusService {
     }
 
     /**
-     * 現在有効なバフ一覧を返します。
+     * 現在有効なバフ一覧を返し、失効検出時はステータスも再計算します。
      *
      * @param player 対象プレイヤー
      * @return 有効バフ一覧
      */
     public @NotNull List<ActiveBuff> getActiveBuffs(@NotNull AstPlayer player) {
+        getStatus(player);
         return buffService.getActiveBuffs(player);
     }
 

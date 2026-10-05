@@ -1547,17 +1547,29 @@ public final class DamageService {
         }
     }
 
+    /** バフの被ダメージ軽減率と、既存の一時与・被ダメージ倍率を乗算します。 */
     private double temporaryDamageMultiplier(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim
     ) {
+        double reduction = damageReductionMultiplier(victim.statValue(StatusType.DAMAGE_REDUCTION_RATE));
         if (temporarySkillEffectService == null) {
-            return 1.0D;
+            return reduction;
         }
         double outgoing = attacker == null
                 ? 1.0D
                 : temporarySkillEffectService.outgoingMultiplier(attacker);
-        return outgoing * temporarySkillEffectService.incomingMultiplier(victim);
+        return reduction * outgoing * temporarySkillEffectService.incomingMultiplier(victim);
+    }
+
+    /**
+     * 共通の被ダメージ軽減率を0〜100%へ補正し、乗算係数へ変換します。
+     *
+     * @param percent 軽減率。非有限値は軽減なしとして扱う
+     * @return 0〜1の被ダメージ倍率
+     */
+    static double damageReductionMultiplier(double percent) {
+        return Double.isFinite(percent) ? 1.0D - Math.clamp(percent, 0.0D, 100.0D) / 100.0D : 1.0D;
     }
 
     /** 被弾者の一時効果、ペット効果、Mob個体固有の防御倍率を合成して返します。 */

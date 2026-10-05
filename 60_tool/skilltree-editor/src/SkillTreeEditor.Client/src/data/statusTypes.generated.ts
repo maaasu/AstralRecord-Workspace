@@ -106,6 +106,7 @@ export const STATUS_TYPE_IDS = [
   "INVENTORY_SLOTS",
   "PASSIVE_SKILL_SLOTS",
   "QUEST_LIMIT",
+  "DAMAGE_REDUCTION_RATE",
 ] as const
 
 export type StatusTypeId = typeof STATUS_TYPE_IDS[number]
@@ -226,6 +227,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "INVENTORY_SLOTS", displayName: "インベントリスロット", description: "アイテムを保持できるインベントリの枠数。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "PASSIVE_SKILL_SLOTS", displayName: "パッシブスキルスロット", description: "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "QUEST_LIMIT", displayName: "クエスト受領上限", description: "同時に受領できるクエスト数の上限。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
+  { id: "DAMAGE_REDUCTION_RATE", displayName: "被ダメージ軽減率", description: "直接攻撃・環境・継続ダメージを軽減する割合。0〜100%へ補正し、HP固定ダメージの加算を除いて適用する。", category: "DEFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
 ]
 
 export const STATUS_TYPE_BY_ID = new Map<StatusTypeId, StatusTypeDefinition>(

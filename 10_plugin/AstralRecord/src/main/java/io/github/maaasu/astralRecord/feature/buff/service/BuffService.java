@@ -66,7 +66,21 @@ public class BuffService {
         if (type == null) {
             return false;
         }
+        apply(player, type, durationIncreasePercent);
+        return true;
+    }
 
+    /**
+     * 解決済みの実行時バフを、マスタ由来のバフと同じ重複・持続時間規則で付与します。
+     * 実行時定義はマスタキャッシュへ登録しません。
+     *
+     * @param player 対象プレイヤー
+     * @param type 表示名・補正値・基礎持続tickを解決済みのバフ
+     * @param durationIncreasePercent 付与前に確定したバフ持続時間増加率（%）
+     * @return 今回付与したバフ。再付与では以前の個体を置き換える
+     */
+    public @NotNull ActiveBuff apply(@NotNull AstPlayer player, @NotNull BuffType type,
+                                     double durationIncreasePercent) {
         purgeExpired(player);
         removeOverlapping(player, type);
 
@@ -75,8 +89,9 @@ public class BuffService {
             ? Math.max(0L, type.getDurationTicks())
             : scaledDurationTicks(type.getDurationTicks(), durationIncreasePercent);
         LocalDateTime expiresAt = now.plus(durationTicks * 50L, ChronoUnit.MILLIS);
-        player.getActiveBuffs().add(new ActiveBuff(type, now, expiresAt));
-        return true;
+        ActiveBuff activeBuff = new ActiveBuff(type, now, expiresAt);
+        player.getActiveBuffs().add(activeBuff);
+        return activeBuff;
     }
 
     /**
