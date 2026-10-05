@@ -46,6 +46,7 @@ public final class ElementalPrismRuntimeService {
 
     /**
      * 設置者のプリズムを置き換え、持続時間中の表示と後始末を登録します。
+     * 追撃は設置時のスキル個体・ステータスを保持し、プリズム自身のシジル補正を使用します。
      *
      * @param context 設置時の発動情報
      * @param base 地表の設置中心
@@ -68,7 +69,7 @@ public final class ElementalPrismRuntimeService {
     ) {
         UUID ownerId = context.player().getUniqueId();
         PrismState state = new PrismState(
-                base, context.source().skill(), radius, damageRatio,
+                base, context.source().skill(), context.attacker(), radius, damageRatio,
                 maxTargets, projectileCount, projectileSpeed
         );
         try {
@@ -167,6 +168,7 @@ public final class ElementalPrismRuntimeService {
 
     /**
      * 魔法を吸収し、選んだ追撃対象へ1tick間隔で各弾を発射します。
+     * 属性は吸収された魔法から取り、攻撃ステータスはプリズム設置時の値を使用します。
      *
      * @param context 吸収された攻撃魔法の発動情報
      * @param state 吸収時に有効なプリズム
@@ -193,7 +195,7 @@ public final class ElementalPrismRuntimeService {
         }
         Collections.shuffle(candidates);
         List<AstEntity> targets = candidates.subList(0, Math.min(state.maxTargets, candidates.size()));
-        AstEntity attacker = context.attacker();
+        AstEntity attacker = state.attacker;
         Location[] previousLightningHit = {origin};
         for (int index = 0; index < state.projectileCount; index++) {
             AstEntity target = targets.get(ThreadLocalRandom.current().nextInt(targets.size()));
@@ -262,6 +264,7 @@ public final class ElementalPrismRuntimeService {
     private static final class PrismState {
         private final Location base;
         private final SkillDefinition skill;
+        private final AstEntity attacker;
         private final double radius;
         private final double damageRatio;
         private final int maxTargets;
@@ -271,9 +274,22 @@ public final class ElementalPrismRuntimeService {
         private BlockDisplay topCrystal;
         private boolean active;
 
+        /**
+         * 設置時のスキル個体と固定ステータスを追撃へ引き継ぎます。
+         *
+         * @param base 設置中心。複製して保持する
+         * @param skill 設置個体のレベル反映済みスキル
+         * @param attacker 設置時のシジル補正を含む固定ステータス付き攻撃者
+         * @param radius 対象の抽選半径
+         * @param damageRatio 追撃1発の基礎倍率
+         * @param maxTargets 抽選候補の上限
+         * @param projectileCount 吸収1回の追撃数
+         * @param projectileSpeed 追撃弾の速度
+         */
         private PrismState(
                 @NotNull Location base,
                 @NotNull SkillDefinition skill,
+                @NotNull AstEntity attacker,
                 double radius,
                 double damageRatio,
                 int maxTargets,
@@ -282,6 +298,7 @@ public final class ElementalPrismRuntimeService {
         ) {
             this.base = base.clone();
             this.skill = skill;
+            this.attacker = attacker;
             this.radius = radius;
             this.damageRatio = damageRatio;
             this.maxTargets = maxTargets;

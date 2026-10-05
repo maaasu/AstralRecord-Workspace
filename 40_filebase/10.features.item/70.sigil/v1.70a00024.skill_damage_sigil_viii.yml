@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00024
 category: sigil
 name: "&6威力のシジルⅧ"
-icon: HEAVY_CORE
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E29BA0"
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 450

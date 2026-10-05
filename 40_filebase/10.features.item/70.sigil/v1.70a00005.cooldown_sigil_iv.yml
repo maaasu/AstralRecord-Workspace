@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00005
 category: sigil
 name: "&5短縮のシジルⅣ"
-icon: COMPASS
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#69B8DB"
 rarity: EPIC
 maxStack: 64
 saleValue: 100

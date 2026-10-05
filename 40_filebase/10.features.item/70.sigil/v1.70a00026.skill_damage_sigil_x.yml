@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00026
 category: sigil
 name: "&c威力のシジルⅩ"
-icon: OMINOUS_TRIAL_KEY
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E29BA0"
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 600

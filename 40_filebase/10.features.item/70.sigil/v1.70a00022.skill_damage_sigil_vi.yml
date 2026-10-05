@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00022
 category: sigil
 name: "&d威力のシジルⅥ"
-icon: NETHERITE_SWORD
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E29BA0"
 rarity: EPIC
 maxStack: 64
 saleValue: 350

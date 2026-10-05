@@ -1,0 +1,23 @@
+# design:
+#   motif: "錬金術 / 時間制御"
+#   progression: 1
+schemaVersion: 1
+id: 70a00031
+category: sigil
+name: "&b短縮のシジル（27.5%）"
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#86C6E0"
+rarity: EPIC
+maxStack: 64
+saleValue: 137
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を27.5%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 27.5

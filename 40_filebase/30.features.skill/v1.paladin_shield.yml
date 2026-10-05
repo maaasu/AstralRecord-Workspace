@@ -22,6 +22,28 @@ resourceCost: 30
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 1
+allowedSigilIds:
+  - 70a00001
+  - 70a00027
+  - 70a00002
+  - 70a00028
+  - 70a00004
+  - 70a00029
+  - 70a00005
+  - 70a00030
+  - 70a00006
+  - 70a00031
+  - 70a00007
+  - 70a00032
+  - 70a00008
+  - 70a00033
+  - 70a00009
+  - 70a00034
+  - 70a00010
+  - 70a00035
+  - 70a00011
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
 learnRequiredItems: [{ itemId: 10a00025, amount: 12 }]
 levelUpRequiredItems: [{ itemId: 10a00025, amount: 12 }]
 onCast:

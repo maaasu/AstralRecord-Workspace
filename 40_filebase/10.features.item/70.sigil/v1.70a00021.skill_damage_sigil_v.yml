@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00021
 category: sigil
 name: "&5威力のシジルⅤ"
-icon: DIAMOND_SWORD
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E29BA0"
 rarity: EPIC
 maxStack: 64
 saleValue: 300

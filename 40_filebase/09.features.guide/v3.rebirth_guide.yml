@@ -48,11 +48,24 @@ steps:
         - cooldown_sigil_viii
         - cooldown_sigil_ix
         - cooldown_sigil_x
+        - cooldown_sigil_7_percent_5
+        - cooldown_sigil_12_percent_5
+        - cooldown_sigil_17_percent_5
+        - cooldown_sigil_22_percent_5
+        - cooldown_sigil_27_percent_5
+        - cooldown_sigil_32_percent_5
+        - cooldown_sigil_37_percent_5
+        - cooldown_sigil_42_percent_5
+        - cooldown_sigil_47_percent_5
         - cast_time_sigil_i
         - cast_time_sigil_ii
         - cast_time_sigil_iii
         - cast_time_sigil_iv
         - cast_time_sigil_v
+        - cast_time_sigil_15
+        - cast_time_sigil_25
+        - cast_time_sigil_35
+        - cast_time_sigil_45
         - bragi_orb
         - mimir_orb
         - skill_damage_sigil_i
@@ -65,3 +78,12 @@ steps:
         - skill_damage_sigil_viii
         - skill_damage_sigil_ix
         - skill_damage_sigil_x
+        - skill_damage_sigil_15
+        - skill_damage_sigil_25
+        - skill_damage_sigil_35
+        - skill_damage_sigil_45
+        - skill_damage_sigil_55
+        - skill_damage_sigil_65
+        - skill_damage_sigil_75
+        - skill_damage_sigil_85
+        - skill_damage_sigil_95

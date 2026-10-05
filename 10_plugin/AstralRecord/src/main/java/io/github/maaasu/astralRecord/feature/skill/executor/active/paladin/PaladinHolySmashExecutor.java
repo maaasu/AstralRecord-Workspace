@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -71,7 +73,10 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
         requirePositiveInt(params, "reducedCooldownTicks");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * フィールド条件成立時も、短縮後の基礎CDへ発動個体のクールダウン短縮を適用します。
+     */
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
@@ -128,7 +133,10 @@ public final class PaladinHolySmashExecutor extends PlayerActiveSkillExecutor {
             }
         }
         return fieldBonusTriggered
-                ? context.successWithCooldownTicks(reducedCooldownTicks)
+                ? context.successWithCooldownTicks(CombatTimingCalculator.resolveCooldownTicks(
+                        reducedCooldownTicks,
+                        context.source().statusSnapshot().rollValue(StatusType.COOLDOWN_REDUCTION)
+                ))
                 : context.success();
     }
 

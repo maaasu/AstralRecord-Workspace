@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00008
 category: sigil
 name: "&d短縮のシジルⅦ"
-icon: PHANTOM_MEMBRANE
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#86C6E0"
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 175

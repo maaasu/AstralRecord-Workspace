@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00006
 category: sigil
 name: "&5短縮のシジルⅤ"
-icon: RECOVERY_COMPASS
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#86C6E0"
 rarity: EPIC
 maxStack: 64
 saleValue: 125

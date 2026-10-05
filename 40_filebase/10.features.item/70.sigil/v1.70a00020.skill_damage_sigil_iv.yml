@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00020
 category: sigil
 name: "&5威力のシジルⅣ"
-icon: GOLDEN_SWORD
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#D98288"
 rarity: EPIC
 maxStack: 64
 saleValue: 250

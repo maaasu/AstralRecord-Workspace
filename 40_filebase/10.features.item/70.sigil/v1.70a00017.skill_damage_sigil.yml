@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00017
 category: sigil
 name: "&a威力のシジルⅠ"
-icon: WOODEN_SWORD
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#D98288"
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 100

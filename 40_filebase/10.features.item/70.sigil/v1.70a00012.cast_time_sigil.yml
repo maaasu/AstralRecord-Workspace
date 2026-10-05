@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00012
 category: sigil
 name: "&a迅詠のシジルⅠ"
-icon: PAPER
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#A18CCB"
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 50

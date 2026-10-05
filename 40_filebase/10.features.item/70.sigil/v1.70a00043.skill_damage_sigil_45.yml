@@ -1,0 +1,23 @@
+# design:
+#   motif: "錬金術 / 戦技増幅"
+#   progression: 1
+schemaVersion: 1
+id: 70a00043
+category: sigil
+name: "&b威力のシジル（45%）"
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#D98288"
+rarity: EPIC
+maxStack: 64
+saleValue: 275
+lore:
+  - "&7合成したスキルだけのダメージ倍率を45%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: skill_damage_increase
+  modifiers:
+    - status: SKILL_DAMAGE_INCREASE
+      value: 45

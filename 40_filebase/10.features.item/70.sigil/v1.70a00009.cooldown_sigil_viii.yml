@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00009
 category: sigil
 name: "&6短縮のシジルⅧ"
-icon: FEATHER
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#86C6E0"
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 200

@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00019
 category: sigil
 name: "&9威力のシジルⅢ"
-icon: IRON_SWORD
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#D98288"
 rarity: RARE
 maxStack: 64
 saleValue: 200

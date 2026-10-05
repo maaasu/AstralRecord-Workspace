@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00004
 category: sigil
 name: "&9短縮のシジルⅢ"
-icon: CLOCK
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#69B8DB"
 rarity: RARE
 maxStack: 64
 saleValue: 75

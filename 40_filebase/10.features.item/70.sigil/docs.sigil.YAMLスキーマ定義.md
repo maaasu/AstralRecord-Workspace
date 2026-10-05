@@ -74,7 +74,10 @@ schemaVersion: 1
 id: 70a00001
 category: sigil
 name: "&b短縮のシジル"
-icon: AMETHYST_SHARD
+icon: LINGERING_POTION
+iconGlint: false
+appearance:
+  color: "#69B8DB"
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 20
@@ -99,7 +102,10 @@ schemaVersion: 1
 id: 70a00003
 category: sigil
 name: "&d追尾火焔のシジル"
-icon: FIREWORK_STAR
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E6A76A"
 rarity: EPIC
 maxStack: 64
 saleValue: 100

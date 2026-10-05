@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
@@ -92,6 +93,7 @@ public final class SkillBindGui {
     private final NamespacedKey unlearnedSkillIdKey;
     private final NamespacedKey dummyKey;
     private final ItemService itemService;
+    private final ItemStackFactory itemStackFactory;
     private final SkillService skillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
     private ToLongBiFunction<UUID, String> requiredItemOwnedAmountProvider = (accountId, itemId) -> 0L;
@@ -101,17 +103,20 @@ public final class SkillBindGui {
      *
      * @param plugin PDC キーの namespace を提供する Plugin
      * @param itemService アイテム表示・検索サービス
+     * @param itemStackFactory マスタの外見・光沢を保持する表示生成処理
      * @param skillService スキル定義・解決サービス
      */
     public SkillBindGui(
         @NotNull Plugin plugin,
         @NotNull ItemService itemService,
+        @NotNull ItemStackFactory itemStackFactory,
         @NotNull SkillService skillService
     ) {
         learnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_learned_skill_id");
         unlearnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_unlearned_skill_id");
         dummyKey = new NamespacedKey(plugin, "skill_manager_dummy");
         this.itemService = itemService;
+        this.itemStackFactory = itemStackFactory;
         this.skillService = skillService;
     }
 
@@ -1212,32 +1217,57 @@ public final class SkillBindGui {
             : GuiItems.previousPageButton(label, lore, enabled);
     }
 
+    /**
+     * 選択素材の外見を維持し、選択解除の操作説明を表示します。
+     * @param material 選択中の素材マスタ
+     * @return 合成素材欄の表示専用スタック
+     */
     private ItemStack createMaterialItem(ItemModel material) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中の合成素材", NamedTextColor.GREEN));
         lore.add(Component.text("合成時に1個消費します。", NamedTextColor.RED));
         lore.add(Component.text("クリック: 素材の選択を解除", NamedTextColor.YELLOW));
         lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
-        return createItem(
-            parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
-            SkillPresentationUtil.itemNameComponent(material, material.getId(), NamedTextColor.WHITE),
-            lore,
-            material.getIconTexture()
+        return createMaterialPreview(
+            material,
+            SkillPresentationUtil.itemNameComponent(material, "未登録の素材", NamedTextColor.WHITE),
+            lore
         );
     }
 
+    /**
+     * 不適合素材の外見を維持し、装着できない理由を表示します。
+     * @param material 不適合の素材マスタ
+     * @param kind 素材判定の失敗理由
+     * @return 素材の所持状態を変更しない表示専用スタック
+     */
     private ItemStack createRejectedMaterialItem(@NotNull ItemModel material, @NotNull MaterialKind kind) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text(materialFailureText(kind), NamedTextColor.RED));
         lore.add(Component.text("素材は選択・消費されていません。", NamedTextColor.GRAY));
         lore.add(Component.text("クリック: 表示を戻す", NamedTextColor.YELLOW));
         lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
-        return createItem(
-            parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
-            SkillPresentationUtil.itemNameComponent(material, material.getId(), NamedTextColor.WHITE),
-            lore,
-            material.getIconTexture()
+        return createMaterialPreview(
+            material,
+            SkillPresentationUtil.itemNameComponent(material, "未登録の素材", NamedTextColor.WHITE),
+            lore
         );
+    }
+
+    /**
+     * 共通のアイテム工場で色・光沢を反映し、GUI専用の表示名と説明へ置き換えます。
+     * @param material 表示する素材マスタ
+     * @param name GUIの表示名
+     * @param lore GUIの説明行
+     * @return 色・光沢を保持した表示専用スタック。実所持品は変更しない
+     */
+    private ItemStack createMaterialPreview(ItemModel material, Component name, List<Component> lore) {
+        ItemStack item = itemStackFactory.createDisplay(material, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(name.decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** 合成後の性能と閲覧者の使用許可を反映したプレビューを作成します。 */

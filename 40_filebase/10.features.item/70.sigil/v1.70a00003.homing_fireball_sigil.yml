@@ -1,8 +1,14 @@
+# design:
+#   motif: "錬金術 / 火焔誘導"
+#   progression: 1
 schemaVersion: 1
 id: 70a00003
 category: sigil
 name: "&d追尾火焔のシジル"
-icon: FIREWORK_STAR
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#E6A76A"
 rarity: EPIC
 maxStack: 64
 saleValue: 100

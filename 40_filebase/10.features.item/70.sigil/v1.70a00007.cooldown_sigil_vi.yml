@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00007
 category: sigil
 name: "&d短縮のシジルⅥ"
-icon: ENDER_PEARL
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#86C6E0"
 rarity: EPIC
 maxStack: 64
 saleValue: 150

@@ -5,7 +5,10 @@ schemaVersion: 1
 id: 70a00016
 category: sigil
 name: "&c迅詠のシジルⅤ"
-icon: KNOWLEDGE_BOOK
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#B5A3D6"
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 250
