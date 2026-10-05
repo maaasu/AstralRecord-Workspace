@@ -144,10 +144,14 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (kind === 'boolean') return <label className="master-checkbox"><input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />{value === true ? 'true（有効）' : 'false（無効）'}</label>
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
-  const parentReference = /\/\d+$/.test(path) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
+  const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
+  const referenceKind = metadata?.reference ?? parentReference ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
+  const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
+    ? referenceKind + ':' : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
-  return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={metadata?.reference ?? parentReference}
-    referencePrefix={typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined} />
+  return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
+    referencePrefix={fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
+    referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !entry.path.startsWith('10.features.item/20.equipment/') : undefined} />
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
@@ -241,12 +245,17 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const currentPage = Math.min(page, pageCount - 1)
   const offset = paged ? currentPage * pageSize : 0
   const visible = paged ? values.slice(offset, offset + pageSize) : values
+  const isFishDistribution = /\/levelRanges\/\d+\/fish$/.test(path)
+  const chanceTotal = isFishDistribution ? values.reduce<number>((total, entry) => {
+    const chance = objectOf(entry)?.chancePercent
+    return total + (typeof chance === 'number' && Number.isFinite(chance) ? chance : 0)
+  }, 0) : 0
   const move = (index: number, offset: number) => {
     const next = [...values]
     ;[next[index], next[index + offset]] = [next[index + offset], next[index]]
     onChange(next)
   }
-  return <div className="master-array">{visible.map((entry, visibleIndex) => {
+  return <div className="master-array">{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
     const index = offset + visibleIndex
     const structured = entry !== null && typeof entry === 'object'
     return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
@@ -273,9 +282,9 @@ function NumberEditor({ value, kind, path, onChange, onInvalid }: { value: numbe
   }} />{error && <small className="error-message">{error}</small>}</div>
 }
 
-function StringEditor({ value, path, onChange, references, referenceKind, referencePrefix }: { value: string; path: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string }) {
+function StringEditor({ value, path, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {
   const listId = useId()
-  const candidates = referenceKind ? [...new Map(references.filter((entry) => entry.kind === referenceKind).map((entry) => {
+  const candidates = referenceKind ? [...new Map(references.filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
     const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
     return [candidate.value, candidate] as const
   })).values()] : []

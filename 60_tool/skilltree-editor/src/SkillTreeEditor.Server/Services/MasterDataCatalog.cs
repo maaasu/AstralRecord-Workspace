@@ -24,6 +24,18 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["growthPerLevel"] = "レベルごとの成長量", ["classId"] = "クラスID", ["itemId"] = "アイテムID",
         ["skillId"] = "スキルID", ["amount"] = "数量", ["count"] = "個数", ["chance"] = "確率",
         ["equipment"] = "装備設定", ["consumable"] = "消耗品設定", ["appearance"] = "外見設定",
+        ["entityType"] = "魚のエンティティ種別", ["maxHealth"] = "最大体力", ["swimSpeed"] = "泳ぐ速度",
+        ["fleeSpeed"] = "逃走速度", ["pullPerTick"] = "毎tickの引き", ["biteChancePercent"] = "食いつき確率（%）",
+        ["landFleeSpeed"] = "陸上逃走速度", ["hopSpeed"] = "跳ねる速度", ["caughtItemId"] = "釣果アイテム",
+        ["caughtAmount"] = "釣果数量", ["lootTableId"] = "追加報酬テーブル", ["worldId"] = "ワールド",
+        ["rulesId"] = "釣りルール", ["enabled"] = "有効", ["levelRanges"] = "釣りレベル帯",
+        ["minLevel"] = "最小釣りレベル", ["fish"] = "魚の候補", ["fishId"] = "魚",
+        ["chancePercent"] = "出現確率（%）", ["searchRadius"] = "探索半径", ["fishCountMin"] = "魚の最小数",
+        ["fishCountMax"] = "魚の最大数", ["waitingTicks"] = "待機tick", ["attackTicks"] = "攻撃tick",
+        ["turnTicks"] = "方向転換tick", ["reelMultiplier"] = "巻き取り倍率", ["slackDistance"] = "糸のたるみ距離",
+        ["landingTicks"] = "水揚げtick", ["hangingTicks"] = "吊り下げtick", ["escapeTicks"] = "逃走tick",
+        ["nibbleTicks"] = "つつきtick", ["nibbleCycleTicks"] = "つつき周期tick", ["nibbleDistance"] = "つつき距離",
+        ["reelCooldownTicks"] = "巻き取り待機tick",
         ["params"] = "固有パラメータ", ["effects"] = "効果", ["conditions"] = "条件"
     };
     private static readonly Dictionary<string, string> CategoryLabels = new(StringComparer.Ordinal)
@@ -36,7 +48,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["mob"] = "モブ", ["enemy"] = "敵", ["boss"] = "ボス", ["npc"] = "NPC", ["spawner"] = "スポナー",
         ["gathering"] = "採集", ["shop"] = "ショップ", ["quest"] = "クエスト", ["quest_board"] = "クエスト掲示板",
         ["world"] = "ワールド", ["dungeon"] = "ダンジョン", ["buff"] = "バフ", ["status"] = "ステータス",
-        ["tag"] = "タグ", ["loot"] = "ルート", ["pool"] = "ルートプール", ["table"] = "ルートテーブル", ["recipe"] = "レシピ"
+        ["tag"] = "タグ", ["loot"] = "ルート", ["pool"] = "ルートプール", ["table"] = "ルートテーブル", ["recipe"] = "レシピ",
+        ["fish"] = "釣り魚", ["area"] = "釣りエリア", ["rules"] = "釣りルール"
     };
 
     public async Task<MasterDataCatalogResult> ReadAsync(string backups, CancellationToken token)
@@ -134,7 +147,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 yield return new(path, path, JsonValueReader.String(child["title"]) ?? Labels.GetValueOrDefault(key) ?? key,
                     type, required.Contains(key), JsonValueReader.String(child["description"]) ?? "", null, source,
                     child["enum"]?.DeepClone() as JsonArray,
-                    JsonValueReader.String(child["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null);
+                    FishingReferenceKind(path) ?? (JsonValueReader.String(child["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null));
                 foreach (var nested in SchemaFields(child, source, path)) yield return nested;
             }
         if (definition["items"] is JsonObject item)
@@ -207,7 +220,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             var leaf = segments.LastOrDefault(segment => segment != "*") ?? key;
             var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
             var label = Labels.GetValueOrDefault(leaf) ?? leaf;
-            var reference = leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
+            var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
             var enumValues = scopedKey == "orb.effect.rankBasis"
                 ? new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")) : null;
             yield return new(pointer, scopedKey, label, type, Cell("必須") is "○" or "〇" or "必須" or "yes" or "true", description,
@@ -215,6 +228,12 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             }
         }
     }
+
+    private static string? FishingReferenceKind(string path) => path.Split('/').Last() switch
+    {
+        "caughtItemId" => "item", "lootTableId" => "loot_table", "worldId" => "world",
+        "rulesId" => "fishing_rules", "fishId" => "fishing_fish", _ => null
+    };
 
     private static Dictionary<string, string> ReadSnippetTypes(string raw)
     {

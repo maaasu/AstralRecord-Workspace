@@ -248,6 +248,9 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
 
     public static string Kind(string path)
     {
+        if (path.StartsWith("44.features.fishing.fish/", MasterDataPaths.Comparison)) return "fishing_fish";
+        if (path.StartsWith("46.features.fishing.area/", MasterDataPaths.Comparison)) return "fishing_area";
+        if (path.StartsWith("47.features.fishing.rules/", MasterDataPaths.Comparison)) return "fishing_rules";
         if (path.StartsWith("10.features.item/20.equipment/set_effect/", MasterDataPaths.Comparison)) return "set_effect";
         if (path.StartsWith("10.features.item/", MasterDataPaths.Comparison)) return "item";
         if (path.StartsWith("80.shared.loot/table/", MasterDataPaths.Comparison)) return "loot_table";

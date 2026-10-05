@@ -96,6 +96,22 @@ describe('master form', () => {
     expect(onChange).toHaveBeenCalledWith('81a00001')
   })
 
+  it('shows fishing reference candidates with their prefixes and displays the chance total', () => {
+    const onChange = vi.fn()
+    const references = [
+      { path: '44.features.fishing.fish/v1.river_cod.yml', pointer: '/id', value: 'river_cod', kind: 'fishing_fish', label: '川のタラ' },
+      { path: '10.features.item/10.material/v1.cod.yml', pointer: '/id', value: '10a00001', kind: 'item', label: 'タラ' },
+      { path: '10.features.item/20.equipment/v1.rod.yml', pointer: '/id', value: '20a00001', kind: 'item', label: '釣り竿' },
+    ]
+    render(<><MasterDataForm value={{ ref: 'fishing_fish:river_cod' }} path="/levelRanges/0/fish/0/fishId" fields={[]} references={references} onChange={onChange} />
+      <MasterDataForm value={{ ref: 'item:10a00001' }} path="/caughtItemId" fields={[]} references={references} onChange={onChange} />
+      <MasterDataForm value={[{ fishId: { ref: 'fishing_fish:river_cod' }, chancePercent: 70 }, { fishId: { ref: 'fishing_fish:river_cod' }, chancePercent: 20 }]} path="/levelRanges/0/fish" fields={[]} onChange={onChange} /></>)
+    expect(document.querySelector('option[value="fishing_fish:river_cod"]')).toHaveTextContent('川のタラ')
+    expect(document.querySelector('option[value="item:10a00001"]')).toHaveTextContent('タラ')
+    expect(document.querySelector('option[value="item:20a00001"]')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('90% / 100%')
+  })
+
   it('previews a material icon without changing unknown fields during free text edits', () => {
     render(<Editable initial={{ icon: 'iron_ingot', params: { AlienRPC: 'keep' } }} metadata={[]} />)
     expect(screen.getByRole('img', { name: '素材アイコン: iron_ingot' })).toBeInTheDocument()

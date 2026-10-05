@@ -50,6 +50,7 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         if (content is JsonObject obj)
         {
             await PetMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
+            await FishingMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             var id = Text(obj["id"]);
             if (id is { Length: > 0 })
             {
