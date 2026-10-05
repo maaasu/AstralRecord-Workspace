@@ -1,0 +1,19 @@
+# design:
+#   motif: "動物 / グラスボア / 武器箱"
+#   progression: 15
+schemaVersion: 1
+id: 50a00006
+category: bundle
+name: '&aグラスボア武器箱【弓】'
+icon: GREEN_SHULKER_BOX
+rarity: RARE
+maxStack: 1
+lore:
+  - '&7グラスボアの弓が一振り封じられている。'
+unTradeable: false
+unSellable: true
+bundle:
+  openTimeTicks: 10
+  items:
+    - itemId: 20a00076
+      amount: 1

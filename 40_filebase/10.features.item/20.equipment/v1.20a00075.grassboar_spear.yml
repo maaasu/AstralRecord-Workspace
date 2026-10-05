@@ -1,0 +1,285 @@
+# design:
+#   motif: "動物 / グラスボア / 牙と骨"
+#   progression: 15
+schemaVersion: 1
+id: 20a00075
+category: equipment
+name: '&aグラスボアの槍'
+icon: IRON_SPEAR
+rarity: RARE
+maxStack: 1
+lore:
+  - '&7グラスボアの牙と骨を組み込んだ槍。'
+  - '&7鍛え上げて進化させると、さらに成長する。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SPEAR
+  requiredLevel: 15
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value:
+        min: 50~59
+        max: 60~70
+    - status: STRENGTH
+      type: FLAT
+      value:
+        min: 3~4
+        max: 5~6
+    - status: NORMAL_ATTACK_DAMAGE_INCREASE
+      type: FLAT
+      value: 37.25
+  durability:
+    max: 300
+    consume: 1
+  enchant:
+    maxSlots: 1
+  rune:
+    maxSlots:
+      random: 0~1
+  enhance:
+    maxLevel: 15
+    levels:
+      - level: 1
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.75
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.75
+        failAction: NONE
+      - level: 4
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.75
+        failAction: NONE
+      - level: 5
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.5
+        failAction: NONE
+      - level: 6
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.5
+        failAction: NONE
+      - level: 7
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.35
+        failAction: NONE
+      - level: 8
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.35
+        failAction: NONE
+      - level: 9
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.2
+        failAction: NONE
+      - level: 10
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.05
+        failAction: NONE
+      - level: 11
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.05
+        failAction: NONE
+      - level: 12
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.05
+        failAction: NONE
+      - level: 13
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.05
+        failAction: NONE
+      - level: 14
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+        successRate: 0.05
+        failAction: NONE
+      - level: 15
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 4
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.05
+        failAction: NONE
+      - level: 16
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 17
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 18
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 19
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 20
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.05
+        failAction: NONE
+      - level: 21
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 22
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 23
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 24
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 25
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.05
+        failAction: NONE
+      - level: 26
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 27
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 28
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 29
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+        successRate: 0.05
+        failAction: NONE
+      - level: 30
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+          - status: STRENGTH
+            type: FLAT
+            value: 2
+        successRate: 0.05
+        failAction: NONE
+  transcendence:
+    - name: 進化
+      rank: 1
+      requiredEnhanceLevel: 15
+      requiredMaterials:
+        - itemId: 10a00068
+          amount: 20
+      requiredCurrency: 1500
+      overrides:
+        name: '&a進化したグラスボアの槍'
+        enhance:
+          maxLevel: 30

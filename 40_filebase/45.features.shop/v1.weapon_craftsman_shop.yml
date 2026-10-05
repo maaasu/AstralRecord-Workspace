@@ -1,0 +1,226 @@
+# design:
+#   motif: "工芸 / 武器職人"
+#   progression: 1
+schemaVersion: 1
+id: weapon_craftsman_shop
+type: SHOP
+name: '&6武器職人ショップ'
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: 20a00002
+    itemId:
+      ref: item:20a00002
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 1
+  - id: 20a00003
+    itemId:
+      ref: item:20a00003
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 1
+  - id: 20a00004
+    itemId:
+      ref: item:20a00004
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 1
+  - id: 20a00056
+    itemId:
+      ref: item:20a00056
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00059
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:10a00060
+        category: material
+        amount: 3
+  - id: 20a00054
+    itemId:
+      ref: item:20a00054
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00059
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:10a00060
+        category: material
+        amount: 3
+  - id: 20a00055
+    itemId:
+      ref: item:20a00055
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 5
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00059
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:10a00060
+        category: material
+        amount: 3
+  - id: 20a00025
+    itemId:
+      ref: item:20a00025
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 150
+    requiredItems:
+      - itemId:
+          ref: item:10a00035
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00032
+        category: material
+        amount: 1
+    slot: 6
+  - id: 20a00026
+    itemId:
+      ref: item:20a00026
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 150
+    requiredItems:
+      - itemId:
+          ref: item:10a00033
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00035
+        category: material
+        amount: 1
+    slot: 7
+  - id: 20a00029
+    itemId:
+      ref: item:20a00029
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 150
+    requiredItems:
+      - itemId:
+          ref: item:10a00032
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00033
+        category: material
+        amount: 1
+    slot: 8
+  - id: 20a00035
+    itemId:
+      ref: item:20a00035
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00050
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00043
+        category: material
+        amount: 12
+      - itemId:
+          ref: item:10a00039
+        category: material
+        amount: 6
+    slot: 9
+  - id: 20a00040
+    itemId:
+      ref: item:20a00040
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00042
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:10a00026
+        category: material
+        amount: 12
+      - itemId:
+          ref: item:10a00041
+        category: material
+        amount: 2
+    slot: 10
+  - id: 20a00034
+    itemId:
+      ref: item:20a00034
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00052
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:10a00041
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00043
+        category: material
+        amount: 8
+    slot: 11

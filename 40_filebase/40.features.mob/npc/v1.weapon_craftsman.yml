@@ -1,0 +1,41 @@
+# design:
+#   motif: "工芸 / 武器職人"
+#   progression: 1
+schemaVersion: 1
+id: weapon_craftsman
+type: MOB
+category: NPC
+name: '&6武器職人'
+title: '&7素材交換'
+level: 1
+entityType: PLAYER
+skin:
+  texture: ewogICJ0aW1lc3RhbXAiIDogMTYyNDExODg2ODM0NiwKICAicHJvZmlsZUlkIiA6ICI1ZjE4ZmY4NTEyZGQ0NmQ1OGY1MjJlYjg2MDg2ZjU5MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJUYWtlb3MiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVmNmY0YzViNzUyZjY0Mjk3ODZkZjVkYWI4MWVjNThjYTAxZGI0MmFkZTg4ODk5YWRiNjY5NzJjYjA2MTZiZCIKICAgIH0KICB9Cn0=
+  signature: Mu8CdEDh45NlRBfu0cCkREHQ5/6TIzUjmP6ZLpBYY/K79MS1VFVONau6JWwKFMr11ioE6aliZrLccPfXOQgNW66T/v5zSJFhPehmKJdm4zrEz7357+TtShzNKKoLk7SFMDZjTFZMANpdstkmFU/m9TaHZGIxPTsclpED1B2ZKrzjBAob4vo70M3O70O5q0H1MjM3qyGkFIcVP0Bxx/twHRguey7Gbdd+9p8ysHTQCIp8+lqc87VgZPuAiehMvjc2L6/HuH/mE8AqQhWP2A20sdlxodKCaj0PLlBugktvb0aomkFL9cHJLY2PMGeIJZAEIGqd5Z/CVJe4JoOOMCOwzMd2/1mzBiFOf+qPrZCfGdyHv28gfpRkmsJixjsiYpmJPkWADSbha5no2AxBCLryKGtnkbn0UoNqOH8eVpjzy9Am9WajiAjL/eavfSnhZywTQd6JrcM5VE/6j/0vPW36Sw3MUMkW0rusaHHAoYA8DGZ77ZpjPszz58KCyXJilhbKEaZcDpYDmsfLAQUaT4pefZXrkPkuEivgzJNIHzCtVc3oyppfWzPrLCPDEH5hLtqPYReJ/lcqEijS4nnT3oVmDx7oJnLojlWb34DYJNskMx20cHcOyFUKMCEZkPCxBpO2D6kHR4V4YL1R/rHBRcD/GZoRRd6t0kLWOo1xWzGJdBg=
+nameVisible: true
+damageImmune: true
+icon: ANVIL
+lore:
+  - '&7素材を使って武器や補助装備を仕立てる職人。'
+  - '&7右クリックで武器職人ショップを開ける。'
+tags:
+  - npc
+  - shop
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+ai:
+  idle:
+    behavior: STATIONARY
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: '&6武器職人&7: 素材を持ってくれば、武器や補助装備に仕立てよう。'
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: weapon_craftsman_shop

@@ -1,0 +1,41 @@
+# design:
+#   motif: "工芸 / 防具職人"
+#   progression: 1
+schemaVersion: 1
+id: armor_craftsman
+type: MOB
+category: NPC
+name: '&6防具職人'
+title: '&7素材交換'
+level: 1
+entityType: PLAYER
+skin:
+  texture: ewogICJ0aW1lc3RhbXAiIDogMTYzNDA5NjE3Njc2MywKICAicHJvZmlsZUlkIiA6ICJiMGQ3MzJmZTAwZjc0MDdlOWU3Zjc0NjMwMWNkOThjYSIsCiAgInByb2ZpbGVOYW1lIiA6ICJPUHBscyIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8xNzdlOGU0NGU1NDE0YzMyM2YzOTVlMzQ3MjA3ZGNmOTNkZTZlZGMyYmViOTI4NzM0MGMyMWNhZTZkZTYwNjc2IgogICAgfQogIH0KfQ==
+  signature: mFNyqF+drNp1CQO3xjAh1wzEXO7Is0pfBF/qEDgcf2PkxF87jvuHjjTlZr+JGi+ep8krgQxM+taD2kmTYHvC0Q3A4emrItlOqebvcU1St3bIs1vOKLQq0o/157kBSu6Zm7YS/SuiVHHE0/xmz6ihhcSqICjrbu1D5zBSNdXWFlte0zdxXB5MwSweQRys6Uc1301a+Up9ZCxF6HUr08vRGCVQQEOmMZtfJ1luA0NtKV5nNTneyVwKpEoANbF6Y9s4mBS7TxYBJXnMvge6wr8tkGnSP5RpfLRxTHikOGJXNPUH6AhONZ+Fp+eaCCQ6Oj/L+gb+TKp+ritZi0BRl5153VqFzaHvZjrqdaFMOFVu66Og2EqAv64GljaqgQcO3FrdpYr8whLDmgfIzjGTX1EqWvAD9aIObcBmaAdjR2B1rRf0ED84raTgrytes1gFY8aAi8uryAZWd2App8Ej49M7SOQnrW7ysqvoLUgWdlj10QC4WOmfyoYMWrXX3CGE9nVbMk06hLWNwvv16PLRuB2guzwBs9oPEk45qi1b7+FDPBdLkU1fvt6x8WY9Y1WgpfStf0ctLBtEi4//D9Xrijvf9MWPaJPED6Wot8T6O7PY7hNmzQgi7qVa/r/tGAnSe+7XhnpvHFrOlagdqBh60bdGiX1O02mQy1TRWOC0AFAkuJw=
+nameVisible: true
+damageImmune: true
+icon: IRON_CHESTPLATE
+lore:
+  - '&7素材を使って防具を仕立てる職人。'
+  - '&7右クリックで防具職人ショップを開ける。'
+tags:
+  - npc
+  - shop
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+ai:
+  idle:
+    behavior: STATIONARY
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: '&6防具職人&7: 素材を持ってくれば、防具に仕立てよう。'
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: armor_craftsman_shop

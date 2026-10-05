@@ -1,0 +1,19 @@
+# design:
+#   motif: "動物 / グラスボア / 武器箱"
+#   progression: 15
+schemaVersion: 1
+id: 50a00009
+category: bundle
+name: '&aグラスボア武器箱【短杖】'
+icon: PURPLE_SHULKER_BOX
+rarity: RARE
+maxStack: 1
+lore:
+  - '&7グラスボアの短杖が一振り封じられている。'
+unTradeable: false
+unSellable: true
+bundle:
+  openTimeTicks: 10
+  items:
+    - itemId: 20a00079
+      amount: 1
