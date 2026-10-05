@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / タラ"
+#   progression: 1
+schemaVersion: 1
+id: 10a00097
+category: material
+name: "&f川ダラ"
+icon: COD
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7川で釣り上げた魚。"
+unTradeable: false
+unSellable: false

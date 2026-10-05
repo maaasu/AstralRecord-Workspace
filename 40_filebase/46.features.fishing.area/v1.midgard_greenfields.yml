@@ -1,0 +1,20 @@
+# design:
+#   motif: "釣り / 緑野"
+#   progression: 2
+schemaVersion: 1
+id: midgard_greenfields
+type: FISHING_AREA
+name: "ミズガルズの水辺"
+worldId: {ref: "world:midgard_greenfields"}
+rulesId: {ref: "fishing_rules:default"}
+enabled: true
+levelRanges:
+  - minLevel: 0
+    maxLevel: 2147483647
+    fish:
+      - fishId: {ref: "fishing_fish:river_cod"}
+        chancePercent: 55
+      - fishId: {ref: "fishing_fish:river_salmon"}
+        chancePercent: 35
+      - fishId: {ref: "fishing_fish:tropical_fish"}
+        chancePercent: 10

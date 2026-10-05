@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "釣りルールマスタ",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "id", "type", "searchRadius", "fishCountMin", "fishCountMax", "waitingTicks", "attackTicks", "turnTicks", "reelMultiplier", "slackDistance", "landingTicks", "hangingTicks", "escapeTicks", "nibbleTicks", "nibbleCycleTicks", "nibbleDistance", "reelCooldownTicks"],
+  "properties": {
+    "schemaVersion": {"title": "スキーマ版", "const": 1},
+    "id": {"title": "ルールID", "type": "string", "minLength": 1},
+    "type": {"title": "種類", "const": "FISHING_RULES"},
+    "searchRadius": {"title": "魚探索半径", "type": "number", "exclusiveMinimum": 0, "maximum": 32},
+    "fishCountMin": {"title": "魚の最小数", "type": "integer", "minimum": 1, "maximum": 32},
+    "fishCountMax": {"title": "魚の最大数", "type": "integer", "minimum": 1, "maximum": 32},
+    "waitingTicks": {"title": "待機時間", "$ref": "#/$defs/ticks"},
+    "attackTicks": {"title": "攻撃時間", "type": "integer", "minimum": 2, "maximum": 72000},
+    "turnTicks": {"title": "方向転換時間", "$ref": "#/$defs/ticks"},
+    "reelMultiplier": {"title": "巻き倍率", "type": "number", "exclusiveMinimum": 0, "maximum": 100},
+    "slackDistance": {"title": "糸の緩み距離", "type": "number", "minimum": 0, "maximum": 100},
+    "landingTicks": {"title": "取り込み時間", "$ref": "#/$defs/ticks"},
+    "hangingTicks": {"title": "吊り上げ時間", "$ref": "#/$defs/ticks"},
+    "escapeTicks": {"title": "逃走時間", "$ref": "#/$defs/ticks"},
+    "nibbleTicks": {"title": "ついばみ時間", "$ref": "#/$defs/ticks"},
+    "nibbleCycleTicks": {"title": "ついばみ周期", "$ref": "#/$defs/ticks"},
+    "nibbleDistance": {"title": "ついばみ距離", "type": "number", "minimum": 0, "maximum": 1},
+    "reelCooldownTicks": {"title": "巻き取り待機時間", "$ref": "#/$defs/ticks"}
+  },
+  "$defs": {"ticks": {"type": "integer", "minimum": 1, "maximum": 72000}}
+}

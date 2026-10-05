@@ -1,0 +1,21 @@
+# design:
+#   motif: "釣り / 水面"
+#   progression: 0
+schemaVersion: 1
+id: default
+type: FISHING_RULES
+searchRadius: 10
+fishCountMin: 4
+fishCountMax: 6
+waitingTicks: 1200
+attackTicks: 40
+turnTicks: 80
+reelMultiplier: 0.30
+slackDistance: 0.65
+landingTicks: 14
+hangingTicks: 100
+escapeTicks: 1200
+nibbleTicks: 24
+nibbleCycleTicks: 8
+nibbleDistance: 0.15
+reelCooldownTicks: 6

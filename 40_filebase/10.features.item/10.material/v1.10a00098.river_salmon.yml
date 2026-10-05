@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / サケ"
+#   progression: 2
+schemaVersion: 1
+id: 10a00098
+category: material
+name: "&f川サケ"
+icon: SALMON
+rarity: COMMON
+maxStack: 64
+saleValue: 8
+lore:
+  - "&7川で釣り上げた魚。"
+unTradeable: false
+unSellable: false

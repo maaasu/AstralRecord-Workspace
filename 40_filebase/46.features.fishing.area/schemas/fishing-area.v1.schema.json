@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "釣り場マスタ",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "id", "type", "name", "worldId", "rulesId", "enabled", "levelRanges"],
+  "properties": {
+    "schemaVersion": {"title": "スキーマ版", "const": 1},
+    "id": {"title": "釣り場ID", "type": "string", "minLength": 1},
+    "type": {"title": "種類", "const": "FISHING_AREA"},
+    "name": {"title": "表示名", "type": "string", "minLength": 1},
+    "worldId": {"title": "ワールド", "$ref": "#/$defs/worldRef"},
+    "rulesId": {"title": "釣りルール", "$ref": "#/$defs/rulesRef"},
+    "enabled": {"title": "有効", "type": "boolean"},
+    "levelRanges": {"title": "釣りレベル帯", "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/levelRange"}}
+  },
+  "$defs": {
+    "worldRef": {"type": "object", "additionalProperties": true, "required": ["ref"], "properties": {"ref": {"type": "string", "pattern": "^world:[^:]+$"}}},
+    "rulesRef": {"type": "object", "additionalProperties": true, "required": ["ref"], "properties": {"ref": {"type": "string", "pattern": "^fishing_rules:[^:]+$"}}},
+    "fishRef": {"type": "object", "additionalProperties": true, "required": ["ref"], "properties": {"ref": {"type": "string", "pattern": "^fishing_fish:[^:]+$"}}},
+    "levelRange": {"type": "object", "additionalProperties": true, "required": ["minLevel", "maxLevel", "fish"], "properties": {"minLevel": {"title": "開始レベル", "type": "integer", "minimum": 0, "maximum": 2147483647}, "maxLevel": {"title": "終了レベル（含む）", "type": "integer", "minimum": 0, "maximum": 2147483647}, "fish": {"title": "魚と抽選率", "type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": true, "required": ["fishId", "chancePercent"], "properties": {"fishId": {"title": "魚", "$ref": "#/$defs/fishRef"}, "chancePercent": {"title": "抽選率（％）", "type": "number", "exclusiveMinimum": 0, "maximum": 100}}}}}}
+  }
+}

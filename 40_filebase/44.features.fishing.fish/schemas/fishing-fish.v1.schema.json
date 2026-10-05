@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "魚マスタ",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "id", "type", "name", "entityType", "maxHealth", "swimSpeed", "fleeSpeed", "pullPerTick", "biteChancePercent", "landFleeSpeed", "hopSpeed", "caughtItemId", "caughtAmount"],
+  "properties": {
+    "schemaVersion": {"title": "スキーマ版", "const": 1},
+    "id": {"title": "魚ID", "type": "string", "minLength": 1},
+    "type": {"title": "種類", "const": "FISH"},
+    "name": {"title": "表示名", "type": "string", "minLength": 1},
+    "entityType": {"title": "魚エンティティ", "enum": ["COD", "SALMON", "TROPICAL_FISH", "PUFFERFISH"]},
+    "maxHealth": {"title": "耐久値", "type": "number", "exclusiveMinimum": 0, "maximum": 100000},
+    "swimSpeed": {"title": "泳ぐ速度", "type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "fleeSpeed": {"title": "逃走速度", "type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "pullPerTick": {"title": "引きの強さ", "type": "number", "minimum": 0, "maximum": 100},
+    "biteChancePercent": {"title": "食いつき確率（％）", "type": "number", "exclusiveMinimum": 0, "maximum": 100},
+    "landFleeSpeed": {"title": "陸上逃走速度", "type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "hopSpeed": {"title": "跳ねる速度", "type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "caughtItemId": {"title": "釣果アイテム", "$ref": "#/$defs/itemRef"},
+    "caughtAmount": {"title": "釣果数", "type": "integer", "minimum": 1, "maximum": 64},
+    "lootTableId": {"title": "追加報酬テーブル", "$ref": "#/$defs/lootRef"}
+  },
+  "$defs": {
+    "itemRef": {"type": "object", "additionalProperties": true, "required": ["ref"], "properties": {"ref": {"type": "string", "pattern": "^item:[^:]+$"}}},
+    "lootRef": {"type": "object", "additionalProperties": true, "required": ["ref"], "properties": {"ref": {"type": "string", "pattern": "^loot_table:[^:]+$"}}}
+  }
+}

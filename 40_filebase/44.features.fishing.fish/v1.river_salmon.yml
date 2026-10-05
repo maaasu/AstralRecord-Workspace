@@ -1,0 +1,17 @@
+# design:
+#   motif: "動物 / サケ"
+#   progression: 2
+schemaVersion: 1
+id: river_salmon
+type: FISH
+name: "川サケ"
+entityType: SALMON
+maxHealth: 24
+swimSpeed: 0.15
+fleeSpeed: 0.29
+pullPerTick: 0.010
+biteChancePercent: 35
+landFleeSpeed: 0.18
+hopSpeed: 0.34
+caughtItemId: {ref: "item:10a00098"}
+caughtAmount: 1

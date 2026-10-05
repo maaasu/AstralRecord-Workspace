@@ -1,0 +1,20 @@
+# design:
+#   motif: "釣り / 大陸"
+#   progression: 3
+schemaVersion: 1
+id: vanaheim_supercontinent
+type: FISHING_AREA
+name: "エリヴァの水辺"
+worldId: {ref: "world:vanaheim_supercontinent"}
+rulesId: {ref: "fishing_rules:default"}
+enabled: true
+levelRanges:
+  - minLevel: 0
+    maxLevel: 2147483647
+    fish:
+      - fishId: {ref: "fishing_fish:river_cod"}
+        chancePercent: 40
+      - fishId: {ref: "fishing_fish:river_salmon"}
+        chancePercent: 40
+      - fishId: {ref: "fishing_fish:tropical_fish"}
+        chancePercent: 20

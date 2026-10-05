@@ -1,0 +1,17 @@
+# design:
+#   motif: "動物 / 熱帯魚"
+#   progression: 3
+schemaVersion: 1
+id: tropical_fish
+type: FISH
+name: "彩りの熱帯魚"
+entityType: TROPICAL_FISH
+maxHealth: 18
+swimSpeed: 0.18
+fleeSpeed: 0.32
+pullPerTick: 0.012
+biteChancePercent: 25
+landFleeSpeed: 0.20
+hopSpeed: 0.36
+caughtItemId: {ref: "item:10a00099"}
+caughtAmount: 1

@@ -140,6 +140,9 @@
 | GET `/api/gathering/{gatheringId}` | 採集オブジェクト詳細取得 | 未作成 |
 | GET `/api/gathering-spawner` | 採集スポナー一覧取得 | 未作成 |
 | GET `/api/gathering-spawner/{spawnerId}` | 採集スポナー詳細取得 | 未作成 |
+| GET `/api/fishing/fish`・`/api/fishing/fish/{id}` | 魚マスタ一覧・詳細取得 | `00_docs/20_API設計書/feature/28-fishing/3-エンドポイント仕様/28_3.00-釣りマスタ.md` |
+| GET `/api/fishing/areas`・`/api/fishing/areas/{id}` | 釣り場マスタ一覧・詳細取得 | 同上 |
+| GET `/api/fishing/rules`・`/api/fishing/rules/{id}` | 釣りルールマスタ一覧・詳細取得 | 同上 |
 | GET `/api/world` | WorldMasterData 一覧取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/world/{worldId}` | WorldMasterData 詳細取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/guide` | ゲーム内ガイド一覧取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |

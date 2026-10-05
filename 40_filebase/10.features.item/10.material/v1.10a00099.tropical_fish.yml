@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 熱帯魚"
+#   progression: 3
+schemaVersion: 1
+id: 10a00099
+category: material
+name: "&f彩りの熱帯魚"
+icon: TROPICAL_FISH
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 12
+lore:
+  - "&7鮮やかな模様の魚。"
+unTradeable: false
+unSellable: false

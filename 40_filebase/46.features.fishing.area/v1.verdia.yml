@@ -1,0 +1,20 @@
+# design:
+#   motif: "釣り / 川"
+#   progression: 1
+schemaVersion: 1
+id: verdia
+type: FISHING_AREA
+name: "ヴェルディアの水辺"
+worldId: {ref: "world:verdia"}
+rulesId: {ref: "fishing_rules:default"}
+enabled: true
+levelRanges:
+  - minLevel: 0
+    maxLevel: 2147483647
+    fish:
+      - fishId: {ref: "fishing_fish:river_cod"}
+        chancePercent: 70
+      - fishId: {ref: "fishing_fish:river_salmon"}
+        chancePercent: 25
+      - fishId: {ref: "fishing_fish:tropical_fish"}
+        chancePercent: 5

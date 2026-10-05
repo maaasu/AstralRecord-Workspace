@@ -100,6 +100,7 @@ builder.Services.AddScoped<IMobRepository, MobRepository>();
 builder.Services.AddScoped<IGatheringRepository, GatheringRepository>();
 builder.Services.AddScoped<IGatheringSpawnerRepository, GatheringSpawnerRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
+builder.Services.AddScoped<IFishingRepository, FishingRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
 builder.Services.AddScoped<IDonationRepository, DonationRepository>();
 builder.Services.Configure<DonationDiscordOptions>(builder.Configuration.GetSection(DonationDiscordOptions.SectionName));

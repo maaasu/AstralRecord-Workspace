@@ -17,6 +17,12 @@ database:
     path: 42.features.gathering
   - name: gathering_spawner
     path: 43.features.gathering.spawner
+  - name: fishing_fish
+    path: 44.features.fishing.fish
+  - name: fishing_area
+    path: 46.features.fishing.area
+  - name: fishing_rules
+    path: 47.features.fishing.rules
   - name: world
     path: 60.features.world
   - name: dungeon
@@ -86,6 +92,12 @@ referenceResolver:
   - prefix: "world:"
     database: world
     aliases: ["wd"]
+  - prefix: "fishing_fish:"
+    database: fishing_fish
+  - prefix: "fishing_area:"
+    database: fishing_area
+  - prefix: "fishing_rules:"
+    database: fishing_rules
   - prefix: "dungeon:"
     database: dungeon
     aliases: ["dn"]

@@ -153,6 +153,7 @@ public class MasterDataSeeder(
                 await ValidateWorldRequiredItemsAsync(ct);
                 await ValidateSkillSystemMastersAsync(ct);
                 await ValidatePetMastersAsync(ct);
+                await ValidateFishingMastersAsync(ct);
                 await transaction.CommitAsync(ct);
             }, cancellationToken);
 
@@ -210,6 +211,17 @@ public class MasterDataSeeder(
         if (!Exists(master.Rules.ReviveOrbItemId, "orb")
             || master.Rules.BreedMaterials.Concat(master.Rules.ReviveMaterials).Any(m => !Exists(m.ItemId, "material")))
             throw new InvalidOperationException("Pet breed/revive material reference is invalid.");
+    }
+
+    private async Task ValidateFishingMastersAsync(CancellationToken cancellationToken)
+    {
+        var entries = await db.Entries
+            .Where(e => !e.IsDeleted && (e.MasterType == "fishing_fish"
+                || e.MasterType == "fishing_area" || e.MasterType == "fishing_rules"
+                || e.MasterType == "item" || e.MasterType == "world" || e.MasterType == "loot.table"))
+            .Select(e => new FishingMasterEntry(e.MasterType, e.MasterId, e.Category, e.PayloadJson))
+            .ToArrayAsync(cancellationToken);
+        FishingMasterValidator.Validate(entries);
     }
 
     // ---- source 同期 -------------------------------------------------------

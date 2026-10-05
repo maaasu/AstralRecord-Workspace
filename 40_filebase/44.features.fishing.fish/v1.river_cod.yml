@@ -1,0 +1,17 @@
+# design:
+#   motif: "動物 / タラ"
+#   progression: 1
+schemaVersion: 1
+id: river_cod
+type: FISH
+name: "川ダラ"
+entityType: COD
+maxHealth: 20
+swimSpeed: 0.13
+fleeSpeed: 0.26
+pullPerTick: 0.008
+biteChancePercent: 45
+landFleeSpeed: 0.16
+hopSpeed: 0.32
+caughtItemId: {ref: "item:10a00097"}
+caughtAmount: 1
