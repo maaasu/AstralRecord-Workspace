@@ -1,0 +1,45 @@
+# design:
+#   motif: "天文 / 星糸と紡錘"
+#   progression: 1
+schemaVersion: 1
+id: archer_starweave_followup
+type: SKILL
+implementationId: archer_starweave_followup
+name: "&bスターウィーバー"
+description: "&8【概要】 &7弓と技の余韻を星糸に編み、追矢を放つ。"
+icon: FIREWORK_STAR
+lore:
+  - "&6【条件】 &fスキルブックの装備とパッシブ枠へのバインドが必要。"
+  - "&b【効果】 &f弓・短弓・長弓の通常攻撃が命中すると、同じ敵へ追矢を1本放つ。"
+  - "&b【範囲】 &f追矢は{skill.range}m以内の敵1体を狙う。"
+  - "&b【攻撃】 &f{skill.flightTicks:seconds}秒後に&b間接攻撃力&f{skill.followupRatio:percent}%の&b無属性&fダメージ。"
+  - "&a【強化】 &f自分の霊印が残る敵、または継承バフの保持中は倍率に{skill.comboBonusRatio:percent}%を加算。"
+  - "&6【制限】 &f強化条件は重複せず、追矢から霊印や継承を発生させない。"
+  - "&6【制限】 &f追矢の発生は{skill.cooldownTicks:seconds}秒に1回。追加のMP・ENG消費はない。"
+  - "&6【制限】 &f持ち替え・スキルブックの解除・死亡・転職で飛翔中の追矢は消える。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { followupRatio: 0.1 } }
+  - { level: 3, paramDeltas: { followupRatio: 0.1 } }
+  - { level: 4, paramDeltas: { followupRatio: 0.1 } }
+  - { level: 5, paramDeltas: { followupRatio: 0.1 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 8 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+passive:
+  bindRequired: true
+params:
+  followupRatio: 0.8
+  comboBonusRatio: 0.4
+  range: 30
+  flightTicks: 6
+tags:
+  - passive
+  - ranged
+  - damage

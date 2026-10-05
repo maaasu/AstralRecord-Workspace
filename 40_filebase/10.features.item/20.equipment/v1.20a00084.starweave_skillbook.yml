@@ -1,0 +1,26 @@
+# design:
+#   motif: "天文 / 星糸の技法書"
+#   progression: 1
+schemaVersion: 1
+id: 20a00084
+category: equipment
+name: "&bスターウィーバーのスキルブック"
+icon: WRITABLE_BOOK
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7装備中、スターウィーバーを習得・使用できる。"
+  - "&7習得にはスキルジェムの原石(初級)8個が必要。"
+  - "&7弓・短弓・長弓とパッシブ枠へのバインドが必要。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SKILLBOOK
+  requiredLevel: 15
+  requiredClasses:
+    - { classId: sharpshooter, level: 1 }
+    - { classId: phantom_archer, level: 1 }
+  usableSkills:
+    - skill:archer_starweave_followup
+  stats: []

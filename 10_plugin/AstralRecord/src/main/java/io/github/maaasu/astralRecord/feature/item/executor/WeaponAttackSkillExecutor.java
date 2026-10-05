@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.NormalAttackDegradationService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
@@ -23,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.RangedStarweaveRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherRuntime;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
@@ -77,6 +79,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
     private PassiveSkillService passiveSkillService;
     private InheritanceBuffService inheritanceBuffService;
+    private RangedStarweaveRuntimeService rangedStarweaveRuntimeService;
     private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
     private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
@@ -162,6 +165,14 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
      */
     public void setInheritanceBuffService(@NotNull InheritanceBuffService service) {
         this.inheritanceBuffService = service;
+    }
+
+    /**
+     * 通常弓の確定命中へ、スキルブックの星糸追矢を接続します。
+     * @param service 装備・バインド・射出世代を確認する追矢サービス
+     */
+    public void setRangedStarweaveRuntimeService(@NotNull RangedStarweaveRuntimeService service) {
+        this.rangedStarweaveRuntimeService = service;
     }
 
     @Override
@@ -440,6 +451,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
     ) {
         PhantomArcherRuntime.ShotEpoch launchEpoch = PhantomArcherRuntime.captureShotEpoch(attacker.id());
+        boolean normalBow = BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW.equals(skill.getId())
+                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW.equals(skill.getId())
+                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW.equals(skill.getId());
+        SkillAttackWear bowAttackWear = normalBow ? new SkillAttackWear(attacker.id()) : null;
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
         double impactRadius = readDoubleParam(skill, "impactRadius", 0.0D);
@@ -550,7 +565,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                             attacker,
                             victim
                     )) {
-                        DamageResult result = applyNormalAttackDamage(
+                        java.util.function.Supplier<DamageResult> normalHit = () -> applyNormalAttackDamage(
                                 attacker,
                                 impactVictim,
                                 attackType,
@@ -558,12 +573,16 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                                 impactVictim.isMob() ? normalAttackDamageMultiplier : 1.0D,
                                 inheritedElements
                         );
+                        DamageResult result = bowAttackWear == null ? normalHit.get()
+                                : damageService.withSkillAttackWear(bowAttackWear, normalHit);
                         applyConditions(skill, attacker, impactVictim, attackType, result);
                         if (attacker.isPlayer() && attacker.player() != null
-                                && (BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW.equals(skill.getId())
-                                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW.equals(skill.getId())
-                                || BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW.equals(skill.getId()))) {
+                                && normalBow) {
                             PhantomArcherRuntime.onNormalBowHit(attacker.player(), impactVictim, result, launchEpoch);
+                            if (rangedStarweaveRuntimeService != null && bowAttackWear != null) {
+                                rangedStarweaveRuntimeService.onNormalBowHit(attacker.player(), impactVictim,
+                                        result, launchEpoch, bowAttackWear);
+                            }
                         }
                         if (impactVictim.id().equals(victim.id())) {
                             directResult = result;
