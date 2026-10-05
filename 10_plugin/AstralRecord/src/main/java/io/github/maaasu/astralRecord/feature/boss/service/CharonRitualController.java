@@ -44,16 +44,22 @@ final class CharonRitualController {
     private static final long DRAW_INTERVAL = 10L;
     private static final long SUMMON_TICKS = 60L;
     private static final long PILLAR_LIFETIME = 600L;
-    private static final long PILLAR_COOLDOWN = 900L;
+    private static final long PILLAR_COOLDOWN = 760L;
     private static final long PILLAR_COOLDOWN_REDUCTION_PER_PLAYER = 40L;
-    private static final int BASE_PILLAR_COUNT = 3;
-    private static final long BEAM_WARNING = 30L;
-    private static final long BEAM_INTERVAL = 60L;
-    private static final double BEAM_HALF_WIDTH = 0.9D;
-    private static final double RIVER_HALF_LENGTH = 14.0D;
-    private static final double RIVER_HALF_WIDTH = 2.2D;
-    private static final double VERDICT_RADIUS = 24.0D;
-    private static final double SAFE_RADIUS = 3.0D;
+    private static final int BASE_PILLAR_COUNT = 6;
+    private static final int MIN_PILLAR_COUNT = 4;
+    private static final long BEAM_WARNING = 35L;
+    private static final long BEAM_INTERVAL = 65L;
+    private static final double BEAM_HALF_WIDTH = 1.1D;
+    private static final int RIVER_WAVES = 6;
+    private static final int BOATS_PER_WAVE = 4;
+    private static final long RIVER_WAVE_TICKS = 50L;
+    private static final long VERDICT_WAVE_TICKS = 55L;
+    private static final int SAFE_LIGHT_COUNT = 5;
+    private static final double RIVER_HALF_LENGTH = 20.0D;
+    private static final double RIVER_HALF_WIDTH = 3.2D;
+    private static final double VERDICT_RADIUS = 30.0D;
+    private static final double SAFE_RADIUS = 2.8D;
     private static final long FIRST_WAVE_TICKS = 70L;
     private static final long RECOVERY_TICKS = 60L;
     private static final int MAX_PARTICLE_POINTS = 512;
@@ -136,8 +142,9 @@ final class CharonRitualController {
     }
 
     /**
-     * 人数に応じた数の魂柱を安全な床へ表示し、3秒間だけ浮遊・無敵にします。
-     * 1人では3本・45秒間隔とし、追加1人ごとに1本増やして間隔を2秒短縮します。
+     * 人数に応じた6〜11本、HP50%以下では8〜13本の魂柱を表示し、3秒間浮遊・無敵にします。
+     * 1人では38秒間隔とし、追加1人ごとに1本増やして間隔を2秒短縮します。
+     * 地形不足時は柱数を順に減らし、最低4本を確保できる場合は発動します。
      *
      * @param boss 発動するカロン。既存予兆と反撃時間は呼び出し元が解除済みであること
      * @param entity ボスの有効な実体
@@ -150,9 +157,15 @@ final class CharonRitualController {
             return false;
         }
         int participantCount = Math.clamp(participantCounts.applyAsInt(boss), 1, PartyService.MAX_MEMBERS);
-        int pillarCount = BASE_PILLAR_COUNT + participantCount - 1;
-        List<Location> grounds = pillarGrounds(entity.getLocation(), pillarCount);
-        if (grounds.size() != pillarCount) {
+        int pillarCount = BASE_PILLAR_COUNT + participantCount - 1 + (belowHalfHealth(boss) ? 2 : 0);
+        List<Location> grounds = List.of();
+        for (int count = pillarCount; count >= MIN_PILLAR_COUNT; count--) {
+            grounds = pillarGrounds(entity.getLocation(), count);
+            if (grounds.size() == count) {
+                break;
+            }
+        }
+        if (grounds.isEmpty()) {
             state.nextPillarAt = tick + 100L;
             return false;
         }
@@ -175,7 +188,7 @@ final class CharonRitualController {
     }
 
     /**
-     * HP60%の大渡航またはHP30%の魂灯裁定を開始します。前の柱とビームは回収します。
+     * HP50%の6波の大渡航またはHP25%の五魂灯裁定を開始します。前の儀式と柱を回収します。
      *
      * @param boss 発動するカロン。HP境界の一度限りの管理は呼び出し元が行います
      * @param entity ボスの有効な実体
@@ -184,7 +197,11 @@ final class CharonRitualController {
      */
     void startPhase(@NotNull MobInstance boss, @NotNull Entity entity, int phase, long tick) {
         Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss, tick));
+        finishPose(state, false);
         clearPillars(state);
+        clearSequence(state);
+        state.summonUntil = 0L;
+        state.recoveryUntil = 0L;
         state.center = entity.getLocation();
         List<Player> players = targets.apply(state.center);
         Location primary = players.stream().min((left, right) -> Double.compare(
@@ -200,8 +217,9 @@ final class CharonRitualController {
         BossBar bar = Bukkit.createBossBar(phaseTitle(kind, 1), BarColor.PURPLE, BarStyle.SEGMENTED_10);
         state.sequence = new Sequence(kind, arena, facing.normalize(), safeCenters, bar, tick, tick + FIRST_WAVE_TICKS);
         if (kind == Kind.RIVER) {
-            for (int index = 0; index < 3; index++) {
-                Location origin = arena.clone();
+            for (int index = 0; index < RIVER_WAVES * BOATS_PER_WAVE; index++) {
+                Beam river = state.sequence.riverWaves.get(index / BOATS_PER_WAVE).get(index % 2);
+                Location origin = boatLocation(river, 0.0D, index % BOATS_PER_WAVE / 2);
                 state.sequence.displays.add(spawnDisplay(origin, Material.DARK_OAK_PLANKS, 2.6F, 0.65F, 6.0F));
                 state.sequence.displays.add(spawnDisplay(origin.clone().add(0, 0.65D, 0), Material.CYAN_STAINED_GLASS, 2.4F, 1.7F, 0.3F));
                 state.sequence.displays.add(spawnDisplay(origin.clone().add(0, 2.35D, 0), Material.SOUL_LANTERN, 1.2F, 1.2F, 1.2F));
@@ -241,7 +259,7 @@ final class CharonRitualController {
         }
     }
 
-    /** 柱の寿命と1辺ずつの予兆・発射を処理し、1発につき各Playerへ一度だけ命中判定します。 */
+    /** 辺と対角の2本、HP50%以下では3本を同時予兆し、1斉射につき各Playerへ一度だけ命中判定します。 */
     private void tickPillars(@NotNull Encounter state, @NotNull Entity entity, long tick) {
         if (state.pillars.isEmpty()) {
             return;
@@ -252,31 +270,44 @@ final class CharonRitualController {
             return;
         }
         if (state.boss.scriptedAction()) {
-            state.beam = null;
+            state.beams = List.of();
             state.nextBeamAt = tick + 40L;
             return;
         }
-        if (state.beam == null && tick >= state.nextBeamAt) {
+        if (state.beams.isEmpty() && tick >= state.nextBeamAt) {
             int pillarCount = state.pillars.size();
-            Pillar from = state.pillars.get(state.beamIndex % pillarCount);
-            Pillar to = state.pillars.get((state.beamIndex + 1) % pillarCount);
-            state.beam = clippedBeam(from.ground, to.ground);
+            int fromIndex = state.beamIndex % pillarCount;
+            Pillar from = state.pillars.get(fromIndex);
+            List<Beam> beams = new ArrayList<>();
+            beams.add(clippedBeam(from.ground, state.pillars.get((fromIndex + 1) % pillarCount).ground));
+            beams.add(clippedBeam(from.ground, state.pillars.get((fromIndex + pillarCount / 2) % pillarCount).ground));
+            if (belowHalfHealth(state.boss)) {
+                beams.add(clippedBeam(
+                    state.pillars.get((fromIndex + 1) % pillarCount).ground,
+                    state.pillars.get((fromIndex + 1 + pillarCount / 2) % pillarCount).ground
+                ));
+            }
+            state.beams = List.copyOf(beams);
             state.beamImpactAt = tick + BEAM_WARNING;
+            state.beamFired = false;
             state.nextBeamAt = tick + BEAM_INTERVAL;
             state.beamIndex++;
             sound(from.ground, "block.beacon.power_select", 0.9F, 0.7F);
         }
-        if (state.beam != null && tick == state.beamImpactAt) {
+        if (!state.beams.isEmpty() && !state.beamFired && tick >= state.beamImpactAt) {
+            state.beamFired = true;
             for (Player player : targets.apply(state.center)) {
-                if (insideBeam(player.getLocation(), state.beam)) {
-                    hitHandler.hit(state.boss, player, 0.50D);
+                if (state.beams.stream().anyMatch(beam -> insideBeam(player.getLocation(), beam))) {
+                    hitHandler.hit(state.boss, player, 0.65D);
                 }
             }
             List<Location> impactPoints = new ArrayList<>();
-            appendBeam(impactPoints, state.beam, BEAM_HALF_WIDTH);
+            for (Beam beam : state.beams) {
+                appendBeam(impactPoints, beam, BEAM_HALF_WIDTH);
+            }
             draw(state.center, BossDamageAreaEffect.limit(impactPoints),
                 SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
-            sound(state.beam.from, "entity.warden.sonic_boom", 1.0F, 1.2F);
+            sound(state.center, "entity.warden.sonic_boom", 1.0F, 1.2F);
         }
         if (tick % DRAW_INTERVAL == 0L) {
             List<Location> pillarPoints = new ArrayList<>();
@@ -284,22 +315,33 @@ final class CharonRitualController {
                 ring(pillarPoints, pillar.ground.clone().add(0, 5.5D, 0), 0.9D, 16);
             }
             draw(state.center, pillarPoints, SharedParticleDefinitions.CHARON_SAFE_LIGHT);
-            if (state.beam != null) {
+            if (!state.beams.isEmpty()) {
                 List<Location> beamPoints = new ArrayList<>();
-                appendBeam(beamPoints, state.beam, BEAM_HALF_WIDTH);
+                for (Beam beam : state.beams) {
+                    appendBeam(beamPoints, beam, BEAM_HALF_WIDTH);
+                }
                 draw(state.center, beamPoints, tick < state.beamImpactAt
                     ? SharedParticleDefinitions.CHARON_DANGER : SharedParticleDefinitions.CHARON_BEAM);
             }
         }
-        if (state.beam != null && tick >= state.beamImpactAt + 10L) {
-            state.beam = null;
+        if (!state.beams.isEmpty() && tick >= state.beamImpactAt + 10L) {
+            state.beams = List.of();
         }
     }
 
-    /** 境界儀式のチャージ、段階予兆、3回の発動、終了後の反撃時間を進行します。 */
+    /** 境界儀式のチャージ、大渡航6波・裁定5波の予兆と発動、終了後の反撃時間を進行します。 */
     private void tickSequence(@NotNull Encounter state, @NotNull Entity entity, long tick) {
         Sequence sequence = state.sequence;
         if (sequence == null) {
+            return;
+        }
+        if (sequence.step == waveCount(sequence.kind)) {
+            if (tick >= sequence.impactAt + DRAW_INTERVAL) {
+                clearSequence(state);
+                state.recoveryUntil = tick + RECOVERY_TICKS;
+                state.nextPillarAt = state.recoveryUntil + 180L;
+                state.boss.scriptedAction(true);
+            }
             return;
         }
         if (state.pose != null) {
@@ -312,25 +354,29 @@ final class CharonRitualController {
         List<Player> players = targets.apply(sequence.center);
         sequence.bar.getPlayers().stream().filter(player -> !players.contains(player)).toList().forEach(sequence.bar::removePlayer);
         players.stream().filter(player -> !sequence.bar.getPlayers().contains(player)).forEach(sequence.bar::addPlayer);
-        long duration = sequence.step == 0 ? FIRST_WAVE_TICKS : sequence.kind == Kind.RIVER ? 40L : 50L;
+        long duration = sequence.step == 0 ? FIRST_WAVE_TICKS : waveTicks(sequence.kind);
         sequence.bar.setProgress(Math.clamp((double) (sequence.impactAt - tick) / duration, 0.0D, 1.0D));
+        boolean riverAdvanced = false;
         if (tick >= sequence.impactAt) {
+            // 発射地点へ到着した舟の最終姿勢を1描画間隔残してから回収する。
+            if (sequence.kind == Kind.RIVER) {
+                animateSequence(sequence, tick);
+                riverAdvanced = true;
+            }
             applyWave(state, sequence, players);
             sequence.step++;
-            if (sequence.step == 3) {
-                clearSequence(state);
-                state.recoveryUntil = tick + RECOVERY_TICKS;
-                state.nextPillarAt = state.recoveryUntil + 180L;
-                state.boss.scriptedAction(true);
+            if (sequence.step == waveCount(sequence.kind)) {
                 return;
             }
-            sequence.impactAt = tick + (sequence.kind == Kind.RIVER ? 40L : 50L);
+            sequence.impactAt = tick + waveTicks(sequence.kind);
             sequence.bar.setTitle(phaseTitle(sequence.kind, sequence.step + 1));
             sound(sequence.center, "block.bell.resonate", 1.2F, 0.65F + sequence.step * 0.2F);
         }
         if (tick % DRAW_INTERVAL == 0L) {
             drawSequence(sequence, tick);
-            animateSequence(sequence, tick);
+            if (!riverAdvanced) {
+                animateSequence(sequence, tick);
+            }
         }
         entity.setVelocity(new Vector());
     }
@@ -339,13 +385,15 @@ final class CharonRitualController {
     private void applyWave(@NotNull Encounter state, @NotNull Sequence sequence, @NotNull List<Player> players) {
         List<Location> impactPoints = new ArrayList<>();
         if (sequence.kind == Kind.RIVER) {
-            Beam river = riverBeam(sequence, sequence.step);
+            List<Beam> rivers = sequence.riverWaves.get(sequence.step);
             for (Player player : players) {
-                if (insideBeam(player.getLocation(), river, RIVER_HALF_WIDTH)) {
-                    hitHandler.hit(state.boss, player, 0.85D);
+                if (rivers.stream().anyMatch(river -> insideBeam(player.getLocation(), river, RIVER_HALF_WIDTH))) {
+                    hitHandler.hit(state.boss, player, 1.0D);
                 }
             }
-            appendBeam(impactPoints, river, RIVER_HALF_WIDTH);
+            for (Beam river : rivers) {
+                appendBeam(impactPoints, river, RIVER_HALF_WIDTH);
+            }
             draw(sequence.center, impactPoints, SharedParticleDefinitions.CHARON_BEAM);
             draw(sequence.center, BossDamageAreaEffect.limit(impactPoints),
                 SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION);
@@ -353,16 +401,14 @@ final class CharonRitualController {
             Location safe = sequence.safeCenters.get(sequence.step);
             for (Player player : players) {
                 Location point = player.getLocation();
-                if (horizontalSquared(point, sequence.center) <= VERDICT_RADIUS * VERDICT_RADIUS
-                    && horizontalSquared(point, safe) > SAFE_RADIUS * SAFE_RADIUS) {
-                    hitHandler.hit(state.boss, player, 1.0D + sequence.step * 0.1D);
+                if (insideVerdict(point, sequence.center, safe)) {
+                    hitHandler.hit(state.boss, player, 1.1D + sequence.step * 0.1D);
                 }
             }
             for (double x = -VERDICT_RADIUS; x <= VERDICT_RADIUS; x += 3.0D) {
                 for (double z = -VERDICT_RADIUS; z <= VERDICT_RADIUS; z += 3.0D) {
                     Location point = sequence.center.clone().add(x, 0.3D, z);
-                    if (x * x + z * z <= VERDICT_RADIUS * VERDICT_RADIUS
-                        && horizontalSquared(point, safe) > SAFE_RADIUS * SAFE_RADIUS) {
+                    if (insideVerdict(point, sequence.center, safe)) {
                         impactPoints.add(point);
                     }
                 }
@@ -373,21 +419,42 @@ final class CharonRitualController {
         sound(sequence.center, "entity.generic.explode", 1.4F, 0.7F);
     }
 
-    /** 冥河3方向の次の1方向、または次の安全灯を強調し、切替先の円も薄く表示します。 */
+    /** 現在の2河道と次波、または現在の安全灯と次灯への移動経路を別バッチで表示します。 */
     private void drawSequence(@NotNull Sequence sequence, long tick) {
         List<Location> danger = new ArrayList<>();
         List<Location> safe = new ArrayList<>();
         if (sequence.kind == Kind.RIVER) {
-            for (int index = sequence.step; index < 3; index++) {
-                appendBeam(index == sequence.step ? danger : safe, riverBeam(sequence, index), RIVER_HALF_WIDTH);
+            for (Beam river : sequence.riverWaves.get(sequence.step)) {
+                appendBeam(danger, river, RIVER_HALF_WIDTH);
+            }
+            if (sequence.step + 1 < RIVER_WAVES) {
+                for (Beam river : sequence.riverWaves.get(sequence.step + 1)) {
+                    appendBeam(safe, river, RIVER_HALF_WIDTH);
+                }
             }
         } else {
             ring(danger, sequence.center, VERDICT_RADIUS, 96);
-            for (int index = 0; index < 3; index++) {
-                List<Location> points = index == sequence.step ? safe : danger;
-                for (int layer = 0; layer < 3; layer++) {
-                    ring(points, sequence.safeCenters.get(index).clone().add(0, 0.2D + layer, 0), SAFE_RADIUS, 32);
+            List<Location> drawnLights = new ArrayList<>();
+            Location currentSafe = sequence.safeCenters.get(sequence.step);
+            for (int index = 0; index < sequence.safeCenters.size(); index++) {
+                Location light = sequence.safeCenters.get(index);
+                if (drawnLights.stream().anyMatch(drawn -> horizontalSquared(drawn, light) < 0.01D)) {
+                    continue;
                 }
+                drawnLights.add(light);
+                List<Location> points = horizontalSquared(light, currentSafe) < 0.01D ? safe : danger;
+                for (int layer = 0; layer < 3; layer++) {
+                    ring(points, light.clone().add(0, 0.2D + layer, 0), SAFE_RADIUS, 32);
+                }
+            }
+            if (sequence.step + 1 < sequence.safeCenters.size()) {
+                List<Location> route = new ArrayList<>();
+                Beam path = new Beam(sequence.safeCenters.get(sequence.step), sequence.safeCenters.get(sequence.step + 1));
+                for (int index = 0; index <= 16; index++) {
+                    route.add(interpolate(path, index / 16.0D).add(0, 0.2D, 0));
+                }
+                ring(route, path.to, SAFE_RADIUS, 32);
+                draw(sequence.center, route, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL);
             }
         }
         List<Location> spiral = new ArrayList<>();
@@ -402,7 +469,7 @@ final class CharonRitualController {
         draw(sequence.center, spiral, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE);
     }
 
-    /** 大渡航の舟3隻、または安全灯3個と外周の石片8個を上限付きで動かします。 */
+    /** 6波24隻の冥舟隊、または5灯と外周の石片8個を10tickごとに動かします。終了した舟は回収します。 */
     private void animateSequence(@NotNull Sequence sequence, long tick) {
         for (int index = 0; index < sequence.displays.size(); index++) {
             Entity display = Bukkit.getEntity(sequence.displays.get(index));
@@ -412,19 +479,25 @@ final class CharonRitualController {
             Location destination;
             if (sequence.kind == Kind.RIVER) {
                 int boat = index / 3;
-                Beam river = riverBeam(sequence, boat);
-                double progress = boat == sequence.step
+                int wave = boat / BOATS_PER_WAVE;
+                if (wave < sequence.step) {
+                    block.remove();
+                    continue;
+                }
+                Beam river = sequence.riverWaves.get(wave).get(boat % 2);
+                double progress = wave == sequence.step
                     ? Math.clamp(1.0D - (sequence.impactAt - tick) / 20.0D, 0.0D, 1.0D) : 0.0D;
-                destination = interpolate(river, progress);
+                destination = boatLocation(river, progress, boat % BOATS_PER_WAVE / 2);
                 destination.add(0, switch (index % 3) { case 1 -> 0.65D; case 2 -> 2.35D; default -> 0.0D; }, 0);
                 Vector direction = river.to.toVector().subtract(river.from.toVector());
                 destination.setYaw((float) Math.toDegrees(Math.atan2(-direction.getX(), direction.getZ())));
-                block.setGlowColorOverride(boat == sequence.step ? VIOLET : CYAN);
-            } else if (index < 3) {
+                block.setGlowColorOverride(wave == sequence.step ? VIOLET : CYAN);
+            } else if (index < sequence.safeCenters.size()) {
                 destination = sequence.safeCenters.get(index).clone().add(0, 3.0D + Math.sin(tick * 0.08D) * 0.25D, 0);
-                block.setGlowColorOverride(index == sequence.step ? CYAN : VIOLET);
+                block.setGlowColorOverride(horizontalSquared(sequence.safeCenters.get(index), sequence.safeCenters.get(sequence.step)) < 0.01D
+                    ? CYAN : VIOLET);
             } else {
-                double angle = tick * 0.04D + (index - 3) * Math.PI / 4.0D;
+                double angle = tick * 0.04D + (index - sequence.safeCenters.size()) * Math.PI / 4.0D;
                 destination = sequence.center.clone().add(Math.cos(angle) * 8.0D, 3.0D, Math.sin(angle) * 8.0D);
             }
             block.teleport(destination);
@@ -499,7 +572,7 @@ final class CharonRitualController {
      * 未ロードchunkと頭上が詰まった床を除き、互いに6ブロック以上離れた柱の床を選びます。
      *
      * @param center ボスの現在位置
-     * @param pillarCount 参加人数から算出した3〜8本の柱数
+     * @param pillarCount 参加人数とHPから算出した希望本数、または地形不足時の縮小本数
      * @return 必要な全地点。確保できない場合は空リスト
      */
     private static @NotNull List<Location> pillarGrounds(@NotNull Location center, int pillarCount) {
@@ -528,23 +601,23 @@ final class CharonRitualController {
         return result;
     }
 
-    /** 最初の安全灯を対象の足元へ置き、次の灯は6ブロック先の歩ける床へ順に配置します。 */
+    /** 最初の安全灯を対象の足元へ置き、以後5灯を6ブロック先の歩ける床へ配置します。配置不能時は直前灯を維持します。 */
     private static @NotNull List<Location> safeGrounds(@NotNull Location primary) {
         // 頭上に別階の床があっても、対象が立つ面より上の床を初期灯にしない。
         Location first = groundAt(primary, 3, primary.getY() - 1.5D, primary.getY() + 0.05D);
         first = first == null ? primary.clone() : first;
         List<Location> result = new ArrayList<>(List.of(first));
-        for (int index = 1; index < 3; index++) {
+        for (int index = 1; index < SAFE_LIGHT_COUNT; index++) {
             Location previous = result.getLast();
             Location chosen = previous;
-            for (int attempt = 0; attempt < 8; attempt++) {
-                double angle = Math.PI * index * 2.0D / 3.0D + attempt * Math.PI / 4.0D;
+            for (int attempt = 0; attempt < 16; attempt++) {
+                double angle = Math.PI * index * 2.0D / SAFE_LIGHT_COUNT + attempt * Math.PI / 8.0D;
                 Location ground = groundAt(
                     previous.clone().add(Math.cos(angle) * 6.0D, 0, Math.sin(angle) * 6.0D),
                     3, previous.getY() - 1.0D, previous.getY() + 1.0D
                 );
                 if (ground == null || Math.abs(ground.getY() - previous.getY()) > 1.0D
-                    || horizontalSquared(ground, first) > 144.0D
+                    || horizontalSquared(ground, first) > 256.0D
                     || result.stream().anyMatch(other -> horizontalSquared(other, ground) < 25.0D)) {
                     continue;
                 }
@@ -664,13 +737,49 @@ final class CharonRitualController {
         return new Beam(from.clone(), end);
     }
 
-    /** 大渡航の3本の異なる河道を、中心から前後14ブロックへ固定します。 */
-    private static @NotNull Beam riverBeam(@NotNull Sequence sequence, int index) {
-        Vector direction = sequence.direction.clone().rotateAroundY(index * Math.PI / 3.0D);
-        return new Beam(
-            sequence.center.clone().subtract(direction.clone().multiply(RIVER_HALF_LENGTH)),
-            sequence.center.clone().add(direction.clone().multiply(RIVER_HALF_LENGTH))
-        );
+    /** 各波の向きを30度ずつ変え、中央を安全帯とする波と片側へ退避する波の2河道を固定します。 */
+    private static @NotNull List<Beam> createRiverBeams(@NotNull Location center, @NotNull Vector facing, int wave) {
+        Vector direction = facing.clone().rotateAroundY(wave * Math.PI / 6.0D);
+        Vector side = new Vector(-direction.getZ(), 0, direction.getX());
+        double shift = switch (wave % 3) { case 1 -> 4.0D; case 2 -> -4.0D; default -> 0.0D; };
+        List<Beam> rivers = new ArrayList<>(2);
+        for (double offset : new double[] {shift - 6.0D, shift + 6.0D}) {
+            Location laneCenter = center.clone().add(side.clone().multiply(offset));
+            rivers.add(new Beam(
+                laneCenter.clone().subtract(direction.clone().multiply(RIVER_HALF_LENGTH)),
+                laneCenter.clone().add(direction.clone().multiply(RIVER_HALF_LENGTH))
+            ));
+        }
+        return List.copyOf(rivers);
+    }
+
+    /** 同じ河道に並ぶ2隻を、その河道の危険幅内で移動させます。 */
+    private static @NotNull Location boatLocation(@NotNull Beam river, double progress, int formation) {
+        Vector direction = river.to.toVector().subtract(river.from.toVector()).setY(0.0D).normalize();
+        Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(formation == 0 ? -1.3D : 1.3D);
+        return interpolate(river, progress).add(side);
+    }
+
+    /** HP50%以下では通常の柱数と同時対角ビームを増やします。 */
+    private static boolean belowHalfHealth(@NotNull MobInstance boss) {
+        return boss.currentHealth() <= boss.maxHealth() * 0.5D;
+    }
+
+    /** 儀式ごとの波数を返し、描画・発動・終了の共通上限とします。 */
+    private static int waveCount(@NotNull Kind kind) {
+        return kind == Kind.RIVER ? RIVER_WAVES : SAFE_LIGHT_COUNT;
+    }
+
+    /** 次波の予兆時間を返します。大渡航は2.5秒、裁定は2.75秒の移動時間を確保します。 */
+    private static long waveTicks(@NotNull Kind kind) {
+        return kind == Kind.RIVER ? RIVER_WAVE_TICKS : VERDICT_WAVE_TICKS;
+    }
+
+    /** 表示した外周30ブロックと現在の安全円2.8ブロックの水平境界で裁定を判定します。 */
+    private static boolean insideVerdict(@NotNull Location point, @NotNull Location center, @NotNull Location safe) {
+        return point.getWorld() == center.getWorld()
+            && horizontalSquared(point, center) <= VERDICT_RADIUS * VERDICT_RADIUS
+            && horizontalSquared(point, safe) > SAFE_RADIUS * SAFE_RADIUS;
     }
 
     /** 通常の柱ビーム幅で、床から3ブロックの帯にいるかを判定します。 */
@@ -731,9 +840,16 @@ final class CharonRitualController {
         }
     }
 
-    /** 表示点数を制限し、閲覧者と密度の解決をバッチごとに一度だけ行います。 */
+    /** 全域から均等に最大512点を取り、後半の河道や灯を落とさず閲覧者解決をバッチ化します。 */
     private void draw(@NotNull Location center, @NotNull List<Location> points, @NotNull SharedParticleDefinition definition) {
-        particles.spawnForNearbyViewers(center, points.subList(0, Math.min(points.size(), MAX_PARTICLE_POINTS)), definition);
+        List<Location> selected = points;
+        if (points.size() > MAX_PARTICLE_POINTS) {
+            selected = new ArrayList<>(MAX_PARTICLE_POINTS);
+            for (int index = 0; index < MAX_PARTICLE_POINTS; index++) {
+                selected.add(points.get(index * points.size() / MAX_PARTICLE_POINTS));
+            }
+        }
+        particles.spawnForNearbyViewers(center, selected, definition);
     }
 
     /** 地形に触れない、明るく発光する一時BlockDisplayを生成します。 */
@@ -761,7 +877,8 @@ final class CharonRitualController {
             removeDisplays(pillar.displays);
         }
         state.pillars.clear();
-        state.beam = null;
+        state.beams = List.of();
+        state.beamFired = false;
     }
 
     /** 儀式の舟・灯・石片と専用BossBarを回収します。 */
@@ -816,7 +933,8 @@ final class CharonRitualController {
         private long beamImpactAt;
         private int beamIndex;
         private long recoveryUntil;
-        private @Nullable Beam beam;
+        private List<Beam> beams = List.of();
+        private boolean beamFired;
         private @Nullable Pose pose;
         private @Nullable Sequence sequence;
 
@@ -830,7 +948,7 @@ final class CharonRitualController {
     private static final class Sequence {
         private final Kind kind;
         private final Location center;
-        private final Vector direction;
+        private final List<List<Beam>> riverWaves;
         private final List<Location> safeCenters;
         private final BossBar bar;
         private final List<UUID> displays = new ArrayList<>();
@@ -841,7 +959,13 @@ final class CharonRitualController {
         private Sequence(Kind kind, Location center, Vector direction, List<Location> safeCenters, BossBar bar, long startTick, long impactAt) {
             this.kind = kind;
             this.center = center.clone();
-            this.direction = direction.clone();
+            List<List<Beam>> waves = new ArrayList<>();
+            if (kind == Kind.RIVER) {
+                for (int wave = 0; wave < RIVER_WAVES; wave++) {
+                    waves.add(createRiverBeams(this.center, direction, wave));
+                }
+            }
+            this.riverWaves = List.copyOf(waves);
             this.safeCenters = safeCenters;
             this.bar = bar;
             this.startTick = startTick;
