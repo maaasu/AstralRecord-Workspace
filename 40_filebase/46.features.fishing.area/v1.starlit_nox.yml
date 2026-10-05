@@ -1,0 +1,18 @@
+# design:
+#   motif: "釣り / 水辺"
+#   progression: 1
+schemaVersion: 1
+id: starlit_nox
+type: FISHING_AREA
+name: "ノクスの水辺"
+worldId: {ref: "world:starlit_nox"}
+rulesId: {ref: "fishing_rules:default"}
+enabled: true
+levelRanges:
+  - minLevel: 1
+    maxLevel: 1
+    fish:
+      - fishId: {ref: "fishing_fish:river_cod"}
+        chancePercent: 70
+      - fishId: {ref: "fishing_fish:river_salmon"}
+        chancePercent: 30

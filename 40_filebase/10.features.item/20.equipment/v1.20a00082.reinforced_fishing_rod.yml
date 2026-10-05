@@ -21,10 +21,10 @@ equipment:
   stats:
     - status: FISHING_LEVEL
       type: FLAT
-      value: 10
+      value: 2
     - status: CAST_DISTANCE
       type: FLAT
-      value: 24
+      value: 6
     - status: ATTACK
       type: FLAT
       value: 15

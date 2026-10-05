@@ -15,14 +15,6 @@ items:
     page: 1
     slot: 4
     priceGold: 100
-  - id: reinforced_fishing_rod
-    itemId:
-      ref: item:20a00082
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 11
-    priceGold: 900
   - id: nox_weapon
     itemId:
       ref: item:20a00001

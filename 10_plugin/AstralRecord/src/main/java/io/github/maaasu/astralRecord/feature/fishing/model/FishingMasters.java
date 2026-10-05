@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.fishing.model;
 
 import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.HashSet;
@@ -114,6 +115,21 @@ public final class FishingMasters {
                     throw new IllegalArgumentException("Overlapping fishing level ranges: " + id);
                 }
             }
+        }
+
+        /**
+         * 竿のレベル以下で、開始レベルが最も高い定義を選択します。
+         * 終了レベルを超える場合や定義間の空白でも、下位の最高定義を使用します。
+         * @param rodLevel 使用中の竿単体の釣りレベル
+         * @return 適用する定義。竿以下の定義がない場合はnull
+         */
+        public @Nullable LevelRange resolveLevelRange(int rodLevel) {
+            LevelRange selected = null;
+            for (LevelRange range : levelRanges) {
+                if (range.minLevel() > rodLevel) break;
+                selected = range;
+            }
+            return selected;
         }
     }
 

@@ -9,21 +9,10 @@ worldId: {ref: "world:vanaheim_supercontinent"}
 rulesId: {ref: "fishing_rules:default"}
 enabled: true
 levelRanges:
-  - minLevel: 0
-    maxLevel: 9
+  - minLevel: 1
+    maxLevel: 1
     fish:
       - fishId: {ref: "fishing_fish:river_cod"}
-        chancePercent: 40
+        chancePercent: 70
       - fishId: {ref: "fishing_fish:river_salmon"}
-        chancePercent: 40
-      - fishId: {ref: "fishing_fish:tropical_fish"}
-        chancePercent: 20
-  - minLevel: 10
-    maxLevel: 2147483647
-    fish:
-      - fishId: {ref: "fishing_fish:river_cod"}
-        chancePercent: 20
-      - fishId: {ref: "fishing_fish:river_salmon"}
-        chancePercent: 35
-      - fishId: {ref: "fishing_fish:tropical_fish"}
-        chancePercent: 45
+        chancePercent: 30

@@ -24,7 +24,7 @@ equipment:
       value: 1
     - status: CAST_DISTANCE
       type: FLAT
-      value: 16
+      value: 5
     - status: ATTACK
       type: FLAT
       value: 10

@@ -9,17 +9,15 @@ worldId: {ref: "world:verdia"}
 rulesId: {ref: "fishing_rules:default"}
 enabled: true
 levelRanges:
-  - minLevel: 0
-    maxLevel: 9
+  - minLevel: 1
+    maxLevel: 1
     fish:
       - fishId: {ref: "fishing_fish:river_cod"}
         chancePercent: 70
       - fishId: {ref: "fishing_fish:river_salmon"}
-        chancePercent: 25
-      - fishId: {ref: "fishing_fish:tropical_fish"}
-        chancePercent: 5
-  - minLevel: 10
-    maxLevel: 2147483647
+        chancePercent: 30
+  - minLevel: 2
+    maxLevel: 2
     fish:
       - fishId: {ref: "fishing_fish:river_cod"}
         chancePercent: 40

@@ -114,7 +114,7 @@ public final class FishingSession {
         this.hook = submergedHook.clone();
         this.maxLineLength = maxLineLength;
         this.rodAttack = Double.isFinite(rodAttack) && rodAttack > 0.0D ? rodAttack : 10.0D;
-        this.bar = plugin.getServer().createBossBar(FishingFeedback.text(FishingMsgId.BATTLE),
+        this.bar = plugin.getServer().createBossBar(bossTitle(FishingFeedback.text(FishingMsgId.BATTLE)),
             BarColor.BLUE, BarStyle.SOLID);
         this.bar.addPlayer(player);
         this.bar.setProgress(0.01D);
@@ -124,7 +124,7 @@ public final class FishingSession {
                 FishingFeedback.notify(owner, FishingMsgId.NO_WATER);
                 close();
             } else {
-                FishingFeedback.notify(owner, FishingMsgId.WAITING);
+                FishingFeedback.notify(owner, FishingMsgId.WAITING, levelLabel());
             }
         } catch (RuntimeException exception) {
             close();
@@ -257,7 +257,7 @@ public final class FishingSession {
         phase = Phase.RELEASED;
         phaseTicks = 0;
         bar.setColor(BarColor.RED);
-        bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
+        bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
         bar.setProgress(hp / selected.definition.maxHealth());
         bar.setVisible(true);
         escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds,
@@ -548,10 +548,23 @@ public final class FishingSession {
         return Math.max(0.0D, 1.0D - Math.abs(turn - rules.attackTicks() / 2.0D) / (rules.attackTicks() / 2.0D));
     }
 
+    /** @return 適用レベル。下位定義を使用する場合だけ竿レベルも併記します */
+    private String levelLabel() {
+        int effective = definition.effectiveFishingLevel();
+        return effective == definition.fishingLevel()
+            ? FishingFeedback.text(FishingMsgId.LEVEL, effective)
+            : FishingFeedback.text(FishingMsgId.LEVEL_WITH_ROD, effective, definition.fishingLevel());
+    }
+
+    /** @param state フェーズの案内 @return 既存ボスバーに収める短いレベル表示と案内 */
+    private String bossTitle(String state) {
+        return levelLabel() + " | " + state;
+    }
+
     /** 残り糸距離をボスバーの題名へ表示します。 */
     private void showDistance() {
-        bar.setTitle(FishingFeedback.text(FishingMsgId.BATTLE) + " | "
-            + FishingFeedback.text(FishingMsgId.REELING, String.format(Locale.ROOT, "%.1f", distance)));
+        bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.BATTLE) + " | "
+            + FishingFeedback.text(FishingMsgId.REELING, String.format(Locale.ROOT, "%.1f", distance))));
     }
 
     /** 距離0から放物線の釣り上げを開始します。 */
@@ -584,8 +597,8 @@ public final class FishingSession {
                 .shift(selected.entity.getLocation().toVector().multiply(-1.0D));
             combatHandle = mobService.fishingCombat().register(owner, selected.entity, selected.definition.name(), selected.definition.maxHealth(),
                 this::canReceiveCombatDamage, this::onCombatHealthChanged, this::onFishDefeated);
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING,
-                String.format(Locale.ROOT, "%.1f", rules.hangingTicks() / 20.0)));
+            bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HANGING,
+                String.format(Locale.ROOT, "%.1f", rules.hangingTicks() / 20.0))));
             bar.setColor(BarColor.YELLOW);
             bar.setProgress(1.0D);
             bar.setVisible(true);
@@ -606,8 +619,8 @@ public final class FishingSession {
         int remaining = Math.max(0, rules.hangingTicks() - phaseTicks);
         bar.setProgress(remaining / (double) rules.hangingTicks());
         if (phaseTicks % 5 == 0) {
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HANGING,
-                String.format(Locale.ROOT, "%.1f", remaining / 20.0D)));
+            bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HANGING,
+                String.format(Locale.ROOT, "%.1f", remaining / 20.0D))));
         }
         if (remaining == 0) {
             releaseFish();
@@ -651,7 +664,7 @@ public final class FishingSession {
         if (!isCombatPhase()) return;
         hp = Math.max(0.0D, Math.min(selected.definition.maxHealth(), remaining));
         if (isReleased()) {
-            bar.setTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel()));
+            bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
             bar.setProgress(hp / selected.definition.maxHealth());
         }
         if (hp > 0.0D) {

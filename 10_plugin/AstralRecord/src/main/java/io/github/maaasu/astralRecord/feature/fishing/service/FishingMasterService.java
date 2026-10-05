@@ -112,7 +112,7 @@ public final class FishingMasterService {
      * @param world 針の着水ワールド
      * @param fishingLevel 竿単体の釣りレベル
      * @param worldService Bukkitワールドからマスタを解決するサービス
-     * @return 開始用定義。該当ワールド・レベルがない場合はnull
+     * @return 開始用定義。ワールドに竿以下のレベル定義がない場合はnull
      */
     public @Nullable SessionDefinition findDefinition(World world, int fishingLevel, WorldService worldService) {
         var masterWorld = worldService.findByBukkitWorld(world);
@@ -120,13 +120,9 @@ public final class FishingMasterService {
         Snapshot current = snapshot;
         Area area = current.areasByWorld().get(FishingMasters.id(masterWorld.id()));
         if (area == null) return null;
-        for (LevelRange range : area.levelRanges()) {
-            if (fishingLevel >= range.minLevel() && fishingLevel <= range.maxLevel()) {
-                return new SessionDefinition(area.id(), area.worldId(), fishingLevel,
-                    current.rules().get(area.rulesId()), range, current);
-            }
-        }
-        return null;
+        LevelRange range = area.resolveLevelRange(fishingLevel);
+        return range == null ? null : new SessionDefinition(area.id(), area.worldId(), fishingLevel,
+            current.rules().get(area.rulesId()), range, current);
     }
 
     /**
@@ -180,6 +176,9 @@ public final class FishingMasterService {
     /** 1セッションの固定設定。マスタ再読込後も同じ世代を使用します。 */
     public record SessionDefinition(String areaId, String worldId, int fishingLevel, Rules rules,
                                     LevelRange distribution, Snapshot snapshot) {
+        /** @return 実際に適用している定義レベル。竿レベルとは区別します */
+        public int effectiveFishingLevel() { return distribution.minLevel(); }
+
         /** @param percent 0以上100未満の抽選値 @return 定義された百分率に従う魚 */
         public FishDefinition drawFish(double percent) {
             if (!Double.isFinite(percent) || percent < 0 || percent >= 100) throw new IllegalArgumentException("Invalid fishing draw");

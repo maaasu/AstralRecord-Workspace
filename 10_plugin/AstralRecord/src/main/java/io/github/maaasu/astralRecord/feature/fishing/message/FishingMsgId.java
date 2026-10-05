@@ -16,7 +16,9 @@ public enum FishingMsgId {
     NO_WATER(PlayerMsgId.P_9709),
     HANGING(PlayerMsgId.P_9710),
     FISH_NAME(PlayerMsgId.P_9711),
-    NO_FISHING_AREA(PlayerMsgId.P_9712);
+    NO_FISHING_AREA(PlayerMsgId.P_9712),
+    LEVEL(PlayerMsgId.P_9713),
+    LEVEL_WITH_ROD(PlayerMsgId.P_9714);
 
     private final PlayerMsgId message;
 
