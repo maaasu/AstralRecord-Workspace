@@ -354,6 +354,21 @@ public final class SharedParticleDefinitions {
     /** 発動瞬間の破片。発動後の表示なので当たり判定には使用しません。 */
     public static final SharedParticleDefinition EMPUSA_IMPACT =
         new SharedParticleDefinition("empusa_impact", Particle.CRIT, 8, 0.08D, 0.12D, 0.08D, 0.02D);
+    /** 草原の風技の危険域。極低密度でも残るCRITを統合版にも表示します。 */
+    public static final SharedParticleDefinition VENTOS_DANGER =
+        new SharedParticleDefinition("ventos_danger", Particle.CRIT, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 立石の風陣で次に通る風道を現在の衝撃粒子と別形状で予告します。 */
+    public static final SharedParticleDefinition VENTOS_NEXT =
+        new SharedParticleDefinition("ventos_next", Particle.CLOUD, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 風下の安全円。緑の粒子に白い安全標識も併用し、色だけへ依存しません。 */
+    public static final SharedParticleDefinition VENTOS_SAFE =
+        new SharedParticleDefinition("ventos_safe", Particle.HAPPY_VILLAGER, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 安全地点の白い標識。地表の危険粒子とは形状が異なります。 */
+    public static final SharedParticleDefinition VENTOS_BEACON =
+        new SharedParticleDefinition("ventos_beacon", Particle.END_ROD, 4, 0.01D, 0.01D, 0.01D, 0.0D);
+    /** 風技の発動時だけ表示する破片です。 */
+    public static final SharedParticleDefinition VENTOS_IMPACT =
+        new SharedParticleDefinition("ventos_impact", Particle.CRIT, 8, 0.08D, 0.12D, 0.08D, 0.02D);
     public static final SharedParticleDefinition SUNBIRD_SOLAR_DUST =
         new SharedParticleDefinition(
             "sunbird_solar_dust",

@@ -153,6 +153,7 @@ public final class BossMechanicService {
     private final ParticleDisplayService particleDisplayService;
     private final CharonRitualController charonRitualController;
     private final EmpusaSpellController empusaSpellController;
+    private final VentosEncounterController ventosEncounterController;
     private final KnockerEncounterController knockerEncounterController;
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
@@ -207,6 +208,11 @@ public final class BossMechanicService {
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
             (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)
         );
+        this.ventosEncounterController = new VentosEncounterController(
+            particleDisplayService,
+            center -> nearbyManagedPlayers(center, TARGET_RANGE),
+            (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MELEE, element, ratio)
+        );
         this.knockerEncounterController = new KnockerEncounterController(
             mobService,
             particleDisplayService,
@@ -259,6 +265,7 @@ public final class BossMechanicService {
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
         empusaSpellController.clear(bossInstanceId);
+        ventosEncounterController.clear(bossInstanceId);
         knockerEncounterController.clear(bossInstanceId);
     }
 
@@ -292,6 +299,7 @@ public final class BossMechanicService {
         runtimes.clear();
         charonRitualController.clearAll();
         empusaSpellController.clearAll();
+        ventosEncounterController.clearAll();
         knockerEncounterController.clearAll();
     }
 
@@ -306,12 +314,14 @@ public final class BossMechanicService {
 
         Set<UUID> activeBosses = new HashSet<>();
         Set<UUID> activeEmpusas = new HashSet<>();
+        Set<UUID> activeVentoses = new HashSet<>();
         Set<UUID> activeKnockers = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
             boolean knocker = KnockerEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker) || boss.currentHealth() <= 0.0D) {
+            boolean ventos = VentosEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker && !ventos) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
@@ -330,6 +340,20 @@ public final class BossMechanicService {
                     knockerEncounterController.cancelCast(boss.instanceId());
                 } else {
                     knockerEncounterController.tick(boss, entity, clockTicks);
+                }
+                continue;
+            }
+
+            if (ventos) {
+                activeVentoses.add(boss.instanceId());
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    ventosEncounterController.clear(boss.instanceId());
+                } else if (!isCharonEngaged(boss, entity)
+                    || !conditionService.canRunAi(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    ventosEncounterController.cancelCast(boss.instanceId());
+                } else {
+                    ventosEncounterController.tick(boss, entity, clockTicks);
                 }
                 continue;
             }
@@ -428,6 +452,7 @@ public final class BossMechanicService {
             }
         }
         empusaSpellController.retain(activeEmpusas);
+        ventosEncounterController.retain(activeVentoses);
         knockerEncounterController.retain(activeKnockers);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
