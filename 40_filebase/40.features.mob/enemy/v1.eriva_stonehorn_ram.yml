@@ -14,11 +14,10 @@ variant:
 icon: GOAT_HORN
 lore:
   - "&7風化した立石の間を歩く、頑丈な角を持つ草原のヤギ。"
-  - "&7足は遅いが打たれ強い。盾を崩し、射手と引き離そう。"
+  - "&7足は遅いが打たれ強い。射手と引き離して戦おう。"
 tags:
   - beast
   - melee
-  - shield
   - stone
 baseStats:
   - status: MAX_HEALTH
@@ -37,9 +36,6 @@ baseStats:
     value: 55
   - status: SHIELD_BREAK
     value: 5
-shield:
-  enabled: true
-  max: 12
 ai:
   idle:
     behavior: WANDER
