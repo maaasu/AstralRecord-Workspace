@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardRimeNovaExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -358,6 +359,7 @@ public final class SkillPresentationUtil {
         return descriptionValues(definition, 0.0D, 1);
     }
 
+    /** 定義のコピーへ共通表示値と、旧マスタにも適用する実装側の既定値を補完します。 */
     private static @NotNull Map<String, Object> descriptionValues(
         @NotNull SkillDefinition definition,
         double damageIncrease,
@@ -365,6 +367,9 @@ public final class SkillPresentationUtil {
     ) {
         Map<String, Object> values = new HashMap<>();
         values.putAll(definition.getParams());
+        if (WizardRimeNovaExecutor.ID.equals(definition.getId())) {
+            values.putIfAbsent("frozenTicks", WizardRimeNovaExecutor.DEFAULT_FROZEN_TICKS);
+        }
         values.put("name", plainName(definition, ""));
         values.put("cooldownTicks", definition.getCooldownTicks());
         values.put("level", level);

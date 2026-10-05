@@ -29,6 +29,8 @@ import java.util.UUID;
 /** 発動地点から氷の波を広げ、追う敵を凍結させて元素連携の距離を確保します。 */
 public final class WizardRimeNovaExecutor extends WizardSkillSupport {
     public static final String ID = "wizard_rime_nova";
+    /** 旧マスタで省略された凍結時間。実行と説明文の両方が同じ既定値を使います。 */
+    public static final int DEFAULT_FROZEN_TICKS = 40;
     private static final int STEP_TICKS = 2;
     private static final int WAVE_FRAMES = 5;
     private static final int TOTAL_FRAMES = 9;
@@ -38,7 +40,7 @@ public final class WizardRimeNovaExecutor extends WizardSkillSupport {
     public WizardRimeNovaExecutor(@NotNull ActiveSkillServices services) {
         // 半径の上限だけは近接範囲魔法の共通上限から独立させます。
         super(ID, services, "maxTargets", "damageRatio", "burningMultiplier",
-                "conditionChance", "conditionTicks", "frozenTicks");
+                "conditionChance", "conditionTicks");
     }
 
     /**
@@ -54,8 +56,10 @@ public final class WizardRimeNovaExecutor extends WizardSkillSupport {
         if (!Double.isFinite(radius) || radius <= 0.0D || radius > 10.0D) {
             throw new SkillParameterException("radius", "ライムノヴァの半径は0mより大きく10m以下が必要です");
         }
-        if (params.getDouble("frozenTicks", Double.NaN) > 60.0D) {
-            throw new SkillParameterException("frozenTicks", "ライムノヴァの凍結時間は60tick以下が必要です");
+        double frozenTicks = params.getDouble("frozenTicks", DEFAULT_FROZEN_TICKS);
+        if (!Double.isFinite(frozenTicks) || frozenTicks <= 0.0D || frozenTicks > 60.0D
+                || frozenTicks != Math.rint(frozenTicks)) {
+            throw new SkillParameterException("frozenTicks", "ライムノヴァの凍結時間は1～60tickの整数が必要です");
         }
     }
 
@@ -104,7 +108,7 @@ public final class WizardRimeNovaExecutor extends WizardSkillSupport {
         var targets = context.services().targeting().inSphere(context.player(), state.center, waveRadius,
                 maxTargets + state.struck.size(), true);
         var frozen = new ActiveSkillCondition(ConditionType.FROZEN, value(context, "conditionChance"),
-                (int) value(context, "frozenTicks"), 1.0D);
+                context.params().getInt("frozenTicks", DEFAULT_FROZEN_TICKS), 1.0D);
         for (var target : targets) {
             if (state.struck.size() >= maxTargets) break;
             if (!state.struck.add(target.id())) continue;
