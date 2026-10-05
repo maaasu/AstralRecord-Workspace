@@ -46,6 +46,30 @@ function select(label: string, value: string) { fireEvent.change(screen.getByRol
 function advanced() { fireEvent.click(screen.getByText(/^詳細な絞り込み/)) }
 
 describe('master list filters', () => {
+  it('minimizes all filter controls while keeping active conditions and allows clearing them', async () => {
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /銅の剣/ })
+    advanced(); select('レアリティ', 'RARE')
+    fireEvent.change(screen.getByRole('textbox', { name: 'マスター検索' }), { target: { value: '銅の剣' } })
+    fireEvent.click(screen.getByRole('button', { name: 'フィルタを最小化' }))
+    expect(screen.getByRole('button', { name: 'フィルタを展開' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('combobox', { name: 'マスターのカテゴリ' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'マスター検索' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'ドロップ元' })).not.toBeInTheDocument()
+    expect(screen.getByText('フィルタ · 2 条件')).toBeInTheDocument()
+    expect(screen.getByText(item.label, { selector: '.master-filter-heading small' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /銅の剣/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /銅鉱石/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'フィルタを展開' }))
+    expect(screen.getByRole('textbox', { name: 'マスター検索' })).toHaveValue('銅の剣')
+    expect(screen.getByRole('combobox', { name: 'レアリティ' })).toHaveValue('RARE')
+    fireEvent.click(screen.getByRole('button', { name: 'フィルタを最小化' }))
+    fireEvent.click(screen.getByRole('button', { name: '絞り込みを解除' }))
+    expect(screen.getByRole('button', { name: /銅鉱石/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'フィルタを展開' })).toBeInTheDocument()
+    expect(screen.queryByText('フィルタ · 2 条件')).not.toBeInTheDocument()
+  })
+
   it('finds mobs by a named drop item and combines that item with entity type', async () => {
     render(<MasterDataEditor />)
     await selectCategory(mob)

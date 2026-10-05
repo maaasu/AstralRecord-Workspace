@@ -34,6 +34,21 @@ async function open(name: 'ファイルA' | 'ファイルB') {
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
 describe('master file tabs', () => {
+  it('keeps filters minimized when opening and switching file tabs', async () => {
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: 'フィルタを最小化' }))
+    await open('ファイルA')
+    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
+    expect(panel().getByRole('button', { name: 'フィルタを展開' })).toBeInTheDocument()
+    await open('ファイルB')
+    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
+    expect(panel().queryByRole('combobox', { name: 'マスターのカテゴリ' })).not.toBeInTheDocument()
+    fireEvent.click(panel().getByRole('button', { name: 'フィルタを展開' }))
+    select(/ファイルA/)
+    expect(panel().getByRole('combobox', { name: 'マスターのカテゴリ' })).toBeInTheDocument()
+    expect(panel().getByRole('button', { name: 'フィルタを最小化' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('keeps unsaved edits and selects an already open file without reloading it', async () => {
     render(<MasterDataEditor />)
     await open('ファイルA')

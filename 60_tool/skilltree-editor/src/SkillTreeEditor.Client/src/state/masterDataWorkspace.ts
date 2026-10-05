@@ -25,6 +25,7 @@ export function useMasterDataWorkspace() {
   const [fileStatus, setFileStatus] = useState('')
   const [visibleCount, setVisibleCount] = useState(50)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const refreshId = useRef(0)
   const rememberedPaths = useRef<Record<string, string>>({})
 
@@ -88,6 +89,7 @@ export function useMasterDataWorkspace() {
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
     facetFilters, setFacetFilters, fileStatus, setFileStatus,
     sidebarCollapsed, setSidebarCollapsed,
+    filtersCollapsed, setFiltersCollapsed,
   }
 }
 

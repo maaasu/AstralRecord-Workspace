@@ -35,6 +35,11 @@ body:has(.master-app-content:not([hidden]) .master-editor) { min-width: 0; }
 .master-filter-group > strong { color: var(--text); font-size: 11px; }
 .master-filter-group > small { color: var(--text-muted); font-size: 10px; }
 .master-list-filters { display: grid; gap: 10px; overflow: auto; max-height: 50%; flex-shrink: 1; min-height: 40px; }
+.master-list-filters[hidden] { display: none; }
+.master-filter-heading { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 12px; }
+.master-filter-heading > span, .master-filter-heading > button { flex-shrink: 0; }
+.master-filter-heading > small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+.master-filter-heading > button { margin-left: auto; }
 .master-advanced-filters { padding: 9px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
 .master-advanced-filters summary { cursor: pointer; color: var(--text-muted); }
 .master-advanced-filters > div { display: grid; gap: 8px; margin-top: 10px; }

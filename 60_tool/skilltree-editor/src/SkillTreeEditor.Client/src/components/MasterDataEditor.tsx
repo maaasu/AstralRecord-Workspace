@@ -106,7 +106,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     sourceQuery, setSourceQuery, dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
     facetFilters, setFacetFilters, fileStatus, setFileStatus,
-    sidebarCollapsed, setSidebarCollapsed } = workspace
+    sidebarCollapsed, setSidebarCollapsed, filtersCollapsed, setFiltersCollapsed } = workspace
+  const filtersId = useId()
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
   const [references, setReferences] = useState<MasterReference[]>([])
@@ -189,6 +190,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       && matchesFileStatus(entry, fileStatus)
       && searchMasterName(query, entry.path, entry.id, entry.name))
   }, [categoryFiles, format, query, isItemCategory, selectedSource, isSkillCategory, skillTag, filterIndex, isDropSourceCategory, dropItemId, dropPresence, categorySources, facetFilters, facetOptions, indexedFiles, fileStatus])
+  const activeFilterCount = [query.trim(), format, dropSourcePath, skillTag, dropItemId, dropPresence, fileStatus].filter(Boolean).length + Object.keys(facetFilters).length
   const requestMore = useCallback(() => {
     if (batchRequested.current) return
     batchRequested.current = true
@@ -425,10 +427,11 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       <div className="master-toolbar"><button className="button" disabled={busy} onClick={() => setCreateMode('new')}>＋ 新規</button><button className="button subtle" disabled={busy} onClick={() => importInput.current?.click()}>原稿を読込</button><button className="button subtle" disabled={busy} onClick={() => { void refresh().catch(showError) }} title="一覧と定義メタデータを再読込">↻</button></div>
       <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
       <div className="master-sidebar-files" hidden={sidebarView !== 'files' && draft.source === 'form' && Boolean(document)}>
+      <div className="master-filter-heading"><span>フィルタ{activeFilterCount > 0 && ` · ${activeFilterCount} 条件`}</span>{filtersCollapsed && category && <small title={category.label}>{category.label}</small>}<button type="button" className="button compact subtle" aria-label={filtersCollapsed ? 'フィルタを展開' : 'フィルタを最小化'} aria-expanded={!filtersCollapsed} aria-controls={filtersId} onClick={() => setFiltersCollapsed((current) => !current)}>{filtersCollapsed ? '展開' : '最小化'}</button></div>
+      <div id={filtersId} className="master-list-filters" hidden={filtersCollapsed}>
       <label>カテゴリ<select aria-label="マスターのカテゴリ" value={categoryId} onChange={(event) => changeCategory(event.target.value)}>{catalog?.categories.map((entry) => <option key={entry.id} value={entry.id}>{categoryOptionLabel(entry, files.filter((file) => inCategory(file.path, entry.directory)).length, catalog.categories)}</option>)}</select></label>
       {category && <small className="master-category-path">{category.directory} 配下のファイルを表示</small>}
       <label>検索<input aria-label="マスター検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="名前 / ID / ファイルパス" /></label>
-      <div className="master-list-filters">
       {isItemCategory && <div className="master-filter-group"><strong>ドロップ元で絞り込み</strong><label>モブ・採集オブジェクト名<input aria-label="ドロップ元を名前で検索" value={sourceQuery} onChange={(event) => { setSourceQuery(event.target.value); setDropSourcePath('') }} placeholder="名前 / ID を入力" /></label><label>ドロップ元<select aria-label="ドロップ元" value={dropSourcePath} onChange={(event) => setDropSourcePath(event.target.value)} disabled={!filterIndex}><option value="">指定しない</option>{sourceOptions.map((source) => <option key={source.path} value={source.path}>{source.kind === 'mob' ? 'モブ' : '採集'} · {stripMinecraftFormatting(source.name) || source.id} ({source.id})</option>)}</select></label>{selectedSource && <small>{selectedSource.itemIds.length} 種類のドロップ品を対象</small>}</div>}
       {isDropSourceCategory && <div className="master-filter-group"><strong>ドロップ品で絞り込み</strong>
         <label>アイテム名<input aria-label="ドロップ品を名前で検索" value={dropItemQuery} onChange={(event) => { setDropItemQuery(event.target.value); setDropItemId('') }} placeholder="名前 / ID を入力" disabled={!filterIndex} /></label>
