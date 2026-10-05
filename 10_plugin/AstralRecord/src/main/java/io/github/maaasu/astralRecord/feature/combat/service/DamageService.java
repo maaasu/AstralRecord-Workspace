@@ -37,6 +37,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRunt
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.MeleeDualCrestRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.WizardSpectralOrreryRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.PaladinDefenseConversionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardianProtectRuntimeService;
@@ -108,6 +110,9 @@ public final class DamageService {
     private SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService;
     private PassiveSkillService passiveSkillService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
+    private MeleeDualCrestRuntimeService meleeDualCrestRuntimeService;
+    private WizardSpectralOrreryRuntimeService wizardSpectralOrreryRuntimeService;
+    private boolean skillbookHitsSuppressed;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private PaladinGuardianProtectRuntimeService paladinGuardianProtectRuntimeService;
     private PetRuntimeService petRuntimeService;
@@ -249,6 +254,43 @@ public final class DamageService {
     /** @param runtime 確定した直接攻撃の Mob 命中通知先 */
     public void setArchmagePhoenixRuntimeService(@Nullable ArchmagePhoenixRuntimeService runtime) {
         this.archmagePhoenixRuntimeService = runtime;
+    }
+
+    /**
+     * 近接スキルブックの有効命中通知先を接続します。
+     *
+     * @param runtime 紋章の実行状態。nullで通知を解除します
+     */
+    public void setMeleeDualCrestRuntimeService(@Nullable MeleeDualCrestRuntimeService runtime) {
+        this.meleeDualCrestRuntimeService = runtime;
+    }
+
+    /**
+     * 魔法スキルブックの有効命中通知先を接続します。
+     *
+     * @param runtime 天球儀の実行状態。nullで通知を解除します
+     */
+    public void setWizardSpectralOrreryRuntimeService(@Nullable WizardSpectralOrreryRuntimeService runtime) {
+        this.wizardSpectralOrreryRuntimeService = runtime;
+    }
+
+    /**
+     * 同期スレッド上の追撃と、その同期派生からスキルブックの再発動を抑止します。
+     * 入れ子の呼出しと例外発生時も、呼出し前の抑止状態へ必ず戻します。
+     *
+     * @param action 抑止中に実行する処理。遅延処理は実行時に別途このメソッドで囲みます
+     * @param <T> 処理結果の型
+     * @return actionの戻り値。nullもそのまま返します
+     * @throws RuntimeException actionが送出した例外をそのまま伝播します
+     */
+    public <T> T withSkillbookHitSuppressed(@NotNull Supplier<T> action) {
+        boolean previous = skillbookHitsSuppressed;
+        skillbookHitsSuppressed = true;
+        try {
+            return action.get();
+        } finally {
+            skillbookHitsSuppressed = previous;
+        }
     }
 
     /** ガード獲得へ被ダメージ内訳を通知するサービスを設定します。 */
@@ -1313,6 +1355,23 @@ public final class DamageService {
                 && attacker != null && attacker.isPlayer() && attacker.player() != null
                 && victim.isMob() && victim.mob() != null) {
             archmagePhoenixRuntimeService.onDirectMobHit(attacker.player(), victim.mob(), source);
+        }
+        if (!skillbookHitsSuppressed && !projectileDamage
+                && isDirectDamage(source) && !result.evaded()
+                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)
+                && attacker != null && attacker.isPlayer() && attacker.player() != null
+                && victim.isMob() && victim.mob() != null) {
+            withSkillbookHitSuppressed(() -> {
+                if (meleeDualCrestRuntimeService != null) {
+                    meleeDualCrestRuntimeService.onDirectMobHit(
+                            attacker.player(), victim.mob(), attackType, source, skillAttackWear.get());
+                }
+                if (wizardSpectralOrreryRuntimeService != null) {
+                    wizardSpectralOrreryRuntimeService.onMagicMobHit(
+                            attacker.player(), victim.mob(), attackType, components, source, skillAttackWear.get());
+                }
+                return null;
+            });
         }
         if (victim.isPlayer() && victim.player() != null && paladinGuardRuntimeService != null) {
             double rawDamage = calculated.breakdown().preDefenseDamage() * postCalculationMultiplier

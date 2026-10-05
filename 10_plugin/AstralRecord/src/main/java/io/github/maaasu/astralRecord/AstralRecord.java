@@ -294,6 +294,13 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArcaneFlowSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArchmagePhoenixRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.MeleeDualCrestRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.RangedStarweaveRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.RangedStarweaveLifecycleListener;
+import io.github.maaasu.astralRecord.feature.skill.service.WizardSpectralOrreryRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.MeleeDualCrestExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.RangedStarweaveFollowupExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardSpectralOrreryExecutor;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.AirShiftSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MageBlinkSkillRuntimeService;
@@ -511,6 +518,9 @@ public final class AstralRecord extends JavaPlugin {
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
+    private MeleeDualCrestRuntimeService meleeDualCrestRuntimeService;
+    private RangedStarweaveRuntimeService rangedStarweaveRuntimeService;
+    private WizardSpectralOrreryRuntimeService wizardSpectralOrreryRuntimeService;
     private WizardPrismConditionRuntimeService wizardPrismConditionRuntimeService;
     private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private SeijakuIssenSkillRuntimeService seijakuIssenSkillRuntimeService;
@@ -979,6 +989,15 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (archmagePhoenixRuntimeService != null) {
             archmagePhoenixRuntimeService.clearAll();
+        }
+        if (meleeDualCrestRuntimeService != null) {
+            meleeDualCrestRuntimeService.shutdown();
+        }
+        if (rangedStarweaveRuntimeService != null) {
+            rangedStarweaveRuntimeService.stop();
+        }
+        if (wizardSpectralOrreryRuntimeService != null) {
+            wizardSpectralOrreryRuntimeService.clearAll();
         }
         if (wizardPrismConditionRuntimeService != null) {
             wizardPrismConditionRuntimeService.clearAll();
@@ -1909,6 +1928,7 @@ public final class AstralRecord extends JavaPlugin {
         activeSkillTaskService = new SkillTaskService(this);
         statusService.setChallengeBuffResetListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
+            clearSkillbookCombatState(playerId);
             skillService.clearAllCooldowns(playerId);
             temporarySkillEffectService.clear(playerId);
             meditationSkillRuntimeService.interrupt(playerId);
@@ -1926,6 +1946,7 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService
         );
         playerDeathService.setDeathStartedListener(playerId -> {
+            clearSkillbookCombatState(playerId);
             activeSkillLifecycleService.clearAll(playerId);
             PhantomArcherCastLifecycle.clearOwner(playerId);
             archmagePhoenixRuntimeService.onPlayerDeath(playerId);
@@ -1982,7 +2003,10 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillServices.tasks(),
             playerHudService
         );
-        activeSkillLifecycleService.setAdditionalCleanup(seijakuIssenSkillRuntimeService::interrupt);
+        activeSkillLifecycleService.setAdditionalCleanup(playerId -> {
+            seijakuIssenSkillRuntimeService.interrupt(playerId);
+            clearSkillbookCombatState(playerId);
+        });
         playerHudService.setSwordSpiritRenderer(seijakuIssenSkillRuntimeService::spiritActionBar);
         damageService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         skillService.registerExecutor(new SwordmasterSeijakuIssenExecutor(seijakuIssenSkillRuntimeService));
@@ -2051,6 +2075,22 @@ public final class AstralRecord extends JavaPlugin {
         var inheritanceBuffService = new InheritanceBuffService(
             skillService, passiveSkillService, statusService, activeSkillTaskService);
         weaponAttackSkillExecutor.setInheritanceBuffService(inheritanceBuffService);
+        meleeDualCrestRuntimeService = new MeleeDualCrestRuntimeService(
+            activeSkillServices, statusService, damageService);
+        meleeDualCrestRuntimeService.setPassiveSkillService(passiveSkillService);
+        skillService.registerExecutor(new MeleeDualCrestExecutor(meleeDualCrestRuntimeService));
+        damageService.setMeleeDualCrestRuntimeService(meleeDualCrestRuntimeService);
+        rangedStarweaveRuntimeService = new RangedStarweaveRuntimeService(
+            activeSkillServices, inheritanceBuffService, passiveSkillService,
+            inventoryService, skillPermissionService, damageService, particleDisplayService
+        );
+        skillService.registerExecutor(new RangedStarweaveFollowupExecutor(rangedStarweaveRuntimeService));
+        weaponAttackSkillExecutor.setRangedStarweaveRuntimeService(rangedStarweaveRuntimeService);
+        wizardSpectralOrreryRuntimeService = new WizardSpectralOrreryRuntimeService(
+            activeSkillServices, statusService, damageService);
+        wizardSpectralOrreryRuntimeService.setPassiveSkillService(passiveSkillService);
+        skillService.registerExecutor(new WizardSpectralOrreryExecutor(wizardSpectralOrreryRuntimeService));
+        damageService.setWizardSpectralOrreryRuntimeService(wizardSpectralOrreryRuntimeService);
         for (var executor : skillService.registry().executors()) {
             if (executor instanceof SharpshooterBuildSupport sharpshooter) {
                 sharpshooter.setInheritanceBuffService(inheritanceBuffService);
@@ -2147,6 +2187,7 @@ public final class AstralRecord extends JavaPlugin {
         PhantomArcherRuntime.configure(passiveSkillService, skillService, itemWeaponAttackService,
             activeSkillServices.effects(), activeSkillTaskService, particleDisplayService);
         getServer().getPluginManager().registerEvents(new PhantomArcherWeaponLifecycleListener(), this);
+        getServer().getPluginManager().registerEvents(new RangedStarweaveLifecycleListener(rangedStarweaveRuntimeService), this);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
         skillActionRingHoldService = new SkillActionRingHoldService(
             this,
@@ -2386,6 +2427,10 @@ public final class AstralRecord extends JavaPlugin {
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
             try {
+                clearSkillbookCombatState(playerId);
+                meleeDualCrestRuntimeService.forgetPlayer(playerId);
+                rangedStarweaveRuntimeService.forgetOwner(playerId);
+                wizardSpectralOrreryRuntimeService.clearPlayer(player);
                 // 他のパッシブの終了が失敗しても、次アカウントへ不死鳥状態を持ち越さない。
                 archmagePhoenixRuntimeService.clearPlayer(player);
                 passiveSkillService.onPlayerQuit(player);
@@ -3353,6 +3398,21 @@ public final class AstralRecord extends JavaPlugin {
         );
     }
 
+    /**
+     * 死亡・世界移動・チャレンジ初期化でスキルブックの連携と予約追撃を解除します。
+     * 習得個体のバインドは保持し、同じ装備での次の戦闘から再び蓄積できます。
+     *
+     * @param playerId 現セッションのプレイヤーUUID
+     */
+    private void clearSkillbookCombatState(UUID playerId) {
+        if (meleeDualCrestRuntimeService != null) meleeDualCrestRuntimeService.clearPlayer(playerId);
+        if (rangedStarweaveRuntimeService != null) rangedStarweaveRuntimeService.clearOwner(playerId);
+        AstPlayer player = AstPlayerCache.get(playerId);
+        if (player != null && wizardSpectralOrreryRuntimeService != null) {
+            wizardSpectralOrreryRuntimeService.resetPlayer(player);
+        }
+    }
+
     private void publishMasterDataReload(
         @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion,
         long generation,
@@ -3385,6 +3445,9 @@ public final class AstralRecord extends JavaPlugin {
                 }
                 skillTreeService.finishMasterDataPublication();
                 PhantomArcherCastLifecycle.clearAll();
+                if (meleeDualCrestRuntimeService != null) meleeDualCrestRuntimeService.resetAll();
+                if (rangedStarweaveRuntimeService != null) rangedStarweaveRuntimeService.clearAll();
+                if (wizardSpectralOrreryRuntimeService != null) wizardSpectralOrreryRuntimeService.resetAll();
             } finally {
                 skillTreeService.endMasterDataPublication();
             }

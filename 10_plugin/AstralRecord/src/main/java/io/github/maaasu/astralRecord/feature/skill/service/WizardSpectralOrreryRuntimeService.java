@@ -169,17 +169,19 @@ public final class WizardSpectralOrreryRuntimeService {
     /** マスタ再読込時にバインドを保持し、全連携・予約攻撃・短命演出だけを破棄します。 */
     public void resetAll() { for (State state : states.values()) resetChain(state); }
 
-    /** 本体消費後のMPとライフサイクルを再確認し、同じ耐久単位で三属性追撃を一回適用します。 */
+    /** 本体消費後のMPと共通の消費軽減を再確認し、同じ耐久単位で三属性追撃を一回適用します。 */
     private void release(State state, Location center, Parameters params, SkillAttackWear wear) {
         state.pending = false;
         if (!hasPermission(state.owner) || currentState(state.owner) != state || state.bindings.isEmpty()
                 || state.owner.getBukkit().getWorld() != center.getWorld()
-                || state.owner.getBukkit().getLocation().distanceSquared(center) > params.range() * params.range()
-                || statuses.getStatus(state.owner).getCurrentMp() < params.manaCost()) return;
+                || state.owner.getBukkit().getLocation().distanceSquared(center) > params.range() * params.range()) return;
+        var status = statuses.getStatus(state.owner);
+        double manaCost = SkillService.resolveResourceCost(status, SkillResourceType.MANA, params.manaCost());
+        if (status.getCurrentMp() < manaCost) return;
         var targets = services.targeting().inSphere(state.owner.getBukkit(), center,
                 params.radius(), params.maxTargets(), true);
         if (targets.isEmpty()) return;
-        statuses.consumeMp(state.owner, params.manaCost());
+        statuses.consumeMp(state.owner, manaCost);
         state.nextReadyTick = Bukkit.getCurrentTick() + params.cooldownTicks();
         var combat = services.combat().forAttackWear(wear);
         applyingOrrery = true;
