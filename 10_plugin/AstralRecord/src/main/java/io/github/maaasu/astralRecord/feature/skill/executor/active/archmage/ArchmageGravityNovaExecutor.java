@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.support.Playe
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 /** 現存陣数で範囲が広がり、敵を押し出す重力爆発です。 */
 public final class ArchmageGravityNovaExecutor extends ArchmageStrikeSkillExecutor {
@@ -22,20 +24,17 @@ public final class ArchmageGravityNovaExecutor extends ArchmageStrikeSkillExecut
     protected void strike(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                           double radius, double power, int circles) {
         double expanded = radius + circles * 0.75D;
-        ArchmageBuildSupport.drawCircle(context, center, expanded, true);
-        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.NOVA);
+        List<Location> impacts = new ArrayList<>();
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, expanded, 3.0D, 8, true)) {
-            Location feet = target.location().clone();
-            Location body = context.services().targeting().center(target);
+            Location impact = context.services().targeting().center(target);
             DamageResult result = hitWithoutNormalKnockback(context, target, power);
-            if (ArchmageTargetEffects.damaged(result)) {
-                feedback.affected(feet, body);
-                if (target.currentHealth() > 0.0D) {
-                    feedback.pushed(body, ArchmageTargetEffects.push(context, target, center, 0.75D, 0.2D));
-                }
+            if (ArchmageConstellationEffects.effectiveHit(result)) { impacts.add(impact); }
+            if (ArchmageConstellationEffects.effectiveHit(result)
+                    && target.currentHealth() > 0.0D) {
+                context.services().combat().knockback(target, center, 0.75D, 0.2D);
             }
         }
-        feedback.render();
+        ArchmageConstellationEffects.nova(context, center, expanded, impacts);
     }
 
     /** 通常の押し出しだけを同期命中中に抑止し、他の効果を保って直ちに解除します。 */

@@ -13,20 +13,17 @@ public final class ArchmageAegisCircleExecutor extends ArchmageFieldSkillExecuto
     public static final String ID = "archmage_aegis_circle";
 
     /** @param services 共通発動サービス */
-    public ArchmageAegisCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, true); }
+    public ArchmageAegisCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, ArchmageConstellationEffects.FieldStyle.AEGIS); }
 
     /** {@inheritDoc} */
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
-                         double radius, double power) {
-        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.AEGIS);
+                         double radius, double power, ArchmageConstellationEffects.FieldFeedback feedback) {
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, 2.0D)) {
             double maximum = target.getStatusSnapshot().getMaxValue(StatusType.MAX_SHIELD);
             if (context.services().combat().recoverShield(AstEntity.player(target), maximum * power) > 0.0D) {
-                Location feet = target.getBukkit().getLocation();
-                feedback.affected(feet, feet.clone().add(0.0D, 0.9D, 0.0D));
+                feedback.accept(target.getBukkit().getLocation());
             }
         }
-        feedback.render();
     }
 }

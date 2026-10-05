@@ -12,20 +12,18 @@ public final class ArchmageStasisCircleExecutor extends ArchmageFieldSkillExecut
     public static final String ID = "archmage_stasis_circle";
 
     /** @param services 共通発動サービス */
-    public ArchmageStasisCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, false); }
+    public ArchmageStasisCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, ArchmageConstellationEffects.FieldStyle.STASIS); }
 
     /** {@inheritDoc} */
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
-                         double radius, double power) {
-        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.STASIS);
+                         double radius, double power, ArchmageConstellationEffects.FieldFeedback feedback) {
         for (AstEntity target : context.services().targeting().inRadius(context.player(), center, radius, 2.5D, 8, true)) {
             double speed = target.statValue(StatusType.MOVEMENT_SPEED);
             if (context.services().combat().applyTemporaryMovementSpeedReduction(
                     target, (speed > 0.0D ? speed : 100.0D) * power, 30L)) {
-                feedback.affected(target.location(), context.services().targeting().center(target));
+                feedback.accept(target.location());
             }
         }
-        feedback.render();
     }
 }

@@ -11,19 +11,16 @@ public final class ArchmageVigorCircleExecutor extends ArchmageFieldSkillExecuto
     public static final String ID = "archmage_vigor_circle";
 
     /** @param services 共通発動サービス */
-    public ArchmageVigorCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, true); }
+    public ArchmageVigorCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, ArchmageConstellationEffects.FieldStyle.VIGOR); }
 
     /** {@inheritDoc} */
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
-                         double radius, double power) {
-        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.VIGOR);
+                         double radius, double power, ArchmageConstellationEffects.FieldFeedback feedback) {
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, 2.0D)) {
             if (context.services().combat().recoverEnergyByMaxRatio(target, power) > 0.0D) {
-                Location feet = target.getBukkit().getLocation();
-                feedback.affected(feet, feet.clone().add(0.0D, 0.9D, 0.0D));
+                feedback.accept(target.getBukkit().getLocation());
             }
         }
-        feedback.render();
     }
 }

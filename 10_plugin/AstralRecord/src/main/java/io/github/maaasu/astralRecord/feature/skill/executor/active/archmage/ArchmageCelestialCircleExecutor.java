@@ -116,6 +116,10 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
             return;
         }
         ArchmageCelestialCircleRuntimeService.Snapshot snapshot = runtimeService.snapshot(casterId);
+        if (snapshot != null && snapshot.complete() && tick == 39) {
+            context.services().effects().sound(snapshot.center(), Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.7F, 1.3F);
+            context.services().effects().sound(snapshot.center(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5F, 1.55F);
+        }
         if (snapshot == null || tick % (snapshot.complete() ? COMPLETE_DRAW_INTERVAL_TICKS : DRAW_INTERVAL_TICKS) != 0) {
             return;
         }

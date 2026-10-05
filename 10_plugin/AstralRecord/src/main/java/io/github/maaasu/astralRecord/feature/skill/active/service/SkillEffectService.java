@@ -9,8 +9,10 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,10 @@ import java.util.List;
  * 発動スキルの粒子と効果音を、負荷を抑えた図形単位で描画します。
  */
 public final class SkillEffectService {
+
+    private static final int MAX_VIEWER_CANDIDATES = 64;
+    private static final int MAX_FRAME_VIEWERS = 32;
+    private static final double VIEWER_DISTANCE = 64.0D;
 
     private final ParticleDisplayService particleDisplayService;
 
@@ -44,6 +50,51 @@ public final class SkillEffectService {
     ) {
         if (!locations.isEmpty()) {
             particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
+        }
+    }
+
+    /**
+     * 近傍候補の走査を64人、表示先を最大32人に制限した一フレームの閲覧者を返します。
+     * ワールド全体を走査せず、範囲内の発動者を先に選びます。全粒子層で同じ結果を再使用します。
+     * @param center 閲覧範囲の中心
+     * @param preferred 範囲内にいる場合に優先する発動者。所有者不在の表示ではnull
+     * @param limit 表示上限。1〜32へ補正する
+     * @return 同一worldの64m球内にいるオンライン閲覧者の不変スナップショット
+     */
+    public @NotNull List<Player> nearbyViewers(@NotNull Location center, @Nullable Player preferred, int limit) {
+        World world = center.getWorld();
+        if (world == null) { return List.of(); }
+        int safeLimit = Math.max(1, Math.min(MAX_FRAME_VIEWERS, limit));
+        List<Player> viewers = new ArrayList<>(safeLimit);
+        double rangeSquared = VIEWER_DISTANCE * VIEWER_DISTANCE;
+        if (preferred != null && preferred.isOnline() && preferred.getWorld() == world
+                && preferred.getLocation().distanceSquared(center) <= rangeSquared) {
+            viewers.add(preferred);
+        }
+        int checked = 0;
+        for (Player viewer : world.getNearbyPlayers(center, VIEWER_DISTANCE)) {
+            if (viewers.size() >= safeLimit || checked++ >= MAX_VIEWER_CANDIDATES) { break; }
+            if (viewer != preferred && viewer.isOnline() && viewer.getWorld() == world
+                    && viewer.getLocation().distanceSquared(center) <= rangeSquared) {
+                viewers.add(viewer);
+            }
+        }
+        return List.copyOf(viewers);
+    }
+
+    /**
+     * 解決済みの閲覧者へ点群を送信し、共有サービスの粒子密度・統合版設定に従います。
+     * @param viewers nearbyViewersで解決した同一フレームの閲覧者
+     * @param locations 一括表示する地点。異なるworldの地点は共有サービスが除外する
+     * @param definition 共通粒子定義
+     */
+    public void pointsForViewers(@NotNull List<Player> viewers, @NotNull List<Location> locations,
+                                 @NotNull SharedParticleDefinition definition) {
+        if (locations.isEmpty()) { return; }
+        int limit = Math.min(MAX_FRAME_VIEWERS, viewers.size());
+        for (int index = 0; index < limit; index++) {
+            Player viewer = viewers.get(index);
+            if (viewer.isOnline()) { particleDisplayService.spawnForViewer(viewer, locations, definition); }
         }
     }
 

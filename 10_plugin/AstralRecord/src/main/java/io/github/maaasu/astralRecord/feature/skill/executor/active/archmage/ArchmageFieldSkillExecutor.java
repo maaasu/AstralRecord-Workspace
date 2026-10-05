@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,18 +18,18 @@ import java.util.function.Predicate;
 /** 時限式の設置魔法陣について登録、描画、停止処理を一元化します。 */
 abstract class ArchmageFieldSkillExecutor extends PlayerActiveSkillExecutor {
     private static final int TASK_INTERVAL_TICKS = 10;
-    private final boolean affectsPlayers;
+    private final ArchmageConstellationEffects.FieldStyle style;
 
     /**
      * 設置型の実行処理を初期化します。
      * @param id スキルID
      * @param services 共通発動サービス
-     * @param affectsPlayers プレイヤーを支援する陣ならtrue
+     * @param style 技固有の意匠とプレイヤー支援の区分
      */
     protected ArchmageFieldSkillExecutor(@NotNull String id, @NotNull ActiveSkillServices services,
-                                         boolean affectsPlayers) {
+                                         ArchmageConstellationEffects.FieldStyle style) {
         super(id, services);
-        this.affectsPlayers = affectsPlayers;
+        this.style = style;
     }
 
     /** {@inheritDoc} */
@@ -78,17 +77,19 @@ abstract class ArchmageFieldSkillExecutor extends PlayerActiveSkillExecutor {
         };
         // 同種の旧陣を先に終了させ、登録と効果を一つだけ維持します。
         context.services().tasks().cancel(casterId, scope);
-        UUID circleId = affectsPlayers
+        UUID circleId = style.supportsPlayers
                 ? context.services().circles().register(casterId, influence)
                 : context.services().circles().register(casterId);
         try {
-            ArchmageBuildSupport.drawCircle(context, center, radius, !affectsPlayers);
-            context.services().effects().sound(center, Sound.BLOCK_BEACON_ACTIVATE, 0.55F, affectsPlayers ? 1.5F : 0.9F);
+            ArchmageConstellationEffects.fieldOpened(context, center, style);
+            ArchmageConstellationEffects.fieldFrame(context, center, radius, style, 0, false);
+            int[] lastSoundAge = {-40};
             context.services().tasks().repeat(casterId, scope, 1L, TASK_INTERVAL_TICKS,
                     duration / TASK_INTERVAL_TICKS + 1,
                     index -> {
                         int age = index * TASK_INTERVAL_TICKS;
                         if (age >= duration) {
+                            ArchmageConstellationEffects.fieldClosed(context, center, style);
                             context.services().tasks().cancel(casterId, scope);
                             return;
                         }
@@ -98,9 +99,14 @@ abstract class ArchmageFieldSkillExecutor extends PlayerActiveSkillExecutor {
                             context.services().tasks().cancel(casterId, scope);
                             return;
                         }
-                        ArchmageBuildSupport.drawCircle(context, center, radius, !affectsPlayers);
-                        if (age % interval == 0) {
-                            pulse(context, center, radius, power);
+                        boolean effectPulse = age % interval == 0;
+                        ArchmageConstellationEffects.fieldFrame(context, center, radius, style, age, effectPulse);
+                        if (effectPulse) {
+                            ArchmageConstellationEffects.FieldFeedback feedback = new ArchmageConstellationEffects.FieldFeedback();
+                            pulse(context, center, radius, power, feedback);
+                            if (feedback.finish(context, center, style, age - lastSoundAge[0] >= 40)) {
+                                lastSoundAge[0] = age;
+                            }
                         }
                     },
                     () -> context.services().circles().remove(circleId));
@@ -117,7 +123,8 @@ abstract class ArchmageFieldSkillExecutor extends PlayerActiveSkillExecutor {
      * @param center 固定した陣の中心
      * @param radius 陣の半径
      * @param power YAMLの効果量
+     * @param feedback 実際に効果が成立した対象だけを記録する有限の演出
      */
     protected abstract void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
-                                  double radius, double power);
+                                  double radius, double power, ArchmageConstellationEffects.FieldFeedback feedback);
 }

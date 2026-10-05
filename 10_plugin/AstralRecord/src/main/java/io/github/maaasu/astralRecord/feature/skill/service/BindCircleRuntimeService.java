@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobSkillService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.Material;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -71,6 +72,8 @@ public final class BindCircleRuntimeService {
         boundMobs.put(target.instanceId(), state);
         try {
             state.spawnDisplays();
+            effects.sound(entity.getLocation(), Sound.BLOCK_CHAIN_BREAK, 0.65F, 0.65F);
+            effects.sound(entity.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 0.5F, 0.85F);
             int[] elapsed = {0};
             state.task = mobService.plugin().getServer().getScheduler().runTaskTimer(mobService.plugin(), () -> {
                 try {

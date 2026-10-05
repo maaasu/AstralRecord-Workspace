@@ -14,22 +14,19 @@ public final class ArchmageRenewalCircleExecutor extends ArchmageFieldSkillExecu
     public static final String ID = "archmage_renewal_circle";
 
     /** @param services 共通発動サービス */
-    public ArchmageRenewalCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, true); }
+    public ArchmageRenewalCircleExecutor(@NotNull ActiveSkillServices services) { super(ID, services, ArchmageConstellationEffects.FieldStyle.RENEWAL); }
 
     /** {@inheritDoc} */
     @Override
     protected void pulse(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
-                         double radius, double power) {
+                         double radius, double power, ArchmageConstellationEffects.FieldFeedback feedback) {
         HealthRecoveryContext source = HealthRecoveryContext.by(context.caster().player(),
                 SkillPresentationUtil.plainName(context.source().skill(), "スキル"));
-        ArchmageTargetEffects feedback = new ArchmageTargetEffects(context, ArchmageTargetEffects.Style.RENEWAL);
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, 2.0D)) {
             double maximum = target.getStatusSnapshot().getMaxValue(StatusType.MAX_HEALTH);
             if (context.services().combat().recoverHp(target, maximum * power, source) > 0.0D) {
-                Location feet = target.getBukkit().getLocation();
-                feedback.affected(feet, feet.clone().add(0.0D, 0.9D, 0.0D));
+                feedback.accept(target.getBukkit().getLocation());
             }
         }
-        feedback.render();
     }
 }

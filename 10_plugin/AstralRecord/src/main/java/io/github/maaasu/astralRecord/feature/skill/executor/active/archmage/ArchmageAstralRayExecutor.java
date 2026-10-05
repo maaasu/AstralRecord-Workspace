@@ -127,11 +127,11 @@ public final class ArchmageAstralRayExecutor extends PlayerActiveSkillExecutor {
         DamageResult result = context.services().combat().hit(context.source().skill(), context.attacker(), target,
                 AttackType.MAGIC, DamageElement.NONE, ratio);
         context.services().effects().sound(visual.center(), Sound.BLOCK_BEACON_ACTIVATE, 0.65F, 1.8F);
-        if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+        if (ArchmageConstellationEffects.effectiveHit(result)) {
             context.services().effects().point(impact, SharedParticleDefinitions.SKILL_ASTRAL_RAY_IMPACT);
             context.services().effects().ring(impact, 0.65D, 20,
                     SharedParticleDefinitions.SKILL_ASTRAL_RAY_BEAM);
-            context.services().effects().sound(impact, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.8F, 1.5F);
+            context.services().effects().sound(impact, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.45F, 1.65F);
         }
         return impact;
     }

@@ -80,6 +80,8 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         CircleState state = new CircleState(context.services(), center, binds, caster.getUniqueId());
         try {
             state.spawn();
+            context.services().effects().sound(center, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.7F, 0.65F);
+            context.services().effects().sound(center, Sound.BLOCK_CHAIN_PLACE, 0.55F, 0.8F);
             state.searchContact(0);
             new BukkitRunnable() {
                 private int tick;
@@ -131,7 +133,6 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         /** 魔法陣を最初の一回描画します。 */
         private void spawn() {
             visual.draw(services.effects());
-            services.effects().sound(center, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.7F, 0.85F);
             circleId = services.circles().register(casterId);
         }
 
@@ -156,12 +157,6 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
                 destroy();
                 if (closest != null) {
                     binds.bind(closest, BIND_TICKS, services.effects());
-                    if (binds.isBound(closest.instanceId())) {
-                        Entity bound = liveEntity(closest);
-                        if (bound != null) {
-                            services.effects().sound(bound.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 0.7F);
-                        }
-                    }
                 }
                 return true;
             }
@@ -245,7 +240,8 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
             if (feedback == null || feedback.isEmpty()) {
                 return;
             }
-            services.effects().pointsNearViewers(feedback, SharedParticleDefinitions.BIND_CIRCLE_LOCK);
+            var viewers = services.effects().nearbyViewers(center, null, 16);
+            services.effects().pointsForViewers(viewers, feedback, SharedParticleDefinitions.BIND_CIRCLE_LOCK);
             if (firstContact) {
                 services.effects().sound(center, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.6F, 1.25F);
             }

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -22,6 +23,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
@@ -365,6 +367,7 @@ public final class ArchmagePhoenixRuntimeService {
         state.attackTarget = target;
         state.attackEndTick = now + ATTACK_ANIMATION_TICKS;
         statusService.consumeMp(state.owner, ATTACK_COST);
+        sound(attackLocation, Sound.ITEM_FIRECHARGE_USE, 0.5F, 1.15F);
         return true;
     }
 
@@ -377,16 +380,22 @@ public final class ArchmagePhoenixRuntimeService {
         if (targetInRange(owner, target, state.rangeSquared) && activeSkills != null) {
             Entity entity = targetEntityPresent(target);
             if (entity != null) {
-                visuals.renderAttackImpact(entity.getLocation());
+                Location impact = entity.getLocation();
                 applyingPhoenixHit = true;
                 try {
+                    DamageResult result;
                     if (state.maximumLevel) {
-                        activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
+                        result = activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
                                 AttackType.MAGIC, DamageElement.FIRE, 0.30D,
                                 new ActiveSkillCondition(ConditionType.BURNING, 15.0D, 60L, 1.0D));
                     } else {
-                        activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
+                        result = activeSkills.combat().hit(AstEntity.player(state.owner), AstEntity.mob(target),
                                 AttackType.MAGIC, DamageElement.FIRE, 0.30D);
+                    }
+                    if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+                        visuals.renderAttackImpact(impact);
+                        sound(impact, Sound.BLOCK_FIRE_EXTINGUISH, 0.45F, 1.6F);
+                        sound(impact, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.35F, 1.3F);
                     }
                 } finally {
                     applyingPhoenixHit = false;
@@ -426,6 +435,7 @@ public final class ArchmagePhoenixRuntimeService {
         state.eggLocation = base;
         state.egg = visuals.spawnEgg(base);
         state.hatchTick = now + EGG_HATCH_TICKS;
+        sound(base, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 0.6F, 1.25F);
     }
 
     /** 30 秒を経た卵を不死鳥に戻し、同じ地点へ最大レベル相当のメテオを落とします。 */
@@ -439,6 +449,7 @@ public final class ArchmagePhoenixRuntimeService {
         if (state.parrot != null) {
             state.lastInRangeTick = now;
             state.nextAttackTick = now + ATTACK_WAIT_TICKS;
+            sound(impact, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 0.65F, 0.9F);
         }
         if (activeSkills != null) {
             SkillDefinition meteor = meteorDefinition == null ? null : meteorDefinition.get();
@@ -483,11 +494,18 @@ public final class ArchmagePhoenixRuntimeService {
                 state.stalledTicks = 0;
                 state.phoenix = state.maximum;
                 state.nextAttackTick = Bukkit.getCurrentTick() + ATTACK_WAIT_TICKS;
+                sound(location, Sound.BLOCK_BEACON_ACTIVATE, 0.65F, 1.3F);
+                sound(location, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.5F, 1.15F);
             }
         } catch (RuntimeException exception) {
             despawn(state);
             throw exception;
         }
+    }
+
+    /** 戦闘サービスが接続済みの場合だけ、状態遷移の音を一度だけ再生します。 */
+    private void sound(Location location, Sound sound, float volume, float pitch) {
+        if (activeSkills != null) { activeSkills.effects().sound(location, sound, volume, pitch); }
     }
 
     /** 視線の上下に影響されない背後上空の追従点を、壁の手前へ補正します。 */

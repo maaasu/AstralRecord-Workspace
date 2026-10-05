@@ -22,6 +22,7 @@ final class ArchmageCircleFeedback {
      * @param base 実際に回復したプレイヤーの足元
      */
     static void heal(@NotNull SkillEffectService effects, @NotNull Location base) {
+        var viewers = effects.nearbyViewers(base, null, 16);
         List<Location> mint = new ArrayList<>(24);
         List<Location> cyan = new ArrayList<>(24);
         for (int index = 0; index < 24; index++) {
@@ -31,11 +32,12 @@ final class ArchmageCircleFeedback {
             cyan.add(base.clone().add(Math.cos(angle + Math.PI) * 0.65D,
                     height, Math.sin(angle + Math.PI) * 0.65D));
         }
-        effects.points(base, mint, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_MINT);
-        effects.points(base, cyan, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_CYAN);
-        effects.point(base.clone().add(0.0D, 1.4D, 0.0D),
+        effects.pointsForViewers(viewers, mint, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_MINT);
+        effects.pointsForViewers(viewers, cyan, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_CYAN);
+        effects.pointsForViewers(viewers, List.of(base.clone().add(0.0D, 1.4D, 0.0D)),
                 SharedParticleDefinitions.MAGE_HEAL_AURA_HEAL);
-        effects.sound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.65F, 1.7F);
+        effects.sound(base, Sound.BLOCK_NOTE_BLOCK_HARP, 0.7F, 1.45F);
+        effects.sound(base, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.5F, 1.35F);
     }
 
     /**
@@ -45,6 +47,7 @@ final class ArchmageCircleFeedback {
      * @param base 実際に状態異常を解除したプレイヤーの足元
      */
     static void clear(@NotNull SkillEffectService effects, @NotNull Location base) {
+        var viewers = effects.nearbyViewers(base, null, 16);
         List<Location> cyan = new ArrayList<>(24);
         List<Location> white = new ArrayList<>(24);
         for (int index = 0; index < 24; index++) {
@@ -52,9 +55,10 @@ final class ArchmageCircleFeedback {
             cyan.add(base.clone().add(Math.cos(angle) * 0.78D, 0.45D, Math.sin(angle) * 0.78D));
             white.add(base.clone().add(Math.cos(angle) * 0.78D, 1.65D, Math.sin(angle) * 0.78D));
         }
-        effects.points(base, cyan, SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_CYAN);
-        effects.points(base, white, SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_WHITE);
-        effects.sound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8F, 1.5F);
+        effects.pointsForViewers(viewers, cyan, SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_CYAN);
+        effects.pointsForViewers(viewers, white, SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_WHITE);
+        effects.sound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.7F, 1.65F);
+        effects.sound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.35F, 1.7F);
     }
 
     /**
@@ -64,6 +68,7 @@ final class ArchmageCircleFeedback {
      * @param base 実際に復活したプレイヤーの足元
      */
     static void reborn(@NotNull SkillEffectService effects, @NotNull Location base) {
+        var viewers = effects.nearbyViewers(base, null, 16);
         List<Location> gold = new ArrayList<>(32);
         List<Location> bright = new ArrayList<>(24);
         for (int index = 0; index < 32; index++) {
@@ -75,11 +80,12 @@ final class ArchmageCircleFeedback {
             double angle = index * Math.PI / 12.0D;
             bright.add(base.clone().add(Math.cos(angle) * 0.9D, 2.35D, Math.sin(angle) * 0.9D));
         }
-        effects.points(base, gold, SharedParticleDefinitions.SKILL_REBORN_PROTECT_GOLD);
-        effects.points(base, bright, SharedParticleDefinitions.SKILL_REBORN_PROTECT_BRIGHT);
-        effects.point(base.clone().add(0.0D, 1.1D, 0.0D),
+        effects.pointsForViewers(viewers, gold, SharedParticleDefinitions.SKILL_REBORN_PROTECT_GOLD);
+        effects.pointsForViewers(viewers, bright, SharedParticleDefinitions.SKILL_REBORN_PROTECT_BRIGHT);
+        effects.pointsForViewers(viewers, List.of(base.clone().add(0.0D, 1.1D, 0.0D)),
                 SharedParticleDefinitions.SKILL_REBORN_PROTECT_LIGHT);
-        effects.sound(base, Sound.BLOCK_BEACON_ACTIVATE, 0.9F, 1.4F);
+        effects.sound(base, Sound.ITEM_TOTEM_USE, 0.7F, 1.15F);
+        effects.sound(base, Sound.BLOCK_NOTE_BLOCK_CHIME, 0.55F, 1.6F);
     }
 
     /**
@@ -89,9 +95,11 @@ final class ArchmageCircleFeedback {
      * @param bases 同じワールドで有効バフを受けているプレイヤーの足元
      */
     static void celestial(@NotNull SkillEffectService effects, @NotNull List<Location> bases) {
-        List<Location> azure = new ArrayList<>(bases.size() * 16);
-        List<Location> violet = new ArrayList<>(bases.size() * 8);
         for (Location base : bases) {
+            var viewers = effects.nearbyViewers(base, null, 16);
+            if (viewers.isEmpty()) { continue; }
+            List<Location> azure = new ArrayList<>(16);
+            List<Location> violet = new ArrayList<>(8);
             for (int index = 0; index < 16; index++) {
                 double angle = index * Math.PI / 8.0D;
                 azure.add(base.clone().add(Math.cos(angle) * 0.75D, 1.9D,
@@ -101,8 +109,8 @@ final class ArchmageCircleFeedback {
                             Math.sin(angle) * 0.55D));
                 }
             }
+            effects.pointsForViewers(viewers, azure, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_AZURE);
+            effects.pointsForViewers(viewers, violet, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_VIOLET);
         }
-        effects.pointsNearViewers(azure, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_AZURE);
-        effects.pointsNearViewers(violet, SharedParticleDefinitions.SKILL_ARCHMAGE_CELESTIAL_VIOLET);
     }
 }
