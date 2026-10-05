@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import type { MasterCatalog, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
+import { categoryFacetOptions, inCategory, isDropSourceDirectory, isSkillDirectory } from '../data/masterDataFilters'
 
 /** Catalog and list filters are shared by all open file tabs. */
 export function useMasterDataWorkspace() {
@@ -17,6 +18,11 @@ export function useMasterDataWorkspace() {
   const [sourceQuery, setSourceQuery] = useState('')
   const [dropSourcePath, setDropSourcePath] = useState('')
   const [skillTag, setSkillTag] = useState('')
+  const [dropItemQuery, setDropItemQuery] = useState('')
+  const [dropItemId, setDropItemId] = useState('')
+  const [dropPresence, setDropPresence] = useState('')
+  const [facetFilters, setFacetFilters] = useState<Record<string, string>>({})
+  const [fileStatus, setFileStatus] = useState('')
   const [visibleCount, setVisibleCount] = useState(50)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const refreshId = useRef(0)
@@ -41,7 +47,8 @@ export function useMasterDataWorkspace() {
     void masterDataApi.candidates().then((next) => { if (requestId === refreshId.current) setCandidates(next) }).catch(() => { /* Free input remains available. */ })
     if (!nextFilterIndex) {
       setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
-      setNotice('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
+      setDropItemId(''); setDropItemQuery(''); setDropPresence(''); setFacetFilters({})
+      setNotice('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
     }
   }, [])
   useEffect(() => {
@@ -56,12 +63,30 @@ export function useMasterDataWorkspace() {
     if (tagMissing) setSkillTag('')
     if (sourceMissing || tagMissing) setNotice('選択していた絞り込み候補が見つからないため、絞り込みを解除しました。')
   }, [filterIndex, dropSourcePath, skillTag])
-  useEffect(() => { setVisibleCount(50) }, [categoryId, query, format, dropSourcePath, skillTag])
+  useEffect(() => {
+    const directory = catalog?.categories.find((entry) => entry.id === categoryId)?.directory
+    if (!directory) return
+    if (skillTag && isSkillDirectory(directory) && filterIndex && !filterIndex.skillTags.some((entry) => inCategory(entry.path, directory) && entry.tags.includes(skillTag))) setSkillTag('')
+    const options = categoryFacetOptions(files.filter((file) => inCategory(file.path, directory)), filterIndex)
+    setFacetFilters((current) => {
+      const next = Object.fromEntries(Object.entries(current).filter(([key, value]) => options[key]?.includes(value)))
+      return Object.keys(next).length === Object.keys(current).length ? current : next
+    })
+    if (!isDropSourceDirectory(directory)) {
+      setDropItemId(''); setDropItemQuery(''); setDropPresence('')
+    } else if (filterIndex && dropItemId && !filterIndex.sources.some((source) => inCategory(source.path, directory) && source.itemIds.includes(dropItemId))) {
+      setDropItemId(''); setDropItemQuery('')
+      setNotice('選択していたドロップ品が見つからないため、ドロップ品の絞り込みを解除しました。')
+    }
+  }, [catalog, categoryId, files, filterIndex, dropItemId, skillTag])
+  useEffect(() => { setVisibleCount(50) }, [categoryId, query, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus])
 
   return {
     catalog, files, filterIndex, candidates, loading, error, notice, setError, setNotice, refresh, rememberedPaths,
     categoryId, setCategoryId, query, setQuery, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
+    dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
+    facetFilters, setFacetFilters, fileStatus, setFileStatus,
     sidebarCollapsed, setSidebarCollapsed,
   }
 }

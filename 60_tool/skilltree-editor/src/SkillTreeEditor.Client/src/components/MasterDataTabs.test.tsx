@@ -210,7 +210,7 @@ describe('master file tabs', () => {
     fireEvent.change(input('/name'), { target: { value: '保存A' } })
     fireEvent.click(panel().getByRole('button', { name: '保存 (Ctrl+S)' }))
     await screen.findByText('v1.a.yml を保存しました。')
-    expect(await screen.findByText('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
+    expect(await screen.findByText('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
   })
 
   it('supports arrow-key selection and returns to the adjacent tab when closing the active tab', async () => {

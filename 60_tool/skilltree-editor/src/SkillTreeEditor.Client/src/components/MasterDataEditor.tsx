@@ -10,6 +10,7 @@ import { MasterDataDiff } from './MasterDataDiff'
 import { masterDefault } from './MasterDataForm'
 import { MasterDataDetails, MasterDataOutline } from './MasterDataNavigation'
 import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
+import { categoryFacetOptions, facetLabels, inCategory, isDropSourceDirectory, isItemDefinitionDirectory, isSkillDirectory, matchesFileStatus, searchMasterName } from '../data/masterDataFilters'
 import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -19,15 +20,7 @@ const emptyDraft: DraftState = { raw: '', content: null, source: 'raw' }
 const baseName = (path: string) => path.split('/').at(-1) ?? path
 const slugOf = (text: string) => text.normalize('NFKC').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
 const asObject = (value: JsonValue | undefined): JsonObject | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value : undefined
-const itemDirectory = '10.features.item'
-const setEffectDirectory = `${itemDirectory}/20.equipment/set_effect`
-const skillDirectory = '30.features.skill'
 const listBatchSize = 50
-const inDirectory = (path: string, directory: string) => directory === '.' ? !path.includes('/') : path.startsWith(`${directory}/`)
-const inCategory = (path: string, directory: string) => inDirectory(path, directory)
-  && !(directory.startsWith(itemDirectory) && directory !== setEffectDirectory && inDirectory(path, setEffectDirectory))
-const isItemDefinitionDirectory = (directory: string) => (directory === itemDirectory || directory.startsWith(`${itemDirectory}/`)) && !directory.startsWith(setEffectDirectory)
-const isSkillDirectory = (directory: string) => directory === skillDirectory || directory.startsWith(`${skillDirectory}/`)
 const categoryOptionLabel = (entry: MasterCategory, count: number, categories: MasterCategory[]) => {
   const parts = entry.directory.split('/')
   const ancestor = categories.filter((candidate) => candidate.id !== entry.id && entry.directory.startsWith(`${candidate.directory}/`))
@@ -111,6 +104,8 @@ interface MasterDataEditorPaneProps {
 function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, active, onOpenFile, onCloseTab, onTabStatus, onOpenSkillTree }: MasterDataEditorPaneProps) {
   const { catalog, files, filterIndex, candidates, refresh, rememberedPaths, categoryId, setCategoryId, query, setQuery, format, setFormat,
     sourceQuery, setSourceQuery, dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
+    dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
+    facetFilters, setFacetFilters, fileStatus, setFileStatus,
     sidebarCollapsed, setSidebarCollapsed } = workspace
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
@@ -145,6 +140,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const category = catalog?.categories.find((entry) => entry.id === categoryId) ?? null
   const isItemCategory = Boolean(category && isItemDefinitionDirectory(category.directory))
   const isSkillCategory = Boolean(category && isSkillDirectory(category.directory))
+  const isDropSourceCategory = Boolean(category && isDropSourceDirectory(category.directory))
   const documentCategory = catalog?.categories.filter((entry) => document?.path.startsWith(`${entry.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0] ?? null
   const savedIcon = asObject(document?.content)?.icon
   const displayedIcon = draft.source === 'form' ? asObject(draft.content)?.icon : savedIcon
@@ -161,20 +157,38 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     ? JSON.stringify(draft.content) !== JSON.stringify(document?.content)
     : draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
   const categoryFiles = useMemo(() => files.filter((entry) => category && inCategory(entry.path, category.directory)), [files, category])
-  const sourceOptions = useMemo(() => (filterIndex?.sources ?? []).filter((source) => {
-    const search = stripMinecraftFormatting(sourceQuery).toLocaleLowerCase().trim()
-    return !search || [source.name, stripMinecraftFormatting(source.name), source.id, source.path].some((value) => value.toLocaleLowerCase().includes(search))
-  }), [filterIndex, sourceQuery])
+  const sourceOptions = useMemo(() => (filterIndex?.sources ?? []).filter((source) => searchMasterName(sourceQuery, source.name, source.id, source.path)), [filterIndex, sourceQuery])
   const selectedSource = filterIndex?.sources.find((source) => source.path === dropSourcePath)
+  const skillTagOptions = useMemo(() => {
+    const paths = new Set(categoryFiles.map((file) => file.path))
+    const tags = new Set(filterIndex?.skillTags.filter((entry) => paths.has(entry.path)).flatMap((entry) => entry.tags) ?? [])
+    return filterIndex?.tags.filter((tag) => tags.has(tag.id)) ?? []
+  }, [categoryFiles, filterIndex])
+  const categorySources = useMemo(() => (filterIndex?.sources ?? []).filter((source) => category && inCategory(source.path, category.directory)), [filterIndex, category])
+  const dropItemOptions = useMemo(() => {
+    const ids = new Set(categorySources.flatMap((source) => source.itemIds))
+    const itemFiles = new Map(files.filter((file) => inCategory(file.path, '10.features.item') && file.id).map((file) => [file.id, file]))
+    return [...ids].map((id) => ({ id, name: stripMinecraftFormatting(itemFiles.get(id)?.name ?? id) }))
+      .filter((item) => item.id === dropItemId || searchMasterName(dropItemQuery, item.name, item.id))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja') || a.id.localeCompare(b.id))
+  }, [categorySources, files, dropItemQuery, dropItemId])
+  const facetOptions = useMemo(() => categoryFacetOptions(categoryFiles, filterIndex), [categoryFiles, filterIndex])
+  const indexedFiles = useMemo(() => new Map(filterIndex?.entries?.map((entry) => [entry.path, entry]) ?? []), [filterIndex])
   const visibleFiles = useMemo(() => {
-    const search = query.toLocaleLowerCase()
     const sourceItems = isItemCategory && selectedSource ? new Set(selectedSource.itemIds) : null
     const taggedSkills = isSkillCategory && skillTag ? new Set(filterIndex?.skillTags.filter((entry) => entry.tags.includes(skillTag)).map((entry) => entry.path) ?? []) : null
+    const dropPaths = isDropSourceCategory && (dropItemId || dropPresence) ? new Set(categorySources
+      .filter((source) => (!dropItemId || source.itemIds.includes(dropItemId))
+        && (!dropPresence || (dropPresence === 'has' ? source.itemIds.length > 0 : source.itemIds.length === 0)))
+      .map((source) => source.path)) : null
     return categoryFiles.filter((entry) => (!format || entry.format === format)
       && (!sourceItems || entry.id && sourceItems.has(entry.id))
       && (!taggedSkills || taggedSkills.has(entry.path))
-      && (!search || [entry.path, entry.id, entry.name, stripMinecraftFormatting(entry.name ?? '')].some((value) => value?.toLocaleLowerCase().includes(search))))
-  }, [categoryFiles, format, query, isItemCategory, selectedSource, isSkillCategory, skillTag, filterIndex])
+      && (!dropPaths || dropPaths.has(entry.path))
+      && Object.entries(facetFilters).every(([key, value]) => !value || !facetOptions[key]?.includes(value) || indexedFiles.get(entry.path)?.facets[key]?.includes(value))
+      && matchesFileStatus(entry, fileStatus)
+      && searchMasterName(query, entry.path, entry.id, entry.name))
+  }, [categoryFiles, format, query, isItemCategory, selectedSource, isSkillCategory, skillTag, filterIndex, isDropSourceCategory, dropItemId, dropPresence, categorySources, facetFilters, facetOptions, indexedFiles, fileStatus])
   const requestMore = useCallback(() => {
     if (batchRequested.current) return
     batchRequested.current = true
@@ -190,8 +204,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const filteredReferences = useMemo(() => references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())), [references, referenceQuery])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
   const currentReferencePage = Math.min(referencePage, referencePages - 1)
-  useEffect(() => { if (active && fileListElement.current) fileListElement.current.scrollTop = 0 }, [active, categoryId, format, query, dropSourcePath, skillTag])
-  useEffect(() => { batchRequested.current = false }, [visibleCount, categoryId, format, query, dropSourcePath, skillTag])
+  useEffect(() => { if (active && fileListElement.current) fileListElement.current.scrollTop = 0 }, [active, categoryId, format, query, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus])
+  useEffect(() => { batchRequested.current = false }, [visibleCount, categoryId, format, query, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus])
   useEffect(() => {
     const root = fileListElement.current
     const target = loadMoreElement.current
@@ -414,10 +428,24 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       <label>カテゴリ<select aria-label="マスターのカテゴリ" value={categoryId} onChange={(event) => changeCategory(event.target.value)}>{catalog?.categories.map((entry) => <option key={entry.id} value={entry.id}>{categoryOptionLabel(entry, files.filter((file) => inCategory(file.path, entry.directory)).length, catalog.categories)}</option>)}</select></label>
       {category && <small className="master-category-path">{category.directory} 配下のファイルを表示</small>}
       <label>検索<input aria-label="マスター検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="名前 / ID / ファイルパス" /></label>
+      <div className="master-list-filters">
       {isItemCategory && <div className="master-filter-group"><strong>ドロップ元で絞り込み</strong><label>モブ・採集オブジェクト名<input aria-label="ドロップ元を名前で検索" value={sourceQuery} onChange={(event) => { setSourceQuery(event.target.value); setDropSourcePath('') }} placeholder="名前 / ID を入力" /></label><label>ドロップ元<select aria-label="ドロップ元" value={dropSourcePath} onChange={(event) => setDropSourcePath(event.target.value)} disabled={!filterIndex}><option value="">指定しない</option>{sourceOptions.map((source) => <option key={source.path} value={source.path}>{source.kind === 'mob' ? 'モブ' : '採集'} · {stripMinecraftFormatting(source.name) || source.id} ({source.id})</option>)}</select></label>{selectedSource && <small>{selectedSource.itemIds.length} 種類のドロップ品を対象</small>}</div>}
-      {isSkillCategory && <label>スキルタグ<select aria-label="スキルタグ" value={skillTag} onChange={(event) => setSkillTag(event.target.value)} disabled={!filterIndex}><option value="">指定しない</option>{filterIndex?.tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name} ({tag.id})</option>)}</select></label>}
+      {isDropSourceCategory && <div className="master-filter-group"><strong>ドロップ品で絞り込み</strong>
+        <label>アイテム名<input aria-label="ドロップ品を名前で検索" value={dropItemQuery} onChange={(event) => { setDropItemQuery(event.target.value); setDropItemId('') }} placeholder="名前 / ID を入力" disabled={!filterIndex} /></label>
+        <label>ドロップするアイテム<select aria-label="ドロップするアイテム" value={dropItemId} onChange={(event) => setDropItemId(event.target.value)} disabled={!filterIndex}><option value="">指定しない</option>{dropItemOptions.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select></label>
+        <label>アイテムドロップの有無<select aria-label="アイテムドロップの有無" value={dropPresence} onChange={(event) => setDropPresence(event.target.value)} disabled={!filterIndex}><option value="">すべて</option><option value="has">あり</option><option value="none">なし</option></select></label>
+        <small>レベル別・共通ルートテーブル経由のドロップ品も含みます。</small>
+      </div>}
+      {isSkillCategory && <label>スキルタグ<select aria-label="スキルタグ" value={skillTag} onChange={(event) => setSkillTag(event.target.value)} disabled={!filterIndex}><option value="">指定しない</option>{skillTagOptions.map((tag) => <option key={tag.id} value={tag.id}>{tag.name} ({tag.id})</option>)}</select></label>}
+      <details className="master-advanced-filters"><summary>詳細な絞り込み{Object.keys(facetFilters).length + (fileStatus ? 1 : 0) > 0 ? `（${Object.keys(facetFilters).length + (fileStatus ? 1 : 0)} 条件）` : ''}</summary><div>
+        {Object.entries(facetOptions).filter(([key]) => !isSkillCategory || key !== 'tags').map(([key, values]) => <label key={key}>{facetLabels[key]}<select aria-label={facetLabels[key]} value={facetFilters[key] ?? ''} onChange={(event) => setFacetFilters((current) => { const next = { ...current }; if (event.target.value) next[key] = event.target.value; else delete next[key]; return next })}>
+          <option value="">指定しない</option>{values.map((value) => <option key={value} value={value}>{key === 'tags' ? `${filterIndex?.tags.find((tag) => tag.id === value)?.name ?? value} (${value})` : key === 'passiveConfigured' ? value === 'true' ? 'あり' : 'なし' : key === 'enabled' ? value === 'true' ? '有効' : '無効' : value}</option>)}
+        </select></label>)}
+        <label>ファイル状態<select aria-label="ファイル状態" value={fileStatus} onChange={(event) => setFileStatus(event.target.value)}><option value="">すべて</option><option value="editable">編集可能</option><option value="readOnly">閲覧のみ</option><option value="error">解析エラーあり</option></select></label>
+      </div></details>
       <label>形式<select aria-label="ファイル形式" value={format} onChange={(event) => setFormat(event.target.value)}><option value="">すべて</option>{[...new Set(categoryFiles.map((entry) => entry.format))].map((entry) => <option key={entry} value={entry}>{entry.toUpperCase()}</option>)}</select></label>
-      <div className="master-list-heading"><span>{visibleFiles.length} 件{visibleFiles.length !== categoryFiles.length && ` / カテゴリ内 ${categoryFiles.length} 件`}</span>{(query || format || sourceQuery || dropSourcePath || skillTag) && <button type="button" className="text-button" onClick={() => { setQuery(''); setFormat(''); setSourceQuery(''); setDropSourcePath(''); setSkillTag('') }}>絞り込みを解除</button>}</div>
+      </div>
+      <div className="master-list-heading"><span>{visibleFiles.length} 件{visibleFiles.length !== categoryFiles.length && ` / カテゴリ内 ${categoryFiles.length} 件`}</span>{(query || format || sourceQuery || dropSourcePath || skillTag || dropItemQuery || dropItemId || dropPresence || Object.keys(facetFilters).length || fileStatus) && <button type="button" className="text-button" onClick={() => { setQuery(''); setFormat(''); setSourceQuery(''); setDropSourcePath(''); setSkillTag(''); setDropItemQuery(''); setDropItemId(''); setDropPresence(''); setFacetFilters({}); setFileStatus('') }}>絞り込みを解除</button>}</div>
       <div ref={fileListElement} className="master-file-list">{visibleFiles.slice(0, visibleCount).map((entry) => <button key={entry.path} type="button" disabled={busy} className={`master-file ${document?.path === entry.path ? 'selected' : ''}`} onClick={() => onOpenFile(entry.path)}><span className="master-file-identity">{entry.icon && <MinecraftIcon icon={entry.icon} className="master-list-icon" />}<strong><MinecraftText value={entry.name || baseName(entry.path)} /></strong></span><span>{entry.id && <code>{entry.id}</code>}{entry.parseError && <b className="master-required">解析エラー</b>}{entry.readOnly && <small>閲覧のみ</small>}</span><small>{entry.path}</small></button>)}{!visibleFiles.length && <p className="master-muted">一致するファイルがありません。</p>}{visibleCount < visibleFiles.length && <div ref={loadMoreElement} className="master-load-more"><button type="button" className="button" onClick={requestMore}>さらに表示 ({Math.min(visibleCount, visibleFiles.length)} / {visibleFiles.length})</button><small>下までスクロールすると自動で読み込みます</small></div>}</div>
       <details className="master-paths"><summary>読込先 / バックアップ先</summary><small>{catalog?.root}</small><small>{catalog?.backups}</small></details>
       </div>

@@ -117,7 +117,7 @@ describe('master editor workflow', () => {
     fireEvent.click(screen.getByTitle('一覧と定義メタデータを再読込'))
     await waitFor(() => expect(source).toBeDisabled())
     expect(source).toHaveValue('')
-    expect(screen.getByText('ドロップ元とタグの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
+    expect(screen.getByText('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')).toBeInTheDocument()
   })
 
   it('keeps the newest filter index when two refreshes finish out of order', async () => {
