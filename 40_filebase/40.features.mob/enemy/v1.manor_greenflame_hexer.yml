@@ -1,0 +1,77 @@
+# design:
+#   motif: "魔術 / 森の灯を宿す呪術師"
+#   progression: 21
+schemaVersion: 1
+id: manor_greenflame_hexer
+type: MOB
+category: ENEMY
+name: "&3翠燈の呪術師"
+level: 20
+entityType: WITCH
+icon: SOUL_LANTERN
+lore:
+  - "&7森の灯を宿し、魔弾と樹光の輪を操る呪術師。"
+  - "&7追い来る魔弾と足元の輪を避けよ。近づけば脆い。"
+tags:
+  - forest
+  - humanoid
+  - magic
+  - ranged
+equipment:
+  mainHand: BLAZE_ROD
+  offHand: SOUL_LANTERN
+baseStats:
+  - status: MAX_HEALTH
+    value: 6400
+  - status: ATTACK
+    value: 1360
+  - status: MAGIC_ATTACK
+    value: 572
+  - status: INTELLIGENCE
+    value: 5
+  - status: DEFENSE
+    value: 1115
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 94
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.8
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 10
+    skills:
+      - id: mob_savanna_witch_ember_bolt
+        activationRange: 16
+        cooldownTicks: 60
+        castTimeTicks: 16
+        params:
+          damageRatio: 0.60
+          projectileSpeed: 0.85
+          projectileHitRadius: 0.22
+          homingStrength: 0.10
+          frozenDurationTicks: 15
+          frozenChance: 12
+          burningDurationTicks: 40
+          burningChance: 18
+      - id: mob_eriva_starhorn_grove_circle
+        activationRange: 12
+        cooldownTicks: 140
+        castTimeTicks: 0
+        params:
+          radius: 2.5
+          damageRatio: 0.60
+drops:
+  exp: 280

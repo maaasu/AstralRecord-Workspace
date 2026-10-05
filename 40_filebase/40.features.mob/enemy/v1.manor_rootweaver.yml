@@ -1,0 +1,72 @@
+# design:
+#   motif: "植物 / 根と糸を編むクモ"
+#   progression: 21
+schemaVersion: 1
+id: manor_rootweaver
+type: MOB
+category: ENEMY
+name: "&2根絡みの織り手"
+level: 20
+entityType: SPIDER
+icon: ROOTED_DIRT
+variant:
+  age: ADULT
+  scale: 1.15
+lore:
+  - "&7館に伸びた根を編み、退路を狙う森のクモ。"
+  - "&7足元の根の輪から離れよ。絡まると足が鈍る。"
+  - "&7三方向の糸には攻撃を弱める呪いが宿る。"
+tags:
+  - forest
+  - beast
+  - spider
+  - ranged
+  - root
+baseStats:
+  - status: MAX_HEALTH
+    value: 8000
+  - status: RANGED_ATTACK
+    value: 1159
+  - status: DEFENSE
+    value: 1394
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 108
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.85
+  targeting:
+    strategy: NEAREST
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 8
+    skills:
+      - id: mob_manor_root_snare
+        activationRange: 12
+        cooldownTicks: 120
+        castTimeTicks: 0
+        params:
+          radius: 2.5
+          damageRatio: 0.30
+          chilledDurationTicks: 40
+          chilledChance: 60
+      - id: mob_vine_spider_fan_web
+        activationRange: 10
+        cooldownTicks: 90
+        castTimeTicks: 16
+        params:
+          damageRatio: 0.20
+          spreadDegrees: 22
+          weaknessChance: 25
+drops:
+  exp: 260

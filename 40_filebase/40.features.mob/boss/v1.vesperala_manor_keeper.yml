@@ -1,0 +1,65 @@
+# design:
+#   motif: "魔術 / 森の館を守る棘の魔女"
+#   progression: 21
+schemaVersion: 1
+id: vesperala_manor_keeper
+type: MOB
+category: BOSS
+name: "&2&l幽翠の館主・ヴェスパーラ"
+title: "&3―― 棘と灯の女主人 ――"
+level: 20
+entityType: WITCH
+icon: SOUL_LANTERN
+nameVisible: true
+variant:
+  age: ADULT
+  scale: 1.2
+lore:
+  - "&7トウヒ館の奥で、棘と森の灯を従える魔女。"
+  - "&7青灰の境界の内側で戦え。境界外からの攻撃は届かない。"
+  - "&7棘の扇と足元の輪を避け、灯の直線から横へ離れよ。"
+  - "&7館が目覚めると、内と外の輪を渡って十字を避けよ。"
+  - "&7封鎖では白い通路へ進み、回る十字と棘の輪を避けよ。"
+  - "&7大技をしのぎ、詠唱後の隙に反撃せよ。"
+tags:
+  - forest
+  - boss
+  - humanoid
+  - magic
+  - root
+equipment:
+  mainHand: BLAZE_ROD
+  offHand: SOUL_LANTERN
+shield:
+  enabled: true
+  max: 100
+baseStats:
+  - status: MAX_HEALTH
+    value: 112000
+  - status: ATTACK
+    value: 1913
+  - status: DEFENSE
+    value: 1743
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 32
+    deaggroRange: 40
+    leashRange: 42
+  combat:
+    style: MAGIC
+    preferredRange: 8
+drops:
+  exp: 6000

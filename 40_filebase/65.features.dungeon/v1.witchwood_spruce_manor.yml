@@ -1,0 +1,116 @@
+# design:
+#   motif: "建築 / 深い森のトウヒ館"
+#   progression: 21
+schemaVersion: 1
+id: witchwood_spruce_manor
+displayName: "幽翠のトウヒ館"
+recommendedLevel: 20
+entry:
+  # エリヴァ超大陸の初期スポーンからX方向へ-10ブロックの仮受付。
+  worldRef: world:vanaheim_supercontinent
+  x: -1159.5
+  y: 107.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+  radius: 2.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 3
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 900
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 15
+    max: 27
+  bossRoomSize:
+    min: 43
+    max: 49
+  roomHeight: 12
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 1
+  roomTypes:
+    - type: SUPPORT_HALL
+      weight: 6
+    - type: STANDARD
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  floor:
+    - material: SPRUCE_PLANKS
+      weight: 8
+    - material: STRIPPED_SPRUCE_LOG
+      weight: 1
+    - material: MOSS_BLOCK
+      weight: 1
+  wall:
+    - material: SPRUCE_PLANKS
+      weight: 6
+    - material: STRIPPED_SPRUCE_LOG
+      weight: 3
+    - material: MOSSY_STONE_BRICKS
+      weight: 1
+  ceiling:
+    - material: SPRUCE_PLANKS
+      weight: 4
+    - material: STRIPPED_SPRUCE_LOG
+      weight: 1
+  corridor:
+    - material: SPRUCE_PLANKS
+      weight: 8
+    - material: STRIPPED_SPRUCE_LOG
+      weight: 1
+    - material: MOSS_BLOCK
+      weight: 1
+  gateMaterial: SPRUCE_FENCE
+  lightMaterial: SOUL_LANTERN
+  pillar:
+    enabled: false
+  decorations:
+    supportMaterial: SPRUCE_LOG
+    beamMaterial: STRIPPED_SPRUCE_LOG
+    accent:
+      - material: SPRUCE_LEAVES
+        weight: 4
+      - material: MOSS_BLOCK
+        weight: 2
+      - material: ROOTED_DIRT
+        weight: 1
+      - material: SHROOMLIGHT
+        weight: 1
+encounter:
+  normalMobPool:
+    - mobId: mob:manor_thorn_guard
+      level: 20
+      weight: 3
+    - mobId: mob:manor_bough_archer
+      level: 20
+      weight: 3
+    - mobId: mob:manor_greenflame_hexer
+      level: 20
+      weight: 2
+    - mobId: mob:manor_rootweaver
+      level: 20
+      weight: 2
+  mobsPerRoom:
+    min: 5
+    max: 7
+  firstCombatRoomMaxMobLevel: 20
+  bossMobId: mob:vesperala_manor_keeper
+  bossMobLevel: 20

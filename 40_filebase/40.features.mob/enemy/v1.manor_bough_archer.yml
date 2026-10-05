@@ -1,0 +1,66 @@
+# design:
+#   motif: "植物 / 梢に潜む骸骨の射手"
+#   progression: 21
+schemaVersion: 1
+id: manor_bough_archer
+type: MOB
+category: ENEMY
+name: "&a梢影の射手"
+level: 20
+entityType: SKELETON
+icon: BOW
+lore:
+  - "&7館の窓辺に潜み、梢の影から矢を射る骸骨。"
+  - "&7狙いを定めた一射を横へ避け、間合いを詰めよ。"
+tags:
+  - forest
+  - undead
+  - skeleton
+  - ranged
+equipment:
+  mainHand: BOW
+  helmet: SPRUCE_LEAVES
+  chestplate: LEATHER_CHESTPLATE
+baseStats:
+  - status: MAX_HEALTH
+    value: 8000
+  - status: ATTACK
+    value: 1100
+  - status: RANGED_ATTACK
+    value: 280
+  - status: DEXTERITY
+    value: 5
+  - status: DEFENSE
+    value: 1394
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 98
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.8
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 26
+    deaggroRange: 34
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 11
+    skills:
+      - id: mob_skeleton_bow_shot
+        activationRange: 17
+        cooldownTicks: 44
+        castTimeTicks: 14
+        params:
+          damageRatio: 0.78
+          projectileSpeed: 1.20
+          projectileHitRadius: 0.20
+drops:
+  exp: 260

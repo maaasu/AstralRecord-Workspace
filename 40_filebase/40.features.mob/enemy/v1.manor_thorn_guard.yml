@@ -1,0 +1,62 @@
+# design:
+#   motif: "植物 / 棘の鎧をまとう衛兵"
+#   progression: 21
+schemaVersion: 1
+id: manor_thorn_guard
+type: MOB
+category: ENEMY
+name: "&2棘鎧の衛兵"
+level: 20
+entityType: HUSK
+icon: SPRUCE_LOG
+lore:
+  - "&7棘の鎧をまとい、館の廊下を守る衛兵。"
+  - "&7頑丈な盾を砕いてから、遅い斧の間合いを見切れ。"
+tags:
+  - forest
+  - undead
+  - humanoid
+  - melee
+equipment:
+  mainHand: IRON_AXE
+  offHand: SHIELD
+  helmet: CHAINMAIL_HELMET
+  chestplate: CHAINMAIL_CHESTPLATE
+  leggings: CHAINMAIL_LEGGINGS
+  boots: CHAINMAIL_BOOTS
+shield:
+  enabled: true
+  max: 18
+baseStats:
+  - status: MAX_HEALTH
+    value: 12000
+  - status: ATTACK
+    value: 1159
+  - status: DEFENSE
+    value: 1743
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 86
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.4
+      intervalTicks: 32
+drops:
+  exp: 280
