@@ -3,66 +3,99 @@ using SkillTreeEditor.Server.Models;
 
 namespace SkillTreeEditor.Server.Services;
 
-/// <summary>Filebase のドロップ元とスキルタグだけを読み、一覧画面用の小さな索引を作る。</summary>
+/// <summary>Filebase の一覧用ファセット、ドロップ元、タグを一度の解析で索引化する。</summary>
 public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDataCodec codec, MasterTagCatalog tagCatalog)
 {
     public async Task<MasterDataFilterIndex> ReadAsync(CancellationToken token)
     {
-        var pools = await ReadByIdAsync("80.shared.loot/pool", token);
-        var tables = await ReadByIdAsync("80.shared.loot/table", token);
-        var sources = new List<MasterDataDropSource>();
+        var documents = new List<(string Path, JsonObject Content)>();
+        var pools = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        var tables = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var file in DataFiles())
+        {
+            token.ThrowIfCancellationRequested();
+            var obj = await ReadObjectAsync(file, token);
+            if (obj is null) continue;
+            var path = paths.Relative(file);
+            documents.Add((path, obj));
+            if (Text(obj["id"]) is not { Length: > 0 } id) continue;
+            if (path.StartsWith("80.shared.loot/pool/", StringComparison.Ordinal)) pools[id] = obj;
+            else if (path.StartsWith("80.shared.loot/table/", StringComparison.Ordinal)) tables[id] = obj;
+        }
 
-        foreach (var (directory, kind) in new[] { ("40.features.mob", "mob"), ("42.features.gathering", "gathering") })
-            foreach (var file in DataFiles(directory))
+        var sources = new List<MasterDataDropSource>();
+        var skillTags = new List<MasterDataSkillTags>();
+        var entries = new List<MasterDataFilterEntry>();
+        var usedTags = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (path, obj) in documents)
+        {
+            var tags = StringArray(obj["tags"]);
+            usedTags.UnionWith(tags);
+            if (path.StartsWith("30.features.skill/", StringComparison.Ordinal))
+                skillTags.Add(new(path, tags));
+
+            var facets = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            AddScalar(facets, "category", obj["category"]);
+            AddScalar(facets, "type", obj["type"]);
+            AddValues(facets, "tags", tags);
+            AddScalar(facets, "rarity", obj["rarity"]);
+            AddScalar(facets, "slot", (obj["equipment"] as JsonObject)?["slot"]);
+            AddScalar(facets, "entityType", obj["entityType"]);
+            AddScalar(facets, "role", obj["role"]);
+            AddScalar(facets, "worldType", obj["worldType"]);
+            AddValues(facets, "requiredToolTags", StringArray(obj["requiredToolTags"]));
+            var world = ReferenceId((obj["entry"] as JsonObject)?["worldRef"], "world", "wo")
+                ?? ReferenceId(obj["worldRef"], "world", "wo")
+                ?? ReferenceId(obj["worldId"], "world", "wo")
+                ?? ReferenceId(obj["world"], "world", "wo");
+            if (world is not null) facets["world"] = [world];
+            if (obj["enabled"] is JsonValue enabled && enabled.GetValueKind() is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)
+                facets["enabled"] = [enabled.GetValue<bool>() ? "true" : "false"];
+            if (path.StartsWith("30.features.skill/", StringComparison.Ordinal))
+                facets["passiveConfigured"] = [obj["passive"] is JsonObject ? "true" : "false"];
+            entries.Add(new(path, facets));
+
+            var kind = path.StartsWith("40.features.mob/", StringComparison.Ordinal) ? "mob"
+                : path.StartsWith("42.features.gathering/", StringComparison.Ordinal) ? "gathering" : null;
+            if (kind is not null && Text(obj["id"]) is { Length: > 0 } id)
             {
-                token.ThrowIfCancellationRequested();
-                var obj = await ReadObjectAsync(file, token);
-                if (obj is null || Text(obj["id"]) is not { Length: > 0 } id) continue;
                 var items = new HashSet<string>(StringComparer.Ordinal);
                 CollectDrops(obj["drops"], items, tables, pools);
                 if (kind == "mob" && obj["levels"] is JsonArray levels)
                     foreach (var level in levels.OfType<JsonObject>())
                         CollectDrops(level["drops"], items, tables, pools);
-                sources.Add(new(paths.Relative(file), id, Text(obj["name"]) ?? id, kind,
+                sources.Add(new(path, id, Text(obj["name"]) ?? id, kind,
                     items.Order(StringComparer.Ordinal).ToArray()));
             }
-
-        var skillTags = new List<MasterDataSkillTags>();
-        var usedTags = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in DataFiles("30.features.skill"))
-        {
-            token.ThrowIfCancellationRequested();
-            var obj = await ReadObjectAsync(file, token);
-            if (obj is null) continue;
-            var tags = obj["tags"] is JsonArray values
-                ? values.Select(Text).OfType<string>().Where(value => value.Length > 0)
-                    .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
-                : [];
-            skillTags.Add(new(paths.Relative(file), tags));
-            usedTags.UnionWith(tags);
         }
 
         var names = (await tagCatalog.ReadAllAsync(token)).ToDictionary(tag => tag.Id, tag => tag.DisplayName, StringComparer.Ordinal);
         var tagsForFilter = usedTags.Order(StringComparer.Ordinal)
             .Select(id => new MasterDataFilterTag(id, names.GetValueOrDefault(id) ?? id)).ToArray();
         return new(sources.OrderBy(source => source.Path, StringComparer.Ordinal).ToArray(),
-            skillTags.OrderBy(skill => skill.Path, StringComparer.Ordinal).ToArray(), tagsForFilter);
+            skillTags.OrderBy(skill => skill.Path, StringComparer.Ordinal).ToArray(), tagsForFilter,
+            entries.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
     }
 
-    private IEnumerable<string> DataFiles(string directory) => paths.Enumerate(directory)
+    private IEnumerable<string> DataFiles() => paths.Enumerate()
         .Where(path => MasterDataPaths.IsData(path) && !path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
         .Order(StringComparer.Ordinal);
 
-    private async Task<Dictionary<string, JsonObject>> ReadByIdAsync(string directory, CancellationToken token)
+    private static string[] StringArray(JsonNode? node)
     {
-        var result = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
-        foreach (var file in DataFiles(directory))
-        {
-            token.ThrowIfCancellationRequested();
-            var obj = await ReadObjectAsync(file, token);
-            if (obj is not null && Text(obj["id"]) is { Length: > 0 } id) result[id] = obj;
-        }
-        return result;
+        if (node is not JsonArray values || values.Any(value => Text(value) is null)) return [];
+        return values.Select(Text).OfType<string>().Where(value => value.Length > 0)
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+    }
+
+    private static void AddScalar(Dictionary<string, IReadOnlyList<string>> facets, string key, JsonNode? node)
+    {
+        if (Text(node) is { Length: > 0 } value) facets[key] = [value];
+    }
+
+    private static void AddValues(Dictionary<string, IReadOnlyList<string>> facets, string key, string[] values)
+    {
+        if (values.Length > 0) facets[key] = values;
     }
 
     private async Task<JsonObject?> ReadObjectAsync(string path, CancellationToken token)

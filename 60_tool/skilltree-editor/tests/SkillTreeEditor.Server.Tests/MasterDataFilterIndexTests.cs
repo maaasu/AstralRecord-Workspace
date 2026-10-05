@@ -109,6 +109,92 @@ public sealed class MasterDataFilterIndexTests : IDisposable
         Assert.Equal("fire", Assert.Single(updated.Tags).Id);
     }
 
+    [Fact]
+    public async Task IndexesFacetsFromTheirDefinedFieldsAcrossCategories()
+    {
+        Write("10.features.item/20.equipment/v1.sword.yml", """
+            id: sword
+            category: equipment
+            rarity: EPIC
+            equipment:
+              slot: WEAPON
+            tags: [fire, fire]
+            """);
+        Write("20.features.class/v1.guard.yml", """
+            id: guard
+            type: CLASS
+            role: TANK
+            classGui: { slot: 20 }
+            tags: [tier1]
+            """);
+        Write("30.features.skill/v1.blessing.yml", "id: blessing\ntype: SKILL\npassive: { bindRequired: false }\ntags: [fire]\n");
+        Write("30.features.skill/v1.slash.yml", "id: slash\ntype: SKILL\n");
+        Write("40.features.mob/enemy/v1.boar.yml", "id: boar\ncategory: ENEMY\nentityType: PIG\ntags: [beast]\n");
+        Write("42.features.gathering/mining/v1.ore.yml", "id: ore\ncategory: MINING\nrequiredToolTags: [PICKAXE]\n");
+        Write("60.features.world/v1.wood.yml", "id: wood\nworldType: OVERWORLD\nautoLoad: false\n");
+        Write("65.features.dungeon/v1.ruin.yml", "id: ruin\nentry: { worldRef: 'world:midgard_greenfields' }\n");
+        Write("45.features.shop/v1.closed.yml", "id: closed\nenabled: false\n");
+        Write("45.features.shop/v1.open.yml", "id: open\nenabled: true\n");
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+        IReadOnlyDictionary<string, IReadOnlyList<string>> Facets(string suffix) =>
+            Assert.Single(result.Entries, entry => entry.Path.EndsWith(suffix, StringComparison.Ordinal)).Facets;
+
+        Assert.Equal(["equipment"], Facets("v1.sword.yml")["category"]);
+        Assert.Equal(["EPIC"], Facets("v1.sword.yml")["rarity"]);
+        Assert.Equal(["WEAPON"], Facets("v1.sword.yml")["slot"]);
+        Assert.Equal(["fire"], Facets("v1.sword.yml")["tags"]);
+        Assert.Equal(["TANK"], Facets("v1.guard.yml")["role"]);
+        Assert.False(Facets("v1.guard.yml").ContainsKey("slot"));
+        Assert.Equal(["true"], Facets("v1.blessing.yml")["passiveConfigured"]);
+        Assert.Equal(["false"], Facets("v1.slash.yml")["passiveConfigured"]);
+        Assert.Equal(["PIG"], Facets("v1.boar.yml")["entityType"]);
+        Assert.Equal(["PICKAXE"], Facets("v1.ore.yml")["requiredToolTags"]);
+        Assert.Equal(["OVERWORLD"], Facets("v1.wood.yml")["worldType"]);
+        Assert.False(Facets("v1.wood.yml").ContainsKey("enabled"));
+        Assert.Equal(["midgard_greenfields"], Facets("v1.ruin.yml")["world"]);
+        Assert.Equal(["false"], Facets("v1.closed.yml")["enabled"]);
+        Assert.Equal(["true"], Facets("v1.open.yml")["enabled"]);
+        Assert.Empty(Facets("v1.tags.yml"));
+        Assert.Equal(result.Entries.Select(entry => entry.Path).Order(StringComparer.Ordinal),
+            result.Entries.Select(entry => entry.Path));
+    }
+
+    [Fact]
+    public async Task TagsComeFromTopLevelStringArraysInEveryCategory()
+    {
+        Write("10.features.item/10.material/v1.wood.yml", "id: wood\ntags: [fire, custom]\n");
+        Write("40.features.mob/enemy/v1.boar.yml", "id: boar\ntags: [beast, beast]\n");
+        Write("45.features.shop/v1.shop.yml", "id: shop\ntags: [{ id: nested }]\n");
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+
+        Assert.Equal(["beast", "custom", "fire"], result.Tags.Select(tag => tag.Id));
+        Assert.Equal("炎", Assert.Single(result.Tags, tag => tag.Id == "fire").Name);
+        Assert.Equal("beast", Assert.Single(result.Tags, tag => tag.Id == "beast").Name);
+        Assert.Equal(["beast"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.boar.yml", StringComparison.Ordinal)).Facets["tags"]);
+        Assert.False(Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.shop.yml", StringComparison.Ordinal)).Facets.ContainsKey("tags"));
+        Assert.DoesNotContain(result.Tags, tag => tag.Id is "unused" or "nested" or "ACTIVITY");
+    }
+
+    [Fact]
+    public async Task CommittedMastersProvideFacetsAndDropSources()
+    {
+        var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var workspace = new WorkspacePaths(root);
+        var service = new MasterDataFilterIndexService(new MasterDataPaths(workspace), new MasterDataCodec(), new MasterTagCatalog(workspace));
+
+        var result = await service.ReadAsync(CancellationToken.None);
+
+        Assert.Equal(["WEAPON"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.20a00031.anarion_spear.yml", StringComparison.Ordinal)).Facets["slot"]);
+        Assert.Equal(["PICKAXE"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.box_cave_coal_vein.yml", StringComparison.Ordinal)).Facets["requiredToolTags"]);
+        Assert.Equal(["midgard_greenfields"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.middle_earth_ruins.yml", StringComparison.Ordinal)).Facets["world"]);
+        Assert.Equal(["true"], Assert.Single(result.Entries, entry => entry.Path == "30.features.skill/v1.adventurer_meditation.yml").Facets["passiveConfigured"]);
+        Assert.Equal(["TANK"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.11.swordsman.yml", StringComparison.Ordinal)).Facets["role"]);
+        Assert.Contains("10a00001", Assert.Single(result.Sources, source => source.Id == "midgard_grassboar").ItemIds);
+        Assert.Equal("炎", Assert.Single(result.Tags, tag => tag.Id == "fire").Name);
+    }
+
     private void Write(string path, string raw)
     {
         var full = Path.Combine(_paths.Root, path.Replace('/', Path.DirectorySeparatorChar));
