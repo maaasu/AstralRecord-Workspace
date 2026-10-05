@@ -40,6 +40,7 @@
 | `generation.roomShapes[]` | List | `RECTANGLE:3`, `CYLINDER:1`。type は両列挙値、weight 省略時 `1` |
 | `generation.roomTypes[]` | List | `STANDARD:1`。type は `STANDARD` / `SUPPORT_HALL` / `COLLAPSED` / `ORE_CHAMBER`、weight 省略時 `1` |
 | `theme.floor/wall/ceiling[]` | List | 各 `STONE_BRICKS:1` |
+| `theme.landscape` | String | `INDOOR`。`INDOOR` / `PLAINS`。`PLAINS` は空が見える草地の生成方式。床・通路素材は各リストを使い、天井は不可視BARRIERへ置き換える |
 | `theme.corridor[]` | List | `COBBLESTONE:1` |
 | `theme.*[].material` | String | AIR ではない solid block Material |
 | `theme.*[].weight` | Integer | `1`。正の相対 weight |
@@ -55,6 +56,7 @@
 | `theme.decorations.accent[]` | List | `COAL_ORE:1`。`ORE_CHAMBER` の外周壁accent Materialと正の相対weight |
 | `encounter.normalMobPool[].weight` | Integer | `1`。正の相対 weight |
 | `encounter.mobsPerRoom.min/max` | Integer | `2/4`、`1..16` |
+| `encounter.ensureMobVariety` | Boolean | `false`。`true` は通常部屋の適格候補の各Mob IDを1体ずつ先に採用し、残りをweightで抽選。`mobsPerRoom.min` はpool内の異なるMob ID数以上が必須。最初の戦闘部屋ではlevel上限を先に適用 |
 | `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。START直後に攻略する最初のNORMAL部屋候補の level 上限 |
 | `clearRewards.items[]` | List | プレイヤーごとにクリア時点で独立抽選する直接報酬 |
 | `clearRewards.items[].itemId` | String | `item:` 参照 |
@@ -66,7 +68,12 @@
 
 room typeは部屋のSTART／NORMAL／BOSS役割とは独立してseedから決定されます。同じ定義とseedは同じtypeを返します。`SUPPORT_HALL`は外周支柱と天井梁、`COLLAPSED`は中央縦横導線外の瓦礫、`ORE_CHAMBER`は外周壁accentを生成し、gate・spawn・通路を塞ぎません。
 
+`theme.landscape: PLAINS` はBSPと攻略順を維持した屋外区画です。外周は `theme.wall` の1〜2段の低い崖と、従来の天井高さまで連続する不可視BARRIERで閉じ、部屋・通路の天井もBARRIERにします。低い崖を越えたゲート迂回やvoidへの落下は許可しません。部屋には中央縦横導線を避けて小花・草・低い立石を生成し、BOSS広場には立石を置きません。植生は草・土系の対応床だけに配置します。屋外では `SUPPORT_HALL` の支柱・梁と `ORE_CHAMBER` の壁accentを省略し、`COLLAPSED` の瓦礫は維持します。出現候補は3×3の足場と高さ3blockの空間を確保します。`ceiling` は屋外でも通常のMaterial検証対象ですが、生成には使用しません。
+
 既定値はキーを省略した場合だけ適用します。キーを明示した場合、非数値、境界外、負数、不正な数量範囲を既定値へ補正せず、マスタの load／公開を失敗させます。
+
+`PLAINS` は生成領域全体へ `theme.floor` の支持層と床を先に敷き、部屋・通路の床を上書きします。区画外にも地面が連続します。領域充填も既存の毎tickブロック配置上限へ含まれます。
+生成ワールドのバイオームもPLAINSへ固定し、草色・空色・降水方式を平原に揃えます。`INDOOR` は従来のバイオーム生成を維持します。
 
 ## 最小 YAML 例
 

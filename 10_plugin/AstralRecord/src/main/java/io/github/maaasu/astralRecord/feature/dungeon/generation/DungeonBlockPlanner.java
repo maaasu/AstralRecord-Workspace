@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.generation;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLandscape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import org.bukkit.Material;
@@ -40,6 +41,9 @@ public final class DungeonBlockPlanner {
     ) {
         SplittableRandom random = new SplittableRandom(layout.seed() ^ BLOCK_RANDOM_SALT);
         Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks = new LinkedHashMap<>();
+        if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+            buildPlainsGround(blocks, definition, layout);
+        }
         Map<Integer, DungeonLayout.Room> roomById = new HashMap<>();
         for (DungeonLayout.Room room : layout.rooms()) {
             roomById.put(room.id(), room);
@@ -110,6 +114,11 @@ public final class DungeonBlockPlanner {
             boolean pillar = shouldBuildPillar(definition.theme().pillar(), layout.seed(), room.id());
             List<DungeonBlockPlan.Position> roomSpawnPoints = createSpawnPoints(
                     blocks, room, layout.baseY() + 1, pillar, lightPositions);
+            if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+                roomSpawnPoints = roomSpawnPoints.stream()
+                        .filter(position -> hasClearPlainsSpawnBody(blocks, position))
+                        .toList();
+            }
             if (roomSpawnPoints.isEmpty()) {
                 throw new IllegalStateException("No safe spawn position for dungeon room: " + room.id());
             }
@@ -133,6 +142,46 @@ public final class DungeonBlockPlanner {
         );
     }
 
+    /** 屋外の立石・植生・照明から離れ、3×3の足場と高さ3blockの空間を持つ候補だけを採用します。 */
+    private boolean hasClearPlainsSpawnBody(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonBlockPlan.Position position
+    ) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                DungeonBlockPlan.Placement floor = blocks.get(new DungeonBlockPlan.Position(
+                        position.x() + dx, position.y() - 1, position.z() + dz));
+                if (floor == null || !floor.material().isSolid()) {
+                    return false;
+                }
+                for (int dy = 0; dy < 3; dy++) {
+                    DungeonBlockPlan.Placement body = blocks.get(new DungeonBlockPlan.Position(
+                            position.x() + dx, position.y() + dy, position.z() + dz));
+                    if (body == null || !body.material().isAir()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** 生成領域全体へ支持層と草地の床を敷き、屋外区画の周囲にも連続した地面を確保します。 */
+    private void buildPlainsGround(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout
+    ) {
+        SplittableRandom random = new SplittableRandom(layout.seed() ^ DECORATION_RANDOM_SALT);
+        for (int x = 0; x < layout.areaWidth(); x++) {
+            for (int z = 0; z < layout.areaDepth(); z++) {
+                Material floor = choose(definition.theme().floor(), random);
+                put(blocks, x, layout.baseY() - 1, z, floor);
+                put(blocks, x, layout.baseY(), z, floor);
+            }
+        }
+    }
+
     private void buildRoom(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room room,
@@ -142,6 +191,7 @@ public final class DungeonBlockPlanner {
     ) {
         int floorY = layout.baseY();
         int ceilingY = floorY + layout.roomHeight() - 1;
+        boolean plains = definition.theme().landscape() == DungeonLandscape.PLAINS;
         DungeonLayout.Rect bounds = room.bounds();
         for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
             for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
@@ -151,11 +201,14 @@ public final class DungeonBlockPlanner {
                 Material floorMaterial = choose(definition.theme().floor(), random);
                 put(blocks, x, floorY - 1, z, floorMaterial);
                 put(blocks, x, floorY, z, floorMaterial);
-                put(blocks, x, ceilingY, z, choose(definition.theme().ceiling(), random));
+                put(blocks, x, ceilingY, z, plains
+                        ? Material.BARRIER : choose(definition.theme().ceiling(), random));
                 boolean boundary = isBoundary(room, x, z);
+                int wallHeight = plains ? 1 + random.nextInt(2) : layout.roomHeight();
                 for (int y = floorY + 1; y < ceilingY; y++) {
                     put(blocks, x, y, z,
-                            boundary ? choose(definition.theme().wall(), random) : Material.AIR);
+                            boundary ? (plains && y > floorY + wallHeight
+                                    ? Material.BARRIER : choose(definition.theme().wall(), random)) : Material.AIR);
                 }
             }
         }
@@ -170,6 +223,13 @@ public final class DungeonBlockPlanner {
     ) {
         SplittableRandom random = new SplittableRandom(
                 layout.seed() ^ (DECORATION_RANDOM_SALT * (room.id() + 1L)));
+        if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+            if (room.type() == DungeonRoomType.COLLAPSED) {
+                buildCollapsedRoom(blocks, room, definition, layout, random);
+            }
+            decoratePlainsRoom(blocks, room, definition, layout, random);
+            return;
+        }
         switch (room.type()) {
             case STANDARD -> {
             }
@@ -177,6 +237,58 @@ public final class DungeonBlockPlanner {
             case COLLAPSED -> buildCollapsedRoom(blocks, room, definition, layout, random);
             case ORE_CHAMBER -> buildOreChamber(blocks, room, definition, layout, random);
         }
+    }
+
+    /**
+     * 中央縦横導線を避け、草地へ小花・草と低い立石を決定的に配置します。
+     * BOSS 広場には立石を配置せず、大きいエンティティの移動空間を確保します。
+     */
+    private void decoratePlainsRoom(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room room,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout,
+            @NotNull SplittableRandom random
+    ) {
+        int clearHalfWidth = definition.generation().corridorWidth() / 2 + 2;
+        int y = layout.baseY() + 1;
+        for (int x = room.bounds().minX() + 3; x <= room.bounds().maxX() - 3; x++) {
+            for (int z = room.bounds().minZ() + 3; z <= room.bounds().maxZ() - 3; z++) {
+                if (!contains(room, x, z)
+                        || Math.abs(x - room.bounds().centerX()) <= clearHalfWidth
+                        || Math.abs(z - room.bounds().centerZ()) <= clearHalfWidth) {
+                    continue;
+                }
+                DungeonBlockPlan.Placement current = blocks.get(new DungeonBlockPlan.Position(x, y, z));
+                DungeonBlockPlan.Placement floor = blocks.get(new DungeonBlockPlan.Position(x, y - 1, z));
+                if (current == null || !current.material().isAir() || floor == null) {
+                    continue;
+                }
+                double roll = random.nextDouble();
+                if (roll < 0.015D && room.role() != DungeonLayout.RoomRole.BOSS) {
+                    Material stone = choose(definition.theme().wall(), random);
+                    put(blocks, x, y, z, stone);
+                    if (random.nextBoolean()) {
+                        put(blocks, x, y + 1, z, stone);
+                    }
+                } else if (roll < 0.12D && supportsPlainsVegetation(floor.material())) {
+                    Material vegetation = switch (random.nextInt(6)) {
+                        case 0 -> Material.DANDELION;
+                        case 1 -> Material.OXEYE_DAISY;
+                        case 2 -> Material.CORNFLOWER;
+                        default -> Material.SHORT_GRASS;
+                    };
+                    put(blocks, x, y, z, vegetation);
+                }
+            }
+        }
+    }
+
+    /** 小花・草が支持される床 Material にだけ植生を配置します。 */
+    private boolean supportsPlainsVegetation(@NotNull Material material) {
+        return material == Material.GRASS_BLOCK || material == Material.MOSS_BLOCK
+                || material == Material.DIRT || material == Material.COARSE_DIRT
+                || material == Material.ROOTED_DIRT || material == Material.PODZOL;
     }
 
     private void buildSupportHall(
@@ -287,6 +399,7 @@ public final class DungeonBlockPlanner {
     ) {
         int floorY = layout.baseY();
         int ceilingY = floorY + definition.generation().corridorHeight() + 1;
+        boolean plains = definition.theme().landscape() == DungeonLandscape.PLAINS;
         for (DungeonLayout.Point point : footprint) {
             if (isDeepRoomInterior(rooms, point.x(), point.z())) {
                 continue;
@@ -294,7 +407,8 @@ public final class DungeonBlockPlanner {
             Material floorMaterial = choose(definition.theme().corridor(), random);
             put(blocks, point.x(), floorY - 1, point.z(), floorMaterial);
             put(blocks, point.x(), floorY, point.z(), floorMaterial);
-            put(blocks, point.x(), ceilingY, point.z(), choose(definition.theme().corridor(), random));
+            put(blocks, point.x(), ceilingY, point.z(), plains
+                    ? Material.BARRIER : choose(definition.theme().corridor(), random));
             for (int y = floorY + 1; y < ceilingY; y++) {
                 put(blocks, point.x(), y, point.z(), Material.AIR);
             }
@@ -309,7 +423,9 @@ public final class DungeonBlockPlanner {
                     continue;
                 }
                 for (int y = floorY + 1; y < ceilingY; y++) {
-                    put(blocks, neighbor.x(), y, neighbor.z(), choose(definition.theme().corridor(), random));
+                    put(blocks, neighbor.x(), y, neighbor.z(), plains
+                            ? (y == floorY + 1 ? choose(definition.theme().wall(), random) : Material.BARRIER)
+                            : choose(definition.theme().corridor(), random));
                 }
             }
         }

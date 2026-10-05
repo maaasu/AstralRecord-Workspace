@@ -142,6 +142,11 @@ public final class DungeonDefinitionValidator {
             fail(definition, "encounter.firstCombatRoomMaxMobLevel must be positive");
         }
         validatePositiveWeights(definition, "encounter.normalMobPool", encounter.normalMobPool());
+        if (encounter.ensureMobVariety()
+                && encounter.normalMobPool().stream().map(DungeonDefinition.WeightedMob::mobId).distinct().count()
+                > encounter.mobsPerRoom().min()) {
+            fail(definition, "encounter.mobsPerRoom.min must fit every normal mob ID when ensureMobVariety is enabled");
+        }
         boolean firstRoomCandidate = false;
         for (DungeonDefinition.WeightedMob mobEntry : encounter.normalMobPool()) {
             MobTemplate baseMob = mobsById.get(mobEntry.mobId());

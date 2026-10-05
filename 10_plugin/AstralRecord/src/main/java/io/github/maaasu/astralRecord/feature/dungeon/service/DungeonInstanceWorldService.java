@@ -2,8 +2,10 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonVoidChunkGenerator;
+import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonPlainsBiomeProvider;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLandscape;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -86,9 +88,13 @@ public final class DungeonInstanceWorldService {
             Files.createDirectories(root);
             worldService.prepareWorldLoad(worldName, worldData);
             pending = true;
-            world = Bukkit.createWorld(new WorldCreator(worldName)
+            WorldCreator creator = new WorldCreator(worldName)
                     .generator(new DungeonVoidChunkGenerator())
-                    .generateStructures(false));
+                    .generateStructures(false);
+            if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+                creator.biomeProvider(new DungeonPlainsBiomeProvider());
+            }
+            world = Bukkit.createWorld(creator);
             if (world == null) {
                 throw new IllegalStateException("Bukkit could not create dungeon world: " + worldName);
             }
