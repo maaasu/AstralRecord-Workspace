@@ -1335,6 +1335,24 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition WIZARD_PRISM_ICE_DUST =
         new SharedParticleDefinition("wizard_prism_ice_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(107, 217, 255), 1.1F));
+    public static final SharedParticleDefinition WIZARD_RIME_SIGIL =
+        new SharedParticleDefinition("wizard_rime_sigil", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(220, 250, 255), 1.2F));
+    public static final SharedParticleDefinition WIZARD_RIME_WAVE =
+        new SharedParticleDefinition("wizard_rime_wave", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(72, 185, 255), 1.6F));
+    public static final SharedParticleDefinition WIZARD_RIME_SNOW =
+        new SharedParticleDefinition("wizard_rime_snow", Particle.SNOWFLAKE, 2, 0.14D, 0.30D, 0.14D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_RIME_BURST =
+        new SharedParticleDefinition("wizard_rime_burst", Particle.SNOWFLAKE, 32, 0.75D, 0.45D, 0.75D, 0.06D);
+    public static final SharedParticleDefinition WIZARD_RIME_HIT =
+        new SharedParticleDefinition("wizard_rime_hit", Particle.BLOCK, 18, 0.35D, 0.55D, 0.35D, 0.12D,
+            Material.PACKED_ICE.createBlockData());
+    public static final SharedParticleDefinition WIZARD_RIME_SHATTER =
+        new SharedParticleDefinition("wizard_rime_shatter", Particle.BLOCK, 16, 0.25D, 0.45D, 0.25D, 0.10D,
+            Material.BLUE_ICE.createBlockData());
+    public static final SharedParticleDefinition WIZARD_RIME_STEAM =
+        new SharedParticleDefinition("wizard_rime_steam", Particle.CLOUD, 12, 0.30D, 0.40D, 0.30D, 0.04D);
     public static final SharedParticleDefinition CLASS_LEVEL_UP_DUST =
         new SharedParticleDefinition(
             "class_level_up_dust",
