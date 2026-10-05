@@ -396,7 +396,7 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
             PhantomArcherRuntime.consume(context.player().getUniqueId(), target.id());
         } else if (!phantomArrow && ("shadow_stitch".equals(action) || "dread_bloom".equals(action)
                 || "spectral_sentry".equals(action) || "echo_volley".equals(action))) {
-            PhantomArcherRuntime.addMark(context.player().getUniqueId(), target.id());
+            PhantomArcherRuntime.addMark(context.caster().player(), target);
             PhantomArcherEffects.resonance(context, target.location(),
                     PhantomArcherRuntime.marks(context.player().getUniqueId(), target.id()));
         }

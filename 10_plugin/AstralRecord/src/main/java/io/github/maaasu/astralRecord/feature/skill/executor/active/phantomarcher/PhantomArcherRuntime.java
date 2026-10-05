@@ -6,11 +6,14 @@ import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDef
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +25,8 @@ import java.util.UUID;
 public final class PhantomArcherRuntime {
     public static final int MAX_MARKS = 3;
     public static final int MARK_DURATION_TICKS = 120;
+    private static final int MARK_DISPLAY_INTERVAL_TICKS = 5;
+    private static final double MARK_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final Map<UUID, Map<UUID, Mark>> MARKS = new HashMap<>();
     private static final Map<UUID, ReadyArrow> READY_ARROWS = new HashMap<>();
     private static final Map<UUID, OwnerEpoch> OWNER_EPOCHS = new HashMap<>();
@@ -31,6 +36,8 @@ public final class PhantomArcherRuntime {
     private static SkillService skills;
     private static ItemWeaponAttackService weapons;
     private static SkillEffectService effects;
+    private static SkillTaskService tasks;
+    private static ParticleDisplayService particles;
 
     private PhantomArcherRuntime() { }
 
@@ -40,16 +47,22 @@ public final class PhantomArcherRuntime {
      * @param skillService 公開済みスキル定義の解決元
      * @param weaponService 現在の主手武器の解決元
      * @param effectService 霊印表示に使う共有演出サービス
+     * @param taskService 所有者別の有限表示タスクを管理するサービス
+     * @param particleService 所有者の表示設定を尊重する粒子サービス
      */
     public static void configure(@NotNull PassiveSkillService passiveService,
                                  @NotNull SkillService skillService,
                                  @NotNull ItemWeaponAttackService weaponService,
-                                 @NotNull SkillEffectService effectService) {
+                                 @NotNull SkillEffectService effectService,
+                                 @NotNull SkillTaskService taskService,
+                                 @NotNull ParticleDisplayService particleService) {
+        clearAll();
         passives = passiveService;
         skills = skillService;
         weapons = weaponService;
         effects = effectService;
-        clearAll();
+        tasks = taskService;
+        particles = particleService;
     }
 
     /**
@@ -125,7 +138,7 @@ public final class PhantomArcherRuntime {
                 && player.getBukkit().getWorld() == target.location().getWorld()
                 && launchEpoch.equals(shotEpoch(player.getBukkit().getUniqueId()))
                 && activePassive(player, PhantomArcherPassiveExecutor.ATTUNEMENT_ID)) {
-            addMark(player.getBukkit().getUniqueId(), target.id());
+            addMark(player, target);
             if (effects != null) PhantomArcherEffects.resonance(effects, target.location(),
                     marks(player.getBukkit().getUniqueId(), target.id()));
         }
@@ -156,16 +169,28 @@ public final class PhantomArcherRuntime {
     }
 
     /**
-     * 有効命中した対象へ印を一層重ねます。
-     * @param owner 攻撃者UUID
-     * @param target 管理Mob UUID
+     * 有効命中した対象へ印を一層重ね、所有者だけへ頭上の層数表示を開始・更新します。
+     * Bukkitメインスレッドで呼び、表示タスクは最後の付与から120tick以内で終了します。
+     * @param player 攻撃者
+     * @param target 命中した管理Mob。管理Mob以外には付与しません
      */
-    public static void addMark(@NotNull UUID owner, @NotNull UUID target) {
+    public static void addMark(@NotNull AstPlayer player, @NotNull AstEntity target) {
+        if (!target.isMob()) return;
+        UUID owner = player.getBukkit().getUniqueId();
+        UUID targetId = target.id();
         Map<UUID, Mark> marks = MARKS.computeIfAbsent(owner, ignored -> new HashMap<>());
         marks.values().removeIf(mark -> mark.expiresAtTick <= Bukkit.getCurrentTick());
-        Mark old = marks.get(target);
+        Mark old = marks.get(targetId);
         int stacks = old == null || old.expiresAtTick <= Bukkit.getCurrentTick() ? 0 : old.stacks;
-        marks.put(target, new Mark(Math.min(MAX_MARKS, stacks + 1), Bukkit.getCurrentTick() + MARK_DURATION_TICKS));
+        Mark mark = new Mark(Math.min(MAX_MARKS, stacks + 1), Bukkit.getCurrentTick() + MARK_DURATION_TICKS);
+        marks.put(targetId, mark);
+        if (tasks != null && particles != null) {
+            tasks.repeat(owner, markScope(targetId), MARK_DISPLAY_INTERVAL_TICKS,
+                    MARK_DISPLAY_INTERVAL_TICKS, MARK_DURATION_TICKS / MARK_DISPLAY_INTERVAL_TICKS,
+                    ignored -> displayMark(player, target, mark),
+                    () -> removeMark(owner, targetId, mark));
+            displayMark(player, target, mark);
+        }
     }
 
     /**
@@ -195,6 +220,41 @@ public final class PhantomArcherRuntime {
         if (marks == null) return;
         marks.remove(target);
         if (marks.isEmpty()) MARKS.remove(owner);
+        if (tasks != null) tasks.cancel(owner, markScope(target));
+    }
+
+    /** 現在の印だけを描画し、失効・対象消滅・所有者の離脱では表示タスクも止めます。 */
+    private static void displayMark(AstPlayer player, AstEntity target, Mark expected) {
+        UUID owner = player.getBukkit().getUniqueId();
+        Map<UUID, Mark> marks = MARKS.get(owner);
+        if (marks == null || marks.get(target.id()) != expected) return;
+        UUID entityId = target.mob().bukkitEntityId();
+        Entity entity = entityId == null ? null : Bukkit.getEntity(entityId);
+        if (expected.expiresAtTick <= Bukkit.getCurrentTick()
+                || !player.getBukkit().isOnline() || player.getBukkit().isDead() || !hasBow(player)
+                || entity == null || entity.isDead() || target.currentHealth() <= 0.0D
+                || player.getBukkit().getWorld() != entity.getWorld()) {
+            consume(owner, target.id());
+            return;
+        }
+        // 生成直後の管理ArmorStandなどは、実体が有効になるまで印を残して描画だけ保留する。
+        if (!entity.isValid()) return;
+        if (player.getBukkit().getLocation().distanceSquared(entity.getLocation()) > MARK_VIEW_DISTANCE_SQUARED) return;
+        PhantomArcherEffects.mark(particles, player,
+                entity.getLocation().add(0.0D, entity.getHeight() + 0.45D, 0.0D), expected.stacks);
+    }
+
+    /** 置換前のタスクの後始末では新しい印を消さず、担当した印だけを除去します。 */
+    private static void removeMark(UUID owner, UUID target, Mark expected) {
+        Map<UUID, Mark> marks = MARKS.get(owner);
+        if (marks == null || marks.get(target) != expected) return;
+        marks.remove(target);
+        if (marks.isEmpty()) MARKS.remove(owner);
+    }
+
+    /** 管理Mobごとに表示タスクを分け、他スキルのタスクと衝突させません。 */
+    private static String markScope(UUID target) {
+        return "phantom_archer_mark:" + target;
     }
 
     /**
@@ -231,14 +291,22 @@ public final class PhantomArcherRuntime {
      * @param owner 所有者UUID
      */
     public static void clearOwner(@NotNull UUID owner) {
-        MARKS.remove(owner);
+        Map<UUID, Mark> marks = MARKS.remove(owner);
+        if (tasks != null && marks != null) {
+            marks.keySet().forEach(target -> tasks.cancel(owner, markScope(target)));
+        }
         READY_ARROWS.remove(owner);
         OWNER_EPOCHS.put(owner, new OwnerEpoch(UUID.randomUUID(), Bukkit.getCurrentTick() + 120L));
     }
 
     /** 公開切替または停止時に全所有者の一時状態を破棄します。 */
     public static void clearAll() {
+        Map<UUID, Map<UUID, Mark>> clearedMarks = new HashMap<>(MARKS);
         MARKS.clear();
+        if (tasks != null) {
+            clearedMarks.forEach((owner, marks) ->
+                    marks.keySet().forEach(target -> tasks.cancel(owner, markScope(target))));
+        }
         READY_ARROWS.clear();
         OWNER_EPOCHS.clear();
         globalEpoch++;

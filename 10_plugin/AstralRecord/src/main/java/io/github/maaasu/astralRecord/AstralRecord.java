@@ -2135,7 +2135,7 @@ public final class AstralRecord extends JavaPlugin {
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         itemWeaponAttackService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         PhantomArcherRuntime.configure(passiveSkillService, skillService, itemWeaponAttackService,
-            activeSkillServices.effects());
+            activeSkillServices.effects(), activeSkillTaskService, particleDisplayService);
         getServer().getPluginManager().registerEvents(new PhantomArcherWeaponLifecycleListener(), this);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
         skillActionRingHoldService = new SkillActionRingHoldService(

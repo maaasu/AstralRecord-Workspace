@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -13,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ファントムアーチャーの瞬間演出を、点数に上限のある粒子図形で描画します。
+ * ファントムアーチャーの演出を、点数に上限のある粒子図形で描画します。
  * すべての呼び出しは Bukkit メインスレッド上で行います。
  */
 public final class PhantomArcherEffects {
@@ -23,6 +25,44 @@ public final class PhantomArcherEffects {
     private enum Profile { STITCH, PIERCE, VOLLEY, ECLIPSE, OTHER }
 
     private PhantomArcherEffects() {}
+
+    /**
+     * 敵の頭上へ層数と同じ個数の菱形を所有者だけに描き、3層では外輪を加えます。
+     * 所有者へ正面を向け、1回あたり最大48点を共有表示設定に従って送信します。
+     * Bukkitメインスレッドで呼び、繰り返しの効果音は再生しません。
+     * @param particles 所有者の粒子設定を尊重する共有表示サービス
+     * @param owner 印の所有者。頭上位置と同じworldであること
+     * @param center 対象の頭上位置
+     * @param stacks 現在の層数。1から3に制限し、0以下では描画しません
+     */
+    public static void mark(@NotNull ParticleDisplayService particles, @NotNull AstPlayer owner,
+                            @NotNull Location center, int stacks) {
+        if (stacks <= 0 || center.getWorld() == null
+                || owner.getBukkit().getWorld() != center.getWorld()) return;
+        int layers = Math.min(stacks, PhantomArcherRuntime.MAX_MARKS);
+        Basis basis = basis(center.toVector().subtract(owner.getBukkit().getEyeLocation().toVector()));
+        List<Location> seals = new ArrayList<>(layers * 8);
+        for (int layer = 0; layer < layers; layer++) {
+            double offset = (layer - (PhantomArcherRuntime.MAX_MARKS - 1) / 2.0D) * 0.5D;
+            for (int i = 0; i < 8; i++) {
+                double angle = TAU * i / 8.0D;
+                // L1正規化により円ではなく輪郭のはっきりした菱形にする。
+                double x = Math.cos(angle);
+                double y = Math.sin(angle);
+                double scale = 0.18D / (Math.abs(x) + Math.abs(y));
+                seals.add(at(center, basis, 0.0D, offset + x * scale, y * scale));
+            }
+        }
+        particles.spawnForViewer(owner, seals, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+        if (layers == PhantomArcherRuntime.MAX_MARKS) {
+            List<Location> halo = new ArrayList<>(24);
+            for (int i = 0; i < 24; i++) {
+                double angle = TAU * i / 24.0D;
+                halo.add(at(center, basis, 0.0D, Math.cos(angle) * 0.88D, Math.sin(angle) * 0.38D));
+            }
+            particles.spawnForViewer(owner, halo, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
+        }
+    }
 
     /**
      * スキルごとに針矢、貫通槍、双小弓、日蝕弓へ形を変え、
