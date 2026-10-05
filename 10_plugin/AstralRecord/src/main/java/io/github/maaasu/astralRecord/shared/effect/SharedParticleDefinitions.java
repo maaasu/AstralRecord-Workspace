@@ -1304,6 +1304,31 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition WIZARD_PRISM_CORE_DUST =
         new SharedParticleDefinition("wizard_prism_core_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(187, 125, 255), 1.1F));
+    /** オーバーロードの収束軌道と爆発の輪郭を描く紫の魔力。 */
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_ARC =
+        new SharedParticleDefinition("wizard_overload_arc", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(164, 65, 245), 1.45F));
+    /** 圧縮した魔力の核と衝撃波を描く明るい紫。 */
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_CORE =
+        new SharedParticleDefinition("wizard_overload_core", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(234, 205, 255), 1.25F));
+    /** 高MP増幅時だけ重ねる白紫の太い輪郭。 */
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_EMPOWERED =
+        new SharedParticleDefinition("wizard_overload_empowered", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 235, 255), 1.7F));
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_BURST =
+        new SharedParticleDefinition("wizard_overload_burst", Particle.DUST_COLOR_TRANSITION,
+            42, 0.75D, 0.65D, 0.75D, 0.04D,
+            new Particle.DustTransition(Color.fromRGB(238, 215, 255), Color.fromRGB(132, 38, 220), 1.65F));
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_FLASH =
+        new SharedParticleDefinition("wizard_overload_flash", Particle.FLASH, 1,
+            0.0D, 0.0D, 0.0D, 0.0D, Color.fromRGB(225, 185, 255));
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_MOTE =
+        new SharedParticleDefinition("wizard_overload_mote", Particle.END_ROD, 1,
+            0.015D, 0.015D, 0.015D, 0.01D);
+    public static final SharedParticleDefinition WIZARD_OVERLOAD_RESIDUE =
+        new SharedParticleDefinition("wizard_overload_residue", Particle.REVERSE_PORTAL, 12,
+            0.35D, 0.5D, 0.35D, 0.02D);
     public static final SharedParticleDefinition WIZARD_PRISM_FIRE_DUST =
         new SharedParticleDefinition("wizard_prism_fire_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 135, 54), 1.1F));

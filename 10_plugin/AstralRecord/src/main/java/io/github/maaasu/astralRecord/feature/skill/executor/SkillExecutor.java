@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -51,6 +52,24 @@ public interface SkillExecutor {
      */
     @NotNull
     SkillCastResult cast(@NotNull SkillCastContext context);
+
+    /**
+     * プレイヤーの詠唱中に、個別スキルの予備演出を同期スレッドで表示します。
+     * 共通の詠唱可否確認後だけ呼ばれ、中断・完了後は呼ばれません。
+     * 効果、リソース消費、遅延タスクの開始は行わず、描画頻度は実装側で制限します。
+     *
+     * @param caster 詠唱中のプレイヤー
+     * @param skill レベル・シジル適用済みのスキル定義
+     * @param elapsedTicks 詠唱開始からの経過tick数
+     * @param totalTicks 詠唱短縮適用後の総tick数
+     */
+    default void onPlayerCastTick(
+            @NotNull PlayerSkillCaster caster,
+            @NotNull SkillDefinition skill,
+            long elapsedTicks,
+            long totalTicks
+    ) {
+    }
 
     /**
      * パッシブスキルが有効化された直後に呼ばれます。

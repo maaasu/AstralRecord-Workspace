@@ -1010,6 +1010,7 @@ public class SkillService {
                 : applyCastMovementSpeedModifier(movementSpeed);
         AtomicLong remainingCastTicks = new AtomicLong(castTimeTicks);
         startPlayerCastFeedback(astPlayer, definition, castTimeTicks, remainingCastTicks::get);
+        SkillExecutor castingExecutor = registry.getExecutor(definition.getImplementationId());
 
         BukkitRunnable runnable = new BukkitRunnable() {
             private long elapsedTicks = 0L;
@@ -1034,6 +1035,18 @@ public class SkillService {
                 long remainingTicks = Math.max(0L, castTimeTicks - elapsedTicks);
                 remainingCastTicks.set(remainingTicks);
                 refreshPlayerCastFeedback(astPlayer, definition, castTimeTicks, remainingTicks);
+                if (castingExecutor != null) {
+                    try {
+                        castingExecutor.onPlayerCastTick(playerCaster, definition, elapsedTicks, castTimeTicks);
+                    } catch (RuntimeException exception) {
+                        Logger.log(LogId.E_5802, exception, definition.getId(), definition.getImplementationId());
+                        finishCast(
+                            player, astPlayer, false, playerCaster, definition, trigger, castLocation,
+                            primaryTarget, targets, runtime, completionListener);
+                        cancel();
+                        return;
+                    }
+                }
                 if (castFeedback.shouldPlaySound(elapsedTicks)) {
                     castFeedback.playSound(player, elapsedTicks, castTimeTicks);
                 }
