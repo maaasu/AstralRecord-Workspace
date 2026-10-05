@@ -9,7 +9,7 @@ access: NPC_ONLY
 items:
   - id: wooden_fishing_rod
     itemId:
-      ref: item:20a00073
+      ref: item:20a00081
     category: equipment
     amount: 1
     page: 1
@@ -17,7 +17,7 @@ items:
     priceGold: 100
   - id: reinforced_fishing_rod
     itemId:
-      ref: item:20a00074
+      ref: item:20a00082
     category: equipment
     amount: 1
     page: 1
