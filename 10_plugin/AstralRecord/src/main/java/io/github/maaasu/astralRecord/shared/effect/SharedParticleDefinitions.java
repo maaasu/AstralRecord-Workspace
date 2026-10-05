@@ -1356,6 +1356,20 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_PORTAL =
         new SharedParticleDefinition("skill_mage_portal", Particle.PORTAL, 5, 0.14D, 0.22D, 0.14D, 0.05D);
+    /** アーケインランスの交差する三条。拡散させず軌道の輪郭を保ちます。 */
+    public static final SharedParticleDefinition WIZARD_ARCANE_LANCE_VIOLET =
+        new SharedParticleDefinition("wizard_arcane_lance_violet", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(185, 85, 255), 1.15F));
+    public static final SharedParticleDefinition WIZARD_ARCANE_LANCE_AZURE =
+        new SharedParticleDefinition("wizard_arcane_lance_azure", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(115, 145, 255), 1.05F));
+    public static final SharedParticleDefinition WIZARD_ARCANE_LANCE_WHITE =
+        new SharedParticleDefinition("wizard_arcane_lance_white", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(240, 215, 255), 0.9F));
+    public static final SharedParticleDefinition WIZARD_ARCANE_LANCE_SPARK =
+        new SharedParticleDefinition("wizard_arcane_lance_spark", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition WIZARD_ARCANE_LANCE_BURST =
+        new SharedParticleDefinition("wizard_arcane_lance_burst", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition WIZARD_PRISM_CORE_DUST =
         new SharedParticleDefinition("wizard_prism_core_dust", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(187, 125, 255), 1.1F));

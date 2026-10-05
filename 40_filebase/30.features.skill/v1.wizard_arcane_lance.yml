@@ -6,7 +6,7 @@ id: wizard_arcane_lance
 type: SKILL
 implementationId: wizard_arcane_lance
 name: "&dアーケインランス"
-description: "&8【概要】 &7詠唱した魔力を細い貫通光線へ変える。"
+description: "&8【概要】 &7交差する魔力を束ね、前方を貫く光槍を放つ。"
 icon: MEDIUM_AMETHYST_BUD
 lore:
   - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体を細い光線で貫く。"
