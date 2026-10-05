@@ -6,13 +6,12 @@ id: swordmaster_frost_bloom
 type: SKILL
 implementationId: swordmaster_frost_bloom
 name: "&b氷華円舞"
-description: "&7氷の花で接近を遅らせ、感電を砕く。"
+description: "&8【概要】 &7氷の花で接近を遅らせ、感電を砕く。"
 icon: BLUE_ICE
 lore:
-  - "&7周囲{skill.radius}mの最大{skill.maxTargets}体へ近接氷属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の冷気を付与する。"
-  - "&7攻撃前から感電していた敵へは、命中時さらに近接氷属性{skill.shockBonusRatio:percent}%。"
-  - "&7状態異常の耐性・無効化は共通の戦闘ルールに従う。"
+  - "&b【効果】 &f周囲{skill.radius}mの最大{skill.maxTargets}体へ近接&b氷属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&d【状態】 &f命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の&d冷気&fを付与する。"
+  - "&b【攻撃】 &f攻撃前から&d感電&fしていた敵へは、命中時さらに近接&b氷属性&f{skill.shockBonusRatio:percent}%。"
 cooldownTicks: 160
 resourceType: ENERGY
 resourceCost: 20

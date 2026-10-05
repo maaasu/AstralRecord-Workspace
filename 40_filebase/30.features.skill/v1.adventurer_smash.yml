@@ -6,12 +6,12 @@ id: adventurer_smash
 type: SKILL
 implementationId: adventurer_smash
 name: "&bスマッシュ"
-description: "&7敵を叩き伏せる重撃。"
+description: "&8【概要】 &7敵を叩き伏せる重撃。"
 icon: IRON_AXE
 lore:
-  - "&7プレイヤーの半径{skill.primaryRadius}m以内の敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の落下打撃。"
-  - "&7複数の敵がいる場合は見ている方向の敵を優先し、該当しなければ最も近い敵を選択。"
-  - "&7着地点の半径{skill.impactRadius}m以内にいる別の敵へ近接攻撃力{skill.secondaryRatio:percent}%のダメージとノックバック。"
+  - "&b【攻撃】 &fプレイヤーの半径{skill.primaryRadius}m以内の敵1体へ&b近接攻撃力&f{skill.effectiveDamageRatio:percent}%の落下打撃。"
+  - "&b【効果】 &f複数の敵がいる場合は見ている方向の敵を優先し、該当しなければ最も近い敵を選択。"
+  - "&b【攻撃】 &f着地点の半径{skill.impactRadius}m以内にいる別の敵へ&b近接攻撃力&f{skill.secondaryRatio:percent}%のダメージとノックバック。"
 cooldownTicks: 150
 resourceType: ENERGY
 resourceCost: 30

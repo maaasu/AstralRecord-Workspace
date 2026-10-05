@@ -6,12 +6,12 @@ id: archmage_starfall
 type: SKILL
 implementationId: archmage_starfall
 name: "&bスターフォール"
-description: "&7既存の陣と共鳴する星の範囲攻撃。"
+description: "&8【概要】 &7既存の陣と共鳴する星の範囲攻撃。"
 icon: PRISMARINE_BRICKS
 lore:
-  - "&7視点先の地表を中心に半径{skill.radius}mの敵Mob最大6体を攻撃する。"
-  - "&7無属性魔法攻撃倍率は{skill.power:percent}%。"
-  - "&7発動時の自身の魔法陣1つにつき倍率が20%増加する（最大3陣）。"
+  - "&b【効果】 &f視点先の地表を中心に半径{skill.radius}mの敵最大6体を攻撃する。"
+  - "&b【攻撃】 &f&b無属性&f魔法攻撃倍率は{skill.power:percent}%。"
+  - "&b【攻撃】 &f発動時の自身の魔法陣1つにつき倍率が20%増加する（最大3陣）。"
 cooldownTicks: 220
 resourceType: MANA
 resourceCost: 70

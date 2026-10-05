@@ -6,13 +6,13 @@ id: swordmaster_trinity_edge
 type: SKILL
 implementationId: swordmaster_trinity_edge
 name: "&d三煌終刃"
-description: "&7三色の刃で積み重ねた属性攻撃を締めくくる。"
+description: "&8【概要】 &7三色の刃で積み重ねた属性攻撃を締めくくる。"
 icon: DRAGON_BREATH
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ、火・氷・雷の複合近接攻撃。"
-  - "&7各属性の威力は近接攻撃力の{skill.effectiveDamageRatio:percent}%ずつ。"
-  - "&7対象の燃焼・冷気・感電1種類につき、合計威力が{skill.conditionBonusRatio:percent}%増える。"
-  - "&7追加補正は最大3種類。状態異常を消さずに追撃する。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体へ、&b火・氷・雷&fの複合近接攻撃。"
+  - "&b【攻撃】 &f各属性の威力は&b近接攻撃力&fの{skill.effectiveDamageRatio:percent}%ずつ。"
+  - "&b【攻撃】 &f対象の&d燃焼&f・&d冷気&f・&d感電&f1種類につき、合計威力が{skill.conditionBonusRatio:percent}%増える。"
+  - "&b【効果】 &f追加補正は最大3種類。&d状態異常&fを消さずに追撃する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 30

@@ -6,20 +6,20 @@ id: sharpshooter_phantom_shot
 type: SKILL
 implementationId: sharpshooter_phantom_shot
 name: "&5ファントムショット"
-description: "&7幻影を伴う大型の弾を三連射する。"
+description: "&8【概要】 &7幻影を伴う大型の弾を三連射する。"
 icon: GLOW_INK_SAC
 lore:
-  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを3回放つ。"
-  - "&7発射間隔は{skill.shotIntervalTicks}ティックで、広い当たり判定を持つ。"
-  - "&7このスキルが2秒以内に再命中すると、最大MPとENGをそれぞれ{skill.resourceRecoveryRatio:percent}%回復する。"
-  - "&7回復効果は最大レベルでのみ有効。"
-  - "&7継承バフ保有中の発動はクールタイムが2倍になる。"
+  - "&b【攻撃】 &f射程{skill.range}mへ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージを3回放つ。"
+  - "&b【効果】 &f{skill.shotIntervalTicks:seconds}秒間隔で連射する。"
+  - "&a【回復】 &fこのスキルが2秒以内に再命中すると、最大MPとENGをそれぞれ{skill.resourceRecoveryRatio:percent}%&a回復&fする。"
+  - "&6【制限】 &f&a回復&f効果は最大レベルでのみ有効。"
+  - "&b【効果】 &f継承バフ保有中の発動はクールタイムが2倍になる。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7このバフで通常攻撃すると30秒消費し、5ティック間隔で通常攻撃を2回追加する。"
-      - "&7追加攻撃は通常攻撃列化の回数に含まれない。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &fこのバフで通常攻撃すると30秒消費し、0.25秒間隔で通常攻撃を2回追加する。"
+      - "&6【継承】 &f追加攻撃は通常攻撃列化の回数に含まれない。"
 cooldownTicks: 60
 resourceType: ENERGY
 resourceCost: 20

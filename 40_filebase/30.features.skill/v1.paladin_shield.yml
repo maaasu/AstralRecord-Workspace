@@ -6,16 +6,16 @@ id: paladin_shield
 type: SKILL
 implementationId: paladin_shield
 name: "&fパラディンシールド"
-description: "&7自身の守護を近くの仲間へ分け与える。"
+description: "&8【概要】 &7自身の守護を近くの仲間へ分け与える。"
 icon: SHIELD
 lore:
-  - "&7現在シールドが{skill.minimumCurrentShield}以上のときだけ発動できる。"
-  - "&7現在シールドの{skill.transferRatio:percent}%を消費する。"
-  - "&7シールド残存時にリチャージパッシブが有効なら、消費後の再充填待機を開始する。"
-  - "&7半径{skill.targetRange}m以内のパーティーメンバー全員へ、消費量と同じ一時シールドを付与する。"
-  - "&7一時シールドは{skill.temporaryShieldDurationTicks:seconds}秒間有効で、後からの付与で値と時間を上書きする。"
-  - "&7対象がいない場合は、ホーリースマイトの聖柱を{skill.temporaryShieldDurationTicks:seconds}秒間建てる。"
-  - "&7聖柱は毎秒、半径{skill.pillarRadius}mの敵最大{skill.pillarMaxTargets}体へ近接攻撃力{skill.pillarDamageRatio:percent}%のダメージを与える。"
+  - "&6【条件】 &f現在&aシールド&fが{skill.minimumCurrentShield}以上のときだけ発動できる。"
+  - "&a【防御】 &f現在&aシールド&fの{skill.transferRatio:percent}%を消費する。"
+  - "&a【防御】 &f&aシールド&f残存時にリチャージパッシブが有効なら、消費後の再充填待機を開始する。"
+  - "&a【防御】 &f半径{skill.targetRange}m以内のパーティーメンバー全員へ、消費量と同じ一時&aシールド&fを付与する。"
+  - "&a【防御】 &f一時&aシールド&fは{skill.temporaryShieldDurationTicks:seconds}秒間有効で、後からの付与で値と時間を上書きする。"
+  - "&b【効果】 &f対象がいない場合は、ホーリースマイトの聖柱を{skill.temporaryShieldDurationTicks:seconds}秒間建てる。"
+  - "&b【攻撃】 &f聖柱は毎秒、半径{skill.pillarRadius}mの敵最大{skill.pillarMaxTargets}体へ&b近接攻撃力&f{skill.pillarDamageRatio:percent}%のダメージを与える。"
 cooldownTicks: 400
 resourceType: MANA
 resourceCost: 30

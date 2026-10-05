@@ -6,18 +6,17 @@ id: sharpshooter_fire_arrow
 type: SKILL
 implementationId: sharpshooter_fire_arrow
 name: "&6ファイアアロー"
-description: "&7炎をまとった高速の直線矢。"
+description: "&8【概要】 &7炎をまとった高速の直線矢。"
 icon: FIRE_CORAL
 lore:
-  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
-  - "&7命中時{skill.conditionChance}%の確率で{skill.conditionDurationTicks:seconds}秒間炎上。"
-  - "&7重力を受けず高速で直進し、広めの当たり判定を持つ。"
+  - "&b【攻撃】 &f射程{skill.range}mへ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
+  - "&d【状態】 &f命中時{skill.conditionChance}%の確率で{skill.conditionDurationTicks:seconds}秒間&d炎上&f。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7バフ残り時間中の通常攻撃へ火属性ダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で炎上させる。"
-      - "&7継承効果の発動時に追加リソースは消費しない。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &fバフ残り時間中の通常攻撃へ&b火属性&fダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で&d炎上&fさせる。"
+      - "&6【継承】 &f継承効果の発動時に追加リソースは消費しない。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 30

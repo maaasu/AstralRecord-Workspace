@@ -6,12 +6,12 @@ id: mage_fireball
 type: SKILL
 implementationId: mage_fireball
 name: "&6ファイアーボール"
-description: "&7火球を放ち、着弾地点を小爆発で焼く魔法。"
+description: "&8【概要】 &7火球を放ち、着弾地点を小爆発で焼く魔法。"
 icon: FIRE_CHARGE
 lore:
-  - "&7射程{skill.range}mへ火球を放つ。"
-  - "&7着弾地点の半径{skill.radius}mへ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
-  - "&7最大{skill.maxTargets}体。敵または地形への着弾時だけ小爆発する。"
+  - "&b【効果】 &f射程{skill.range}mへ火球を放つ。"
+  - "&b【攻撃】 &f着弾地点の半径{skill.radius}mへ、&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
+  - "&b【効果】 &f最大{skill.maxTargets}体に命中する。"
 cooldownTicks: 80
 resourceType: MANA
 resourceCost: 16

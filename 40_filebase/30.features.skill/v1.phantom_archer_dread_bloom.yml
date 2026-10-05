@@ -6,13 +6,13 @@ id: phantom_archer_dread_bloom
 type: SKILL
 implementationId: phantom_archer_dread_bloom
 name: "&5ドレッドブルーム"
-description: "&7霊矢を花開かせ、群れに霊印を広げる。"
+description: "&8【概要】 &7霊矢を花開かせ、群れに霊印を広げる。"
 icon: WITHER_ROSE
 lore:
-  - "&7弓・短弓・長弓を装備して使用する。"
-  - "&7射程{skill.range}mの着弾点から半径{skill.impactRadius}m、最大{skill.maxTargets}体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7有効命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の盲目を付与する。"
-  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
+  - "&6【条件】 &f弓・短弓・長弓を装備して使用する。"
+  - "&b【攻撃】 &f射程{skill.range}mの着弾点から半径{skill.impactRadius}m、最大{skill.maxTargets}体へ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&d【状態】 &f有効命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の&d盲目&fを付与する。"
+  - "&d【状態】 &f有効命中で自分の&d霊印&fを1層刻む。最大3層、最後の付与から6秒で消える。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 22

@@ -6,23 +6,22 @@ id: swordmaster_seijaku_issen
 type: SKILL
 implementationId: swordmaster_seijaku_issen
 name: "&b静寂一閃"
-description: "&7剣の構えから攻撃を受け流し、鋭く反撃する。"
+description: "&8【概要】 &7剣の構えから攻撃を受け流し、鋭く反撃する。"
 icon: DIAMOND_SWORD
 lore:
-  - "&7Shiftを押した剣の通常攻撃を{skill.counterTicks}tickのカウンター構えに変える。"
-  - "&7構え中は移動速度が70%低下し、残り時間をアクションバーへ表示する。"
-  - "&7ダメージ0を含む直接攻撃を無効化し、攻撃者へ近接無属性{skill.counterDamageRatio:percent}%で反撃する。"
-  - "&7続けて前方{skill.counterSweepRange}m・最大{skill.counterSweepMaxTargets}体へ同倍率で横薙ぎする。"
-  - "&7最初の反撃が命中した場合だけ最大ENGの10%を回復する。"
-  - "&7反撃・時間切れ時から剣通常攻撃のクールタイムを開始する。"
-  - "&7Shiftを押さずに攻撃すると構えを解き、同じ入力で通常攻撃する。"
-  - "&7時間切れ時はその場で構えを解き、突進やENG消費は発生しない。"
-  - "&7明鏡止水では剣気を1つまで蓄積する。"
-  - "&7カウンター成功時に剣気を1つ補充し、最大{skill.maxRiposteStacks}つまで蓄積する。"
-  - "&7補充後の剣気1つにつき、反撃と横薙ぎの威力が{skill.counterDamageBonusPerStack:percent}%増える。"
-  - "&7剣気の個数・反撃の追加威力をHUDに表示する。"
-  - "&7剣気は時間では消えず、返し刃・リヴェンジアクセルで1つ消費する。"
-  - "&7死亡・退出・世界移動・転職・バインド解除・チャレンジ初期化で剣気を解除する。"
+  - "&b【効果】 &fShiftを押した剣の通常攻撃を{skill.counterTicks:seconds}秒のカウンター構えに変える。"
+  - "&b【効果】 &f構え中は移動速度が70%低下する。"
+  - "&b【攻撃】 &fダメージ0を含む直接攻撃を無効化し、攻撃者へ近接&b無属性&f{skill.counterDamageRatio:percent}%で反撃する。"
+  - "&b【攻撃】 &f続けて前方{skill.counterSweepRange}m・最大{skill.counterSweepMaxTargets}体へ同倍率で横薙ぎする。"
+  - "&a【回復】 &f最初の反撃が命中した場合だけ最大ENGの10%を&a回復&fする。"
+  - "&b【効果】 &f反撃・時間切れ時から剣通常攻撃のクールタイムを開始する。"
+  - "&b【効果】 &fShiftを押さずに攻撃すると構えを解き、同じ入力で通常攻撃する。"
+  - "&b【効果】 &f時間切れ時はその場で構えを解き、突進やENG消費は発生しない。"
+  - "&b【効果】 &f明鏡止水では&a剣気&fを1つまで蓄積する。"
+  - "&b【効果】 &fカウンター成功時に&a剣気&fを1つ補充し、最大{skill.maxRiposteStacks}つまで蓄積する。"
+  - "&b【効果】 &f補充後の&a剣気&f1つにつき、反撃と横薙ぎの威力が{skill.counterDamageBonusPerStack:percent}%増える。"
+  - "&b【効果】 &f&a剣気&fは時間では消えず、返し刃・リヴェンジアクセルで1つ消費する。"
+  - "&6【制限】 &f死亡・退出・世界移動・転職・バインド解除・チャレンジ初期化で&a剣気&fを解除する。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 0

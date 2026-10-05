@@ -6,16 +6,16 @@ id: sharpshooter_inheritance_mastery
 type: SKILL
 implementationId: sharpshooter_inheritance_mastery
 name: "&a継承の心得"
-description: "&7技の性質を通常攻撃へ継承する射撃パッシブ。"
+description: "&8【概要】 &7技の性質を通常攻撃へ継承する射撃パッシブ。"
 icon: SPECTRAL_ARROW
 lore:
-  - "&7パッシブスロットへのバインド中のみ有効。"
-  - "&7通常攻撃のダメージ倍率が{skill.normalAttackDamageMultiplier:percent}%になる。"
-  - "&7継承によって発動するスキルのダメージ倍率が{skill.inheritedSkillDamageMultiplier:percent}%になる。"
-  - "&7継承バフの効果を通常攻撃へ反映する。"
-  - "&7通常攻撃1回ごとに、使用した各継承バフの残り時間を1回分消費する。"
-  - "&7同名の継承バフを再付与すると、残り時間を新しい付与時間へ戻す。"
-  - "&7追加リソース消費は継承バフ別の定義に従い、未定義なら消費しない。"
+  - "&6【条件】 &fパッシブスロットへのバインド中のみ有効。"
+  - "&b【攻撃】 &f通常攻撃のダメージ倍率が{skill.normalAttackDamageMultiplier:percent}%になる。"
+  - "&b【攻撃】 &f継承によって発動するスキルのダメージ倍率が{skill.inheritedSkillDamageMultiplier:percent}%になる。"
+  - "&b【効果】 &f継承バフの効果を通常攻撃へ反映する。"
+  - "&b【効果】 &f通常攻撃1回ごとに、使用した各継承バフの残り時間を1回分消費する。"
+  - "&b【効果】 &f同名の継承バフを再付与すると、残り時間を新しい付与時間へ戻す。"
+  - "&b【効果】 &f追加リソース消費は継承バフ別の定義に従い、未定義なら消費しない。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0

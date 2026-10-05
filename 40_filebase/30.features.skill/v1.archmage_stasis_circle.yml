@@ -6,12 +6,12 @@ id: archmage_stasis_circle
 type: SKILL
 implementationId: archmage_stasis_circle
 name: "&dステイシスサークル"
-description: "&7敵の進軍を遅らせる静止の陣を置く。"
+description: "&8【概要】 &7敵の進軍を遅らせる静止の陣を置く。"
 icon: BLUE_STAINED_GLASS_PANE
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの静止陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内の敵Mob最大8体の移動速度を{skill.power:percent}%低下させる。"
-  - "&7低下は陣内で毎秒更新され、離れると短時間で切れる。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの静止陣を置く。"
+  - "&d【状態】 &f{skill.durationTicks:seconds}秒間、範囲内の敵最大8体の移動速度を{skill.power:percent}%低下させる。"
+  - "&b【効果】 &f低下は陣内で毎秒更新され、離れると短時間で切れる。"
 cooldownTicks: 300
 resourceType: MANA
 resourceCost: 65

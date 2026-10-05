@@ -6,13 +6,13 @@ id: paladin_holy_smite
 type: SKILL
 implementationId: paladin_holy_smite
 name: "&fホーリースマイト"
-description: "&7聖柱が敵群へ断罪の斬撃を落とす。"
+description: "&8【概要】 &7聖柱が敵群へ断罪の斬撃を落とす。"
 icon: WAXED_OXIDIZED_COPPER_LANTERN
 lore:
-  - "&7発動地点に{skill.durationTicks:seconds}秒間、聖なる柱を立てる。"
-  - "&7毎秒、半径{skill.radius}mの球状範囲からランダムな敵最大{skill.maxTargets}体へ白い斬撃を落とす。"
-  - "&7近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージを与える。"
-  - "&7{skill.weaknessChance}%で{skill.weaknessDurationTicks:seconds}秒間の衰弱を付与する。"
+  - "&b【効果】 &f発動地点に{skill.durationTicks:seconds}秒間、聖なる柱を立てる。"
+  - "&b【効果】 &f毎秒、半径{skill.radius}mの球状範囲からランダムな敵最大{skill.maxTargets}体へ白い斬撃を落とす。"
+  - "&b【攻撃】 &f&b近接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージを与える。"
+  - "&d【状態】 &f{skill.weaknessChance}%で{skill.weaknessDurationTicks:seconds}秒間の&d衰弱&fを付与する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 20

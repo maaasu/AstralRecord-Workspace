@@ -6,12 +6,12 @@ id: wizard_mana_veil
 type: SKILL
 implementationId: wizard_mana_veil
 name: "&bマナヴェール"
-description: "&7攻勢を抑えて身を守る魔力の薄衣。"
+description: "&8【概要】 &7攻勢を抑えて身を守る魔力の薄衣。"
 icon: PURPLE_CANDLE
 lore:
-  - "&7{skill.durationTicks:seconds}秒間、自身の被ダメージが{skill.incomingMultiplier}倍。"
-  - "&7同じ間、自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
-  - "&7重複発動では同じ効果を置き換える。"
+  - "&a【防御】 &f{skill.durationTicks:seconds}秒間、自身の被ダメージが{skill.incomingMultiplier}倍。"
+  - "&b【攻撃】 &f同じ間、自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
+  - "&b【効果】 &f重複発動では同じ効果を置き換える。"
 cooldownTicks: 360
 resourceType: MANA
 resourceCost: 30

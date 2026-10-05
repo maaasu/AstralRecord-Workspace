@@ -6,13 +6,13 @@ id: wizard_prismatic_dart
 type: SKILL
 implementationId: wizard_prismatic_dart
 name: "&dプリズマティックダート"
-description: "&7小さな魔力弾でプリズムを駆動する。"
+description: "&8【概要】 &7小さな魔力弾でプリズムを駆動する。"
 icon: MAGENTA_CANDLE
 lore:
-  - "&7前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7自分のエレメンタルプリズムに先に触れると吸収される。"
-  - "&7吸収時は直撃せず、プリズム自身の倍率と弾数で追撃する。"
+  - "&b【効果】 &f前方{skill.range}mへ弾を放ち、最初の敵1体へ攻撃。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【効果】 &f自分のエレメンタルプリズムに先に触れると吸収される。"
+  - "&b【攻撃】 &f吸収時は直撃せず、プリズム自身の倍率と弾数で追撃する。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 20

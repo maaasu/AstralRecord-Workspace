@@ -6,13 +6,13 @@ id: swordmaster_riposte
 type: SKILL
 implementationId: swordmaster_riposte
 name: "&b返し刃"
-description: "&7受け流した勢いを鋭い一撃へ返す。"
+description: "&8【概要】 &7受け流した勢いを鋭い一撃へ返す。"
 icon: TINTED_GLASS
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気があれば1つ消費し、威力を{skill.riposteMultiplier}倍にする。"
-  - "&7剣気は明鏡止水と静寂一閃のカウンターで蓄積し、リヴェンジアクセルと共有する。"
-  - "&7剣気を持たない時も通常の威力で発動できる。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&b【効果】 &f静寂一閃の&a剣気&fがあれば1つ消費し、威力を{skill.riposteMultiplier}倍にする。"
+  - "&b【効果】 &f&a剣気&fは明鏡止水と静寂一閃のカウンターで蓄積し、リヴェンジアクセルと共有する。"
+  - "&b【効果】 &f&a剣気&fを持たない時も通常の威力で発動できる。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 26

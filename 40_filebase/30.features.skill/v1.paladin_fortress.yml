@@ -6,13 +6,12 @@ id: paladin_fortress
 type: SKILL
 implementationId: paladin_fortress
 name: "&3フォートレス"
-description: "&7要塞のように踏み留まり、周囲の敵を引き付ける。"
+description: "&8【概要】 &7要塞のように踏み留まり、周囲の敵を引き付ける。"
 icon: REINFORCED_DEEPSLATE
 lore:
-  - "&7半径{skill.radius}m・上下{skill.height}mの敵を1秒ごとに最大{skill.maxTargets}体挑発する。"
-  - "&7挑発中は脅威値に関係なく自身を攻撃対象にする。"
-  - "&7発動中は{skill.visualIntervalTicks}tickごとに要塞のオーラを表示する。"
-  - "&7持続時間: Lv.1で11秒 / Lv.2で12秒"
+  - "&d【状態】 &f半径{skill.radius}m・上下{skill.height}mの敵を1秒ごとに最大{skill.maxTargets}体&d挑発&fする。"
+  - "&d【状態】 &f&d挑発&f中は脅威値に関係なく自身を攻撃対象にする。"
+  - "&b【持続】 &f持続時間: Lv.1で11秒 / Lv.2で12秒"
 cooldownTicks: 360
 resourceType: ENERGY
 resourceCost: 30

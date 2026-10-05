@@ -6,12 +6,12 @@ id: archmage_aegis_circle
 type: SKILL
 implementationId: archmage_aegis_circle
 name: "&bイージスサークル"
-description: "&7守護の陣で仲間のシールドを補う。"
+description: "&8【概要】 &7守護の陣で仲間のシールドを補う。"
 icon: CALCITE
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの守護陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大シールドの{skill.power:percent}%を毎秒補充する。"
-  - "&7シールド上限がないプレイヤーには効果がない。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの守護陣を置く。"
+  - "&a【防御】 &f{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大&aシールド&fの{skill.power:percent}%を毎秒補充する。"
+  - "&a【防御】 &f&aシールド&f上限がないプレイヤーには効果がない。"
 cooldownTicks: 240
 resourceType: MANA
 resourceCost: 50

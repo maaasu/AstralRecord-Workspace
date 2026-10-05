@@ -6,12 +6,12 @@ id: swordsman_challenging_roar
 type: SKILL
 implementationId: swordsman_challenging_roar
 name: "&3チャレンジングロア"
-description: "&7咆哮を上げ、周囲の敵を一時的に引き付ける。"
+description: "&8【概要】 &7咆哮を上げ、周囲の敵を一時的に引き付ける。"
 icon: GOAT_HORN
 lore:
-  - "&7発動中、半径{skill.radius}mの敵を1秒ごとに最大{skill.maxTargets}体挑発する。"
-  - "&7挑発した敵は脅威値に関係なく自身を攻撃対象にする。"
-  - "&7持続時間: Lv.1で4秒 / Lv.5で8秒"
+  - "&d【状態】 &f発動中、半径{skill.radius}mの敵を1秒ごとに最大{skill.maxTargets}体&d挑発&fする。"
+  - "&d【状態】 &f&d挑発&fした敵は脅威値に関係なく自身を攻撃対象にする。"
+  - "&b【持続】 &f持続時間: Lv.1で4秒 / Lv.5で8秒"
 cooldownTicks: 400
 resourceType: ENERGY
 resourceCost: 25

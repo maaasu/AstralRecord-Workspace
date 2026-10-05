@@ -6,10 +6,10 @@ id: wizard_self_heal
 type: SKILL
 implementationId: wizard_self_heal
 name: "&dセルフヒール"
-description: "&7自身の傷を癒す回復魔法。"
+description: "&8【概要】 &7自身の傷を癒す回復魔法。"
 icon: APPLE
 lore:
-  - "&7自身の最大HPの{skill.healPercent}%を回復する。"
+  - "&a【回復】 &f自身の最大HPの{skill.healPercent}%を&a回復&fする。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 33

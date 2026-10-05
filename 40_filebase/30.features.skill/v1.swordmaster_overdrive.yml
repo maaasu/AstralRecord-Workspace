@@ -6,12 +6,12 @@ id: swordmaster_overdrive
 type: SKILL
 implementationId: swordmaster_overdrive
 name: "&cオーバードライブ"
-description: "&7守りを捨て、短い好機へ全力を注ぐ。"
+description: "&8【概要】 &7守りを捨て、短い好機へ全力を注ぐ。"
 icon: LAVA_BUCKET
 lore:
-  - "&7{skill.durationTicks:seconds}秒間、自分の与ダメージが{skill.outgoingMultiplier}倍になる。"
-  - "&7その間、自分の被ダメージも{skill.incomingMultiplier}倍になる。"
-  - "&7攻撃する隙を見極めて使う自己強化。固定HPダメージには適用しない。"
+  - "&b【攻撃】 &f{skill.durationTicks:seconds}秒間、自分の与ダメージが{skill.outgoingMultiplier}倍になる。"
+  - "&a【防御】 &fその間、自分の被ダメージも{skill.incomingMultiplier}倍になる。"
+  - "&b【攻撃】 &f攻撃する隙を見極めて使う自己強化。固定HPダメージには適用しない。"
 cooldownTicks: 360
 resourceType: ENERGY
 resourceCost: 28

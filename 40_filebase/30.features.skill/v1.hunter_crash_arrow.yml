@@ -6,19 +6,18 @@ id: hunter_crash_arrow
 type: SKILL
 implementationId: hunter_crash_arrow
 name: "&bクラッシュアロー"
-description: "&7シールド破壊に特化した水色の矢。"
+description: "&8【概要】 &7シールド破壊に特化した水色の矢。"
 icon: TARGET
 lore:
-  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7シールドへのダメージ倍率は{skill.shieldBreakMultiplier}倍。"
-  - "&7命中時{skill.superStarCriticalChance}%の確率で超星会心が発生する。"
-  - "&7重力の影響を受けない水色の矢を放つ。"
+  - "&b【攻撃】 &f射程{skill.range}mへ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【攻撃】 &f&aシールド&fへのダメージ倍率は{skill.shieldBreakMultiplier}倍。"
+  - "&b【効果】 &f命中時{skill.superStarCriticalChance}%の確率で超星会心が発生する。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7次の通常攻撃の命中対象へ{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ盾破壊攻撃を発生させる。"
-      - "&7消費リソースと性能は{skill.name}を参照する。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &f次の通常攻撃の命中対象へ{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ盾破壊攻撃を発生させる。"
+      - "&6【継承】 &f消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 120
 resourceType: ENERGY
 resourceCost: 14

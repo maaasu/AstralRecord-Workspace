@@ -6,12 +6,12 @@ id: paladin_blessed_lance
 type: SKILL
 implementationId: paladin_blessed_lance
 name: "&fブレストランス"
-description: "&7聖域から光の槍を放ち、守りの陣を攻勢へ転じる。"
+description: "&8【概要】 &7聖域から光の槍を放ち、守りの陣を攻勢へ転じる。"
 icon: QUARTZ_PILLAR
 lore:
-  - "&7前方{skill.range}mを貫く光で、最大{skill.maxTargets}体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7自分のホーリーフィールド内で放つと倍率が{skill.fieldMultiplier}倍になる。"
-  - "&7壁を貫通せず、ディバインチェイサーの追撃対象となる。"
+  - "&b【攻撃】 &f前方{skill.range}mを貫く光で、最大{skill.maxTargets}体へ&b近接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【攻撃】 &f自分のホーリーフィールド内で放つと倍率が{skill.fieldMultiplier}倍になる。"
+  - "&b【効果】 &fディバインチェイサーの追撃対象となる。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 18

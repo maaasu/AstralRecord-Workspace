@@ -6,11 +6,11 @@ id: adventurer_mana_burst
 type: SKILL
 implementationId: adventurer_mana_burst
 name: "&fマナバースト"
-description: "&7凝縮した魔力を放つ範囲魔法。"
+description: "&8【概要】 &7凝縮した魔力を放つ範囲魔法。"
 icon: NETHER_STAR
 lore:
-  - "&7前方{skill.range}mの扇形（{skill.angle}度）へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7最大{skill.maxTargets}体。状態異常と属性効果は発生しない。"
+  - "&b【攻撃】 &f前方{skill.range}mの扇形（{skill.angle}度）へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【効果】 &f最大{skill.maxTargets}体。&d状態異常&fと属性効果は発生しない。"
 cooldownTicks: 60
 resourceType: MANA
 resourceCost: 13

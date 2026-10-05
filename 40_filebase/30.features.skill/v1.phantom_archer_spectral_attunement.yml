@@ -6,13 +6,13 @@ id: phantom_archer_spectral_attunement
 type: SKILL
 implementationId: phantom_archer_spectral_attunement
 name: "&5スペクトラルアチューンメント"
-description: "&7弓の通常射撃を幻影の追撃へつなぐ。"
+description: "&8【概要】 &7弓の通常射撃を幻影の追撃へつなぐ。"
 icon: CALIBRATED_SCULK_SENSOR
 lore:
-  - "&7パッシブスロットへのバインド中のみ有効。"
-  - "&7弓・短弓・長弓の通常攻撃の有効命中で、自分の霊印を1層刻む。"
-  - "&7霊印は最大3層、最後の付与から6秒で消える。専用射撃の霊印と共通。"
-  - "&7スキルのクールダウンを5%、MP消費を8%軽減する。"
+  - "&6【条件】 &fパッシブスロットへのバインド中のみ有効。"
+  - "&6【条件】 &f弓・短弓・長弓の通常攻撃の有効命中で、自分の&d霊印&fを1層刻む。"
+  - "&d【状態】 &f&d霊印&fは最大3層、最後の付与から6秒で消える。専用射撃の&d霊印&fと共通。"
+  - "&b【効果】 &fスキルのクールダウンを5%、MP消費を8%軽減する。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0

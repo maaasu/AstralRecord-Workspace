@@ -6,16 +6,16 @@ id: archmage_reborn_protect_circle
 type: SKILL
 implementationId: archmage_reborn_protect_circle
 name: "&6リボーンプロテクトサークル"
-description: "&7黄金の魔法陣で倒れた仲間を呼び戻す。"
+description: "&8【概要】 &7黄金の魔法陣で倒れた仲間を呼び戻す。"
 icon: TOTEM_OF_UNDYING
 lore:
-  - "&7視点先{skill.range}m以内の地面に、半径{skill.radius}mの水平な魔法陣を置く。"
-  - "&7魔法陣上の死亡したプレイヤーを一人、その場で復活させる。"
-  - "&7ボス・ダンジョン挑戦中の復活では死亡回数を消費しない。"
-  - "&7復活後3秒間無敵。"
-  - "&7その後も含め10秒間、戦意の混乱を付与する。"
-  - "&7戦意の混乱: 最終ダメージ倍率・防御力・近接防御力・魔法防御力が100%低下。"
-  - "&7復活が成立すると消え、成立しなければ{skill.durationTicks:seconds}秒後に消える。"
+  - "&b【効果】 &f視点先{skill.range}m以内の地面に、半径{skill.radius}mの水平な魔法陣を置く。"
+  - "&b【効果】 &f魔法陣上の死亡したプレイヤーを一人、その場で復活させる。"
+  - "&b【効果】 &fボス・ダンジョン挑戦中の復活では死亡回数を消費しない。"
+  - "&b【効果】 &f復活後3秒間無敵。"
+  - "&b【効果】 &fその後も含め10秒間、&d戦意の混乱&fを付与する。"
+  - "&d【弱体】 &f&d戦意の混乱&f: 最終ダメージ倍率・&b防御力&f・&b近接防御力&f・&b魔法防御力&fが100%低下。"
+  - "&b【効果】 &f復活が成立すると消え、成立しなければ{skill.durationTicks:seconds}秒後に消える。"
 cooldownTicks: 3200
 resourceType: MANA
 resourceCost: 100

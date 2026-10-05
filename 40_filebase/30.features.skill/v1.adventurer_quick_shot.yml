@@ -6,15 +6,15 @@ id: adventurer_quick_shot
 type: SKILL
 implementationId: adventurer_quick_shot
 name: "&fクイックショット"
-description: "&7素早く矢を放つ基礎射撃。"
+description: "&8【概要】 &7素早く矢を放つ基礎射撃。"
 icon: BOW
 lore:
-  - "&7射程{skill.range}mの矢で間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。貫通しない。"
+  - "&b【攻撃】 &f射程{skill.range}mの矢で&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%のダメージ。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7次の通常攻撃の会心率が{skill.inheritanceCriticalRate}%アップする。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &f次の通常攻撃の会心率が{skill.inheritanceCriticalRate}%アップする。"
 cooldownTicks: 40
 resourceType: ENERGY
 resourceCost: 6

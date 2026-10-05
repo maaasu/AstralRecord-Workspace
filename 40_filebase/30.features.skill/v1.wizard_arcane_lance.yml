@@ -6,12 +6,11 @@ id: wizard_arcane_lance
 type: SKILL
 implementationId: wizard_arcane_lance
 name: "&dアーケインランス"
-description: "&7詠唱した魔力を細い貫通光線へ変える。"
+description: "&8【概要】 &7詠唱した魔力を細い貫通光線へ変える。"
 icon: MEDIUM_AMETHYST_BUD
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体を細い光線で貫く。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7状態異常を付与せず、壁は貫通しない。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体を細い光線で貫く。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
 cooldownTicks: 120
 resourceType: MANA
 resourceCost: 32

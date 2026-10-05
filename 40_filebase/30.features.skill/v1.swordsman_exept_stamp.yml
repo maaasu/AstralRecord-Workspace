@@ -6,12 +6,12 @@ id: swordsman_exept_stamp
 type: SKILL
 implementationId: swordsman_exept_stamp
 name: "&6エクゼプトスタンプ"
-description: "&7前方へ飛び上がり、急降下して叩き潰す。"
+description: "&8【概要】 &7前方へ飛び上がり、急降下して叩き潰す。"
 icon: ANVIL
 lore:
-  - "&7前方へ飛び上がり、空中でスニークすると急降下する。"
-  - "&7着地点の半径{skill.radius}mへ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7命中した敵へ5秒間、移動速度-{skill.movementSpeedReduction}。"
+  - "&b【移動】 &f前方へ飛び上がり、空中でスニークすると急降下する。"
+  - "&b【攻撃】 &f着地点の半径{skill.radius}mへ&b近接攻撃力&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&d【状態】 &f命中した敵へ5秒間、移動速度-{skill.movementSpeedReduction}。"
 cooldownTicks: 160
 resourceType: ENERGY
 resourceCost: 20

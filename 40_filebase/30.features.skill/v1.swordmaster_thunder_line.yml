@@ -6,12 +6,12 @@ id: swordmaster_thunder_line
 type: SKILL
 implementationId: swordmaster_thunder_line
 name: "&e雷鳴一文字"
-description: "&7一直線の雷刃で敵の動きを乱す。"
+description: "&8【概要】 &7一直線の雷刃で敵の動きを乱す。"
 icon: REDSTONE_TORCH
 lore:
-  - "&7視線上{skill.range}mの最大{skill.maxTargets}体へ近接雷属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の感電を付与する。"
-  - "&7壁で剣閃が止まり、感電した敵には氷華円舞の追撃を狙える。"
+  - "&b【効果】 &f視線上{skill.range}mの最大{skill.maxTargets}体へ近接&b雷属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&d【状態】 &f命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の&d感電&fを付与する。"
+  - "&b【効果】 &f&d感電&fした敵には氷華円舞の追撃を狙える。"
 cooldownTicks: 120
 resourceType: ENERGY
 resourceCost: 18

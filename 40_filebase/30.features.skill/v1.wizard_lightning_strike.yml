@@ -6,13 +6,13 @@ id: wizard_lightning_strike
 type: SKILL
 implementationId: wizard_lightning_strike
 name: "&eライトニングストライク"
-description: "&7感電した敵へ雷を呼ぶパッシブ。"
+description: "&8【概要】 &7感電した敵へ雷を呼ぶパッシブ。"
 icon: YELLOW_CANDLE
 lore:
-  - "&7パッシブスロットへのバインド中のみ有効。"
-  - "&7自身から{skill.range}m以内で自身の攻撃が感電を付与・更新した敵に落雷。"
-  - "&7対象1体へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
-  - "&7MP不足時は落雷しない。"
+  - "&6【条件】 &fパッシブスロットへのバインド中のみ有効。"
+  - "&6【条件】 &f自身から{skill.range}m以内で自身の攻撃が&d感電&fを付与・更新した敵に落雷。"
+  - "&b【攻撃】 &f対象1体へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
+  - "&6【制限】 &fMP不足時は落雷しない。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 56

@@ -6,12 +6,12 @@ id: archmage_gravity_nova
 type: SKILL
 implementationId: archmage_gravity_nova
 name: "&5グラビティノヴァ"
-description: "&7星界の爆発で敵を押し戻す。"
+description: "&8【概要】 &7星界の爆発で敵を押し戻す。"
 icon: CHISELED_DEEPSLATE
 lore:
-  - "&7視点先の地表を中心に敵Mob最大8体へ無属性魔法攻撃する。"
-  - "&7攻撃倍率は{skill.power:percent}%で、命中した敵を押し戻す。"
-  - "&7基本半径{skill.radius}m。発動時の自身の魔法陣1つにつき0.75m拡大する（最大3陣）。"
+  - "&b【効果】 &f視点先の地表を中心に敵最大8体へ&b無属性&f魔法攻撃する。"
+  - "&b【攻撃】 &f攻撃倍率は{skill.power:percent}%で、命中した敵を押し戻す。"
+  - "&b【効果】 &f基本半径{skill.radius}m。発動時の自身の魔法陣1つにつき0.75m拡大する（最大3陣）。"
 cooldownTicks: 300
 resourceType: MANA
 resourceCost: 90

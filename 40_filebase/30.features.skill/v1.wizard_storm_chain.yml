@@ -6,13 +6,13 @@ id: wizard_storm_chain
 type: SKILL
 implementationId: wizard_storm_chain
 name: "&eストームチェイン"
-description: "&7敵から敵へ雷をつなぎ感電を広げる。"
+description: "&8【概要】 &7敵から敵へ雷をつなぎ感電を広げる。"
 icon: LIGHTNING_ROD
 lore:
-  - "&7前方{skill.range}mの最初の敵から周囲{skill.chainRadius}mへ連鎖。"
-  - "&7最大{skill.maxTargets}体へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
-  - "&7同じ敵には一度だけ命中し、壁は越えない。"
-  - "&7{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の感電を付与。"
+  - "&b【効果】 &f前方{skill.range}mの最初の敵から周囲{skill.chainRadius}mへ連鎖。"
+  - "&b【攻撃】 &f最大{skill.maxTargets}体へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
+  - "&b【効果】 &f同じ敵には一度だけ命中する。"
+  - "&d【状態】 &f{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の&d感電&fを付与。"
 cooldownTicks: 140
 resourceType: MANA
 resourceCost: 30

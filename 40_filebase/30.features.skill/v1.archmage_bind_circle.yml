@@ -6,14 +6,14 @@ id: archmage_bind_circle
 type: SKILL
 implementationId: archmage_bind_circle
 name: "&dバインドサークル"
-description: "&7魔眼の魔法陣に触れた敵を引き寄せ、一体を拘束する。"
+description: "&8【概要】 &7魔眼の魔法陣に触れた敵を引き寄せ、一体を拘束する。"
 icon: NETHER_WART_BLOCK
 lore:
-  - "&7視線先の地面に半径{skill.radius}mの水平な魔法陣を設置する。"
-  - "&7敵が接すると中心へ引き寄せ、{skill.pullTicks:seconds}秒後に最も中心に近い敵一体を拘束。"
-  - "&7拘束は{skill.bindTicks:seconds}秒間。移動と通常スキルを封じる。"
-  - "&7敵が触れなければ{skill.circleLifetimeTicks:seconds}秒後に魔法陣が消える。"
-  - "&7必殺技の発動時には拘束が解ける。"
+  - "&b【効果】 &f視線先の地面に半径{skill.radius}mの水平な魔法陣を設置する。"
+  - "&d【状態】 &f敵が接すると中心へ引き寄せ、{skill.pullTicks:seconds}秒後に最も中心に近い敵一体を&d拘束&f。"
+  - "&d【状態】 &f&d拘束&fは{skill.bindTicks:seconds}秒間。移動と通常スキルを封じる。"
+  - "&b【効果】 &f敵が触れなければ{skill.circleLifetimeTicks:seconds}秒後に魔法陣が消える。"
+  - "&d【状態】 &f必殺技の発動時には&d拘束&fが解ける。"
 cooldownTicks: 6000
 resourceType: MANA
 resourceCost: 100

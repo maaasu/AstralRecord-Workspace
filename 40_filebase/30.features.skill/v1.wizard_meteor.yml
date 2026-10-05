@@ -6,13 +6,12 @@ id: wizard_meteor
 type: SKILL
 implementationId: wizard_meteor
 name: "&cメテオ"
-description: "&7炎の魔法陣へ隕石を呼び寄せる範囲魔法。"
+description: "&8【概要】 &7炎の魔法陣へ隕石を呼び寄せる範囲魔法。"
 icon: GILDED_BLACKSTONE
 lore:
-  - "&7視点方向の{skill.range}m以内へ魔法陣を描き、{skill.impactDelayTicks:seconds}秒後に隕石を落とす。"
-  - "&7着弾地点から半径{skill.radius}mの敵へ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
-  - "&7命中時、{skill.burningChance}%で{skill.burningDurationTicks:seconds}秒間の燃焼を付与。"
-  - "&7隕石は発動ごとに異なる斜め上空から接近し、着弾時に爆発する。"
+  - "&b【効果】 &f視点方向の{skill.range}m以内へ魔法陣を描き、{skill.impactDelayTicks:seconds}秒後に隕石を落とす。"
+  - "&b【攻撃】 &f着弾地点から半径{skill.radius}mの敵へ、&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
+  - "&d【状態】 &f命中時、{skill.burningChance}%で{skill.burningDurationTicks:seconds}秒間の&d燃焼&fを付与。"
 cooldownTicks: 160
 resourceType: MANA
 resourceCost: 80

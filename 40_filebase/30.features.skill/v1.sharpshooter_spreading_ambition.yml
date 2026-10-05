@@ -6,19 +6,19 @@ id: sharpshooter_spreading_ambition
 type: SKILL
 implementationId: sharpshooter_spreading_ambition
 name: "&a拡散する野望"
-description: "&7草花をまとった矢が散開し、着弾点を爆発させる。"
+description: "&8【概要】 &7草花をまとった矢が散開し、着弾点を爆発させる。"
 icon: TORCHFLOWER_SEEDS
 lore:
-  - "&7前方へ{skill.pelletCount}本の矢を全角{skill.spreadAngle}度に放つ。射程{skill.range}m。"
-  - "&7各矢の直撃は間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7着弾地点の半径{skill.explosionRadius}mで周囲の最大{skill.maxExplosionTargets}体へ直撃の50%の爆発ダメージ。"
-  - "&7いずれかの状態異常がある敵への直撃・爆発ダメージは2倍。"
+  - "&b【効果】 &f前方へ{skill.pelletCount}本の矢を全角{skill.spreadAngle}度に放つ。射程{skill.range}m。"
+  - "&b【攻撃】 &f各矢の直撃は&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&b【攻撃】 &f着弾地点の半径{skill.explosionRadius}mで周囲の最大{skill.maxExplosionTargets}体へ直撃の50%の爆発ダメージ。"
+  - "&b【攻撃】 &fいずれかの&d状態異常&fがある敵への直撃・爆発ダメージは2倍。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与。"
-      - "&7通常攻撃の最初の着弾でバフを{skill.inheritanceConsumptionTicks:seconds}秒消費し、5方向へ散開する。"
-      - "&7継承時に追加リソースは消費しない。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与。"
+      - "&6【継承】 &f通常攻撃の最初の着弾でバフを{skill.inheritanceConsumptionTicks:seconds}秒消費し、5方向へ散開する。"
+      - "&6【継承】 &f継承時に追加リソースは消費しない。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 20

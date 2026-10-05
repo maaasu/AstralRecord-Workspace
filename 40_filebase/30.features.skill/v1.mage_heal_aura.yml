@@ -6,12 +6,11 @@ id: mage_heal_aura
 type: SKILL
 implementationId: mage_heal_aura
 name: "&dヒールオーラ"
-description: "&7周囲を即時回復する短周期の支援魔法。"
+description: "&8【概要】 &7周囲を即時回復する短周期の支援魔法。"
 icon: AMETHYST_CLUSTER
 lore:
-  - "&7自身を中心とした半径{skill.radius}mのプレイヤー全員を即時回復する。"
-  - "&7回復量は固定の最低値{skill.healAmount}と対象の現在HP×{skill.healPercent}%を比較し、大きい方のみを適用する（加算ではない）。"
-  - "&7範囲は紫色の魔法陣で表示される。"
+  - "&a【回復】 &f自身を中心とした半径{skill.radius}mのプレイヤー全員を即時&a回復&fする。"
+  - "&a【回復】 &f&a回復&f量は固定の最低値{skill.healAmount}と対象の現在HP×{skill.healPercent}%を比較し、大きい方のみを適用する（加算ではない）。"
 cooldownTicks: 40
 resourceType: MANA
 resourceCost: 6

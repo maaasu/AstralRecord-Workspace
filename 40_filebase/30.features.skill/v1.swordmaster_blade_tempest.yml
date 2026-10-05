@@ -6,13 +6,12 @@ id: swordmaster_blade_tempest
 type: SKILL
 implementationId: swordmaster_blade_tempest
 name: "&f旋風剣舞"
-description: "&7回転する剣閃で周囲を斬り刻む。"
+description: "&8【概要】 &7回転する剣閃で周囲を斬り刻む。"
 icon: STONECUTTER
 lore:
-  - "&7自分の周囲{skill.radius}mを{skill.intervalTicks}tick間隔で{skill.hitCount}回斬る。"
-  - "&7毎回最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7移動しながら使え、各斬撃の時点で範囲内の敵を選ぶ。"
-  - "&7会心が出るたび金色の剣閃が弾ける。"
+  - "&b【効果】 &f自分の周囲{skill.radius}mを{skill.intervalTicks:seconds}秒間隔で{skill.hitCount}回斬る。"
+  - "&b【攻撃】 &f毎回最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&b【効果】 &f移動しながら使え、各斬撃の時点で範囲内の敵を選ぶ。"
 cooldownTicks: 180
 resourceType: ENERGY
 resourceCost: 30

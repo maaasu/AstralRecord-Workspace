@@ -6,17 +6,17 @@ id: adventurer_blast_arrow
 type: SKILL
 implementationId: adventurer_blast_arrow
 name: "&fブラストアロー"
-description: "&7着弾の衝撃で敵を巻き込む範囲射撃。"
+description: "&8【概要】 &7着弾の衝撃で敵を巻き込む範囲射撃。"
 icon: FIREWORK_ROCKET
 lore:
-  - "&7射程{skill.range}m、半径{skill.radius}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。最大{skill.maxTargets}体。"
-  - "&7敵または地形への着弾時だけ衝撃波が発生する。"
+  - "&b【攻撃】 &f射程{skill.range}m、半径{skill.radius}mへ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。最大{skill.maxTargets}体。"
+  - "&b【効果】 &f着弾地点に衝撃波を起こす。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ衝撃波を発生させる。"
-      - "&7消費リソースと性能は{skill.name}を参照する。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &f次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ衝撃波を発生させる。"
+      - "&6【継承】 &f消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 12

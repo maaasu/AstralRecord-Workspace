@@ -6,12 +6,12 @@ id: paladin_guardian_renewal
 type: SKILL
 implementationId: paladin_guardian_renewal
 name: "&fガーディアンリニューアル"
-description: "&7受け止めた力を生命へ戻し、守護を続ける。"
+description: "&8【概要】 &7受け止めた力を生命へ戻し、守護を続ける。"
 icon: TURTLE_SCUTE
 lore:
-  - "&7自身の最大HPの{skill.healHpRatio:percent}%を即時回復する。"
-  - "&7ガードコンバートのバインドとガード残量が必要。"
-  - "&7支援力・回復増加・回復阻害の影響を受ける。"
+  - "&a【回復】 &f自身の最大HPの{skill.healHpRatio:percent}%を即時&a回復&fする。"
+  - "&6【条件】 &f&aガード&fコンバートのバインドと&aガード&f残量が必要。"
+  - "&a【回復】 &f&b支援力&f・&a回復&f増加・&d回復阻害&fの影響を受ける。"
 cooldownTicks: 360
 resourceType: GUARD
 resourceCost: 8

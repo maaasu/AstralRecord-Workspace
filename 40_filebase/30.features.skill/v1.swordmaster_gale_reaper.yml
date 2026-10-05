@@ -6,13 +6,13 @@ id: swordmaster_gale_reaper
 type: SKILL
 implementationId: swordmaster_gale_reaper
 name: "&b疾風抜刀"
-description: "&7敵を斬り抜け、次の獲物へつなぐ抜刀術。"
+description: "&8【概要】 &7敵を斬り抜け、次の獲物へつなぐ抜刀術。"
 icon: NETHERITE_HOE
 lore:
-  - "&7前方{skill.range}mまで斬り抜け、経路上の最大{skill.maxTargets}体を攻撃。"
-  - "&7近接無属性{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7この突進の直接攻撃で敵を倒すと、次のtickから再使用できる。"
-  - "&7連続発動でもリソースを消費し、障害物や足場不足で移動できない時は不発。"
+  - "&b【移動】 &f前方{skill.range}mまで斬り抜け、経路上の最大{skill.maxTargets}体を攻撃。"
+  - "&b【攻撃】 &f近接&b無属性&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&b【効果】 &fこの突進の直接攻撃で敵を倒すと、直後から再使用できる。"
+  - "&b【効果】 &f連続発動でもリソースを消費する。移動できない時は不発。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 16

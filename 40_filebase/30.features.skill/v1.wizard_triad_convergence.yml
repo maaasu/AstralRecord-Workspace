@@ -6,13 +6,13 @@ id: wizard_triad_convergence
 type: SKILL
 implementationId: wizard_triad_convergence
 name: "&dトライアドコンバージェンス"
-description: "&7三属性の状態異常を収束させて敵を砕く。"
+description: "&8【概要】 &7三属性の状態異常を収束させて敵を砕く。"
 icon: PURPLE_GLAZED_TERRACOTTA
 lore:
-  - "&7視線先{skill.range}mの地表、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
-  - "&7火・氷・雷それぞれ魔法攻撃力{skill.effectiveDamageRatio:percent}%の一撃。"
-  - "&7敵の燃焼・冷気・感電1種ごとに倍率を{skill.conditionBonusRatio:percent}%加算。"
-  - "&7状態異常は消費しない。"
+  - "&b【効果】 &f視線先{skill.range}mの地表、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
+  - "&b【攻撃】 &f&b火・氷・雷&fそれぞれ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の一撃。"
+  - "&b【攻撃】 &f敵の&d燃焼&f・&d冷気&f・&d感電&f1種ごとに倍率を{skill.conditionBonusRatio:percent}%加算。"
+  - "&b【効果】 &f&d状態異常&fは消費しない。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 48

@@ -6,13 +6,13 @@ id: mage_sparking
 type: SKILL
 implementationId: mage_sparking
 name: "&eスパーキング"
-description: "&7視線の先で雷の渦を広げる雷属性魔法。"
+description: "&8【概要】 &7視線の先で雷の渦を広げる雷属性魔法。"
 icon: GLOWSTONE_DUST
 lore:
-  - "&7視点方向へ{skill.range}mまで雷弾を放ち、敵またはBlockに触れると渦を展開。"
-  - "&7着弾地点から{skill.projectileCount}個の雷弾を広げ、触れた敵へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
-  - "&7同じ発動では敵ごとに0.5秒間隔で命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒感電させる。"
-  - "&7着弾後の雷弾は外へ広がる渦を描き、壁で反射して{skill.durationTicks:seconds}秒後に消滅する。"
+  - "&b【効果】 &f射程{skill.range}mの雷弾を放ち、着弾地点に雷の渦を展開する。"
+  - "&b【攻撃】 &f着弾地点から{skill.projectileCount}個の雷弾を広げ、触れた敵へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
+  - "&d【状態】 &f同じ発動では敵ごとに0.5秒間隔で命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒&d感電&fさせる。"
+  - "&b【効果】 &f雷の渦は{skill.durationTicks:seconds}秒間持続し、雷弾は壁で反射する。"
 cooldownTicks: 160
 resourceType: MANA
 resourceCost: 18

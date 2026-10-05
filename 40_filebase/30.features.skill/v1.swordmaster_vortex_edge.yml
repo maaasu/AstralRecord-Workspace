@@ -6,13 +6,13 @@ id: swordmaster_vortex_edge
 type: SKILL
 implementationId: swordmaster_vortex_edge
 name: "&dヴォルテックスエッジ"
-description: "&7渦を巻く剣閃で敵を引き寄せる。"
+description: "&8【概要】 &7渦を巻く剣閃で敵を引き寄せる。"
 icon: HOPPER
 lore:
-  - "&7周囲{skill.radius}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7命中して生き残った敵を、自分の手元へ引き寄せる。"
-  - "&7近すぎる敵は引かず、ノックバック耐性によって引き寄せが弱まる。"
-  - "&7敵をまとめ、旋風剣舞や焔花咲きにつなげる剣技。"
+  - "&b【効果】 &f周囲{skill.radius}mの最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&b【効果】 &f命中して生き残った敵を、自分の手元へ引き寄せる。"
+  - "&b【効果】 &f近すぎる敵は引かず、ノックバック耐性によって引き寄せが弱まる。"
+  - "&b【効果】 &f敵をまとめ、旋風剣舞や焔花咲きにつなげる剣技。"
 cooldownTicks: 160
 resourceType: ENERGY
 resourceCost: 22

@@ -6,10 +6,10 @@ id: mage_blink
 type: SKILL
 implementationId: mage_blink
 name: "&dブリンク"
-description: "&7視線の先へ瞬間移動する空間魔法。"
+description: "&8【概要】 &7視線の先へ瞬間移動する空間魔法。"
 icon: CHORUS_FRUIT
 lore:
-  - "&7空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある安全な位置へ瞬間移動する。"
+  - "&b【移動】 &f空中でしゃがむと、視線方向の最大{skill.maxDistance}m先にある安全な位置へ瞬間移動する。"
 cooldownTicks: 0
 resourceType: ENERGY
 resourceCost: 20

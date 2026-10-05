@@ -6,14 +6,13 @@ id: paladin_divine_chaser
 type: SKILL
 implementationId: paladin_divine_chaser
 name: "&fディバインチェイサー"
-description: "&7聖騎士の技に呼応し、神聖な追撃を放つパッシブ。"
+description: "&8【概要】 &7聖騎士の技に呼応し、神聖な追撃を放つパッシブ。"
 icon: BEACON
 lore:
-  - "&7パッシブスロットへのバインド中のみ有効。"
-  - "&7聖騎士タグのスキルが敵に命中すると、追撃を発生させる。"
-  - "&7頭上2mの半径{skill.sphereRadius}mの白い球体から、エンドロッドの軌跡で敵へ向かう。"
-  - "&7(近接防御力 + 魔法防御力) × (筋力 / 100) + 防御力 / 2 を攻撃力参照値とし、{skill.damageRatio:percent}%の無属性近接ダメージを与える。"
-  - "&7追撃1回ごとにMPを2消費する。"
+  - "&6【条件】 &fパッシブスロットへのバインド中のみ有効。"
+  - "&b【効果】 &f聖騎士タグのスキルが敵に命中すると、追撃を発生させる。"
+  - "&b【参照】 &f(&b近接防御力&f + &b魔法防御力&f) × (&b筋力&f / 100) + &b防御力&f / 2 を&b攻撃力&f参照値とし、{skill.damageRatio:percent}%の&b無属性&f近接ダメージを与える。"
+  - "&b【効果】 &f追撃1回ごとにMPを2消費する。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 2

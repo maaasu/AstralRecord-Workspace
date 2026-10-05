@@ -6,12 +6,12 @@ id: wizard_cinder_lance
 type: SKILL
 implementationId: wizard_cinder_lance
 name: "&6シンダーランス"
-description: "&7燃える魔槍で元素連携を始める。"
+description: "&8【概要】 &7燃える魔槍で元素連携を始める。"
 icon: ORANGE_CANDLE
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体を貫く。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
-  - "&7{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の燃焼を付与。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体を貫く。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b火属性&fダメージ。"
+  - "&d【状態】 &f{skill.conditionChance}%で{skill.conditionTicks:seconds}秒間の&d燃焼&fを付与。"
 cooldownTicks: 120
 resourceType: MANA
 resourceCost: 24

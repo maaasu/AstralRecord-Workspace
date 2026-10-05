@@ -6,15 +6,15 @@ id: swordmaster_revenge_accel
 type: SKILL
 implementationId: swordmaster_revenge_accel
 name: "&eリヴェンジアクセル"
-description: "&7反撃の勢いを、新たな踏み込みへ変える。"
+description: "&8【概要】 &7反撃の勢いを、新たな踏み込みへ変える。"
 icon: RAISER_ARMOR_TRIM_SMITHING_TEMPLATE
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7静寂一閃の剣気があれば1つ消費し、威力が{skill.riposteMultiplier}倍になる。"
-  - "&7剣気で強化した一撃が命中すると、疾風抜刀と紅蓮疾駆のクールタイムを解除。"
-  - "&7自身のクールタイムは残り、再使用した突進もリソースを消費する。"
-  - "&7剣気は明鏡止水と静寂一閃のカウンターで蓄積し、返し刃と共有。"
-  - "&7空振りでは突進を再使用可能にしない。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&b【効果】 &f静寂一閃の&a剣気&fがあれば1つ消費し、威力が{skill.riposteMultiplier}倍になる。"
+  - "&b【効果】 &f&a剣気&fで強化した一撃が命中すると、疾風抜刀と紅蓮疾駆のクールタイムを解除。"
+  - "&b【効果】 &f自身のクールタイムは残り、再使用した突進もリソースを消費する。"
+  - "&b【効果】 &f&a剣気&fは明鏡止水と静寂一閃のカウンターで蓄積し、返し刃と共有。"
+  - "&b【効果】 &f空振りでは突進を再使用可能にしない。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 24

@@ -6,13 +6,13 @@ id: paladin_holy_reprieve
 type: SKILL
 implementationId: paladin_holy_reprieve
 name: "&fホーリーリプリーヴ"
-description: "&7盾の加護を癒やしに変え、聖域の仲間を立て直す。"
+description: "&8【概要】 &7盾の加護を癒やしに変え、聖域の仲間を立て直す。"
 icon: WHITE_CANDLE
 lore:
-  - "&7半径{skill.radius}m・上下{skill.height}mの自身と同一パーティーを即時回復する。"
-  - "&7基礎回復量は{skill.healAmount}＋発動者の最大Shieldの{skill.shieldHealRatio:percent}%。"
-  - "&7自分のホーリーフィールド内から使うと回復量が{skill.fieldMultiplier}倍。"
-  - "&7壁越しと死亡中の味方は対象外。支援力・回復増加・回復阻害の影響を受ける。"
+  - "&a【回復】 &f半径{skill.radius}m・上下{skill.height}mの自身と同一パーティーを即時&a回復&fする。"
+  - "&a【回復】 &f基礎&a回復&f量は{skill.healAmount}＋発動者の最大&aシールド&fの{skill.shieldHealRatio:percent}%。"
+  - "&a【回復】 &f自分のホーリーフィールド内から使うと&a回復&f量が{skill.fieldMultiplier}倍。"
+  - "&a【回復】 &f死亡中の味方は対象外。&b支援力&f・&a回復&f増加・&d回復阻害&fの影響を受ける。"
 cooldownTicks: 280
 resourceType: MANA
 resourceCost: 24

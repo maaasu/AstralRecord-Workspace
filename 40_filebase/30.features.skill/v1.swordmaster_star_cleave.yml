@@ -6,13 +6,13 @@ id: swordmaster_star_cleave
 type: SKILL
 implementationId: swordmaster_star_cleave
 name: "&e星砕き"
-description: "&7会心の一太刀から星の剣閃を咲かせる。"
+description: "&8【概要】 &7会心の一太刀から星の剣閃を咲かせる。"
 icon: GOLDEN_HOE
 lore:
-  - "&7前方{skill.range}mの扇形で最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7有効命中が会心になると、その敵を中心に半径{skill.burstRadius}mの星を放つ。"
-  - "&7星は最大{skill.maxTargets}体へ近接無属性{skill.burstRatio:percent}%の追加ダメージ。"
-  - "&7星の発生は発動1回につき1度だけ。星からさらに星は発生しない。"
+  - "&b【効果】 &f前方{skill.range}mの扇形で最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&b【効果】 &f有効命中が会心になると、その敵を中心に半径{skill.burstRadius}mの星を放つ。"
+  - "&b【攻撃】 &f星は最大{skill.maxTargets}体へ近接&b無属性&f{skill.burstRatio:percent}%の追加ダメージ。"
+  - "&b【効果】 &f星の発生は発動1回につき1度だけ。星からさらに星は発生しない。"
 cooldownTicks: 120
 resourceType: ENERGY
 resourceCost: 24

@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * スキル表示名の整形を共通化します。
+ * スキル表示名・説明・効果値の整形を共通化します。
  */
 public final class SkillPresentationUtil {
     private static final TextColor PLACEHOLDER_COLOR = NamedTextColor.YELLOW;
@@ -177,10 +178,12 @@ public final class SkillPresentationUtil {
             lines,
             renderPlaceholdersComponent(definition.getDescription(), values, fallbackColor)
         );
+        List<Component> details = new ArrayList<>();
         for (String line : definition.getLore()) {
-            appendMasterLine(lines, renderPlaceholdersComponent(line, values, fallbackColor));
+            appendMasterLine(details, renderPlaceholdersComponent(line, values, fallbackColor));
         }
-        appendConditionalLore(lines, definition, permittedSkillIds, values, fallbackColor);
+        appendConditionalLore(details, definition, permittedSkillIds, values, fallbackColor);
+        appendDetails(lines, details);
         return List.copyOf(lines);
     }
 
@@ -271,16 +274,26 @@ public final class SkillPresentationUtil {
             lines,
             renderResolvedLineComponent(definition.getDescription(), values, fallbackColor)
         );
+        List<Component> details = new ArrayList<>();
         for (String line : definition.getLore()) {
             String rendered = renderPlaceholders(line, values);
             String plain = ColorCodeUtil.toPlainText(rendered, "");
             if (plain.contains("消費") && plain.contains("クールダウン")) {
                 continue;
             }
-            appendMasterLine(lines, renderResolvedLineComponent(line, values, fallbackColor));
+            appendMasterLine(details, renderResolvedLineComponent(line, values, fallbackColor));
         }
-        appendConditionalLore(lines, definition, permittedSkillIds, values, fallbackColor);
+        appendConditionalLore(details, definition, permittedSkillIds, values, fallbackColor);
+        appendDetails(lines, details);
         return List.copyOf(lines);
+    }
+
+    /** 概要と詳細の両方がある場合だけ空行で区切り、条件付き効果も詳細へまとめます。 */
+    private static void appendDetails(@NotNull List<Component> lines, @NotNull List<Component> details) {
+        if (!lines.isEmpty() && !details.isEmpty()) {
+            lines.add(Component.empty());
+        }
+        lines.addAll(details);
     }
 
     /** 条件スキルの使用許可がある場合だけ、対応する追加説明行を追記します。 */
@@ -423,10 +436,16 @@ public final class SkillPresentationUtil {
         }
         return component.replaceText(TextReplacementConfig.builder()
             .match(PLACEHOLDER_TOKEN)
-            .replacement((match, ignored) -> Component.text(
-                tokenized.replacements().getOrDefault(match.group(), "?"),
-                PLACEHOLDER_COLOR
-            ))
+            .replacement((match, ignored) -> {
+                PlaceholderValue value = tokenized.replacements().get(match.group());
+                if (value == null) return Component.text("?");
+                Component replacement = Component.text(value.text());
+                // 全体一致ではAdventureが元の後続childrenを置換先へ引き継ぎます。
+                // 数値の装飾を子へ閉じ、後続本文へ黄色・太字が継承されるのを防ぎます。
+                return value.numeric()
+                    ? Component.empty().append(replacement.color(PLACEHOLDER_COLOR).decorate(TextDecoration.BOLD))
+                    : replacement;
+            })
             .build());
     }
 
@@ -439,18 +458,29 @@ public final class SkillPresentationUtil {
         }
         Matcher matcher = SKILL_PLACEHOLDER.matcher(text);
         StringBuffer result = new StringBuffer();
-        Map<String, String> replacements = new LinkedHashMap<>();
+        Map<String, PlaceholderValue> replacements = new LinkedHashMap<>();
         int tokenIndex = 0;
         while (matcher.find()) {
             Object value = values.get(matcher.group(1));
             Integer index = matcher.group(2) == null ? null : Integer.valueOf(matcher.group(2));
             String format = matcher.group(3);
             String token = "\uE000skill_placeholder_" + tokenIndex++ + "\uE001";
-            replacements.put(token, formatValue(value, index, format));
+            replacements.put(token, new PlaceholderValue(formatValue(value, index, format), isNumericValue(value, index)));
             matcher.appendReplacement(result, Matcher.quoteReplacement(token));
         }
         matcher.appendTail(result);
         return new TokenizedText(result.toString(), Map.copyOf(replacements));
+    }
+
+    /** 配列参照も含め、実際の参照値が数値である場合だけ数値用の強調を適用します。 */
+    private static boolean isNumericValue(@Nullable Object value, @Nullable Integer index) {
+        if (index != null) {
+            return value instanceof List<?> list && index < list.size() && list.get(index) instanceof Number;
+        }
+        if (value instanceof Collection<?> collection) {
+            return !collection.isEmpty() && collection.stream().allMatch(item -> item instanceof Number);
+        }
+        return value instanceof Number;
     }
 
     private static @NotNull String formatValue(
@@ -574,9 +604,12 @@ public final class SkillPresentationUtil {
         }
     }
 
+    private record PlaceholderValue(@NotNull String text, boolean numeric) {
+    }
+
     private record TokenizedText(
         @NotNull String template,
-        @NotNull Map<String, String> replacements
+        @NotNull Map<String, PlaceholderValue> replacements
     ) {
         private @NotNull String resolve() {
             Matcher matcher = PLACEHOLDER_TOKEN.matcher(template);
@@ -584,7 +617,8 @@ public final class SkillPresentationUtil {
             while (matcher.find()) {
                 matcher.appendReplacement(
                     resolved,
-                    Matcher.quoteReplacement(replacements.getOrDefault(matcher.group(), "?"))
+                    Matcher.quoteReplacement(replacements.containsKey(matcher.group())
+                        ? replacements.get(matcher.group()).text() : "?")
                 );
             }
             matcher.appendTail(resolved);

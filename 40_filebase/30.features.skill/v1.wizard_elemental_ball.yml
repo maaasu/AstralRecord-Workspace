@@ -6,14 +6,14 @@ id: wizard_elemental_ball
 type: SKILL
 implementationId: wizard_elemental_ball
 name: "&dエレメンタルボール"
-description: "&7元素のきらめきを束ねた魔力球を放つ。"
+description: "&8【概要】 &7元素のきらめきを束ねた魔力球を放つ。"
 icon: WHITE_GLAZED_TERRACOTTA
 lore:
-  - "&7視線方向の射程{skill.range}mへ魔力球を放つ。"
-  - "&7敵または地形への着弾時、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7何らかの状態異常がある敵へのダメージ倍率は2倍。"
-  - "&7自分のエレメンタルプリズムに命中すると吸収される。"
+  - "&b【効果】 &f視線方向の射程{skill.range}mへ魔力球を放つ。"
+  - "&b【効果】 &f着弾地点の半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【攻撃】 &f何らかの&d状態異常&fがある敵へのダメージ倍率は2倍。"
+  - "&b【効果】 &f自分のエレメンタルプリズムに命中すると吸収される。"
 cooldownTicks: 140
 resourceType: MANA
 resourceCost: 40

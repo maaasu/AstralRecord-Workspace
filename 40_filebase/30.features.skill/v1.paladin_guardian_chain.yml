@@ -6,12 +6,12 @@ id: paladin_guardian_chain
 type: SKILL
 implementationId: paladin_guardian_chain
 name: "&3ガーディアンチェイン"
-description: "&7周囲の敵へ鎖を伸ばし、自身のもとへ引き寄せる。"
+description: "&8【概要】 &7周囲の敵へ鎖を伸ばし、自身のもとへ引き寄せる。"
 icon: LEAD
 lore:
-  - "&7半径{skill.radius}m以内の全敵を1秒ごとに{skill.pullCount}回引き寄せる。"
-  - "&7遠い敵ほど強く、斜め上方向へ引き寄せる。"
-  - "&7引き寄せはノックバック耐性で軽減され、耐性100%では移動しない。"
+  - "&b【効果】 &f半径{skill.radius}m以内の全敵を1秒ごとに{skill.pullCount}回引き寄せる。"
+  - "&b【効果】 &f遠い敵ほど強く、斜め上方向へ引き寄せる。"
+  - "&b【効果】 &f引き寄せはノックバック耐性で軽減され、耐性100%では移動しない。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 10

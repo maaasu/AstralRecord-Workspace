@@ -6,14 +6,14 @@ id: phantom_archer_soul_pierce
 type: SKILL
 implementationId: phantom_archer_soul_pierce
 name: "&5ソウルピアース"
-description: "&7刻んだ霊印ごと敵の魂を射抜く。"
+description: "&8【概要】 &7刻んだ霊印ごと敵の魂を射抜く。"
 icon: SCULK_CATALYST
 lore:
-  - "&7弓・短弓・長弓を装備して使用する。"
-  - "&7射程{skill.range}m、最大{skill.maxHits}体を貫く無属性の霊矢を放つ。"
-  - "&7基礎は間接攻撃力{skill.effectiveDamageRatio:percent}%。自分の霊印1層ごとに倍率を{skill.markDamageRatio:percent}%加算する。"
-  - "&7衰弱か盲目の敵には、霊印の加算後の倍率がさらに{skill.conditionBonusRatio:percent}%増える。"
-  - "&7霊印は有効命中した対象だけ全層消費する。回避・無効化では消費しない。"
+  - "&6【条件】 &f弓・短弓・長弓を装備して使用する。"
+  - "&b【効果】 &f射程{skill.range}m、最大{skill.maxHits}体を貫く&b無属性&fの霊矢を放つ。"
+  - "&b【攻撃】 &f基礎は&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%。自分の&d霊印&f1層ごとに倍率を{skill.markDamageRatio:percent}%加算する。"
+  - "&b【攻撃】 &f&d衰弱&fか&d盲目&fの敵には、&d霊印&fの加算後の倍率がさらに{skill.conditionBonusRatio:percent}%増える。"
+  - "&d【状態】 &f&d霊印&fは有効命中した対象だけ全層消費する。回避・無効化では消費しない。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 21

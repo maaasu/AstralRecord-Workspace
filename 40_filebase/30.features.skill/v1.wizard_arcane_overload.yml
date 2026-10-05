@@ -6,12 +6,12 @@ id: wizard_arcane_overload
 type: SKILL
 implementationId: wizard_arcane_overload
 name: "&5アーケインオーバーロード"
-description: "&7蓄えた魔力を大きな爆発へ解き放つ。"
+description: "&8【概要】 &7蓄えた魔力を大きな爆発へ解き放つ。"
 icon: CRYING_OBSIDIAN
 lore:
-  - "&7視線先{skill.range}mの地表、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7詠唱完了時、消費前MPが最大MPの{skill.manaThreshold:percent}%以上なら{skill.empoweredMultiplier}倍。"
+  - "&b【効果】 &f視線先{skill.range}mの地表、半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&b【効果】 &f詠唱完了時、消費前MPが最大MPの{skill.manaThreshold:percent}%以上なら{skill.empoweredMultiplier}倍。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 64

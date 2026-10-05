@@ -6,13 +6,13 @@ id: swordmaster_mirage_retreat
 type: SKILL
 implementationId: swordmaster_mirage_retreat
 name: "&bミラージュリトリート"
-description: "&7残像に斬撃を任せ、間合いを取り直す。"
+description: "&8【概要】 &7残像に斬撃を任せ、間合いを取り直す。"
 icon: LIGHT_GRAY_STAINED_GLASS_PANE
 lore:
-  - "&7後方へ最大{skill.range}m退き、元の位置へ残像を残す。"
-  - "&7残像は半径{skill.radius}mを{skill.intervalTicks}tick間隔で{skill.hitCount}回斬る。"
-  - "&7毎回最大{skill.maxTargets}体へ近接無属性{skill.effectiveDamageRatio:percent}%。"
-  - "&7後退できない時は不発。移動中の無敵は付かない。"
+  - "&b【移動】 &f後方へ最大{skill.range}m退き、元の位置へ残像を残す。"
+  - "&b【効果】 &f残像は半径{skill.radius}mを{skill.intervalTicks:seconds}秒間隔で{skill.hitCount}回斬る。"
+  - "&b【効果】 &f毎回最大{skill.maxTargets}体へ近接&b無属性&f{skill.effectiveDamageRatio:percent}%。"
+  - "&6【制限】 &f後退できない時は不発。移動中の無敵は付かない。"
 cooldownTicks: 140
 resourceType: ENERGY
 resourceCost: 20

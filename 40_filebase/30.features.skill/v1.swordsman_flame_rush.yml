@@ -6,12 +6,12 @@ id: swordsman_flame_rush
 type: SKILL
 implementationId: swordsman_flame_rush
 name: "&6フレイムラッシュ"
-description: "&7炎をまとった十字の二連斬り。"
+description: "&8【概要】 &7炎をまとった十字の二連斬り。"
 icon: CRIMSON_ROOTS
 lore:
-  - "&7前方{skill.range}mの敵最大{skill.maxTargets}体へ、火属性の近接2連撃。"
-  - "&7横薙ぎ{skill.effectiveDamageRatios[0]:percent}% → 縦斬り{skill.effectiveDamageRatios[1]:percent}%。"
-  - "&72撃目で{skill.burningChance}%の確率で{skill.burningDurationTicks:seconds}秒間炎上。"
+  - "&b【効果】 &f前方{skill.range}mの敵最大{skill.maxTargets}体へ、&b火属性&fの近接2連撃。"
+  - "&b【効果】 &f横薙ぎ{skill.effectiveDamageRatios[0]:percent}% → 縦斬り{skill.effectiveDamageRatios[1]:percent}%。"
+  - "&d【状態】 &f2撃目で{skill.burningChance}%の確率で{skill.burningDurationTicks:seconds}秒間&d炎上&f。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14

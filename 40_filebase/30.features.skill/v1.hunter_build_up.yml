@@ -6,11 +6,11 @@ id: hunter_build_up
 type: SKILL
 implementationId: hunter_build_up
 name: "&eビルドアップ"
-description: "&7狩猟の構えを整え、間接攻撃を強化する。"
+description: "&8【概要】 &7狩猟の構えを整え、間接攻撃を強化する。"
 icon: TIPPED_ARROW
 lore:
-  - "&7発動後{skill.buffDurationTicks:seconds}秒間、間接攻撃力が{skill.rangedAttackIncreaseRatio:percent}%上昇する。"
-  - "&7効果中、毎秒最大ENGの{skill.energyRecoveryRatio:percent}%を回復する。"
+  - "&b【攻撃】 &f発動後{skill.buffDurationTicks:seconds}秒間、&b間接攻撃力&fが{skill.rangedAttackIncreaseRatio:percent}%上昇する。"
+  - "&a【回復】 &f効果中、毎秒最大ENGの{skill.energyRecoveryRatio:percent}%を&a回復&fする。"
 cooldownTicks: 300
 resourceType: MANA
 resourceCost: 6

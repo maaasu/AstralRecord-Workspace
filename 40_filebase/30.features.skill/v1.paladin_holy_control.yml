@@ -6,14 +6,14 @@ id: paladin_holy_control
 type: SKILL
 implementationId: paladin_holy_control
 name: "&fホーリーコントロール"
-description: "&7最寄りの聖柱を操り、味方を支援する。"
+description: "&8【概要】 &7最寄りの聖柱を操り、味方を支援する。"
 icon: COMPARATOR
 lore:
-  - "&7HPを{skill.hpCost}消費して、半径{skill.pillarSearchRadius}m以内の最寄りの聖柱を自身へ移動する。"
-  - "&7移動前の聖柱を削除し、移動した聖柱の持続時間を生成時の持続時間へ戻す。"
-  - "&7聖柱がある間、半径{skill.effectRadius}m以内のパーティーメンバーのスキル与ダメージを{skill.partyDamageIncrease}%増加する。"
-  - "&7同範囲の敵Mobの被ダメージを{skill.mobDamageTakenIncrease}%増加する。"
-  - "&7毎秒、範囲内のパーティーメンバーをHP{skill.hpRecovery}、発動者の最大MPの{skill.mpRecoveryMaxManaRatio:percent}%回復する。"
+  - "&b【効果】 &fHPを{skill.hpCost}消費して、半径{skill.pillarSearchRadius}m以内の最寄りの聖柱を自身へ移動する。"
+  - "&b【効果】 &f移動した聖柱の持続時間を最初の長さへ戻す。"
+  - "&b【攻撃】 &f聖柱がある間、半径{skill.effectRadius}m以内のパーティーメンバーのスキル与ダメージを{skill.partyDamageIncrease}%増加する。"
+  - "&d【弱体】 &f同範囲の敵の被ダメージを{skill.mobDamageTakenIncrease}%増加する。"
+  - "&a【回復】 &f毎秒、範囲内のパーティーメンバーをHP{skill.hpRecovery}、発動者の最大MPの{skill.mpRecoveryMaxManaRatio:percent}%&a回復&fする。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 30

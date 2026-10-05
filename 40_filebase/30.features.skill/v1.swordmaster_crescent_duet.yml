@@ -6,13 +6,13 @@ id: swordmaster_crescent_duet
 type: SKILL
 implementationId: swordmaster_crescent_duet
 name: "&d月影双斬"
-description: "&7二つの月弧を重ね、会心を次の刃へつなぐ。"
+description: "&8【概要】 &7二つの月弧を重ね、会心を次の刃へつなぐ。"
 icon: SOUL_TORCH
 lore:
-  - "&7前方{skill.range}mの最大{skill.maxTargets}体を{skill.intervalTicks}tick間隔で2回斬る。"
-  - "&7各斬撃は近接無属性{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7初撃が1体でも会心になると、二撃目の威力が{skill.criticalMultiplier}倍になる。"
-  - "&7二撃目はその時点の視線へ放つ。"
+  - "&b【効果】 &f前方{skill.range}mの最大{skill.maxTargets}体を{skill.intervalTicks:seconds}秒間隔で2回斬る。"
+  - "&b【攻撃】 &f各斬撃は近接&b無属性&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&b【効果】 &f初撃が1体でも会心になると、二撃目の威力が{skill.criticalMultiplier}倍になる。"
+  - "&b【効果】 &f二撃目はその時点の視線へ放つ。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 22

@@ -6,12 +6,12 @@ id: adventurer_lightning_bolt
 type: SKILL
 implementationId: adventurer_lightning_bolt
 name: "&bライトニングボルト"
-description: "&7感電の連鎖を操る雷属性魔法。"
+description: "&8【概要】 &7感電の連鎖を操る雷属性魔法。"
 icon: TRIDENT
 lore:
-  - "&7射程{skill.range}mの雷属性魔法攻撃。主対象へ魔法攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7命中対象から半径{skill.chainRadius}m以内の感電した敵へ最大{skill.maxChainTargets}体、{skill.effectiveChainDamageRatio:percent}%の追撃。"
-  - "&7本スキルでは感電を付与せず、連鎖先からの再連鎖も発生しない。"
+  - "&b【攻撃】 &f射程{skill.range}mの&b雷属性&f魔法攻撃。主対象へ&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&b【攻撃】 &f命中対象から半径{skill.chainRadius}m以内の&d感電&fした敵へ最大{skill.maxChainTargets}体、{skill.effectiveChainDamageRatio:percent}%の追撃。"
+  - "&d【状態】 &f本スキルでは&d感電&fを付与せず、連鎖先からの再連鎖も発生しない。"
 cooldownTicks: 60
 resourceType: MANA
 resourceCost: 10

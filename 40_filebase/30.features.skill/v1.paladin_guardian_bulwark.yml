@@ -6,12 +6,12 @@ id: paladin_guardian_bulwark
 type: SKILL
 implementationId: paladin_guardian_bulwark
 name: "&fガーディアンブルワーク"
-description: "&7攻めを抑えて盾を構え、危険な一撃を受け止める。"
+description: "&8【概要】 &7攻めを抑えて盾を構え、危険な一撃を受け止める。"
 icon: IRON_DOOR
 lore:
-  - "&7{skill.durationTicks:seconds}秒間、自身の被ダメージを{skill.incomingMultiplier}倍にする。"
-  - "&7構え中は自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
-  - "&7ガードコンバートのバインドとガード残量が必要。同じ技能の効果は重複しない。"
+  - "&a【防御】 &f{skill.durationTicks:seconds}秒間、自身の被ダメージを{skill.incomingMultiplier}倍にする。"
+  - "&b【攻撃】 &f構え中は自身の与ダメージも{skill.outgoingMultiplier}倍になる。"
+  - "&6【条件】 &f&aガード&fコンバートのバインドと&aガード&f残量が必要。同じ技能の効果は重複しない。"
 cooldownTicks: 240
 resourceType: GUARD
 resourceCost: 8

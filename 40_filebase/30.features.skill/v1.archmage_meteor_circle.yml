@@ -6,12 +6,12 @@ id: archmage_meteor_circle
 type: SKILL
 implementationId: archmage_meteor_circle
 name: "&6メテオサークル"
-description: "&7陣を踏む敵へ星屑を降らせ続ける。"
+description: "&8【概要】 &7陣を踏む敵へ星屑を降らせ続ける。"
 icon: SMOOTH_QUARTZ
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの流星陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内の敵Mob最大5体へ{skill.pulseTicks}tickごとに無属性魔法攻撃。"
-  - "&7一撃の魔法攻撃倍率は{skill.power:percent}%。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの流星陣を置く。"
+  - "&b【効果】 &f{skill.durationTicks:seconds}秒間、範囲内の敵最大5体へ{skill.pulseTicks:seconds}秒ごとに&b無属性&f魔法攻撃。"
+  - "&b【攻撃】 &f一撃の魔法攻撃倍率は{skill.power:percent}%。"
 cooldownTicks: 300
 resourceType: MANA
 resourceCost: 75

@@ -6,13 +6,13 @@ id: mage_frost_ball
 type: SKILL
 implementationId: mage_frost_ball
 name: "&bフロストボール"
-description: "&7氷球を放ち、着弾地点を氷晶で砕く魔法。"
+description: "&8【概要】 &7氷球を放ち、着弾地点を氷晶で砕く魔法。"
 icon: SNOWBALL
 lore:
-  - "&7射程{skill.range}mへ氷球を放つ。"
-  - "&7着弾地点の半径{skill.radius}mへ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
-  - "&7最大{skill.maxTargets}体。敵または地形への着弾時だけ氷晶が炸裂する。"
-  - "&7命中時{skill.freezeChance}%の確率で{skill.freezeDurationTicks:seconds}秒間凍結させる。"
+  - "&b【効果】 &f射程{skill.range}mへ氷球を放つ。"
+  - "&b【攻撃】 &f着弾地点の半径{skill.radius}mへ、&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b氷属性&fダメージ。"
+  - "&b【効果】 &f最大{skill.maxTargets}体に命中する。"
+  - "&d【状態】 &f命中時{skill.freezeChance}%の確率で{skill.freezeDurationTicks:seconds}秒間&d凍結&fさせる。"
 cooldownTicks: 80
 resourceType: MANA
 resourceCost: 16

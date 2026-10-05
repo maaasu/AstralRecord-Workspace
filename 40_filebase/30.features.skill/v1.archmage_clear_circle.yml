@@ -6,13 +6,13 @@ id: archmage_clear_circle
 type: SKILL
 implementationId: archmage_clear_circle
 name: "&bクリアサークル"
-description: "&7視点先に状態異常を祓う魔法陣を展開する。"
+description: "&8【概要】 &7視点先に状態異常を祓う魔法陣を展開する。"
 icon: WILDFLOWERS
 lore:
-  - "&7視点先{skill.range}m以内の地面に水平な半径{skill.radius}mの魔法陣を置く。"
-  - "&7最初に触れたプレイヤーの状態異常・デバフ・有害なポーション効果を解除する。"
-  - "&7解除が成立すると魔法陣は消える。解除対象がなければ残る。"
-  - "&7解除が成立しなければ{skill.durationTicks:seconds}秒で消える。"
+  - "&b【効果】 &f視点先{skill.range}m以内の地面に水平な半径{skill.radius}mの魔法陣を置く。"
+  - "&b【効果】 &f最初に触れたプレイヤーの&d状態異常&f・&dデバフ&f・有害なポーション効果を解除する。"
+  - "&b【効果】 &f解除が成立すると魔法陣は消える。解除対象がなければ残る。"
+  - "&b【効果】 &f解除が成立しなければ{skill.durationTicks:seconds}秒で消える。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 60

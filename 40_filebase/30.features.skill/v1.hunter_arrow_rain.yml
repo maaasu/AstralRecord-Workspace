@@ -6,19 +6,18 @@ id: hunter_arrow_rain
 type: SKILL
 implementationId: hunter_arrow_rain
 name: "&aアローレイン"
-description: "&7着弾地点へ頭上から矢の雨を降らせる範囲射撃。"
+description: "&8【概要】 &7着弾地点へ頭上から矢の雨を降らせる範囲射撃。"
 icon: ARROW
 lore:
-  - "&7射程{skill.range}mの重力矢。敵命中時は間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
-  - "&7敵または地形に当たると、半径{skill.radius}mの範囲へ{skill.arrowCount}本の雨矢を3本ずつ連続して降らせる。"
-  - "&7雨矢は1本につき最初の敵へ間接攻撃力{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
-  - "&7雨矢は初弾の着弾高度以上の地形を貫通し、それより低い地形で消滅する。"
+  - "&b【攻撃】 &f射程{skill.range}mの矢で、&b間接攻撃力&f{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
+  - "&b【効果】 &f着弾地点の半径{skill.radius}mへ、{skill.arrowCount}本の雨矢を連続して降らせる。"
+  - "&b【攻撃】 &f雨矢は1本につき最初の敵へ&b間接攻撃力&f{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ雨矢を発生させる。"
-      - "&7消費リソースと性能は{skill.name}を参照する。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &f次の通常攻撃の着弾地点で{skill.inheritanceDurationTicks:seconds}秒分を消費し、同じ雨矢を発生させる。"
+      - "&6【継承】 &f消費リソースと性能は{skill.name}を参照する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 16

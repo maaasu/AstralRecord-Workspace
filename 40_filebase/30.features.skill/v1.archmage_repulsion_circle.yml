@@ -6,12 +6,12 @@ id: archmage_repulsion_circle
 type: SKILL
 implementationId: archmage_repulsion_circle
 name: "&dリパルションサークル"
-description: "&7敵を外周へ押し戻す防衛の陣を置く。"
+description: "&8【概要】 &7敵を外周へ押し戻す防衛の陣を置く。"
 icon: BUDDING_AMETHYST
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの斥力陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内の敵Mob最大8体を{skill.pulseTicks}tickごとに外へ押し出す。"
-  - "&7押し出しの強さは{skill.power}。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの斥力陣を置く。"
+  - "&b【効果】 &f{skill.durationTicks:seconds}秒間、範囲内の敵最大8体を{skill.pulseTicks:seconds}秒ごとに外へ押し出す。"
+  - "&b【効果】 &f押し出しの強さは{skill.power}。"
 cooldownTicks: 340
 resourceType: MANA
 resourceCost: 70

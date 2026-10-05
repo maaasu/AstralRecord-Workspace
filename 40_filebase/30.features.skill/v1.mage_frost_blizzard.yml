@@ -6,13 +6,12 @@ id: mage_frost_blizzard
 type: SKILL
 implementationId: mage_frost_blizzard
 name: "&bフロストブリザード"
-description: "&7前進する氷の竜巻で敵群を巻き込む魔法。"
+description: "&8【概要】 &7前進する氷の竜巻で敵群を巻き込む魔法。"
 icon: DIAMOND_NAUTILUS_ARMOR
 lore:
-  - "&7視点方向へ進む氷の竜巻を{skill.durationTicks:seconds}秒間発生させる。"
-  - "&7半径{skill.radius}mの最大{skill.maxTargets}体を巻き込み、{skill.damageIntervalTicks:seconds}秒ごとに魔法攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
-  - "&7敵を竜巻の周囲へ引き寄せて回転させる。ノックバック耐性に応じて移動量が低下する。"
-  - "&7竜巻は進行方向の地形へ到達すると、その場で停止する。"
+  - "&b【効果】 &f視点方向へ進む氷の竜巻を{skill.durationTicks:seconds}秒間発生させる。"
+  - "&b【攻撃】 &f半径{skill.radius}mの最大{skill.maxTargets}体を巻き込み、{skill.damageIntervalTicks:seconds}秒ごとに&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b氷属性&fダメージ。"
+  - "&b【効果】 &f敵を竜巻の周囲へ引き寄せて回転させる。ノックバック耐性に応じて移動量が低下する。"
 cooldownTicks: 400
 resourceType: MANA
 resourceCost: 50

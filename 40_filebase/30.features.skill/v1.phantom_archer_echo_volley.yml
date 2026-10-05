@@ -6,13 +6,13 @@ id: phantom_archer_echo_volley
 type: SKILL
 implementationId: phantom_archer_echo_volley
 name: "&5エコーボレー"
-description: "&7照準を追う幻影連射で霊印を編み上げる。"
+description: "&8【概要】 &7照準を追う幻影連射で霊印を編み上げる。"
 icon: SCULK_SHRIEKER
 lore:
-  - "&7弓・短弓・長弓を装備して使用する。"
-  - "&7各射の現在位置と照準から{skill.shotCount}本の霊矢を{skill.shotIntervalTicks}ティック間隔で放つ。"
-  - "&7各矢は射程{skill.range}mで最大{skill.maxHits}体を貫き、間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
+  - "&6【条件】 &f弓・短弓・長弓を装備して使用する。"
+  - "&b【効果】 &f各射の現在位置と照準から{skill.shotCount}本の霊矢を{skill.shotIntervalTicks:seconds}秒間隔で放つ。"
+  - "&b【攻撃】 &f各矢は射程{skill.range}mで最大{skill.maxHits}体を貫き、&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&d【状態】 &f有効命中で自分の&d霊印&fを1層刻む。最大3層、最後の付与から6秒で消える。"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 24

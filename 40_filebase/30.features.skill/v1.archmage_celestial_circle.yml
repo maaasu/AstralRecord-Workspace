@@ -6,14 +6,14 @@ id: archmage_celestial_circle
 type: SKILL
 implementationId: archmage_celestial_circle
 name: "&bセレスティアルサークル"
-description: "&7星の魔法陣を築き、範囲内のプレイヤーを強化する。"
+description: "&8【概要】 &7星の魔法陣を築き、範囲内のプレイヤーを強化する。"
 icon: LIGHT_BLUE_GLAZED_TERRACOTTA
 lore:
-  - "&7視点先の地面に半径{skill.radius}mの水平な魔法陣を2秒かけて描く。"
-  - "&7完成後は{skill.durationTicks:seconds}秒間、範囲内のプレイヤーへ同名バフを付与する。"
-  - "&7最終ダメージ倍率が{skill.finalDamageBonus}%、ライフスティールが{skill.otherBonus}%上昇。"
-  - "&7HP・MP・ENG回復力とドロップ増加率がそれぞれ{skill.otherBonus}%上昇。"
-  - "&7重複せず、再発動時は古い魔法陣を消して描き直す。"
+  - "&b【効果】 &f視点先の地面に半径{skill.radius}mの水平な魔法陣を2秒かけて描く。"
+  - "&b【効果】 &f完成後は{skill.durationTicks:seconds}秒間、範囲内のプレイヤーへ同名バフを付与する。"
+  - "&b【攻撃】 &f最終ダメージ倍率が{skill.finalDamageBonus}%、ライフスティールが{skill.otherBonus}%上昇。"
+  - "&a【強化】 &fHP・MP・ENG&a回復&f力とドロップ増加率がそれぞれ{skill.otherBonus}%上昇。"
+  - "&b【効果】 &f重複せず、再発動時は古い魔法陣を消して描き直す。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 30

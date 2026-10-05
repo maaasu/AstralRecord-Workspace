@@ -6,13 +6,13 @@ id: wizard_rime_nova
 type: SKILL
 implementationId: wizard_rime_nova
 name: "&bライムノヴァ"
-description: "&7周囲を冷やし、燃える敵へ熱衝撃を与える。"
+description: "&8【概要】 &7周囲を冷やし、燃える敵へ熱衝撃を与える。"
 icon: BLUE_CANDLE
 lore:
-  - "&7自身の半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
-  - "&7魔法攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
-  - "&7燃焼中の敵へは倍率が{skill.burningMultiplier}倍。燃焼は消費しない。"
-  - "&7命中時、{skill.conditionTicks:seconds}秒間の冷気を付与。"
+  - "&b【効果】 &f自身の半径{skill.radius}mの最大{skill.maxTargets}体へ攻撃。"
+  - "&b【攻撃】 &f&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b氷属性&fダメージ。"
+  - "&b【攻撃】 &f&d燃焼&f中の敵へは倍率が{skill.burningMultiplier}倍。&d燃焼&fは消費しない。"
+  - "&d【状態】 &f命中時、{skill.conditionTicks:seconds}秒間の&d冷気&fを付与。"
 cooldownTicks: 140
 resourceType: MANA
 resourceCost: 26

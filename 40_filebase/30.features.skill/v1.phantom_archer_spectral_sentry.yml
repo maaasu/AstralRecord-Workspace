@@ -6,15 +6,14 @@ id: phantom_archer_spectral_sentry
 type: SKILL
 implementationId: phantom_archer_spectral_sentry
 name: "&5スペクトラルセントリー"
-description: "&7幻影の弓と十字射線を組み、霊印を重ねる。"
+description: "&8【概要】 &7幻影の弓と十字射線を組み、霊印を重ねる。"
 icon: SOUL_LANTERN
 lore:
-  - "&7弓・短弓・長弓を装備して使用する。"
-  - "&7視線先{skill.placementRange}m以内へ幻影弓を設置し、射程{skill.targetRadius}mの敵へ{skill.shotCount}回射撃を試みる。"
-  - "&7範囲内の地面に置けないときは、視線先へ浮かべて設置する。"
-  - "&7各射撃は間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。間隔は{skill.shotIntervalTicks}ティック。"
-  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
-  - "&7対象がいない射撃機会は消費する。幻影は1人1体までで、再設置すると旧幻影とその矢は無効になる。"
+  - "&6【条件】 &f弓・短弓・長弓を装備して使用する。"
+  - "&b【効果】 &f視線先{skill.placementRange}m以内へ幻影弓を設置し、射程{skill.targetRadius}mの敵へ{skill.shotCount}回射撃を試みる。"
+  - "&b【攻撃】 &f各射撃は&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。間隔は{skill.shotIntervalTicks:seconds}秒。"
+  - "&d【状態】 &f有効命中で自分の&d霊印&fを1層刻む。最大3層、最後の付与から6秒で消える。"
+  - "&b【効果】 &f対象がいない射撃機会も消費する。幻影は1人1体までで、再設置すると置き換わる。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 24

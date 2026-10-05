@@ -6,13 +6,13 @@ id: swordmaster_flame_lotus
 type: SKILL
 implementationId: swordmaster_flame_lotus
 name: "&c焔花咲き"
-description: "&7残した焔の花が敵を繰り返し斬り上げる。"
+description: "&8【概要】 &7残した焔の花が敵を繰り返し斬り上げる。"
 icon: FIRE_CORAL_FAN
 lore:
-  - "&7発動地点の半径{skill.radius}mへ、{skill.intervalTicks}tick間隔で{skill.hitCount}回の斬撃を残す。"
-  - "&7毎回最大{skill.maxTargets}体へ近接火属性{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の燃焼を付与する。"
-  - "&7自分は発動地点を離れて戦える。"
+  - "&b【効果】 &f発動地点の半径{skill.radius}mへ、{skill.intervalTicks:seconds}秒間隔で{skill.hitCount}回の斬撃を残す。"
+  - "&b【攻撃】 &f毎回最大{skill.maxTargets}体へ近接&b火属性&f{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&d【状態】 &f命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の&d燃焼&fを付与する。"
+  - "&b【効果】 &f自分は発動地点を離れて戦える。"
 cooldownTicks: 160
 resourceType: ENERGY
 resourceCost: 24

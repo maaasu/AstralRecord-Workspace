@@ -6,12 +6,11 @@ id: paladin_guardian_protect
 type: SKILL
 implementationId: paladin_guardian_protect
 name: "&bガーディアンプロテクト"
-description: "&7視線先の仲間を守り、その傷を肩代わりする。"
+description: "&8【概要】 &7視線先の仲間を守り、その傷を肩代わりする。"
 icon: GLOBE_BANNER_PATTERN
 lore:
-  - "&7視線方向のパーティーメンバー1人を{skill.durationTicks:seconds}秒間プロテクトする。"
-  - "&7対象が受けるHPダメージの{skill.damageRedirectRatio:percent}%を自身が肩代わりする。"
-  - "&7発動者と対象をEND_RODの光線で結ぶ。"
+  - "&a【防御】 &f視線方向のパーティーメンバー1人を{skill.durationTicks:seconds}秒間プロテクトする。"
+  - "&a【防御】 &f対象が受けるHPダメージの{skill.damageRedirectRatio:percent}%を自身が肩代わりする。"
 cooldownTicks: 200
 resourceType: MANA
 resourceCost: 25

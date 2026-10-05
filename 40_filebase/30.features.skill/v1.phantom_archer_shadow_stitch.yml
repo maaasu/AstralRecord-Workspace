@@ -6,13 +6,13 @@ id: phantom_archer_shadow_stitch
 type: SKILL
 implementationId: phantom_archer_shadow_stitch
 name: "&5シャドウステッチ"
-description: "&7霊印を刻み、狙った敵の攻勢を弱める。"
+description: "&8【概要】 &7霊印を刻み、狙った敵の攻勢を弱める。"
 icon: SCULK_SENSOR
 lore:
-  - "&7弓・短弓・長弓を装備して使用する。"
-  - "&7射程{skill.range}mの敵1体へ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
-  - "&7有効命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の衰弱を付与する。"
-  - "&7有効命中で自分の霊印を1層刻む。最大3層、最後の付与から6秒で消える。"
+  - "&6【条件】 &f弓・短弓・長弓を装備して使用する。"
+  - "&b【攻撃】 &f射程{skill.range}mの敵1体へ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージ。"
+  - "&d【状態】 &f有効命中時{skill.conditionChance}%で{skill.conditionTicks:seconds}秒の&d衰弱&fを付与する。"
+  - "&d【状態】 &f有効命中で自分の&d霊印&fを1層刻む。最大3層、最後の付与から6秒で消える。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14

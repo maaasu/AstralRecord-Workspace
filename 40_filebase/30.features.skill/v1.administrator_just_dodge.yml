@@ -6,13 +6,13 @@ id: administrator_just_dodge
 type: SKILL
 implementationId: administrator_just_dodge
 name: "&eジャスト回避"
-description: "&7ドッジの瞬間に攻撃を見切る防御パッシブ。"
+description: "&8【概要】 &7ドッジの瞬間に攻撃を見切る防御パッシブ。"
 icon: RABBIT_FOOT
 lore:
-  - "&7ドッジ後、{skill.invulnerabilityTicks:seconds}秒間、直接攻撃を無効化する。"
-  - "&7無効化回数に制限はない。"
-  - "&7無効化時、ENGを{skill.energyRecoveryAmount}回復する。1回のドッジにつき1回まで。"
-  - "&7状態異常による継続ダメージは無効化しない。"
+  - "&b【効果】 &fドッジ後、{skill.invulnerabilityTicks:seconds}秒間、直接攻撃を無効化する。"
+  - "&b【効果】 &f無効化回数に制限はない。"
+  - "&a【回復】 &f無効化時、ENGを{skill.energyRecoveryAmount}&a回復&fする。1回のドッジにつき1回まで。"
+  - "&6【制限】 &f&d状態異常&fによる継続ダメージは無効化しない。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0

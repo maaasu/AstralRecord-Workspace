@@ -6,11 +6,11 @@ id: hunter_spell_step
 type: SKILL
 implementationId: hunter_spell_step
 name: "&eスペルステップ"
-description: "&7遠隔スキルから素早く身をかわす機動パッシブ。"
+description: "&8【概要】 &7遠隔スキルから素早く身をかわす機動パッシブ。"
 icon: ENDER_PEARL
 lore:
-  - "&7遠距離攻撃スキルを発動した後、{skill.windowTicks:seconds}秒以内の次のドッジはENGを消費しない。"
-  - "&7効果はドッジ1回で消費され、発動時にサウンドを再生する。"
+  - "&b【効果】 &f遠距離攻撃スキルを発動した後、{skill.windowTicks:seconds}秒以内の次のドッジはENGを消費しない。"
+  - "&b【効果】 &f効果はドッジ1回で消費される。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0

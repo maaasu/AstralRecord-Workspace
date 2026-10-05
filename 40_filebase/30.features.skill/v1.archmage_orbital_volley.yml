@@ -6,12 +6,12 @@ id: archmage_orbital_volley
 type: SKILL
 implementationId: archmage_orbital_volley
 name: "&dオービタルヴォレー"
-description: "&7星弾を敵へ分配して連撃する。"
+description: "&8【概要】 &7星弾を敵へ分配して連撃する。"
 icon: OPEN_EYEBLOSSOM
 lore:
-  - "&7視点先の地表から半径{skill.radius}mにいる敵Mob最大4体を狙う。"
-  - "&7無属性魔法攻撃倍率{skill.power:percent}%の星弾を2発放つ。"
-  - "&7発動時の自身の魔法陣1つにつき1発追加する（最大3陣）。"
+  - "&b【効果】 &f視点先の地表から半径{skill.radius}mにいる敵最大4体を狙う。"
+  - "&b【攻撃】 &f&b無属性&f魔法攻撃倍率{skill.power:percent}%の星弾を2発放つ。"
+  - "&b【効果】 &f発動時の自身の魔法陣1つにつき1発追加する（最大3陣）。"
 cooldownTicks: 260
 resourceType: MANA
 resourceCost: 85

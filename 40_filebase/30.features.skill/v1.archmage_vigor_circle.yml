@@ -6,12 +6,12 @@ id: archmage_vigor_circle
 type: SKILL
 implementationId: archmage_vigor_circle
 name: "&eヴィガーサークル"
-description: "&7仲間の行動力を満たす星界の陣を築く。"
+description: "&8【概要】 &7仲間の行動力を満たす星界の陣を築く。"
 icon: PURPUR_PILLAR
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの活力陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大ENGの{skill.power:percent}%を毎秒回復する。"
-  - "&7位置を維持する仲間の継続行動を支える。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの活力陣を置く。"
+  - "&a【回復】 &f{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大ENGの{skill.power:percent}%を毎秒&a回復&fする。"
+  - "&b【効果】 &f位置を維持する仲間の継続行動を支える。"
 cooldownTicks: 300
 resourceType: MANA
 resourceCost: 60

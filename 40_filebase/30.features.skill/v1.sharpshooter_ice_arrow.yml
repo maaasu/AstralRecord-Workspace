@@ -6,19 +6,17 @@ id: sharpshooter_ice_arrow
 type: SKILL
 implementationId: sharpshooter_ice_arrow
 name: "&bアイスアロー"
-description: "&7水色の氷をまとった高速の直線矢。"
+description: "&8【概要】 &7水色の氷をまとった高速の直線矢。"
 icon: LIGHT_BLUE_DYE
 lore:
-  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
-  - "&7命中時{skill.conditionChance}%の確率で{skill.conditionDurationTicks:seconds}秒間凍結。"
-  - "&7重力を受けず高速で直進し、広めの当たり判定を持つ。"
-  - "&7小型の氷BlockDisplayと水色の氷粒子をまとう。"
+  - "&b【攻撃】 &f射程{skill.range}mへ&b間接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b氷属性&fダメージ。"
+  - "&d【状態】 &f命中時{skill.conditionChance}%の確率で{skill.conditionDurationTicks:seconds}秒間&d凍結&f。"
 conditionalLore:
   - requiredSkillId: skill:sharpshooter_inheritance_mastery
     lines:
-      - "&7{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
-      - "&7バフ残り時間中の通常攻撃へ氷属性ダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で凍結させる。"
-      - "&7継承効果の発動時に追加リソースは消費しない。"
+      - "&6【継承】 &f{skill.inheritanceMasteryName}が有効なら、{skill.inheritanceBuffName}を{skill.inheritanceDurationTicks:seconds}秒付与する。"
+      - "&6【継承】 &fバフ残り時間中の通常攻撃へ&b氷属性&fダメージ増加を加算し、命中時{skill.inheritedConditionChance}%で&d凍結&fさせる。"
+      - "&6【継承】 &f継承効果の発動時に追加リソースは消費しない。"
 cooldownTicks: 100
 resourceType: MANA
 resourceCost: 30

@@ -6,12 +6,12 @@ id: archmage_renewal_circle
 type: SKILL
 implementationId: archmage_renewal_circle
 name: "&aリニューアルサークル"
-description: "&7仲間が留まる場所に再生の陣を築く。"
+description: "&8【概要】 &7仲間が留まる場所に再生の陣を築く。"
 icon: CHISELED_QUARTZ_BLOCK
 lore:
-  - "&7視点先の地表に半径{skill.radius}mの再生陣を置く。"
-  - "&7{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大HPの{skill.power:percent}%を毎秒回復する。"
-  - "&7陣を離れると回復は止まる。"
+  - "&b【効果】 &f視点先の地表に半径{skill.radius}mの再生陣を置く。"
+  - "&a【回復】 &f{skill.durationTicks:seconds}秒間、範囲内のプレイヤーの最大HPの{skill.power:percent}%を毎秒&a回復&fする。"
+  - "&a【回復】 &f陣を離れると&a回復&fは止まる。"
 cooldownTicks: 260
 resourceType: MANA
 resourceCost: 55

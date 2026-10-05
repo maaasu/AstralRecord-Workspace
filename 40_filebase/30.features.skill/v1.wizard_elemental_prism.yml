@@ -6,14 +6,14 @@ id: wizard_elemental_prism
 type: SKILL
 implementationId: wizard_elemental_prism
 name: "&dエレメンタルプリズム"
-description: "&7三属性の攻撃魔法を吸収し、周囲へ屈折した魔力を放つ。"
+description: "&8【概要】 &7三属性の攻撃魔法を吸収し、周囲へ屈折した魔力を放つ。"
 icon: END_CRYSTAL
 lore:
-  - "&7目線の{skill.placementRange}m先の地表へプリズムを設置する。持続{skill.durationTicks:seconds}秒。"
-  - "&7自分のプリズムへタグ「プリズム」の無・炎・氷・雷魔法を当てると、その魔法を吸収して追撃する。"
-  - "&7半径{skill.radius}mの敵を最大{skill.maxTargets}体選び、{skill.projectileCount}発の追撃を放つ。"
-  - "&7追撃1発につき魔法攻撃力{skill.effectiveDamageRatio:percent}%の対応属性ダメージ。"
-  - "&7敵が1体なら全弾がその敵を狙う。再設置すると前のプリズムは消える。"
+  - "&b【効果】 &f目線の{skill.placementRange}m先の地表へプリズムを設置する。持続{skill.durationTicks:seconds}秒。"
+  - "&b【効果】 &f自分のプリズムへタグ「プリズム」の&b無・炎・氷・雷&f魔法を当てると、その魔法を吸収して追撃する。"
+  - "&b【効果】 &f半径{skill.radius}mの敵を最大{skill.maxTargets}体選び、{skill.projectileCount}発の追撃を放つ。"
+  - "&b【攻撃】 &f追撃1発につき&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b対応属性&fダメージ。"
+  - "&b【効果】 &f敵が1体なら全弾がその敵を狙う。再設置すると前のプリズムは消える。"
 cooldownTicks: 20
 resourceType: MANA
 resourceCost: 19

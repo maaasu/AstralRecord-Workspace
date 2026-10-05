@@ -6,16 +6,15 @@ id: wizard_emulate_spark
 type: SKILL
 implementationId: wizard_emulate_spark
 name: "&eイミュレートスパーク"
-description: "&7前方へ散開する雷弾が地面と壁で跳ね回る。"
+description: "&8【概要】 &7前方へ散開する雷弾が地面と壁で跳ね回る。"
 icon: WHEAT
 lore:
-  - "&7前方の地面へ向けて{skill.projectileCount}個の雷弾を全角{skill.spreadAngle}度に放つ。"
-  - "&7各弾は毎秒{skill.projectileSpeedPerSecond}m進み、地面で{skill.bounceHeight}m跳ねて壁で反射する。"
-  - "&7雷弾は{skill.durationTicks:seconds}秒間残り、敵に当たると消滅する。"
-  - "&7各弾の直撃は魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
-  - "&7同一敵への攻撃は1発動あたり最大{skill.maxHitsPerTarget}弾。回避も1弾に数える。"
-  - "&7上限を超えた弾は接触で消え、追加ダメージを与えない。"
-  - "&7命中した各弾が{skill.shockChance}%で{skill.shockDurationTicks:seconds}秒感電させる。"
+  - "&b【効果】 &f前方の地面へ向けて{skill.projectileCount}個の雷弾を全角{skill.spreadAngle}度に放つ。"
+  - "&b【効果】 &f雷弾は地面で跳ね、壁で反射する。"
+  - "&b【持続】 &f雷弾の持続時間は{skill.durationTicks:seconds}秒。"
+  - "&b【攻撃】 &f各弾の直撃は&b魔法攻撃力&f{skill.effectiveDamageRatio:percent}%の&b雷属性&fダメージ。"
+  - "&b【効果】 &f同一敵への攻撃は1発動あたり最大{skill.maxHitsPerTarget}弾。回避も1弾に数える。"
+  - "&d【状態】 &f命中した各弾が{skill.shockChance}%で{skill.shockDurationTicks:seconds}秒&d感電&fさせる。"
 cooldownTicks: 80
 resourceType: MANA
 resourceCost: 17

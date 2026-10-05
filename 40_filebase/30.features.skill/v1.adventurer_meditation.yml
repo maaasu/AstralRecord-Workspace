@@ -6,17 +6,15 @@ id: adventurer_meditation
 type: SKILL
 implementationId: adventurer_meditation
 name: "&dメディテーション"
-description: "&7精神を集中し、MP / ENG の自然回復を高める休息パッシブ。"
+description: "&8【概要】 &7精神を集中し、MP / ENG の自然回復を高める休息パッシブ。"
 icon: CAMPFIRE
 lore:
-  - "&7スニークを{skill.chargeTicks:seconds}秒続けると回復効果が始まる。"
-  - "&7開始時、MP / ENG自然回復量が{skill.initialRegenMultiplier}倍になる。"
-  - "&7以降1秒ごとに回復倍率が{skill.regenMultiplierIncrement}倍ずつ加算される。"
-  - "&7開始時に移動速度が120%上がる効果を7秒付与する。"
-  - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
-  - "&7開始から{skill.activeDurationTicks:seconds}秒後、MP / ENGを全回復して終了する。"
-  - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
-  - "&7全回復時は粒子と音で完了を知らせる。"
+  - "&a【回復】 &fスニークを{skill.chargeTicks:seconds}秒続けると&a回復&f効果が始まる。"
+  - "&a【回復】 &f開始時、MP / ENG自然&a回復&f量が{skill.initialRegenMultiplier}倍になる。"
+  - "&a【回復】 &f以降1秒ごとに&a回復&f倍率が{skill.regenMultiplierIncrement}倍ずつ加算される。"
+  - "&a【強化】 &f開始時に移動速度が120%上がる効果を7秒付与する。"
+  - "&b【効果】 &fスニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
+  - "&a【回復】 &f開始から{skill.activeDurationTicks:seconds}秒後、MP / ENGを全&a回復&fして終了する。"
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

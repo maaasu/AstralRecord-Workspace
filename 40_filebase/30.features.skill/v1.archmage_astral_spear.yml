@@ -6,12 +6,12 @@ id: archmage_astral_spear
 type: SKILL
 implementationId: archmage_astral_spear
 name: "&bアストラルスピア"
-description: "&7星界の槍で一点を貫く。"
+description: "&8【概要】 &7星界の槍で一点を貫く。"
 icon: LARGE_AMETHYST_BUD
 lore:
-  - "&7視点先の地表から半径{skill.radius}mにいる最も近い敵Mob1体を攻撃する。"
-  - "&7無属性魔法攻撃倍率は{skill.power:percent}%。"
-  - "&7発動時の自身の魔法陣1つにつき倍率が30%増加する（最大3陣）。"
+  - "&b【効果】 &f視点先の地表から半径{skill.radius}mにいる最も近い敵1体を攻撃する。"
+  - "&b【攻撃】 &f&b無属性&f魔法攻撃倍率は{skill.power:percent}%。"
+  - "&b【攻撃】 &f発動時の自身の魔法陣1つにつき倍率が30%増加する（最大3陣）。"
 cooldownTicks: 180
 resourceType: MANA
 resourceCost: 65
