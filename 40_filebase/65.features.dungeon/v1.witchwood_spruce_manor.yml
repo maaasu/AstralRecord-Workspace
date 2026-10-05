@@ -20,7 +20,7 @@ party:
 challenge:
   deathLimit: 3
   reviveDelaySeconds: 5
-  timeLimitSeconds: 900
+  timeLimitSeconds: 1200
 generation:
   area:
     width: 144

@@ -35,9 +35,9 @@ shield:
   max: 100
 baseStats:
   - status: MAX_HEALTH
-    value: 112000
+    value: 288000
   - status: ATTACK
-    value: 1913
+    value: 2087
   - status: DEFENSE
     value: 1743
   - status: ACCURACY
