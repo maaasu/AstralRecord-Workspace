@@ -1,0 +1,45 @@
+# design:
+#   motif: "天文学 / 三軸の天球儀"
+#   progression: 1
+schemaVersion: 1
+id: wizard_spectral_orrery
+type: SKILL
+implementationId: wizard_spectral_orrery
+name: "&bスペクトラルオーラリー"
+description: "&8【概要】 &7三属性の魔法を重ね、天球儀の追撃を導く。"
+icon: WHITE_STAINED_GLASS
+lore:
+  - "&6【条件】 &fスキルブックの装備とパッシブのバインドが必要。"
+  - "&6【条件】 &f{skill.range}m以内の敵への&b火・氷・雷属性&fの魔法命中を重ねる。"
+  - "&6【条件】 &f最初の命中から{skill.chainWindowTicks:seconds}秒以内に三属性が揃うと追撃する。"
+  - "&b【攻撃】 &f最後の命中地点へ、&b火・氷・雷属性&fそれぞれ&b魔法攻撃力&f{skill.damageRatio:percent}%の追撃。"
+  - "&b【範囲】 &f半径{skill.radius}m以内の敵、最大{skill.maxTargets}体が対象。"
+  - "&6【条件】 &f追撃時にMPを消費し、{skill.cooldownTicks:seconds}秒間は連携できない。"
+  - "&6【制限】 &fMP不足か対象がいない場合は追撃せず、集めた属性を失う。"
+  - "&6【制限】 &f同じ属性の連打では期限を延長しない。複数属性の一撃はまとめて数える。"
+  - "&6【制限】 &f回避・完全防御・持続ダメージ・スキルブックの追撃では連携しない。"
+  - "&6【制限】 &f装備・バインド解除、死亡、ワールド移動で途中の連携を失う。"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 12
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.05 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 6 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+passive:
+  bindRequired: true
+params:
+  damageRatio: 0.40
+  radius: 2.5
+  range: 24
+  maxTargets: 3
+  chainWindowTicks: 200
+tags: [passive, magic, fire, ice, lightning]

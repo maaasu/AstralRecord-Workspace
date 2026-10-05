@@ -1,0 +1,26 @@
+# design:
+#   motif: "天文学 / 三軸の天球儀の魔導書"
+#   progression: 1
+schemaVersion: 1
+id: 20a00085
+category: equipment
+name: "&b天球儀のスキルブック"
+icon: ENCHANTED_BOOK
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7装備中、スペクトラルオーラリーを習得・使用できる。"
+  - "&7火・氷・雷の魔法連携で、小範囲の三属性追撃を導く。"
+  - "&7習得にはスキルジェムの原石(初級)6個が必要。"
+  - "&7使用にはパッシブスキルのバインドが必要。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SKILLBOOK
+  requiredLevel: 15
+  requiredClasses:
+    - { classId: wizard, level: 1 }
+  usableSkills:
+    - skill:wizard_spectral_orrery
+  stats: []
