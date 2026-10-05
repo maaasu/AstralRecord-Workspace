@@ -1501,12 +1501,15 @@ public final class DamageService {
         return outgoing * temporarySkillEffectService.incomingMultiplier(victim);
     }
 
-    /** 被弾者へ適用されている一時防御倍率を返します。 */
+    /** 被弾者の一時効果、ペット効果、Mob個体固有の防御倍率を合成して返します。 */
     private double temporaryDefenseMultiplier(@NotNull AstEntity victim) {
         double existing = temporarySkillEffectService == null
                 ? 1.0D
                 : temporarySkillEffectService.defenseMultiplier(victim);
-        return existing * (petRuntimeService == null ? 1.0D : petRuntimeService.defenseMultiplier(victim));
+        double mobMultiplier = victim.isMob() && victim.mob() != null
+                ? victim.mob().defenseMultiplier() : 1.0D;
+        return existing * mobMultiplier
+                * (petRuntimeService == null ? 1.0D : petRuntimeService.defenseMultiplier(victim));
     }
 
     /** 被弾者へ適用されている一時回避率倍率を返します。 */

@@ -35,6 +35,8 @@ public final class MobInstance {
     private double shieldCapacityMultiplier = 1.0D;
     private ShieldRechargeState shieldRechargeState;
     private double outgoingDamageMultiplier = 1.0D;
+    private double defenseMultiplier = 1.0D;
+    private boolean rewardEligible = true;
     /** テンプレート設定を初期値とする、実行時のダメージ無効化フラグ。 */
     private boolean damageImmune;
     /** 検証用 Mob など、HP が 0 になっても死亡させない実行時フラグ。 */
@@ -293,6 +295,38 @@ public final class MobInstance {
      */
     public void outgoingDamageMultiplier(double value) {
         this.outgoingDamageMultiplier = Math.max(0.0D, value);
+    }
+
+    /**
+     * 個体固有の一時防御倍率を返します。
+     * @return 一時防御倍率（通常は1）
+     */
+    public double defenseMultiplier() {
+        return defenseMultiplier;
+    }
+
+    /**
+     * 個体固有の一時防御倍率を設定します。テンプレートの基礎防御は変更しません。
+     * @param value 有限かつ正の倍率。不正値は通常倍率1へ戻す
+     */
+    public void defenseMultiplier(double value) {
+        this.defenseMultiplier = Double.isFinite(value) && value > 0.0D ? value : 1.0D;
+    }
+
+    /**
+     * 撃破報酬・討伐記録の対象か返します。
+     * @return 対象ならtrue
+     */
+    public boolean rewardEligible() {
+        return rewardEligible;
+    }
+
+    /**
+     * 繰り返し召喚する戦闘用個体の報酬・討伐記録を制御します。
+     * @param value 通常報酬、クエスト、図鑑、ペット報酬の対象ならtrue
+     */
+    public void rewardEligible(boolean value) {
+        this.rewardEligible = value;
     }
 
     /** この個体がダメージを無効化しているか返します。 */

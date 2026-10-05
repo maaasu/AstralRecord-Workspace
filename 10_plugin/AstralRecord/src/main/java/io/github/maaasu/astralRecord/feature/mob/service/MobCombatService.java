@@ -356,10 +356,15 @@ public class MobCombatService {
         return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()));
     }
 
+    /** 報酬対象の個体だけに討伐記録と全報酬を付与し、召喚専用個体は破棄だけを行います。 */
     private @NotNull List<MobDropResult> handleDeathWithRecipients(
             @NotNull MobInstance instance,
             @NotNull List<AstPlayer> recipients
     ) {
+        if (!instance.rewardEligible()) {
+            mobService.destroy(instance.instanceId());
+            return List.of();
+        }
         MobTemplate template = instance.template();
         if (recipients.isEmpty()) {
             Logger.log(LogId.W_5703, template.id());

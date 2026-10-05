@@ -1922,7 +1922,7 @@ public enum PlayerMsgId {
     P_7616(7616),
     /** 剣気の現在数・上限と反撃の追加威力。 */
     P_7617(7617),
-    // region /feature/boss/service/EmpusaSpellController.java 7620-7627
+    // region /feature/boss/service/EmpusaSpellController.java 7620-7630
     /** エンプーサ登場時の40tick詠唱。 */
     P_7620(7620),
     /** 紅炎円の危険範囲と退避指示。 */
@@ -1939,6 +1939,12 @@ public enum PlayerMsgId {
     P_7626(7626),
     /** 30%儀式の現在波と危険域。{0}: 波番号 */
     P_7627(7627),
+    /** 地表を広がる波の現在番号と跳躍指示。{0}: 現在波、{1}: 波数 */
+    P_7628(7628),
+    /** 召喚魔女による防御結界。{0}: 生存数 */
+    P_7629(7629),
+    /** 召喚円の出現予兆。 */
+    P_7630(7630),
     // endregion
     /** ペット操作失敗。 */
     P_9600(9600),

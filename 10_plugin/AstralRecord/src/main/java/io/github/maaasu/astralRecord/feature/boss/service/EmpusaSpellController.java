@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.boss.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -38,9 +39,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-/** エンプーサの単一詠唱、三波儀式、予兆と反撃時間を同期 tick で管理します。 */
+/** エンプーサの多地点魔法と三波儀式を、独立した跳躍波・召喚儀式と重ねて管理します。 */
 final class EmpusaSpellController {
 
     private static final double RANGE = 32.0D;
@@ -56,16 +58,19 @@ final class EmpusaSpellController {
     private final ParticleDisplayService particles;
     private final Function<Location, List<Player>> targets;
     private final HitHandler hitHandler;
+    private final EmpusaHazardController hazards;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
 
     /**
      * エンプーサ専用の同期進行役を構築します。
      *
      * @param particles 閲覧者の設定を適用する共通表示サービス
+     * @param mobService 召喚魔女の生成と回収を行うサービス
      * @param targets 中心から32ブロック以内の有効なプレイヤーを返す関数
      * @param hitHandler 共通DamageServiceへ魔法属性と倍率を渡す関数
      */
     EmpusaSpellController(
+        @NotNull MobService mobService,
         @NotNull ParticleDisplayService particles,
         @NotNull Function<Location, List<Player>> targets,
         @NotNull HitHandler hitHandler
@@ -73,10 +78,11 @@ final class EmpusaSpellController {
         this.particles = particles;
         this.targets = targets;
         this.hitHandler = hitHandler;
+        this.hazards = new EmpusaHazardController(mobService, particles, targets, hitHandler);
     }
 
     /**
-     * 追跡中のエンプーサを進め、同一個体で詠唱を一つだけ保持します。
+     * 多地点魔法の詠唱は一つ保持し、導入後は波・召喚の独立時計も同期進行します。
      *
      * @param boss AIを実行できる生存個体
      * @param entity 同一worldで有効な実体
@@ -84,6 +90,16 @@ final class EmpusaSpellController {
      */
     void tick(@NotNull MobInstance boss, @NotNull Entity entity, long tick) {
         Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss));
+        if (state.introduced) {
+            try {
+                hazards.tick(boss, entity, tick, state.completedPhase);
+            } catch (RuntimeException exception) {
+                Logger.log(LogId.E_6506, exception, "encounter_hazards", entity.getWorld().getName());
+                cancelCast(boss.instanceId());
+                state.nextAt = tick + 20L;
+                return;
+            }
+        }
         if (state.cast != null) {
             if (nearestTarget(entity.getLocation()) == null
                 || entity.getWorld() != state.cast.origin.getWorld()
@@ -113,7 +129,7 @@ final class EmpusaSpellController {
         if (tick < state.nextAt || boss.scriptedAction()) {
             return;
         }
-        Player target = nearestTarget(entity.getLocation());
+        Player target = currentTarget(boss, entity.getLocation());
         if (target == null || !clearSight(entity.getLocation(), target.getLocation())) {
             state.nextAt = tick + 20L;
             return;
@@ -147,6 +163,7 @@ final class EmpusaSpellController {
      * @param bossId 中断する個体ID
      */
     void cancelCast(@NotNull UUID bossId) {
+        hazards.suspend(bossId);
         Encounter state = encounters.get(bossId);
         if (state == null || state.cast == null) {
             return;
@@ -165,6 +182,7 @@ final class EmpusaSpellController {
      */
     void clear(@NotNull UUID bossId) {
         cancelCast(bossId);
+        hazards.clear(bossId);
         encounters.remove(bossId);
     }
 
@@ -220,7 +238,7 @@ final class EmpusaSpellController {
             impact(state, cast);
         }
         if (cast.spell.ritual && cast.wave < 2) {
-            Player target = nearestTarget(entity.getLocation());
+            Player target = currentTarget(state.boss, entity.getLocation());
             boolean advanced = false;
             try {
                 advanced = target != null && startWave(cast, entity, target, tick, cast.wave + 1);
@@ -262,7 +280,7 @@ final class EmpusaSpellController {
     ) {
         BossBar bar = Bukkit.createBossBar(title(spell, wave), spell.ritual ? BarColor.PURPLE : BarColor.RED,
             BarStyle.SEGMENTED_10);
-        Cast cast = new Cast(spell, entity.getLocation().clone(), bar);
+        Cast cast = new Cast(spell, entity.getLocation().clone(), bar, state.completedPhase + 1);
         state.cast = cast;
         try {
             if (!startWave(cast, entity, target, tick, wave)) {
@@ -302,6 +320,11 @@ final class EmpusaSpellController {
         removeDisplays(cast.displays);
         cast.displays.clear();
         cast.zone = zone;
+        cast.zones.clear();
+        cast.zones.add(zone);
+        if (cast.spell != Spell.INTRO) {
+            addSatelliteZones(cast, groundBoss, groundTarget, safe);
+        }
         cast.safeSpot = safe;
         cast.hitPlayers.clear();
         cast.wave = wave;
@@ -321,6 +344,24 @@ final class EmpusaSpellController {
         }
         sound(zone.center, "block.amethyst_block.chime", 0.8F, 0.9F + wave * 0.15F);
         return true;
+    }
+
+    /** 主対象への魔法に加え、退避先を侵食しないランダムな小円を最大2〜4個固定します。 */
+    private static void addSatelliteZones(Cast cast, Location boss, Location target, Location safe) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int attempt = 0; attempt < 40 && cast.zones.size() <= cast.satelliteCount; attempt++) {
+            Location anchor = attempt % 2 == 0 ? target : boss;
+            double angle = random.nextDouble(Math.PI * 2.0D);
+            double radius = random.nextDouble(5.0D, 15.0D);
+            Location center = groundNear(anchor.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+            if (center == null || horizontalSquared(boss, center) > 24.0D * 24.0D
+                || Math.abs(center.getY() - boss.getY()) > MAX_HEIGHT_DELTA || !clearSight(boss, center)) continue;
+            Zone satellite = new Zone(Shape.CIRCLE, center.clone().add(0, 0.12D, 0),
+                new Vector(0, 0, 1), 2.6D, 0.0D);
+            if (!satellite.fullyLoaded() || !safeCircleClear(satellite, safe)
+                || cast.zones.stream().anyMatch(existing -> horizontalSquared(existing.center, center) < 16.0D)) continue;
+            cast.zones.add(satellite);
+        }
     }
 
     /** 命中判定用の形状を位置・向き・幅まで固定して生成します。 */
@@ -359,36 +400,34 @@ final class EmpusaSpellController {
 
     /** 同一波で既に被弾したプレイヤーを再度傷つけず、壁越しと別高度を除外します。 */
     private void impact(@NotNull Encounter state, @NotNull Cast cast) {
-        Zone zone = cast.zone;
-        if (zone == null) {
-            return;
-        }
-        List<Location> burst = new ArrayList<>();
-        for (Location point : zone.points) {
-            if (burst.size() >= 32) break;
-            burst.add(point.clone().add(0, 0.6D, 0));
-        }
-        particles.spawnForNearbyViewers(zone.center, burst, SharedParticleDefinitions.EMPUSA_IMPACT);
-        particles.spawnForNearbyViewers(
-            zone.center,
-            BossDamageAreaEffect.sampleArea(zone.center, zone.reach, 1.2D,
-                point -> validCenter(point) && zone.contains(point),
-                point -> clearSight(zone.center, point)),
-            SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
-        );
-        sound(zone.center, cast.spell.elementForWave(cast.wave) == DamageElement.LIGHTNING ? "entity.lightning_bolt.impact"
-            : "entity.generic.explode", 1.1F, 0.8F);
-        DamageElement element = cast.spell.elementForWave(cast.wave);
-        for (Player player : targets.apply(zone.center)) {
-            if (cast.hitPlayers.contains(player.getUniqueId()) || !zone.contains(player.getLocation())
-                || !clearSight(zone.center, player.getLocation())) {
-                continue;
+        for (Zone zone : cast.zones) {
+            List<Location> burst = new ArrayList<>();
+            for (Location point : zone.points) {
+                if (burst.size() >= 32) break;
+                burst.add(point.clone().add(0, 0.6D, 0));
             }
-            cast.hitPlayers.add(player.getUniqueId());
-            try {
-                hitHandler.hit(state.boss, player, element, cast.spell.ratio);
-            } catch (RuntimeException exception) {
-                Logger.log(LogId.E_6505, exception, cast.spell.name(), player.getUniqueId());
+            particles.spawnForNearbyViewers(zone.center, burst, SharedParticleDefinitions.EMPUSA_IMPACT);
+            particles.spawnForNearbyViewers(
+                zone.center,
+                BossDamageAreaEffect.sampleArea(zone.center, zone.reach, 1.2D,
+                    point -> validCenter(point) && zone.contains(point),
+                    point -> clearSight(zone.center, point)),
+                SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
+            );
+            sound(zone.center, cast.spell.elementForWave(cast.wave) == DamageElement.LIGHTNING ? "entity.lightning_bolt.impact"
+                : "entity.generic.explode", 1.1F, 0.8F);
+            DamageElement element = cast.spell.elementForWave(cast.wave);
+            for (Player player : targets.apply(zone.center)) {
+                if (cast.hitPlayers.contains(player.getUniqueId()) || !zone.contains(player.getLocation())
+                    || !clearSight(zone.center, player.getLocation())) {
+                    continue;
+                }
+                cast.hitPlayers.add(player.getUniqueId());
+                try {
+                    hitHandler.hit(state.boss, player, element, cast.spell.ratio);
+                } catch (RuntimeException exception) {
+                    Logger.log(LogId.E_6505, exception, cast.spell.name(), player.getUniqueId());
+                }
             }
         }
     }
@@ -404,7 +443,9 @@ final class EmpusaSpellController {
             case LIGHTNING -> SharedParticleDefinitions.EMPUSA_STORM;
             case NONE -> SharedParticleDefinitions.EMPUSA_HEX;
         };
-        particles.spawnForNearbyViewers(zone.center, zone.points, color);
+        for (Zone danger : cast.zones) {
+            particles.spawnForNearbyViewers(danger.center, danger.points, color);
+        }
         if (cast.safeSpot != null) {
             List<Location> safeRing = new ArrayList<>(12);
             for (int index = 0; index < 12; index++) {
@@ -545,6 +586,15 @@ final class EmpusaSpellController {
         return nearest;
     }
 
+    /** AIが選んだ現在の標的を優先し、有効な同高度の標的がいない場合だけ近傍へ切り替えます。 */
+    private @Nullable Player currentTarget(MobInstance boss, Location center) {
+        for (Player player : targets.apply(center)) {
+            if (player.getUniqueId().equals(boss.targetId())
+                && Math.abs(player.getLocation().getY() - center.getY()) <= 5.0D) return player;
+        }
+        return nearestTarget(center);
+    }
+
     /** 読み込み済みchunk・world高さ内の地面座標だけを予兆に採用します。 */
     private static boolean validCenter(@NotNull Location center) {
         World world = center.getWorld();
@@ -599,7 +649,7 @@ final class EmpusaSpellController {
     }
 
     /** 跳躍中の対象から有限探索し、ハーフブロックも含む歩行面へ地表予兆を投影します。 */
-    private static @Nullable Location groundNear(@NotNull Location point) {
+    static @Nullable Location groundNear(@NotNull Location point) {
         if (!validCenter(point)) return null;
         World world = point.getWorld();
         for (int y = point.getBlockY() + 1; y >= point.getBlockY() - 3; y--) {
@@ -616,7 +666,7 @@ final class EmpusaSpellController {
     }
 
     /** 0.5ブロック間隔で床・頭上・両肩幅と段差を確認します。 */
-    private static boolean walkablePath(@NotNull Location from, @NotNull Location to) {
+    static boolean walkablePath(@NotNull Location from, @NotNull Location to) {
         Vector path = to.toVector().subtract(from.toVector()).setY(0.0D);
         int steps = Math.clamp((int) Math.ceil(path.length() / 0.5D), 1, 16);
         Vector side = path.clone();
@@ -648,7 +698,7 @@ final class EmpusaSpellController {
     }
 
     /** 壁越しへの予兆と命中を避けます。 */
-    private static boolean clearSight(@NotNull Location from, @NotNull Location to) {
+    static boolean clearSight(@NotNull Location from, @NotNull Location to) {
         if (from.getWorld() == null || from.getWorld() != to.getWorld()) return false;
         Location eye = from.clone().add(0, 1.0D, 0);
         Location end = to.clone().add(0, 0.9D, 0);
@@ -661,7 +711,7 @@ final class EmpusaSpellController {
     }
 
     /** 水平方向の距離二乗を返します。 */
-    private static double horizontalSquared(@NotNull Location a, @NotNull Location b) {
+    static double horizontalSquared(@NotNull Location a, @NotNull Location b) {
         double x = a.getX() - b.getX();
         double z = a.getZ() - b.getZ();
         return x * x + z * z;
@@ -740,16 +790,19 @@ final class EmpusaSpellController {
         private final BossBar bar;
         private final Set<UUID> hitPlayers = new HashSet<>();
         private final List<UUID> displays = new ArrayList<>();
+        private final List<Zone> zones = new ArrayList<>();
+        private final int satelliteCount;
         private @Nullable Zone zone;
         private @Nullable Location safeSpot;
         private int wave;
         private long warningAt;
         private long impactAt;
 
-        private Cast(Spell spell, Location origin, BossBar bar) {
+        private Cast(Spell spell, Location origin, BossBar bar, int satelliteCount) {
             this.spell = spell;
             this.origin = origin;
             this.bar = bar;
+            this.satelliteCount = satelliteCount;
         }
     }
 

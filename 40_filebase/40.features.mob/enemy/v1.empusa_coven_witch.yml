@@ -1,0 +1,58 @@
+# design:
+#   motif: "ギリシア伝承 / エンプーサの銅と魔女の結界"
+#   progression: 21
+schemaVersion: 1
+id: empusa_coven_witch
+type: MOB
+category: ENEMY
+name: "&5紅銅の結界魔女"
+level: 20
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7エンプーサへ魔力を送り、防御結界を維持する魔女。"
+  - "&7魔弾を避けて倒し、親の結界を弱めよ。"
+tags:
+  - humanoid
+  - magic
+equipment:
+  mainHand: BLAZE_ROD
+baseStats:
+  - status: MAX_HEALTH
+    value: 4000
+  - status: ATTACK
+    value: 1100
+  - status: DEFENSE
+    value: 700
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 86
+shield:
+  enabled: false
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: NEAREST
+    aggroRange: 28
+    deaggroRange: 38
+    leashRange: 42
+  combat:
+    style: MAGIC
+    preferredRange: 7
+    skills:
+      - id: mob_savanna_witch_ember_bolt
+        activationRange: 16
+        cooldownTicks: 90
+        castTimeTicks: 20
+        params:
+          damageRatio: 0.45
+          projectileSpeed: 0.75
+          projectileHitRadius: 0.25
+          homingStrength: 0.06
+          frozenChance: 0
+          burningChance: 0

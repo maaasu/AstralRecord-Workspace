@@ -203,6 +203,7 @@ public final class BossMechanicService {
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
         );
         this.empusaSpellController = new EmpusaSpellController(
+            mobService,
             particleDisplayService,
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
             (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, element, ratio)

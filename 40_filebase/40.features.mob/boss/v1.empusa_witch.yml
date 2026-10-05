@@ -13,11 +13,13 @@ icon: WITCH_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7銅と炎の伝承を宿し、幾色もの魔法を織る魔女。"
-  - "&7渡し守を超える希少な強敵。詠唱の形を見極めよ。"
+  - "&7アルダの巨神兵を超える耐久を持つ希少な強敵。"
   - "&7赤い炎の円を離れ、青い霜炎の二重輪は内側か外側へ。"
   - "&7雷の帯は横へ、紫の呪いの扇は側面へ退避せよ。"
-  - "&7紅銅の十字は斜めの隙間へ。白い輪は安全の目印。"
-  - "&7儀式は一波ごとに避け、詠唱が途切れた隙に反撃せよ。"
+  - "&7紅銅の十字は斜めへ。白い輪は魔法の退避先。"
+  - "&7周囲にも魔法が降り注ぐ。迫る地走波は跳び越えよ。"
+  - "&7召喚された魔女を倒すたび、防御結界が弱まる。"
+  - "&7儀式と波を避けながら、結界を解いた隙に反撃せよ。"
 tags:
   - boss
   - humanoid
@@ -27,7 +29,7 @@ equipment:
   offHand: AMETHYST_SHARD
 baseStats:
   - status: MAX_HEALTH
-    value: 83200
+    value: 264480
   - status: ATTACK
     value: 1670
   - status: DEFENSE
@@ -40,6 +42,8 @@ baseStats:
     value: 90
   - status: KNOCKBACK_RESISTANCE
     value: 100
+shield:
+  enabled: false
 ai:
   idle:
     behavior: STATIONARY
