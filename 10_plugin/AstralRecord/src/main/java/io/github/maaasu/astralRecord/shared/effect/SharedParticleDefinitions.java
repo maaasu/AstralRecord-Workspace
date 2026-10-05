@@ -1212,6 +1212,34 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
         new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_CORE =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_core", Particle.DUST_COLOR_TRANSITION, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustTransition(Color.fromRGB(255, 255, 245), Color.fromRGB(255, 232, 110), 1.35F)
+        );
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_GLOW =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_glow", Particle.DUST, 1, 0.025D, 0.025D, 0.025D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 196, 45), 1.65F)
+        );
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_AFTERGLOW =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_afterglow", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(230, 180, 65), 0.8F)
+        );
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_SPARK =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_spark", Particle.ELECTRIC_SPARK, 1, 0.025D, 0.025D, 0.025D, 0.025D
+        );
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_IMPACT =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_impact", Particle.ELECTRIC_SPARK, 24, 0.3D, 0.45D, 0.3D, 0.07D
+        );
+    public static final SharedParticleDefinition WIZARD_STORM_CHAIN_CHARGE =
+        new SharedParticleDefinition(
+            "wizard_storm_chain_charge", Particle.DUST_COLOR_TRANSITION, 18, 0.15D, 0.18D, 0.15D, 0.0D,
+            new Particle.DustTransition(Color.fromRGB(255, 218, 90), Color.fromRGB(255, 255, 245), 1.25F)
+        );
     public static final SharedParticleDefinition WIZARD_LIGHTNING_STRIKE_CORE =
         new SharedParticleDefinition(
             "wizard_lightning_strike_core", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
