@@ -139,6 +139,9 @@ import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMo
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaStarhornGroveCircleMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.rootweaver.RootweaverRootSnareMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaThornfangPounceMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaBarkRootSweepMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaSporeBurstMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.forestspider.ForestSpiderWebShotMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElChargeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElIceSphereMobSkillExecutor;
@@ -1885,6 +1888,12 @@ public final class AstralRecord extends JavaPlugin {
             mobService, damageService, conditionService, particleDisplayService
         );
         mobSkillRegistry.register(rootweaverRootSnareMobSkillExecutor);
+        mobSkillRegistry.register(new ErivaThornfangPounceMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService));
+        mobSkillRegistry.register(new ErivaBarkRootSweepMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService));
+        mobSkillRegistry.register(new ErivaSporeBurstMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService));
         mobSkillRegistry.register(new VineSpiderFanWebMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new MossShellShellBashMobSkillExecutor(damageService));
         clayGuardLeapMobSkillExecutor = new ClayGuardLeapMobSkillExecutor(

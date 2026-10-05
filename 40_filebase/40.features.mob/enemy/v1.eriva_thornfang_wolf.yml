@@ -1,0 +1,57 @@
+# design:
+#   motif: "動物 / 狼"
+#   progression: 16
+schemaVersion: 1
+id: eriva_thornfang_wolf
+type: MOB
+category: ENEMY
+name: "&a棘牙の森狼 Lv.17"
+level: 17
+entityType: WOLF
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7茂みを縫って駆ける、鋭い牙を持つ森の狼。"
+  - "&7身を低く構え、狙った方向へ一気に飛び掛かる。"
+tags:
+  - forest
+  - beast
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 5840
+  - status: ATTACK
+    value: 1058
+  - status: DEFENSE
+    value: 1018
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 120
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+      - id: mob_eriva_thornfang_pounce
+        activationRange: 6
+        cooldownTicks: 120
+        castTimeTicks: 16
+
+drops:
+  exp: 180

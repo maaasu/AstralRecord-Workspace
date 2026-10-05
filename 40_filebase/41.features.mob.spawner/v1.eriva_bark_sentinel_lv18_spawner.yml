@@ -1,0 +1,25 @@
+# design:
+#   motif: "植物 / 樹皮と根"
+#   progression: 16
+schemaVersion: 1
+id: eriva_bark_sentinel_lv18_spawner
+type: MOB_SPAWNER
+region: "エリヴァ大森林"
+radiusMeters: 32
+
+spawnMobs:
+  - mobId: mob:eriva_bark_sentinel
+    level: 18
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

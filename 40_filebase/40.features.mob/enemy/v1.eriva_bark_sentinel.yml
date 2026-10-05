@@ -1,0 +1,57 @@
+# design:
+#   motif: "植物 / 樹皮と根"
+#   progression: 16
+schemaVersion: 1
+id: eriva_bark_sentinel
+type: MOB
+category: ENEMY
+name: "&2樹皮の番兵 Lv.18"
+level: 18
+entityType: IRON_GOLEM
+icon: OAK_LOG
+lore:
+  - "&7厚い樹皮をまとい、木々の間に立ちはだかる番兵。"
+  - "&7前方に根枝を広げてから薙ぎ払い、侵入者を退ける。"
+tags:
+  - forest
+  - golem
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 9840
+  - status: ATTACK
+    value: 950
+  - status: DEFENSE
+    value: 1429
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 85
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+    skills:
+      - id: mob_eriva_bark_root_sweep
+        activationRange: 4
+        cooldownTicks: 120
+        castTimeTicks: 24
+
+drops:
+  exp: 200

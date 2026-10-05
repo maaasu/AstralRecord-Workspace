@@ -1,0 +1,58 @@
+# design:
+#   motif: "菌類 / 胞子"
+#   progression: 16
+schemaVersion: 1
+id: eriva_sporecap_beast
+type: MOB
+category: ENEMY
+name: "&e胞子の茸獣 Lv.18"
+level: 18
+entityType: MOOSHROOM
+variant:
+  kind: BROWN
+icon: BROWN_MUSHROOM
+lore:
+  - "&7背に茸を生やし、湿った木陰を歩く森の獣。"
+  - "&7獲物の足元に胞子の輪を浮かべ、遅れて魔力を破裂させる。"
+tags:
+  - forest
+  - beast
+  - magic
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 5248
+  - status: ATTACK
+    value: 1400
+  - status: MAGIC_ATTACK
+    value: 263
+  - status: DEFENSE
+    value: 914
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MAGIC
+    preferredRange: 7
+    skills:
+      - id: mob_eriva_spore_burst
+        activationRange: 9
+        cooldownTicks: 50
+        castTimeTicks: 24
+
+drops:
+  exp: 200

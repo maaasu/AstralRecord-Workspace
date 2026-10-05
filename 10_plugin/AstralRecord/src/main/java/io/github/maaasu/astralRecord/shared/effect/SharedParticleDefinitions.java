@@ -520,6 +520,30 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(153, 224, 124), 1.05F)
         );
+    public static final SharedParticleDefinition MOB_ERIVA_THORNFANG_TRAIL =
+        new SharedParticleDefinition("mob_eriva_thornfang_trail", Particle.DUST, 2,
+            0.12D, 0.08D, 0.12D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(125, 162, 89), 0.9F));
+    public static final SharedParticleDefinition MOB_ERIVA_THORNFANG_HIT =
+        new SharedParticleDefinition("mob_eriva_thornfang_hit", Particle.CRIT, 8,
+            0.25D, 0.25D, 0.25D, 0.04D);
+    public static final SharedParticleDefinition MOB_ERIVA_ROOT_WARNING =
+        new SharedParticleDefinition("mob_eriva_root_warning", Particle.DUST, 1,
+            0.02D, 0.02D, 0.02D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(179, 126, 63), 1.15F));
+    public static final SharedParticleDefinition MOB_ERIVA_ROOT_IMPACT =
+        new SharedParticleDefinition("mob_eriva_root_impact", Particle.BLOCK, 3,
+            0.08D, 0.30D, 0.08D, 0.04D, Material.ROOTED_DIRT.createBlockData());
+    public static final SharedParticleDefinition MOB_ERIVA_SPORE_WARNING =
+        new SharedParticleDefinition("mob_eriva_spore_warning", Particle.DUST, 1,
+            0.02D, 0.02D, 0.02D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(202, 224, 101), 1.1F));
+    public static final SharedParticleDefinition MOB_ERIVA_SPORE_IMPACT =
+        new SharedParticleDefinition("mob_eriva_spore_impact", Particle.SPORE_BLOSSOM_AIR, 3,
+            0.15D, 0.45D, 0.15D, 0.0D);
+    public static final SharedParticleDefinition MOB_ERIVA_SPORE_CLOUD =
+        new SharedParticleDefinition("mob_eriva_spore_cloud", Particle.WARPED_SPORE, 30,
+            1.4D, 0.7D, 1.4D, 0.0D);
     public static final SharedParticleDefinition MOB_PURPLE_TREE_WARNING =
         new SharedParticleDefinition("mob_purple_tree_warning", Particle.DUST, 1,
             0.01D, 0.01D, 0.01D, 0.0D,
