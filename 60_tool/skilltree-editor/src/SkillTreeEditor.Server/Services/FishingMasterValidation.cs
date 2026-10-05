@@ -42,10 +42,12 @@ internal static class FishingMasterValidation
         else if (directory == RulesDirectory)
         {
             if (Text(master["type"]) != "FISHING_RULES") Error("FISHING_TYPE", "/type", "type は FISHING_RULES を指定してください。");
-            foreach (var key in new[] { "searchRadius", "fishCountMin", "fishCountMax", "waitingTicks", "attackTicks", "turnTicks", "landingTicks", "hangingTicks", "escapeTicks", "nibbleTicks", "nibbleCycleTicks", "reelCooldownTicks" })
+            if (!Number(master["searchRadius"], 0, 32, positive: true))
+                Error("FISHING_SEARCH_RADIUS", "/searchRadius", "searchRadius は 0 より大きく 32 以下の有限数で指定してください。");
+            foreach (var key in new[] { "fishCountMin", "fishCountMax", "waitingTicks", "attackTicks", "turnTicks", "landingTicks", "hangingTicks", "escapeTicks", "nibbleTicks", "nibbleCycleTicks", "reelCooldownTicks" })
             {
                 var min = key == "attackTicks" ? 2 : 1;
-                var max = key == "searchRadius" ? 32 : key is "fishCountMin" or "fishCountMax" ? 32 : 72000;
+                var max = key is "fishCountMin" or "fishCountMax" ? 32 : 72000;
                 if (!Integer(master[key], min, max)) Error("FISHING_RULE_INTEGER", "/" + key, $"{key} は {min}～{max} の整数で指定してください。");
             }
             foreach (var key in new[] { "reelMultiplier", "slackDistance", "nibbleDistance" })
@@ -133,6 +135,8 @@ internal static class FishingMasterValidation
                 {
                     if (Text(other?["category"]) is "equipment" or "pet" or "pet_egg")
                         issues.Add(new("error", "FISHING_CAUGHT_ITEM_CATEGORY", pointer, "装備・ペット・ペットの卵は釣果アイテムに指定できません。"));
+                    if (other?.ContainsKey("maxStack") == true && !Integer(other["maxStack"], 1, 64))
+                        issues.Add(new("error", "FISHING_CAUGHT_ITEM_STACK", pointer, "釣果アイテムの maxStack は 1～64 である必要があります。"));
                     var maxStack = ReadInteger(other?["maxStack"]) ?? 64;
                     if (ReadInteger(caughtAmount) is { } amount && amount > maxStack)
                         issues.Add(new("error", "FISHING_CAUGHT_STACK", "/caughtAmount", $"caughtAmount は釣果アイテムの maxStack ({maxStack}) 以下にしてください。"));
@@ -147,8 +151,9 @@ internal static class FishingMasterValidation
 
     private static string? ReferenceId(JsonNode? value, string prefix)
     {
-        if (value is not JsonObject obj || obj.Count != 1 || Text(obj["ref"]) is not { } reference) return null;
-        return reference.StartsWith(prefix + ":", StringComparison.Ordinal) && reference.Length > prefix.Length + 1 ? reference[(prefix.Length + 1)..] : null;
+        if (value is not JsonObject obj || Text(obj["ref"]) is not { } reference) return null;
+        return reference.StartsWith(prefix + ":", StringComparison.Ordinal) && reference.Length > prefix.Length + 1
+            && !reference[(prefix.Length + 1)..].Contains(':') ? reference[(prefix.Length + 1)..] : null;
     }
     private static string? Text(JsonNode? value) => value is JsonValue scalar && scalar.GetValueKind() == JsonValueKind.String ? scalar.GetValue<string>() : null;
     private static double? ReadNumber(JsonNode? value) => value is JsonValue scalar && scalar.GetValueKind() == JsonValueKind.Number

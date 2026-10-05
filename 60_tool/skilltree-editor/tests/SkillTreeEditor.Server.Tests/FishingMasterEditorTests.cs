@@ -149,6 +149,17 @@ public sealed class FishingMasterEditorTests : IDisposable
         Assert.Contains(report.Issues, issue => issue.Code == "FISHING_DUPLICATE_FISH");
     }
 
+    [Fact]
+    public async Task RulesAllowFractionalSearchRadiusAndReferenceMapsPreserveFutureKeys()
+    {
+        var rules = await validation.ValidateAsync("47.features.fishing.rules/v1.other.yml",
+            Rules.Replace("searchRadius: 10", "searchRadius: 0.5", StringComparison.Ordinal), CancellationToken.None);
+        Assert.DoesNotContain(rules.Issues, issue => issue.Code == "FISHING_SEARCH_RADIUS");
+        var fish = await validation.ValidateAsync("44.features.fishing.fish/v1.other.yml",
+            Fish.Replace("{ref: 'item:10a00001'}", "{ref: 'item:10a00001', futureKey: retained}", StringComparison.Ordinal), CancellationToken.None);
+        Assert.DoesNotContain(fish.Issues, issue => issue.Code == "FISHING_REFERENCE");
+    }
+
     private void Write(string relative, string raw)
     {
         var file = Path.Combine(root, "40_filebase", relative.Replace('/', Path.DirectorySeparatorChar));
