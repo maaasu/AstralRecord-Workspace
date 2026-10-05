@@ -38,3 +38,5 @@ drops:
       amount: 1~2
       luckAffected: true
       hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

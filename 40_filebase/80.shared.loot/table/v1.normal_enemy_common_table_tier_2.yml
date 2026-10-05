@@ -1,0 +1,9 @@
+# design:
+#   motif: "冒険 / 二段の共通報酬"
+#   progression: 15
+schemaVersion: 1
+id: normal_enemy_common_table_tier_2
+type: LOOT_TABLE
+rolls: 1
+pools:
+  - ref: loot_pool:normal_enemy_common_pool_tier_2

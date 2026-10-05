@@ -59,3 +59,5 @@ ai:
         castTimeTicks: 10
 drops:
   exp: 240
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

@@ -1,0 +1,41 @@
+# design:
+#   motif: "冒険 / 二段の共通報酬"
+#   progression: 15
+schemaVersion: 1
+id: normal_enemy_common_pool_tier_2
+type: LOOT_POOL
+# 全候補を独立判定し、成功候補の間引きによる確率低下を防ぐ。
+pick: 8
+contents:
+  - itemId:
+      ref: item:40a00024
+    rate: 0.5
+    amount: 1
+  - itemId:
+      ref: item:40a00021
+    rate: 0.5
+    amount: 1
+  - itemId:
+      ref: item:40a00027
+    rate: 0.5
+    amount: 1
+  - itemId:
+      ref: item:40a00014
+    rate: 8.0
+    amount: 1
+  - itemId:
+      ref: item:40a00015
+    rate: 1.0
+    amount: 1
+  - itemId:
+      ref: item:81a00001
+    rate: 0.005
+    amount: 1
+  - itemId:
+      ref: item:81a00002
+    rate: 0.005
+    amount: 1
+  - itemId:
+      ref: item:81a00003
+    rate: 0.005
+    amount: 1
