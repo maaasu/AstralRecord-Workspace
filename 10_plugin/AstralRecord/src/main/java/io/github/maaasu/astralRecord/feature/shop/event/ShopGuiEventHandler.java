@@ -172,6 +172,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
 
     /**
      * 購入確認画面の操作を処理し、非同期購入の完了までは同一プレイヤーの再操作を拒否します。
+     * 保存成功後にだけ村人の取引音と購入チャイムを購入者へ再生します。
      *
      * @param event 対象のクリックイベント
      * @param player 操作したプレイヤー
@@ -265,6 +266,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                             player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
                     }
                     GuiSound.PURCHASE.play(player);
+                    GuiSound.PURCHASE_CHIME.play(player);
                 })
             );
         } catch (RuntimeException | Error failure) {
