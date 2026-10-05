@@ -110,7 +110,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             }
             catch (System.Text.Json.JsonException) { /* malformed schema remains available in the file list */ }
         }
-        if (category == "55.features.pet")
+        if (category == "55.features.pet" || category is "44.features.fishing.fish" or "46.features.fishing.area" or "47.features.fishing.rules")
             foreach (var schema in schemas)
                 foreach (var field in SchemaFields(schema.Schema, schema.Path)) fields[field.Path] = field;
         var templates = new List<MasterDataTemplate>();
@@ -133,27 +133,37 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             ? parts[1][..2] : null;
     }
 
-    private static IEnumerable<MasterDataField> SchemaFields(JsonNode schema, string source, string pointer = "")
+    private static IEnumerable<MasterDataField> SchemaFields(JsonNode schema, string source, string pointer = "", JsonNode? root = null)
     {
         if (schema is not JsonObject definition) yield break;
-        var required = (definition["required"] as JsonArray)?.Select(JsonValueReader.String).ToHashSet(StringComparer.Ordinal) ?? [];
-        if (definition["properties"] is JsonObject properties)
+        root ??= schema;
+        var resolved = ResolveLocalSchema(definition, root);
+        var required = (resolved["required"] as JsonArray)?.Select(JsonValueReader.String).ToHashSet(StringComparer.Ordinal) ?? [];
+        if (resolved["properties"] is JsonObject properties)
             foreach (var (key, value) in properties)
             {
                 if (value is not JsonObject child) continue;
                 var path = pointer + "/" + MasterDataValidation.Escape(key);
-                var type = JsonValueReader.String(child["type"]) ?? (child["enum"] is JsonArray ? "string"
-                    : child["const"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number ? "integer" : "string");
+                var target = ResolveLocalSchema(child, root);
+                var type = JsonValueReader.String(target["type"]) ?? (target["enum"] is JsonArray ? "string"
+                    : target["const"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number ? "integer" : "string");
                 yield return new(path, path, JsonValueReader.String(child["title"]) ?? Labels.GetValueOrDefault(key) ?? key,
                     type, required.Contains(key), JsonValueReader.String(child["description"]) ?? "", null, source,
-                    child["enum"]?.DeepClone() as JsonArray,
-                    FishingReferenceKind(path) ?? (JsonValueReader.String(child["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null));
-                foreach (var nested in SchemaFields(child, source, path)) yield return nested;
+                    target["enum"]?.DeepClone() as JsonArray,
+                    FishingReferenceKind(path) ?? (JsonValueReader.String(target["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null));
+                foreach (var nested in SchemaFields(target, source, path, root)) yield return nested;
             }
-        if (definition["items"] is JsonObject item)
-            foreach (var field in SchemaFields(item, source, pointer + "/*")) yield return field;
-        if (definition["additionalProperties"] is JsonObject dictionary)
-            foreach (var field in SchemaFields(dictionary, source, pointer + "/*")) yield return field;
+        if (resolved["items"] is JsonObject item)
+            foreach (var field in SchemaFields(item, source, pointer + "/*", root)) yield return field;
+        if (resolved["additionalProperties"] is JsonObject dictionary)
+            foreach (var field in SchemaFields(dictionary, source, pointer + "/*", root)) yield return field;
+    }
+
+    private static JsonObject ResolveLocalSchema(JsonObject definition, JsonNode root)
+    {
+        if (JsonValueReader.String(definition["$ref"]) is not { } reference || !reference.StartsWith("#/$defs/", StringComparison.Ordinal)) return definition;
+        var key = reference[8..].Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
+        return root["$defs"]?[key] as JsonObject ?? definition;
     }
 
     public static IEnumerable<MasterDataField> ParseFields(string raw, string source, string category)

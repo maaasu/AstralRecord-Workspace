@@ -160,6 +160,37 @@ public sealed class FishingMasterEditorTests : IDisposable
         Assert.DoesNotContain(fish.Issues, issue => issue.Code == "FISHING_REFERENCE");
     }
 
+    [Fact]
+    public async Task FishingCatalogReadsJapaneseFieldsThroughLocalSchemaReferences()
+    {
+        Write("46.features.fishing.area/docs.fishing-area.YAMLスキーマ定義.md", "# 釣り場\n説明文のみ。\n");
+        Write("46.features.fishing.area/schemas/fishing-area.v1.schema.json", """
+            {
+              "type": "object",
+              "required": ["worldId", "levelRanges"],
+              "properties": {
+                "worldId": {"title": "ワールド", "$ref": "#/$defs/worldRef"},
+                "levelRanges": {"title": "釣りレベル帯", "type": "array", "items": {"$ref": "#/$defs/band"}}
+              },
+              "$defs": {
+                "worldRef": {"type": "object", "required": ["ref"], "properties": {"ref": {"type": "string"}}},
+                "band": {
+                  "type": "object", "required": ["fish"],
+                  "properties": {
+                    "fish": {
+                      "title": "魚の候補", "type": "array",
+                      "items": {"type": "object", "properties": {"fishId": {"title": "魚", "type": "object"}}}
+                    }
+                  }
+                }
+              }
+            }
+            """);
+        var category = await new MasterDataCatalog(paths).GetAsync("46.features.fishing.area", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/worldId" && field.Label == "ワールド" && field.Reference == "world");
+        Assert.Contains(category.Fields, field => field.Path == "/levelRanges/*/fish/*/fishId" && field.Label == "魚" && field.Reference == "fishing_fish");
+    }
+
     private void Write(string relative, string raw)
     {
         var file = Path.Combine(root, "40_filebase", relative.Replace('/', Path.DirectorySeparatorChar));
