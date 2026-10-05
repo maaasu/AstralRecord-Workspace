@@ -1,0 +1,27 @@
+# design:
+#   motif: "紋章 / 剣と盾の技法書"
+#   progression: 1
+schemaVersion: 1
+id: 20a00083
+category: equipment
+name: "&aデュアルクレストのスキルブック"
+icon: WRITTEN_BOOK
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7装備中、デュアルクレストを習得・使用できる。"
+  - "&7近接攻撃を重ねると、剣と盾の印が追撃を生む。"
+  - "&7習得にはスキルジェムの原石(初級)3個が必要。"
+  - "&7使用にはパッシブスキルのバインドが必要。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SKILLBOOK
+  requiredLevel: 15
+  requiredClasses:
+    - { classId: paladin, level: 1 }
+    - { classId: swordmaster, level: 1 }
+  usableSkills:
+    - skill:melee_dual_crest
+  stats: []

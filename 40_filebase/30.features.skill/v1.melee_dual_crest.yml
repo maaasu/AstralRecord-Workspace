@@ -1,0 +1,45 @@
+# design:
+#   motif: "紋章 / 剣と盾の双印"
+#   progression: 1
+schemaVersion: 1
+id: melee_dual_crest
+type: SKILL
+implementationId: melee_dual_crest
+name: "&fデュアルクレスト"
+description: "&8【概要】 &7剣と盾の印を重ね、近接攻撃に追撃を添える。"
+icon: SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE
+lore:
+  - "&6【条件】 &fスキルブック装備とパッシブバインド中のみ有効。"
+  - "&6【条件】 &f{skill.targetRange}m以内の敵への近接通常攻撃・近接スキル命中で、敵が生存していると印を蓄積。"
+  - "&6【制限】 &f同時に複数へ命中しても、{skill.hitIntervalTicks:seconds}秒につき1回蓄積する。"
+  - "&b【持続】 &f印は最後の有効命中から{skill.crestDurationTicks:seconds}秒間持続。"
+  - "&b【攻撃】 &f{skill.hitThreshold}回目の命中で、その敵1体へ&b近接攻撃力&f{skill.damageRatio:percent}%の&b無属性&f追撃。"
+  - "&6【制限】 &f追撃後の{skill.cooldownTicks:seconds}秒間は蓄積しない。"
+  - "&6【条件】 &f追撃時にENGを消費し、不足時は二つの印を維持する。"
+  - "&6【制限】 &f追撃自体は印を増やさない。死亡・ワールド移動・バインド解除で印を失う。"
+cooldownTicks: 80
+resourceType: ENERGY
+resourceCost: 2
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - { level: 2, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 3, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 4, paramDeltas: { damageRatio: 0.05 } }
+  - { level: 5, paramDeltas: { damageRatio: 0.05 } }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+learnRequiredItems: [{ itemId: 10a00025, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00025, amount: 2 }]
+passive:
+  bindRequired: true
+params:
+  damageRatio: 0.35
+  hitThreshold: 3
+  hitIntervalTicks: 10
+  crestDurationTicks: 120
+  targetRange: 7
+tags:
+  - passive
+  - melee
