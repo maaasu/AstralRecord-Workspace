@@ -1,0 +1,67 @@
+# design:
+#   motif: "植物 / 草原の葦と風鳴り"
+#   progression: 16
+schemaVersion: 1
+id: eriva_reed_archer
+type: MOB
+category: ENEMY
+name: "&2葦笛の骸射手"
+level: 15
+entityType: SKELETON
+variant:
+  age: ADULT
+icon: BOW
+lore:
+  - "&7枯れた葦をまとい、草原に風鳴りを響かせる射手。"
+  - "&7中距離から矢を放つ。草狼の突進と同時に狙われないように。"
+tags:
+  - undead
+  - skeleton
+  - ranged
+equipment:
+  mainHand: BOW
+  helmet: MOSS_BLOCK
+  chestplate: LEATHER_CHESTPLATE
+baseStats:
+  - status: MAX_HEALTH
+    value: 3800
+  - status: ATTACK
+    value: 610
+  - status: RANGED_ATTACK
+    value: 266
+  - status: DEXTERITY
+    value: 5
+  - status: DEFENSE
+    value: 660
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  - status: SHIELD_BREAK
+    value: 5
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 4
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 38
+  combat:
+    style: RANGED
+    preferredRange: 8
+    skills:
+      - id: mob_skeleton_bow_shot
+        activationRange: 14
+        cooldownTicks: 40
+        castTimeTicks: 16
+        params:
+          damageRatio: 0.85
+          projectileSpeed: 0.95
+          projectileHitRadius: 0.18
+drops:
+  exp: 160

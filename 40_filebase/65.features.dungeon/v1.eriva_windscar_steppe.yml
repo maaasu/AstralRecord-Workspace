@@ -1,0 +1,103 @@
+# design:
+#   motif: "地形 / 草原の風道と風化した立石"
+#   progression: 16
+schemaVersion: 1
+id: eriva_windscar_steppe
+displayName: "風切りの草原"
+recommendedLevel: 15
+entry:
+  worldRef: world:vanaheim_supercontinent
+  x: -1149.5
+  y: 107.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 900
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 15
+    max: 27
+  bossRoomSize:
+    min: 33
+    max: 35
+  roomHeight: 10
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 2
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: COLLAPSED
+      weight: 1
+theme:
+  landscape: PLAINS
+  floor:
+    - material: GRASS_BLOCK
+      weight: 8
+    - material: MOSS_BLOCK
+      weight: 1
+    - material: COARSE_DIRT
+      weight: 1
+  wall:
+    - material: STONE
+      weight: 4
+    - material: ANDESITE
+      weight: 3
+    - material: MOSSY_COBBLESTONE
+      weight: 1
+  ceiling:
+    - material: STONE
+      weight: 1
+  corridor:
+    - material: DIRT_PATH
+      weight: 4
+    - material: COARSE_DIRT
+      weight: 1
+  gateMaterial: OAK_FENCE
+  lightMaterial: LANTERN
+  pillar:
+    enabled: false
+  decorations:
+    rubble:
+      - material: MOSSY_COBBLESTONE
+        weight: 3
+      - material: ANDESITE
+        weight: 2
+encounter:
+  ensureMobVariety: true
+  normalMobPool:
+    - mobId: mob:eriva_gale_wolf
+      level: 15
+      weight: 4
+    - mobId: mob:eriva_stonehorn_ram
+      level: 15
+      weight: 2
+    - mobId: mob:eriva_reed_archer
+      level: 15
+      weight: 3
+  mobsPerRoom:
+    min: 5
+    max: 7
+  firstCombatRoomMaxMobLevel: 15
+  bossMobId: mob:eriva_windcrown_ventos
+  bossMobLevel: 15

@@ -1,0 +1,61 @@
+# design:
+#   motif: "気象 / 草原の暴風と風化した立石"
+#   progression: 16
+schemaVersion: 1
+id: eriva_windcrown_ventos
+type: MOB
+category: BOSS
+name: "&a&l風冠の獣王ヴェントス"
+title: "&6-- 風切りの草原を統べる獣王 --"
+level: 15
+entityType: RAVAGER
+variant:
+  age: ADULT
+  scale: 1.1
+icon: GOAT_HORN
+nameVisible: true
+lore:
+  - "&7立石を巡る風を従えた、草原の巨大な角獣。"
+  - "&7風道と薙ぎ払いをかわし、風化の環の内外を見極めよう。"
+  - "&7暴風が巡り始めたら、緑の輪が示す立石の風下へ。"
+  - "&7大技の後は足を止める。その隙に反撃しよう。"
+tags:
+  - boss
+  - beast
+  - melee
+  - shield
+  - stone
+baseStats:
+  - status: MAX_HEALTH
+    value: 96000
+  - status: ATTACK
+    value: 800
+  - status: DEFENSE
+    value: 890
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+shield:
+  enabled: true
+  max: 60
+ai:
+  idle:
+    behavior: STATIONARY
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 36
+    deaggroRange: 48
+    leashRange: 56
+  combat:
+    style: MELEE
+    preferredRange: 3
+drops:
+  exp: 4000

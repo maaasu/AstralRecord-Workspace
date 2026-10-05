@@ -1,0 +1,61 @@
+# design:
+#   motif: "動物 / 草原を駆ける狼"
+#   progression: 16
+schemaVersion: 1
+id: eriva_gale_wolf
+type: MOB
+category: ENEMY
+name: "&a疾風の草狼"
+level: 15
+entityType: WOLF
+variant:
+  age: ADULT
+  scale: 1.05
+icon: BONE
+lore:
+  - "&7草を踏み分けて走る、風切りの草原の狼。"
+  - "&7身構えた後に直進する。横へかわして背を狙おう。"
+tags:
+  - beast
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 4750
+  - status: ATTACK
+    value: 676
+  - status: DEFENSE
+    value: 780
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 122
+  - status: SHIELD_BREAK
+    value: 5
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 30
+    leashRange: 38
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 32
+    skills:
+      - id: mob_middle_earth_piglin_rush
+        activationRange: 7
+        cooldownTicks: 180
+        castTimeTicks: 35
+        params:
+          speed: 0.95
+          damageRatio: 0.65
+drops:
+  exp: 150

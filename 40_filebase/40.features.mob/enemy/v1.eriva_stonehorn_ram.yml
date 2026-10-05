@@ -1,0 +1,60 @@
+# design:
+#   motif: "動物 / 岩角の山羊"
+#   progression: 16
+schemaVersion: 1
+id: eriva_stonehorn_ram
+type: MOB
+category: ENEMY
+name: "&6岩角の草原ヤギ"
+level: 15
+entityType: GOAT
+variant:
+  age: ADULT
+  scale: 1.15
+icon: GOAT_HORN
+lore:
+  - "&7風化した立石の間を歩く、頑丈な角を持つ草原のヤギ。"
+  - "&7足は遅いが打たれ強い。盾を崩し、射手と引き離そう。"
+tags:
+  - beast
+  - melee
+  - shield
+  - stone
+baseStats:
+  - status: MAX_HEALTH
+    value: 6900
+  - status: ATTACK
+    value: 710
+  - status: DEFENSE
+    value: 850
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 82
+  - status: KNOCKBACK_RESISTANCE
+    value: 55
+  - status: SHIELD_BREAK
+    value: 5
+shield:
+  enabled: true
+  max: 12
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 4
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 38
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 42
+drops:
+  exp: 180
