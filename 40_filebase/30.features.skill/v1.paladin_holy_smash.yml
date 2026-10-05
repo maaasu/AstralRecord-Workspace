@@ -13,7 +13,8 @@ lore:
   - "&b【攻撃】 &f&b近接攻撃力&f{skill.effectiveDamageRatio:percent}%の&b無属性&fダメージを与える。"
   - "&b【効果】 &fホーリーフィールド内で命中すると、&b防御力&fを{skill.defenseReductionRatio}%下げる。"
   - "&b【効果】 &f防御低下は{skill.defenseDebuffDurationTicks:seconds}秒間重複せず、ENGを{skill.energyRecoveryAmount}&a回復&fする。"
-  - "&b【効果】 &f条件成立時はクールダウンを{skill.reducedCooldownTicks:seconds}秒へ短縮する。"
+  - "&b【効果】 &f条件成立時はクールダウンの基礎値を{skill.reducedCooldownTicks:seconds}秒へ短縮する。"
+  - "&b【効果】 &fクールダウン短縮補正をさらに反映する。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 20
