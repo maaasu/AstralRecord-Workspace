@@ -89,8 +89,47 @@ public sealed class SkillTreeLoginPatchTests
         Assert.Single(await f.Db.SkillTreeMigrationOperations.ToArrayAsync());
     }
 
-    [Fact]
-    public async Task UnchangedDescendantIsNotSilentlyRemovedWithChangedOrphan()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RetiredUnlockedLeafIsRefundedOnlyAfterConfirmingThePreview(bool removeDefinition)
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var state = await f.Db.AccountSkillTreeStates.SingleAsync();
+        f.Db.AccountSkillTreeUnlockedNodes.Add(new()
+        {
+            AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
+            NodeId = "gain", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            CreatedBy = f.User, UpdatedBy = f.User,
+        });
+        await f.Db.SaveChangesAsync();
+        var targetSnapshot = JsonNode.Parse(f.Canonical)!;
+        targetSnapshot["positions"]!.AsArray().RemoveAt(1);
+        if (removeDefinition) targetSnapshot["nodes"]!.AsArray().RemoveAt(1);
+        // 廃止されたノードへの古い辺が残っていても、配置のないノードを到達可能としない。
+        var target = await PrepareAsync(f, targetSnapshot.ToJsonString());
+        var preview = await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target));
+        Assert.Equal("UPDATE_REQUIRED", preview?.Status);
+        Assert.Equal(["gain"], preview?.RemovedNodeIds);
+        var refund = Assert.Single(preview!.Refunds);
+        Assert.Equal("PP", refund.PointType);
+        Assert.Equal(2, refund.Points);
+        Assert.Equal(2, await f.Db.AccountSkillTreeUnlockedNodes.CountAsync());
+        Assert.Null(await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account, Request(f, target, true)));
+        var applied = await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account,
+            Request(f, target, true, removeNodeIds: ["gain"]));
+        Assert.Equal("APPLIED", applied?.Status);
+        Assert.Equal(["root"], await f.Db.AccountSkillTreeUnlockedNodes.Select(x => x.NodeId).ToArrayAsync());
+        Assert.Equal(target, (await f.Db.AccountSkillTreeStates.SingleAsync()).DefinitionGenerationId);
+        Assert.Equal("CURRENT", (await f.Repository.PrepareLoginPatchAsync(f.Server, f.Account,
+            Request(f, target, true, removeNodeIds: ["gain"])))?.Status);
+        Assert.Single(await f.Db.SkillTreeMigrationOperations.ToArrayAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnchangedDescendantIsNotSilentlyRemovedWithChangedOrRetiredOrphan(bool retireParent)
     {
         await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
         var source = JsonNode.Parse(f.Canonical)!;
@@ -114,6 +153,13 @@ public sealed class SkillTreeLoginPatchTests
         Assert.Equal(1, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,
             new() { DefinitionGenerationId = sourceGeneration }))?.PatchVersion);
         var targetJson = MoveGainBehindBridge(sourceJson);
+        if (retireParent)
+        {
+            var targetSnapshot = JsonNode.Parse(sourceJson)!;
+            targetSnapshot["nodes"]!.AsArray().RemoveAt(1);
+            targetSnapshot["positions"]!.AsArray().RemoveAt(1);
+            targetJson = targetSnapshot.ToJsonString();
+        }
         var target = SkillTreeOperationRepositoryTests.Hash(targetJson);
         Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, Registration(f, targetJson, 3)));
         Assert.Equal(2, (await f.Repository.PublishPatchAsync(f.Server, f.Boot,

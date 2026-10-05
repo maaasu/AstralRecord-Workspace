@@ -55,6 +55,49 @@ public sealed class SkillTreeMigrationTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChangingRootCannotRetireThePreviouslyUnlockedRoot(bool removeDefinition)
+    {
+        var target = JsonNode.Parse(AdditiveCanonical)!;
+        target["rootNodeId"] = "gain";
+        target["positions"]!.AsArray().RemoveAt(0);
+        if (removeDefinition) target["nodes"]!.AsArray().RemoveAt(0);
+        AccountSkillTreeUnlockedNodeEntity[] unlocked = [new() { NodeId = "root" }, new() { NodeId = "gain" }];
+        Assert.NotNull(SkillTreeOperationRepository.ValidateRetirementMigration(
+            AdditiveCanonical, AdditiveCanonical, unlocked, []));
+        Assert.Null(SkillTreeOperationRepository.FindChangedDisconnectedNodes(
+            AdditiveCanonical, target.ToJsonString(), unlocked));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RetiredClassNodeRequiresTheOriginalRefundClassToRemain(bool removeRefundClass)
+    {
+        var target = JsonNode.Parse(ClassSourceCanonical)!;
+        target["nodes"]!.AsArray().RemoveAt(1);
+        target["positions"]!.AsArray().RemoveAt(1);
+        target["edges"] = new JsonArray();
+        if (removeRefundClass) target["classes"] = new JsonObject();
+        AccountSkillTreeUnlockedNodeEntity[] unlocked =
+        [new() { NodeId = "root" }, new() { NodeId = "class", ConsumedClassId = "adventurer" }];
+        var candidates = SkillTreeOperationRepository.FindChangedDisconnectedNodes(
+            ClassSourceCanonical, target.ToJsonString(), unlocked);
+        Assert.Equal(["class"], candidates);
+        var refunds = SkillTreeOperationRepository.ValidateRetirementMigration(
+            ClassSourceCanonical, target.ToJsonString(), unlocked, candidates!);
+        if (removeRefundClass) Assert.Null(refunds);
+        else
+        {
+            var refund = Assert.Single(refunds!);
+            Assert.Equal("CP", refund.PointType);
+            Assert.Equal(2, refund.Points);
+            Assert.Equal("adventurer", refund.ClassId);
+        }
+    }
+
+    [Theory]
     [InlineData(10, 0, true)]
     [InlineData(10, 5, false)]
     [InlineData(0, 10, false)]

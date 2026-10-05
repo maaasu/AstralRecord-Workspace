@@ -185,7 +185,10 @@ public sealed partial class SkillTreeOperationRepository
         { return null; }
     }
 
-    /// <summary>旧世代では連結していた解除済みノードのうち、自身の接続変更で新世代から孤立したものだけを返す。</summary>
+    /// <summary>
+    /// 旧世代では連結していた解放済みノードのうち、新世代で定義・配置が削除されたものと、
+    /// 自身の接続変更で孤立したものを返す。候補除去後の保持・返還検証は呼出元で必須とする。
+    /// </summary>
     internal static IReadOnlyList<string>? FindChangedDisconnectedNodes(string sourceJson, string targetJson,
         IEnumerable<AccountSkillTreeUnlockedNodeEntity> unlocked)
     {
@@ -203,18 +206,21 @@ public sealed partial class SkillTreeOperationRepository
             var positions = newRoot.GetProperty("positions").EnumerateArray()
                 .Select(x => x.GetProperty("nodeId").GetString()!).ToHashSet(StringComparer.Ordinal);
             var rootId = newRoot.GetProperty("rootNodeId").GetString()!;
-            if (!retained.Contains(rootId)) return null;
+            if (!retained.Contains(rootId) || !newNodes.Contains(rootId) || !positions.Contains(rootId)) return null;
             var seen = new HashSet<string>(StringComparer.Ordinal) { rootId };
             var queue = new Queue<string>(); queue.Enqueue(rootId);
             while (queue.TryDequeue(out var current))
                 if (newEdges.TryGetValue(current, out var adjacent))
                     foreach (var next in adjacent)
-                        if (retained.Contains(next) && seen.Add(next)) queue.Enqueue(next);
-            var disconnected = retained.Except(seen, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-            if (disconnected.Length == 0) return null;
+                        if (retained.Contains(next) && newNodes.Contains(next) && positions.Contains(next)
+                            && seen.Add(next)) queue.Enqueue(next);
+            var disconnected = retained.Where(nodeId => !newNodes.Contains(nodeId) || !positions.Contains(nodeId)
+                    || !seen.Contains(nodeId)).Order(StringComparer.Ordinal).ToArray();
+            if (disconnected.Length == 0
+                || disconnected.Contains(oldRoot.GetProperty("rootNodeId").GetString()!, StringComparer.Ordinal)) return null;
             foreach (var nodeId in disconnected)
             {
-                if (!newNodes.Contains(nodeId) || !positions.Contains(nodeId)) return null;
+                if (!newNodes.Contains(nodeId) || !positions.Contains(nodeId)) continue;
                 oldEdges.TryGetValue(nodeId, out var previous);
                 newEdges.TryGetValue(nodeId, out var current);
                 if ((previous ?? []).SetEquals(current ?? [])) return null;

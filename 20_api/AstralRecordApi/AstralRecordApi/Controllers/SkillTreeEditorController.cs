@@ -51,7 +51,7 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
             : !ValidServer(serverId) || sessionId == Guid.Empty || !ValidHash(request.DefinitionGenerationId) ? BadRequest()
             : await repository.PublishPatchAsync(serverId, sessionId, request) is { } result ? Ok(result) : Conflict();
 
-    /// <summary>参加前の所有者がパッチを確認し、接続変更で孤立した項目だけを明示解除して公開定義へ移行します。</summary>
+    /// <summary>参加前の所有者がパッチを確認し、廃止項目と接続変更で孤立した項目を明示解除・返還して公開定義へ移行します。</summary>
     [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/login-patch")]
     public async Task<IActionResult> PrepareLoginPatch(string serverId, Guid accountId, [FromBody] SkillTreeLoginPatchRequest request)
         => !HasRuntimeCredential() ? Unauthorized()

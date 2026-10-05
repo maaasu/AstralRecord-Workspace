@@ -26,7 +26,7 @@ skill effectはスキル個体を習得させず、現在クラス条件を満�
 - Pluginはプレイヤー別に評価済み`tree`/`points`/`relockGoldCost` viewを登録する。WebはPlugin評価viewから変更案の接続とポイントを事前検証する。表示効果と固定費用はPluginの公開値を使い、最終判定はPluginが既存ルールで再検証する。
 - Webは対象serverが実際に登録したgeneration、skilltree state version、Plugin評価fingerprintで操作を要求する。online時は同じ接続serverかつPluginが拠点・スキルツリーワールドと判定した場合だけ要求を作成する。offline時は同一target serverへ編集案を保存し、次回参加時にPluginが世代・state・fingerprint・位置を再検証する。
 - 旧generationへのtarget固定案を別serverへ読み替えない。参加先が異なる場合は旧案を`RECONFIRMATION_REQUIRED`または`CANCELED`として結果照会可能にする。
-- `account_skilltree_state.definition_generation_id`が`NULL`のlegacy状態は明示移行までWeb確定・自動補修対象外である。世代不一致は保留し、構造不整合だけが既存補修対象である。ノード廃止は別途明示移行で返還を検証してから適用する。
+- `account_skilltree_state.definition_generation_id`が`NULL`のlegacy状態は明示移行までWeb確定・自動補修対象外である。世代不一致はログイン時の保持移行または限定解除で検証し、構造不整合だけが既存補修対象である。ノード廃止はログイン時に保持・返還を検証できる対象だけ解除し、検証できない場合は別途明示移行で返還を検証してから適用する。
 - 明示移行はPlugin runtime keyと分離したmigration keyでoffline accountにのみ実行する。operation ID、expected state version、旧node集合baseline、from/to世代、明示remove node ID、APIが保存済み世代snapshotからgraph・保持nodeの条件/コストを照合する。APIは新node付与、CP元付替え、Gold変更を行わず、除去nodeの既存spent返還はPlugin既存規則に委ねる。
 
 ## 関連 feature
