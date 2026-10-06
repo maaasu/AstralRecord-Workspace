@@ -1046,6 +1046,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             if (guideService != null) {
                 guideProgressLoad = guideService.loadProgressAsync(joinData.account().getUuid());
+                if (appliedPlayer != null) {
+                    scheduleGuideStateReconciliationAfterProgressLoad(appliedPlayer, guideProgressLoad);
+                }
                 if (appliedPlayer != null && completionListener == null) {
                     guideService.recordCondition(appliedPlayer, GuideConditionType.PLAYER_LOGGED_IN, null);
                 }
@@ -1121,6 +1124,40 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     return;
                 }
                 startInitialGuideTitle(currentAstPlayer);
+            });
+        });
+    }
+
+    /**
+     * 進行と装備・ペットの読み込み後に、現在のログインセッションだけをガイドへ照合します。
+     *
+     * @param astPlayer 読み込みを開始したプレイヤー
+     * @param progressLoad ガイド進行の読み込み結果
+     */
+    private void scheduleGuideStateReconciliationAfterProgressLoad(
+        @NotNull AstPlayer astPlayer,
+        @NotNull CompletableFuture<Boolean> progressLoad
+    ) {
+        Player player = astPlayer.getBukkit();
+        UUID playerUuid = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        progressLoad.thenAccept(loaded -> {
+            if (!loaded) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                Player current = plugin.getServer().getPlayer(playerUuid);
+                if (current != player || !current.isOnline()) {
+                    return;
+                }
+                AstPlayer currentAstPlayer = AstPlayerCache.get(current);
+                if (currentAstPlayer != astPlayer
+                    || !accountId.equals(currentAstPlayer.getAccount().getUuid())) {
+                    return;
+                }
+                boolean hasHatchedPet = plugin.getPetService() != null
+                    && plugin.getPetService().hasHatchedPet(accountId);
+                guideService.reconcileLoadedAccount(currentAstPlayer, hasHatchedPet);
             });
         });
     }

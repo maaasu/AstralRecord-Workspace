@@ -1,0 +1,28 @@
+# design:
+#   motif: "北欧神話 / シンドリと鍛冶"
+#   progression: 1
+schemaVersion: 3
+id: first_equipment_repair
+category: equipment
+displayOrder: 20
+title: "&a壊れた装備を修理しよう"
+iconMaterial: ANVIL
+summary: "&7武器・ツール・防具の耐久値をシンドリのオーブで回復する。"
+steps:
+  - id: notice_broken_equipment
+    text: "&f装備の耐久値が0になったことを確認する"
+    details:
+      - "&7武器・ツール・防具の耐久値が0になったら、修理できる。"
+      - "&7装備の詳細に表示される現在の耐久値を確認する。"
+    condition:
+      type: EQUIPMENT_BROKEN
+  - id: repair_with_sindri
+    text: "&fバッグで{item:40a00011}&fをクリックし、装備を選ぶ"
+    details:
+      - "&7必要なもの: {item:40a00011}と、耐久値が減った武器・ツール・防具。"
+      - "&7バッグでオーブをクリックし、一覧から修理する装備を選ぶ。"
+      - "&7ツールも武器・防具と同じ操作で修理する。耐久値が最大の装備は選べない。"
+      - "&a使用すると耐久値が最大75回復する。"
+    condition:
+      type: ORB_USED
+      targetId: 40a00011

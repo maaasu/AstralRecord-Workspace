@@ -117,6 +117,7 @@ builder.Services.AddScoped<ISkillTreeOperationRepository, SkillTreeOperationRepo
 builder.Services.AddScoped<IAccountQuestStateRepository, AccountQuestStateRepository>();
 builder.Services.AddScoped<IAccountWaystoneRepository, AccountWaystoneRepository>();
 builder.Services.AddScoped<IAccountGuideProgressRepository, AccountGuideProgressRepository>();
+builder.Services.AddScoped<IAccountGuideCompletionRewardRepository, AccountGuideCompletionRewardRepository>();
 builder.Services.AddScoped<ILoginBonusClaimRepository, LoginBonusClaimRepository>();
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();
 builder.Services.AddScoped<IAccountLearnedSkillRepository, AccountLearnedSkillRepository>();

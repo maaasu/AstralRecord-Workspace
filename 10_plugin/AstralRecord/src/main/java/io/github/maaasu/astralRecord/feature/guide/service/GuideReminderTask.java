@@ -17,10 +17,15 @@ public final class GuideReminderTask {
     private static final String GUIDE_COMMAND = "/menu guide";
 
     private final PlayerMessageService playerMessageService;
+    private final GuideService guideService;
     private @Nullable BukkitTask task;
 
-    public GuideReminderTask(@NotNull PlayerMessageService playerMessageService) {
+    public GuideReminderTask(
+        @NotNull PlayerMessageService playerMessageService,
+        @NotNull GuideService guideService
+    ) {
         this.playerMessageService = playerMessageService;
+        this.guideService = guideService;
     }
 
     /**
@@ -49,8 +54,11 @@ public final class GuideReminderTask {
         }
     }
 
-    private void sendReminder() {
+    void sendReminder() {
         for (var astPlayer : AstPlayerCache.getAll()) {
+            if (!guideService.hasIncompleteGuide(astPlayer.getAccount().getUuid())) {
+                continue;
+            }
             playerMessageService.sendClickable(
                 astPlayer.getBukkit(),
                 PlayerMsgId.P_5600,

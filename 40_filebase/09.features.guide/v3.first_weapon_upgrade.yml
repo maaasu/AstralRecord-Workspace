@@ -24,7 +24,7 @@ steps:
   - id: teleport_to_nox_cave
     text: "&f近くのテレポーターから&eノクス洞窟採掘場&fへ移動する"
     details:
-      - "&7近くのテレポーターを使い、ノクス洞窟採掘場へ移動する。"
+      - "&7テレポーターを開き、移動先からノクス洞窟採掘場を選ぶ。"
       - "&a移動すると、&eノクス洞窟採掘場&aで採掘できる。"
     condition:
       type: WAYSTONE_TELEPORTED
@@ -32,7 +32,7 @@ steps:
   - id: mine_stone_outcrop
     text: "&f石ころの露頭を採掘する"
     details:
-      - "&7ノクス洞窟採掘場で、&eノクスツルハシ&7を使って石ころの露頭を最後まで採掘する。"
+      - "&7ノクスツルハシを持って石ころの露頭を左クリックし、採掘完了まで待つ。"
       - "&a採掘を完了すると、ノクス洞窟の素材を入手できる。"
     condition:
       type: GATHERING_COMPLETED

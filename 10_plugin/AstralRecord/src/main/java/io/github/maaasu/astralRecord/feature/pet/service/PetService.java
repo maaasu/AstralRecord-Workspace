@@ -44,6 +44,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
     private volatile Consumer<AstPlayer> refreshListener = ignored -> { };
     private volatile Consumer<AstPlayer> progressListener = ignored -> { };
     private volatile Consumer<AstPlayer> pauseListener = ignored -> { };
+    private volatile Consumer<AstPlayer> hatchSuccessListener = ignored -> { };
     private volatile java.util.function.Function<UUID, RuntimeAccountAuthority> progressAuthorityProvider = ignored -> null;
     private volatile java.util.function.Predicate<AstPlayer> activityEligible=ignored->false;
     private volatile boolean stopped;
@@ -94,8 +95,12 @@ public final class PetService implements PetRuntimeService.StateBridge {
                 loading.remove(id);
                 if(failure!=null){log(failure);return;}
                 if(plugin.isEnabled())plugin.getServer().getScheduler().runTask(plugin,()->{
-                    for(AstPlayer player:io.github.maaasu.astralRecord.feature.player.AstPlayerCache.getAll())
-                        if(player.getAccount().getUuid().equals(id))refreshListener.accept(player);
+                    for(AstPlayer player:io.github.maaasu.astralRecord.feature.player.AstPlayerCache.getAll()) {
+                        if(player.getAccount().getUuid().equals(id)) {
+                            if(hasHatchedPet(id))hatchSuccessListener.accept(player);
+                            refreshListener.accept(player);
+                        }
+                    }
                 });
             });
         });
@@ -109,6 +114,27 @@ public final class PetService implements PetRuntimeService.StateBridge {
      * @return 説明した契約に従う結果。通信を伴う処理の失敗は例外またはfutureで通知します
      */
     public PetMaster master() { return master; }
+    /**
+     * 読み込み済みアカウントに孵化済みペットがいるか確認します。魔法の卵は含みません。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 孵化済みペットがいれば true
+     */
+    public boolean hasHatchedPet(@NotNull UUID accountId) {
+        AccountState state = accounts.get(accountId);
+        if (state == null) return false;
+        synchronized (state) {
+            return state.pets.values().stream().anyMatch(pet -> !pet.isEgg());
+        }
+    }
+    /**
+     * 孵化の確定後に呼ぶガイド記録処理を登録します。
+     *
+     * @param listener 孵化したペットの所有者を受け取るリスナー
+     */
+    public void setHatchSuccessListener(@NotNull Consumer<AstPlayer> listener) {
+        hatchSuccessListener = Objects.requireNonNull(listener);
+    }
     /**
      * 召喚状態の再描画通知先を設定します。通知はメインスレッドで実行します。
      * @param listener 呼出threadの契約に従う通知先
@@ -680,6 +706,14 @@ public final class PetService implements PetRuntimeService.StateBridge {
         inventory.releasePetEquipmentPlan(operation.equipmentPlan);
         UUID accountId=operation.owner.getAccount().getUuid();unresolved.remove(accountId,operation);
         notifyRefresh(operation.owner);
+        if (operation.applied && operation.rejected == null && operation.suffix.endsWith("/hatch")
+            && plugin.isEnabled()) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (AstPlayerCache.get(operation.owner.getBukkit()) == operation.owner) {
+                    hatchSuccessListener.accept(operation.owner);
+                }
+            });
+        }
     }
     /** 予約がある場合だけ解除します。解除済み予約にも安全に使用できます。 */
     private void releaseSlotReservation(InventoryService.PreparedInstanceSlotReservation reservation) {

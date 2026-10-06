@@ -1,0 +1,32 @@
+# design:
+#   motif: "動物 / 魔法の卵と飼育"
+#   progression: 21
+schemaVersion: 3
+id: first_pet_hatching
+category: world
+displayOrder: 30
+title: "&d魔法の卵を孵してペットと歩こう"
+iconMaterial: EGG
+summary: "&7魔法の卵を孵化し、生まれたペットを装備する。"
+steps:
+  - id: hatch_magic_egg
+    text: "&fペット飼育員で魔法の卵を孵化する"
+    details:
+      - "&7必要なもの: バッグ内の魔法の卵と、孵化画面に表示される素材。"
+      - "&7ペット飼育員に話しかけ、孵化タブで卵を選ぶ。"
+      - "&7必要素材をバッグに入れ、孵化ボタンを押す。"
+      - "&7孵化すると卵とは別のペット個体になる。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: pet_center
+      description: "&dクリックでペット飼育員の場所を表示する。"
+    condition:
+      type: PET_HATCHED
+  - id: start_pet_following
+    text: "&fバッグの孵化済みペットをクリックして装備する"
+    details:
+      - "&7孵化後のペット個体をバッグでクリックして装備する。"
+      - "&7装備すると、生きているペットがそばに現れて追従する。"
+      - "&7魔法の卵は装備できない。先に孵化する。"
+    condition:
+      type: PET_FOLLOW_STARTED

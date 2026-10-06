@@ -34,6 +34,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260926_market_web_purchase.sql` | Web購入要求の冪等台帳を追加。対応API/Plugin/Web配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20261001_pet.sql` | ペット/卵・装備選択・操作台帳3表とactive個体一意制約。新API配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20261002_player_admin_edit.sql` | 管理者編集の排他セッション・サーバー退避・操作監査outbox。新API/Plugin/Web配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20261006_guide_completion_reward.sql` | 全ガイド達成報酬の一度限りの受取記録を追加。新 API 配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260916_managed_network_and_bans.sql` | 設定・BAN・監査3表を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260917_web_credentials.sql` | Web固定認証とID単位ログイン試行記録を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `ManagementDB` | `ManagementDB/migrations/20260920_trusted_admin_browser.sql` | 信頼済みブラウザのトークン管理を追加。ManagementDB専用手順でAPI配置前に適用 |
@@ -53,6 +54,7 @@ player-state snapshot は既存DB向け migration を持たない。新しい `i
 | テーブル | 定義 |
 |:--|:--|
 | `dbo.account_benefits` | `AstralRecord/dbo.account_benefits.md` |
+| `dbo.account_guide_completion_reward` | `AstralRecord/dbo.account_guide_completion_reward.md` |
 | `dbo.pet_instance` | `AstralRecord/dbo.pet_instance.md` |
 | `dbo.account_pet_state` | `AstralRecord/dbo.account_pet_state.md` |
 | `dbo.pet_operation` | `AstralRecord/dbo.pet_operation.md` |

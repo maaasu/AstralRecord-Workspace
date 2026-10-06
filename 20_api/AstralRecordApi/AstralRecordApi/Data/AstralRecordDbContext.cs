@@ -38,6 +38,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
     public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
     public DbSet<AccountGuideStepProgressEntity> AccountGuideStepProgresses => Set<AccountGuideStepProgressEntity>();
+    public DbSet<AccountGuideCompletionRewardEntity> AccountGuideCompletionRewards => Set<AccountGuideCompletionRewardEntity>();
     public DbSet<AccountQuestStateEntity> AccountQuestStates => Set<AccountQuestStateEntity>();
     public DbSet<AccountQuestActiveEntity> AccountQuestActives => Set<AccountQuestActiveEntity>();
     public DbSet<AccountQuestObjectiveProgressEntity> AccountQuestObjectiveProgresses => Set<AccountQuestObjectiveProgressEntity>();
@@ -742,6 +743,22 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_guide_step_progress_account_guide_step");
             entity.HasIndex(progress => new { progress.AccountId, progress.CompletedAt })
                 .HasDatabaseName("IX_account_guide_step_progress_account_completed");
+        });
+
+        modelBuilder.Entity<AccountGuideCompletionRewardEntity>(entity =>
+        {
+            entity.ToTable("account_guide_completion_reward", "dbo");
+            entity.HasKey(reward => reward.AccountId);
+            entity.Property(reward => reward.AccountId).HasColumnName("account_id");
+            entity.Property(reward => reward.MailId).HasColumnName("mail_id").HasMaxLength(128);
+            entity.Property(reward => reward.ClaimedAt).HasColumnName("claimed_at");
+            entity.Property(reward => reward.ClaimedBy).HasColumnName("claimed_by");
+            entity.Property(reward => reward.InheritedFromAccountId).HasColumnName("inherited_from_account_id");
+            entity.HasOne<AccountEntity>().WithMany().HasForeignKey(reward => reward.AccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(reward => reward.MailId).IsUnique()
+                .HasFilter("[mail_id] IS NOT NULL")
+                .HasDatabaseName("UX_account_guide_completion_reward_mail");
         });
 
         modelBuilder.Entity<AccountQuestStateEntity>(entity =>

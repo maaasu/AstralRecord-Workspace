@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -40,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.function.Consumer;
 
 public class GuideService {
     private static final String PROGRESS_SECTION_NAME = "guideProgress";
@@ -49,6 +51,9 @@ public class GuideService {
     public static final String INITIAL_GUIDE_ID = "beginner_onboarding";
     /** 導入ガイドを初めて開いたことを記録する step ID。 */
     public static final String INITIAL_GUIDE_OPEN_STEP_ID = "open_guide";
+    private static final String REPAIR_GUIDE_ID = "first_equipment_repair";
+    private static final String REPAIR_NOTICE_STEP_ID = "notice_broken_equipment";
+    private static final String REPAIR_USE_STEP_ID = "repair_with_sindri";
 
     private final AstralRecord plugin;
     private final GuideRepository repository;
@@ -64,6 +69,9 @@ public class GuideService {
     private final Map<UUID, CompletableFuture<Boolean>> progressLoadFutures = new ConcurrentHashMap<>();
     private final Map<UUID, List<GuideConditionEvent>> pendingConditionsByAccount = new ConcurrentHashMap<>();
     private final Set<UUID> initialGuideOpenedAccounts = ConcurrentHashMap.newKeySet();
+    private volatile Consumer<AstPlayer> allGuidesCompletedListener = ignored -> { };
+    private Consumer<AstPlayer> stepSoundPlayer = player -> GuiSound.GUIDE_STEP.play(player.getBukkit());
+    private Consumer<AstPlayer> guideSoundPlayer = player -> GuiSound.GUIDE_COMPLETE.play(player.getBukkit());
 
     /**
      * ガイドマスターとアカウント進行を扱うサービスを生成します。
@@ -185,15 +193,19 @@ public class GuideService {
                     progressByAccount.put(accountId, state);
                     List<GuideConditionEvent> pending = pendingConditionsByAccount.remove(accountId);
                     if (pending != null && !pending.isEmpty()) {
-                        plugin.getServer().getScheduler().runTask(plugin, () -> pending.forEach(event ->
-                            recordCondition(
-                                event.player(),
-                                event.type(),
-                                event.targetId(),
-                                event.targetLevel(),
-                                event.notifyPlayer()
-                            )
-                        ));
+                        plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            if (progressGenerations.getOrDefault(accountId, 0L) != generation
+                                || progressByAccount.get(accountId) != state) {
+                                return;
+                            }
+                            for (GuideConditionEvent event : pending) {
+                                if (event.player().getBukkit().isOnline()
+                                    && AstPlayerCache.get(event.player().getBukkit()) == event.player()) {
+                                    recordCondition(event.player(), event.type(), event.targetId(),
+                                        event.targetLevel(), event.notifyPlayer());
+                                }
+                            }
+                        });
                     }
                     loadedSuccessfully = true;
                 }
@@ -251,6 +263,97 @@ public class GuideService {
     public boolean isGuideCompleted(@Nullable UUID accountId, @NotNull GuideEntry guide) {
         return !guide.steps().isEmpty()
             && guide.steps().stream().allMatch(step -> isStepCompleted(accountId, guide.id(), step.id()));
+    }
+
+    /**
+     * 進行が読み込まれ、未完了のガイドが残っている場合だけ true を返します。
+     * 後から追加されたガイドも現在のマスターに照らして判定します。
+     * @param accountId 対象アカウント ID
+     * @return 読み込み済みで未完了のガイドがあれば true
+     */
+    public boolean hasIncompleteGuide(@NotNull UUID accountId) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            if (state.released) {
+                return false;
+            }
+            return getAll().stream().anyMatch(guide -> firstIncompleteStep(guide, state.completed) != null);
+        }
+    }
+
+    /**
+     * ガイド進行が現在のセッションに読み込まれているか確認します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 読み込み済みで、解放されていなければ true
+     */
+    public boolean isProgressLoaded(@NotNull UUID accountId) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            return !state.released;
+        }
+    }
+
+    /**
+     * ログイン時に読み込んだ装備とペットから、保存前ログアウトで失われたガイドイベントを補います。
+     * 呼び出し元はガイド進行とプレイヤー状態の読み込み完了後、現在のセッションを確認してください。
+     * 既に達成した手順は再通知しません。
+     *
+     * @param player 現在ログイン中のプレイヤー
+     * @param hasHatchedPet 読み込んだペットに孵化済みの個体がいる場合 true
+     */
+    public void reconcileLoadedAccount(@NotNull AstPlayer player, boolean hasHatchedPet) {
+        UUID accountId = player.getAccount().getUuid();
+        if (!isProgressLoaded(accountId)) {
+            return;
+        }
+        if (itemService.hasLoadedBrokenEquipment(accountId)
+            && !isStepCompleted(accountId, REPAIR_GUIDE_ID, REPAIR_NOTICE_STEP_ID)) {
+            recordCondition(player, GuideConditionType.EQUIPMENT_BROKEN, null);
+        }
+        if (hasHatchedPet) {
+            recordCondition(player, GuideConditionType.PET_HATCHED, null);
+        }
+    }
+
+    /**
+     * 現在のガイドマスターの全手順が完了したか確認します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 進行読み込み済み、ガイドが存在し全手順完了なら true
+     */
+    public boolean areAllGuidesCompleted(@NotNull UUID accountId) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            List<GuideEntry> guides = getAll();
+            return !state.released && !guides.isEmpty()
+                && guides.stream().allMatch(guide -> !guide.steps().isEmpty()
+                    && firstIncompleteStep(guide, state.completed) == null);
+        }
+    }
+
+    /**
+     * 全ガイド完了後の通知処理を登録します。手順の新規達成時に呼びます。
+     *
+     * @param listener 完了したプレイヤーを受け取るリスナー
+     */
+    public void setAllGuidesCompletedListener(@NotNull Consumer<AstPlayer> listener) {
+        allGuidesCompletedListener = java.util.Objects.requireNonNull(listener);
+    }
+
+    /** Bukkit を起動しない単体テストで効果音だけを差し替えます。 */
+    void setSoundPlayers(@NotNull Consumer<AstPlayer> step, @NotNull Consumer<AstPlayer> guide) {
+        stepSoundPlayer = java.util.Objects.requireNonNull(step);
+        guideSoundPlayer = java.util.Objects.requireNonNull(guide);
     }
 
     /**
@@ -353,6 +456,11 @@ public class GuideService {
                 for (GuideStep step : GuideProgressEvaluator.evaluate(
                     guide, state.completed, eventType, targetId, targetLevel
                 )) {
+                    // 修理ガイドは破損を見てからのシンドリ使用だけを手順として認める。
+                    if (REPAIR_GUIDE_ID.equals(guide.id()) && REPAIR_USE_STEP_ID.equals(step.id())
+                        && !state.completed.contains(new GuideStepKey(REPAIR_GUIDE_ID, REPAIR_NOTICE_STEP_ID))) {
+                        continue;
+                    }
                     GuideStepKey key = new GuideStepKey(guide.id(), step.id());
                     if (state.completed.add(key)) {
                         newlyCompleted.add(new CompletedStep(guide, step));
@@ -364,27 +472,70 @@ public class GuideService {
                 state.dirty = true;
             }
         }
-        for (CompletedStep completed : newlyCompleted) {
-            if (notifyPlayer) {
-                notifyStepCompleted(player, completed.guide(), completed.step());
-            }
+        if (notifyPlayer && !newlyCompleted.isEmpty()) {
+            notifyCompletedSteps(player, newlyCompleted);
         }
         if (!newlyCompleted.isEmpty()) {
             inventoryService.queueLocalPlayerSave(accountId);
+            if (areAllGuidesCompleted(accountId)) {
+                allGuidesCompletedListener.accept(player);
+            }
         }
     }
 
-    private void notifyStepCompleted(
-        @NotNull AstPlayer player,
-        @NotNull GuideEntry guide,
-        @NotNull GuideStep step
-    ) {
-        playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(step.text()));
-        GuiSound.GUIDE_STEP.play(player.getBukkit());
-        if (isGuideCompleted(player.getAccount().getUuid(), guide)) {
-            playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
-            GuiSound.GUIDE_COMPLETE.play(player.getBukkit());
+    private void notifyCompletedSteps(@NotNull AstPlayer player, @NotNull List<CompletedStep> completedSteps) {
+        UUID accountId = player.getAccount().getUuid();
+        Set<String> completedGuideIds = new LinkedHashSet<>();
+        for (CompletedStep completed : completedSteps) {
+            playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
+            stepSoundPlayer.accept(player);
+            completedGuideIds.add(completed.guide().id());
         }
+        for (String guideId : completedGuideIds) {
+            GuideEntry guide = getById(guideId);
+            if (guide != null && isGuideCompleted(accountId, guide)) {
+                playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
+                guideSoundPlayer.accept(player);
+            }
+        }
+
+        CompletedStep last = completedSteps.getLast();
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
+            return;
+        }
+        Set<GuideStepKey> completed;
+        synchronized (state) {
+            completed = Set.copyOf(state.completed);
+        }
+        GuideStep nextStep = firstIncompleteStep(last.guide(), completed);
+        GuideEntry nextGuide = nextStep == null ? null : last.guide();
+        if (nextStep == null) {
+            for (GuideEntry guide : getAll()) {
+                if (REPAIR_GUIDE_ID.equals(guide.id())
+                    && !completed.contains(new GuideStepKey(REPAIR_GUIDE_ID, REPAIR_NOTICE_STEP_ID))) {
+                    continue;
+                }
+                nextStep = firstIncompleteStep(guide, completed);
+                if (nextStep != null) {
+                    nextGuide = guide;
+                    break;
+                }
+            }
+        }
+        if (nextGuide != null && nextStep != null) {
+            playerMessageService.send(player, PlayerMsgId.P_5185, resolveText(nextGuide.title()));
+            playerMessageService.send(player, PlayerMsgId.P_5186, resolveText(nextStep.text()));
+        }
+    }
+
+    private static @Nullable GuideStep firstIncompleteStep(
+        @NotNull GuideEntry guide,
+        @NotNull Set<GuideStepKey> completed
+    ) {
+        return guide.steps().stream()
+            .filter(step -> !completed.contains(new GuideStepKey(guide.id(), step.id())))
+            .findFirst().orElse(null);
     }
 
     /** inventory と同じ SQL transaction へ含めるガイド完成状態を捕捉します。 */

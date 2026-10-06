@@ -257,6 +257,11 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             throw new AccountCloneConflictException("TARGET_CHANGED", "The target account no longer exists.");
         if (target is not null) await EnsureAuditProjectedBeforeDeleteAsync(target.Uuid);
 
+        var sourceGuideReward = await dbContext.AccountGuideCompletionRewards.AsNoTracking()
+            .SingleOrDefaultAsync(reward => reward.AccountId == source.Uuid);
+        var targetGuideReward = target is null ? null : await dbContext.AccountGuideCompletionRewards.AsNoTracking()
+            .SingleOrDefaultAsync(reward => reward.AccountId == target.Uuid);
+
         var now = DateTime.UtcNow;
         var targetWasActive = target?.IsActive == true;
         if (target is not null)
@@ -299,6 +304,18 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
         await dbContext.Accounts.AddAsync(clonedAccount);
         await CloneOwnedPlayerDataAsync(source, clonedAccount, now, request.CreatedBy);
+        var inheritedGuideReward = sourceGuideReward ?? targetGuideReward;
+        if (inheritedGuideReward is not null)
+        {
+            dbContext.AccountGuideCompletionRewards.Add(new AccountGuideCompletionRewardEntity
+            {
+                AccountId = clonedAccount.Uuid,
+                MailId = null,
+                ClaimedAt = inheritedGuideReward.ClaimedAt,
+                ClaimedBy = inheritedGuideReward.ClaimedBy,
+                InheritedFromAccountId = sourceGuideReward is not null ? source.Uuid : target!.Uuid,
+            });
+        }
 
         if (clonedAccount.IsActive)
         {
@@ -1139,6 +1156,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         await dbContext.AccountGuideStepProgresses
             .Where(entity => entity.AccountId == accountId)
             .ExecuteDeleteAsync();
+        // The completion reward receipt and delivery remain as audit records for
+        // deleted accounts; the replacement account receives neither automatically.
         await dbContext.AccountQuestObjectiveProgresses
             .Where(entity => dbContext.AccountQuestActives
                 .Where(active => dbContext.AccountQuestStates

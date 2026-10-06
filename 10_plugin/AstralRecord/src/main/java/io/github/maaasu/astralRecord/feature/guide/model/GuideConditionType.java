@@ -36,6 +36,12 @@ public enum GuideConditionType {
     SKILL_BOUND,
     /** オーブによる装備更新が確定した。 */
     ORB_USED,
+    /** 装備の耐久値が初めて 0 に達した。 */
+    EQUIPMENT_BROKEN,
+    /** 魔法の卵からペットへの孵化が確定した。 */
+    PET_HATCHED,
+    /** 孵化済みペットの追従が実際に開始した。 */
+    PET_FOLLOW_STARTED,
     /** アクションリングを表示した。 */
     ACTION_RING_OPENED,
     /** プレイヤーによるスキル発動が成功した。 */

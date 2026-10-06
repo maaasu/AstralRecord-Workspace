@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class EquipmentDurabilityService {
@@ -44,6 +46,9 @@ public final class EquipmentDurabilityService {
     private final ItemReferenceResolver itemReferenceResolver;
     private final DoubleSupplier randomValueSupplier;
     private StatusService statusService;
+    private @Nullable BiConsumer<AstPlayer, String> equipmentBrokenListener;
+    private Consumer<AstPlayer> brokenSoundPlayer = player -> player.getBukkit().playSound(
+        player.getBukkit().getLocation(), Sound.ENTITY_ITEM_BREAK, SoundCategory.PLAYERS, 0.9F, 0.75F);
 
     /**
      * 装備耐久値の判定・減少サービスを初期化します。
@@ -76,6 +81,20 @@ public final class EquipmentDurabilityService {
      */
     public void setStatusService(@Nullable StatusService statusService) {
         this.statusService = statusService;
+    }
+
+    /**
+     * 装備の耐久値が正数から 0 に変わったときのガイド記録処理を登録します。
+     *
+     * @param listener プレイヤーとアイテム ID を受け取るリスナー。null は通知解除
+     */
+    public void setEquipmentBrokenListener(@Nullable BiConsumer<AstPlayer, String> listener) {
+        this.equipmentBrokenListener = listener;
+    }
+
+    /** Bukkit を起動しない単体テストで効果音だけを差し替えます。 */
+    void setBrokenSoundPlayer(@NotNull Consumer<AstPlayer> player) {
+        brokenSoundPlayer = java.util.Objects.requireNonNull(player);
     }
 
     /**
@@ -339,8 +358,11 @@ public final class EquipmentDurabilityService {
         }
         inventoryService.refreshEquipmentInstanceDisplay(player, updated);
         int updatedValue = updated.getDurabilityValue();
-        if (updatedValue <= 0) {
+        if (instance.getDurabilityValue() > 0 && updatedValue <= 0) {
             notifyEquipmentBroken(player, model);
+            if (equipmentBrokenListener != null) {
+                equipmentBrokenListener.accept(player, model.getId());
+            }
             if (statusService != null) {
                 statusService.refreshStatus(player);
             }
@@ -400,13 +422,7 @@ public final class EquipmentDurabilityService {
     private void notifyEquipmentBroken(@NotNull AstPlayer player, @NotNull ItemModel model) {
         String displayName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5279, displayName);
-        player.getBukkit().playSound(
-            player.getBukkit().getLocation(),
-            Sound.ENTITY_ITEM_BREAK,
-            SoundCategory.PLAYERS,
-            0.9F,
-            0.75F
-        );
+        brokenSoundPlayer.accept(player);
     }
 
     private boolean isEffectiveHit(@NotNull DamageResult result) {

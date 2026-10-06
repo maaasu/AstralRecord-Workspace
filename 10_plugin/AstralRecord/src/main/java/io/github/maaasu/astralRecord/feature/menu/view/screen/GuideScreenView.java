@@ -26,6 +26,7 @@ public final class GuideScreenView extends BaseMenuScreenView {
     public static final int CONTENT_SLOT_COUNT = PagedGuiView.CONTENT_SLOT_COUNT;
     public static final int PREVIOUS_SLOT = PagedGuiView.PREVIOUS_SLOT;
     public static final int NEXT_SLOT = PagedGuiView.NEXT_SLOT;
+    public static final int REWARD_SLOT = 51;
 
     private static final int SUMMARY_SLOT = 13;
     private static final List<Integer> DETAIL_LINE_SLOTS = List.of(
@@ -43,13 +44,15 @@ public final class GuideScreenView extends BaseMenuScreenView {
      * @param pageIndex 0始まりのページ番号
      * @param guideService ガイドサービス
      * @param accountId 表示対象アカウントID。未ロード時はnull
+     * @param rewardClaimable 全ガイド達成報酬を受取可能な場合true
      */
     public void renderList(
         @NotNull Inventory inventory,
         @NotNull List<GuideEntry> guides,
         int pageIndex,
         @NotNull GuideService guideService,
-        UUID accountId
+        UUID accountId,
+        boolean rewardClaimable
     ) {
         int normalizedPage = normalizePage(pageIndex, guides.size());
         clear(inventory);
@@ -62,7 +65,7 @@ public final class GuideScreenView extends BaseMenuScreenView {
         } else {
             renderGuideItems(inventory, guides, normalizedPage, guideService, accountId);
         }
-        renderNavigation(inventory, guides.size(), normalizedPage);
+        renderNavigation(inventory, guides.size(), normalizedPage, rewardClaimable);
     }
 
     /**
@@ -154,7 +157,7 @@ public final class GuideScreenView extends BaseMenuScreenView {
         }
     }
 
-    private void renderNavigation(@NotNull Inventory inventory, int itemCount, int pageIndex) {
+    private void renderNavigation(@NotNull Inventory inventory, int itemCount, int pageIndex, boolean rewardClaimable) {
         ItemStack spacer = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
             inventory.setItem(slot, spacer);
@@ -166,6 +169,13 @@ public final class GuideScreenView extends BaseMenuScreenView {
             hasPreviousPage(pageIndex)
         ));
         inventory.setItem(BACK_SLOT, backItem());
+        if (rewardClaimable) {
+            inventory.setItem(REWARD_SLOT, createItem(
+                Material.CHEST,
+                Component.text("全ガイド達成報酬を受け取る", NamedTextColor.GOLD, TextDecoration.BOLD),
+                List.of(Component.text("クリックすると報酬がメールに届きます", NamedTextColor.GRAY))
+            ));
+        }
         inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
             Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
             List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY)),

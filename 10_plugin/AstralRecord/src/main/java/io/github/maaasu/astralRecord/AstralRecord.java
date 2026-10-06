@@ -53,9 +53,11 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
+import io.github.maaasu.astralRecord.feature.guide.repository.GuideCompletionRewardRepository;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideActionService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationEventHandler;
@@ -460,6 +462,7 @@ public final class AstralRecord extends JavaPlugin {
     private InvulnerabilityVisualService invulnerabilityVisualService;
     private ResourcePackService resourcePackService;
     private GuideService guideService;
+    private GuideCompletionRewardService guideCompletionRewardService;
     private GuideActionService guideActionService;
     private GuideReminderTask guideReminderTask;
     private PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
@@ -1637,11 +1640,24 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService
         );
         inventoryPersistence.registerStateParticipant(guideService::snapshotPlayerState);
+        petService.setHatchSuccessListener(player ->
+            guideService.recordCondition(player, GuideConditionType.PET_HATCHED, null)
+        );
+        petRuntimeService.setFollowStartedListener(player ->
+            guideService.recordCondition(player, GuideConditionType.PET_FOLLOW_STARTED, null)
+        );
+        guideCompletionRewardService = new GuideCompletionRewardService(
+            this, guideService, inventorySaveCoordinator,
+            new GuideCompletionRewardRepository(), playerMessageService
+        );
+        guideService.setAllGuidesCompletedListener(player ->
+            guideCompletionRewardService.refresh(player.getBukkit(), true, () -> { })
+        );
         teleporterService.setTeleportSuccessListener((player, waystoneId) ->
             guideService.recordCondition(player, GuideConditionType.WAYSTONE_TELEPORTED, waystoneId)
         );
         guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService);
-        guideReminderTask = new GuideReminderTask(playerMessageService);
+        guideReminderTask = new GuideReminderTask(playerMessageService, guideService);
 
         // menu
         guiSessionTransitionService = new GuiSessionTransitionService();
@@ -1651,7 +1667,7 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             skillTreeService
         );
-        menuView = new MenuView(this, guideService);
+        menuView = new MenuView(this, guideService, guideCompletionRewardService);
         menuGuiTransitionService =
             new MenuGuiTransitionService(this, menuView, inventoryService);
         trashService = new TrashService(this, menuView, inventoryService, menuGuiTransitionService);
@@ -1676,6 +1692,9 @@ public final class AstralRecord extends JavaPlugin {
         );
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
+        equipmentDurabilityService.setEquipmentBrokenListener((player, itemId) ->
+            guideService.recordCondition(player, GuideConditionType.EQUIPMENT_BROKEN, itemId)
+        );
         equipmentDurabilityReminderTask = new EquipmentDurabilityReminderTask(
             equipmentDurabilityService,
             playerMessageService
@@ -2401,6 +2420,7 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService.discardAccountState(accountId);
             adventureRecordStateService.discardAccountState(accountId);
             guideService.discardAccountState(accountId);
+            guideCompletionRewardService.discardAccountState(accountId);
             loginBonusService.discardAccountState(accountId);
             teleporterService.discardAccountState(accountId);
             questService.discardAccountState(accountId);
@@ -2435,6 +2455,7 @@ public final class AstralRecord extends JavaPlugin {
         });
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
+            guideCompletionRewardService.discardAccountState(player.getAccount().getUuid());
             try {
                 clearSkillbookCombatState(playerId);
                 meleeDualCrestRuntimeService.forgetPlayer(playerId);

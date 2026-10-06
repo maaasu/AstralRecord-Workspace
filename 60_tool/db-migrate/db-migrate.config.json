@@ -1978,6 +1978,30 @@
           ]
         }
       ]
+    },
+    {
+      "id": "20261006_guide_completion_reward",
+      "fileName": "20261006_guide_completion_reward.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account_guide_completion_reward",
+        "primaryKey": "PK_account_guide_completion_reward",
+        "columns": [
+          { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "mail_id", "sqlType": "nvarchar", "maxLengthBytes": 256, "isNullable": true },
+          { "name": "claimed_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "claimed_by", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "inherited_from_account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": true }
+        ],
+        "checkConstraints": [
+          "CK_account_guide_completion_reward_mail",
+          "CK_account_guide_completion_reward_origin"
+        ],
+        "indexes": [ "UX_account_guide_completion_reward_mail" ],
+        "indexDefinitions": [
+          { "name": "UX_account_guide_completion_reward_mail", "columns": [ "mail_id" ], "isUnique": true }
+        ]
+      }
     }
   ]
 }

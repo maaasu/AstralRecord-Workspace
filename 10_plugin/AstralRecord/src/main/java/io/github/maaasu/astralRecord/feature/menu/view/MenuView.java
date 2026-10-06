@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -124,9 +125,15 @@ public class MenuView {
     private final StorageScreenView storageScreenView;
     private final CraftShortcutView craftShortcutView;
     private final GuideService guideService;
+    private final GuideCompletionRewardService completionRewardService;
 
-    public MenuView(@NotNull AstralRecord plugin, @NotNull GuideService guideService) {
+    public MenuView(
+        @NotNull AstralRecord plugin,
+        @NotNull GuideService guideService,
+        @NotNull GuideCompletionRewardService completionRewardService
+    ) {
         this.guideService = guideService;
+        this.completionRewardService = completionRewardService;
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
@@ -313,8 +320,33 @@ public class MenuView {
             SIZE,
             title
         );
-        guideScreenView.renderList(inventory, guides, normalizedPage, guideService, accountId);
+        guideScreenView.renderList(inventory, guides, normalizedPage, guideService, accountId,
+            completionRewardService.canClaim(accountId));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        completionRewardService.refresh(player, false, () -> redrawOpenGuideList(player, inventory));
+    }
+
+    /** 受取可能な全達成報酬を要求し、現在のガイド一覧を更新します。 */
+    public void claimGuideReward(@NotNull Player player) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        completionRewardService.claim(player, () -> redrawOpenGuideList(player, inventory));
+    }
+
+    /** ガイド一覧の報酬ボタンが有効な場合 true を返します。 */
+    public boolean canClaimGuideReward(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && completionRewardService.canClaim(astPlayer.getAccount().getUuid());
+    }
+
+    private void redrawOpenGuideList(@NotNull Player player, @NotNull Inventory inventory) {
+        if (!player.isOnline() || player.getOpenInventory().getTopInventory() != inventory
+            || !(inventory.getHolder() instanceof MenuInventoryHolder holder)
+            || holder.screen() != MenuScreen.GUIDE || holder.contentId() != null) return;
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
+        List<GuideEntry> guides = guideService.getAll();
+        guideScreenView.renderList(inventory, guides, holder.pageIndex(), guideService, accountId,
+            completionRewardService.canClaim(accountId));
     }
 
     public void openGuideDetail(@NotNull Player player, @NotNull GuideEntry guide, int returnPageIndex) {

@@ -653,6 +653,23 @@ public class ItemService {
     }
 
     /**
+     * 読み込み済みの所有装備に耐久値が 0 の個体があるか確認します。
+     * ログイン直後のガイド復元に使い、通信や装備状態の変更は行いません。
+     *
+     * @param accountId 装備の所有者アカウント ID
+     * @return 最大耐久値があり、現在耐久値が 0 以下の装備があれば true
+     */
+    public boolean hasLoadedBrokenEquipment(@NotNull UUID accountId) {
+        String ownerId = accountId.toString();
+        synchronized (equipmentStateMutex) {
+            return loadedEquipmentInstances.values().stream().anyMatch(instance ->
+                ownerId.equalsIgnoreCase(instance.getAccountId())
+                    && instance.getDurabilityMax() > 0
+                    && instance.getDurabilityValue() <= 0);
+        }
+    }
+
+    /**
      * APIを待たずに確定した装備状態をキャッシュへ反映します。
      * <p>
      * 完全スナップショット保存の対象として記録します。耐久だけの変更も同じdirty集合で

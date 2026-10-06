@@ -743,6 +743,63 @@ public class AccountRepositoryTests
         Assert.True(cloned.Account.IsActive);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CloneAsync_InheritsGuideRewardClaimWithoutRedelivering(
+        bool sourceClaimed, bool targetClaimed)
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var sourceUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setup = new AstralRecordDbContext(options))
+        {
+            await setup.Database.EnsureCreatedAsync();
+            setup.Users.AddRange(CreateUser(sourceUserId, sourceId, now), CreateUser(targetUserId, targetId, now));
+            setup.Accounts.AddRange(
+                CreateAccount(sourceId, sourceUserId, 0, true, now),
+                CreateAccount(targetId, targetUserId, 1, true, now));
+            if (sourceClaimed)
+                setup.AccountGuideCompletionRewards.Add(new AccountGuideCompletionRewardEntity
+                {
+                    AccountId = sourceId, ClaimedAt = now, ClaimedBy = sourceUserId,
+                    InheritedFromAccountId = Guid.NewGuid(),
+                });
+            if (targetClaimed)
+                setup.AccountGuideCompletionRewards.Add(new AccountGuideCompletionRewardEntity
+                {
+                    AccountId = targetId, ClaimedAt = now, ClaimedBy = targetUserId,
+                    InheritedFromAccountId = Guid.NewGuid(),
+                });
+            await setup.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var cloned = await new AccountRepository(dbContext).CloneAsync(sourceId, new AccountCloneRequest
+        {
+            TargetUserId = targetUserId, TargetSlotIndex = 1,
+            ExpectedTargetAccountId = targetId, Overwrite = true, CreatedBy = sourceUserId,
+        });
+
+        Assert.NotNull(cloned);
+        var inherited = await dbContext.AccountGuideCompletionRewards.AsNoTracking()
+            .SingleOrDefaultAsync(reward => reward.AccountId == cloned!.Account.Uuid);
+        Assert.Equal(sourceClaimed || targetClaimed, inherited is not null);
+        if (inherited is not null)
+        {
+            Assert.Null(inherited.MailId);
+            Assert.Equal(sourceClaimed ? sourceId : targetId, inherited.InheritedFromAccountId);
+        }
+        Assert.Empty(await dbContext.PlayerMailDeliveries.ToListAsync());
+    }
+
     [Fact]
     public async Task CloneAsync_RejectsSourceWithAnActiveRuntimeSession()
     {

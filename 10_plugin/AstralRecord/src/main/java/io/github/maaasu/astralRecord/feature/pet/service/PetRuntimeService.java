@@ -66,6 +66,7 @@ public final class PetRuntimeService implements Listener {
     private final Map<UUID, Session> byOwner = new HashMap<>();
     private final Map<UUID, Session> byEntity = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
+    private java.util.function.Consumer<AstPlayer> followStartedListener = ignored -> { };
     private final Map<UUID, TimedAmount> defenseBreaks = new HashMap<>();
     private BukkitTask task;
     private long tick;
@@ -98,6 +99,14 @@ public final class PetRuntimeService implements Listener {
 
     /** @param conditionService ペットへの行動不能と移動速度低下の参照先 */
     public void setConditionService(@Nullable ConditionService conditionService) { this.conditionService = conditionService; }
+    /**
+     * ペットの追従開始が確定したときに呼ぶガイド記録処理を登録します。
+     *
+     * @param listener 追従を開始したプレイヤーを受け取るリスナー
+     */
+    public void setFollowStartedListener(@NotNull java.util.function.Consumer<AstPlayer> listener) {
+        followStartedListener = java.util.Objects.requireNonNull(listener);
+    }
 
     /** @param mobService 管理敵の索敵先 @param displayTextService 共通の頭上表示サービス。開始前に接続します */
     public void setWorldServices(@NotNull MobService mobService, @NotNull DisplayTextService displayTextService) {
@@ -185,6 +194,7 @@ public final class PetRuntimeService implements Listener {
         byEntity.put(entity.getUniqueId(), session);
         session.updatePresentation();
         session.publish();
+        followStartedListener.accept(owner);
         } catch (RuntimeException failure) {
             Session failed = byOwner.remove(ownerId);
             if (failed != null) failed.destroyDisplay();

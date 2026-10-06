@@ -594,6 +594,8 @@ public enum LogId {
      * ガイド進行処理に失敗しました (API): operation=%s, target=%s, reason=%s
      */
     E_5182(5182),
+    /** ガイド全達成報酬 API の照会または受取に失敗しました: operation=%s, account=%s */
+    E_5183(5183),
     // endregion
 
     // region /feature/mail/ 5190-5199

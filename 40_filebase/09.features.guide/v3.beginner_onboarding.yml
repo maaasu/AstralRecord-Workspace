@@ -13,13 +13,13 @@ steps:
     text: "&fゲームへログインする"
     details:
       - "&7サーバーへ接続し、プレイヤーデータの読み込みが完了するまで待つ。"
-      - "&7これを見れているということはすでに達成済みですね！おめでとうございます。"
+      - "&7ログインが完了すると、この手順が達成される。"
     condition:
       type: PLAYER_LOGGED_IN
   - id: open_guide
     text: "&fガイドを開く"
     details:
-      - "&7このガイドを確認するために、&e/guide&7を実行する。"
+      - "&7チャットで&e/guide&7を実行してガイド一覧を開く。"
     condition:
       type: GUIDE_OPENED
   - id: claim_login_bonus
@@ -227,8 +227,8 @@ steps:
     text: "&fあとは自由に冒険しよう"
     details:
       - "&7{world:midgard_greenfields}で倒せる敵モブを倒しながら、プレイヤーレベルを上げる。"
-      - "&7レベルが上がったら、&e{class:swordsman}&7・&e{class:hunter}&7・&e{class:mage}&7のいずれかへの転職を目指す。"
-      - "&7困ったときは、別のガイドを進めてみよう。"
+      - "&7職業案内人ミラを右クリックし、条件を満たした&e{class:swordsman}&7・&e{class:hunter}&7・&e{class:mage}&7から選んで確定する。"
+      - "&7転職後は、職業のCPでスキルツリーを進められる。"
     action:
       type: NAVIGATE_NPC
       npcId: class_guide

@@ -1,0 +1,37 @@
+# design:
+#   motif: "職業 / 新しい道"
+#   progression: 1
+schemaVersion: 3
+id: first_class_progress
+category: skill
+displayOrder: 20
+title: "&b職業を選んで育てよう"
+iconMaterial: BOOK
+summary: "&7職業を選び、その職業のCPでスキルツリーを進める。"
+steps:
+  - id: choose_first_class
+    text: "&f職業案内人ミラに話しかけて職業を選ぶ"
+    details:
+      - "&7職業案内人ミラを右クリックし、職業選択画面を開く。"
+      - "&7転職条件を確認し、進みたい職業を選んで確定する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: class_guide
+      description: "&dクリックで職業案内人ミラの場所を表示する。"
+    condition:
+      type: CLASS_CHANGED
+      targetIds:
+        - swordsman
+        - hunter
+        - mage
+  - id: unlock_class_cp_node
+    text: "&f職業のCPを使ってスキルツリーノードを解放する"
+    details:
+      - "&7職業レベルで得たCPを確認し、スキルツリー案内人に話しかける。"
+      - "&7選んだ職業に対応するCPノードを選び、解放を確定する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: skilltree_entry_guide
+      description: "&dクリックでスキルツリー案内人の場所を表示する。"
+    condition:
+      type: SKILLTREE_CP_NODE_UNLOCKED

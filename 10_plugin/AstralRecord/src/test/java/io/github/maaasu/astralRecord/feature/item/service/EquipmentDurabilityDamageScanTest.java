@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -16,11 +17,14 @@ import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 class EquipmentDurabilityDamageScanTest {
 
@@ -86,6 +90,44 @@ class EquipmentDurabilityDamageScanTest {
                 service.getBrokenArmorAndAccessoryDisplayNames(player)
             );
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
+     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
+     * 検証契約: 採集ツールが耐久値 1 から 0 になった時だけ初回破損条件を伝え、既に壊れた装備では重複記録しない。
+     */
+    @Test
+    void gatheringToolEmitsBreakConditionOnlyOnPositiveToZeroTransition() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemService itemService = mock(ItemService.class);
+        EquipmentDurabilityService service = new EquipmentDurabilityService(inventoryService, itemService, () -> 0.0D);
+        service.setBrokenSoundPlayer(ignored -> { });
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        Player bukkit = mock(Player.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(UUID.randomUUID());
+        when(player.getBukkit()).thenReturn(bukkit);
+        ItemModel model = model("tool", "Tool", ItemEquipmentSlot.TOOL);
+        EquipmentInstance before = instance("tool-instance", "tool", 50, 1);
+        EquipmentInstance after = instance("tool-instance", "tool", 50, 0);
+        when(itemService.findLoadedEquipmentInstanceById("tool-instance")).thenReturn(before, after);
+        when(itemService.findLoadedById("tool")).thenReturn(model);
+        when(itemService.updateEquipmentDurability(org.mockito.ArgumentMatchers.eq("tool-instance"),
+            org.mockito.ArgumentMatchers.eq(0), org.mockito.ArgumentMatchers.anyString())).thenReturn(after);
+        ArrayList<String> brokenItems = new ArrayList<>();
+        service.setEquipmentBrokenListener((owner, itemId) -> brokenItems.add(itemId));
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(mock(PlayerMessageService.class));
+            service.consumeOnGathering(player, "tool-instance");
+            service.consumeOnGathering(player, "tool-instance");
+        }
+
+        assertEquals(List.of("tool"), brokenItems);
+        verify(itemService, times(1)).updateEquipmentDurability(org.mockito.ArgumentMatchers.eq("tool-instance"),
+            org.mockito.ArgumentMatchers.eq(0), org.mockito.ArgumentMatchers.anyString());
     }
 
     private static ItemStack stack() {

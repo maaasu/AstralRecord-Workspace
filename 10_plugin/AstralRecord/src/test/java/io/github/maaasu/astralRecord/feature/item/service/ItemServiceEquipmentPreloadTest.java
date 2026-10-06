@@ -23,6 +23,33 @@ import static org.mockito.Mockito.when;
 class ItemServiceEquipmentPreloadTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
+     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
+     * 検証契約: 再ログイン時の破損補完は、読み込み済みの本人所有かつ最大耐久値がある装備だけを対象にする。
+     */
+    @Test
+    void loadedBrokenEquipmentCheckUsesOwnerAndDurability() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = new ItemService(repository, mock(SetEffectRepository.class));
+        UUID owner = UUID.randomUUID();
+        String instanceId = UUID.randomUUID().toString();
+        EquipmentInstance broken = equipmentWithDurability(instanceId, owner, 100, 0);
+        when(repository.findEquipmentInstanceById(instanceId)).thenReturn(broken);
+
+        assertFalse(service.hasLoadedBrokenEquipment(owner));
+        service.preloadEquipmentInstances(List.of(instanceId));
+        assertTrue(service.hasLoadedBrokenEquipment(owner));
+        assertFalse(service.hasLoadedBrokenEquipment(UUID.randomUUID()));
+
+        ItemService nonDurableOnly = new ItemService(repository, mock(SetEffectRepository.class));
+        String nonDurableId = UUID.randomUUID().toString();
+        when(repository.findEquipmentInstanceById(nonDurableId))
+            .thenReturn(equipmentWithDurability(nonDurableId, owner, 0, 0));
+        nonDurableOnly.preloadEquipmentInstances(List.of(nonDurableId));
+        assertFalse(nonDurableOnly.hasLoadedBrokenEquipment(owner));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: 候補収集用cache-only参照は未ロード装備で同期APIへfallbackせず、事前ロードが正規化重複を1回だけ取得した後は同じ参照から返す。
@@ -239,6 +266,14 @@ class ItemServiceEquipmentPreloadTest {
             List.of(),
             List.of()
         );
+    }
+
+    private static EquipmentInstance equipmentWithDurability(
+        String instanceId, UUID accountId, int durabilityMax, int durabilityValue
+    ) {
+        return new EquipmentInstance(instanceId, accountId.toString(), "debug_sword", 0, 0, 0,
+            durabilityMax, durabilityValue, "2026-08-10T00:00:00", "2026-08-10T00:00:00",
+            List.of(), List.of(), List.of());
     }
 
 }
