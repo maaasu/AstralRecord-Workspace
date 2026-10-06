@@ -180,6 +180,51 @@ class InventoryServiceGrantCapacityTest {
         assertEquals(2, entries.stream().filter(value -> value.getInventoryEntryId().equals(apiEntryId)).findFirst().orElseThrow().getSlotIndex());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
+     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
+     * 検証契約: 4添付の受取は3,000 Goldを通貨欄へ、シンドリとHP/MP薬各10個をバッグへ正確に追加する。
+     */
+    @Test
+    void guideRewardKeepsExactGoldAndBagQuantities() {
+        Fixture fixture = fixture(3);
+        assertNotNull(fixture.service.addPreparedRewardsToNormalInventoryStateOnly(fixture.player, guideRewards()));
+        var bagEntries = fixture.state.snapshotEntries(fixture.bag.getInventoryId());
+        assertEquals(Map.of("40a00011", 10L, "30a00032", 10L, "30a00035", 10L),
+            bagEntries.stream().collect(java.util.stream.Collectors.toMap(
+                InventoryEntryModel::getItemId, InventoryEntryModel::getQuantity)));
+        var currencies = fixture.state.snapshotInventories().stream()
+            .filter(inventory -> inventory.getInventoryType() == InventoryType.CURRENCY).toList();
+        assertEquals(1, currencies.size());
+        long gold = fixture.state.snapshotEntries(currencies.getFirst().getInventoryId()).stream()
+            .mapToLong(entry -> io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination
+                .findByItemId(entry.getItemId()).goldValue() * entry.getQuantity()).sum();
+        assertEquals(3000L, gold);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
+     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
+     * 検証契約: バッグに3品目分の枠がなければ、先に処理したGoldも含め4添付を全て戻し部分付与しない。
+     */
+    @Test
+    void guideRewardRollsBackGoldAndItemsWhenBagHasTooFewSlots() {
+        Fixture fixture = fixture(2);
+        assertNull(fixture.service.addPreparedRewardsToNormalInventoryStateOnly(fixture.player, guideRewards()));
+        assertTrue(fixture.state.snapshotInventories().stream()
+            .allMatch(inventory -> fixture.state.snapshotEntries(inventory.getInventoryId()).isEmpty()));
+        assertFalse(fixture.state.isDirty());
+    }
+
+    private static List<InventoryService.PreparedInventoryReward> guideRewards() {
+        return List.of(
+            new InventoryService.PreparedInventoryReward(DesignTestFixtures.item("99a00001", ItemCategory.CURRENCY, 64), 3000, List.of()),
+            new InventoryService.PreparedInventoryReward(DesignTestFixtures.item("40a00011", ItemCategory.ORB, 64), 10, List.of()),
+            new InventoryService.PreparedInventoryReward(DesignTestFixtures.item("30a00032", ItemCategory.CONSUMABLE, 64), 10, List.of()),
+            new InventoryService.PreparedInventoryReward(DesignTestFixtures.item("30a00035", ItemCategory.CONSUMABLE, 64), 10, List.of())
+        );
+    }
+
     private static Fixture fixture(int capacity) {
         UUID accountId = UUID.randomUUID();
         var state = new PlayerInventoryState(accountId);

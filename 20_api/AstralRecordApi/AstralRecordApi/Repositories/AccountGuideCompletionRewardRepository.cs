@@ -142,12 +142,16 @@ public sealed class AccountGuideCompletionRewardRepository(
 
         var activeItems = itemRepository.GetAllSummaries()
             .ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
-        return rewards.All(reward => activeItems.TryGetValue(reward.ItemId, out var item)
+        return rewards.All(reward =>
+            // Built-in Gold denominations have no YAML/master_data_entry row.
+            (string.Equals(reward.Category, "currency", StringComparison.OrdinalIgnoreCase)
+                && GoldCurrencyBalanceSupport.IsCanonicalGoldItem(reward.ItemId))
+            || (activeItems.TryGetValue(reward.ItemId, out var item)
             && string.Equals(item.Category, reward.Category, StringComparison.OrdinalIgnoreCase)
             // MailService requires an existing owned instance for pets and eggs.
             // This configurable reward path cannot create one before delivery.
             && !string.Equals(item.Category, "pet", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(item.Category, "pet_egg", StringComparison.OrdinalIgnoreCase));
+            && !string.Equals(item.Category, "pet_egg", StringComparison.OrdinalIgnoreCase)));
     }
 
     private static AccountGuideCompletionRewardResponse CreateResponse(

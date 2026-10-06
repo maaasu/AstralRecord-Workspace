@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -31,6 +32,8 @@ public sealed class AccountGuideCompletionRewardRepositoryTests
 
     [Theory]
     [InlineData("unknown-item", "MATERIAL", "1")]
+    [InlineData("99a00001", "ORB", "3000")]
+    [InlineData("99a99999", "CURRENCY", "3000")]
     [InlineData("reward-item", "ORB", "1")]
     [InlineData("reward-item", "MATERIAL", "0")]
     [InlineData("reward-pet", "PET", "1")]
@@ -143,6 +146,86 @@ public sealed class AccountGuideCompletionRewardRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task EnabledDefaultRewardDeliversExactFourRowsOnceAcrossReloadsAndGuideAdditions()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var guides = new[] { Guide("guide-a", "step-a"), Guide("guide-b", "step-b") };
+        await fixture.CompleteAsync("guide-a", "step-a");
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json").Build();
+        var expected = new[]
+        {
+            ("99a00001", "currency", 3000),
+            ("40a00011", "orb", 10),
+            ("30a00032", "consumable", 10),
+            ("30a00035", "consumable", 10),
+        };
+        var settings = configuration.GetSection("GuideCompletionReward")
+            .Get<AccountGuideCompletionRewardOptions>()!;
+        Assert.Equal(expected, settings.Rewards.Select(reward => (reward.ItemId, reward.Category, reward.Amount)));
+        Assert.DoesNotContain(new FixedItemRepository().GetAllSummaries(), item => item.Id == "99a00001");
+
+        await using (var context = fixture.NewContext())
+        {
+            var enabled = new AccountGuideCompletionRewardRepository(
+                context, new FixedGuideRepository(guides), new FixedItemRepository(), configuration);
+            Assert.True((await enabled.GetAsync(fixture.AccountId)).Configured);
+            Assert.False((await enabled.GetAsync(fixture.AccountId)).CanClaim);
+            await Assert.ThrowsAsync<AccountGuideCompletionRewardUnavailableException>(
+                () => enabled.ClaimAsync(fixture.AccountId, fixture.UserId));
+        }
+        await fixture.CompleteAsync("guide-b", "step-b");
+        await using (var context = fixture.NewContext())
+        {
+            var disabled = NewRepository(context, guides, configured: false);
+            Assert.False((await disabled.GetAsync(fixture.AccountId)).CanClaim);
+            await Assert.ThrowsAsync<AccountGuideCompletionRewardUnavailableException>(
+                () => disabled.ClaimAsync(fixture.AccountId, fixture.UserId));
+            Assert.Empty(await context.AccountGuideCompletionRewards.ToListAsync());
+            Assert.Empty(await context.PlayerMailDeliveries.ToListAsync());
+            var enabled = new AccountGuideCompletionRewardRepository(
+                context, new FixedGuideRepository(guides), new FixedItemRepository(), configuration);
+            Assert.True((await enabled.GetAsync(fixture.AccountId)).CanClaim);
+            Assert.True((await enabled.ClaimAsync(fixture.AccountId, fixture.UserId)).Claimed);
+        }
+
+        // A fresh context models a reload/relogin; repeated delivery and later guides do not reset the receipt.
+        await using (var reloaded = fixture.NewContext())
+        {
+            var repository = new AccountGuideCompletionRewardRepository(
+                reloaded, new FixedGuideRepository(guides), new FixedItemRepository(), configuration);
+            Assert.False((await repository.GetAsync(fixture.AccountId)).CanClaim);
+            Assert.True((await repository.ClaimAsync(fixture.AccountId, fixture.UserId)).Claimed);
+            var delivery = Assert.Single(await reloaded.PlayerMailDeliveries.ToListAsync());
+            var mail = JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson, MasterDataPayloadJson.Options)!;
+            Assert.Equal(expected, mail.Rewards.Select(reward => (reward.ItemId, reward.Category, reward.Amount)));
+            Assert.All(mail.Rewards, reward => Assert.Null(reward.InstanceId));
+            var currency = mail.Rewards.Single(reward => reward.Category == "currency");
+            Assert.Equal(3000L, GoldCurrencyBalanceSupport.TotalGold([
+                new InventoryEntryEntity { ItemId = currency.ItemId, Quantity = currency.Amount },
+            ]));
+            Assert.Single(await reloaded.AccountGuideCompletionRewards.ToListAsync());
+            var added = new AccountGuideCompletionRewardRepository(reloaded,
+                new FixedGuideRepository([.. guides, Guide("guide-new", "step-new")]),
+                new FixedItemRepository(), configuration);
+            Assert.False((await added.GetAsync(fixture.AccountId)).AllCompleted);
+            Assert.True((await added.ClaimAsync(fixture.AccountId, fixture.UserId)).Claimed);
+        }
+        await fixture.CompleteAsync("guide-new", "step-new");
+        await using var final = fixture.NewContext();
+        var afterCompletion = new AccountGuideCompletionRewardRepository(final,
+            new FixedGuideRepository([.. guides, Guide("guide-new", "step-new")]),
+            new FixedItemRepository(), configuration);
+        var status = await afterCompletion.GetAsync(fixture.AccountId);
+        Assert.True(status.AllCompleted);
+        Assert.True(status.Claimed);
+        Assert.False(status.CanClaim);
+        await afterCompletion.ClaimAsync(fixture.AccountId, fixture.UserId);
+        Assert.Single(await final.PlayerMailDeliveries.ToListAsync());
+        Assert.Single(await final.AccountGuideCompletionRewards.ToListAsync());
+    }
+
     private static AccountGuideCompletionRewardRepository NewRepository(
         AstralRecordDbContext context, IReadOnlyList<GuideResponse> guides, bool configured = true,
         string itemId = "reward-item", string category = "MATERIAL", string amount = "1")
@@ -184,6 +267,9 @@ public sealed class AccountGuideCompletionRewardRepositoryTests
         public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() =>
             [
                 new ItemSummaryResponse { Id = "reward-item", Category = "material", Name = "test reward" },
+                new ItemSummaryResponse { Id = "40a00011", Category = "orb", Name = "Sindri fixture" },
+                new ItemSummaryResponse { Id = "30a00032", Category = "consumable", Name = "HP fixture" },
+                new ItemSummaryResponse { Id = "30a00035", Category = "consumable", Name = "MP fixture" },
                 new ItemSummaryResponse { Id = "reward-pet", Category = "pet", Name = "test pet" },
                 new ItemSummaryResponse { Id = "reward-egg", Category = "pet_egg", Name = "test egg" },
             ];

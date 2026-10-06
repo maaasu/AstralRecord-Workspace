@@ -225,6 +225,62 @@ public sealed class PaidServicesRepositoryTests
         Assert.Equal(1500, (await f.Db.InventoryEntries.SingleAsync(x => x.ItemId == "99a00021")).Quantity);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GuideRewardBuiltInGoldCanBeClaimedOnceAndLeavesThreeItems(bool online)
+    {
+        await using var f = await Fixture.CreateAsync();
+        Assert.Null(f.Items.GetById("99a00001"));
+        var mailId = $"guide-completion-{f.AccountId:N}";
+        var now = DateTime.UtcNow;
+        var rewardMail = new MailResponse
+        {
+            SchemaVersion = 1, Id = mailId, Icon = "WRITABLE_BOOK", Title = "Guide reward", Body = "Guide reward",
+            PublishFrom = now.AddMinutes(-1), ReceiveOnRead = true,
+            Rewards = [
+                new() { ItemId = "99a00001", Category = "currency", Amount = 3000 },
+                new() { ItemId = "40a00011", Category = "orb", Amount = 10 },
+                new() { ItemId = "30a00032", Category = "consumable", Amount = 10 },
+                new() { ItemId = "30a00035", Category = "consumable", Amount = 10 },
+            ],
+        };
+        f.Db.PlayerMailDeliveries.Add(new()
+        {
+            PlayerMailDeliveryId = Guid.NewGuid(), AccountId = f.AccountId, MailId = mailId,
+            PayloadJson = System.Text.Json.JsonSerializer.Serialize(rewardMail, MasterDataPayloadJson.Options),
+            Version = 1, CreatedAt = now, UpdatedAt = now, CreatedBy = f.UserId, UpdatedBy = f.UserId,
+        });
+        await f.Db.SaveChangesAsync();
+        if (online) await f.AddRuntimeSessionAsync();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var mail = new MailRepository(f.Db, f.Master, cache);
+        var repo = new WebMailRepository(f.Db, mail, f.Items, TimeProvider.System);
+        var request = new WebMailCurrencyClaimRequest(Guid.NewGuid(), f.AccountId);
+        var response = await repo.CreateAsync(f.UserId, mailId, request);
+        if (online)
+        {
+            Assert.Equal("PENDING", response.Status);
+            Assert.False(await f.Db.InventoryEntries.AnyAsync(entry => entry.ItemId == "99a00001"));
+            response = (await repo.ProcessAsync(request.OperationId, new(f.AccountId, true)))!;
+        }
+        Assert.Equal("COMPLETED", response.Status);
+        Assert.Equal(3000, (await f.Db.InventoryEntries.SingleAsync(entry => entry.ItemId == "99a00001")).Quantity);
+        Assert.Equal(1000, (await f.Db.InventoryEntries.SingleAsync(entry => entry.ItemId == "99a00021")).Quantity);
+        var remaining = Assert.Single(await mail.GetAvailableByAccountIdAsync(f.AccountId, "unread"));
+        Assert.True(remaining.CurrencyClaimed);
+        Assert.False(remaining.CanClaimCurrency);
+        Assert.False(remaining.IsRead);
+        Assert.Equal(new[] { ("40a00011", 10), ("30a00032", 10), ("30a00035", 10) },
+            remaining.Rewards.Select(reward => (reward.ItemId, reward.Amount)));
+        Assert.Equal("COMPLETED", (await repo.CreateAsync(f.UserId, mailId, request)).Status);
+        Assert.Equal("COMPLETED", (await repo.ProcessAsync(request.OperationId, new(f.AccountId, true)))!.Status);
+        Assert.Equal("already_claimed", (await repo.CreateAsync(f.UserId, mailId,
+            new(Guid.NewGuid(), f.AccountId))).Reason);
+        Assert.Equal(3000, (await f.Db.InventoryEntries.SingleAsync(entry => entry.ItemId == "99a00001")).Quantity);
+        Assert.Single(await f.Db.WebMailCurrencyClaims.ToArrayAsync());
+    }
+
     [Fact]
     public async Task CurrencyOnlyMailClaimMarksReadAndExpiredOpenSessionStillRequiresProcess()
     {

@@ -277,6 +277,47 @@ class MailServiceTest {
         verify(context.messageService).send(context.astPlayer, PlayerMsgId.P_7301);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
+     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
+     * 検証契約: 全達成メールの4行を数量そのままで保存処理へ渡し、同じメールを再度開いても重複付与しない。
+     */
+    @Test
+    void guideRewardMailPreservesFourAttachmentsAndDoesNotGrantTwice() {
+        TestContext context = new TestContext();
+        List<MailReward> attachments = List.of(new MailReward("99a00001", "currency", 3000),
+            new MailReward("40a00011", "orb", 10), new MailReward("30a00032", "consumable", 10),
+            new MailReward("30a00035", "consumable", 10));
+        for (MailReward attachment : attachments) {
+            ItemModel model = mock(ItemModel.class);
+            when(model.getId()).thenReturn(attachment.itemId());
+            when(model.getCategory()).thenReturn(attachment.category());
+            when(context.itemService.findLoadedById(attachment.itemId())).thenReturn(model);
+        }
+        MailEntry mail = new MailEntry("guide-completion-" + context.accountId, "WRITABLE_BOOK", null,
+            "全ガイド達成報酬", "本文", LocalDateTime.now().minusMinutes(1), null, true, attachments, false, null);
+        when(context.repository.findAvailable(context.accountId, MailFilter.ALL)).thenReturn(List.of(mail));
+        when(context.inventoryService.snapshotState(context.accountId)).thenReturn(context.rollbackSnapshot());
+        when(context.inventoryService.addPreparedRewardsToNormalInventoryStateOnly(eq(context.astPlayer), any()))
+            .thenReturn(context.receipt(3030L));
+        context.completeCriticalMutation();
+        AtomicReference<MailService.ReadAndReceiveResult> first = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> retry = new AtomicReference<>();
+        context.runWithPlayerServices(() -> {
+            context.service.readAndReceive(context.astPlayer, mail, first::set);
+            context.service.readAndReceive(context.astPlayer, mail, retry::set);
+        });
+        assertTrue(first.get().success());
+        assertTrue(first.get().rewardReceived());
+        assertTrue(retry.get().success());
+        assertFalse(retry.get().rewardReceived());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InventoryService.PreparedInventoryReward>> captured = ArgumentCaptor.forClass(List.class);
+        verify(context.inventoryService).addPreparedRewardsToNormalInventoryStateOnly(eq(context.astPlayer), captured.capture());
+        assertEquals(attachments, captured.getValue().stream()
+            .map(reward -> new MailReward(reward.model().getId(), reward.model().getCategory(), reward.amount())).toList());
+    }
+
     private static final class TestContext {
         private final UUID playerId = UUID.randomUUID();
         private final UUID userId = UUID.randomUUID();

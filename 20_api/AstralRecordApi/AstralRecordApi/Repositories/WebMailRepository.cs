@@ -47,7 +47,9 @@ public sealed class WebMailRepository(AstralRecordDbContext db, IMailRepository 
                 .FirstOrDefault(x => x.Id == mailId);
             if (letter is null || !letter.CanClaimCurrency) return Rejected("mail_unavailable");
             if (letter.Rewards.Where(x => x.Category.Equals("CURRENCY", StringComparison.OrdinalIgnoreCase))
-                .Any(x => x.Amount <= 0 || x.InstanceId is not null || items.GetById(x.ItemId)?.Category != "currency"))
+                .Any(x => x.Amount <= 0 || x.InstanceId is not null
+                    || (!GoldCurrencyBalanceSupport.IsCanonicalGoldItem(x.ItemId)
+                        && items.GetById(x.ItemId)?.Category != "currency")))
                 return Rejected("invalid_currency_reward");
             var now = Now();
             var operation = new WebMailCurrencyClaimEntity

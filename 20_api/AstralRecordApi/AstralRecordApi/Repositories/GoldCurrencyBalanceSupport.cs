@@ -44,6 +44,10 @@ internal static class GoldCurrencyBalanceSupport
         ("99a00001", 1L),
     ];
 
+    /// <summary>Plugin が組み込みで提供する正規の Gold 額面 ID かを判定します。</summary>
+    internal static bool IsCanonicalGoldItem(string itemId)
+        => CanonicalGold.Any(denomination => IdEquals(itemId, denomination.ItemId));
+
     internal static bool IsMarketGoldCurrency(string? currencyId)
         => string.Equals(currencyId?.Trim(), MarketCurrencyId, StringComparison.OrdinalIgnoreCase);
 
