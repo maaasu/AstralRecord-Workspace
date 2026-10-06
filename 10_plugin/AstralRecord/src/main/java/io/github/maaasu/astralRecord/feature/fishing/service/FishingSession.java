@@ -402,7 +402,7 @@ public final class FishingSession {
         double offset = rules.nibbleDistance() * (1.0D + Math.cos(2.0D * Math.PI * phase)) * 0.5D;
         Location next = submergedHook.clone().add(outward.normalize().multiply(offset));
         Location current = swimmer.entity.getLocation();
-        if (!isWaterAt(next) || !canTravel(current, next)) return;
+        if (!isWaterAt(next) || !canTravel(swimmer.entity, current, next)) return;
         Vector motion = next.toVector().subtract(current.toVector());
         if (motion.lengthSquared() > 1.0E-8D) next.setDirection(motion);
         swimmer.entity.teleport(next);
@@ -425,6 +425,7 @@ public final class FishingSession {
         }
         FishingFeedback.notify(owner, FishingMsgId.BITE);
         FishingFeedback.notify(owner, FishingMsgId.BATTLE);
+        FishingFeedback.notify(owner, FishingMsgId.GAUGE_HINT);
         bar.setVisible(true);
         player.playSound(hook, Sound.ENTITY_FISHING_BOBBER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 0.9F);
         particles.spawnForNearbyViewers(hook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
@@ -480,7 +481,7 @@ public final class FishingSession {
         double vertical = Math.max(-0.10D, Math.min(0.10D, surfaceY - current.getY()));
         if (Math.abs(vertical) > 1.0E-4D) {
             Location next = current.clone().add(0.0D, vertical, 0.0D);
-            if (canTravel(current, next)) selected.entity.teleport(next);
+            if (canTravel(selected.entity, current, next)) selected.entity.teleport(next);
         }
     }
 
@@ -536,7 +537,7 @@ public final class FishingSession {
         Vector motion = delta.length() > 0.24D ? delta.normalize().multiply(0.24D) : delta;
         Location next = current.clone().add(motion).setDirection(motion);
         if (!isWater(next.getBlockX(), (int) Math.floor(surfaceY - 0.10D), next.getBlockZ())
-            || !canTravel(current, next)) return false;
+            || !canTravel(selected.entity, current, next)) return false;
         selected.entity.teleport(next);
         return true;
     }
@@ -587,7 +588,7 @@ public final class FishingSession {
         Vector travel = end.toVector().subtract(landingStart.toVector());
         Location next = landingStart.clone().add(travel.multiply(progress))
             .add(0.0D, Math.sin(Math.PI * progress) * 1.3D, 0.0D);
-        if (!canTravel(selected.entity.getLocation(), next)) return;
+        if (!canTravel(selected.entity, selected.entity.getLocation(), next)) return;
         selected.entity.teleport(next);
         hook = next;
         if (phaseTicks >= rules.landingTicks()) {
@@ -611,7 +612,7 @@ public final class FishingSession {
         if (selected == null) { close(); return; }
         fleeLosers();
         Location position = hangPosition(rodTip).add(0.0D, Math.sin(phaseTicks * 0.18D) * 0.05D, 0.0D);
-        if (canTravel(selected.entity.getLocation(), position)) {
+        if (canTravel(selected.entity, selected.entity.getLocation(), position)) {
             selected.entity.teleport(position);
         }
         hook = selected.entity.getLocation();
@@ -634,7 +635,7 @@ public final class FishingSession {
         return rodTip.clone().add(forward.normalize().multiply(1.2D)).add(0.0D, -1.15D, 0.0D);
     }
 
-    /** 重力で落下し、接地時だけ跳ねて逃走します。元の水域以外への接水も逃走となります。 */
+    /** 重力で落下し、接地時に高さ・方向を変えて跳ね、壁を避けます。元の水域以外への接水も逃走となります。 */
     private void tickReleased() {
         if (selected == null || escapeMotion == null) { close(); return; }
         if (phaseTicks >= rules.escapeTicks()) {
@@ -694,8 +695,8 @@ public final class FishingSession {
         close();
     }
 
-    /** @return 移動線分が読込済みで固体ブロックを通らない場合はtrue */
-    private boolean canTravel(Location from, Location to) {
+    /** @return 移動線分上で魚の実体AABBが読込済みかつ固体の衝突形状と重ならない場合true */
+    private boolean canTravel(Fish movingFish, Location from, Location to) {
         if (from.getWorld() != world || to.getWorld() != world) return false;
         Vector travel = to.toVector().subtract(from.toVector());
         double length = travel.length();
@@ -703,10 +704,11 @@ public final class FishingSession {
             return false;
         }
         int steps = Math.max(1, (int) Math.ceil(length / TRAVEL_SAMPLE_STEP));
+        BoundingBox localBounds = movingFish.getBoundingBox().clone()
+            .shift(from.toVector().multiply(-1.0D));
         for (int step = 1; step <= steps; step++) {
             Location point = from.clone().add(travel.clone().multiply(step / (double) steps));
-            if (!world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
-                || !point.getBlock().isPassable()) return false;
+            if (!FishingEscapeMotion.canOccupy(point, localBounds)) return false;
         }
         return true;
     }
@@ -728,7 +730,7 @@ public final class FishingSession {
         }
         Vector delta = target.toVector().subtract(current.toVector());
         if (delta.lengthSquared() <= speed * speed) {
-            if (!canTravel(current, target)) return false;
+            if (!canTravel(swimmer.entity, current, target)) return false;
             Location destination = target.clone();
             if (delta.lengthSquared() > 1.0E-8D) destination.setDirection(delta);
             swimmer.entity.teleport(destination);
@@ -736,7 +738,7 @@ public final class FishingSession {
             return true;
         }
         Location next = current.add(delta.normalize().multiply(speed)).setDirection(delta);
-        if (!canTravel(swimmer.entity.getLocation(), next)) return false;
+        if (!canTravel(swimmer.entity, swimmer.entity.getLocation(), next)) return false;
         swimmer.entity.teleport(next);
         return true;
     }

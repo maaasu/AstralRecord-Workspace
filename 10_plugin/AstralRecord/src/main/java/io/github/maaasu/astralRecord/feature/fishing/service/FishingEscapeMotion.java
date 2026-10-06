@@ -12,6 +12,8 @@ import org.bukkit.util.Vector;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.random.RandomGenerator;
 
 /** 逃走中の実魚を、実体の当たり判定で床・壁・水に沿って一 tick ずつ動かします。 */
 public final class FishingEscapeMotion {
@@ -21,13 +23,22 @@ public final class FishingEscapeMotion {
     private static final int MAX_SUBSTEPS = 32;
     private static final double CONTACT_EPSILON = 1.0E-5D;
     private static final double GROUND_PROBE = 0.025D;
+    private static final double HEADING_SPREAD = Math.toRadians(55.0D);
+    private static final double WALL_PROBE = 0.6D;
+    private static final double MAX_RECOVERY_DISTANCE = 1.0D;
+    private static final int MAX_HEADING_PROBES = 64;
 
     private final World world;
     private final double hopSpeed;
     private final double fleeSpeed;
     private final Location target;
     private final BoundingBox localBounds;
+    private final RandomGenerator random;
     private double verticalSpeed;
+    private double horizontalX;
+    private double horizontalZ;
+    private int detourHops;
+    private boolean detouring;
     private boolean escaped;
 
     /**
@@ -43,12 +54,19 @@ public final class FishingEscapeMotion {
      */
     public FishingEscapeMotion(Location start, Location originalWater, BoundingBox localBounds,
                                double fleeSpeed, double hopSpeed) {
+        this(start, originalWater, localBounds, fleeSpeed, hopSpeed, ThreadLocalRandom.current());
+    }
+
+    /** 乱数源を指定し、跳躍ごとの高さと進路を再現可能に初期化します。引数の制約は公開コンストラクタと同じです。 */
+    FishingEscapeMotion(Location start, Location originalWater, BoundingBox localBounds,
+                        double fleeSpeed, double hopSpeed, RandomGenerator random) {
         if (!Double.isFinite(fleeSpeed) || fleeSpeed <= 0 || fleeSpeed > 1
             || !Double.isFinite(hopSpeed) || hopSpeed <= 0 || hopSpeed > 1) {
             throw new IllegalArgumentException("Invalid fish escape speeds");
         }
         this.fleeSpeed = fleeSpeed;
         this.hopSpeed = hopSpeed;
+        this.random = Objects.requireNonNull(random, "random");
         Objects.requireNonNull(start, "start");
         Objects.requireNonNull(originalWater, "originalWater");
         this.world = Objects.requireNonNull(start.getWorld(), "start.world");
@@ -63,10 +81,12 @@ public final class FishingEscapeMotion {
         }
         this.target = originalWater.clone();
         this.escaped = touchesWater(start, this.localBounds);
+        chooseHeading(start, fleeSpeed);
     }
 
     /**
-     * 外部で動いた実魚の現在位置から一 tick 進めます。Bukkit API を使うためメインスレッドで呼びます。
+     * 外部で動いた実魚の現在位置から一 tick 進めます。跳躍ごとに高さ・速度・進路を変え、壁では迂回します。
+     * Bukkit API を使うためメインスレッドで呼びます。
      *
      * @param current 実魚の現在の足元位置。開始時と同じ world を使用します
      * @return 足元位置、今回の移動速度、接水、接地、跳躍開始の結果。異世界・未読込・不正座標では移動しません
@@ -83,17 +103,31 @@ public final class FishingEscapeMotion {
             escaped = true;
             return new Step(position, new Vector(), true, false, false);
         }
+        if (!canOccupy(current, localBounds)) {
+            Location recovered = recoverFromSolid(current);
+            if (recovered == null) return new Step(position, new Vector(), false, false, false);
+            if (touchesWater(recovered, localBounds)) return waterStep(current, recovered);
+            verticalSpeed = 0.0D;
+            return new Step(recovered, recovered.toVector().subtract(current.toVector()),
+                    false, blockedBelow(recovered), false);
+        }
 
         boolean onGround = blockedBelow(current);
         boolean bounced = onGround && verticalSpeed <= 0.0D;
-        if (bounced) verticalSpeed = hopSpeed;
+        if (bounced) {
+            verticalSpeed = Math.min(1.0D, hopSpeed * random.nextDouble(0.75D, 1.25D));
+            double speed = Math.min(1.0D, fleeSpeed * random.nextDouble(0.75D, 1.25D));
+            if (detouring && (detourHops > 0 || !clearHeadingToWater(current))) {
+                detourHops = Math.max(0, detourHops - 1);
+                setHeading(horizontalX, horizontalZ, speed);
+            } else {
+                detouring = false;
+                chooseHeading(current, speed);
+            }
+        }
         verticalSpeed = Math.max(-TERMINAL_SPEED, verticalSpeed - GRAVITY);
-        double dx = target.getX() - current.getX();
-        double dz = target.getZ() - current.getZ();
-        double horizontalDistance = Math.hypot(dx, dz);
-        double horizontalTravel = Math.min(fleeSpeed, horizontalDistance);
-        double vx = horizontalDistance > CONTACT_EPSILON ? dx / horizontalDistance * horizontalTravel : 0.0D;
-        double vz = horizontalDistance > CONTACT_EPSILON ? dz / horizontalDistance * horizontalTravel : 0.0D;
+        double vx = horizontalX;
+        double vz = horizontalZ;
         int steps = (int) Math.ceil(Math.max(Math.max(Math.abs(vx), Math.abs(vz)), Math.abs(verticalSpeed))
                 / MAX_SUBSTEP);
         if (steps < 1 || steps > MAX_SUBSTEPS) {
@@ -102,6 +136,8 @@ public final class FishingEscapeMotion {
 
         double sy = verticalSpeed / steps;
         boolean landed = false;
+        boolean hitX = false;
+        boolean hitZ = false;
         for (int index = 0; index < steps; index++) {
             // 水平方向より先に重力を解決し、壁際の床に魚を押し込まない。
             AxisMove y = moveAxis(position, Axis.Y, sy);
@@ -116,17 +152,164 @@ public final class FishingEscapeMotion {
             AxisMove x = moveAxis(position, Axis.X, vx / steps);
             if (x.unloaded()) break;
             position.setX(position.getX() + x.distance());
+            hitX |= x.blocked();
             if (touchesWater(position, localBounds)) return waterStep(current, position);
             AxisMove z = moveAxis(position, Axis.Z, vz / steps);
             if (z.unloaded()) break;
             position.setZ(position.getZ() + z.distance());
+            hitZ |= z.blocked();
             if (touchesWater(position, localBounds)) return waterStep(current, position);
         }
+        if (hitX || hitZ) avoidWall(position, hitX, hitZ);
         Vector displacement = position.toVector().subtract(current.toVector());
         if (displacement.lengthSquared() > CONTACT_EPSILON * CONTACT_EPSILON) {
             position.setDirection(displacement);
         }
         return new Step(position, displacement, false, landed || blockedBelow(position), bounced);
+    }
+
+    /** 水辺を基準に左右へ振った進路を選び、一回の跳躍中は水平速度を維持します。 */
+    private void chooseHeading(Location position, double speed) {
+        double dx = target.getX() - position.getX();
+        double dz = target.getZ() - position.getZ();
+        double heading = Math.hypot(dx, dz) > CONTACT_EPSILON
+                ? Math.atan2(dz, dx) + random.nextDouble(-HEADING_SPREAD, HEADING_SPREAD)
+                : random.nextDouble(Math.PI * 2.0D);
+        setHeading(Math.cos(heading), Math.sin(heading), speed);
+    }
+
+    /** 与えた方向を指定速度へ正規化して保持します。 */
+    private void setHeading(double dx, double dz, double speed) {
+        double length = Math.hypot(dx, dz);
+        if (length <= CONTACT_EPSILON) return;
+        horizontalX = dx / length * speed;
+        horizontalZ = dz / length * speed;
+    }
+
+    /**
+     * 接触面から離れる方向と壁沿いの方向を実体サイズで調べ、最も動ける方向へ転じます。
+     * 最低二回の跳躍と水辺への進路が開くまで迂回を維持し、壁の正面へ戻り続けることを防ぎます。
+     */
+    private void avoidWall(Location position, boolean hitX, boolean hitZ) {
+        double speed = Math.hypot(horizontalX, horizontalZ);
+        double nx = hitX ? -Math.signum(horizontalX) : 0.0D;
+        double nz = hitZ ? -Math.signum(horizontalZ) : 0.0D;
+        double length = Math.hypot(nx, nz);
+        if (length <= CONTACT_EPSILON) return;
+        nx /= length;
+        nz /= length;
+        double side = random.nextBoolean() ? 1.0D : -1.0D;
+        double tx = -nz * side;
+        double tz = nx * side;
+        double[][] candidates = {
+            {nx * 0.35D + tx, nz * 0.35D + tz},
+            {nx * 0.35D - tx, nz * 0.35D - tz},
+            {nx, nz}
+        };
+        double bestScore = -1.0D;
+        double bestX = nx;
+        double bestZ = nz;
+        Vector towardWater = target.toVector().subtract(position.toVector()).setY(0.0D);
+        if (towardWater.lengthSquared() > CONTACT_EPSILON * CONTACT_EPSILON) towardWater.normalize();
+        for (double[] candidate : candidates) {
+            double scale = WALL_PROBE / Math.hypot(candidate[0], candidate[1]);
+            AxisMove x = moveAxis(position, Axis.X, candidate[0] * scale);
+            if (x.unloaded()) continue;
+            Location probe = position.clone().add(x.distance(), 0.0D, 0.0D);
+            AxisMove z = moveAxis(probe, Axis.Z, candidate[1] * scale);
+            if (z.unloaded()) continue;
+            double score = x.distance() * x.distance() + z.distance() * z.distance()
+                    + 0.01D * (x.distance() * towardWater.getX() + z.distance() * towardWater.getZ());
+            if (score > bestScore + CONTACT_EPSILON) {
+                bestScore = score;
+                bestX = candidate[0];
+                bestZ = candidate[1];
+            }
+        }
+        setHeading(bestX, bestZ, speed);
+        detourHops = 2;
+        detouring = true;
+    }
+
+    /** 水辺へ戻す水平進路を最大16ブロック・64地点まで実体サイズで検査します。 */
+    private boolean clearHeadingToWater(Location current) {
+        Vector travel = target.toVector().subtract(current.toVector()).setY(0.0D);
+        double distance = travel.length();
+        if (distance <= CONTACT_EPSILON) return true;
+        double checked = Math.min(distance, MAX_HEADING_PROBES * 0.25D);
+        int steps = Math.max(1, (int) Math.ceil(checked / 0.25D));
+        travel.multiply(checked / distance);
+        for (int index = 1; index <= steps; index++) {
+            Location probe = current.clone().add(travel.clone().multiply(index / (double) steps));
+            if (!canOccupy(probe, localBounds)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * 固体へ重なった開始位置から、1ブロック以内の最も近い非衝突位置へ押し出します。
+     * 他の固体・未読込チャンクへは移さず、安全な候補がなければ現在位置を維持します。
+     */
+    private Location recoverFromSolid(Location current) {
+        BoundingBox body = boundsAt(current);
+        List<BoundingBox> intersections = solidIntersections(world, body);
+        Location nearest = null;
+        double bestDistance = MAX_RECOVERY_DISTANCE + CONTACT_EPSILON;
+        for (BoundingBox obstacle : intersections) {
+            double[][] offsets = {
+                {obstacle.getMinX() - body.getMaxX() - CONTACT_EPSILON, 0, 0},
+                {obstacle.getMaxX() - body.getMinX() + CONTACT_EPSILON, 0, 0},
+                {0, obstacle.getMinY() - body.getMaxY() - CONTACT_EPSILON, 0},
+                {0, obstacle.getMaxY() - body.getMinY() + CONTACT_EPSILON, 0},
+                {0, 0, obstacle.getMinZ() - body.getMaxZ() - CONTACT_EPSILON},
+                {0, 0, obstacle.getMaxZ() - body.getMinZ() + CONTACT_EPSILON}
+            };
+            for (double[] offset : offsets) {
+                double distance = Math.abs(offset[0]) + Math.abs(offset[1]) + Math.abs(offset[2]);
+                if (distance >= bestDistance || distance > MAX_RECOVERY_DISTANCE) continue;
+                Location candidate = current.clone().add(offset[0], offset[1], offset[2]);
+                if (!canOccupy(candidate, localBounds)) continue;
+                BoundingBox swept = body.clone().expandDirectional(offset[0], offset[1], offset[2]);
+                if (!areaLoaded(swept) || solidIntersections(world, swept).stream()
+                        .anyMatch(collision -> !intersections.contains(collision))) continue;
+                nearest = candidate;
+                bestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * 魚の実体サイズで固体との重なりを検査します。接触面の丸め誤差は許容します。
+     * @param position 魚の足元位置
+     * @param localBounds 足元からの相対AABB
+     * @return 同worldの読込済み範囲内で固体と重ならない場合true
+     */
+    static boolean canOccupy(Location position, BoundingBox localBounds) {
+        World world = position.getWorld();
+        if (world == null || !finite(position) || !finite(localBounds)) return false;
+        BoundingBox body = localBounds.clone().shift(position.toVector());
+        return areaLoaded(world, body) && solidIntersections(world, body).isEmpty();
+    }
+
+    /** @return 読込済みの実体AABBと正の体積で重なるブロック衝突形状 */
+    private static List<BoundingBox> solidIntersections(World world, BoundingBox body) {
+        List<BoundingBox> collisions = new java.util.ArrayList<>();
+        for (int x = (int) Math.floor(body.getMinX()); x <= (int) Math.floor(Math.nextDown(body.getMaxX())); x++) {
+            // 柵・壁は起点ブロックの上へ衝突形状が張り出すため、一段下から調べます。
+            for (int y = Math.max(world.getMinHeight(), (int) Math.floor(body.getMinY()) - 1);
+                 y <= (int) Math.floor(Math.nextDown(body.getMaxY())); y++) {
+                for (int z = (int) Math.floor(body.getMinZ()); z <= (int) Math.floor(Math.nextDown(body.getMaxZ())); z++) {
+                    for (BoundingBox local : world.getBlockAt(x, y, z).getCollisionShape().getBoundingBoxes()) {
+                        BoundingBox obstacle = local.clone().shift(x, y, z);
+                        if (body.getMinX() < obstacle.getMaxX() - CONTACT_EPSILON
+                                && body.getMaxX() > obstacle.getMinX() + CONTACT_EPSILON
+                                && overlapsOtherAxes(body, obstacle, Axis.X)) collisions.add(obstacle);
+                    }
+                }
+            }
+        }
+        return collisions;
     }
 
     /**
@@ -192,7 +375,7 @@ public final class FishingEscapeMotion {
         double allowed = wanted;
         int minX = (int) Math.floor(swept.getMinX());
         int maxX = (int) Math.floor(swept.getMaxX());
-        int minY = Math.max(world.getMinHeight(), (int) Math.floor(swept.getMinY()));
+        int minY = Math.max(world.getMinHeight(), (int) Math.floor(swept.getMinY()) - 1);
         int maxY = Math.min(world.getMaxHeight() - 1, (int) Math.floor(swept.getMaxY()));
         int minZ = (int) Math.floor(swept.getMinZ());
         int maxZ = (int) Math.floor(swept.getMaxZ());
@@ -222,6 +405,11 @@ public final class FishingEscapeMotion {
 
     /** @return AABB が跨ぐ全チャンクが読込済みか */
     private boolean areaLoaded(BoundingBox box) {
+        return areaLoaded(world, box);
+    }
+
+    /** @return 指定worldで実体AABBの高さと全チャンクが利用可能か */
+    private static boolean areaLoaded(World world, BoundingBox box) {
         int minX = (int) Math.floor(box.getMinX()) >> 4;
         int maxX = (int) Math.floor(box.getMaxX()) >> 4;
         int minZ = (int) Math.floor(box.getMinZ()) >> 4;
@@ -317,9 +505,13 @@ public final class FishingEscapeMotion {
 
     /** @return 移動軸以外の二軸で体積が重なるか */
     private static boolean overlapsOtherAxes(BoundingBox body, BoundingBox obstacle, Axis axis) {
-        return (axis == Axis.X || body.getMinX() < obstacle.getMaxX() && body.getMaxX() > obstacle.getMinX())
-                && (axis == Axis.Y || body.getMinY() < obstacle.getMaxY() && body.getMaxY() > obstacle.getMinY())
-                && (axis == Axis.Z || body.getMinZ() < obstacle.getMaxZ() && body.getMaxZ() > obstacle.getMinZ());
+        // 接触面の丸め誤差を重なりとみなすと、着地しただけで水平移動まで停止します。
+        return (axis == Axis.X || body.getMinX() < obstacle.getMaxX() - CONTACT_EPSILON
+                && body.getMaxX() > obstacle.getMinX() + CONTACT_EPSILON)
+                && (axis == Axis.Y || body.getMinY() < obstacle.getMaxY() - CONTACT_EPSILON
+                && body.getMaxY() > obstacle.getMinY() + CONTACT_EPSILON)
+                && (axis == Axis.Z || body.getMinZ() < obstacle.getMaxZ() - CONTACT_EPSILON
+                && body.getMaxZ() > obstacle.getMinZ() + CONTACT_EPSILON);
     }
 
     /** @return Location の三座標が有限か */

@@ -18,7 +18,8 @@ public enum FishingMsgId {
     FISH_NAME(PlayerMsgId.P_9711),
     NO_FISHING_AREA(PlayerMsgId.P_9712),
     LEVEL(PlayerMsgId.P_9713),
-    LEVEL_WITH_ROD(PlayerMsgId.P_9714);
+    LEVEL_WITH_ROD(PlayerMsgId.P_9714),
+    GAUGE_HINT(PlayerMsgId.P_9715);
 
     private final PlayerMsgId message;
 
