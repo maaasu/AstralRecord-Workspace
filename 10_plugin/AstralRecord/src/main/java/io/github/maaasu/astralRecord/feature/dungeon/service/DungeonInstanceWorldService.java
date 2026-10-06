@@ -12,12 +12,14 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Stairs;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
@@ -172,11 +174,24 @@ public final class DungeonInstanceWorldService {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
+    /**
+     * 確定済みの配置を物理更新なしで反映し、装飾用の葉は自然消滅しない状態にします。
+     *
+     * @param world メインスレッドで操作する生成先ワールド
+     * @param placement 反映するブロックと階段の向き
+     * @throws IllegalArgumentException 階段設定の Material が階段ではない場合
+     */
     private void apply(@NotNull World world, @NotNull DungeonBlockPlan.Placement placement) {
         DungeonBlockPlan.Position position = placement.position();
         Block block = world.getBlockAt(position.x(), position.y(), position.z());
         if (placement.stair() == null) {
-            block.setType(placement.material(), false);
+            if (Tag.LEAVES.isTagged(placement.material())) {
+                Leaves leaves = (Leaves) placement.material().createBlockData();
+                leaves.setPersistent(true);
+                block.setBlockData(leaves, false);
+            } else {
+                block.setType(placement.material(), false);
+            }
             return;
         }
         BlockData blockData = placement.material().createBlockData();
