@@ -321,14 +321,14 @@ final class VesperalaEncounterController {
         if (!cast.stage.harmful) {
             List<Location> ring = new ArrayList<>();
             ringPoints(cast.center, 2.5D, 24, ring);
-            particles.spawnForNearbyViewers(cast.center, ring, SharedParticleDefinitions.VESPERALA_SAFE);
+            BossParticleEffect.safeArea(particles, cast.center, ring);
             return;
         }
         List<Location> danger = BossDamageAreaEffect.sampleArea(cast.center, ARENA_RADIUS, 1.5D,
             point -> contains(cast, point), point -> clearSight(cast, point));
-        particles.spawnForNearbyViewers(cast.center, danger, SharedParticleDefinitions.VESPERALA_WARNING);
+        particles.spawnForNearbyViewers(cast.center, danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         List<Location> outline = boundaryPoints(cast);
-        if (!outline.isEmpty()) particles.spawnForNearbyViewers(cast.center, outline, SharedParticleDefinitions.VESPERALA_WARNING);
+        if (!outline.isEmpty()) particles.spawnForNearbyViewers(cast.center, outline, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         List<Location> safe = new ArrayList<>();
         Location safeSpot = cast.safeSpot;
         if (safeSpot != null) ringPoints(safeSpot, 0.7D, 16, safe);
@@ -342,7 +342,7 @@ final class VesperalaEncounterController {
                 }
             }
         }
-        if (!safe.isEmpty()) particles.spawnForNearbyViewers(cast.center, safe, SharedParticleDefinitions.VESPERALA_SAFE);
+        BossParticleEffect.safeArea(particles, cast.center, safe);
     }
 
     /** 16mの戦闘会場を1秒周期・2層128地点で示し、会場外から攻撃できない境界を可視化します。 */

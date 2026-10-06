@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.eriva;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -101,7 +102,7 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
         }
         double radius = context.binding().params().getOrDefault("radius", DEFAULT_RADIUS);
         double damageRatio = context.binding().params().getOrDefault("damageRatio", DEFAULT_DAMAGE_RATIO);
-        renderWarning(center, radius);
+        renderWarning(context.mob(), center, radius);
         center.getWorld().playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9F, 0.9F);
         startWarning(context.mob(), center, radius, damageRatio);
         return true;
@@ -125,7 +126,7 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
                     cancel();
                     return;
                 }
-                renderWarning(center, radius);
+                renderWarning(caster, center, radius);
             }
         }.runTaskTimer(mobService.plugin(), WARNING_INTERVAL_TICKS, WARNING_INTERVAL_TICKS);
     }
@@ -148,9 +149,15 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
         }
     }
 
-    private void renderWarning(@NotNull Location center, double radius) {
+    /**
+     * ボスの攻撃予見を共通粒子へ統一し、通常Mobの表示を維持します。
+     * @param caster 発動者
+     * @param center 攻撃予告の中心
+     * @param radius 攻撃半径
+     */
+    private void renderWarning(@NotNull MobInstance caster, @NotNull Location center, double radius) {
         particleDisplayService.spawnForNearbyViewers(
-                center, circlePoints(center, radius, 0.08D), SharedParticleDefinitions.MOB_ERIVA_STARHORN_WARNING
+                center, circlePoints(center, radius, 0.08D), BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_ERIVA_STARHORN_WARNING)
         );
     }
 

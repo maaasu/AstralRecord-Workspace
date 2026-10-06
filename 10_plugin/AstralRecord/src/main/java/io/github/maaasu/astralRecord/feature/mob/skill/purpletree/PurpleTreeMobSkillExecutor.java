@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.purpletree;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -283,7 +284,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
 
     /** 予告を5 tick間隔で更新し、20 tick後に一度だけ効果を実行します。 */
     private void scheduleArea(MobInstance caster, Location center, List<Location> warning, Runnable impact) {
-        particles.spawnForNearbyViewers(center, warning, SharedParticleDefinitions.MOB_PURPLE_TREE_WARNING);
+        particles.spawnForNearbyViewers(center, warning, BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_PURPLE_TREE_WARNING));
         new BukkitRunnable() {
             private int elapsed;
 
@@ -297,7 +298,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
                     impact.run();
                     return;
                 }
-                particles.spawnForNearbyViewers(center, warning, SharedParticleDefinitions.MOB_PURPLE_TREE_WARNING);
+                particles.spawnForNearbyViewers(center, warning, BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_PURPLE_TREE_WARNING));
             }
         }.runTaskTimer(mobService.plugin(), WARNING_STEP_TICKS, WARNING_STEP_TICKS);
     }

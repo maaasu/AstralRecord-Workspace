@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.ryushel;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -124,7 +125,7 @@ public final class RyushelFlowerLeapMobSkillExecutor implements MobSkillExecutor
         double radius = context.binding().params().getOrDefault("radius", DEFAULT_RADIUS);
         double damageRatio = context.binding().params().getOrDefault("damageRatio", DEFAULT_DAMAGE_RATIO);
         particleDisplayService.spawnForNearbyViewers(
-                landing, ring(landing, radius), SharedParticleDefinitions.MOB_GRANBAL_BLOOM);
+                landing, ring(landing, radius), BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_GRANBAL_BLOOM));
         landing.getWorld().playSound(landing, Sound.ENTITY_SHEEP_AMBIENT, 1.0F, 1.3F);
         startLeap(caster, entity, landing, radius, damageRatio);
         return true;

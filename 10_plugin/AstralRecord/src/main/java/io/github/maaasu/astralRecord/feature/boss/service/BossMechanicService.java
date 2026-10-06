@@ -1737,12 +1737,12 @@ public final class BossMechanicService {
 
     /** 始源崩落の円形予兆を表示します。 */
     private void renderAldaCollapseTelegraph(@NotNull Location center) {
-        renderCircle(center, ALDA_COLLAPSE_INNER_RADIUS, SharedParticleDefinitions.MOB_ALDA_COLLAPSE, 28);
-        renderCircle(center, ALDA_COLLAPSE_OUTER_RADIUS, SharedParticleDefinitions.MOB_ALDA_COLLAPSE, 48);
+        renderCircle(center, ALDA_COLLAPSE_INNER_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 28);
+        renderCircle(center, ALDA_COLLAPSE_OUTER_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 48);
         renderRange(
             center,
             List.of(center.clone().add(0.0D, 1.0D, 0.0D)),
-            SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+            SharedParticleDefinitions.BOSS_ATTACK_WARNING
         );
     }
 
@@ -1752,13 +1752,13 @@ public final class BossMechanicService {
         renderRange(
             pending.anchor(),
             circleLocations(anchors.getFirst(), GRANBAL_PETAL_RADIUS, 24),
-            SharedParticleDefinitions.MOB_GRANBAL_ROOT
+            SharedParticleDefinitions.BOSS_ATTACK_WARNING
         );
         List<Location> petals = new ArrayList<>();
         for (Location anchor : anchors.subList(1, anchors.size())) {
             petals.addAll(circleLocations(anchor, GRANBAL_PETAL_RADIUS, 20));
         }
-        renderRange(pending.anchor(), petals, SharedParticleDefinitions.MOB_GRANBAL_BLOOM);
+        renderRange(pending.anchor(), petals, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
     }
 
     /** グランバルの花形攻撃が保持する花芯と花弁の全中心を返します。 */
@@ -1770,26 +1770,26 @@ public final class BossMechanicService {
     }
 
     /**
-     * 予兆または発動瞬間の、現在有効な攻撃範囲を表示します。
+     * 共通のアングリービレジャーで攻撃予見を、安全装飾で回避範囲を表示します。
      *
      * @param pending 表示対象のギミック情報
      */
     private void renderTelegraph(@NotNull PendingMechanic pending) {
         switch (pending.mechanic()) {
-            case COLOSSUS_QUAKE -> renderCircle(pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_MECHANIC_CRIT, 28);
+            case COLOSSUS_QUAKE -> renderCircle(pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 28);
             case COLOSSUS_RUNE_LANES -> renderCross(
                 pending.anchor(), pending.direction(), COLOSSUS_RUNE_LANES_MAX_LENGTH,
                 COLOSSUS_RUNE_LANES_HALF_WIDTH,
-                SharedParticleDefinitions.BOSS_MECHANIC_SPARK
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING
             );
             case COLOSSUS_COLLAPSE -> {
-                renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 20);
-                renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 36);
+                renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 20);
+                renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 36);
             }
             case ALDA_RUIN_SHOCKWAVE -> {
                 renderCross(
                     pending.anchor(), pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH,
-                    ALDA_SHOCKWAVE_HALF_WIDTH, SharedParticleDefinitions.MOB_ALDA_SHOCKWAVE
+                    ALDA_SHOCKWAVE_HALF_WIDTH, SharedParticleDefinitions.BOSS_ATTACK_WARNING
                 );
                 animateAldaShockwaveDisplays(pending);
             }
@@ -1807,44 +1807,42 @@ public final class BossMechanicService {
             case GRANBAL_ROOT_FAN -> renderCone(
                 pending.anchor(), pending.direction(), GRANBAL_ROOT_FAN_LENGTH,
                 GRANBAL_ROOT_FAN_ANGLE_DEGREES, GRANBAL_ROOT_FAN_TELEGRAPH_RAYS,
-                SharedParticleDefinitions.MOB_GRANBAL_ROOT
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING
             );
             case GRANBAL_PETAL_BURST -> renderGranbalPetalTelegraph(pending);
-            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.CHARON_DANGER);
+            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
             case CHARON_TOLL, CHARON_TOLL_ECHO -> renderCharonToll(pending,
-                SharedParticleDefinitions.CHARON_DANGER);
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING);
             case CHARON_LANTERN -> {
                 updateCharonLanternBossBar(pending);
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
-                    SharedParticleDefinitions.CHARON_DANGER, 96
+                    SharedParticleDefinitions.BOSS_ATTACK_WARNING, 96
                 );
-                renderCircle(
-                    pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
-                    SharedParticleDefinitions.CHARON_SAFE_LIGHT, 28
-                );
+                BossParticleEffect.safeArea(particleDisplayService, pending.anchor(),
+                    circleLocations(pending.anchor(), CHARON_LANTERN_SAFE_RADIUS, 28));
             }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
-                pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
+                pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 32
             );
             case SUNBIRD_SUNSTRIKE -> renderCircle(
-                pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 24
+                pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 24
             );
             case SUNBIRD_SOLAR_BEAM -> renderLane(
                 pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH,
-                SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING
             );
             case SUNBIRD_SOLAR_NOVA -> {
                 renderCircle(
-                    pending.anchor(), 4.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME,
+                    pending.anchor(), 4.0D, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
                     SUNBIRD_NOVA_INNER_RING_POINT_COUNT
                 );
                 renderCircle(
-                    pending.anchor(), 8.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST,
+                    pending.anchor(), 8.0D, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
                     SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT
                 );
                 renderCircle(
-                    pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST,
+                    pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
                     SUNBIRD_NOVA_OUTER_RING_POINT_COUNT
                 );
                 animateSunbirdRitualDisplays(pending);
@@ -1852,7 +1850,7 @@ public final class BossMechanicService {
             case SUNBIRD_BIRD_METEOR -> renderBirdMeteorTelegraph(pending);
             case SUNBIRD_RETURN_TACKLE -> renderLane(
                 pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
-                SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING
             );
         }
         if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_RIVER
@@ -1864,7 +1862,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * 予兆の残り時間を、攻撃中心の上空で縮む魂炎の輪として表示します。
+     * 予兆の残り時間を、攻撃中心の上空で縮むアングリービレジャーの輪として表示します。
      *
      * @param pending カロンの未発動予兆
      */
@@ -1881,7 +1879,7 @@ public final class BossMechanicService {
             points.addAll(circleLocations(center.clone().add(0.0D, 1.8D, 0.0D),
                 0.3D + remaining * 1.2D, 16));
         }
-        particleDisplayService.spawnForNearbyViewers(points, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE);
+        particleDisplayService.spawnForNearbyViewers(points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
     }
 
     /**
@@ -2695,16 +2693,13 @@ public final class BossMechanicService {
     }
 
     /**
-     * バードメテオの安全円柱をEND_RODパーティクルで表示します。
+     * バードメテオの安全円柱を共通の緑の輪郭とエンドロッド装飾で表示します。
      *
      * @param pending バードメテオ予兆
      */
     private void renderBirdMeteorTelegraph(@NotNull PendingMechanic pending) {
-        renderRange(
-            pending.anchor(),
-            birdMeteorSafeZoneParticleLocations(birdMeteorSafeZoneCenter(pending)),
-            SharedParticleDefinitions.SUNBIRD_BIRD_METEOR_SAFE_ZONE
-        );
+        BossParticleEffect.safeArea(particleDisplayService, pending.anchor(),
+            birdMeteorSafeZoneParticleLocations(birdMeteorSafeZoneCenter(pending)));
     }
 
     /**
@@ -2722,7 +2717,7 @@ public final class BossMechanicService {
      * 安全円柱の上下円と側面の表示地点を作成します。
      *
      * @param center 安全円柱の中心
-     * @return END_ROD表示地点
+     * @return 共通安全表示の輪郭地点
      */
     static @NotNull List<Location> birdMeteorSafeZoneParticleLocations(@NotNull Location center) {
         List<Location> locations = new ArrayList<>(

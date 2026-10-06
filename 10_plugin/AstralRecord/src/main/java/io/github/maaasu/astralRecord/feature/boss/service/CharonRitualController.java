@@ -321,7 +321,7 @@ final class CharonRitualController {
                     appendBeam(beamPoints, beam, BEAM_HALF_WIDTH);
                 }
                 draw(state.center, beamPoints, tick < state.beamImpactAt
-                    ? SharedParticleDefinitions.CHARON_DANGER : SharedParticleDefinitions.CHARON_BEAM);
+                    ? SharedParticleDefinitions.BOSS_ATTACK_WARNING : SharedParticleDefinitions.CHARON_BEAM);
             }
         }
         if (!state.beams.isEmpty() && tick >= state.beamImpactAt + 10L) {
@@ -455,7 +455,7 @@ final class CharonRitualController {
                     route.add(interpolate(path, index / 16.0D).add(0, 0.2D, 0));
                 }
                 ring(route, path.to, SAFE_RADIUS, 32);
-                draw(sequence.center, route, SharedParticleDefinitions.CHARON_SAFE_GUIDE);
+                draw(sequence.center, route, SharedParticleDefinitions.BOSS_SAFE_BEACON);
             }
         }
         List<Location> spiral = new ArrayList<>();
@@ -464,9 +464,12 @@ final class CharonRitualController {
             double radius = 2.0D + index * 0.1D;
             spiral.add(sequence.center.clone().add(Math.cos(angle) * radius, 1.0D + index * 0.1D, Math.sin(angle) * radius));
         }
-        draw(sequence.center, danger, SharedParticleDefinitions.CHARON_DANGER);
-        draw(sequence.center, safe, sequence.kind == Kind.RIVER
-            ? SharedParticleDefinitions.BOSS_MECHANIC_PORTAL : SharedParticleDefinitions.CHARON_SAFE_LIGHT);
+        draw(sequence.center, danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+        if (sequence.kind == Kind.RIVER) {
+            draw(sequence.center, safe, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+        } else {
+            BossParticleEffect.safeArea(particles, sequence.center, safe);
+        }
         draw(sequence.center, spiral, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE);
     }
 

@@ -241,7 +241,7 @@ final class EmpusaHazardController {
         if (tick < wave.releaseAt) {
             List<Location> warning = new ArrayList<>();
             addRing(warning, wave.origin, 2.0D + (tick % 10L) * 0.06D, 32, 0.12D);
-            particles.spawnForNearbyViewers(wave.origin, warning, SharedParticleDefinitions.EMPUSA_FIRE);
+            particles.spawnForNearbyViewers(wave.origin, warning, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
             updateBar(wave.bar, wave.origin, (wave.releaseAt - tick) / (double) wave.warningTicks);
             return;
         }

@@ -558,9 +558,8 @@ final class KnockerEncounterController {
             default -> circlePoints(cast.center, 2.0D, 24, safe);
         }
         if (!danger.isEmpty()) particles.spawnForNearbyViewers(cast.center, danger.subList(0, Math.min(192, danger.size())),
-            SharedParticleDefinitions.KNOCKER_WARNING);
-        if (!safe.isEmpty()) particles.spawnForNearbyViewers(cast.center, safe.subList(0, Math.min(48, safe.size())),
-            SharedParticleDefinitions.KNOCKER_SAFE);
+            SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+        BossParticleEffect.safeArea(particles, cast.center, safe.subList(0, Math.min(48, safe.size())));
     }
 
     /**

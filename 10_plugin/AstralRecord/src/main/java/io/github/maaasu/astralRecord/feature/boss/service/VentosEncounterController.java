@@ -485,7 +485,7 @@ final class VentosEncounterController {
         Zone zone = cast.zone;
         if (zone == null) return;
         SharedParticleDefinition color = SharedParticleDefinitions.VENTOS_DANGER;
-        particles.spawnForNearbyViewers(zone.center, zone.points, color);
+        particles.spawnForNearbyViewers(zone.center, zone.points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         if (cast.safeSpot != null) {
             List<Location> safeRing = new ArrayList<>(24);
             for (int index = 0; index < 24; index++) {
@@ -493,10 +493,7 @@ final class VentosEncounterController {
                 double radius = cast.move == Move.STORM_RITE ? SHELTER_RADIUS : 0.75D;
                 safeRing.add(cast.safeSpot.clone().add(Math.cos(a) * radius, 0.35D, Math.sin(a) * radius));
             }
-            particles.spawnForNearbyViewers(cast.safeSpot, safeRing, SharedParticleDefinitions.VENTOS_SAFE);
-            particles.spawnForNearbyViewers(cast.safeSpot,
-                List.of(cast.safeSpot.clone().add(0, 0.8D, 0), cast.safeSpot.clone().add(0, 1.4D, 0)),
-                SharedParticleDefinitions.VENTOS_BEACON);
+            BossParticleEffect.safeArea(particles, cast.safeSpot, safeRing);
         }
         double angle = tick * 0.14D;
         List<Location> orbs = new ArrayList<>(12);
@@ -515,7 +512,7 @@ final class VentosEncounterController {
         particles.spawnForNearbyViewers(bossLocation, orbs, color);
         if (cast.nextZone != null) {
             particles.spawnForNearbyViewers(cast.nextZone.center, cast.nextZone.points.stream().limit(64).toList(),
-                SharedParticleDefinitions.VENTOS_NEXT);
+                SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         }
         moveDisplays(cast, bossLocation, tick);
     }

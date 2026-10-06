@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.clayguard;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -117,7 +118,7 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         double radius = context.binding().params().getOrDefault("radius", DEFAULT_RADIUS);
         double damageRatio = context.binding().params().getOrDefault("damageRatio", DEFAULT_DAMAGE_RATIO);
         boolean largeVisual = radius >= MAX_RADIUS;
-        renderLandingWarning(landing, radius, largeVisual);
+        renderLandingWarning(context.mob(), landing, radius, largeVisual);
         landing.getWorld().playSound(landing, Sound.BLOCK_GRAVEL_PLACE, 0.8F, 0.75F);
         LeapVisualState visual = new LeapVisualState(landing, radius, largeVisual);
         try {
@@ -264,17 +265,24 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         }
     }
 
-    private void renderLandingWarning(@NotNull Location landing, double radius, boolean largeVisual) {
+    /**
+     * ボスは共通の攻撃予見、通常Mobは既存の着地予告を表示します。
+     * @param caster 発動者
+     * @param landing 着地予告の中心
+     * @param radius 攻撃半径
+     * @param largeVisual 中心の大型予告も表示する場合true
+     */
+    private void renderLandingWarning(@NotNull MobInstance caster, @NotNull Location landing, double radius, boolean largeVisual) {
         particleDisplayService.spawnForNearbyViewers(
                 landing,
                 circlePoints(landing, radius, 0.08D),
-                SharedParticleDefinitions.MOB_CLAY_GUARD_LANDING_RING
+                BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_CLAY_GUARD_LANDING_RING)
         );
         if (largeVisual) {
             particleDisplayService.spawnForNearbyViewers(
                     landing,
                     List.of(landing.clone().add(0.0D, 0.65D, 0.0D)),
-                    SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+                    BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_ALDA_LEAP_CORE)
             );
         }
     }

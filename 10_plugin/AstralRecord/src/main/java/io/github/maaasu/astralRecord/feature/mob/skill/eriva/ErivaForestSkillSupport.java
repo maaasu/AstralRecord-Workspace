@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.eriva;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -74,7 +75,7 @@ final class ErivaForestSkillSupport {
                                @NotNull List<Location> points, @NotNull SharedParticleDefinition warning,
                                @NotNull Runnable impact) {
         context.mob().scriptedAction(true);
-        particles.spawnForNearbyViewers(center, points, warning);
+        particles.spawnForNearbyViewers(center, points, BossParticleEffect.attackWarning(context.mob(), warning));
         new BukkitRunnable() {
             private int elapsed;
 
@@ -92,7 +93,7 @@ final class ErivaForestSkillSupport {
                         finish();
                     }
                 } else {
-                    particles.spawnForNearbyViewers(center, points, warning);
+                    particles.spawnForNearbyViewers(center, points, BossParticleEffect.attackWarning(context.mob(), warning));
                 }
             }
 

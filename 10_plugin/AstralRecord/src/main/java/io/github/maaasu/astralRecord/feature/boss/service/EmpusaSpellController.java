@@ -444,7 +444,7 @@ final class EmpusaSpellController {
             case NONE -> SharedParticleDefinitions.EMPUSA_HEX;
         };
         for (Zone danger : cast.zones) {
-            particles.spawnForNearbyViewers(danger.center, danger.points, color);
+            particles.spawnForNearbyViewers(danger.center, danger.points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         }
         if (cast.safeSpot != null) {
             List<Location> safeRing = new ArrayList<>(12);
@@ -452,7 +452,7 @@ final class EmpusaSpellController {
                 double a = index * Math.PI / 6.0D;
                 safeRing.add(cast.safeSpot.clone().add(Math.cos(a) * 0.75D, 0.35D, Math.sin(a) * 0.75D));
             }
-            particles.spawnForNearbyViewers(cast.safeSpot, safeRing, SharedParticleDefinitions.EMPUSA_BEACON);
+            BossParticleEffect.safeArea(particles, cast.safeSpot, safeRing);
         }
         double angle = tick * 0.14D;
         List<Location> orbs = new ArrayList<>(12);

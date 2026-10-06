@@ -21,6 +21,16 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    /** 全ボスの攻撃予見。最低密度でも一点一粒を残し、粒子OFF設定は尊重します。 */
+    public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
+        new SharedParticleDefinition("boss_attack_warning", Particle.ANGRY_VILLAGER, 4, 0, 0, 0, 0);
+    /** 全ボスの安全地帯の輪郭。緑の粒子と白い縦装飾を組み合わせます。 */
+    public static final SharedParticleDefinition BOSS_SAFE_AREA =
+        new SharedParticleDefinition("boss_safe_area", Particle.HAPPY_VILLAGER, 4, 0, 0, 0, 0);
+    /** 安全地帯の輪郭の上に置く白いエンドロッド装飾です。 */
+    public static final SharedParticleDefinition BOSS_SAFE_BEACON =
+        new SharedParticleDefinition("boss_safe_beacon", Particle.END_ROD, 4, 0, 0, 0, 0);
+
     /** 館主の危険面。最低密度でも一点一粒を残す幽翠色。 */
     public static final SharedParticleDefinition VESPERALA_WARNING =
         new SharedParticleDefinition("vesperala_warning", Particle.DUST, 4, 0, 0, 0, 0,

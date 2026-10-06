@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.rootweaver;
 
+import io.github.maaasu.astralRecord.feature.boss.service.BossParticleEffect;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -122,7 +123,7 @@ public final class RootweaverRootSnareMobSkillExecutor implements MobSkillExecut
         long duration = Math.round(params.getOrDefault("chilledDurationTicks", 40.0D));
         double chance = params.getOrDefault("chilledChance", 60.0D);
         handleMobDestroyed(context.mob().instanceId());
-        renderWarning(center, radius);
+        renderWarning(context.mob(), center, radius);
         center.getWorld().playSound(center, Sound.ENTITY_SPIDER_AMBIENT, 0.7F, 0.7F);
         BukkitRunnable runnable = new BukkitRunnable() {
             private int elapsedTicks;
@@ -137,7 +138,7 @@ public final class RootweaverRootSnareMobSkillExecutor implements MobSkillExecut
                     handleMobDestroyed(context.mob().instanceId());
                     impact(context.mob(), center, radius, ratio, duration, chance);
                 } else {
-                    renderWarning(center, radius);
+                    renderWarning(context.mob(), center, radius);
                 }
             }
         };
@@ -204,10 +205,15 @@ public final class RootweaverRootSnareMobSkillExecutor implements MobSkillExecut
                 distance, FluidCollisionMode.NEVER, true) == null;
     }
 
-    /** 閲覧者の取得を一回にまとめて予告円を表示します。 */
-    private void renderWarning(@NotNull Location center, double radius) {
+    /**
+     * 閲覧者の取得を一回にまとめ、ボスには共通の攻撃予見円を表示します。
+     * @param caster 発動者
+     * @param center 攻撃予告の中心
+     * @param radius 攻撃半径
+     */
+    private void renderWarning(@NotNull MobInstance caster, @NotNull Location center, double radius) {
         particleDisplayService.spawnForNearbyViewers(center, circlePoints(center, radius),
-                SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_TRAIL);
+                BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_TRAIL));
     }
 
     /** 固定された中心の外周24点を地面の少し上へ配置します。 */
