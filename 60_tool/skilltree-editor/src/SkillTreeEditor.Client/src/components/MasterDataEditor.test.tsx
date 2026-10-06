@@ -437,3 +437,129 @@ describe('master editor workflow', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'マスターファイル作成' })).not.toBeInTheDocument())
   })
 })
+
+
+describe('creation draft protection', () => {
+  async function openNew(onDirtyChange = vi.fn()) {
+    const view = render(<MasterDataEditor onDirtyChange={onDirtyChange} />)
+    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
+    return { ...view, dialog: within(screen.getByRole('dialog', { name: 'マスターファイル作成' })), onDirtyChange }
+  }
+  function unloadPrevented() {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  }
+  function withSchema() {
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [{
+      ...catalog.categories[0], jsonSchemas: [{ path: 'test.schema.json', title: 'Test', schema: { type: 'object', properties: { id: { type: 'string' } } } }],
+    }] })
+  }
+
+  it('protects a welcome draft on unload and cancel, and clears only after confirmed discard', async () => {
+    const { dialog, onDirtyChange } = await openNew()
+    expect(unloadPrevented()).toBe(false)
+    fireEvent.change(dialog.getByRole('textbox', { name: '新規マスター原稿' }), { target: { value: 'id: unsaved' } })
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+    expect(unloadPrevented()).toBe(true)
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.click(dialog.getByRole('button', { name: 'キャンセル' }))
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toHaveValue('id: unsaved')
+    vi.mocked(window.confirm).mockReturnValue(true)
+    fireEvent.click(dialog.getByRole('button', { name: 'キャンセル' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(unloadPrevented()).toBe(false)
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+  })
+
+  it('keeps existing document edits dirty when a copy is discarded and guards tab closing', async () => {
+    await openFile()
+    fireEvent.change(screen.getByRole('textbox', { name: '/id' }), { target: { value: 'existing-edit' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存済みファイルを複製' }))
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.click(screen.getByRole('button', { name: /v1.old.yml のタブを閉じる/ }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    vi.mocked(window.confirm).mockReturnValue(true)
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(screen.getByRole('textbox', { name: '/id' })).toHaveValue('existing-edit')
+    expect(unloadPrevented()).toBe(true)
+  })
+
+  it('preserves a draft while hidden and refuses category, template and welcome-file replacement', async () => {
+    const template = { path: 'new.yml', raw: 'id: template' }
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [
+      { ...catalog.categories[0], templates: [template, { ...template, path: 'other.yml', raw: 'id: other' }] },
+      { ...catalog.categories[0], id: 'other', directory: 'other' },
+    ] })
+    const { dialog, rerender, onDirtyChange } = await openNew()
+    fireEvent.change(dialog.getByRole('textbox', { name: '新規マスター原稿' }), { target: { value: 'id: preserved' } })
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.change(dialog.getByRole('combobox', { name: 'カテゴリ' }), { target: { value: 'other' } })
+    fireEvent.change(dialog.getByRole('combobox', { name: 'テンプレート' }), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: /元クラス.*old/ }))
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toHaveValue('id: preserved')
+    expect(masterDataApi.file).not.toHaveBeenCalled()
+    rerender(<MasterDataEditor active={false} onDirtyChange={onDirtyChange} />)
+    expect(unloadPrevented()).toBe(true)
+    rerender(<MasterDataEditor active onDirtyChange={onDirtyChange} />)
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toHaveValue('id: preserved')
+  })
+
+  it('locks generation controls, rejects duplicate generation, and ignores a cancelled response', async () => {
+    withSchema()
+    let finish!: (value: Awaited<ReturnType<typeof masterDataApi.render>>) => void
+    vi.mocked(masterDataApi.render).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve }))
+    const { dialog } = await openNew()
+    const generate = dialog.getByRole('button', { name: 'Schemaから必須項目を生成' })
+    fireEvent.click(generate)
+    fireEvent.click(generate)
+    expect(masterDataApi.render).toHaveBeenCalledTimes(1)
+    expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toBeDisabled()
+    expect(dialog.getByRole('combobox', { name: 'カテゴリ' })).toBeDisabled()
+    expect(dialog.getByRole('button', { name: '検証して作成' })).toBeDisabled()
+    expect(unloadPrevented()).toBe(true)
+    fireEvent.click(dialog.getByRole('button', { name: 'キャンセル' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 新規' }))
+    const nextRaw = screen.getByRole('textbox', { name: '新規マスター原稿' })
+    fireEvent.change(nextRaw, { target: { value: 'id: next' } })
+    await act(async () => finish({ raw: 'id: stale', commentsPreserved: true, warnings: [] }))
+    expect(nextRaw).toHaveValue('id: next')
+  })
+
+  it('preserves input on generation failure and permits retry after explicit replacement approval', async () => {
+    withSchema()
+    vi.mocked(masterDataApi.render).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ raw: 'id: generated', commentsPreserved: true, warnings: [] })
+    const { dialog } = await openNew()
+    const raw = dialog.getByRole('textbox', { name: '新規マスター原稿' })
+    fireEvent.change(raw, { target: { value: 'id: manual' } })
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.click(dialog.getByRole('button', { name: 'Schemaから必須項目を生成' }))
+    expect(masterDataApi.render).not.toHaveBeenCalled()
+    vi.mocked(window.confirm).mockReturnValue(true)
+    fireEvent.click(dialog.getByRole('button', { name: 'Schemaから必須項目を生成' }))
+    await screen.findByText('offline')
+    expect(raw).toHaveValue('id: manual')
+    expect(raw).not.toBeDisabled()
+    fireEvent.click(dialog.getByRole('button', { name: 'Schemaから必須項目を生成' }))
+    await waitFor(() => expect(raw).toHaveValue('id: generated'))
+    expect(unloadPrevented()).toBe(true)
+  })
+
+  it('retains failed creation drafts, prevents duplicate submission and clears dirty after success', async () => {
+    const create = vi.spyOn(masterDataApi, 'create').mockRejectedValueOnce(new Error('create offline')).mockResolvedValueOnce(original)
+    const { dialog, onDirtyChange } = await openNew()
+    const raw = dialog.getByRole('textbox', { name: '新規マスター原稿' })
+    fireEvent.change(raw, { target: { value: 'id: new' } })
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    fireEvent.submit(raw.closest('form')!)
+    await waitFor(() => expect(raw).not.toBeDisabled())
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(raw).toHaveValue('id: new')
+    expect(unloadPrevented()).toBe(true)
+    fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(create).toHaveBeenCalledTimes(2)
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    expect(unloadPrevented()).toBe(false)
+  })
+})

@@ -43,9 +43,19 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const focusAfterClose = useRef(false)
   const latestTabs = useRef(tabsState)
   latestTabs.current = tabsState
-  const dirty = tabsState.tabs.some((tab) => tab.dirty)
-  const openFile = useCallback((path: string, document?: MasterDocument) => dispatch({ type: 'open', path, document }), [])
-  const updateStatus = useCallback((id: string, status: MasterTabStatus) => dispatch({ type: 'status', id, status }), [])
+  const [welcomeDirty, setWelcomeDirty] = useState(false)
+  const latestWelcomeDirty = useRef(false)
+  const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
+  const openFile = useCallback((path: string, document?: MasterDocument) => {
+    if (!document && latestWelcomeDirty.current && !window.confirm('未保存の新規原稿を破棄してファイルを開きますか？')) return
+    latestWelcomeDirty.current = false
+    setWelcomeDirty(false)
+    dispatch({ type: 'open', path, document })
+  }, [])
+  const updateStatus = useCallback((id: string, status: MasterTabStatus) => {
+    if (id === 'welcome') { latestWelcomeDirty.current = status.dirty; setWelcomeDirty(status.dirty) }
+    else dispatch({ type: 'status', id, status })
+  }, [])
   const closeTab = (id: string, deleted = false) => {
     const tab = latestTabs.current.tabs.find((entry) => entry.id === id)
     if (!tab || !deleted && (tab.busy || tab.dirty && !window.confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`))) return
@@ -119,6 +129,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [invalidInputs, setInvalidInputs] = useState<Record<string, string>>({})
   const [diffRaw, setDiffRaw] = useState<string | null>(null)
   const [createMode, setCreateMode] = useState<'new' | 'copy' | 'import' | null>(null)
+  const [createDirty, setCreateDirty] = useState(false)
   const [importText, setImportText] = useState('')
   const [showReferences, setShowReferences] = useState(false)
   const [referenceQuery, setReferenceQuery] = useState('')
@@ -231,7 +242,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     if (payload?.issues) setReport({ isValid: false, issues: payload.issues })
     setError(reason instanceof Error ? reason.message : String(reason))
   }, [])
-  useEffect(() => { onTabStatus(tabId, { dirty, busy, name: typeof displayedName === 'string' ? displayedName : '' }) }, [tabId, dirty, busy, displayedName, onTabStatus])
+  useEffect(() => { onTabStatus(tabId, { dirty: dirty || createDirty, busy, name: typeof displayedName === 'string' ? displayedName : '' }) }, [tabId, dirty, createDirty, busy, displayedName, onTabStatus])
   const allowDiscard = () => !dirty || window.confirm('未保存の編集内容を破棄して再読込しますか？')
   const acceptDocument = useCallback((loaded: MasterDocument) => {
     setDocument(loaded); setInvalidInputs({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
@@ -476,11 +487,11 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     </section>
     {diffRaw !== null && document && <MasterDataDiff before={document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null) }} />}
     {documentation && <div className="modal-backdrop"><section className="modal master-doc-dialog" role="dialog" aria-modal="true" aria-label="マスター定義書"><header className="modal-header"><h2>{baseName(documentation.path)}</h2><button className="button" onClick={() => setDocumentation(null)}>閉じる</button></header><pre className="modal-body">{documentation.raw}</pre></section></div>}
-    {createMode && <MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onCancel={() => setCreateMode(null)} onCreate={create} />}
+    {createMode && <MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onDirtyChange={setCreateDirty} onCancel={() => setCreateMode(null)} onCreate={create} />}
   </main>
 }
 
-function MasterCreateDialog({ mode, category, categories, files, source, importedRaw, busy, onCancel, onCreate }: { mode: 'new' | 'copy' | 'import'; category: MasterCategory | null; categories: MasterCategory[]; files: MasterFileSummary[]; source: MasterDocument | null; importedRaw: string; busy: boolean; onCancel: () => void; onCreate: (draft: MasterDraft) => Promise<void> }) {
+function MasterCreateDialog({ mode, category, categories, files, source, importedRaw, busy, onDirtyChange, onCancel, onCreate }: { mode: 'new' | 'copy' | 'import'; category: MasterCategory | null; categories: MasterCategory[]; files: MasterFileSummary[]; source: MasterDocument | null; importedRaw: string; busy: boolean; onDirtyChange: (dirty: boolean) => void; onCancel: () => void; onCreate: (draft: MasterDraft) => Promise<void> }) {
   const [categoryId, setCategoryId] = useState(category?.id ?? categories[0]?.id ?? '')
   const selected = categories.find((entry) => entry.id === categoryId)
   const [slug, setSlug] = useState('')
@@ -502,6 +513,27 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
     return categoryFormat(selected)
   })
   const [error, setError] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const generation = useRef(0)
+  const generationPending = useRef(false)
+  const submitting = useRef(false)
+  const snapshot = JSON.stringify({ categoryId, slug, filePath, autoPath, autoItemId, autoName, debug, templateIndex, raw, draftFormat })
+  const initialSnapshot = useRef(snapshot)
+  const initialRaw = useRef(raw)
+  const dirty = mode !== 'new' || snapshot !== initialSnapshot.current || generating || busy
+  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
+  useEffect(() => () => {
+    generation.current += 1
+    generationPending.current = false
+    onDirtyChange(false)
+  }, [onDirtyChange])
+  const allowReplace = () => raw === initialRaw.current || window.confirm('編集中の原稿を置き換えますか？')
+  const cancel = () => {
+    if (busy || submitting.current || dirty && !window.confirm('未保存の新規原稿を破棄しますか？')) return
+    generation.current += 1
+    generationPending.current = false
+    onCancel()
+  }
   const isItem = Boolean(selected?.itemCategoryCode)
   const jsonFormat = draftFormat === 'json'
   const directory = selected?.directory === '.' ? '' : (selected?.directory ?? '').replace(/\/+$/, '')
@@ -514,26 +546,35 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   const generatedPath = `${directory ? `${directory}/` : ''}${!jsonFormat && previewVersion && /^\d+$/.test(previewVersion) ? `v${previewVersion}.` : ''}${stem}.${jsonFormat ? 'json' : 'yml'}`
   const path = autoItemId && isItem || autoName ? directory : autoPath ? generatedPath : filePath
   const selectCategory = (id: string) => {
+    if (generationPending.current || mode === 'new' && !allowReplace()) return
     setCategoryId(id); setTemplateIndex(0)
     const next = categories.find((entry) => entry.id === id)
     setAutoItemId(Boolean(next?.itemCategoryCode)); setAutoName(Boolean(next?.directory.includes('features.class')))
     if (mode === 'new') { setRaw(next?.templates[0]?.raw ?? ''); setDraftFormat(categoryFormat(next)) }
   }
   const createFromSchema = async () => {
-    if (!selected?.jsonSchemas[0]) return
+    if (!selected?.jsonSchemas[0] || busy || generationPending.current || !allowReplace()) return
+    const request = ++generation.current
+    generationPending.current = true
+    setGenerating(true); setError('')
     try {
       const rendered = await masterDataApi.render(generatedPath, masterDefault(selected.jsonSchemas[0].schema, 'object'))
-      setRaw(rendered.raw)
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+      if (request === generation.current) setRaw(rendered.raw)
+    } catch (reason) {
+      if (request === generation.current) setError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      if (request === generation.current) { generationPending.current = false; setGenerating(false) }
+    }
   }
   return <div className="modal-backdrop"><form className="modal master-create-dialog" role="dialog" aria-modal="true" aria-label="マスターファイル作成" onSubmit={(event) => {
     event.preventDefault(); setError('')
-    if (busy) return
+    if (busy || submitting.current || generationPending.current) return
     if (!path.trim() || !raw.trim()) { setError('保存先と原稿を入力してください。'); return }
     if (path.includes('/nodes/')) { setError('ノードの新規作成・複製は、スキルツリー画面から行ってください。IDは専用の採番で管理します。'); return }
     if (isItem && autoItemId && !slugOf(slug)) { setError('ファイル名に使う英数字のslugを入力してください。'); return }
-    void onCreate({ path, raw, autoItemId: isItem && autoItemId, slug: slugOf(slug), group: debug ? 'z' : undefined, autoName }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)))
-  }}><header className="modal-header"><div><h2>{mode === 'copy' ? '保存済みファイルの複製' : mode === 'import' ? '原稿から新規作成' : 'マスターファイル作成'}</h2><p className="master-muted">保存前に定義と重複を検証します。</p></div></header><fieldset disabled={busy} className="modal-body master-create-fields master-form-lock">
+    submitting.current = true
+    void onCreate({ path, raw, autoItemId: isItem && autoItemId, slug: slugOf(slug), group: debug ? 'z' : undefined, autoName }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason))).finally(() => { submitting.current = false })
+  }}><header className="modal-header"><div><h2>{mode === 'copy' ? '保存済みファイルの複製' : mode === 'import' ? '原稿から新規作成' : 'マスターファイル作成'}</h2><p className="master-muted">保存前に定義と重複を検証します。</p></div></header><fieldset disabled={busy || generating} className="modal-body master-create-fields master-form-lock">
     <label>カテゴリ<select aria-label="カテゴリ" value={categoryId} onChange={(event) => selectCategory(event.target.value)}>{categories.map((entry) => <option key={entry.id} value={entry.id}>{categoryOptionLabel(entry, files.filter((file) => inCategory(file.path, entry.directory)).length, categories)}</option>)}</select><small>親フォルダは配下を含みます。新規アイテムの自動採番には子フォルダを選んでください。</small></label>
     <label>原稿の形式<select aria-label="新規マスターの形式" value={draftFormat} onChange={(event) => setDraftFormat(event.target.value as 'json' | 'yaml')}><option value="yaml">YAML</option><option value="json">JSON</option></select><small>原稿と一致する形式を選びます。自動提案する保存先の拡張子にも反映します。</small></label>
     <label>ファイル名用 slug（小文字英数字）<input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="iron-sword" /><small>提案: {slugOf(slug) || 'new-master'}</small></label>
@@ -541,9 +582,10 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
     {selected?.directory.includes('features.class') && <label className="master-checkbox"><input type="checkbox" checked={autoName} onChange={(event) => setAutoName(event.target.checked)} />schemaVersion / order / id からファイル名を生成</label>}
     {!autoItemId && !autoName && <label className="master-checkbox"><input type="checkbox" checked={autoPath} onChange={(event) => { setAutoPath(event.target.checked); if (!filePath) setFilePath(generatedPath) }} />slugから保存先を自動提案</label>}
     <label>保存先（Filebase内の相対パス）<input value={path} disabled={autoPath || autoItemId && isItem || autoName} onChange={(event) => setFilePath(event.target.value)} /><small>{autoItemId && isItem ? 'ID・グループの採番後、確定したファイル名を表示します。' : autoName ? '原稿の定義から確定したファイル名を表示します。' : 'サブフォルダや既存の命名規則も直接指定できます。'}</small></label>
-    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
+    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { if (generationPending.current || !allowReplace()) return; const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
     <label>原稿<textarea className="master-raw" aria-label="新規マスター原稿" spellCheck={false} value={raw} onChange={(event) => setRaw(event.target.value)} /></label>
     {mode === 'copy' && <p className="master-muted">読み込んだ保存済み原稿から新しいファイルを作成します。アイテムの自動採番以外は、原稿のIDを新しい一意の値へ変更してください。</p>}
+    {generating && <p role="status">Schemaから原稿を生成中です…</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
-  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={onCancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></div>
+  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={cancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy || generating}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></div>
 }
