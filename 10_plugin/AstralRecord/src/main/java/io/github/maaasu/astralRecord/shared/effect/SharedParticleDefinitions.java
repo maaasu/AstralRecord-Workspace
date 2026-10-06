@@ -340,18 +340,19 @@ public final class SharedParticleDefinitions {
     /** ボス攻撃面の発動時爆発。低い粒子密度でも表示される個数にします。 */
     public static final SharedParticleDefinition BOSS_DAMAGE_AREA_EXPLOSION =
         new SharedParticleDefinition("boss_damage_area_explosion", Particle.EXPLOSION, 4, 0.0D, 0.0D, 0.0D, 0.0D);
-    /** カロンの河道・柱間ビーム・魂灯裁定の危険予兆です。 */
+    /** カロンの危険範囲を、最低表示密度でも残る怒った村人の粒子で明示します。 */
     public static final SharedParticleDefinition CHARON_DANGER =
-        new SharedParticleDefinition("charon_danger", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
-            new Particle.DustOptions(Color.fromRGB(180, 65, 235), 1.35F));
+        new SharedParticleDefinition("charon_danger", Particle.ANGRY_VILLAGER, 4, 0.0D, 0.0D, 0.0D, 0.0D);
     /** 発射した魂柱ビームと大渡航の河道を明るく表示します。 */
     public static final SharedParticleDefinition CHARON_BEAM =
         new SharedParticleDefinition("charon_beam", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
             new Particle.DustOptions(Color.fromRGB(225, 160, 255), 1.8F));
-    /** 魂灯裁定で現在有効な安全灯を示す青色の輪です。 */
+    /** 魂灯と魂灯裁定の現在有効な安全地帯を、喜ぶ村人の緑色の粒子で示します。 */
     public static final SharedParticleDefinition CHARON_SAFE_LIGHT =
-        new SharedParticleDefinition("charon_safe_light", Particle.DUST, 1, 0.0D, 0.0D, 0.0D, 0.0D,
-            new Particle.DustOptions(Color.fromRGB(80, 235, 255), 1.3F));
+        new SharedParticleDefinition("charon_safe_light", Particle.HAPPY_VILLAGER, 4, 0.0D, 0.0D, 0.0D, 0.0D);
+    /** 魂灯裁定の次の安全灯と歩行経路を、白い光で案内します。 */
+    public static final SharedParticleDefinition CHARON_SAFE_GUIDE =
+        new SharedParticleDefinition("charon_safe_guide", Particle.END_ROD, 4, 0.0D, 0.0D, 0.0D, 0.0D);
     /** 紅炎の危険地表。極低密度でも粒子が消えず、統合版へ変換されるFLAMEを使います。 */
     public static final SharedParticleDefinition EMPUSA_FIRE =
         new SharedParticleDefinition("empusa_fire", Particle.FLAME, 4, 0.01D, 0.01D, 0.01D, 0.0D);

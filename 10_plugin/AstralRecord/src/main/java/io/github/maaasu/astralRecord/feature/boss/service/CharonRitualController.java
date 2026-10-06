@@ -59,7 +59,7 @@ final class CharonRitualController {
     private static final double RIVER_HALF_LENGTH = 20.0D;
     private static final double RIVER_HALF_WIDTH = 3.2D;
     private static final double VERDICT_RADIUS = 30.0D;
-    private static final double SAFE_RADIUS = 2.8D;
+    private static final double SAFE_RADIUS = 4.0D;
     private static final long FIRST_WAVE_TICKS = 70L;
     private static final long RECOVERY_TICKS = 60L;
     private static final int MAX_PARTICLE_POINTS = 512;
@@ -419,7 +419,7 @@ final class CharonRitualController {
         sound(sequence.center, "entity.generic.explode", 1.4F, 0.7F);
     }
 
-    /** 現在の2河道と次波、または現在の安全灯と次灯への移動経路を別バッチで表示します。 */
+    /** 現在の2河道と次波、または安全円内の危険粒子を除いた現在灯と次灯への経路を別バッチで表示します。 */
     private void drawSequence(@NotNull Sequence sequence, long tick) {
         List<Location> danger = new ArrayList<>();
         List<Location> safe = new ArrayList<>();
@@ -447,6 +447,7 @@ final class CharonRitualController {
                     ring(points, light.clone().add(0, 0.2D + layer, 0), SAFE_RADIUS, 32);
                 }
             }
+            danger.removeIf(point -> horizontalSquared(point, currentSafe) <= SAFE_RADIUS * SAFE_RADIUS);
             if (sequence.step + 1 < sequence.safeCenters.size()) {
                 List<Location> route = new ArrayList<>();
                 Beam path = new Beam(sequence.safeCenters.get(sequence.step), sequence.safeCenters.get(sequence.step + 1));
@@ -454,7 +455,7 @@ final class CharonRitualController {
                     route.add(interpolate(path, index / 16.0D).add(0, 0.2D, 0));
                 }
                 ring(route, path.to, SAFE_RADIUS, 32);
-                draw(sequence.center, route, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL);
+                draw(sequence.center, route, SharedParticleDefinitions.CHARON_SAFE_GUIDE);
             }
         }
         List<Location> spiral = new ArrayList<>();
@@ -775,7 +776,7 @@ final class CharonRitualController {
         return kind == Kind.RIVER ? RIVER_WAVE_TICKS : VERDICT_WAVE_TICKS;
     }
 
-    /** 表示した外周30ブロックと現在の安全円2.8ブロックの水平境界で裁定を判定します。 */
+    /** 表示した外周30ブロックと現在の安全円4ブロックの水平境界で裁定を判定します。 */
     private static boolean insideVerdict(@NotNull Location point, @NotNull Location center, @NotNull Location safe) {
         return point.getWorld() == center.getWorld()
             && horizontalSquared(point, center) <= VERDICT_RADIUS * VERDICT_RADIUS

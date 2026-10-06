@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
@@ -143,7 +145,8 @@ public final class BossMechanicService {
     private static final double CHARON_TOLL_RADIUS = 4.8D;
     private static final double CHARON_TOLL_FLANK_DISTANCE = 7.0D;
     private static final double CHARON_LANTERN_DANGER_RADIUS = 20.0D;
-    private static final double CHARON_LANTERN_SAFE_RADIUS = 2.5D;
+    private static final double CHARON_LANTERN_SAFE_RADIUS = 4.0D;
+    private static final long CHARON_LANTERN_TELEGRAPH_TICKS = 120L;
     private static final long CHARON_RECOVERY_TICKS = 40L;
 
     private final JavaPlugin plugin;
@@ -165,6 +168,7 @@ public final class BossMechanicService {
     private final List<PendingMechanic> deferredPendingMechanics = new ArrayList<>();
     private final Map<UUID, BirdMeteorChargeState> birdMeteorChargeStates = new HashMap<>();
     private final Map<UUID, BirdMeteorState> birdMeteorStates = new HashMap<>();
+    private final Map<UUID, BossBar> charonLanternBars = new HashMap<>();
     private @Nullable TemporarySkillEffectService temporarySkillEffectService;
 
     private BukkitTask tickTask;
@@ -1567,7 +1571,7 @@ public final class BossMechanicService {
             case CHARON_RIVER -> 40L;
             case CHARON_TOLL -> 45L;
             case CHARON_TOLL_ECHO -> 35L;
-            case CHARON_LANTERN -> 70L;
+            case CHARON_LANTERN -> CHARON_LANTERN_TELEGRAPH_TICKS;
         };
     }
 
@@ -1806,17 +1810,18 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.MOB_GRANBAL_ROOT
             );
             case GRANBAL_PETAL_BURST -> renderGranbalPetalTelegraph(pending);
-            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL);
+            case CHARON_RIVER -> renderCharonRiver(pending, SharedParticleDefinitions.CHARON_DANGER);
             case CHARON_TOLL, CHARON_TOLL_ECHO -> renderCharonToll(pending,
-                SharedParticleDefinitions.BOSS_MECHANIC_SPARK);
+                SharedParticleDefinitions.CHARON_DANGER);
             case CHARON_LANTERN -> {
+                updateCharonLanternBossBar(pending);
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_DANGER_RADIUS,
-                    SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 96
+                    SharedParticleDefinitions.CHARON_DANGER, 96
                 );
                 renderCircle(
                     pending.anchor(), CHARON_LANTERN_SAFE_RADIUS,
-                    SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 28
+                    SharedParticleDefinitions.CHARON_SAFE_LIGHT, 28
                 );
             }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
@@ -1877,6 +1882,24 @@ public final class BossMechanicService {
                 0.3D + remaining * 1.2D, 16));
         }
         particleDisplayService.spawnForNearbyViewers(points, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE);
+    }
+
+    /**
+     * 通常の魂灯の爆破までの秒数と安全輪への避難指示をBossBarへ表示します。
+     * 予兆の開始と同期tick更新で呼び出し、同じworldの近傍管理対象Playerへ同期します。
+     *
+     * @param pending 通常の魂灯の未発動予兆。完了・中断時はremovePendingVisualsで回収すること
+     */
+    private void updateCharonLanternBossBar(@NotNull PendingMechanic pending) {
+        long remainingTicks = Math.max(0L, pending.executeAtTick() - clockTicks);
+        String title = PlayerMsgResource.format(PlayerMsgId.P_6542.getId(), (remainingTicks + 19L) / 20L);
+        BossBar bar = charonLanternBars.computeIfAbsent(pending.bossInstanceId(),
+            ignored -> Bukkit.createBossBar(title, BarColor.RED, BarStyle.SEGMENTED_10));
+        bar.setTitle(title);
+        bar.setProgress(Math.clamp((double) remainingTicks / CHARON_LANTERN_TELEGRAPH_TICKS, 0.0D, 1.0D));
+        List<Player> players = nearbyManagedPlayers(pending.anchor(), TARGET_RANGE);
+        bar.getPlayers().stream().filter(player -> !players.contains(player)).toList().forEach(bar::removePlayer);
+        players.stream().filter(player -> !bar.getPlayers().contains(player)).forEach(bar::addPlayer);
     }
 
     /**
@@ -2097,7 +2120,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * 魂灯の青い円周上を含む安全域を除き、危険円内だけを攻撃します。
+     * 魂灯の緑の円周上を含む安全域を除き、危険円内だけを攻撃します。
      *
      * @param boss ダメージ発生元
      * @param center 詠唱開始時の対象地点
@@ -3303,7 +3326,16 @@ public final class BossMechanicService {
         }
     }
 
+    /** 予兆が所有する表示Entityと通常魂灯のBossBarを完了・中断時に回収します。 */
     private void removePendingVisuals(@NotNull PendingMechanic pending) {
+        if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
+            BossBar bar = charonLanternBars.remove(pending.bossInstanceId());
+            if (bar != null) {
+                bar.setProgress(0.0D);
+                bar.removeAll();
+                bar.setVisible(false);
+            }
+        }
         for (UUID entityId : pending.displayEntityIds()) {
             Entity entity = Bukkit.getEntity(entityId);
             if (entity != null) {
