@@ -1,18 +1,18 @@
 # design:
-#   motif: "動物 / グラスボア / 武器箱"
+#   motif: "工芸 / 武器箱"
 #   progression: 15
 schemaVersion: 1
 id: 50a00003
 category: bundle
-name: '&aグラスボア武器箱'
+name: '&aエリヴァ武器箱'
 icon: WHITE_SHULKER_BOX
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7全8種のグラスボア武器からランダムに1本を獲得する。'
+  - '&7全8種のエリヴァ武器からランダムに1本を獲得する。'
 unTradeable: false
 unSellable: true
 bundle:
   openTimeTicks: 10
   lootTableId:
-    ref: loot_table:grassboar_weapon_table
+    ref: loot_table:eriva_weapon_table

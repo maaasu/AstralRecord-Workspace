@@ -1,37 +1,37 @@
 # design:
-#   motif: "動物 / グラスボア / 牙と骨"
+#   motif: "動物 / 獣の牙と骨"
 #   progression: 15
 schemaVersion: 1
-id: 20a00079
+id: 20a00080
 category: equipment
-name: '&aグラスボアの短杖'
-icon: BONE
+name: '&aエリヴァの長杖'
+icon: BAMBOO
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7グラスボアの牙と骨を組み込んだ短杖。'
+  - '&7エリヴァの獣の牙と骨を組み込んだ長杖。'
   - '&7鍛え上げて進化させると、さらに成長する。'
 unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
   handType: ONE
-  tag: WAND
+  tag: STAFF
   requiredLevel: 15
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
       value:
-        min: 50~59
-        max: 60~70
+        min: 5~59
+        max: 60~115
     - status: INTELLIGENCE
       type: FLAT
       value:
-        min: 3~4
-        max: 5~6
+        min: 0~4
+        max: 5~9
     - status: NORMAL_ATTACK_DAMAGE_INCREASE
       type: FLAT
-      value: -10
+      value: 40
   durability:
     max: 300
     consume: 1
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したグラスボアの短杖'
+        name: '&a進化したエリヴァの長杖'
         enhance:
           maxLevel: 30

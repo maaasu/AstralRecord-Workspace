@@ -1,34 +1,37 @@
 # design:
-#   motif: "動物 / グラスボア / 牙と骨"
+#   motif: "動物 / 獣の牙と骨"
 #   progression: 15
 schemaVersion: 1
-id: 20a00073
+id: 20a00074
 category: equipment
-name: '&aグラスボアの剣'
-icon: IRON_SWORD
+name: '&aエリヴァの槌'
+icon: MACE
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7グラスボアの牙と骨を組み込んだ剣。'
+  - '&7エリヴァの獣の牙と骨を組み込んだ槌。'
   - '&7鍛え上げて進化させると、さらに成長する。'
 unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
   handType: ONE
-  tag: SWORD
+  tag: HAMMER
   requiredLevel: 15
   stats:
     - status: MELEE_ATTACK
       type: FLAT
       value:
-        min: 50~59
-        max: 60~70
+        min: 5~59
+        max: 60~115
     - status: STRENGTH
       type: FLAT
       value:
-        min: 3~4
-        max: 5~6
+        min: 0~4
+        max: 5~9
+    - status: NORMAL_ATTACK_DAMAGE_INCREASE
+      type: FLAT
+      value: 120
   durability:
     max: 300
     consume: 1
@@ -277,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したグラスボアの剣'
+        name: '&a進化したエリヴァの槌'
         enhance:
           maxLevel: 30

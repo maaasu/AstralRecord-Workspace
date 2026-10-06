@@ -1,9 +1,0 @@
-# design:
-#   motif: "動物 / グラスボア / 牙と骨"
-#   progression: 15
-schemaVersion: 1
-id: grassboar_weapon_table
-type: LOOT_TABLE
-rolls: 1
-pools:
-  - ref: loot_pool:grassboar_weapon_pool

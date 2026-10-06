@@ -55,3 +55,5 @@ ai:
 
 drops:
   exp: 200
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

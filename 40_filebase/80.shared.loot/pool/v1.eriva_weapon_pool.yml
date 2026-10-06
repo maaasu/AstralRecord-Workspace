@@ -1,8 +1,8 @@
 # design:
-#   motif: "動物 / グラスボア / 牙と骨"
+#   motif: "動物 / 獣の牙と骨"
 #   progression: 15
 schemaVersion: 1
-id: grassboar_weapon_pool
+id: eriva_weapon_pool
 type: LOOT_POOL
 pick: 1
 contents:

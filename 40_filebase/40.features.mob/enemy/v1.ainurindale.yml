@@ -71,8 +71,7 @@ levels:
           amount: 1
           luckAffected: false
           hidden: false
-      lootTable:
-        ref: loot_table:normal_enemy_common_table_tier_2
+      lootTable: null
 
 baseStats:
   - status: MAX_HEALTH
