@@ -28,8 +28,6 @@ public final class WizardStormChainExecutor extends WizardSkillSupport {
     /** {@inheritDoc} */
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
-        beam(context, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_CORE,
-                SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
         AstEntity firstTarget = line(context).stream().findFirst().orElse(null);
         Location origin = context.eyeLocation();
         Location missedEnd = context.services().targeting().clippedEnd(

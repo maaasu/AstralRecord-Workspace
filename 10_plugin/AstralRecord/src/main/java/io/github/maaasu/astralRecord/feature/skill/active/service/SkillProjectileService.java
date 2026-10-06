@@ -254,7 +254,7 @@ public final class SkillProjectileService {
                 }
             }
 
-            drawTrail(current[0], next, spec);
+            effectService.line(current[0], next, 0.45D, spec.trail());
             travelled[0] += actualDistance;
             current[0] = next;
             if (blockImpact != null) {
