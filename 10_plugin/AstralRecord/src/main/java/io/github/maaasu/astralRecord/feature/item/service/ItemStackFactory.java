@@ -1331,7 +1331,7 @@ public class ItemStackFactory {
                         ? ColorCodeUtil.GRAY + " (ランク" + instance.getTranscendenceRank() + ")"
                         : "";
                 lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE
-                        + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "】" + rankNote);
+                        + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.WHITE + "】" + rankNote);
             }
 
             // --- 強化レベル表示 ---
