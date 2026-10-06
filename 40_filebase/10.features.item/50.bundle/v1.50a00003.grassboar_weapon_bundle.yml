@@ -4,16 +4,15 @@
 schemaVersion: 1
 id: 50a00003
 category: bundle
-name: '&aグラスボア武器箱【剣】'
+name: '&aグラスボア武器箱'
 icon: WHITE_SHULKER_BOX
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7グラスボアの剣が一振り封じられている。'
+  - '&7全8種のグラスボア武器からランダムに1本を獲得する。'
 unTradeable: false
 unSellable: true
 bundle:
   openTimeTicks: 10
-  items:
-    - itemId: 20a00073
-      amount: 1
+  lootTableId:
+    ref: loot_table:grassboar_weapon_table

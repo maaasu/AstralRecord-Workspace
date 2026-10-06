@@ -155,49 +155,7 @@ drops:
       hidden: false
     - itemId:
         ref: item:50a00003
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00004
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00005
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00006
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00007
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00008
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00009
-      rate: 0.5
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:50a00010
-      rate: 0.5
+      rate: 4.0
       amount: 1
       luckAffected: true
       hidden: false

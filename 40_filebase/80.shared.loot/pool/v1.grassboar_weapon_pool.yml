@@ -1,0 +1,40 @@
+# design:
+#   motif: "動物 / グラスボア / 牙と骨"
+#   progression: 15
+schemaVersion: 1
+id: grassboar_weapon_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:20a00073
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00074
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00075
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00076
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00077
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00078
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00079
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:20a00080
+    rate: 100.0
+    amount: 1
