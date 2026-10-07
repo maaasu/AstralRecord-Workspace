@@ -4,8 +4,8 @@
 schemaVersion: 1
 id: 20a00079
 category: equipment
-name: '&aエリヴァの短杖'
-icon: BONE
+name: '&aエリヴァロッド'
+icon: WOODEN_HOE
 rarity: RARE
 maxStack: 1
 lore:
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの短杖'
+        name: '&a進化したエリヴァロッド'
         enhance:
           maxLevel: 30

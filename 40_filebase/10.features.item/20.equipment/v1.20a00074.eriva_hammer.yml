@@ -4,8 +4,8 @@
 schemaVersion: 1
 id: 20a00074
 category: equipment
-name: '&aエリヴァの槌'
-icon: MACE
+name: '&aエリヴァハンマー'
+icon: WOODEN_AXE
 rarity: RARE
 maxStack: 1
 lore:
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの槌'
+        name: '&a進化したエリヴァハンマー'
         enhance:
           maxLevel: 30

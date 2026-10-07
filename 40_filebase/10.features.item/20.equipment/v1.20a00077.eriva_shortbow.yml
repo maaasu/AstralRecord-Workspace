@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: 20a00077
 category: equipment
-name: '&aエリヴァの短弓'
+name: '&aエリヴァショートボウ'
 icon: BOW
 rarity: RARE
 maxStack: 1
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの短弓'
+        name: '&a進化したエリヴァショートボウ'
         enhance:
           maxLevel: 30

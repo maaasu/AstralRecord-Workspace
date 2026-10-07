@@ -19,10 +19,6 @@ contents:
     rate: 100.0
     amount: 1
   - itemId:
-      ref: item:20a00076
-    rate: 100.0
-    amount: 1
-  - itemId:
       ref: item:20a00077
     rate: 100.0
     amount: 1

@@ -4,8 +4,8 @@
 schemaVersion: 1
 id: 20a00075
 category: equipment
-name: '&aエリヴァの槍'
-icon: IRON_SPEAR
+name: '&aエリヴァスピア'
+icon: WOODEN_SPEAR
 rarity: RARE
 maxStack: 1
 lore:
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの槍'
+        name: '&a進化したエリヴァスピア'
         enhance:
           maxLevel: 30

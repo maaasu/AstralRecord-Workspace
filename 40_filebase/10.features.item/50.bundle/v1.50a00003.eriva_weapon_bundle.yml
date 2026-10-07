@@ -9,7 +9,7 @@ icon: WHITE_SHULKER_BOX
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7全8種のエリヴァ武器からランダムに1本を獲得する。'
+  - '&7全7種のエリヴァ武器からランダムに1本を獲得する。'
 unTradeable: false
 unSellable: true
 bundle:

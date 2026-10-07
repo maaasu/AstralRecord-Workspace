@@ -4,8 +4,8 @@
 schemaVersion: 1
 id: 20a00080
 category: equipment
-name: '&aエリヴァの長杖'
-icon: BAMBOO
+name: '&aエリヴァスタッフ'
+icon: WOODEN_SHOVEL
 rarity: RARE
 maxStack: 1
 lore:
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの長杖'
+        name: '&a進化したエリヴァスタッフ'
         enhance:
           maxLevel: 30

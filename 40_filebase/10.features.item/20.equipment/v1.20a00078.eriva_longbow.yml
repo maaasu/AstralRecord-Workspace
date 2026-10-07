@@ -4,12 +4,12 @@
 schemaVersion: 1
 id: 20a00078
 category: equipment
-name: '&aエリヴァの長弓'
-icon: BOW
+name: '&aエリヴァガンボウ'
+icon: LEATHER_HORSE_ARMOR
 rarity: RARE
 maxStack: 1
 lore:
-  - '&7エリヴァの獣の牙と骨を組み込んだ長弓。'
+  - '&7エリヴァの獣の牙と骨を組み込んだガンボウ。'
   - '&7鍛え上げて進化させると、さらに成長する。'
 unTradeable: false
 unSellable: false
@@ -280,6 +280,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの長弓'
+        name: '&a進化したエリヴァガンボウ'
         enhance:
           maxLevel: 30

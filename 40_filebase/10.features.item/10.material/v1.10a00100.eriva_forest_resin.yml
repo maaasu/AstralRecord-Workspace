@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 樹脂"
+#   progression: 15
+schemaVersion: 1
+id: 10a00100
+category: material
+name: '&a森の樹脂'
+icon: RESIN_CLUMP
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - '&7森林の生き物が帯びる、粘りの強い樹脂。'
+  - '&7エリヴァ武器の製作に使用する。'
+unTradeable: false
+unSellable: false

@@ -4,8 +4,8 @@
 schemaVersion: 1
 id: 20a00073
 category: equipment
-name: '&aエリヴァの剣'
-icon: IRON_SWORD
+name: '&aエリヴァソード'
+icon: WOODEN_SWORD
 rarity: RARE
 maxStack: 1
 lore:
@@ -277,6 +277,6 @@ equipment:
           amount: 20
       requiredCurrency: 1500
       overrides:
-        name: '&a進化したエリヴァの剣'
+        name: '&a進化したエリヴァソード'
         enhance:
           maxLevel: 30
