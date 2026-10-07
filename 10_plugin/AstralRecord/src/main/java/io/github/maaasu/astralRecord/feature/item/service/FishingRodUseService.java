@@ -168,7 +168,7 @@ public final class FishingRodUseService {
     }
 
     /**
-     * 右クリックを待機中の回収、リール開放、魚の取り外しへ接続します。
+     * 右クリックを待機中の回収、左クリックと共通の巻き取り、魚の取り外しへ接続します。
      * @param player 所有プレイヤー
      */
     public void fishingRightClick(@NotNull AstPlayer player) {
@@ -396,7 +396,8 @@ public final class FishingRodUseService {
             tickFishing(playerId, player, active, rodTip);
             return;
         }
-        if (active.retrieved || active.currentHook.distance(rodTip) > active.maxLineLength + 1.0E-8D) {
+        if (active.retrieved
+            || active.currentHook.distance(rodTip) > active.maxLineLength + FishingSession.LINE_LENGTH_EPSILON) {
             cancel(playerId);
             return;
         }
@@ -847,8 +848,15 @@ public final class FishingRodUseService {
             && Double.isFinite(location.getZ());
     }
 
+    /**
+     * 着水と沈下継続の判定に、水草を含む水域を使います。
+     * @param material 針が接触する材質
+     * @return 水・泡柱・水草ならtrue
+     */
     private static boolean isWater(@NotNull Material material) {
-        return material == Material.WATER || material == Material.BUBBLE_COLUMN;
+        return material == Material.WATER || material == Material.BUBBLE_COLUMN
+            || material == Material.SEAGRASS || material == Material.TALL_SEAGRASS
+            || material == Material.KELP || material == Material.KELP_PLANT;
     }
 
     private static void removeDisplay(@Nullable BlockDisplay display) {

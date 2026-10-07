@@ -43,6 +43,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * Bukkit API と実魚の移動は親キャストタスクからメインスレッドで更新します。
  */
 public final class FishingSession {
+    /** キャスト・釣り待機・リールで共用する、最大糸長の丸め誤差許容（m）。 */
+    public static final double LINE_LENGTH_EPSILON = 1.0E-8D;
     private static final int MAX_SEARCH_BLOCKS = 5_000;
     private static final double MIN_SPAWN_DISTANCE_SQUARED = 5.0D;
     private static final double MIN_FISH_SEPARATION_SQUARED = 3.0D;
@@ -79,6 +81,7 @@ public final class FishingSession {
     private int ticks;
     private int phaseTicks;
     private int lastReelTick = Integer.MIN_VALUE / 2;
+    private double combatMaxHealth;
     private double hp;
     private double distance;
     private double surfaceY;
@@ -134,6 +137,7 @@ public final class FishingSession {
 
     /**
      * 魚と表示を1tick進めます。親キャストタスクからメインスレッドで呼びます。
+     * 糸長判定はキャストと同じ丸め誤差許容を使い、着水境界だけで逃走させません。
      *
      * @param rodTip 現在の竿先。針と同じworldであること
      */
@@ -147,7 +151,7 @@ public final class FishingSession {
         ticks++;
         phaseTicks++;
         if (ticks >= MAX_SESSION_TICKS) { escape(); return; }
-        if (phase == Phase.WAITING && rodTip.distance(submergedHook) > maxLineLength) {
+        if (phase == Phase.WAITING && rodTip.distance(submergedHook) > maxLineLength + LINE_LENGTH_EPSILON) {
             escape();
             return;
         }
@@ -238,14 +242,13 @@ public final class FishingSession {
         if (distance <= 0.0D) startLanding();
     }
 
-    /** 戦闘中は糸を緩め、吊り下げ中は魚を外して逃走を開始します。 */
+    /**
+     * 戦闘中は左クリックと同じゲージ・ターン・入力間隔で巻き取り、吊り下げ中は魚を外します。
+     * 親キャストの状態確認後、メインスレッドで呼びます。
+     */
     public void rightClick() {
         if (phase == Phase.BATTLE) {
-            distance += rules.slackDistance();
-            player.playSound(player.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE,
-                SoundCategory.PLAYERS, 0.4F, 0.7F);
-            showDistance();
-            if (distance > maxLineLength) escape();
+            leftClick();
         } else if (phase == Phase.HANGING) {
             releaseFish();
         }
@@ -258,7 +261,7 @@ public final class FishingSession {
         phaseTicks = 0;
         bar.setColor(BarColor.RED);
         bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
-        bar.setProgress(hp / selected.definition.maxHealth());
+        bar.setProgress(hp / combatMaxHealth);
         bar.setVisible(true);
         escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds,
             selected.definition.landFleeSpeed(), selected.definition.hopSpeed());
@@ -408,10 +411,14 @@ public final class FishingSession {
         swimmer.entity.teleport(next);
     }
 
-    /** @param winner 最初に食いついた魚 */
+    /**
+     * 共通戦闘と同じ最低1の実効最大HPで表示を初期化します。
+     * @param winner 最初に食いついた魚
+     */
     private void beginBattle(Swimmer winner) {
         selected = winner;
-        hp = winner.definition.maxHealth();
+        combatMaxHealth = Math.max(1.0D, winner.definition.maxHealth());
+        hp = combatMaxHealth;
         phase = Phase.BATTLE;
         phaseTicks = 0;
         hook = winner.entity.getLocation();
@@ -431,7 +438,10 @@ public final class FishingSession {
         particles.spawnForNearbyViewers(hook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
     }
 
-    /** 張力、攻撃ゲージ、選択魚の浮上と位置を更新します。 */
+    /**
+     * 張力、攻撃ゲージ、選択魚の浮上と位置を更新し、丸め誤差許容を超える糸長で逃走させます。
+     * @param rodTip 現在の竿先。同じworldでメインスレッドから渡します
+     */
     private void tickBattle(Location rodTip) {
         if (selected == null) { close(); return; }
         fleeLosers();
@@ -445,7 +455,7 @@ public final class FishingSession {
         moveSelectedWithLine(rodTip);
         hook = selected.entity.getLocation();
         distance += selected.definition.pullPerTick();
-        if (distance > maxLineLength) { escape(); return; }
+        if (distance > maxLineLength + LINE_LENGTH_EPSILON) { escape(); return; }
         bar.setProgress(gauge());
         if (phaseTicks % 5 == 0) showDistance();
         if (phaseTicks % 12 == 0) {
@@ -660,13 +670,16 @@ public final class FishingSession {
                 || !FishingEscapeMotion.touchesWater(selected.entity.getLocation(), combatBounds));
     }
 
-    /** 共通DamageServiceで確定したHPを表示へ反映します。ここではダメージを再計算しません。 */
+    /**
+     * 共通DamageServiceで確定したHPを、共通戦闘の実効最大HPと同じ上限・割合で表示へ反映します。
+     * @param remaining 共通戦闘が確定した残HP。ダメージは再計算しません
+     */
     private void onCombatHealthChanged(double remaining) {
         if (!isCombatPhase()) return;
-        hp = Math.max(0.0D, Math.min(selected.definition.maxHealth(), remaining));
+        hp = Math.max(0.0D, Math.min(combatMaxHealth, remaining));
         if (isReleased()) {
             bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
-            bar.setProgress(hp / selected.definition.maxHealth());
+            bar.setProgress(hp / combatMaxHealth);
         }
         if (hp > 0.0D) {
             world.playSound(selected.entity.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 0.8F, 1.0F);
@@ -713,7 +726,7 @@ public final class FishingSession {
         return true;
     }
 
-    /** @return 読込済みの水または泡柱に位置する場合はtrue */
+    /** @return 読込済みの水・泡柱・水草に位置する場合はtrue */
     private boolean isWaterAt(Location point) {
         return point.getWorld() == world && isWater(point.getBlockX(), point.getBlockY(), point.getBlockZ());
     }
@@ -743,12 +756,20 @@ public final class FishingSession {
         return true;
     }
 
-    /** @return 読み込み済みチャンク内の水源または流水ならtrue */
+    /**
+     * 読み込み済みの水源・流水・泡柱・水草を水路として扱います。
+     * @param x 調べるブロックのX座標
+     * @param y 調べるブロックのY座標
+     * @param z 調べるブロックのZ座標
+     * @return 読込済みの水路ならtrue
+     */
     private boolean isWater(int x, int y, int z) {
-        return world != null && y >= world.getMinHeight() && y < world.getMaxHeight()
-            && world.isChunkLoaded(x >> 4, z >> 4)
-            && (world.getBlockAt(x, y, z).getType() == Material.WATER
-                || world.getBlockAt(x, y, z).getType() == Material.BUBBLE_COLUMN);
+        if (world == null || y < world.getMinHeight() || y >= world.getMaxHeight()
+            || !world.isChunkLoaded(x >> 4, z >> 4)) return false;
+        Material material = world.getBlockAt(x, y, z).getType();
+        return material == Material.WATER || material == Material.BUBBLE_COLUMN
+            || material == Material.SEAGRASS || material == Material.TALL_SEAGRASS
+            || material == Material.KELP || material == Material.KELP_PLANT;
     }
 
     /** @return 選択魚がまだ実体として存在すればtrue */
