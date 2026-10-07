@@ -58,6 +58,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 
 /**
  * Mob の戦闘ロジックを担うサービス。
@@ -331,7 +332,7 @@ public class MobCombatService {
         }
         Player killer = killerId == null ? null : Bukkit.getPlayer(killerId);
         Logger.log(LogId.D_5703, instance.template().id(), killerId);
-        return handleDeathWithRecipients(instance, resolveDropRecipients(instance, killer));
+        return handleDeathWithRecipients(instance, resolveDropRecipients(instance, killer), null);
     }
 
     /**
@@ -346,6 +347,22 @@ public class MobCombatService {
             @NotNull MobInstance instance,
             @NotNull List<AstPlayer> recipients
     ) {
+        return handleDeath(instance, recipients, null);
+    }
+
+    /**
+     * 固定受取人へ報酬を付与し、解決済みの個人報酬本文を戦績との統合先へ渡します。
+     * @param instance 死亡Mob
+     * @param recipients 固定済みの受取人
+     * @param resultTextHandler trueを返す受取人の通常表示を統合先へ委ねます。nullなら通常表示
+     * @return 受取人順の抽選結果
+     * @implNote メインスレッドから呼び出します。抽選・経験値・アイテム付与とMob破棄の順序は維持します。
+     */
+    public @NotNull List<MobDropResult> handleDeath(
+            @NotNull MobInstance instance,
+            @NotNull List<AstPlayer> recipients,
+            @Nullable BiPredicate<AstPlayer, String> resultTextHandler
+    ) {
         Logger.log(LogId.D_5703, instance.template().id(), instance.lastAttackerUuid());
         Map<UUID, AstPlayer> uniqueRecipients = new LinkedHashMap<>();
         for (AstPlayer recipient : recipients) {
@@ -353,13 +370,20 @@ public class MobCombatService {
                 uniqueRecipients.putIfAbsent(recipient.getBukkit().getUniqueId(), recipient);
             }
         }
-        return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()));
+        return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()), resultTextHandler);
     }
 
-    /** 報酬対象の個体だけに討伐記録と全報酬を付与し、召喚専用個体は破棄だけを行います。 */
+    /**
+     * 報酬対象の個体へ全報酬を付与し、個人本文の統合判定後にMobを破棄します。
+     * @param instance 死亡Mob。召喚専用個体は破棄だけを行います
+     * @param recipients 配布先
+     * @param resultTextHandler 個人結果の統合判定。nullなら通常表示
+     * @return 抽選結果
+     */
     private @NotNull List<MobDropResult> handleDeathWithRecipients(
             @NotNull MobInstance instance,
-            @NotNull List<AstPlayer> recipients
+            @NotNull List<AstPlayer> recipients,
+            @Nullable BiPredicate<AstPlayer, String> resultTextHandler
     ) {
         if (!instance.rewardEligible()) {
             mobService.destroy(instance.instanceId());
@@ -396,7 +420,8 @@ public class MobCombatService {
                     instance.currentLocation(),
                     ColorCodeUtil.toLegacyText(template.displayName(), template.id()),
                     result,
-                    template.category()
+                    template.category(),
+                    resultTextHandler == null ? null : text -> resultTextHandler.test(recipient, text)
             );
         }
 

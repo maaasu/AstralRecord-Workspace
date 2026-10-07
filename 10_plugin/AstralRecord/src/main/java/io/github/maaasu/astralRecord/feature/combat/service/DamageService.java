@@ -1872,10 +1872,14 @@ public final class DamageService {
             }
             boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
             if (bossMob) {
-                mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()));
+                mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()),
+                        (recipient, text) -> bossChallengeService.captureBossDropResult(
+                                mob.instanceId(), recipient.getBukkit().getUniqueId(), text));
                 bossChallengeService.handleBossDefeated(mob.instanceId(), deathLocation);
             } else if (dungeonService != null && dungeonService.isDungeonMob(mob.instanceId())) {
-                mobCombatService.handleDeath(mob, dungeonService.resolveMobRewardRecipients(mob.instanceId()));
+                mobCombatService.handleDeath(mob, dungeonService.resolveMobRewardRecipients(mob.instanceId()),
+                        (recipient, text) -> dungeonService.captureBossDropResult(
+                                mob.instanceId(), recipient.getBukkit().getUniqueId(), text));
             } else {
                 mobCombatService.handleDeath(mob);
             }

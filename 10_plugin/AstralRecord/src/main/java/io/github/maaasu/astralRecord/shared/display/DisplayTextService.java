@@ -1,12 +1,16 @@
 package io.github.maaasu.astralRecord.shared.display;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -18,6 +22,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -36,6 +41,13 @@ public final class DisplayTextService {
     private static final int MAX_DAMAGE_DISPLAYS = 80;
     private static final int DAMAGE_ANIMATION_FRAMES = 6;
     private static final long DAMAGE_ANIMATION_FRAME_TICKS = 4L;
+    private static final int MAX_RESULTS_PER_VIEWER = 3;
+    private static final long RESULT_FRAME_TICKS = 4L;
+    private static final long RESULT_ENTRANCE_TICKS = 12L;
+    private static final long RESULT_EXIT_TICKS = 12L;
+    private static final long RESULT_REVEAL_TICKS = 36L;
+    private static final int MAX_RESULT_LINES = 16;
+    private static final int RESULT_HEADER_LINES = 3;
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
@@ -210,28 +222,60 @@ public final class DisplayTextService {
     }
 
     /**
-     * Mob 討伐時のリザルト表示を一定時間ワールド上へ表示します。
+     * 共通の登場・順次表示・退場演出でリザルトを6秒間ワールド上へ表示します。
      *
      * @param origin 表示基準座標
      * @param text   表示するリザルト本文
      * @return 管理ハンドル
      */
     public @NotNull ManagedTextDisplay spawnResultText(@NotNull Location origin, @NotNull String text) {
+        return createResultText(origin, text, null, 120L);
+    }
+
+    /**
+     * リザルトを拡大・上昇して登場させ、行を順に開示し、終了前にフェードアウトします。
+     * 長い本文は空行で区切った参加者・報酬のブロックを保ち、最大16行のページへ分割します。
+     * 個人表示は生成時から他者へ非表示とし、同じ閲覧者の古い結果を3件までに整理します。
+     *
+     * @param origin 最終的な表示基準位置
+     * @param text 初期の結果本文。動的本文は返されたハンドルに設定できます
+     * @param viewer 個人表示の閲覧者。nullの場合は共有表示
+     * @param durationTicks 表示寿命。登場・退場を含む正のサーバーtick数
+     * @return セッション終了時にも破棄できる管理ハンドル
+     * @throws IllegalArgumentException 寿命が0以下の場合
+     * @implNote Bukkitメインスレッドから呼び出します。Plugin停止時は全表示を回収します。
+     */
+    public @NotNull ManagedTextDisplay createResultText(
+            @NotNull Location origin,
+            @NotNull String text,
+            @Nullable Player viewer,
+            long durationTicks
+    ) {
+        if (durationTicks <= 0L) {
+            throw new IllegalArgumentException("Result duration must be positive.");
+        }
+        UUID viewerId = viewer == null ? null : viewer.getUniqueId();
+        if (viewerId != null) {
+            List<ManagedDisplayState> previous = displays.values().stream()
+                    .filter(state -> !state.destroyed && state.resultAnimation != null
+                            && viewerId.equals(state.resultAnimation.viewerId()))
+                    .sorted(Comparator.comparingLong(state -> state.sequence))
+                    .toList();
+            for (int index = 0; index <= previous.size() - MAX_RESULTS_PER_VIEWER; index++) {
+                ManagedDisplayState state = previous.get(index);
+                state.destroyed = true;
+                destroyEntity(state);
+                displays.remove(state.id);
+            }
+        }
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
-                DisplayTextOptions.defaults(text)
-                        .withShadowed(true)
-                        .withLineWidth(260)
-                        .withViewRange(48.0F)
-                        .withInterpolationDuration(2)
-                        .withTeleportDuration(2)
+                new DisplayTextOptions(text, new Vector(), Display.Billboard.CENTER,
+                        440, 64.0F, (byte) 0xFF, false, true, false,
+                        Color.fromARGB(176, 8, 8, 24), (int) RESULT_FRAME_TICKS, 0,
+                        false, 15, 15)
         );
-
-        List<DisplayAnimationFrame> frames = new ArrayList<>();
-        for (int index = 0; index < 40; index++) {
-            frames.add(new DisplayAnimationFrame(text, new Vector(0.0D, index * 0.01D, 0.0D), 2L));
-        }
-        display.playAnimation(frames, false, true);
+        display.requireState().resultAnimation = new ResultAnimation(viewerId, durationTicks);
         return display;
     }
 
@@ -253,6 +297,10 @@ public final class DisplayTextService {
         }
 
         refreshDynamicText(state);
+        if (state.resultAnimation != null) {
+            tickResult(state, anchorLocation);
+            return;
+        }
         DisplayAnimationFrame frame = resolveFrame(state);
         Entity attachment = state.anchor.attachment();
         Vector attachedOffset = resolveAttachedOffset(state, frame);
@@ -291,6 +339,109 @@ public final class DisplayTextService {
         }
     }
 
+    /**
+     * 結果表示の本文・補間・透過を更新し、寿命や閲覧者の退出時に回収します。
+     * 安定表示中は変換を再送せず、登場・退場の変換更新も4tickごとに制限します。
+     * @param state 結果表示の状態
+     * @param anchorLocation 解決済みの表示座標
+     */
+    private void tickResult(@NotNull ManagedDisplayState state, @NotNull Location anchorLocation) {
+        ResultAnimation animation = state.resultAnimation;
+        Player viewer = animation.viewerId() == null ? null : Bukkit.getPlayer(animation.viewerId());
+        if (state.animationAge >= animation.durationTicks()
+                || (animation.viewerId() != null && (viewer == null || !viewer.isOnline()
+                || !viewer.getWorld().equals(anchorLocation.getWorld())))) {
+            state.destroyed = true;
+            destroyEntity(state);
+            displays.remove(state.id);
+            return;
+        }
+        TextDisplay entity = ensureEntity(state, anchorLocation);
+        if (entity == null) return;
+        applyOptionsIfNeeded(entity, state);
+        if (!Objects.equals(state.resultFullText, state.options.text())) {
+            state.resultFullText = state.options.text();
+            state.resultPages = resultPages(state.resultFullText);
+        }
+        long pageDuration = Math.min(120L, Math.max(40L,
+                (animation.durationTicks() - RESULT_EXIT_TICKS) / state.resultPages.size()));
+        int pageIndex = (int) (state.animationAge / pageDuration % state.resultPages.size());
+        List<String> lines = state.resultPages.get(pageIndex);
+        long pageAge = state.resultPages.size() == 1 ? state.animationAge : state.animationAge % pageDuration;
+        long revealDuration = Math.min(RESULT_REVEAL_TICKS, Math.max(1L, lines.size() * 2L));
+        int visibleLines = (int) Math.min(lines.size(), 1L + pageAge * lines.size() / revealDuration);
+        String revealed = String.join("\n", lines.subList(0, visibleLines))
+                + "\n".repeat(lines.size() - visibleLines);
+        applyFrame(entity, state, new DisplayAnimationFrame(revealed, new Vector(), 1L));
+        if (state.animationAge % RESULT_FRAME_TICKS == 0L) {
+            double entrance = Math.min(1.0D, state.animationAge / (double) RESULT_ENTRANCE_TICKS);
+            double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
+            double exit = Math.clamp((state.animationAge - animation.durationTicks() + RESULT_EXIT_TICKS)
+                    / (double) RESULT_EXIT_TICKS, 0.0D, 1.0D);
+            float scale = (float) (0.55D + 0.27D * eased + 0.08D * Math.sin(entrance * Math.PI));
+            Vector offset = new Vector(0.0D, -0.24D * (1.0D - eased) + exit * 0.18D, 0.0D);
+            if (!offset.equals(state.lastTransformOffset) || Float.compare(scale, state.lastResultScale) != 0) {
+                entity.setInterpolationDelay(0);
+                entity.setInterpolationDuration((int) RESULT_FRAME_TICKS);
+                entity.setTransformation(new Transformation(
+                        new Vector3f(0.0F, (float) offset.getY(), 0.0F), new Quaternionf(),
+                        new Vector3f(scale, scale, scale), new Quaternionf()));
+                state.lastTransformOffset = offset;
+                state.lastResultScale = scale;
+            }
+            double opacity = (0.25D + 0.75D * eased) * (1.0D - exit);
+            entity.setTextOpacity((byte) Math.max(4, Math.round(255.0D * opacity)));
+            entity.setBackgroundColor(Color.fromARGB((int) Math.round(176.0D * opacity), 8, 8, 24));
+        }
+        state.animationAge++;
+    }
+
+    /**
+     * 空行で区切った情報単位を保って本文をページ化し、全ページに見出しとページ番号を付けます。
+     * @param text 見出し3行と、空行区切りの戦績・報酬本文
+     * @return 高さを揃えたページ行。短い本文は空行だけを除去した1ページ
+     */
+    private @NotNull List<List<String>> resultPages(@NotNull String text) {
+        List<String> allLines = text.lines().filter(line -> !line.isBlank()).toList();
+        if (allLines.size() <= MAX_RESULT_LINES) return List.of(allLines);
+        List<String> header = allLines.subList(0, RESULT_HEADER_LINES);
+        String[] rawLines = text.split("\n", -1);
+        int bodyStart = 0;
+        int headerCount = 0;
+        while (bodyStart < rawLines.length && headerCount < RESULT_HEADER_LINES) {
+            if (!rawLines[bodyStart].isBlank()) headerCount++;
+            bodyStart++;
+        }
+        int bodyLimit = MAX_RESULT_LINES - RESULT_HEADER_LINES - 1;
+        List<List<String>> bodies = new ArrayList<>();
+        List<String> body = new ArrayList<>();
+        String remaining = String.join("\n", List.of(rawLines).subList(bodyStart, rawLines.length));
+        for (String block : remaining.split("\n\s*\n")) {
+            List<String> blockLines = block.lines().filter(line -> !line.isBlank()).toList();
+            if (!body.isEmpty() && body.size() + blockLines.size() > bodyLimit) {
+                bodies.add(List.copyOf(body));
+                body.clear();
+            }
+            for (String line : blockLines) {
+                if (body.size() == bodyLimit) {
+                    bodies.add(List.copyOf(body));
+                    body.clear();
+                }
+                body.add(line);
+            }
+        }
+        if (!body.isEmpty()) bodies.add(List.copyOf(body));
+        List<List<String>> pages = new ArrayList<>();
+        for (int index = 0; index < bodies.size(); index++) {
+            List<String> page = new ArrayList<>(header);
+            page.addAll(bodies.get(index));
+            while (page.size() < MAX_RESULT_LINES - 1) page.add("");
+            page.add(PlayerMsgResource.format(PlayerMsgId.P_6562.getId(), index + 1, bodies.size()));
+            pages.add(List.copyOf(page));
+        }
+        return List.copyOf(pages);
+    }
+
     private @Nullable TextDisplay ensureEntity(@NotNull ManagedDisplayState state, @NotNull Location location) {
         TextDisplay entity = state.entity;
         if (entity != null && entity.isValid() && entity.getWorld().equals(location.getWorld())) {
@@ -308,22 +459,43 @@ public final class DisplayTextService {
             display.setGravity(false);
             display.setInvulnerable(true);
             display.setSilent(true);
+            if (state.resultAnimation != null) {
+                applyOptions(display, state.options);
+                display.setAlignment(TextDisplay.TextAlignment.LEFT);
+                display.setVisibleByDefault(state.resultAnimation.viewerId() == null);
+                display.setTransformation(new Transformation(
+                        new Vector3f(0.0F, -0.24F, 0.0F), new Quaternionf(),
+                        new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
+                display.setTextOpacity((byte) 64);
+                display.setBackgroundColor(Color.fromARGB(44, 8, 8, 24));
+            }
         });
+        if (state.resultAnimation != null && state.resultAnimation.viewerId() != null && plugin != null) {
+            Player viewer = Bukkit.getPlayer(state.resultAnimation.viewerId());
+            if (viewer != null) viewer.showEntity(plugin, state.entity);
+        }
         state.lastLocation = location.clone();
         state.lastText = null;
         state.lastTransformOffset = null;
+        state.lastResultScale = Float.NaN;
         state.lastAppliedOptions = null;
         return state.entity;
     }
 
     /**
-     * 表示オプションが変化した場合だけ Bukkit 実体へ反映します。
+     * 見た目のオプションが変化した場合だけBukkit実体へ反映します。
+     * 本文だけの更新では、アニメーション中の透過度・背景・補間を上書きしません。
      *
      * @param entity TextDisplay 実体
      * @param state 管理状態
      */
     private void applyOptionsIfNeeded(@NotNull TextDisplay entity, @NotNull ManagedDisplayState state) {
         if (state.options.equals(state.lastAppliedOptions)) {
+            return;
+        }
+        if (state.lastAppliedOptions != null
+                && state.options.withText(state.lastAppliedOptions.text()).equals(state.lastAppliedOptions)) {
+            state.lastAppliedOptions = state.options;
             return;
         }
         applyOptions(entity, state.options);
@@ -512,6 +684,7 @@ public final class DisplayTextService {
         state.lastLocation = null;
         state.lastText = null;
         state.lastTransformOffset = null;
+        state.lastResultScale = Float.NaN;
         state.lastAppliedOptions = null;
     }
 
@@ -660,6 +833,10 @@ public final class DisplayTextService {
         private @Nullable Vector lastTransformOffset;
         private @Nullable DisplayTextOptions lastAppliedOptions;
         private @Nullable Supplier<String> textSupplier;
+        private @Nullable ResultAnimation resultAnimation;
+        private @Nullable String resultFullText;
+        private List<List<String>> resultPages = List.of();
+        private float lastResultScale = Float.NaN;
 
         private ManagedDisplayState(
                 @NotNull DisplayAnchor anchor,
@@ -673,4 +850,10 @@ public final class DisplayTextService {
             this.sequence = sequence;
         }
     }
+
+    /**
+     * @param viewerId 個人表示の閲覧者。共有表示の場合はnull
+     * @param durationTicks 表示寿命
+     */
+    private record ResultAnimation(@Nullable UUID viewerId, long durationTicks) { }
 }

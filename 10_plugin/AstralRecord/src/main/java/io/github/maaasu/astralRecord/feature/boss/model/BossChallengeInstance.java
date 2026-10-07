@@ -42,7 +42,8 @@ public final class BossChallengeInstance {
     private long resultWaitEndsAtMs;
     private BukkitTask resultWaitTask;
     private BukkitTask startCountdownTask;
-    private DisplayTextService.ManagedTextDisplay resultDisplay;
+    private List<DisplayTextService.ManagedTextDisplay> resultDisplays = List.of();
+    private final Map<UUID, String> dropResultTexts = new ConcurrentHashMap<>();
     private BossBar bossBar;
     private UUID creationQueueLeaderId;
     private UUID creationQueueTicketId;
@@ -320,12 +321,35 @@ public final class BossChallengeInstance {
         this.startCountdownTask = startCountdownTask;
     }
 
-    public @Nullable DisplayTextService.ManagedTextDisplay resultDisplay() {
-        return resultDisplay;
+    /** @return 受取人別の統合リザルト表示ハンドル。変更不能な一覧 */
+    public @NotNull List<DisplayTextService.ManagedTextDisplay> resultDisplays() {
+        return resultDisplays;
     }
 
-    public void resultDisplay(@Nullable DisplayTextService.ManagedTextDisplay resultDisplay) {
-        this.resultDisplay = resultDisplay;
+    /** @param resultDisplays セッション終了時に回収する統合表示 */
+    public void resultDisplays(@NotNull List<DisplayTextService.ManagedTextDisplay> resultDisplays) {
+        this.resultDisplays = List.copyOf(resultDisplays);
+    }
+
+    /**
+     * @param playerId 受取人UUID
+     * @param text 解決済みの個人報酬本文
+     */
+    public void recordDropResult(@NotNull UUID playerId, @NotNull String text) {
+        dropResultTexts.put(playerId, text);
+    }
+
+    /**
+     * @param playerId 閲覧者UUID
+     * @return 個人報酬本文。報酬対象でなければ空文字
+     */
+    public @NotNull String dropResultText(@NotNull UUID playerId) {
+        return dropResultTexts.getOrDefault(playerId, "");
+    }
+
+    /** 統合表示の回収後に個人報酬本文を破棄します。 */
+    public void clearDropResults() {
+        dropResultTexts.clear();
     }
 
     /**

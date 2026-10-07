@@ -1396,7 +1396,8 @@ public final class AstralRecord extends JavaPlugin {
                 inventoryService,
                 itemStackFactory,
                 itemDropAnimationService,
-                playerSettingService
+                playerSettingService,
+                displayTextService
         );
         mobDropPresentationService.setAfkService(afkService);
         gatheringService.setDropPresentationService(mobDropPresentationService);

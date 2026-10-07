@@ -44,6 +44,7 @@ import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
@@ -745,6 +746,24 @@ public final class BossChallengeService {
         if (challenge != null) {
             beginDefeatedResultWait(challenge, deathLocation);
         }
+    }
+
+    /**
+     * 死亡確定前のMob対応表から、受取人の報酬本文を戦績表示用に保持します。
+     * @param mobInstanceId 討伐したボスUUID
+     * @param playerId 報酬受取人UUID
+     * @param text 解決済みの報酬本文
+     * @return 稼働中の挑戦へ保存し、通常の別表示を省略できる場合はtrue
+     * @implNote メインスレッドから、handleBossDefeatedより先に呼び出します。
+     */
+    public boolean captureBossDropResult(@NotNull UUID mobInstanceId, @NotNull UUID playerId,
+                                         @NotNull String text) {
+        UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
+        BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.IN_PROGRESS
+                || !challenge.participantIds().contains(playerId)) return false;
+        challenge.recordDropResult(playerId, text);
+        return true;
     }
 
     /**
@@ -1754,7 +1773,9 @@ public final class BossChallengeService {
         String ranking = EncounterResultFormatter.format(challenge.combatStatistics(), challenge.participantIds(),
                 challenge.deathSnapshot(), this::playerName);
         for (Player participant : participantsInField(challenge)) {
-            for (String line : ranking.split("\n")) messageService.sendRaw(participant, line);
+            for (String line : ranking.split("\n")) {
+                if (!line.isBlank()) messageService.sendRaw(participant, line);
+            }
         }
         showDamageResult(challenge, deathLocation, defeatElapsedSeconds, ranking);
         BukkitTask task = Bukkit.getScheduler().runTaskLater(
@@ -2123,7 +2144,14 @@ public final class BossChallengeService {
                 && challengesById.get(challenge.challengeId()) == challenge;
     }
 
-    /** 討伐地点へ戦績を表示し、帰還までの残秒だけを動的に更新します。 */
+    /**
+     * 討伐地点へ、共通戦績と各自の報酬を一つの個人表示として生成します。
+     * @param challenge 討伐済み挑戦
+     * @param deathLocation ボス討伐地点
+     * @param defeatElapsedSeconds 確定した所要秒数
+     * @param ranking 確定した参加者別戦績
+     * @implNote 帰還残秒だけを動的更新し、帰還までの寿命と終了時の回収を設定します。
+     */
     private void showDamageResult(
             @NotNull BossChallengeInstance challenge,
             @NotNull Location deathLocation,
@@ -2131,36 +2159,47 @@ public final class BossChallengeService {
             @NotNull String ranking
     ) {
         Location displayLocation = deathLocation.clone().add(0.0D, 2.4D, 0.0D);
-        DisplayTextService.ManagedTextDisplay display = displayTextService.create(
-                DisplayAnchor.fixed(displayLocation),
-                DisplayTextOptions.defaults(formatDamageResult(challenge, defeatElapsedSeconds, ranking))
-                        .withShadowed(true)
-                        .withLineWidth(520)
-                        .withViewRange(64.0F)
-        );
-        display.setDynamicText(() -> formatDamageResult(challenge, defeatElapsedSeconds, ranking));
-        challenge.resultDisplay(display);
-    }
-
-    private void destroyDamageResult(@NotNull BossChallengeInstance challenge) {
-        DisplayTextService.ManagedTextDisplay display = challenge.resultDisplay();
-        if (display != null) {
-            display.destroy();
-            challenge.resultDisplay(null);
+        List<DisplayTextService.ManagedTextDisplay> displays = new ArrayList<>();
+        for (Player participant : participantsInField(challenge)) {
+            String rewards = challenge.dropResultText(participant.getUniqueId());
+            DisplayTextService.ManagedTextDisplay display = displayTextService.createResultText(
+                    displayLocation, formatDamageResult(challenge, defeatElapsedSeconds, ranking, rewards),
+                    participant, DEFEATED_RESULT_WAIT_TICKS);
+            display.setDynamicText(() -> formatDamageResult(challenge, defeatElapsedSeconds, ranking, rewards));
+            displays.add(display);
         }
+        challenge.resultDisplays(displays);
     }
 
-    /** 確定した討伐時間・戦績と現在の帰還残秒を共通リソースで整形します。 */
+    /** @param challenge 個人結果の全表示と保存済み報酬本文を回収する挑戦 */
+    private void destroyDamageResult(@NotNull BossChallengeInstance challenge) {
+        for (DisplayTextService.ManagedTextDisplay display : challenge.resultDisplays()) {
+            display.destroy();
+        }
+        challenge.resultDisplays(List.of());
+        challenge.clearDropResults();
+    }
+
+    /**
+     * 確定した戦績・個人報酬と動的な帰還残秒を共通リソースで整形します。
+     * @param challenge 討伐済み挑戦
+     * @param defeatElapsedSeconds 所要秒数
+     * @param ranking 参加者別戦績
+     * @param rewards 閲覧者の報酬本文。対象外なら空文字
+     * @return 一つの統合リザルト本文
+     */
     private @NotNull String formatDamageResult(
             @NotNull BossChallengeInstance challenge,
             long defeatElapsedSeconds,
-            @NotNull String ranking
+            @NotNull String ranking,
+            @NotNull String rewards
     ) {
         long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
         return PlayerMsgResource.format(PlayerMsgId.P_6554.getId(), challenge.bossTemplate().displayName())
                 + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6556.getId(), defeatElapsedSeconds)
-                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6557.getId(), remainingSeconds)
-                + "\n" + ranking;
+                + " &8│ " + PlayerMsgResource.format(PlayerMsgId.P_6557.getId(), remainingSeconds)
+                + "\n\n&8" + DisplaySeparators.SECTION + "\n" + ranking
+                + (rewards.isEmpty() ? "" : "\n\n&8" + DisplaySeparators.SECTION + "\n" + rewards);
     }
 
     private @NotNull String playerName(@NotNull UUID playerId) {
