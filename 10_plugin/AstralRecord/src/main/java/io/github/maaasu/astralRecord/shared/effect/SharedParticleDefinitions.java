@@ -1515,6 +1515,19 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 250, 225), 1.10F)
         );
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_PILLAR_GOLD =
+        new SharedParticleDefinition(
+            "skill_paladin_holy_pillar_gold",
+            Particle.DUST,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 220, 125), 0.80F)
+        );
+    public static final SharedParticleDefinition SKILL_PALADIN_HOLY_PILLAR_SPARK =
+        new SharedParticleDefinition("skill_paladin_holy_pillar_spark", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_PALADIN_HOLY_CONTROL_RING =
         new SharedParticleDefinition(
             "skill_paladin_holy_control_ring",

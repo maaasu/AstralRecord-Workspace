@@ -208,33 +208,7 @@ public final class PaladinShieldExecutor extends PlayerActiveSkillExecutor {
             @NotNull PaladinHolySmiteExecutor.HolyPillarState state,
             int tick
     ) {
-        if (tick % 4 == 0) {
-            state.updateDisplays(tick);
-        }
-        if ((tick & 1) == 0) {
-            context.services().effects().line(
-                    state.center(),
-                    state.center().add(0.0D, state.pillarHeight(), 0.0D),
-                    0.40D,
-                    SharedParticleDefinitions.SKILL_PALADIN_HOLY_SMITE_DUST
-            );
-        }
-        if (tick % 4 == 0) {
-            context.services().effects().ring(
-                    state.center().add(0.0D, 0.10D, 0.0D),
-                    state.altarRadius() + 0.35D,
-                    24,
-                    SharedParticleDefinitions.SKILL_PALADIN_HOLY_SMITE_DUST
-            );
-        }
-        if (tick % 6 == 0) {
-            context.services().effects().ring(
-                    state.center().add(0.0D, 1.65D, 0.0D),
-                    state.altarRadius(),
-                    16,
-                    SharedParticleDefinitions.TELEPORTER_UNLOCK_RING_END_ROD
-            );
-        }
+        state.render(context.services().effects());
         int impactIntervalTicks = params.getInt(
                 "pillarImpactIntervalTicks", DEFAULT_PILLAR_IMPACT_INTERVAL_TICKS);
         if (tick % impactIntervalTicks == 0) {
