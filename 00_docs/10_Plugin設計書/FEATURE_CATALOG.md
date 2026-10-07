@@ -42,6 +42,7 @@
 | 36 | [[36_0-概要]] | アカウント有償特典、チャンネルブースト、Web保留操作の保存境界 | `feature/vip`, `feature/channelboost` |
 
 | 37 | [[37_0-概要]] | ペット卵、成長・配合個体、召喚・支援戦闘、孵化・復活施設 | `feature/pet` |
+| 38 | [[38_0-概要]] | WorldEditの日本語ビルダーGUI、範囲・素材選択、確認付き編集 | `feature/builder` |
 | 40 | [[40_0-概要]] | Web管理編集の参加制限、ゲーム操作凍結、最終保存・退出確認 | `feature/playeradmin` |
 
 ## 更新規則
@@ -369,6 +370,14 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 ### [[37_0-概要|37-pet]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/pet/*`
+
+### [[38_0-概要|38-builder]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/builder/*`
+- `10_plugin/AstralRecord/src/main/resources/config.yml` の `builder` 設定
+- `10_plugin/AstralRecord/src/main/resources/plugin.yml` のWorldEdit任意依存・GUI利用権限
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7700`〜`P_7715`）
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_7700`・`E_7701`）
 
 ### [[40_0-概要|40-player-admin-edit]]
 

@@ -1,5 +1,9 @@
 package io.github.maaasu.astralRecord;
 
+import io.github.maaasu.astralRecord.feature.builder.gui.BuilderGui;
+import io.github.maaasu.astralRecord.feature.builder.event.BuilderGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.builder.service.BuilderService;
+
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 
 import io.github.maaasu.astralRecord.core.CommandRegister;
@@ -570,6 +574,8 @@ public final class AstralRecord extends JavaPlugin {
     private WorldService worldService;
     private AdminWorldTeleportItemService adminWorldTeleportItemService;
     private AdminWorldTeleportGui adminWorldTeleportGui;
+    private BuilderService builderService;
+    private BuilderGui builderGui;
     private AdminWorldTeleportItemEventHandler adminWorldTeleportItemEventHandler;
     private OverworldTeleportService overworldTeleportService;
     private OverworldTeleportGui overworldTeleportGui;
@@ -667,6 +673,8 @@ public final class AstralRecord extends JavaPlugin {
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManager は Paper Lifecycle API の制約に合わせて
         // onLoad() で初期化し、コマンド登録クラスを先に生成する。
+        builderService = new BuilderService(this);
+        builderGui = new BuilderGui(builderService);
         commandRegister = new CommandRegister(
                 itemService,
                 itemStackFactory,
@@ -683,7 +691,8 @@ public final class AstralRecord extends JavaPlugin {
                 trainingDummyService,
                 trainingDummyGui,
                 adminMessageBossBarService,
-                () -> particleDisplayService
+                () -> particleDisplayService,
+                builderGui
         );
         CommandManager.getInstance().initialize(this);
     }
@@ -736,6 +745,9 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (builderService != null) {
+            builderService.stop();
+        }
         if (donationNotificationService != null) {
             accountBenefitsService.stop();
             channelBoostService.stop();
@@ -2538,6 +2550,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             adminWorldTeleportItemEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new BuilderGuiEventHandler(builderService, builderGui),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -1285,6 +1285,10 @@ public enum LogId {
     E_9700(9700),
     /** 釣果の所有者、釣り場、魚、確定数量。 */
     I_9701(9701),
+    /** WorldEdit公開APIとの連携失敗。 */
+    E_7700(7700),
+    /** ビルダーGUIからのWorldEditコマンド実行失敗。 */
+    E_7701(7701),
     ;
     private final String id;
 

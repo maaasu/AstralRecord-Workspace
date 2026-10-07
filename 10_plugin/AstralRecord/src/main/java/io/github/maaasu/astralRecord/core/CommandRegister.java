@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.core;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.builder.command.BuilderCommand;
+import io.github.maaasu.astralRecord.feature.builder.gui.BuilderGui;
 import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCloneCommand;
@@ -138,7 +140,28 @@ public class CommandRegister {
     private final AdminMessageBossBarService adminMessageBossBarService;
     private final Supplier<ParticleDisplayService> particleDisplayServiceSupplier;
     private final AccountCommand accountCommand;
+    private final BuilderGui builderGui;
 
+    /**
+     * 各機能のコマンドを構築し、CommandManagerの初期化前に登録します。
+     * @param itemService アイテムサービス
+     * @param itemStackFactory アイテム生成処理
+     * @param mobService Mobサービス
+     * @param spawnerService Mobスポナーサービス
+     * @param npcPlacementService NPC配置サービス
+     * @param worldService ワールドサービス
+     * @param adminWorldTeleportItemService 管理者用転送アイテムサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param gatheringService 採集サービス
+     * @param gatheringSpawnerService 採集スポナーサービス
+     * @param textDisplayPlacementService 表示文字の配置サービス
+     * @param teleporterService ウェイストーンサービス
+     * @param trainingDummyService カカシサービス
+     * @param trainingDummyGui カカシ調整GUI
+     * @param adminMessageBossBarService 管理者告知サービス
+     * @param particleDisplayServiceSupplier 初期化後のパーティクルサービス取得先
+     * @param builderGui プレイヤー自身のWorldEdit建築GUI
+     */
     public CommandRegister(
             ItemService itemService,
             ItemStackFactory itemStackFactory,
@@ -155,7 +178,8 @@ public class CommandRegister {
             TrainingDummyService trainingDummyService,
             TrainingDummyGui trainingDummyGui,
             AdminMessageBossBarService adminMessageBossBarService,
-            Supplier<ParticleDisplayService> particleDisplayServiceSupplier
+            Supplier<ParticleDisplayService> particleDisplayServiceSupplier,
+            BuilderGui builderGui
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -174,6 +198,7 @@ public class CommandRegister {
         this.adminMessageBossBarService = adminMessageBossBarService;
         this.particleDisplayServiceSupplier = particleDisplayServiceSupplier;
         this.accountCommand = new AccountCommand();
+        this.builderGui = builderGui;
         registerCommand();
     }
 
@@ -203,6 +228,7 @@ public class CommandRegister {
         return accountCommand.getCloneCommand();
     }
 
+    /** CommandManagerの初期化前に、機能コマンドと別名を登録します。 */
     public final void registerCommand() {
         CommandManager cm = CommandManager.getInstance();
 
@@ -248,6 +274,9 @@ public class CommandRegister {
         cm.registerCommand("world", worldCommand, new WorldTabCompleter(worldService));
         cm.registerCommand("wtp", new WorldTeleportCommand(worldCommand), new WorldTeleportTabCompleter(worldService));
         cm.registerCommand("adminitem", new AdminWorldTeleportItemCommand(adminWorldTeleportItemService));
+        BuilderCommand builderCommand = new BuilderCommand(builderGui);
+        cm.registerCommand("builder", builderCommand);
+        cm.registerCommand("bg", builderCommand);
         cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("drop", new DungeonDropCommand());

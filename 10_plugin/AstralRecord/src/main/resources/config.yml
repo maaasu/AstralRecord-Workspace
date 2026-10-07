@@ -10,6 +10,12 @@ plugin:
     # WorldMasterData ID. The vanilla server world is not a join-spawn master.
     world: "starlit_nox"
 
+# Builder GUI: WorldEdit/FAWEの制限に加え、GUIからの一回の対象規模を制限します。
+# 球・円柱は外接する箱、移動は元と移動先の合計、繰返しは追加コピー分で判定します。
+# 取り消し・やり直しの履歴サイズはWorldEdit自身が管理します。
+builder:
+  maxBlocks: 100000
+
 # Player connection capacity
 # maxPlayers is reserved for PLAYER. donorExtraPlayers can be used by active account VIP and ADMIN,
 # and adminExtraPlayers can be used by ADMIN only.

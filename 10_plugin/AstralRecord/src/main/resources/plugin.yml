@@ -4,7 +4,12 @@ main: io.github.maaasu.astralRecord.AstralRecord
 api-version: '1.21'
 authors: [ "AstralRecord" ]
 depend: [ProtocolLib]
-softdepend: [DiscordSRV]
+softdepend: [DiscordSRV, WorldEdit, FastAsyncWorldEdit]
+
+permissions:
+  astralrecord.builder:
+    description: 日本語のWorldEditビルダーGUIを利用します（WorldEdit個別権限も必要）。
+    default: op
 
 dependencies:
   server:
