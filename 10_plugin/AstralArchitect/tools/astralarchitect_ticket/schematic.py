@@ -103,11 +103,12 @@ class Schematic:
     def set_states(self, states: list[str]) -> None:
         if len(states) != self.volume:
             raise TicketError("replacement block array has the wrong length")
-        next_id = max(self.palette.values(), default=-1) + 1
-        for state_name in dict.fromkeys(states):
-            if state_name not in self.palette:
-                self.palette[state_name] = next_id
-                next_id += 1
+        # Minecraft validates every palette entry and requires IDs starting at 0.
+        # Rebuild both the live palette and Data so retired IDs leave no gaps.
+        self.palette = {
+            state_name: palette_id
+            for palette_id, state_name in enumerate(dict.fromkeys(states))
+        }
 
         palette_tag = self.blocks_compound["Palette"]
         palette_tag.value.clear()
@@ -818,7 +819,8 @@ def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, obje
             touched.add(index)
 
     changed_indices = {index for index in touched if original_states[index] != states[index]}
-    if not changed_indices:
+    unused_palette_states = ticket.candidate.palette.keys() - set(states)
+    if not changed_indices and not unused_palette_states:
         return {
             "written": False,
             "touchedBlockCount": len(touched),

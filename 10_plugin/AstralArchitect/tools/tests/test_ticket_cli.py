@@ -254,7 +254,85 @@ class TicketCliTest(unittest.TestCase):
         self.assertEqual("日本\u0000🏰", metadata["ModifiedUtf8"].value)
         self.assertEqual(9_223_372_036_854_775_000, metadata["UnknownLong"].value)
         self.assertEqual(b"\x00\xff\x80", candidate.blocks_compound["UnknownBytes"].value)
-        self.assertIn("minecraft:air", candidate.palette)  # Unused palette entries are retained.
+        self.assertIn("minecraft:air", candidate.palette)  # Two air blocks remain in use.
+
+    def test_replace_removes_retired_block_state_from_palette(self) -> None:
+        bounds = Bounds(Point(100, 64, 200), Point(102, 65, 201))
+        candidate = read_schematic(self.candidate_path, bounds)
+        states = candidate.states()
+        states[6] = "minecraft:chain[axis=y,waterlogged=false]"
+        states[7] = "minecraft:oak_planks"
+        candidate.set_states(states)
+        nbt.write_gzip(self.candidate_path, candidate.document)
+        source_before = self._sha256(self.source_path)
+        operation = json.dumps({
+            "op": "replace",
+            "match": "minecraft:chain[axis=y,waterlogged=false]",
+            "block": "minecraft:iron_chain[axis=y,waterlogged=false]",
+        })
+
+        process, payload = self._run(
+            "apply-ops", str(self.ticket_dir), "--ops", "-", stdin=operation
+        )
+
+        self.assertEqual(0, process.returncode, payload)
+        self.assertTrue(payload["written"])
+        self.assertEqual(1, payload["changedBlockCount"])
+        candidate = read_schematic(self.candidate_path, bounds)
+        self.assertNotIn("minecraft:chain[axis=y,waterlogged=false]", candidate.palette)
+        self.assertEqual("minecraft:iron_chain[axis=y,waterlogged=false]", candidate.states()[6])
+        self.assertEqual("minecraft:oak_planks", candidate.states()[7])
+        self.assertEqual(list(range(len(candidate.palette))), sorted(candidate.palette.values()))
+        self.assertEqual(source_before, self._sha256(self.source_path))
+
+    def test_noop_edit_removes_unused_palette_and_is_idempotent(self) -> None:
+        bounds = Bounds(Point(100, 64, 200), Point(102, 65, 201))
+        candidate = read_schematic(self.candidate_path, bounds)
+        states_before = candidate.states()
+        # Put the unused retired ID in the middle to exercise Java's dense-ID contract.
+        fixture_palette = {
+            "minecraft:chest[facing=north,type=single,waterlogged=false]": 0,
+            "minecraft:stone": 1,
+            "minecraft:chain[axis=y,waterlogged=false]": 2,
+            "minecraft:air": 3,
+        }
+        candidate.blocks_compound["Palette"].value = {
+            name: nbt.Tag(nbt.TAG_INT, value) for name, value in fixture_palette.items()
+        }
+        candidate.blocks_compound["Data"].value = encode_varints(
+            [fixture_palette[state] for state in states_before]
+        )
+        candidate.blocks_compound["PaletteMax"] = nbt.Tag(nbt.TAG_INT, 4)
+        nbt.write_gzip(self.candidate_path, candidate.document)
+        source_before = self._sha256(self.source_path)
+        metadata_before = (self.ticket_dir / "ticket.json").read_bytes()
+        operation = json.dumps({
+            "op": "set", "x": 101, "y": 64, "z": 200,
+            "block": "minecraft:stone", "expect": "minecraft:stone",
+        })
+
+        process, payload = self._run(
+            "apply-ops", str(self.ticket_dir), "--ops", "-", stdin=operation
+        )
+
+        self.assertEqual(0, process.returncode, payload)
+        self.assertTrue(payload["written"])
+        self.assertEqual(0, payload["changedBlockCount"])
+        candidate = read_schematic(self.candidate_path, bounds)
+        self.assertNotIn("minecraft:chain[axis=y,waterlogged=false]", candidate.palette)
+        self.assertEqual(states_before, candidate.states())
+        self.assertEqual(list(range(len(candidate.palette))), sorted(candidate.palette.values()))
+        self.assertEqual(3, candidate.blocks_compound["PaletteMax"].value)
+        self.assertEqual(source_before, self._sha256(self.source_path))
+        self.assertEqual(metadata_before, (self.ticket_dir / "ticket.json").read_bytes())
+        clean_hash = self._sha256(self.candidate_path)
+
+        process, payload = self._run(
+            "apply-ops", str(self.ticket_dir), "--ops", "-", stdin=operation
+        )
+        self.assertEqual(0, process.returncode, payload)
+        self.assertFalse(payload["written"])
+        self.assertEqual(clean_hash, self._sha256(self.candidate_path))
 
     def test_expect_failure_is_all_or_nothing(self) -> None:
         before = self._sha256(self.candidate_path)

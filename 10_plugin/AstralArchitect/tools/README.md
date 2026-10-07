@@ -56,6 +56,7 @@ python ticket_cli.py apply-ops <absolute-ticket-directory> --ops <absolute-opera
 
 - `expect`がある場合、その操作の対象が1か所でも一致しなければファイルを変更しません。
 - 全操作をメモリ上で検証してから、同じディレクトリの一時ファイルを`os.replace`で原子的に置換します。
+- 編集後にどのブロックも参照しないPalette項目を除去し、使用するIDを0からの連番に振り直してDataの参照も更新します。旧ブロックIDを置換しても未使用項目がゲーム内検証を妨げないようにするためです。ブロック配置に差分がない操作でも未使用項目があれば書き込み、`written=true`、`changedBlockCount=0`を返します。
 - Javaプラグインと共通の`plugins/AstralArchitect/.locks/<ticket-id>.lock`を取得し、同時編集・検証・適用・削除による更新消失を拒否します。
 - `slice`と`surface`は1回16,384セルまでです。広い範囲はX/Zの座標窓を分けて読みます。
 - 編集操作の全展開数は最低500万ブロック、またはチケット総ブロック数の大きい方までです。巨大な反復操作は書込み前に拒否します。
