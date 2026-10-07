@@ -8,40 +8,6 @@ name: '&6武器職人ショップ'
 mode: EXCHANGE
 access: NPC_ONLY
 items:
-  - id: 20a00079
-    itemId:
-      ref: item:20a00079
-    category: equipment
-    amount: 1
-    page: 1
-    priceGold: 500000
-    requiredItems:
-      - itemId:
-          ref: item:10a00068
-        category: material
-        amount: 45
-      - itemId:
-          ref: item:10a00100
-        category: material
-        amount: 10
-    slot: 0
-  - id: 20a00080
-    itemId:
-      ref: item:20a00080
-    category: equipment
-    amount: 1
-    page: 1
-    priceGold: 500000
-    requiredItems:
-      - itemId:
-          ref: item:10a00068
-        category: material
-        amount: 45
-      - itemId:
-          ref: item:10a00100
-        category: material
-        amount: 10
-    slot: 1
   - id: 20a00073
     itemId:
       ref: item:20a00073
@@ -58,7 +24,7 @@ items:
           ref: item:10a00100
         category: material
         amount: 10
-    slot: 2
+    slot: 0
   - id: 20a00075
     itemId:
       ref: item:20a00075
@@ -75,7 +41,7 @@ items:
           ref: item:10a00100
         category: material
         amount: 10
-    slot: 3
+    slot: 1
   - id: 20a00074
     itemId:
       ref: item:20a00074
@@ -92,7 +58,7 @@ items:
           ref: item:10a00100
         category: material
         amount: 10
-    slot: 4
+    slot: 2
   - id: 20a00077
     itemId:
       ref: item:20a00077
@@ -109,10 +75,44 @@ items:
           ref: item:10a00100
         category: material
         amount: 10
-    slot: 5
+    slot: 3
   - id: 20a00078
     itemId:
       ref: item:20a00078
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 500000
+    requiredItems:
+      - itemId:
+          ref: item:10a00068
+        category: material
+        amount: 45
+      - itemId:
+          ref: item:10a00100
+        category: material
+        amount: 10
+    slot: 4
+  - id: 20a00079
+    itemId:
+      ref: item:20a00079
+    category: equipment
+    amount: 1
+    page: 1
+    priceGold: 500000
+    requiredItems:
+      - itemId:
+          ref: item:10a00068
+        category: material
+        amount: 45
+      - itemId:
+          ref: item:10a00100
+        category: material
+        amount: 10
+    slot: 5
+  - id: 20a00080
+    itemId:
+      ref: item:20a00080
     category: equipment
     amount: 1
     page: 1
