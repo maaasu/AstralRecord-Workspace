@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -396,6 +397,47 @@ public final class TicketRepository {
         TicketMetadata metadata = readFromDirectory(trashPath);
         requireMetadataId(ticketId, metadata, trashPath);
         return metadata;
+    }
+
+    /**
+     * 復元先が存在しないIDについて、実際の復元対象と同じ最新trashを列挙します。
+     * 最新のメタデータが壊れているIDは、古いtrashへ戻さず一覧から除外します。
+     *
+     * @return ID順で重複しない最新trashのメタデータ一覧
+     * @throws IOException ディレクトリ列挙に失敗した場合
+     */
+    public List<TicketMetadata> listLatestTrash() throws IOException {
+        TreeMap<String, Path> latestPaths = new TreeMap<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(trashRoot)) {
+            for (Path entry : stream) {
+                if (!Files.isDirectory(entry) || Files.isSymbolicLink(entry)) {
+                    continue;
+                }
+                String directoryName = entry.getFileName().toString();
+                int separator = directoryName.lastIndexOf("--");
+                if (separator <= 0) {
+                    continue;
+                }
+                String ticketId = directoryName.substring(0, separator);
+                if (!isSafeTicketId(ticketId) || Files.exists(resolveTicketPath(ticketId))) {
+                    continue;
+                }
+                latestPaths.merge(ticketId, entry, (previous, next) ->
+                        previous.getFileName().toString().compareTo(next.getFileName().toString()) >= 0
+                                ? previous : next);
+            }
+        }
+        List<TicketMetadata> tickets = new ArrayList<>();
+        for (var entry : latestPaths.entrySet()) {
+            try {
+                TicketMetadata metadata = readFromDirectory(entry.getValue());
+                requireMetadataId(entry.getKey(), metadata, entry.getValue());
+                tickets.add(metadata);
+            } catch (IOException ignored) {
+                // 実際のrestoreで読めない最新trashは補完からも除外します。
+            }
+        }
+        return List.copyOf(tickets);
     }
 
     /**

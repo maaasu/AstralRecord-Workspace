@@ -38,6 +38,11 @@ public final class AstralArchitectPlugin extends JavaPlugin {
                     new SchematicService(),
                     architectConfig,
                     getLogger());
+            ticketService.refreshCompletionCandidates().whenComplete((ignored, throwable) -> {
+                if (throwable != null) {
+                    getLogger().log(Level.WARNING, "チケットID補完候補の読込に失敗しました。", unwrap(throwable));
+                }
+            });
 
             ArchitectCommand architectCommand = new ArchitectCommand(
                     this,

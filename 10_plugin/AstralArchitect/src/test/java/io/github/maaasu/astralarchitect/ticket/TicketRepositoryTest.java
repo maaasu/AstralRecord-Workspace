@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -150,6 +151,58 @@ class TicketRepositoryTest {
         assertEquals(TicketState.APPLIED, restored.state());
         assertEquals("candidate", restored.appliedCandidateSha256());
         assertEquals(TicketState.APPLIED, repository.read(id).state());
+    }
+
+    @Test
+    void listsOnlyLatestRestoreTargetAndKeepsInterruptedRestore() throws Exception {
+        TicketRepository repository = new TicketRepository(temporaryDirectory);
+        repository.initialize();
+        String id = "20260101-000000-abcdef12";
+        Path older = Files.createDirectory(temporaryDirectory.resolve("trash").resolve(id + "--20260101-000000-000"));
+        Path latest = Files.createDirectory(temporaryDirectory.resolve("trash").resolve(id + "--20260102-000000-000"));
+        TicketMetadata created = metadata(id).created("source", "candidate", "2026-01-01T00:01:00Z");
+        repository.write(older, created.trashed("2026-01-01T00:02:00Z"));
+        // 移動前停止からのrestore再開対象は、trash内でも復元済み状態です。
+        repository.write(latest, created);
+
+        assertEquals(List.of(repository.readLatestTrash(id)), repository.listLatestTrash());
+        assertEquals(TicketState.CREATED, repository.listLatestTrash().getFirst().state());
+
+        Files.writeString(latest.resolve(TicketFiles.METADATA), "invalid json");
+        assertTrue(repository.listLatestTrash().isEmpty());
+        assertThrows(IOException.class, () -> repository.readLatestTrash(id));
+    }
+
+    @Test
+    void excludesTrashWithMismatchedIdOrExistingRestoreDestination() throws Exception {
+        TicketRepository repository = new TicketRepository(temporaryDirectory);
+        repository.initialize();
+        String id = "20260101-000000-abcdef12";
+        Path trash = Files.createDirectory(temporaryDirectory.resolve("trash").resolve(id + "--20260101-000000-000"));
+        repository.write(trash, metadata("20260101-000000-abcdef34"));
+        assertTrue(repository.listLatestTrash().isEmpty());
+
+        repository.write(trash, metadata(id));
+        assertEquals(1, repository.listLatestTrash().size());
+        // 壊れたactiveも実際のrestoreでは衝突するため、補完候補にしません。
+        repository.createTicketDirectory(id);
+        assertTrue(repository.list().isEmpty());
+        assertTrue(repository.listLatestTrash().isEmpty());
+        assertThrows(IOException.class, () -> repository.restoreFromTrash(id, Instant.now()));
+    }
+
+    @Test
+    void keepsAcceptedDoubleHyphenTicketIdInRestoreCandidates() throws Exception {
+        TicketRepository repository = new TicketRepository(temporaryDirectory);
+        repository.initialize();
+        String id = "20260101--000000-abcdef12";
+        Path ticketPath = repository.createTicketDirectory(id);
+        repository.write(ticketPath, metadata(id));
+        repository.moveToTrash(id, Instant.now());
+
+        assertEquals(List.of(repository.readLatestTrash(id)), repository.listLatestTrash());
+        assertEquals(id, repository.restoreFromTrash(id, Instant.now()).id());
+        assertTrue(repository.listLatestTrash().isEmpty());
     }
 
     private static TicketMetadata metadata(String id) {

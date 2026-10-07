@@ -13,7 +13,10 @@ import io.github.maaasu.astralarchitect.worldedit.SelectionException;
 import io.github.maaasu.astralarchitect.worldedit.WorldEditSelection;
 import io.github.maaasu.astralarchitect.worldedit.WorldEditSelectionProvider;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -44,6 +47,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
             "create", "list", "info", "validate", "apply", "rollback", "delete", "restore");
     private static final List<String> CONSOLE_TICKET_COMMANDS = List.of(
             "list", "info", "delete", "restore");
+    private static final List<String> TICKET_ID_COMMANDS = List.of(
+            "info", "validate", "apply", "rollback", "delete", "restore");
 
     private final AstralArchitectPlugin plugin;
     private final TicketService ticketService;
@@ -122,7 +127,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * 実行者に利用可能なサブコマンド候補を返します。
+     * 実行者に利用可能なサブコマンドと、所有権を確認したチケットID候補を返します。
+     * restoreはtrash、その他のID指定は操作中チケットの非同期読込済み一覧を使います。
      *
      * @param sender 実行者
      * @param command Bukkitコマンド
@@ -147,6 +153,18 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
                     ? CONSOLE_TICKET_COMMANDS
                     : PLAYER_TICKET_COMMANDS;
             return matchPrefix(available, args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("ticket")) {
+            String action = args[1].toLowerCase(Locale.ROOT);
+            if (!TICKET_ID_COMMANDS.contains(action)
+                    || sender instanceof ConsoleCommandSender && !CONSOLE_TICKET_COMMANDS.contains(action)) {
+                return List.of();
+            }
+            List<String> ticketIds = ticketService.completionCandidates(action.equals("restore")).stream()
+                    .filter(ticket -> accessPolicy.canManage(sender, ticket))
+                    .map(TicketMetadata::id)
+                    .toList();
+            return matchPrefix(ticketIds, args[2]);
         }
         return List.of();
     }
@@ -208,14 +226,11 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
         }
         info(sender, "選択範囲を保存しています…");
         complete(sender, future, result -> {
-            info(sender, "チケットを作成しました: " + result.ticket().id());
-            plain(sender, "サーバー内保存先: " + plugin.getDataFolder().toPath()
-                    .resolve("tickets")
-                    .resolve(result.ticket().id())
-                    .toAbsolutePath()
-                    .normalize());
-            info(sender, "Codexでcandidate.schemを編集後、/architect ticket validate "
-                    + result.ticket().id() + " を実行してください。");
+            info(sender, Component.text("チケットを作成しました: ").append(copyable(result.ticket().id())));
+            sendTicketPath(sender, result.ticket());
+            info(sender, Component.text("Codexでcandidate.schemを編集後、")
+                    .append(suggestedCommand("validate", result.ticket().id()))
+                    .append(Component.text(" を実行してください。")));
         });
     }
 
@@ -234,7 +249,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
             }
             info(sender, "チケット一覧 (" + visible.size() + "件)");
             for (TicketMetadata ticket : visible) {
-                plain(sender, "- " + ticket.id() + " [" + ticket.state() + "] " + ticket.name());
+                plain(sender, Component.text("- ").append(copyable(ticket.id()))
+                        .append(Component.text(" [" + ticket.state() + "] " + ticket.name())));
             }
         });
     }
@@ -245,17 +261,16 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
         }
         withActiveTicket(sender, args[2], ticket -> {
             TicketBounds bounds = ticket.bounds();
-            info(sender, ticket.id() + " [" + ticket.state() + "] " + ticket.name());
+            info(sender, Component.empty().append(copyable(ticket.id()))
+                    .append(Component.text(" [" + ticket.state() + "] " + ticket.name())));
             plain(sender, "所有者: " + ticket.ownerName() + " / ワールド: " + ticket.worldName());
-            plain(sender, "範囲: " + format(bounds.min()) + " ～ " + format(bounds.max())
-                    + " (" + ticket.blockCount() + " blocks)");
-            plain(sender, "基準: " + format(ticket.anchor()) + " " + ticket.anchorBlockState());
+            plain(sender, Component.text("範囲: ").append(copyable(format(bounds.min())))
+                    .append(Component.text(" ～ ")).append(copyable(format(bounds.max())))
+                    .append(Component.text(" (" + ticket.blockCount() + " blocks)")));
+            plain(sender, Component.text("基準: ").append(copyable(format(ticket.anchor())))
+                    .append(Component.text(" " + ticket.anchorBlockState())));
             plain(sender, "検証済み変更数: " + ticket.changedBlockCount());
-            plain(sender, "サーバー内保存先: " + plugin.getDataFolder().toPath()
-                    .resolve("tickets")
-                    .resolve(ticket.id())
-                    .toAbsolutePath()
-                    .normalize());
+            sendTicketPath(sender, ticket);
         });
     }
 
@@ -267,8 +282,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
             info(sender, "candidate.schemを検証しています…");
             complete(sender, ticketService.validate(ticket.id()), result -> info(
                     sender,
-                    "検証に成功しました。変更ブロック数: " + result.affectedBlocks()
-                            + " / 次: /architect ticket apply " + result.ticket().id()));
+                    Component.text("検証に成功しました。変更ブロック数: " + result.affectedBlocks() + " / 次: ")
+                            .append(suggestedCommand("apply", result.ticket().id()))));
         });
     }
 
@@ -280,8 +295,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
             info(sender, "検証済み差分を適用しています…");
             complete(sender, ticketService.apply(ticket.id(), world), result -> info(
                     sender,
-                    "適用しました。変更ブロック数: " + result.affectedBlocks()
-                            + " / 戻す場合: /architect ticket rollback " + result.ticket().id()));
+                    Component.text("適用しました。変更ブロック数: " + result.affectedBlocks() + " / 戻す場合: ")
+                            .append(suggestedCommand("rollback", result.ticket().id()))));
         }));
     }
 
@@ -304,7 +319,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
         withActiveTicket(sender, args[2], ticket -> complete(
                 sender,
                 ticketService.trash(ticket.id()),
-                result -> info(sender, "チケットをtrashへ移動しました: " + result.ticket().id())));
+                result -> info(sender, Component.text("チケットをtrashへ移動しました: ")
+                        .append(copyable(result.ticket().id())))));
     }
 
     private void restore(CommandSender sender, String[] args) {
@@ -323,8 +339,8 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
             }
             complete(sender, ticketService.restore(ticketId), result -> info(
                     sender,
-                    "チケットを復元しました: " + result.ticket().id()
-                            + " [" + result.ticket().state() + "]"));
+                    Component.text("チケットを復元しました: ").append(copyable(result.ticket().id()))
+                            .append(Component.text(" [" + result.ticket().state() + "]"))));
         });
     }
 
@@ -439,8 +455,45 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
         return "(" + position.x() + ", " + position.y() + ", " + position.z() + ")";
     }
 
+    /**
+     * チケット保存先を、クリックでパスだけコピーできる形式で送信します。
+     */
+    private void sendTicketPath(CommandSender sender, TicketMetadata ticket) {
+        String path = plugin.getDataFolder().toPath().resolve("tickets").resolve(ticket.id())
+                .toAbsolutePath().normalize().toString();
+        plain(sender, Component.text("サーバー内保存先: ").append(copyable(path)));
+    }
+
+    /**
+     * 表示値だけをクリップボードへコピーする、説明付きのチャット要素を作成します。
+     */
+    private static Component copyable(String value) {
+        return Component.text(value, NamedTextColor.YELLOW)
+                .decorate(TextDecoration.UNDERLINED)
+                .clickEvent(ClickEvent.copyToClipboard(value))
+                .hoverEvent(HoverEvent.showText(Component.text("クリックでコピー", NamedTextColor.YELLOW)));
+    }
+
+    /**
+     * 次の操作をチャット入力欄へ設定します。クリックだけでは実行しません。
+     */
+    private static Component suggestedCommand(String action, String ticketId) {
+        String command = "/architect ticket " + action + " " + ticketId;
+        return Component.text(command, NamedTextColor.YELLOW)
+                .decorate(TextDecoration.UNDERLINED)
+                .clickEvent(ClickEvent.suggestCommand(command))
+                .hoverEvent(HoverEvent.showText(Component.text("クリックでチャット入力", NamedTextColor.YELLOW)));
+    }
+
     private static void info(CommandSender sender, String message) {
-        sender.sendMessage(Component.text(PREFIX + message, NamedTextColor.AQUA));
+        info(sender, Component.text(message));
+    }
+
+    /**
+     * クリック操作を保ったまま、情報メッセージに接頭辞と色を付けて送信します。
+     */
+    private static void info(CommandSender sender, Component message) {
+        sender.sendMessage(Component.text(PREFIX, NamedTextColor.AQUA).append(message));
     }
 
     private static void error(CommandSender sender, String message) {
@@ -448,6 +501,13 @@ public final class ArchitectCommand implements CommandExecutor, TabCompleter {
     }
 
     private static void plain(CommandSender sender, String message) {
-        sender.sendMessage(Component.text(message, NamedTextColor.GRAY));
+        plain(sender, Component.text(message));
+    }
+
+    /**
+     * クリック操作を保ったまま、補足メッセージを灰色で送信します。
+     */
+    private static void plain(CommandSender sender, Component message) {
+        sender.sendMessage(Component.empty().color(NamedTextColor.GRAY).append(message));
     }
 }

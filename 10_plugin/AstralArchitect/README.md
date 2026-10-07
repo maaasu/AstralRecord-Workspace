@@ -65,6 +65,10 @@ $astralarchitect-builder を使って、<サーバーのplugins/AstralArchitect/
 | `/architect ticket restore <ID>` | trashにあるチケットを復元します。 |
 | `/architect reload` | 設定を再読込します。管理者専用です。 |
 
+チャットに表示されるチケットID、サーバー内保存先、範囲・基準座標は、黄色の下線部分をクリックするとその値だけコピーできます。作成・検証・適用後に案内される次のコマンドは、クリックするとチャット入力欄に入ります。
+
+`info`、`validate`、`apply`、`rollback`、`delete`、`restore`のID引数はTab補完できます。通常は操作中のチケット、`restore`はtrash内の最新チケットから、実行者が管理できるIDだけを候補にします。復元先が既に存在するIDは`restore`候補から除外します。候補は起動時と作成・削除・復元・trash整理後に非同期で更新されるため、起動直後の初回読込中は空になる場合があります。
+
 ## チケットの保存場所
 
 実行中のデータはJAR内の`src/main/resources`ではなく、サーバーのデータフォルダへ保存します。

@@ -38,6 +38,7 @@ public final class TicketService implements AutoCloseable {
     private final AtomicReference<ArchitectConfig> config;
     private final ExecutorService executor;
     private final Logger logger;
+    private volatile CompletionCatalog completionCatalog = new CompletionCatalog(List.of(), List.of());
 
     /**
      * チケットサービスを作成します。
@@ -97,7 +98,7 @@ public final class TicketService implements AutoCloseable {
         String capturedMinecraftVersion = Objects.requireNonNull(minecraftVersion, "minecraftVersion");
         String capturedFaweVersion = Objects.requireNonNull(faweVersion, "faweVersion");
 
-        return submit(() -> {
+        return submitCatalogChange(() -> {
             Instant now = Instant.now();
             String ticketId = createTicketId(now);
             Path ticketPath = repository.createTicketDirectory(ticketId);
@@ -146,6 +147,30 @@ public final class TicketService implements AutoCloseable {
      */
     public CompletableFuture<List<TicketMetadata>> list() {
         return submit(repository::list);
+    }
+
+    /**
+     * ID補完用の一覧を非同期で読み込み、不変スナップショットとして公開します。
+     *
+     * @return 読み込み完了Future
+     */
+    public CompletableFuture<Void> refreshCompletionCandidates() {
+        return submit(() -> {
+            refreshCompletionCatalog();
+            return null;
+        });
+    }
+
+    /**
+     * ディスクI/Oや非同期処理の待機をせず、ID補完用の一覧を返します。
+     * 状態は更新時点の値であり、コマンド実行時の検証には使用しません。
+     *
+     * @param trashed 復元候補を取得する場合はtrue
+     * @return 最後に読み込んだメタデータ一覧。初回読込前は空
+     */
+    public List<TicketMetadata> completionCandidates(boolean trashed) {
+        CompletionCatalog current = completionCatalog;
+        return trashed ? current.trashed() : current.active();
     }
 
     /**
@@ -354,7 +379,7 @@ public final class TicketService implements AutoCloseable {
      * @return 削除結果Future
      */
     public CompletableFuture<TicketOperationResult> trash(String ticketId) {
-        return submit(() -> {
+        return submitCatalogChange(() -> {
             Path ticketPath = repository.requireTicketPath(ticketId);
             try (TicketFileLock candidateLock = repository.acquireCandidateLock(ticketPath)) {
                 candidateLock.requireHeld();
@@ -376,7 +401,7 @@ public final class TicketService implements AutoCloseable {
      * @return 復元結果Future
      */
     public CompletableFuture<TicketOperationResult> restore(String ticketId) {
-        return submit(() -> {
+        return submitCatalogChange(() -> {
             TicketMetadata restored = repository.restoreFromTrash(ticketId, Instant.now());
             return new TicketOperationResult(restored, 0L);
         });
@@ -388,7 +413,7 @@ public final class TicketService implements AutoCloseable {
      * @return 完全削除件数Future
      */
     public CompletableFuture<Integer> purgeExpiredTrash() {
-        return submit(() -> repository.purgeExpiredTrash(config.get().trashRetention(), Instant.now()));
+        return submitCatalogChange(() -> repository.purgeExpiredTrash(config.get().trashRetention(), Instant.now()));
     }
 
     /**
@@ -408,6 +433,35 @@ public final class TicketService implements AutoCloseable {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * 所在を変更する操作の成否にかかわらず、同じworkerロック内で補完一覧を更新します。
+     * 一覧読込の失敗で、保存済みの操作を失敗扱いにしないようログだけを記録します。
+     */
+    private <T> CompletableFuture<T> submitCatalogChange(CheckedSupplier<T> action) {
+        return submit(() -> {
+            try {
+                return action.get();
+            } finally {
+                try {
+                    refreshCompletionCatalog();
+                } catch (IOException exception) {
+                    completionCatalog = new CompletionCatalog(List.of(), List.of());
+                    logger.log(Level.WARNING, "チケットID補完候補の更新に失敗しました。", exception);
+                }
+            }
+        });
+    }
+
+    /**
+     * worker内でactiveとtrashの一覧をまとめて読み込み、原子的に公開します。
+     */
+    private void refreshCompletionCatalog() throws IOException {
+        completionCatalog = new CompletionCatalog(repository.list(), repository.listLatestTrash());
+    }
+
+    private record CompletionCatalog(List<TicketMetadata> active, List<TicketMetadata> trashed) {
     }
 
     private <T> CompletableFuture<T> submit(CheckedSupplier<T> action) {
