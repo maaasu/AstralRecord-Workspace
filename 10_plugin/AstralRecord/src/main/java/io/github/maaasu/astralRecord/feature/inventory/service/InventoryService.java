@@ -2583,10 +2583,14 @@ public class InventoryService {
      * <p>
      * 退出直前の Bukkit 側スナップショットを取り込む前にロード済み state を描画し、
      * ロード完了前の空スナップショットで state を上書きしないようにします。
+     * GUI 反映対象でない管理者モードでは、所持品の消去を含めて何も変更しません。
      *
      * @param astPlayer 対象プレイヤー
      */
     public void applyInventoriesToGuiOnJoin(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
         // Join 直後は以前のセッションで残った見た目 ItemStack を全消去してから正本を反映する。
         clearGuiInventory(astPlayer.getBukkit());
         applyInventoryToGuiInternal(astPlayer, InventoryType.BAG, false);
