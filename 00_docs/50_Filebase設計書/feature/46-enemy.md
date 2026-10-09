@@ -10,6 +10,7 @@ Enemy は、通常の探索・移動・採集に戦闘上の判断と報酬を�
 - targeting、combat style、skill、drop を同じ役割へ揃えます。
 - 同じ progression では役割の異なる enemy を用意し、数値差だけで種類を増やしません。
 - 通常 drop と loot table の責務を重複させません。
+- `icon` は `entityType` に対応するスポーンエッグとし、共通の [Mob 設計](40-mob.md#アイコンの指定) に従います。
 
 ## progression
 

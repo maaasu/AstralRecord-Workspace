@@ -15,6 +15,14 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 - 使用可能なステータスは `StatusType.kt` を正とします。
 - `drops.items[].luckAffected` は、特別な設計理由がない限り `true` とし、幸運補正を反映します。`false` にする場合は、個別定義または関連設計書へ理由を残します。
 
+## アイコンの指定
+
+- 冒険記録の対象となる `ENEMY` / `BOSS` の `icon` は、モデルの `entityType` に対応するスポーンエッグへ統一します。例: `SHEEP` → `SHEEP_SPAWN_EGG`、`IRON_GOLEM` → `IRON_GOLEM_SPAWN_EGG`、`PARCHED` → `PARCHED_SPAWN_EGG`。
+- 新規作成・更新時は、対応するスポーンエッグが利用中の Paper の `Material` に存在することを確認して指定します。同じモデルには同じアイコンを使います。
+- `levels[].icon` を上書きする場合も、共通の `entityType` に対応する同じスポーンエッグを指定します。レベルによってアイコンの種類を変えません。
+- スポーンエッグのアイコンには `iconTexture` を指定しません。これは `PLAYER_HEAD` 用の設定です。
+- `NPC` は冒険記録の対象外であり、既存の機能・用途を示すアイコンの方針を維持します。
+
 ## progression
 
 プレイヤーが標準的に遭遇し、対処する段階を記載します。loot、quest、spawner はこの値を基準に接続します。

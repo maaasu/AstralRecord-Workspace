@@ -8,7 +8,7 @@ category: ENEMY
 name: "&3翠燈の呪術師"
 level: 20
 entityType: WITCH
-icon: SOUL_LANTERN
+icon: WITCH_SPAWN_EGG
 lore:
   - "&7森の灯を宿し、魔弾と樹光の輪を操る呪術師。"
   - "&7追い来る魔弾と足元の輪を避けよ。近づけば脆い。"

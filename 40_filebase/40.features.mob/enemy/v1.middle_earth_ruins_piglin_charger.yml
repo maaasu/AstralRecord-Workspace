@@ -8,7 +8,7 @@ category: ENEMY
 name: "&6遺跡の突撃ピグリン"
 level: 5
 entityType: PIGLIN
-icon: GOLDEN_AXE
+icon: PIGLIN_SPAWN_EGG
 lore:
   - "&7約1.5秒身構え、狙った位置へ一直線に突進する。"
 tags:

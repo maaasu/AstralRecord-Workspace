@@ -8,7 +8,7 @@ category: ENEMY
 name: "&2ミッドガルズ・モスシェル"
 level: 2
 entityType: TURTLE
-icon: TURTLE_HELMET
+icon: TURTLE_SPAWN_EGG
 lore:
   - "&7苔むした甲羅を背負う小型の甲殻獣。"
   - "&7攻撃を受けるまで静かに草原を歩く。"

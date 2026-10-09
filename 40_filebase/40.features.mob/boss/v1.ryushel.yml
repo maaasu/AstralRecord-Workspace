@@ -13,7 +13,7 @@ variant:
   age: ADULT
   color: WHITE
   scale: 1.25
-icon: WHITE_WOOL
+icon: SHEEP_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7白樺の樹皮を思わせる羊毛で身を守り、花影に紛れて攻撃をかわす。"

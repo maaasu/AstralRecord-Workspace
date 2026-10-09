@@ -8,7 +8,7 @@ category: ENEMY
 name: "&aエリヴァ・グラスボア"
 level: 15
 entityType: PIG
-icon: PIG
+icon: PIG_SPAWN_EGG
 lore:
   - "&7エリヴァ大草原を駆ける野生のグラスボア。"
   - "&7攻撃を受けると反撃する。"

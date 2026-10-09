@@ -8,7 +8,7 @@ category: ENEMY
 name: "&eデバッグ坑道モブ"
 level: 10
 entityType: ZOMBIE
-icon: ZOMBIE_HEAD
+icon: ZOMBIE_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7黄昏の坑道の生成と戦闘確認専用の Mob。"

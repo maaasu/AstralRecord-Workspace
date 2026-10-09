@@ -11,7 +11,7 @@ level: 5
 entityType: BREEZE
 variant:
   scale: 1.2
-icon: SNOWBALL
+icon: BREEZE_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7氷球を壁で反射させ、凍てつく突進を繰り返す遺跡の主。"

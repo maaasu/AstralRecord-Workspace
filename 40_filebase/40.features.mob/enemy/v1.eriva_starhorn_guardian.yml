@@ -8,7 +8,7 @@ category: ENEMY
 name: "&a星角の森守 Lv.15"
 level: 15
 entityType: GOAT
-icon: GOAT_HORN
+icon: GOAT_SPAWN_EGG
 lore:
   - "&7樹冠からこぼれる光を角に宿す、森の番人。"
   - "&7足元に光の輪を刻み、遅れて根の魔力を噴き上げる。"

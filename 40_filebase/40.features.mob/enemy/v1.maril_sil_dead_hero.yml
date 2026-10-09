@@ -8,7 +8,7 @@ category: ENEMY
 name: "&8マリルシルの死英雄"
 level: 10
 entityType: WITHER_SKELETON
-icon: WITHER_SKELETON_SKULL
+icon: WITHER_SKELETON_SPAWN_EGG
 lore:
   - "&7かつての英雄の骸を黒王の力が動かしている。"
   - "&7高いシールドをまとい、剣で侵入者を斬り伏せる。"

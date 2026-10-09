@@ -8,7 +8,7 @@ category: ENEMY
 name: "&d射手花スケルトン"
 level: 20
 entityType: SKELETON
-icon: FLOWERING_AZALEA
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7古木に咲く花をまとった骸骨の射手。"
   - "&7花びらに隠れながら、離れた相手へ矢を放つ。"

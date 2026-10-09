@@ -11,7 +11,7 @@ entityType: SHEEP
 variant:
   age: ADULT
   color: WHITE
-icon: WHITE_WOOL
+icon: SHEEP_SPAWN_EGG
 lore:
   - "&7噛みつくたびに間合いを詰める、聖域の獣。"
 tags:

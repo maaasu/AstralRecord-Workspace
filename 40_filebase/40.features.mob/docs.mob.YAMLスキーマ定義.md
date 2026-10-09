@@ -38,6 +38,14 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
 | `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |
 
+### icon（作成時の指定方針）
+
+`ENEMY` / `BOSS` は、モデルの `entityType` に対応するスポーンエッグの Material 名を `icon` に指定します。
+例: `entityType: PIG` なら `icon: PIG_SPAWN_EGG`。`levels[].icon` を上書きする場合も同じスポーンエッグに揃えます。
+新規作成・更新時は利用中の Paper にその Material が存在することを確認します。
+`NPC` の機能・用途を示すアイコンはこの統一の対象外です。詳細は [Mob 設計のアイコン方針](../../00_docs/50_Filebase設計書/feature/40-mob.md#アイコンの指定) を参照してください。
+フィールドの型・任意性・未指定時の読込互換は変更しません。
+
 ### levels（レベルプロファイル）
 
 `levels` を使うと、Mob IDを増やさずに同一Mobのレベル別能力を定義できます。各要素の `level` は必須です。
@@ -166,7 +174,7 @@ category: ENEMY
 name: "&aミズガルズ・グラスボア"
 level: 2
 entityType: PIG
-icon: PIG
+icon: PIG_SPAWN_EGG
 lore:
   - "&7風待ち草原の外れをうろつく流れ者。"
 tags:

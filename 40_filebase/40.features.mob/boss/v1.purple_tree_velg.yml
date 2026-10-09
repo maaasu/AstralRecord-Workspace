@@ -8,7 +8,7 @@ category: BOSS
 name: "&5&l紫蝕の樹守・ヴェルグ Lv.16"
 level: 16
 entityType: SKELETON
-icon: NETHERITE_HOE
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7この場所を守る樹守。近づいた相手をクワで迎え撃つ。"
   - "&7刈り払いと根縛りを使い、追い詰められると攻撃範囲が広がる。"

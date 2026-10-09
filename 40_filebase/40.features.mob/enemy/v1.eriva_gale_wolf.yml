@@ -11,7 +11,7 @@ entityType: WOLF
 variant:
   age: ADULT
   scale: 1.05
-icon: BONE
+icon: WOLF_SPAWN_EGG
 lore:
   - "&7草を踏み分けて走る、風切りの草原の狼。"
   - "&7身構えた後に直進する。横へかわして背を狙おう。"

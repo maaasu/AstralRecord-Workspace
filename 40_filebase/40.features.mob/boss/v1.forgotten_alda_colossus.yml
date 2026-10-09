@@ -12,7 +12,7 @@ entityType: IRON_GOLEM
 variant:
   age: ADULT
   scale: 1.5
-icon: IRON_BLOCK
+icon: IRON_GOLEM_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7アルダの始まりを見届けた、忘れられし鉄の巨像。"

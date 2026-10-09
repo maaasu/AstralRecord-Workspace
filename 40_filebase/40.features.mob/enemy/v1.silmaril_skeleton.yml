@@ -8,7 +8,7 @@ category: ENEMY
 name: "&fシルマリルのスケルトン"
 level: 9
 entityType: PARCHED
-icon: SKELETON_SKULL
+icon: PARCHED_SPAWN_EGG
 lore:
   - "&7シルマリルの輝きを守る、乾ききった白骨の射手。"
   - "&7盾を構えながら、回避可能な矢を放つ。"

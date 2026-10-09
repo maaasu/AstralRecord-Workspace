@@ -95,7 +95,7 @@ category: ENEMY
 name: "&aミズガルズ・グラスボア"
 level: 2
 entityType: PIG
-icon: PIG
+icon: PIG_SPAWN_EGG
 lore:
   - "&7風待ち草原の外れをうろつく流れ者。"
   - "&7木道の残材を武器にして襲い掛かる。"
@@ -165,7 +165,7 @@ category: ENEMY
 name: "&0スケルトンメイジ"
 level: 12
 entityType: SKELETON
-icon: SKELETON_SKULL
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7暗黒魔法を操るスケルトン。"
   - "&7距離を取りながら魔法で攻撃する。"

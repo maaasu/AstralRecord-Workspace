@@ -8,7 +8,7 @@ category: ENEMY
 name: "&2棘鎧の衛兵"
 level: 20
 entityType: HUSK
-icon: SPRUCE_LOG
+icon: HUSK_SPAWN_EGG
 lore:
   - "&7棘の鎧をまとい、館の廊下を守る衛兵。"
   - "&7頑丈な盾を砕いてから、遅い斧の間合いを見切れ。"

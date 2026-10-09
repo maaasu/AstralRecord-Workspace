@@ -8,7 +8,7 @@ category: ENEMY
 name: "&f遺跡のスケルトン・アーチャー"
 level: 5
 entityType: SKELETON
-icon: BOW
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7崩れた柱の陰から、回避できる矢を放つ白骨の射手。"
 tags:

@@ -8,7 +8,7 @@ category: ENEMY
 name: "&aミズガルズ・グラスボア"
 level: 1
 entityType: PIG
-icon: PIG
+icon: PIG_SPAWN_EGG
 lore:
   - "&7草原を歩く温厚な野生獣。"
   - "&7攻撃を受けたときだけ反撃する。"

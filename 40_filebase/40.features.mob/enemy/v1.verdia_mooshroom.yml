@@ -11,7 +11,7 @@ entityType: MOOSHROOM
 variant:
   age: ADULT
   kind: RED
-icon: RED_MUSHROOM
+icon: MOOSHROOM_SPAWN_EGG
 lore:
   - '&7静かに草を食み、攻撃を受けても反撃しない。'
 tags:

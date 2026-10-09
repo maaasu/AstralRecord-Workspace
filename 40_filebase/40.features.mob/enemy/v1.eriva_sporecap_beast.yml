@@ -10,7 +10,7 @@ level: 18
 entityType: MOOSHROOM
 variant:
   kind: BROWN
-icon: BROWN_MUSHROOM
+icon: MOOSHROOM_SPAWN_EGG
 lore:
   - "&7背に茸を生やし、湿った木陰を歩く森の獣。"
   - "&7獲物の足元に胞子の輪を浮かべ、遅れて魔力を破裂させる。"

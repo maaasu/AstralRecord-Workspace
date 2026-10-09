@@ -9,7 +9,7 @@ name: "&2&l幽翠の館主・ヴェスパーラ"
 title: "&3―― 棘と灯の女主人 ――"
 level: 20
 entityType: WITCH
-icon: SOUL_LANTERN
+icon: WITCH_SPAWN_EGG
 nameVisible: true
 variant:
   age: ADULT

@@ -11,7 +11,7 @@ entityType: TURTLE
 variant:
   age: ADULT
   scale: 1.35
-icon: TURTLE_HELMET
+icon: TURTLE_SPAWN_EGG
 lore:
   - "&7古木の根元で苔をまとい、重い甲羅で身を守る獣。"
   - "&7ゆっくり近づき、甲羅をぶつけて攻撃する。"

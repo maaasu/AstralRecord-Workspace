@@ -8,7 +8,7 @@ category: ENEMY
 name: "&2根絡みの織り手"
 level: 20
 entityType: SPIDER
-icon: ROOTED_DIRT
+icon: SPIDER_SPAWN_EGG
 variant:
   age: ADULT
   scale: 1.15

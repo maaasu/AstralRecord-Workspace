@@ -8,7 +8,7 @@ category: ENEMY
 name: "&a梢影の射手"
 level: 20
 entityType: SKELETON
-icon: BOW
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7館の窓辺に潜み、梢の影から矢を射る骸骨。"
   - "&7狙いを定めた一射を横へ避け、間合いを詰めよ。"

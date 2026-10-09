@@ -10,7 +10,7 @@ level: 16
 entityType: IRON_GOLEM
 variant:
   scale: 0.67
-icon: IRON_BLOCK
+icon: IRON_GOLEM_SPAWN_EGG
 lore:
   - "&7前に出て相手の進路を塞ぐゴーレム。"
   - "&7突進と地砕きで周囲の相手を攻撃する。"

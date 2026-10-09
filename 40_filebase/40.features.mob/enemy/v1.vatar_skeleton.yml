@@ -8,7 +8,7 @@ category: ENEMY
 name: "&fヴァタールスケルトン"
 level: 8
 entityType: SKELETON
-icon: SKELETON_SKULL
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7万象の聖域を巡回する、近接戦闘に長けた白骨兵。"
 tags:

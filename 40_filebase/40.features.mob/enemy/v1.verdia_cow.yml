@@ -10,7 +10,7 @@ level: 20
 entityType: COW
 variant:
   age: ADULT
-icon: BEEF
+icon: COW_SPAWN_EGG
 lore:
   - '&7静かに草を食み、攻撃を受けても反撃しない。'
 tags:

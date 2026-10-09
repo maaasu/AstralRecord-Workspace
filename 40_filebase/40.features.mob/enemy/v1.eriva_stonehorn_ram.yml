@@ -11,7 +11,7 @@ entityType: GOAT
 variant:
   age: ADULT
   scale: 1.15
-icon: GOAT_HORN
+icon: GOAT_SPAWN_EGG
 lore:
   - "&7風化した立石の間を歩く、頑丈な角を持つ草原のヤギ。"
   - "&7足は遅いが打たれ強い。射手と引き離して戦おう。"

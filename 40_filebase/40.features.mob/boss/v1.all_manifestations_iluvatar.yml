@@ -11,7 +11,7 @@ level: 8
 entityType: BLAZE
 variant:
   scale: 1.8
-icon: BLAZE_ROD
+icon: BLAZE_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7反射する火球と炎の連続突進で聖域を満たす主。"

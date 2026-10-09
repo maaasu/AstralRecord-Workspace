@@ -8,7 +8,7 @@ category: ENEMY
 name: "&5メルザ Lv.16"
 level: 16
 entityType: SKELETON
-icon: DIAMOND_HELMET
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7距離を取って戦う魔術師。"
   - "&7呪弾と呪域で相手の移動を妨げる。"

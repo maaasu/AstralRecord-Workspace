@@ -8,7 +8,7 @@ category: ENEMY
 name: "&2樹皮の番兵 Lv.18"
 level: 18
 entityType: IRON_GOLEM
-icon: OAK_LOG
+icon: IRON_GOLEM_SPAWN_EGG
 lore:
   - "&7厚い樹皮をまとい、木々の間に立ちはだかる番兵。"
   - "&7前方に根枝を広げてから薙ぎ払い、侵入者を退ける。"

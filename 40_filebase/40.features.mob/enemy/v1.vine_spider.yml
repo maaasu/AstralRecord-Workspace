@@ -11,7 +11,7 @@ entityType: SPIDER
 variant:
   age: ADULT
   scale: 1.15
-icon: VINE
+icon: SPIDER_SPAWN_EGG
 lore:
   - "&7古木のツタに身を隠し、三方向へ糸を広げるクモ。"
   - "&7近距離では複数の糸に巻き込まれやすい。"

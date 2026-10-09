@@ -8,7 +8,7 @@ category: ENEMY
 name: "&f遺跡のスケルトン"
 level: 5
 entityType: SKELETON
-icon: SKELETON_SKULL
+icon: SKELETON_SPAWN_EGG
 lore:
   - "&7崩れた石室を徘徊する、剣を携えた白骨兵。"
 tags:

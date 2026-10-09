@@ -12,7 +12,7 @@ entityType: SNIFFER
 variant:
   age: ADULT
   scale: 1.25
-icon: TORCHFLOWER
+icon: SNIFFER_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7古代の種から目覚め、花咲く古木の根を守る大きな獣。"
