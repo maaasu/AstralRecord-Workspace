@@ -194,6 +194,7 @@ public final class DungeonService {
     private final Map<UUID, UUID> sessionIdByWorld = new HashMap<>();
     private final Map<String, UUID> sessionIdByPartyKey = new HashMap<>();
     private final Map<UUID, UUID> dungeonDeathSessionByParticipant = new HashMap<>();
+    private final Map<UUID, UUID> recoverySessionByParticipant = new HashMap<>();
     private final Map<UUID, MobBinding> mobBindings = new HashMap<>();
     private final Map<UUID, Long> nextMobReturnSearchTick = new HashMap<>();
     private final Map<UUID, DungeonCancelController> cancelControllers = new HashMap<>();
@@ -3615,13 +3616,37 @@ public final class DungeonService {
      * @return ダンジョン死亡として処理した場合 {@code true}
      */
     public boolean handleParticipantDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        return handleParticipantDeath(astPlayer, deathLocation, false);
+    }
+
+    /**
+     * 奈落による参加者死亡を処理します。同じセッションへの死亡復帰転送中は重複開始しません。
+     * @param astPlayer 奈落ダメージを受けた参加者
+     * @param deathLocation 奈落ダメージの発生地点
+     * @return ダンジョンの死亡として受理した場合は true
+     */
+    public boolean handleParticipantVoidDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        return handleParticipantDeath(astPlayer, deathLocation, true);
+    }
+
+    /**
+     * 参加者・ワールドを検証して死亡を開始し、奈落の場合だけ復帰転送中の重複を抑止します。
+     * @param astPlayer 死亡した参加者
+     * @param deathLocation 死亡地点
+     * @param fromVoid 奈落ダメージによる死亡の場合は true
+     * @return ダンジョンの死亡として受理した場合は true
+     */
+    private boolean handleParticipantDeath(
+            @NotNull AstPlayer astPlayer, @NotNull Location deathLocation, boolean fromVoid
+    ) {
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session == null || session.ending || session.instanceWorld == null
                 || deathLocation.getWorld() == null
                 || !deathLocation.getWorld().getUID().equals(session.instanceWorld.world().getUID())) return false;
-        if (playerDeathService.isDead(playerId)) return true;
+        if (playerDeathService.isDead(playerId)
+                || (fromVoid && session.id.equals(recoverySessionByParticipant.get(playerId)))) return true;
         if (session.cleared) {
             boolean started = playerDeathService.startDeath(
                     astPlayer,
@@ -3692,6 +3717,7 @@ public final class DungeonService {
 
     /**
      * Dungeon死亡復帰callbackを再検証し、同じ稼働セッションの現在参加者をSTART地点へ戻します。
+     * 転送完了までは同じセッションで奈落死亡を再受理しません。
      *
      * @param sessionId 死亡を受理したDungeonセッションID
      * @param playerId 復帰対象プレイヤーUUID
@@ -3715,7 +3741,9 @@ public final class DungeonService {
         long transferGeneration = session.transferGeneration;
         CompletableFuture<Boolean> transfer = trackEntryTransfer(
                 session, playerId, worldService.teleportPlayerAsync(player, target, null));
+        recoverySessionByParticipant.put(playerId, sessionId);
         transfer.whenComplete((success, failure) -> runMain(() -> {
+            recoverySessionByParticipant.remove(playerId, sessionId);
             if (isActiveTransferCallback(session, transferGeneration)
                     && (failure != null || !Boolean.TRUE.equals(success))) {
                 completeSession(session, EndReason.TRANSFER_FAILED, false);
@@ -4155,6 +4183,7 @@ public final class DungeonService {
             clearQueueTitles(session.originalParticipants);
         }
         session.ending = true;
+        recoverySessionByParticipant.values().removeIf(session.id::equals);
         session.roomBossBars.clear();
         cartographBindings.removeSession(session.id);
         long endingGeneration = ++session.transferGeneration;
@@ -4476,6 +4505,7 @@ public final class DungeonService {
         creationQueue.clear();
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
+            recoverySessionByParticipant.values().removeIf(session.id::equals);
             session.roomBossBars.clear();
             session.transferGeneration++;
             session.cartographTransfers.clear();
@@ -4527,6 +4557,7 @@ public final class DungeonService {
         sessionIdByWorld.clear();
         sessionIdByPartyKey.clear();
         dungeonDeathSessionByParticipant.clear();
+        recoverySessionByParticipant.clear();
         mobBindings.clear();
         nextMobReturnSearchTick.clear();
         cancelControllers.clear();

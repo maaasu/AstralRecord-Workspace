@@ -123,6 +123,7 @@ public final class BossChallengeService {
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> recoveryChallengeByParticipant = new ConcurrentHashMap<>();
     private final Map<UUID, BossChallengeCancelController> cancelControllersByChallengeId = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByCancelInteraction = new ConcurrentHashMap<>();
     private final Set<UUID> pendingFieldPreparationChallenges = ConcurrentHashMap.newKeySet();
@@ -370,6 +371,7 @@ public final class BossChallengeService {
         challengesById.clear();
         challengeIdByPartyKey.clear();
         challengeIdByBossMob.clear();
+        recoveryChallengeByParticipant.clear();
         cancelControllersByChallengeId.clear();
         challengeIdByCancelInteraction.clear();
         pendingFieldPreparationChallenges.clear();
@@ -670,6 +672,29 @@ public final class BossChallengeService {
      * @return ボス挑戦の死亡として処理した場合は {@code true}
      */
     public boolean handleParticipantDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        return handleParticipantDeath(astPlayer, deathLocation, false);
+    }
+
+    /**
+     * 奈落による参加者死亡を処理します。同じ挑戦への死亡復帰転送中は重複開始しません。
+     * @param astPlayer 奈落ダメージを受けた参加者
+     * @param deathLocation 奈落ダメージの発生地点
+     * @return ボス挑戦の死亡として受理した場合は true
+     */
+    public boolean handleParticipantVoidDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        return handleParticipantDeath(astPlayer, deathLocation, true);
+    }
+
+    /**
+     * 参加者・ワールドを検証して死亡を開始し、奈落の場合だけ復帰転送中の重複を抑止します。
+     * @param astPlayer 死亡した参加者
+     * @param deathLocation 死亡地点
+     * @param fromVoid 奈落ダメージによる死亡の場合は true
+     * @return ボス挑戦の死亡として受理した場合は true
+     */
+    private boolean handleParticipantDeath(
+            @NotNull AstPlayer astPlayer, @NotNull Location deathLocation, boolean fromVoid
+    ) {
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         BossChallengeInstance challenge = findInProgressChallengeByParticipant(playerId);
         if (challenge == null || challenge.field() == null
@@ -677,7 +702,8 @@ public final class BossChallengeService {
                 || !deathLocation.getWorld().getUID().equals(challenge.field().world().getUID())) {
             return false;
         }
-        if (playerDeathService.isDead(playerId)) {
+        if (playerDeathService.isDead(playerId)
+                || (fromVoid && challenge.challengeId().equals(recoveryChallengeByParticipant.get(playerId)))) {
             return true;
         }
 
@@ -1850,6 +1876,7 @@ public final class BossChallengeService {
             clearQueueTitles(challenge.expectedParticipantIds());
         }
         challenge.state(BossChallengeState.ENDING);
+        recoveryChallengeByParticipant.values().removeIf(challenge.challengeId()::equals);
         cancelStartCountdown(challenge);
         destroyCancelController(challenge.challengeId());
         destroyBossBar(challenge);
@@ -2559,6 +2586,11 @@ public final class BossChallengeService {
         return null;
     }
 
+    /**
+     * 死亡した参加者をフィールドへ転送し、完了まで奈落死亡の再受理を抑止します。
+     * @param challengeId 復帰する挑戦
+     * @param playerId 復帰する参加者
+     */
     private void reviveParticipant(@NotNull UUID challengeId, @NotNull UUID playerId) {
         BossChallengeInstance challenge = challengesById.get(challengeId);
         Player player = Bukkit.getPlayer(playerId);
@@ -2567,8 +2599,11 @@ public final class BossChallengeService {
             return;
         }
         Location spawn = challenge.config().playerSpawnLocation().toLocation(challenge.field().world());
-        worldService.teleportPlayerAsync(player, spawn, null).whenComplete((success, throwable) ->
+        CompletableFuture<Boolean> transfer = worldService.teleportPlayerAsync(player, spawn, null);
+        recoveryChallengeByParticipant.put(playerId, challengeId);
+        transfer.whenComplete((success, throwable) ->
                 runSync(() -> {
+                    recoveryChallengeByParticipant.remove(playerId, challengeId);
                     if (challenge.state() == BossChallengeState.IN_PROGRESS
                             && (throwable != null || !Boolean.TRUE.equals(success))) {
                         endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);

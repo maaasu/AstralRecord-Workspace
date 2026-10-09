@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -21,19 +23,30 @@ import org.jetbrains.annotations.NotNull;
 public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
 
     private final WorldService worldService;
+    private final BossChallengeService bossChallengeService;
+    private final DungeonService dungeonService;
 
     /**
      * ワールドのマスターデータを参照するバニラダメージ抑止ハンドラを生成します。
      *
      * @param worldService WorldMasterData の解決とスポーン地点転送を担うサービス
+     * @param bossChallengeService ボス挑戦の参加者死亡を処理するサービス
+     * @param dungeonService ダンジョンの参加者死亡を処理するサービス
      */
-    public PlayerVanillaDamageBlockEventHandler(@NotNull WorldService worldService) {
+    public PlayerVanillaDamageBlockEventHandler(
+        @NotNull WorldService worldService,
+        @NotNull BossChallengeService bossChallengeService,
+        @NotNull DungeonService dungeonService
+    ) {
         this.worldService = worldService;
+        this.bossChallengeService = bossChallengeService;
+        this.dungeonService = dungeonService;
     }
 
     /**
      * プレイヤーへの Bukkit ダメージイベントを常時キャンセルし、バニラの被ダメージモーションを抑止します。
-     * 奈落ダメージの場合は、現在ワールドの WorldMasterData に定義されたスポーン地点へ戻します。
+     * 奈落ダメージはボス・ダンジョンの参加者死亡として処理し、対象外の場合は現在ワールドのマスタースポーンへ戻します。
+     * 死亡回数・復帰待機・死亡上限は各挑戦サービスの既存規則を適用します。
      *
      * @param event ダメージイベント
      */
@@ -51,6 +64,14 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
             if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
                 event.setDamage(0.0D);
                 event.setCancelled(true);
+                var astPlayer = AstPlayerCache.get(player);
+                if (astPlayer != null) {
+                    var deathLocation = player.getLocation();
+                    if (bossChallengeService.handleParticipantVoidDeath(astPlayer, deathLocation)
+                        || dungeonService.handleParticipantVoidDeath(astPlayer, deathLocation)) {
+                        return;
+                    }
+                }
                 teleportToWorldMasterSpawn(player);
                 return;
             }

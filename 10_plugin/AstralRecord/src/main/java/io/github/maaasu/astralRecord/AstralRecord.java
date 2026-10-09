@@ -2812,7 +2812,7 @@ public final class AstralRecord extends JavaPlugin {
         var castDiskInteractionEventHandler = new CastDiskInteractionEventHandler(castDiskUseService);
         eventManager.registerHandler(castDiskInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
-            new PlayerVanillaDamageBlockEventHandler(worldService),
+            new PlayerVanillaDamageBlockEventHandler(worldService, bossChallengeService, dungeonService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
