@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobR
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
@@ -91,6 +92,7 @@ class AdventureRecordServiceTest {
             mobService,
             playerSettingService,
             lootService,
+            mock(ItemService.class),
             stateService
         );
         AtomicReference<AdventureRecordService.EntryResult> result = new AtomicReference<>();
@@ -161,6 +163,7 @@ class AdventureRecordServiceTest {
             mobService,
             playerSettingService,
             lootService,
+            mock(ItemService.class),
             stateService
         );
 
@@ -243,6 +246,7 @@ class AdventureRecordServiceTest {
             mobService,
             playerSettingService,
             lootService,
+            mock(ItemService.class),
             stateService
         );
 
@@ -272,7 +276,7 @@ class AdventureRecordServiceTest {
         MobTemplate template = DungeonTestFixtures.mob("enemy", 1, MobCategory.ENEMY);
         AdventureRecordService service = new AdventureRecordService(
             mock(AstralRecord.class), repository, mock(MobService.class),
-            mock(PlayerSettingService.class), mock(LootService.class), stateService);
+            mock(PlayerSettingService.class), mock(LootService.class), mock(ItemService.class), stateService);
 
         service.recordDefeat(player, template);
 

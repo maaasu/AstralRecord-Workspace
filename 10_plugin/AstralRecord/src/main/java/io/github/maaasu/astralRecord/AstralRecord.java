@@ -1330,6 +1330,7 @@ public final class AstralRecord extends JavaPlugin {
             mobService,
             playerSettingService,
             lootService,
+            itemService,
             adventureRecordStateService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);

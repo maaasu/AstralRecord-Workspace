@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDung
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
@@ -38,6 +39,7 @@ public class AdventureRecordService {
     private final MobService mobService;
     private final PlayerSettingService playerSettingService;
     private final LootService lootService;
+    private final ItemService itemService;
     private final AdventureRecordStateService stateService;
 
     /**
@@ -48,6 +50,7 @@ public class AdventureRecordService {
      * @param mobService Mob テンプレートサービス
      * @param playerSettingService プレイヤー設定サービス
      * @param lootService ロード済み LootTable の参照サービス
+     * @param itemService ドロップ候補のアイテムカテゴリを参照するサービス
      * @param stateService 討伐・踏破差分の完成スナップショット参加サービス
      */
     public AdventureRecordService(
@@ -56,6 +59,7 @@ public class AdventureRecordService {
         @NotNull MobService mobService,
         @NotNull PlayerSettingService playerSettingService,
         @NotNull LootService lootService,
+        @NotNull ItemService itemService,
         @NotNull AdventureRecordStateService stateService
     ) {
         this.plugin = plugin;
@@ -63,6 +67,7 @@ public class AdventureRecordService {
         this.mobService = mobService;
         this.playerSettingService = playerSettingService;
         this.lootService = lootService;
+        this.itemService = itemService;
         this.stateService = stateService;
     }
 
@@ -196,6 +201,14 @@ public class AdventureRecordService {
         return template.category() == listType.getCategory();
     }
 
+    /**
+     * 公開対象の直接ドロップ・LootTable 候補に検索アイテムが含まれるか判定します。
+     * hidden の直接ドロップと魔法の卵は照合せず、API 通信は行いません。
+     *
+     * @param template 検索対象の Mob テンプレート
+     * @param searchItemIds 選択されたアイテムID。空集合は絞り込みなし
+     * @return 公開対象の候補がいずれかのIDと一致する場合、または絞り込みなしなら {@code true}
+     */
     private boolean matchesSearch(@NotNull MobTemplate template, @NotNull Set<String> searchItemIds) {
         if (searchItemIds.isEmpty()) {
             return true;
@@ -205,7 +218,8 @@ public class AdventureRecordService {
             return false;
         }
         for (MobDropItem item : drops.items()) {
-            if (!item.hidden() && searchItemIds.contains(item.itemId())) {
+            if (!item.hidden() && searchItemIds.contains(item.itemId())
+                && AdventureRecordDropVisibility.isVisible(itemService.findLoadedById(item.itemId()))) {
                 return true;
             }
         }
@@ -218,7 +232,8 @@ public class AdventureRecordService {
             return false;
         }
         for (LootEntry entry : loot.flattenedEntries()) {
-            if (searchItemIds.contains(entry.getItemId())) {
+            if (searchItemIds.contains(entry.getItemId())
+                && AdventureRecordDropVisibility.isVisible(itemService.findLoadedById(entry.getItemId()))) {
                 return true;
             }
         }

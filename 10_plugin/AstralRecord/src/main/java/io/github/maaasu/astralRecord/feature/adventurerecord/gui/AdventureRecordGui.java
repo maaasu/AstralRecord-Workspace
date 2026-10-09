@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.adventurerecord.gui;
 
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordDropVisibility;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -819,6 +820,13 @@ public class AdventureRecordGui {
         };
     }
 
+    /**
+     * 公開対象のドロップを、アイテム名の色・装飾を保持して Lore へ追加します。
+     * hidden の直接ドロップと魔法の卵は除外し、ロード済みマスタだけを参照します。
+     *
+     * @param lore 表示行の追加先
+     * @param drops 対象レベルのドロップ設定。未設定の場合はなしの表示を追加
+     */
     private void appendDrops(@NotNull List<Component> lore, @Nullable MobDropConfig drops) {
         if (drops == null) {
             lore.add(Component.text("ドロップ: なし", NamedTextColor.DARK_GRAY));
@@ -834,18 +842,23 @@ public class AdventureRecordGui {
         boolean hasFixedRewards = drops.exp() > 0 || drops.money() != null;
         int visible = 0;
         for (MobDropItem item : drops.items()) {
-            if (item.hidden()) {
+            if (item.hidden() || !AdventureRecordDropVisibility.isVisible(itemService.findLoadedById(item.itemId()))) {
                 continue;
             }
             if (visible == 0 && hasFixedRewards) {
                 lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
             }
             visible++;
-            lore.add(Component.text("- " + itemName(item.itemId()) + " x" + item.amount() + " (" + item.rate() + "%)", NamedTextColor.WHITE));
+            lore.add(Component.text("- ", NamedTextColor.WHITE)
+                .append(itemName(item.itemId()))
+                .append(Component.text(" x" + item.amount() + " (" + item.rate() + "%)", NamedTextColor.WHITE)));
         }
         LootModel loot = resolveLootTable(drops.lootTable());
         if (loot != null) {
             for (LootEntry entry : loot.flattenedEntries()) {
+                if (!AdventureRecordDropVisibility.isVisible(itemService.findLoadedById(entry.getItemId()))) {
+                    continue;
+                }
                 if (visible == 0 && hasFixedRewards) {
                     lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
                 }
@@ -853,10 +866,9 @@ public class AdventureRecordGui {
                 String amount = entry.getMinAmount() == entry.getMaxAmount()
                     ? Integer.toString(entry.getMinAmount())
                     : entry.getMinAmount() + "~" + entry.getMaxAmount();
-                lore.add(Component.text(
-                    "- " + itemName(entry.getItemId()) + " x" + amount + " (" + entry.getWeight() + "%)",
-                    NamedTextColor.WHITE
-                ));
+                lore.add(Component.text("- ", NamedTextColor.WHITE)
+                    .append(itemName(entry.getItemId()))
+                    .append(Component.text(" x" + amount + " (" + entry.getWeight() + "%)", NamedTextColor.WHITE)));
             }
         }
         if (visible == 0 && drops.exp() <= 0 && drops.money() == null) {
@@ -871,11 +883,15 @@ public class AdventureRecordGui {
         return lootService.getLoaded(lootTableId);
     }
 
-    private @NotNull String itemName(@NotNull String itemId) {
+    /**
+     * ロード済みアイテム名を元の色・装飾を保持して返します。
+     *
+     * @param itemId 表示対象のアイテムID
+     * @return マスタ名の Component。未登録・空名は白色の代替表示
+     */
+    private @NotNull Component itemName(@NotNull String itemId) {
         ItemModel item = itemService.findLoadedById(itemId);
-        return item == null
-            ? "未登録のアイテム"
-            : ColorCodeUtil.toPlainText(item.getName(), "未登録のアイテム");
+        return ColorCodeUtil.toComponent(item == null ? null : item.getName(), "未登録のアイテム", NamedTextColor.WHITE);
     }
 
     private @NotNull Set<String> selectedItemIds(@NotNull List<ItemStack> items) {
