@@ -14,7 +14,7 @@ spawnTimes:
     endTick: 23999
 
 itemMaterial: SPAWNER
-spawnIntervalTicks: 120
+spawnIntervalTicks: 5
 
 spawnLimit:
   maxAlivePerSpawner: 8

@@ -45,12 +45,11 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class GatheringSpawnerService {
-    private static final long TICK_INTERVAL = 20L;
     private static final long SAVE_INTERVAL = 20L * 60L;
     private static final int MAX_PLAYER_SCALE = 6;
     private static final int SEARCH_STEPS_PER_TICK = 1024;
     private static final long SEARCH_NANOS_PER_TICK = 1_000_000L;
-    private static final long SPAWN_GAP_TICKS = 5L;
+    private static final long SPAWN_GAP_TICKS = 1L;
 
     private final Plugin plugin;
     private final GatheringService gatheringService;
@@ -362,13 +361,11 @@ public class GatheringSpawnerService {
     /** 同期スレッドで判定対象を重複なく待機列へ追加し、1件の探索だけを予算内で進めます。 */
     private void tick() {
         tick++;
-        if (tick % TICK_INTERVAL == 0L) {
-            for (GatheringSpawnerLocation location : locations.values()) {
-                GatheringSpawnerDefinition definition = definitions.get(location.spawnerId());
-                if (definition != null && tick % definition.spawnIntervalTicks() == 0L
-                        && queuedLocations.add(location.locationKey())) {
-                    pendingSpawns.addLast(location);
-                }
+        for (GatheringSpawnerLocation location : locations.values()) {
+            GatheringSpawnerDefinition definition = definitions.get(location.spawnerId());
+            if (definition != null && tick % definition.spawnIntervalTicks() == 0L
+                    && queuedLocations.add(location.locationKey())) {
+                pendingSpawns.addLast(location);
             }
         }
         if (activeSpawn == null) {
@@ -429,7 +426,7 @@ public class GatheringSpawnerService {
             return null;
         }
         return new PendingSpawn(spawnerLocation, definition, entry, origin.getWorld(),
-                new GatheringSpawnSearch(origin, definition, ThreadLocalRandom.current()));
+                new GatheringSpawnSearch(origin, definition, ThreadLocalRandom.current(), gatheringService::hasInstanceAt));
     }
 
     /**

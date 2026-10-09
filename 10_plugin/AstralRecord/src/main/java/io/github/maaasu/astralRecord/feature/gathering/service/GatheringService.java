@@ -272,7 +272,13 @@ public class GatheringService {
         return instance;
     }
 
-    private boolean hasInstanceAt(@NotNull Location location) {
+    /**
+     * 同期スレッドで指定ブロックに既存の採集物があるか確認します。
+     *
+     * @param location worldとブロック座標を照合する候補地点
+     * @return 同一world・同一ブロックの採集物が存在する場合はtrue
+     */
+    public boolean hasInstanceAt(@NotNull Location location) {
         for (GatheringInstance instance : instances.values()) {
             Location current = instance.location();
             if (current.getWorld() == location.getWorld()
