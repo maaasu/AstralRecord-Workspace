@@ -1601,13 +1601,24 @@ public class ItemStackFactory {
                 : displayName;
     }
 
+    /**
+     * 装備補正を種類とステータスの単位に応じて整形します。
+     * 加算値は整形後の負符号を保持し、それ以外には + を付けます。
+     *
+     * @param type 補正の種類
+     * @param statusType 単位を決めるステータス。未解決の場合は null
+     * @param value 有限の補正値
+     * @return 色コードと符号・単位を含む表示文字列
+     */
     private @NotNull String formatStatValueWithType(
             @NotNull ItemEquipmentStatType type, @Nullable StatusType statusType, double value) {
         if (type == ItemEquipmentStatType.SCALAR) {
             return STATUS_VALUE_COLOR + "×" + formatStatValue(value * 100.0D) + "%";
         }
         String suffix = statusType != null && statusType.isPercentage() ? "%" : "";
-        return STATUS_VALUE_COLOR + "+" + formatStatValue(value) + suffix;
+        String formattedValue = formatStatValue(value);
+        String sign = formattedValue.startsWith("-") ? "" : "+";
+        return STATUS_VALUE_COLOR + sign + formattedValue + suffix;
     }
 
     private @NotNull String formatStatValueWithType(
