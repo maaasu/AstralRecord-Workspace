@@ -60,6 +60,7 @@ import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepos
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideCompletionRewardRepository;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideActionService;
+import io.github.maaasu.astralRecord.feature.guide.event.GuideHighlightEventHandler;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
@@ -801,6 +802,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (guideReminderTask != null) {
             guideReminderTask.stop();
+        }
+        if (guideActionService != null) {
+            guideActionService.stop();
         }
         if (equipmentDurabilityReminderTask != null) {
             equipmentDurabilityReminderTask.stop();
@@ -2502,6 +2506,10 @@ public final class AstralRecord extends JavaPlugin {
             }
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(
+            new GuideHighlightEventHandler(guideActionService),
+            getServer().getPluginManager()
+        );
         playerAdminDrainService = new io.github.maaasu.astralRecord.feature.playeradmin.service.PlayerAdminDrainService(
             this, playerService, inventorySaveCoordinator, playerJoinEventHandler, skillTreeService,
             ConfigProperties.getInstance().getApiServerId(), skillTreeService.getRuntimeServerSessionId(),

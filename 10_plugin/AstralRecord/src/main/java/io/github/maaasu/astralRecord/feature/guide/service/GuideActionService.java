@@ -13,16 +13,16 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ガイド詳細画面から実行する案内アクションを処理します。
@@ -34,7 +34,7 @@ public final class GuideActionService {
     private final MobService mobService;
     private final NpcPlacementService npcPlacementService;
     private final PlayerMessageService playerMessageService;
-    private final Map<UUID, UUID> highlightTokens = new ConcurrentHashMap<>();
+    private final Map<UUID, HighlightSession> highlights = new HashMap<>();
 
     /**
      * ガイド案内アクションサービスを生成します。
@@ -70,7 +70,15 @@ public final class GuideActionService {
         };
     }
 
+    /**
+     * 先の案内表示を回収し、同じワールドの最寄り NPC の座標と個別の発光表示を案内します。
+     *
+     * @param player 操作したプレイヤー。メインスレッド上で呼び出す
+     * @param npcId 案内対象の NPC 定義 ID。null の場合は汎用エラーを通知する
+     * @return 案内先の座標を解決できた場合は true
+     */
     private boolean navigateNpc(@NotNull Player player, @Nullable String npcId) {
+        clearHighlight(player.getUniqueId());
         if (npcId == null) {
             playerMessageService.send(player, PlayerMsgId.P_5184);
             return false;
@@ -94,8 +102,8 @@ public final class GuideActionService {
             location.getBlockY(),
             location.getBlockZ()
         );
-        if (target.entityId() != null) {
-            highlight(target.entityId());
+        if (target.instance() != null) {
+            highlight(player, target.instance());
         }
         return true;
     }
@@ -126,6 +134,13 @@ public final class GuideActionService {
         return false;
     }
 
+    /**
+     * 同じワールドの最寄り NPC と、表示の複製に使うインスタンスを解決します。
+     *
+     * @param player 距離の基準となるプレイヤー
+     * @param npcId 対象 NPC の定義 ID
+     * @return 最寄りの案内先。該当個体がない場合は null
+     */
     private @Nullable NavigationTarget findNearestLiveNpc(@NotNull Player player, @NotNull String npcId) {
         MobInstance nearest = null;
         double nearestDistance = Double.MAX_VALUE;
@@ -150,7 +165,7 @@ public final class GuideActionService {
         return new NavigationTarget(
             nearest.currentLocation(),
             displayName(nearest.template()),
-            nearest.bukkitEntityId()
+            nearest
         );
     }
 
@@ -185,33 +200,56 @@ public final class GuideActionService {
         );
     }
 
-    private void highlight(@NotNull UUID entityId) {
-        Entity entity = Bukkit.getEntity(entityId);
-        if (entity == null || !entity.isValid()) {
+    /**
+     * 操作したプレイヤーだけへ発光する NPC の複製を表示し、満了時の回収を予約します。
+     *
+     * @param player 表示先プレイヤー。メインスレッド上で呼び出す
+     * @param instance 複製元の NPC。元の発光状態は変更しない
+     */
+    private void highlight(@NotNull Player player, @NotNull MobInstance instance) {
+        Runnable removeDisplay = mobService.showNpcHighlight(player, instance);
+        if (removeDisplay == null) {
             return;
         }
-        UUID token = UUID.randomUUID();
-        highlightTokens.put(entityId, token);
-        MobInstance instance = mobService.getInstanceByEntity(entityId);
-        if (instance != null) {
-            mobService.setGlowing(instance, true);
-        } else {
-            entity.setGlowing(true);
+        UUID playerId = player.getUniqueId();
+        HighlightSession session = new HighlightSession(removeDisplay);
+        highlights.put(playerId, session);
+        try {
+            session.expiryTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (highlights.get(playerId) == session) {
+                    clearHighlight(playerId);
+                }
+            }, NPC_HIGHLIGHT_DURATION_TICKS);
+        } catch (RuntimeException failure) {
+            clearHighlight(playerId);
+            throw failure;
         }
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (!token.equals(highlightTokens.get(entityId))) {
-                return;
-            }
-            highlightTokens.remove(entityId, token);
-            if (instance != null) {
-                mobService.setGlowing(instance, false);
-                return;
-            }
-            Entity current = Bukkit.getEntity(entityId);
-            if (current != null && current.isValid()) {
-                current.setGlowing(false);
-            }
-        }, NPC_HIGHLIGHT_DURATION_TICKS);
+    }
+
+    /**
+     * プレイヤーの案内表示を破棄し、満了タスクも取り消します。重複呼び出しは無操作です。
+     *
+     * @param playerId 回収するプレイヤー UUID。メインスレッド上で呼び出す
+     */
+    public void clearHighlight(@NotNull UUID playerId) {
+        HighlightSession session = highlights.remove(playerId);
+        if (session == null) {
+            return;
+        }
+        if (session.expiryTask != null) {
+            session.expiryTask.cancel();
+        }
+        session.removeDisplay.run();
+    }
+
+    /**
+     * プラグイン停止時に全プレイヤーの案内表示と満了タスクを回収します。
+     * メインスレッド上で、Mob の表示サービス停止前に呼び出します。
+     */
+    public void stop() {
+        for (UUID playerId : List.copyOf(highlights.keySet())) {
+            clearHighlight(playerId);
+        }
     }
 
     private @NotNull String displayName(@NotNull MobTemplate template) {
@@ -221,7 +259,21 @@ public final class GuideActionService {
     private record NavigationTarget(
         @NotNull Location location,
         @NotNull String displayName,
-        @Nullable UUID entityId
+        @Nullable MobInstance instance
     ) {
+    }
+
+    private static final class HighlightSession {
+        private final Runnable removeDisplay;
+        private @Nullable BukkitTask expiryTask;
+
+        /**
+         * 一つの表示専用の回収処理を保持します。
+         *
+         * @param removeDisplay 複製の破棄処理。重複回収や通信失敗でも例外を送出しない
+         */
+        private HighlightSession(@NotNull Runnable removeDisplay) {
+            this.removeDisplay = removeDisplay;
+        }
     }
 }
