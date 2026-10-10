@@ -1,0 +1,17 @@
+# design:
+#   motif: "植物 / 霊樹の枝と根"
+#   progression: 15
+schemaVersion: 1
+id: eriva_arcana
+name: '&aアルカナ'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 6
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2

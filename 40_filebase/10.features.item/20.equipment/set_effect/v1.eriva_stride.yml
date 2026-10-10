@@ -1,0 +1,17 @@
+# design:
+#   motif: "植物 / 風を渡る森の狩人"
+#   progression: 15
+schemaVersion: 1
+id: eriva_stride
+name: '&aストライド'
+pieces:
+- count: 2
+  stats:
+  - status: RANGED_ATTACK
+    type: FLAT
+    value: 6
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2
