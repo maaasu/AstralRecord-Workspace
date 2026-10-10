@@ -954,8 +954,9 @@ public enum LogId {
      */
     W_5706(5706),
     /**
-     * Mob パケット送出に失敗しました: %s
+     * NPC highlight packet の処理に失敗しました: packetType=%s, worldName=%s
      */
+    W_5707(5707),
     /**
      * Mob AI tick タスクを開始しました
      */

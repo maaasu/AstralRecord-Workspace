@@ -76,6 +76,7 @@ public class MobService {
     private final MobRepository repository;
     private final MobEntityController entityController;
     private final NpcPlayerSkinPacketService playerSkinPacketService;
+    private final NpcHighlightPacketService npcHighlightPacketService;
     private FishingCombatBridge fishingCombat;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private ConditionService conditionService;
@@ -99,6 +100,7 @@ public class MobService {
         this.repository = repository;
         this.entityController = new MobEntityController(plugin);
         this.playerSkinPacketService = new NpcPlayerSkinPacketService(plugin, this.entityController);
+        this.npcHighlightPacketService = new NpcHighlightPacketService(plugin);
     }
 
     /** @return 釣り魚の一時戦闘登録を管理する接続サービス */
@@ -191,6 +193,22 @@ public class MobService {
         if (instance.template().usesPlayerSkinPacketView()) {
             playerSkinPacketService.setGlowing(instance, glowing);
         }
+    }
+
+    /**
+     * NPC の現在の形状を指定プレイヤーだけに発光輪郭として表示します。
+     *
+     * @param viewer 表示対象。メインスレッド上のオンラインプレイヤー
+     * @param instance 表示する NPC インスタンス
+     * @return この輪郭だけを除去する冪等な処理。実体または packet 送信環境が無効なら {@code null}
+     */
+    public @Nullable Runnable showNpcHighlight(@NotNull Player viewer, @NotNull MobInstance instance) {
+        if (instance.template().category() != MobCategory.NPC) {
+            return null;
+        }
+        return instance.template().usesPlayerSkinPacketView()
+                ? playerSkinPacketService.showNpcHighlight(viewer, instance)
+                : npcHighlightPacketService.show(viewer, instance);
     }
 
     /**

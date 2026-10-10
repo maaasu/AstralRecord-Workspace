@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * `entityType=PLAYER` を指定した NPC を packet 上の擬似 Player として描画する。
@@ -53,6 +54,7 @@ public final class NpcPlayerSkinPacketService {
 
     private static final int ENTITY_FLAGS_METADATA_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = (byte) 0x40;
+    private static final byte ENTITY_FLAG_INVISIBLE = (byte) 0x20;
     private static final int PLAYER_SKIN_PARTS_METADATA_INDEX = 16;
     private static final byte PLAYER_SKIN_PARTS_ALL = (byte) 0x7F;
     private static final EnumSet<EnumWrappers.PlayerInfoAction> PLAYER_INFO_ACTIONS = EnumSet.of(
@@ -69,6 +71,7 @@ public final class NpcPlayerSkinPacketService {
     private final Map<UUID, SkinViewState> states = new LinkedHashMap<>();
     private final Map<UUID, SkinViewState> temporaryStates = new LinkedHashMap<>();
     private final Map<Integer, UUID> instanceIdByFakeEntityId = new HashMap<>();
+    private final Map<Integer, HighlightTarget> highlightTargets = new ConcurrentHashMap<>();
 
     public NpcPlayerSkinPacketService(@NotNull Plugin plugin, @NotNull MobEntityController entityController) {
         this.plugin = plugin;
@@ -128,10 +131,67 @@ public final class NpcPlayerSkinPacketService {
                 skin
         );
         state.viewerIds().add(viewer.getUniqueId());
-        spawnTemporaryForViewer(viewer, state, location);
         temporaryStates.put(state.profileUuid(), state);
+        boolean spawned;
+        try {
+            spawned = spawnTemporaryForViewer(viewer, state, location);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, PacketType.Play.Server.SPAWN_ENTITY.name(),
+                    viewer.getWorld().getName());
+            spawned = false;
+        }
+        if (!spawned) {
+            removeTemporaryForViewer(viewer, state);
+            return false;
+        }
         Bukkit.getScheduler().runTaskLater(plugin, () -> removeTemporaryForViewer(viewer, state), durationTicks);
         return true;
+    }
+
+    /**
+     * Player skin NPC の形状を、指定プレイヤーだけに一時的な発光輪郭として表示します。
+     *
+     * @param viewer 表示対象。メインスレッド上のオンラインプレイヤー
+     * @param instance 表示中の署名付き player skin NPC
+     * @return 表示を個別に終了する冪等な処理。表示できない場合は {@code null}
+     */
+    public @Nullable Runnable showNpcHighlight(@NotNull Player viewer, @NotNull MobInstance instance) {
+        if (ensureProtocolManager() == null
+                || !viewer.isOnline()
+                || !instance.template().usesPlayerSkinPacketView()) {
+            return null;
+        }
+        MobSkin skin = instance.template().skin();
+        if (skin == null || !skin.hasSignedTexture()) {
+            return null;
+        }
+
+        UUID profileUuid = UUID.randomUUID();
+        SkinViewState state = createState(profileUuid, buildTemporaryProfileName(profileUuid), skin);
+        state.glowing(true);
+        state.highlightOverlay(true);
+        state.realEntityId(instance.entityId());
+        state.viewerIds().add(viewer.getUniqueId());
+        temporaryStates.put(profileUuid, state);
+        highlightTargets.put(state.fakeEntityId(), new HighlightTarget(viewer.getUniqueId(), instance.entityId()));
+        Location location = instance.currentLocation();
+        boolean spawned;
+        try {
+            spawned = spawnTemporaryForViewer(viewer, state, location);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, PacketType.Play.Server.SPAWN_ENTITY.name(),
+                    viewer.getWorld().getName());
+            spawned = false;
+        }
+        if (!spawned) {
+            highlightTargets.remove(state.fakeEntityId());
+            removeTemporaryForViewer(viewer, state);
+            return null;
+        }
+        return () -> {
+            highlightTargets.remove(state.fakeEntityId());
+            removeTemporaryForViewer(viewer, state);
+        };
     }
 
     public void sync(@NotNull MobInstance instance, @NotNull Set<UUID> viewerIds) {
@@ -271,6 +331,7 @@ public final class NpcPlayerSkinPacketService {
             state.viewerIds().clear();
         }
         temporaryStates.clear();
+        highlightTargets.clear();
     }
 
     private @Nullable ProtocolManager resolveProtocolManager() {
@@ -305,6 +366,12 @@ public final class NpcPlayerSkinPacketService {
             public void onPacketReceiving(@NotNull PacketEvent event) {
                 Integer fakeEntityId = event.getPacket().getIntegers().readSafely(0);
                 if (fakeEntityId == null) {
+                    return;
+                }
+                HighlightTarget highlightTarget = highlightTargets.get(fakeEntityId);
+                if (highlightTarget != null
+                        && highlightTarget.viewerId().equals(event.getPlayer().getUniqueId())) {
+                    event.getPacket().getIntegers().write(0, highlightTarget.realEntityId());
                     return;
                 }
                 UUID instanceId = instanceIdByFakeEntityId.get(fakeEntityId);
@@ -388,7 +455,15 @@ public final class NpcPlayerSkinPacketService {
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), headYaw));
     }
 
-    private void spawnTemporaryForViewer(
+    /**
+     * 一時的な Player 表示を一人へ送信します。profile と偽 entity は呼出前に登録済みです。
+     *
+     * @param viewer 表示対象
+     * @param state 一時表示 state
+     * @param location 表示位置
+     * @return 全 packet を送信できた場合は {@code true}
+     */
+    private boolean spawnTemporaryForViewer(
             @NotNull Player viewer,
             @NotNull SkinViewState state,
             @NotNull Location location
@@ -400,11 +475,11 @@ public final class NpcPlayerSkinPacketService {
                 location.getYaw(),
                 location.getPitch()
         );
-        sendPacket(viewer, createPlayerInfoPacket(state));
-        sendPacket(viewer, createPlayerSpawnPacket(state, location, location.getYaw(), location.getPitch()));
-        sendPacket(viewer, createEntityMetadataPacket(state));
-        sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), location.getPitch()));
-        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
+        return sendPacket(viewer, createPlayerInfoPacket(state))
+                && sendPacket(viewer, createPlayerSpawnPacket(state, location, location.getYaw(), location.getPitch()))
+                && sendPacket(viewer, createEntityMetadataPacket(state))
+                && sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), location.getPitch()))
+                && sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
     }
 
     private void removeTemporaryForViewer(@NotNull Player viewer, @NotNull SkinViewState state) {
@@ -444,6 +519,15 @@ public final class NpcPlayerSkinPacketService {
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), headYaw));
     }
 
+    /**
+     * 一人の表示対象から偽 Player と profile を取り除き、必要なら実体表示を戻します。
+     *
+     * <p>一つの packet または scoreboard 操作が失敗しても残りの後片付けを試みます。</p>
+     *
+     * @param viewer 表示対象
+     * @param state 削除する表示 state
+     * @param realEntity 元の実体。未解決でも state に保存した UUID から再解決します
+     */
     private void destroyForViewer(
             @NotNull Player viewer,
             @NotNull SkinViewState state,
@@ -452,9 +536,24 @@ public final class NpcPlayerSkinPacketService {
         UUID viewerId = viewer.getUniqueId();
         UUID hiddenRealEntityId = state.hiddenRealEntity(viewerId);
         state.invalidateViewer(viewerId);
-        OverheadDisplayService.showNameTag(viewer, state.profileName());
-        sendPacket(viewer, createEntityDestroyPacket(state.fakeEntityId()));
-        sendPacket(viewer, createPlayerInfoRemovePacket(state.profileUuid()));
+        try {
+            OverheadDisplayService.showNameTag(viewer, state.profileName());
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, PacketType.Play.Server.SCOREBOARD_TEAM.name(),
+                    viewer.getWorld().getName());
+        }
+        try {
+            sendPacket(viewer, createEntityDestroyPacket(state.fakeEntityId()));
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, PacketType.Play.Server.ENTITY_DESTROY.name(),
+                    viewer.getWorld().getName());
+        }
+        try {
+            sendPacket(viewer, createPlayerInfoRemovePacket(state.profileUuid()));
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, PacketType.Play.Server.PLAYER_INFO_REMOVE.name(),
+                    viewer.getWorld().getName());
+        }
         if (hiddenRealEntityId == null) {
             return;
         }
@@ -463,18 +562,32 @@ public final class NpcPlayerSkinPacketService {
                 ? realEntity
                 : Bukkit.getEntity(hiddenRealEntityId);
         if (entityToShow != null && !entityToShow.isDead()) {
-            viewer.showEntity(plugin, entityToShow);
+            try {
+                viewer.showEntity(plugin, entityToShow);
+            } catch (RuntimeException exception) {
+                Logger.log(LogId.W_5706, exception, PacketType.Play.Server.SPAWN_ENTITY.name(),
+                        viewer.getWorld().getName());
+            }
         }
     }
 
-    private void sendPacket(@NotNull Player viewer, @NotNull PacketContainer packet) {
+    /**
+     * ProtocolLib packet を一人へ送信し、失敗をログへ残します。
+     *
+     * @param viewer 表示対象
+     * @param packet 送信する packet
+     * @return 送信成功なら {@code true}
+     */
+    private boolean sendPacket(@NotNull Player viewer, @NotNull PacketContainer packet) {
         if (protocolManager == null) {
-            return;
+            return false;
         }
         try {
             protocolManager.sendServerPacket(viewer, packet);
+            return true;
         } catch (RuntimeException exception) {
             Logger.log(LogId.W_5706, exception, packet.getType().name(), viewer.getWorld().getName());
+            return false;
         }
     }
 
@@ -552,7 +665,8 @@ public final class NpcPlayerSkinPacketService {
         packet.getDataValueCollectionModifier().write(
                 0,
                 List.of(
-                        metadataValue(ENTITY_FLAGS_METADATA_INDEX, Byte.class, entityFlags(state.glowing())),
+                        metadataValue(ENTITY_FLAGS_METADATA_INDEX, Byte.class,
+                                (byte) (entityFlags(state.glowing()) | (state.highlightOverlay() ? ENTITY_FLAG_INVISIBLE : 0))),
                         metadataValue(PLAYER_SKIN_PARTS_METADATA_INDEX, Byte.class, PLAYER_SKIN_PARTS_ALL)
                 )
         );
@@ -690,6 +804,7 @@ public final class NpcPlayerSkinPacketService {
         private final Map<UUID, ViewerTransform> lastSentTransforms = new HashMap<>();
         private final Map<UUID, UUID> hiddenRealEntityIds = new HashMap<>();
         private boolean glowing;
+        private boolean highlightOverlay;
         private long nextDisplayGeneration;
         private int realEntityId = -1;
 
@@ -731,6 +846,14 @@ public final class NpcPlayerSkinPacketService {
 
         private void glowing(boolean glowing) {
             this.glowing = glowing;
+        }
+
+        private boolean highlightOverlay() {
+            return highlightOverlay;
+        }
+
+        private void highlightOverlay(boolean highlightOverlay) {
+            this.highlightOverlay = highlightOverlay;
         }
 
         private int realEntityId() {
@@ -782,6 +905,9 @@ public final class NpcPlayerSkinPacketService {
             lastSentTransforms.remove(viewerId);
             hiddenRealEntityIds.remove(viewerId);
         }
+    }
+
+    private record HighlightTarget(@NotNull UUID viewerId, int realEntityId) {
     }
 
     private record ViewerTransform(
