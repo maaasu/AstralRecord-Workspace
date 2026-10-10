@@ -1,0 +1,17 @@
+# design:
+#   motif: "動物 / 獣の角と骨"
+#   progression: 15
+schemaVersion: 1
+id: eriva_bastion
+name: '&aバスティオン'
+pieces:
+- count: 2
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 6
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2

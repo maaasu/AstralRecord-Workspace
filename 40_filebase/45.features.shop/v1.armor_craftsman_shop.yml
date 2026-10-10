@@ -7,4 +7,208 @@ type: SHOP
 name: '&6防具職人ショップ'
 mode: EXCHANGE
 access: NPC_ONLY
-items: []
+items:
+- id: 20a00086
+  itemId:
+    ref: item:20a00086
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 0
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 8
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
+- id: 20a00087
+  itemId:
+    ref: item:20a00087
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 1
+  priceGold: 200000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 18
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00088
+  itemId:
+    ref: item:20a00088
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 2
+  priceGold: 140000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 12
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00089
+  itemId:
+    ref: item:20a00089
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 3
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 7
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
+- id: 20a00090
+  itemId:
+    ref: item:20a00090
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 7
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 8
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
+- id: 20a00091
+  itemId:
+    ref: item:20a00091
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 8
+  priceGold: 200000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 18
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00092
+  itemId:
+    ref: item:20a00092
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 9
+  priceGold: 140000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 12
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00093
+  itemId:
+    ref: item:20a00093
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 10
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 7
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
+- id: 20a00094
+  itemId:
+    ref: item:20a00094
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 14
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 8
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
+- id: 20a00095
+  itemId:
+    ref: item:20a00095
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 15
+  priceGold: 200000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 18
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00096
+  itemId:
+    ref: item:20a00096
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 16
+  priceGold: 140000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 12
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 2
+- id: 20a00097
+  itemId:
+    ref: item:20a00097
+  category: equipment
+  amount: 1
+  page: 1
+  slot: 17
+  priceGold: 100000
+  requiredItems:
+  - itemId:
+      ref: item:10a00068
+    category: material
+    amount: 7
+  - itemId:
+      ref: item:10a00100
+    category: material
+    amount: 1
