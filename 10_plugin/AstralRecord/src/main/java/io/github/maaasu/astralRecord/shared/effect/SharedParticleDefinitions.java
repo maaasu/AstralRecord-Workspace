@@ -21,6 +21,15 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    /** 攻撃と区別した青灰の会場境界です。 */
+    public static final SharedParticleDefinition SELENEA_BOUNDARY =
+        new SharedParticleDefinition("selenea_boundary", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(100, 125, 185), 0.8F));
+    /** 呪文の着弾面を紫から銀への粒子で示します。 */
+    public static final SharedParticleDefinition SELENEA_IMPACT =
+        new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
+            new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
+
     /** 全ボスの攻撃予見。最低密度でも一点一粒を残し、粒子OFF設定は尊重します。 */
     public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
         new SharedParticleDefinition("boss_attack_warning", Particle.ANGRY_VILLAGER, 4, 0, 0, 0, 0);
