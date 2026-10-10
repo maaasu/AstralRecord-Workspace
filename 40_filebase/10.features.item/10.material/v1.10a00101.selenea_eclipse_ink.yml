@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 月蝕と魔女の写本"
+#   progression: 30
+schemaVersion: 1
+id: 10a00101
+category: material
+name: "&5月蝕の綴り墨"
+icon: GLOW_INK_SAC
+rarity: EPIC
+maxStack: 64
+saleValue: 1500
+lore:
+  - "&7月蝕の魔女が写本に残した、淡く光る黒い墨。"
+  - "&7セレネア討伐の証。売却して換金できる。"
+unTradeable: false
+unSellable: false
