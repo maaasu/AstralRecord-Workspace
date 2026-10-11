@@ -6,11 +6,10 @@ id: witchwood_spruce_manor
 displayName: "幽翠のトウヒ館"
 recommendedLevel: 20
 entry:
-  # エリヴァ超大陸の初期スポーンからX方向へ-10ブロックの仮受付。
   worldRef: world:vanaheim_supercontinent
-  x: -1159.5
-  y: 107.0
-  z: 1480.5
+  x: -745.5
+  y: 110.0
+  z: 1648.5
   yaw: 0.0
   pitch: 0.0
   radius: 2.0
