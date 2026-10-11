@@ -44,11 +44,11 @@ final class SeleneaArena {
      * 専用フィールドでは高跳び中も水平の危険形状で判定します。
      * @param shape 固定形状 @param center 会場中心 @param direction 固定方向 @param marks 落款中心
      * @param radius 攻撃半径 @param point 足元 @param field 専用フィールドか
-     * @return 参加高さと水平形状の両方を満たす場合true
+     * @return 専用では直下が戦闘階に属し、参加高さと水平形状を満たす場合true
      */
     static boolean contains(Shape shape, Location center, Vector direction, List<Location> marks,
                             double radius, Location point, boolean field) {
-        if (field ? !inFieldArena(point, center) : !sameFloor(point, center)) return false;
+        if (field ? !inAttackArena(point, center, radius, true) : !sameFloor(point, center)) return false;
         double distance = squared(point, center);
         if (shape == Shape.RETURN) return distance > radius * radius
             && distance <= ENGAGEMENT_RADIUS * ENGAGEMENT_RADIUS;
@@ -87,22 +87,24 @@ final class SeleneaArena {
     /**
      * 通常呪文とボスへの攻撃を同じ中央の参加範囲へ限定します。
      * @param point 足元 @param center 会場中心 @param radius 攻撃半径 @param field 専用フィールドか
-     * @return 専用では参加高さ内の水平円、通常では高さ±3mの円内ならtrue
+     * @return 専用では参加高さ内の水平円かつ直下の床が戦闘階、通常では足元が高さ±3mの円内ならtrue
      */
     static boolean inAttackArena(Location point, Location center, double radius, boolean field) {
-        return (field ? inFieldArena(point, center) : sameFloor(point, center))
-            && squared(point, center) <= radius * radius;
+        if (squared(point, center) > radius * radius) return false;
+        if (!field) return sameFloor(point, center);
+        Location floor = ground(point, center, true);
+        return floor != null && sameFloor(floor, center);
     }
 
     /**
      * 専用フィールドで中央、四方向の足場、高跳びを含む参加領域を判定します。
      * @param point 参加者の現在位置
      * @param center ボス出現位置
-     * @return 同一world・水平90m以内・高さ差-8〜40mならtrue
+     * @return 同一world・水平90m以内・高さ差-16〜40mならtrue。下段の跳躍床も参加範囲に含めます
      */
     static boolean inFieldArena(Location point, Location center) {
         double height = point.getY() - center.getY();
-        return point.getWorld() == center.getWorld() && height >= -8.0D && height <= 40.0D
+        return point.getWorld() == center.getWorld() && height >= -16.0D && height <= 40.0D
             && squared(point, center) <= 90.0D * 90.0D;
     }
 
@@ -161,12 +163,13 @@ final class SeleneaArena {
         if (!field) return ground(point);
         if (!inFieldArena(point, center) || !loaded(point)) return null;
         World world = point.getWorld();
-        int minimum = Math.max(world.getMinHeight(), (int) Math.floor(center.getY() - 8.0D) - 1);
+        int minimum = Math.max(world.getMinHeight(), (int) Math.floor(center.getY() - 16.0D) - 1);
         for (int y = Math.min(point.getBlockY(), world.getMaxHeight() - 1); y >= minimum; y--) {
             Block floor = world.getBlockAt(point.getBlockX(), y, point.getBlockZ());
             if (!floor.getType().isSolid() || floor.isPassable()) continue;
             double top = floor.getBoundingBox().getMaxY();
-            if (top > point.getY() + 0.05D || top < center.getY() - 8.0D || top > center.getY() + 40.0D) continue;
+            if (top > point.getY() + 0.05D) return null;
+            if (top < center.getY() - 16.0D || top > center.getY() + 40.0D) continue;
             Location result = point.clone();
             result.setY(top);
             // 最初の固体床が危険・閉塞なら、床を貫通して下の安全床を採用しません。
