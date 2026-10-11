@@ -24,11 +24,11 @@ levels:
     name: "&aエリヴァ・グラスボア Lv.16"
     baseStats:
       - status: MAX_HEALTH
-        value: 5120
+        value: 4096
       - status: ATTACK
-        value: 927
+        value: 742
       - status: DEFENSE
-        value: 892
+        value: 714
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -41,11 +41,11 @@ levels:
     name: "&aエリヴァ・グラスボア Lv.17"
     baseStats:
       - status: MAX_HEALTH
-        value: 5840
+        value: 4672
       - status: ATTACK
-        value: 1058
+        value: 846
       - status: DEFENSE
-        value: 1018
+        value: 814
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -58,11 +58,11 @@ levels:
     name: "&aエリヴァ・グラスボア Lv.18"
     baseStats:
       - status: MAX_HEALTH
-        value: 6560
+        value: 5248
       - status: ATTACK
-        value: 1188
+        value: 950
       - status: DEFENSE
-        value: 1143
+        value: 914
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -75,11 +75,11 @@ levels:
     name: "&aエリヴァ・グラスボア Lv.19"
     baseStats:
       - status: MAX_HEALTH
-        value: 7280
+        value: 5824
       - status: ATTACK
-        value: 1319
+        value: 1055
       - status: DEFENSE
-        value: 1269
+        value: 1015
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -92,11 +92,11 @@ levels:
     name: "&aエリヴァ・グラスボア Lv.20"
     baseStats:
       - status: MAX_HEALTH
-        value: 8000
+        value: 6400
       - status: ATTACK
-        value: 1449
+        value: 1159
       - status: DEFENSE
-        value: 1394
+        value: 1115
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -108,11 +108,11 @@ levels:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 4400
+    value: 3520
   - status: ATTACK
-    value: 797
+    value: 638
   - status: DEFENSE
-    value: 767
+    value: 614
   - status: ACCURACY
     value: 95
   - status: EVASION
