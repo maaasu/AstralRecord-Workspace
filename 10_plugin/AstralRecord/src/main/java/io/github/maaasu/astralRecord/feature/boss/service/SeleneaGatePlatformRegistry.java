@@ -103,7 +103,9 @@ final class SeleneaGatePlatformRegistry {
             }
         } catch (RuntimeException failure) {
             try { if (owners.get(owner) == lease) release(owner); }
-            catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
+            catch (RuntimeException cleanupFailure) {
+                if (cleanupFailure != failure) failure.addSuppressed(cleanupFailure);
+            }
             throw failure;
         } finally {
             if (state.owners.isEmpty()) worlds.remove(world, state);
@@ -135,14 +137,14 @@ final class SeleneaGatePlatformRegistry {
                 state.platforms.remove(key, platform);
             } catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
-                else failure.addSuppressed(cleanupFailure);
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
             }
         }
         if (state.initialized && !state.recovering) {
             try { persist(state); }
             catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
-                else failure.addSuppressed(cleanupFailure);
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
             }
         }
         if (state.owners.isEmpty() && !state.recovering) worlds.remove(state.world, state);
@@ -231,7 +233,7 @@ final class SeleneaGatePlatformRegistry {
             } catch (RuntimeException recoveryFailure) {
                 pending.add(entry);
                 if (failure == null) failure = recoveryFailure;
-                else failure.addSuppressed(recoveryFailure);
+                else if (failure != recoveryFailure) failure.addSuppressed(recoveryFailure);
             }
         }
         writeJournal(state.world, pending);

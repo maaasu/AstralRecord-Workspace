@@ -53,7 +53,9 @@ final class SeleneaChunkLeaseRegistry {
             }
         } catch (RuntimeException failure) {
             try { if (owners.get(owner) == acquired) release(owner); }
-            catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
+            catch (RuntimeException cleanupFailure) {
+                if (cleanupFailure != failure) failure.addSuppressed(cleanupFailure);
+            }
             throw failure;
         }
     }
@@ -85,7 +87,7 @@ final class SeleneaChunkLeaseRegistry {
                 }
             } catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
-                else failure.addSuppressed(cleanupFailure);
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
             }
         }
         if (failure != null) throw failure;
