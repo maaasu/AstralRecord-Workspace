@@ -206,43 +206,57 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             }
             if (header is null || cells.Length != header.Length || cells.All(cell => Regex.IsMatch(cell, "^[: -]+$"))) continue;
             string Cell(string title) { var index = Array.IndexOf(header, title); return index < 0 ? "" : cells[index]; }
-            var key = Cell("キー").Replace("`", "", StringComparison.Ordinal).Trim();
-            if (key.Length == 0 || key.Contains(' ')) continue;
-            var type = Cell("型").Replace("\\", "", StringComparison.Ordinal);
-            var isArray = key.EndsWith("[]", StringComparison.Ordinal) || type.EndsWith("[]", StringComparison.Ordinal)
-                || type.StartsWith("List", StringComparison.OrdinalIgnoreCase) || type == "array";
-            if (isArray) arrayPaths.Add(key.Replace("[]", "", StringComparison.Ordinal));
-            var recordType = Regex.Match(type, @"^List<([A-Z][A-Za-z]+)>$");
-            if (recordType.Success) recordTypes[recordType.Groups[1].Value] = key.TrimEnd('[', ']') + "[]";
-            var scopes = scope == "@quest-items" ? new[] { "acceptRequirements.items[]", "rewards.items[]" } : new[] { scope };
-            foreach (var prefix in scopes)
+            var documentedKey = Cell("キー").Replace("`", "", StringComparison.Ordinal).Trim();
+            if (documentedKey.Length == 0 || documentedKey.Contains(' ')) continue;
+            foreach (var key in ExpandGroupedKeys(documentedKey))
             {
-            var scopedKey = prefix.Length > 0 && !key.StartsWith(prefix, StringComparison.Ordinal) ? prefix + "." + key : key;
-            if (type.Length == 0) type = snippetTypes.GetValueOrDefault(scopedKey.TrimEnd('[', ']')) ?? snippetTypes.GetValueOrDefault(scopedKey) ?? "Any";
-            var segments = scopedKey.Replace("[]", ".*", StringComparison.Ordinal).Split('.', StringSplitOptions.RemoveEmptyEntries).ToList();
-            // Item subtype sections are maps in actual YAML; historical tables use equipment[].
-            if (category.StartsWith("10.features.item/", MasterDataPaths.Comparison) && segments.Count > 1
-                && segments[1] == "*" && segments[0] is "equipment" or "consumable" or "bundle" or "rune" or "orb" or "sigil" or "currency")
-                segments.RemoveAt(1);
-            segments = segments.Select(segment => segment.StartsWith('<') || segment.StartsWith('{') ? "*" : segment).ToList();
-            if (segments.Count > 1 && segments[^1] == "*" && (isArray || type == "Any"))
-                segments.RemoveAt(segments.Count - 1);
-            var pointer = "/" + string.Join('/', segments.Select(segment => segment.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal)));
-            var leaf = segments.LastOrDefault(segment => segment != "*") ?? key;
-            var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
-            var label = Labels.GetValueOrDefault(leaf) ?? leaf;
-            var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
-            var enumValues = scopedKey switch
-            {
-                "orb.effect.rankBasis" => new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")),
-                "theme.landscape" when category.Equals("65.features.dungeon", MasterDataPaths.Comparison)
-                    => new JsonArray(JsonValue.Create("INDOOR"), JsonValue.Create("PLAINS")),
-                _ => null
-            };
-            yield return new(pointer, scopedKey, label, type, Cell("必須") is "○" or "〇" or "必須" or "yes" or "true", description,
-                Cell("デフォルト"), source, enumValues, reference);
+                var type = Cell("型").Replace("\\", "", StringComparison.Ordinal);
+                var isArray = key.EndsWith("[]", StringComparison.Ordinal) || type.EndsWith("[]", StringComparison.Ordinal)
+                    || type.StartsWith("List", StringComparison.OrdinalIgnoreCase) || type == "array";
+                if (isArray) arrayPaths.Add(key.Replace("[]", "", StringComparison.Ordinal));
+                var recordType = Regex.Match(type, @"^List<([A-Z][A-Za-z]+)>$");
+                if (recordType.Success) recordTypes[recordType.Groups[1].Value] = key.TrimEnd('[', ']') + "[]";
+                var scopes = scope == "@quest-items" ? new[] { "acceptRequirements.items[]", "rewards.items[]" } : new[] { scope };
+                foreach (var prefix in scopes)
+                {
+                    var scopedKey = prefix.Length > 0 && !key.StartsWith(prefix, StringComparison.Ordinal) ? prefix + "." + key : key;
+                    if (type.Length == 0) type = snippetTypes.GetValueOrDefault(scopedKey.TrimEnd('[', ']')) ?? snippetTypes.GetValueOrDefault(scopedKey) ?? "Any";
+                    var segments = scopedKey.Replace("[]", ".*", StringComparison.Ordinal).Split('.', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    // Item subtype sections are maps in actual YAML; historical tables use equipment[].
+                    if (category.StartsWith("10.features.item/", MasterDataPaths.Comparison) && segments.Count > 1
+                        && segments[1] == "*" && segments[0] is "equipment" or "consumable" or "bundle" or "rune" or "orb" or "sigil" or "currency")
+                        segments.RemoveAt(1);
+                    segments = segments.Select(segment => segment.StartsWith('<') || segment.StartsWith('{') ? "*" : segment).ToList();
+                    if (segments.Count > 1 && segments[^1] == "*" && (isArray || type == "Any"))
+                        segments.RemoveAt(segments.Count - 1);
+                    var pointer = "/" + string.Join('/', segments.Select(segment => segment.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal)));
+                    var leaf = segments.LastOrDefault(segment => segment != "*") ?? key;
+                    var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
+                    var label = Labels.GetValueOrDefault(leaf) ?? leaf;
+                    var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
+                    var enumValues = scopedKey switch
+                    {
+                        "orb.effect.rankBasis" => new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")),
+                        "theme.landscape" when category.Equals("65.features.dungeon", MasterDataPaths.Comparison)
+                            => new JsonArray(JsonValue.Create("INDOOR"), JsonValue.Create("PLAINS")),
+                        _ => null
+                    };
+                    yield return new(pointer, scopedKey, label, type, Cell("必須") is "○" or "〇" or "必須" or "yes" or "true", description,
+                        Cell("デフォルト"), source, enumValues, reference);
+                }
             }
         }
+    }
+
+    private static IEnumerable<string> ExpandGroupedKeys(string key)
+    {
+        // Schema tables abbreviate sibling fields as entryLocation.x/y/z or entryLocation.yaw/pitch.
+        var separator = key.LastIndexOf('.');
+        var prefix = key[..(separator + 1)];
+        var siblings = key[(separator + 1)..].Split('/');
+        if (siblings.Length < 2 || siblings.Any(sibling => !Regex.IsMatch(sibling, @"^[A-Za-z_][A-Za-z0-9_]*(?:\[\])?$")))
+            return [key];
+        return siblings.Select(sibling => prefix + sibling);
     }
 
     private static string? FishingReferenceKind(string path) => path.Split('/').Last() switch
