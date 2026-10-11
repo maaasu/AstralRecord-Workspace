@@ -3,14 +3,22 @@ package io.github.maaasu.astralRecord.feature.boss.service;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Location;
+import org.bukkit.Bukkit;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +61,7 @@ final class SeleneaSupportController {
     private final ParticleDisplayService particles;
     private final Function<MobInstance, List<Player>> participants;
     private final BiConsumer<MobInstance, Player> lethalHit;
+    private final SeleneaChunkLeaseRegistry chunkLeases;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
     private final Map<UUID, UUID> addOwners = new HashMap<>();
     private Predicate<MobInstance> fieldResolver = boss -> false;
@@ -61,18 +70,20 @@ final class SeleneaSupportController {
 
     /**
      * メインスレッドで呼び出す支援処理を作成します。
+     * @param plugin 必須chunkの同期保持ticketを所有するPlugin
      * @param mobs 召喚・固定・回復・破棄を行うMobサービス
      * @param particles 密度設定と近傍閲覧者を考慮する演出サービス
      * @param participants 専用フィールドの生存する確定参加者を返す関数
      * @param lethalHit 所有ボスと命中参加者を共通RPG致死処理へ委譲する関数
      */
-    SeleneaSupportController(@NotNull MobService mobs, @NotNull ParticleDisplayService particles,
+    SeleneaSupportController(@NotNull JavaPlugin plugin, @NotNull MobService mobs, @NotNull ParticleDisplayService particles,
             @NotNull Function<MobInstance, List<Player>> participants,
             @NotNull BiConsumer<MobInstance, Player> lethalHit) {
         this.mobs = mobs;
         this.particles = particles;
         this.participants = participants;
         this.lethalHit = lethalHit;
+        this.chunkLeases = new SeleneaChunkLeaseRegistry(plugin);
     }
 
     /**
@@ -127,12 +138,17 @@ final class SeleneaSupportController {
         currentTick = tick;
         if (!isField(boss) || boss.state() == MobState.DEAD || boss.currentHealth() <= 0.0D) return 1.0D;
         Encounter state = ensureEncounter(boss);
-        summonIfRequired(state);
-        if (encounters.get(boss.instanceId()) != state) return 1.0D;
-        syncAddHealth(state);
-        refreshBuffs(state);
-        long alive = state.adds.values().stream().filter(this::isAlive).count();
-        return Math.max(0.0D, 1.0D - alive * 0.25D);
+        try {
+            summonIfRequired(state);
+            if (encounters.get(boss.instanceId()) != state) return 1.0D;
+            syncAddHealth(state);
+            refreshBuffs(state);
+            long alive = state.adds.values().stream().filter(this::isAlive).count();
+            return Math.max(0.0D, 1.0D - alive * 0.25D);
+        } catch (RuntimeException failure) {
+            clearAfterFailure(boss.instanceId(), failure);
+            throw failure;
+        }
     }
 
     /**
@@ -150,36 +166,53 @@ final class SeleneaSupportController {
             return;
         }
         Encounter state = ensureEncounter(boss);
-        summonIfRequired(state);
-        if (encounters.get(boss.instanceId()) != state) return;
-        syncAddHealth(state);
-        for (Add add : state.adds.values()) {
-            if (isAlive(add)) {
-                MobInstance instance = mobs.getInstance(add.instanceId);
-                mobs.holdPosition(instance, add.anchor);
+        try {
+            if (tick >= state.nextLeaseCheckAt) {
+                state.nextLeaseCheckAt = tick + 20L;
+                chunkLeases.refresh(boss.instanceId());
             }
-        }
-        refreshBuffs(state);
-        List<Player> active = participants.apply(boss).stream()
-                .filter(player -> player.isOnline() && player.isValid() && !player.isDead()
-                        && player.getWorld() == state.center.getWorld()).toList();
-        advanceOrbs(state, tick);
-        if (encounters.get(boss.instanceId()) != state) return;
-        if (state.addsSummoned && tick >= state.detonateAt && !state.detonated) {
-            state.detonated = true;
-            detonate(state, active);
+            summonIfRequired(state);
             if (encounters.get(boss.instanceId()) != state) return;
+            syncAddHealth(state);
+            for (Add add : state.adds.values()) {
+                if (isAlive(add)) {
+                    MobInstance instance = mobs.getInstance(add.instanceId);
+                    mobs.holdPosition(instance, add.anchor);
+                    if (encounters.get(boss.instanceId()) != state) return;
+                }
+            }
             refreshBuffs(state);
-        }
-        if (state.addsSummoned && tick >= state.nextHealAt) {
-            state.nextHealAt = tick + HEAL_INTERVAL;
-            launchHealingOrbs(state, tick);
-        }
-        teleportParticipants(state, active, tick);
-        if (encounters.get(boss.instanceId()) != state) return;
-        if (tick >= state.nextRenderAt) {
-            state.nextRenderAt = tick + 10L;
-            renderGates(state);
+            List<Player> active = participants.apply(boss).stream()
+                    .filter(player -> player.isOnline() && player.isValid() && !player.isDead()
+                            && player.getWorld() == state.center.getWorld()).toList();
+            advanceOrbs(state, tick);
+            if (encounters.get(boss.instanceId()) != state) return;
+            updateSupportPresentation(state, active, tick);
+            if (encounters.get(boss.instanceId()) != state) return;
+            if (state.addsSummoned && !state.returnAnnounced && tick >= state.detonateAt && !state.detonated) {
+                state.detonated = true;
+                announce(state, active, PlayerMsgId.P_7684);
+                if (encounters.get(boss.instanceId()) != state) return;
+                detonate(state, active);
+                if (encounters.get(boss.instanceId()) != state) return;
+                refreshBuffs(state);
+                active = participants.apply(boss);
+                updateSupportPresentation(state, active, tick);
+                if (encounters.get(boss.instanceId()) != state) return;
+            }
+            if (state.addsSummoned && tick >= state.nextHealAt) {
+                state.nextHealAt = tick + HEAL_INTERVAL;
+                launchHealingOrbs(state, tick);
+            }
+            teleportParticipants(state, active, tick);
+            if (encounters.get(boss.instanceId()) != state) return;
+            if (tick >= state.nextRenderAt) {
+                state.nextRenderAt = tick + 10L;
+                renderGates(state);
+            }
+        } catch (RuntimeException failure) {
+            clearAfterFailure(boss.instanceId(), failure);
+            throw failure;
         }
     }
 
@@ -198,18 +231,48 @@ final class SeleneaSupportController {
             }
             return;
         }
-        clearBuffs(state.boss.instanceId());
         state.boss.keepWhenUnobserved(state.originalBossRetention);
+        RuntimeException failure = null;
+        if (state.supportBar != null) {
+            try { state.supportBar.removeAll(); }
+            catch (RuntimeException cleanupFailure) { failure = cleanupFailure; }
+            state.supportBar = null;
+        }
         state.orbs.clear();
         state.portalCooldowns.clear();
         for (Add add : state.adds.values()) addOwners.remove(add.instanceId);
-        for (Add add : state.adds.values()) mobs.destroy(add.instanceId);
+        try { clearBuffs(state.boss.instanceId()); }
+        catch (RuntimeException cleanupFailure) {
+            if (failure == null) failure = cleanupFailure;
+            else failure.addSuppressed(cleanupFailure);
+        }
+        for (Add add : state.adds.values()) {
+            try { mobs.destroy(add.instanceId); }
+            catch (RuntimeException cleanupFailure) {
+                if (failure == null) failure = cleanupFailure;
+                else failure.addSuppressed(cleanupFailure);
+            }
+        }
+        try { chunkLeases.release(instanceId); }
+        catch (RuntimeException cleanupFailure) {
+            if (failure == null) failure = cleanupFailure;
+            else failure.addSuppressed(cleanupFailure);
+        }
+        if (failure != null) throw failure;
     }
 
     /** プラグイン停止時に全写本守とゲート・弾・一時補正を解除します。 */
     void clearAll() {
-        for (UUID bossId : List.copyOf(encounters.keySet())) clear(bossId);
+        RuntimeException failure = null;
+        for (UUID bossId : List.copyOf(encounters.keySet())) {
+            try { clear(bossId); }
+            catch (RuntimeException cleanupFailure) {
+                if (failure == null) failure = cleanupFailure;
+                else failure.addSuppressed(cleanupFailure);
+            }
+        }
         addOwners.clear();
+        if (failure != null) throw failure;
     }
 
     /**
@@ -227,10 +290,105 @@ final class SeleneaSupportController {
         Encounter existing = encounters.get(boss.instanceId());
         if (existing != null) return existing;
         Encounter state = new Encounter(boss, currentTick);
+        List<Location> essential = new ArrayList<>(13);
+        essential.add(state.center);
+        for (Role role : Role.values()) {
+            essential.add(offset(state.center, role, INNER_GATE_RADIUS, 0.0D));
+            essential.add(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT));
+            essential.add(offset(state.center, role, ADD_RADIUS, OUTER_HEIGHT));
+        }
+        chunkLeases.acquire(boss.instanceId(), essential);
         encounters.put(boss.instanceId(), state);
         // 外周足場の攻略中も、通常AIの60秒無人回収で所有ボスを失わない。
         boss.keepWhenUnobserved(true);
         return state;
+    }
+
+    /** 元の例外を保持しながら、途中で残った遭遇・表示・chunk所有権を回収します。 */
+    private void clearAfterFailure(UUID bossId, RuntimeException failure) {
+        try { clear(bossId); }
+        catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
+    }
+
+    /**
+     * 確定参加者へ生存数・残秒を表示し、期限前の警告と全滅後の帰還案内を一度だけ送ります。
+     * 召喚前は表示せず、爆発後も生存写本守の支援が残ることを表示します。
+     */
+    private void updateSupportPresentation(Encounter state, List<Player> active, long tick) {
+        if (!state.addsSummoned || encounters.get(state.boss.instanceId()) != state) return;
+        int alive = (int) state.adds.values().stream().filter(this::isAlive).count();
+        if (alive == 0) {
+            if (state.supportBar != null) {
+                state.supportBar.removeAll();
+                state.supportBar = null;
+            }
+            state.orbs.clear();
+            clearBuffs(state.boss.instanceId());
+            if (!state.returnAnnounced) {
+                state.returnAnnounced = true;
+                announce(state, active, PlayerMsgId.P_7686);
+            }
+            return;
+        }
+        long remainingTicks = Math.max(0L, state.detonateAt - tick);
+        long seconds = (remainingTicks + 19L) / 20L;
+        String title = state.detonated
+                ? PlayerMsgResource.format(PlayerMsgId.P_7685.getId(), alive)
+                : PlayerMsgResource.format(PlayerMsgId.P_7682.getId(), alive, seconds);
+        if (state.supportBar == null) {
+            state.supportBar = Bukkit.createBossBar(title, BarColor.PURPLE, BarStyle.SEGMENTED_6);
+        }
+        state.supportBar.setTitle(title);
+        state.supportBar.setColor(state.detonated || seconds <= 10L ? BarColor.RED : BarColor.PURPLE);
+        state.supportBar.setProgress(state.detonated ? 1.0D : Math.clamp((double) remainingTicks / DETONATION_DELAY, 0.0D, 1.0D));
+        for (Player viewer : List.copyOf(state.supportBar.getPlayers())) {
+            if (!active.contains(viewer)) state.supportBar.removePlayer(viewer);
+        }
+        for (Player viewer : active) {
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            if (viewer.isOnline() && viewer.isValid() && !viewer.isDead()
+                    && viewer.getWorld() == state.center.getWorld()) state.supportBar.addPlayer(viewer);
+        }
+        if (state.detonated) return;
+        if ((seconds == 30L || seconds == 10L || seconds >= 1L && seconds <= 5L)
+                && state.warnedSeconds.add(seconds)) {
+            announce(state, active, PlayerMsgId.P_7683, seconds);
+        }
+        if (encounters.get(state.boss.instanceId()) != state) return;
+        if (seconds <= 10L && remainingTicks > 0L && tick >= state.nextDangerRenderAt) {
+            state.nextDangerRenderAt = tick + 20L;
+            renderDetonationDanger(state);
+        }
+    }
+
+    /** 共通送信サービスで案内し、プレイヤー通知による破棄再入後は後続送信を止めます。 */
+    private void announce(Encounter state, List<Player> active, PlayerMsgId message, Object... args) {
+        for (Player player : active) {
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            if (player.isOnline() && player.isValid() && !player.isDead()
+                    && player.getWorld() == state.center.getWorld()) {
+                PlayerMessageService.getInstance().send(player, message, args);
+            }
+        }
+    }
+
+    /** 球形60mと同じ半径の三つの直交大円を、各生存個体144点・20tick周期で予告します。 */
+    private void renderDetonationDanger(Encounter state) {
+        for (Map.Entry<Role, Add> entry : state.adds.entrySet()) {
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            if (!isAlive(entry.getValue())) continue;
+            Location center = entry.getValue().anchor;
+            List<Location> points = new ArrayList<>(144);
+            for (int index = 0; index < 48; index++) {
+                double angle = Math.PI * 2.0D * index / 48.0D;
+                double a = 60.0D * Math.cos(angle);
+                double b = 60.0D * Math.sin(angle);
+                points.add(center.clone().add(a, 0.0D, b));
+                points.add(center.clone().add(a, b, 0.0D));
+                points.add(center.clone().add(0.0D, a, b));
+            }
+            particles.spawnForNearbyViewers(points, entry.getKey().particle(), true);
+        }
     }
 
     /**
@@ -273,8 +431,12 @@ final class SeleneaSupportController {
             state.addsSummoned = true;
             state.detonateAt = currentTick + DETONATION_DELAY;
             state.nextHealAt = currentTick + HEAL_INTERVAL;
+            List<Player> active = participants.apply(boss);
+            announce(state, active, PlayerMsgId.P_7680);
+            if (encounters.get(boss.instanceId()) != state) return;
+            announce(state, active, PlayerMsgId.P_7681);
         } catch (RuntimeException exception) {
-            clearPartialSummon(state);
+            if (encounters.get(boss.instanceId()) == state) clearPartialSummon(state);
             throw exception;
         }
     }
@@ -374,10 +536,10 @@ final class SeleneaSupportController {
                 iterator.remove();
                 double recovered = mobs.recoverHealth(target, target.maxHealth() * HEAL_RATIO);
                 if (encounters.get(state.boss.instanceId()) != state) return;
-                if (recovered > 0.0D) particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_SUPPORT_HEAL);
+                if (recovered > 0.0D) particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_SUPPORT_HEAL, true);
             }
         }
-        particles.spawnForNearbyViewers(points, SharedParticleDefinitions.SELENEA_SUPPORT_ORB);
+        particles.spawnForNearbyViewers(points, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
     }
 
     /** 始点と追尾終点をつなぐ、最大12mの放物線上の一点を計算します。 */
@@ -393,7 +555,7 @@ final class SeleneaSupportController {
         for (Add add : survivors) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!isAlive(add)) continue;
-            particles.spawnForNearbyViewers(add.anchor, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION);
+            particles.spawnForNearbyViewers(add.anchor, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
             for (Player player : active) {
                 if (!player.isDead() && player.getWorld() == add.anchor.getWorld()
                         && player.getLocation().distanceSquared(add.anchor) <= DETONATION_RADIUS_SQUARED) {
@@ -439,12 +601,14 @@ final class SeleneaSupportController {
         List<Location> accents = new ArrayList<>(96);
         double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
+            if (encounters.get(state.boss.instanceId()) != state) return;
             List<Location> points = new ArrayList<>(224);
             portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
             portalRing(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT), role, rotation, points, accents);
-            particles.spawnForNearbyViewers(points, role.particle());
+            particles.spawnForNearbyViewers(points, role.particle(), true);
         }
-        particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB);
+        if (encounters.get(state.boss.instanceId()) != state) return;
+        particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
     }
 
     /** 縦面に半径3m・2.65mの二重輪と六本の回転放射線を固定上限点数で配置します。 */
@@ -522,8 +686,13 @@ final class SeleneaSupportController {
         private long nextSummonAttemptAt;
         private long nextHealAt;
         private long nextRenderAt;
+        private long nextLeaseCheckAt;
+        private long nextDangerRenderAt;
         private boolean addsSummoned;
         private boolean detonated;
+        private boolean returnAnnounced;
+        private @Nullable BossBar supportBar;
+        private final Set<Long> warnedSeconds = new java.util.HashSet<>();
 
         /** 実際のboss.spawnLocationを保持し、召喚前は回復・爆発の時計を開始しません。 */
         private Encounter(MobInstance boss, long tick) {
