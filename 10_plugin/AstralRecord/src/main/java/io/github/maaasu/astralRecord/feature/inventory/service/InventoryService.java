@@ -5287,16 +5287,20 @@ public class InventoryService {
     }
 
     /**
-     * 指定した手に対応する HOTBAR 正本 entry を返します。
+     * 通常プレイモードで、指定した手に対応する HOTBAR 正本 entry を返します。
+     * 管理者インベントリの選択スロットから通常プレイ用の entry を参照しません。
      *
      * @param astPlayer 対象プレイヤー
      * @param hand 主手またはオフハンド
-     * @return 正本 entry。未設定時は null
+     * @return 正本 entry。通常プレイモードでない場合や未設定時は null
      */
     public @Nullable InventoryEntryModel getHotbarEntryInHand(
         @NotNull AstPlayer astPlayer,
         @NotNull EquipmentSlot hand
     ) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return null;
+        }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return null;
@@ -5305,11 +5309,11 @@ public class InventoryService {
     }
 
     /**
-     * 指定した手に対応する HOTBAR 正本の参照情報を返します。
+     * 通常プレイモードで、指定した手に対応する HOTBAR 正本の参照情報を返します。
      *
      * @param astPlayer 対象プレイヤー
      * @param hand 主手またはオフハンド
-     * @return 参照情報。未設定時は null
+     * @return 参照情報。通常プレイモードでない場合や未設定時は null
      */
     public @Nullable ItemReference getItemReferenceInHand(
         @NotNull AstPlayer astPlayer,
@@ -5404,11 +5408,11 @@ public class InventoryService {
     }
 
     /**
-     * 指定した手に対応する HOTBAR 正本のアイテムモデルを返します。
+     * 通常プレイモードで、指定した手に対応する HOTBAR 正本のアイテムモデルを返します。
      *
      * @param astPlayer 対象プレイヤー
      * @param hand 主手またはオフハンド
-     * @return アイテムモデル。未設定時は null
+     * @return アイテムモデル。通常プレイモードでない場合や未設定時は null
      */
     public @Nullable ItemModel getItemModelInHand(
         @NotNull AstPlayer astPlayer,
@@ -6183,7 +6187,11 @@ public class InventoryService {
         throw new IllegalStateException("Current hotbar entry disappeared while its state lock was held");
     }
 
+    /** 通常インベントリを反映するモードの場合だけ、ホットバーとオフハンドを描画します。 */
     private void renderHotbarInventory(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
         if (io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.renderIfActive(astPlayer.getBukkit())) {
             return;
         }
@@ -6756,6 +6764,7 @@ public class InventoryService {
     /**
      * オーブ等の state 差分 mutation 後に、現在表示中の BAG と HOTBAR を Bukkit inventory へ再描画します。
      * 装備ロードアウトを保存し直さず、次 tick の再同期も既存共通経路へ委譲します。
+     * 通常インベントリを反映しないモードでは、即時描画も次 tick の予約も行いません。
      *
      * @param astPlayer 対象プレイヤー
      */
@@ -6787,7 +6796,11 @@ public class InventoryService {
         return persistence.saveNow(state);
     }
 
+    /** 即時と次 tick の両方でモードを検証して、通常プレイ用の所持品だけを再描画します。 */
     private void requestManagedInventoryUiRefresh(@NotNull AstPlayer astPlayer, boolean includeHotbar) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
         applyDisplayedInventoryToGui(astPlayer);
         if (includeHotbar) {
             renderHotbarInventory(astPlayer);
@@ -6799,7 +6812,8 @@ public class InventoryService {
             return;
         }
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if (!astPlayer.getBukkit().isOnline()) {
+            if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()
+                || !astPlayer.getBukkit().isOnline()) {
                 return;
             }
             applyDisplayedInventoryToGui(astPlayer);
@@ -6855,7 +6869,11 @@ public class InventoryService {
         return reserved == null ? 0 : Math.max(0, reserved.getOrDefault(inventoryEntryId, 0));
     }
 
+    /** 通常インベントリを反映するモードの場合だけ、保持中の BAG を描画します。 */
     private void applyDisplayedInventoryToGui(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return;

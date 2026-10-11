@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -64,8 +65,12 @@ public final class EquipmentDurabilityReminderTask {
         }
     }
 
+    /** 通常プレイモードのプレイヤーだけを走査し、破損装備を通知します。 */
     void notifyBrokenEquipment() {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
+            if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+                continue;
+            }
             List<String> brokenNames = equipmentDurabilityService
                 .getBrokenArmorAndAccessoryDisplayNames(astPlayer);
             if (brokenNames.isEmpty()) {

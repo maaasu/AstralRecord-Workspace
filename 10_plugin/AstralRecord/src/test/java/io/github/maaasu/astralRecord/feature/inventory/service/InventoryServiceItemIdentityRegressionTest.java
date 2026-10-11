@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -49,6 +50,7 @@ class InventoryServiceItemIdentityRegressionTest {
         when(bukkitInventory.getHeldItemSlot()).thenReturn(0);
         AccountModel account = mock(AccountModel.class);
         when(account.getUuid()).thenReturn(accountId);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
         AstPlayer player = mock(AstPlayer.class);
         when(player.getAccount()).thenReturn(account);
         when(player.getBukkit()).thenReturn(bukkitPlayer);

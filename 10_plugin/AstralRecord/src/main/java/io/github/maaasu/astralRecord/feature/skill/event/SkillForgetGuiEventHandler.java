@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
@@ -86,13 +87,16 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * NPC からスキル忘却一覧を開きます。
+     * 通常プレイモードの場合だけ、NPC からスキル忘却一覧を開きます。
      *
      * @param player 表示対象プレイヤー
      * @return 画面を開いた場合は {@code true}
      */
     public boolean open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null && !AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return false;
+        }
         if (astPlayer == null || !learnedSkillService.hasLoadedSkills(astPlayer.getAccount().getUuid())) {
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5848);
@@ -103,6 +107,10 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         return true;
     }
 
+    /**
+     * 通常プレイモードの場合だけ忘却を操作し、モード対象外のGUIは閉じます。
+     * @param event インベントリクリックイベント。対象GUIの標準移動はキャンセルします
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
@@ -110,6 +118,10 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             SkillForgetInventoryHolder holder = gui.holder(event.getView().getTopInventory());
             if (holder == null) return;
             event.setCancelled(true);
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
+                player.closeInventory();
+                return;
+            }
             if (forgetting.containsKey(player.getUniqueId())) {
                 GuiSound.DENY.play(player);
                 return;
@@ -279,6 +291,9 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             ignored -> {
                 forgetting.remove(playerId);
                 AstPlayer current = AstPlayerCache.get(player);
+                if (!AccountModeGuard.isGameplayPlayer(current)) {
+                    return;
+                }
                 if (current != null) {
                     passiveSkillService.reconcileNow(current);
                     if (compensationMaterial != null) {
@@ -303,7 +318,8 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                 failForget(player, playerId, messageId);
             },
             () -> {
-                if (!forgetting.containsKey(playerId) || !player.isOnline()) return;
+                if (!forgetting.containsKey(playerId) || !player.isOnline()
+                    || !AccountModeGuard.isGameplayPlayer(player)) return;
                 player.closeInventory();
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5874);
@@ -342,9 +358,10 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         return material == null ? null : new PurchaseMaterial(material, cost.getAmount());
     }
 
+    /** 通常プレイモードの場合だけ、非同期操作後を含む忘却一覧を表示します。 */
     private void openList(@NotNull Player player, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return;
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return;
         gui.open(player, entries(astPlayer), permissionService == null ? java.util.Set.of() : permissionService.permittedSkillIds(astPlayer), page);
     }
 

@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -144,7 +146,7 @@ public final class SkillSigilOrbService {
     }
 
     /**
-     * シジル用オーブ操作を開始します。
+     * 通常プレイモードの場合だけ、シジル用オーブ操作を開始します。
      *
      * @param player 操作プレイヤー
      * @param astPlayer ロード済みプレイヤー状態
@@ -159,6 +161,9 @@ public final class SkillSigilOrbService {
         boolean returnToOrbListOnFailure,
         @NotNull Runnable openOrbList
     ) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return;
+        }
         ItemOrbEffectType type = effectType(orbModel);
         if (type != ItemOrbEffectType.SIGIL_ATTACH && type != ItemOrbEffectType.SIGIL_DETACH) {
             GuiSound.DENY.play(player);
@@ -209,24 +214,30 @@ public final class SkillSigilOrbService {
     }
 
     /**
-     * プレイヤーのシジル操作がAPI処理中かを判定します。
+     * 通常プレイモードで、プレイヤーのシジル操作がAPI処理中かを判定します。
      *
      * @param player 判定対象プレイヤー
-     * @return 操作をロックしている場合は {@code true}
+     * @return 現在のPLAYERモードで操作をロックしている場合は {@code true}
      */
     public boolean isLocked(@NotNull Player player) {
         Session session = sessions.get(player.getUniqueId());
-        return session != null && session.locked;
+        return session != null && isGameplaySession(session) && session.locked;
     }
 
     /**
      * シジルオーブGUIのクリックを処理し、対象・素材選択またはAPI操作へ進めます。
+     * 通常プレイモード以外では操作せずGUIを閉じます。
      *
      * @param event 対象GUIのクリックイベント
      */
     public void handleGuiClick(@NotNull InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             event.setCancelled(true);
+            return;
+        }
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            event.setCancelled(true);
+            player.closeInventory();
             return;
         }
         Session session = currentSession(player, event.getView().getTopInventory());
@@ -286,6 +297,7 @@ public final class SkillSigilOrbService {
 
     /**
      * GUI終了時にセッションを破棄し、API処理中の手動closeだけ再表示します。
+     * 通常プレイモード以外では再表示しません。開始済みの保存処理は継続します。
      *
      * @param player 操作プレイヤー
      * @param closedInventory 閉じられたトップインベントリ
@@ -294,7 +306,7 @@ public final class SkillSigilOrbService {
         Session session = sessions.get(player.getUniqueId());
         if (session == null || session.player != player || session.transitioning) return;
         if (closedInventory != null && closedInventory != session.inventory) return;
-        if (session.locked && player.isOnline()) {
+        if (session.locked && player.isOnline() && isGameplaySession(session)) {
             scheduleLockedReopen(session);
             return;
         }
@@ -503,6 +515,7 @@ public final class SkillSigilOrbService {
         if (!scheduled) fail(session, null);
     }
 
+    /** 保存済みの操作を後片付けし、現在も通常プレイ中の場合だけ操作GUIを閉じます。 */
     private void complete(@NotNull Session session) {
         boolean current = sessions.get(session.player.getUniqueId()) == session;
         if (!current && !session.pending) return;
@@ -512,12 +525,21 @@ public final class SkillSigilOrbService {
         useSuccessListener.accept(session.astPlayer, session.orbItemId);
         if (current) {
             sessions.remove(session.player.getUniqueId(), session);
-            session.player.closeInventory();
-            GuiSound.SUCCESS.play(session.player);
+            if (isGameplaySession(session)) {
+                session.player.closeInventory();
+                GuiSound.SUCCESS.play(session.player);
+            }
         }
     }
 
+    /** 保存失敗の後片付けを完了し、モード対象外になった場合は操作画面を再表示しません。 */
     private void fail(@NotNull Session session, @Nullable Throwable error) {
+        if (!isGameplaySession(session)) {
+            session.pending = false;
+            session.locked = false;
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
         if (session.pending) {
             // pending後はGUIを閉じているため通常画面の再描画は行わないが、API失敗時も
             // 正本照合済みの所持品を反映し、利用者へ最終結果を通知する。
@@ -866,12 +888,13 @@ public final class SkillSigilOrbService {
         });
     }
 
+    /** 保存待ち画面を次 tick に再表示し、実行時も現在の通常プレイモードを検証します。 */
     private void scheduleLockedReopen(@NotNull Session session) {
         if (session.reopenTask != null) return;
         session.reopenTask = plugin.getServer().getScheduler().runTask(plugin, () -> {
             session.reopenTask = null;
             if (!session.locked || sessions.get(session.player.getUniqueId()) != session
-                || !session.player.isOnline()) return;
+                || !session.player.isOnline() || !isGameplaySession(session)) return;
             session.player.openInventory(session.inventory);
             if (session.player.getOpenInventory().getTopInventory() != session.inventory) {
                 sessions.remove(session.player.getUniqueId(), session);
@@ -879,12 +902,25 @@ public final class SkillSigilOrbService {
         });
     }
 
+    /** 現在も同じアカウントで通常プレイ中のGUIセッションだけを返します。 */
     private @Nullable Session currentSession(@NotNull Player player, @Nullable Inventory inventory) {
         if (inventory == null || !(inventory.getHolder() instanceof SkillSigilOrbGuiHolder holder)
             || !holder.ownerId().equals(player.getUniqueId())) return null;
         Session session = sessions.get(player.getUniqueId());
-        return session != null && session.token.equals(holder.sessionToken()) && session.inventory == inventory
+        return session != null && isGameplaySession(session)
+            && session.token.equals(holder.sessionToken()) && session.inventory == inventory
             ? session : null;
+    }
+
+    /**
+     * セッション所有者が現在も同じアカウントで通常プレイ中か確認します。
+     * @param session 操作・表示対象のセッション
+     * @return 現在のPLAYERモードとアカウントが一致する場合true
+     */
+    private boolean isGameplaySession(@NotNull Session session) {
+        AstPlayer current = AstPlayerCache.get(session.player);
+        return AccountModeGuard.isGameplayPlayer(current)
+            && current.getAccount().getUuid().equals(session.accountId);
     }
 
     private @Nullable InventoryEntryModel resolveOrbEntryForConsumption(

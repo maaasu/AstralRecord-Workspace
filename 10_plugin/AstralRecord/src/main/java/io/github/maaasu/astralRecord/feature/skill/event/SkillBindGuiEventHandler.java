@@ -6,14 +6,17 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEvent;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillSigilOrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
@@ -44,6 +47,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -119,13 +123,17 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * スキルマネージャーを開きます。
+     * 通常プレイモードの場合だけ、スキルマネージャーを開きます。
      *
      * @param player 表示対象プレイヤー
-     * @return 習得スキルとプリセットのロードが完了して画面を開いた場合は {@code true}、未完了で拒否した場合は {@code false}
+     * @return 習得スキルとプリセットのロードが完了して画面を開いた場合は {@code true}、モード対象外や未完了で拒否した場合は {@code false}
      */
     public boolean open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null && !AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
         if (astPlayer == null
             || !presetService.hasLoadedPresets(astPlayer.getAccount().getUuid())
             || !learnedSkillService.hasLoadedSkills(astPlayer.getAccount().getUuid())) {
@@ -147,6 +155,25 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return true;
     }
 
+    /**
+     * 遅延遷移を含むスキル設定・シジル・忘却GUIの表示直前にモードを検証します。
+     * @param event インベントリ表示イベント。PLAYER以外での対象GUI表示はキャンセルします
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
+        if (event.getPlayer() instanceof Player player
+            && (gui.holder(event.getInventory()) != null
+                || event.getInventory().getHolder() instanceof SkillSigilOrbGuiHolder
+                || event.getInventory().getHolder() instanceof SkillForgetInventoryHolder)
+            && !AccountModeGuard.isGameplayPlayer(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * 通常プレイモードでのみ設定を操作し、モード対象外になったGUIは閉じます。
+     * @param event インベントリクリックイベント。対象GUIの標準移動はキャンセルします
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
@@ -154,6 +181,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             SkillBindInventoryHolder holder = gui.holder(event.getView().getTopInventory());
             if (holder == null) return;
             event.setCancelled(true);
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
+                player.closeInventory();
+                return;
+            }
 
             SkillBindSession session = sessions.get(player.getUniqueId());
             if (holder.screen() == SkillBindScreen.CONFIRM) {
@@ -194,6 +225,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
      * <p>shared lifecycle の close 判定より前に再表示要求だけを登録し、実際の Inventory open は
      * 次 tick に shared handler が行います。これにより終了音・履歴消去・feature cleanup を
      * 発生させず、古い予約 task も session token で無効化します。</p>
+     * 通常プレイモード以外では再表示を要求せず、そのままセッションを終了します。
      *
      * @param event Bukkit のインベントリ close イベント
      */
@@ -205,6 +237,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             SkillBindInventoryHolder holder = gui.holder(event.getInventory());
             if (holder == null) {
+                return;
+            }
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
                 return;
             }
             UUID playerId = player.getUniqueId();
@@ -862,10 +897,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    /** 下段 PlayerInventory のスキル設定オーバーレイを現在のセッション状態で再描画します。 */
+    /** 通常プレイモードの場合だけ、下段 PlayerInventory のスキル設定を再描画します。 */
     private void renderPlayerInventorySettings(@NotNull Player player, @NotNull SkillBindSession session) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return;
         }
         Map<String, SkillManagerEntry> entries = new LinkedHashMap<>();
@@ -950,6 +985,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
+    /** 現在のPLAYERモードを検証する詳細画面表示へ委譲します。 */
     private void openDetail(
         @NotNull Player player,
         @NotNull SkillBindSession session,
@@ -959,6 +995,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         openDetail(player, session, entry, returnPage, false);
     }
 
+    /** 通常プレイモードの場合だけ、非同期操作後を含むスキル詳細画面を表示します。 */
     private void openDetail(
         @NotNull Player player,
         @NotNull SkillBindSession session,
@@ -967,7 +1004,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         boolean mutationInProgress
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return;
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return;
         Inventory inventory = gui.createDetailInventory(
             session,
             entry,
@@ -980,9 +1017,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
+    /** 通常プレイモードのプレイヤーだけへ、下段設定を持つメイン画面を生成します。 */
     private @Nullable Inventory createMainInventory(Player player, SkillBindSession session, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return null;
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return null;
         List<SkillManagerEntry> visible = visibleEntries(astPlayer, session);
         Map<String, SkillManagerEntry> allById = new LinkedHashMap<>();
         for (SkillManagerEntry entry : allEntries(astPlayer)) allById.put(entry.bindingId(), entry);
@@ -1144,9 +1182,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
+    /** 非同期操作の完了時に、同じアカウントで通常プレイ中のプレイヤーだけを返します。 */
     private @Nullable AstPlayer currentPlayer(@NotNull AstPlayer original) {
         AstPlayer current = AstPlayerCache.get(original.getBukkit());
-        if (current == null || !current.getAccount().getUuid().equals(original.getAccount().getUuid())) {
+        if (!AccountModeGuard.isGameplayPlayer(current)
+            || !current.getAccount().getUuid().equals(original.getAccount().getUuid())) {
             return null;
         }
         return current;
@@ -1237,6 +1277,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
+    /** 通常プレイモードの場合だけ、スキル合成画面を生成します。 */
     private @Nullable Inventory createSynthesisInventory(
         Player player,
         SkillBindSession session,
@@ -1244,7 +1285,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int returnPage
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return null;
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return null;
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
             removeSynthesisSelectionAndRestore(player);
@@ -1268,12 +1309,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         );
     }
 
+    /** 通常プレイモードと同じ編集セッションが有効な間だけ、保存待ち画面を再生成します。 */
     private @Nullable Inventory createSavingReopenInventory(
         @NotNull Player player,
         @NotNull SkillBindSession session,
         @NotNull SkillBindInventoryHolder closedHolder
     ) {
-        if (sessions.get(player.getUniqueId()) != session) {
+        if (!AccountModeGuard.isGameplayPlayer(player) || sessions.get(player.getUniqueId()) != session) {
             return null;
         }
         if (closedHolder.screen() == SkillBindScreen.SYNTHESIS) {
@@ -1282,12 +1324,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return createMainInventory(player, session, closedHolder.pageIndex());
     }
 
+    /** 通常プレイモードと同じ編集セッションが有効な間だけ、未保存変更の破棄確認を生成します。 */
     private @Nullable Inventory createDiscardCloseConfirmInventory(
         @NotNull Player player,
         @NotNull SkillBindSession session,
         @NotNull SkillBindInventoryHolder closedHolder
     ) {
-        if (sessions.get(player.getUniqueId()) != session || !session.isDirty()) {
+        if (!AccountModeGuard.isGameplayPlayer(player)
+            || sessions.get(player.getUniqueId()) != session || !session.isDirty()) {
             return null;
         }
         return gui.createConfirmInventory(

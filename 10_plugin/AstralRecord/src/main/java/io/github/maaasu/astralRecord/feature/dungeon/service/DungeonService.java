@@ -2508,7 +2508,7 @@ public final class DungeonService {
     public @NotNull DungeonArchiveGui archiveGui() { return archiveGui; }
 
     /**
-     * メインハンドが利用可能なカルトグラフ装備個体なら入力候補を返します。
+     * 通常プレイモードでメインハンドが利用可能なカルトグラフ装備個体なら入力候補を返します。
      * 候補生成時には耐久消費や GUI 表示を行いません。
      *
      * @param player 操作プレイヤー
@@ -2516,7 +2516,7 @@ public final class DungeonService {
      */
     public @Nullable CartographTarget findCartographTarget(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return null;
         }
         ItemReference reference = inventoryService.getItemReferenceInHand(
@@ -2821,21 +2821,33 @@ public final class DungeonService {
         return Math.max(1L, baseSeconds / roomCount);
     }
 
-    /** 指定アカウントのキャッシュ済み踏破記録一覧を開きます。 */
+    /**
+     * 通常プレイモードの場合だけ、指定アカウントのキャッシュ済み踏破記録一覧を開きます。
+     * @param player 表示対象プレイヤー
+     * @param accountId 現在のプレイヤーアカウントと一致する表示対象アカウント
+     * @param page 表示ページ
+     */
     public void openArchiveListPage(
             @NotNull Player player,
             @NotNull UUID accountId,
             int page
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !astPlayer.getAccount().getUuid().equals(accountId)
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !astPlayer.getAccount().getUuid().equals(accountId)
                 || !loadedArchiveAccounts.contains(accountId)) {
             return;
         }
         archiveGui.openList(player, accountId, archiveByAccount.getOrDefault(accountId, List.of()), page);
     }
 
-    /** 指定ダンジョンのキャッシュ済み報酬詳細を開きます。 */
+    /**
+     * 通常プレイモードの場合だけ、指定ダンジョンのキャッシュ済み報酬詳細を開きます。
+     * @param player 表示対象プレイヤー
+     * @param accountId 現在のプレイヤーアカウントと一致する表示対象アカウント
+     * @param dungeonId 表示対象ダンジョン
+     * @param listPage 戻り先の一覧ページ
+     * @param detailPage 表示する詳細ページ
+     */
     public void openArchiveDetails(
             @NotNull Player player,
             @NotNull UUID accountId,
@@ -2844,7 +2856,7 @@ public final class DungeonService {
             int detailPage
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !astPlayer.getAccount().getUuid().equals(accountId)) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !astPlayer.getAccount().getUuid().equals(accountId)) {
             return;
         }
         DungeonArchiveGui.ArchiveDungeon dungeon = archiveByAccount
@@ -2883,7 +2895,7 @@ public final class DungeonService {
                     loadedArchiveAccounts.add(accountId);
                     Player player = Bukkit.getPlayer(playerId);
                     AstPlayer current = player == null ? null : AstPlayerCache.get(player);
-                    if (player != null && player.isOnline() && current != null
+                    if (player != null && player.isOnline() && AccountModeGuard.isGameplayPlayer(current)
                             && current.getAccount().getUuid().equals(accountId)) {
                         archiveGui.openList(player, accountId, merged, 0);
                     }
@@ -2972,10 +2984,14 @@ public final class DungeonService {
                 .toList();
     }
 
+    /** 通常プレイモードで、現在の参加者所有権とカルトグラフbindingを満たす地図だけを返します。 */
     private @Nullable MapSnapshot mapSnapshot(
             @NotNull Player player,
             @NotNull UUID expectedSessionId
     ) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return null;
+        }
         UUID indexedSessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionsById.get(expectedSessionId);
         if (!expectedSessionId.equals(indexedSessionId) || session == null || session.ending
@@ -3098,7 +3114,7 @@ public final class DungeonService {
         }
     }
 
-    /** チャンク準備後の実転送直前にも、カルトグラフ転送の全所有権と部屋状態を検証します。 */
+    /** 実転送直前にも、通常プレイモード・カルトグラフ転送の全所有権・部屋状態を検証します。 */
     private boolean canRunCartographTeleport(
             @NotNull Session session,
             @NotNull Player player,
@@ -3107,7 +3123,8 @@ public final class DungeonService {
             long transferGeneration
     ) {
         UUID playerId = player.getUniqueId();
-        if (!isActiveTransferCallback(session, transferGeneration)
+        if (!AccountModeGuard.isGameplayPlayer(player)
+                || !isActiveTransferCallback(session, transferGeneration)
                 || !session.id.equals(sessionIdByParticipant.get(playerId))
                 || !session.participants.contains(playerId)
                 || !player.isOnline()

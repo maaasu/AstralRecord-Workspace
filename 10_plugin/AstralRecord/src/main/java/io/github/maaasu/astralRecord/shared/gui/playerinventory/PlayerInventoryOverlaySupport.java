@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui.playerinventory;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -15,11 +16,15 @@ public final class PlayerInventoryOverlaySupport {
             && holder.hasPlayerInventoryOverlay();
     }
 
-    /** @param player 表示対象 @return 専用表示を描画した場合true */
+    /**
+     * 通常プレイモードの場合だけ、開いているGUIの下段専用表示を描画します。
+     * @param player 表示対象
+     * @return 専用表示を描画した場合true。モード対象外の場合false
+     */
     public static boolean renderIfActive(Player player) {
         if (player == null || player.getOpenInventory() == null) return false;
         Inventory inventory = player.getOpenInventory().getTopInventory();
-        if (!isActive(inventory)) return false;
+        if (!isActive(inventory) || !AccountModeGuard.isGameplayPlayer(player)) return false;
         ((PlayerInventoryOverlayGuiHolder) inventory.getHolder()).renderPlayerInventory(player);
         return true;
     }

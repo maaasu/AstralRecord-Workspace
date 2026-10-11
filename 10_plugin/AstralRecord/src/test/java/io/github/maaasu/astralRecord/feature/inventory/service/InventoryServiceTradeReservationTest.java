@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
@@ -17,10 +18,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class InventoryServiceTradeReservationTest {
     /**
@@ -65,7 +69,28 @@ class InventoryServiceTradeReservationTest {
         assertEquals(2, context.reservations.get(context.accountId).get(context.entryId));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 4. 表示インベントリ GUI 反映
+     * 検証契約: ADMINで表示予約を解除した場合は予約を破棄し、通常インベントリの再描画で管理者の所持品へ書き込まない。
+     */
+    @Test
+    void adminReleasesDisplayReservationWithoutRenderingPlayerInventory() throws Exception {
+        Context context = new Context();
+        UUID entryId = UUID.randomUUID();
+        context.reservations.put(context.accountId, new java.util.concurrent.ConcurrentHashMap<>(Map.of(entryId, 1)));
+        when(context.account.getMode()).thenReturn(AccountMode.ADMIN);
+
+        context.service.restoreHiddenEntryToGui(context.astPlayer, entryId);
+
+        assertFalse(context.reservations.containsKey(context.accountId));
+        verify(context.player, never()).updateInventory();
+        verify(context.player, never()).getInventory();
+    }
+
     private static final class Context {
+        private final AccountModel account = mock(AccountModel.class);
+        private final Player player = mock(Player.class);
         private final UUID accountId = UUID.randomUUID();
         private final UUID entryId = UUID.randomUUID();
         private final AstPlayer astPlayer = mock(AstPlayer.class);
@@ -77,10 +102,9 @@ class InventoryServiceTradeReservationTest {
 
         @SuppressWarnings("unchecked")
         private Context() throws Exception {
-            AccountModel account = mock(AccountModel.class);
-            Player player = mock(Player.class);
             when(astPlayer.getAccount()).thenReturn(account);
             when(account.getUuid()).thenReturn(accountId);
+            when(account.getMode()).thenReturn(AccountMode.PLAYER);
             when(astPlayer.getBukkit()).thenReturn(player);
             doThrow(new IllegalStateException("display unavailable")).when(player).updateInventory();
             Field field = InventoryService.class.getDeclaredField("temporarilyHiddenEntryQuantitiesByAccount");
