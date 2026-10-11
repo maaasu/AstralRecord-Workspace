@@ -20,6 +20,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -166,6 +168,7 @@ public final class BossMechanicService {
     private final SeleneaEncounterController seleneaEncounterController;
     private final SeleneaSupportController seleneaSupportController;
     private final Map<UUID, Set<UUID>> seleneaDirectParticipants = new HashMap<>();
+    private final Map<UUID, Long> seleneaRangeNoticeUntil = new HashMap<>();
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
@@ -241,7 +244,7 @@ public final class BossMechanicService {
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
         );
         this.seleneaSupportController = new SeleneaSupportController(
-            mobService, particleDisplayService, this::seleneaParticipants,
+            plugin, mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player) -> damageService.applyLethalMechanicDamage(
                 AstEntity.mob(boss), damageService.resolveEntity(player))
         );
@@ -262,8 +265,13 @@ public final class BossMechanicService {
      * @return 専用魔女では0〜1、それ以外では1
      */
     public double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
-        return victim.isMob() && victim.mob() != null
-            ? seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks) : 1.0D;
+        if (!victim.isMob() || victim.mob() == null) return 1.0D;
+        try {
+            return seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6509, exception, victim.id());
+            return 1.0D;
+        }
     }
 
     /**
@@ -357,6 +365,7 @@ public final class BossMechanicService {
         seleneaEncounterController.clearAll();
         seleneaSupportController.clearAll();
         seleneaDirectParticipants.clear();
+        seleneaRangeNoticeUntil.clear();
     }
 
     /**
@@ -366,6 +375,7 @@ public final class BossMechanicService {
      */
     private void tick() {
         clockTicks += TICK_PERIOD;
+        seleneaRangeNoticeUntil.entrySet().removeIf(entry -> entry.getValue() <= clockTicks);
         processPendingMechanics();
 
         Set<UUID> activeBosses = new HashSet<>();
@@ -392,7 +402,11 @@ public final class BossMechanicService {
             if (selenea) {
                 activeSeleneas.add(boss.instanceId());
                 boolean dedicatedField = seleneaSupportController.isField(boss);
-                seleneaSupportController.tick(boss, entity, clockTicks);
+                try {
+                    seleneaSupportController.tick(boss, entity, clockTicks);
+                } catch (RuntimeException exception) {
+                    Logger.log(LogId.E_6509, exception, boss.instanceId());
+                }
                 if (mobService.getInstance(boss.instanceId()) != boss || boss.currentHealth() <= 0.0D) {
                     activeSeleneas.remove(boss.instanceId());
                     continue;
@@ -2623,9 +2637,13 @@ public final class BossMechanicService {
             if (owner == null) return false;
             Player player = owner.getBukkit();
             MobInstance boss = victim.mob();
-            if (!seleneaEligible(boss, player)
-                || !seleneaSupportController.isField(boss)
-                    && !SeleneaArena.inArena(player.getLocation(), boss.spawnLocation())) return false;
+            if (!seleneaEligible(boss, player)) return false;
+            boolean field = seleneaSupportController.isField(boss);
+            if (!SeleneaArena.inAttackArena(player.getLocation(), boss.spawnLocation(),
+                field ? SeleneaArena.FIELD_RADIUS : SeleneaArena.RADIUS, field)) {
+                if (field && seleneaParticipants(boss).contains(player)) notifySeleneaAttackRange(player);
+                return false;
+            }
             if (!bossChallengeService.isBossMob(boss.instanceId()) && !dungeonService.isDungeonMob(boss.instanceId())) {
                 captureSeleneaParty(boss, player);
             }
@@ -2662,6 +2680,15 @@ public final class BossMechanicService {
             return true;
         }
         return knockerParticipants(boss).contains(player);
+    }
+
+    /** 中央壇の攻撃資格を、同一プレイヤーには二秒に一度だけ案内します。 */
+    private void notifySeleneaAttackRange(@NotNull Player player) {
+        UUID id = player.getUniqueId();
+        if (seleneaRangeNoticeUntil.containsKey(id)) return;
+        seleneaRangeNoticeUntil.put(id, clockTicks + 40L);
+        io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService.getInstance()
+            .send(player, PlayerMsgId.P_7687);
     }
 
     /**

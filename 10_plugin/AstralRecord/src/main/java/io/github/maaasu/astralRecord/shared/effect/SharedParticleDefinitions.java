@@ -23,29 +23,29 @@ public final class SharedParticleDefinitions {
 
     /** 封護の写本守へ通じる水色の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_WARD =
-        new SharedParticleDefinition("selenea_gate_ward", Particle.DUST, 1, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_ward", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(75, 220, 255), 1.0F));
     /** 月癒の写本守へ通じる薄紫の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_LUNAR =
-        new SharedParticleDefinition("selenea_gate_lunar", Particle.DUST, 1, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_lunar", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(190, 140, 255), 1.0F));
     /** 烈怒の写本守へ通じる赤い転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_WRATH =
-        new SharedParticleDefinition("selenea_gate_wrath", Particle.DUST, 1, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_wrath", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(255, 75, 90), 1.0F));
     /** 慈癒の写本守へ通じる緑の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_MERCY =
-        new SharedParticleDefinition("selenea_gate_mercy", Particle.DUST, 1, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_mercy", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(95, 240, 140), 1.0F));
     /** 放物線を進む支援回復玉です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_ORB =
-        new SharedParticleDefinition("selenea_support_orb", Particle.END_ROD, 1, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_support_orb", Particle.END_ROD, 4, 0, 0, 0, 0);
     /** 回復玉が到着した対象の回復演出です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_HEAL =
         new SharedParticleDefinition("selenea_support_heal", Particle.HAPPY_VILLAGER, 12, 0.4, 0.5, 0.4, 0);
     /** 三分後の支援モブ爆発です。地形は変更しません。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_DETONATION =
-        new SharedParticleDefinition("selenea_support_detonation", Particle.EXPLOSION, 1, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_support_detonation", Particle.EXPLOSION, 4, 0, 0, 0, 0);
 
     /** 攻撃と区別した青灰の会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =

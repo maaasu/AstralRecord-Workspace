@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * パーティクル表示の共通サービスです。
@@ -499,6 +500,21 @@ public class ParticleDisplayService {
         @NotNull Collection<Location> locations,
         @NotNull SharedParticleDefinition definition
     ) {
+        spawnForNearbyViewers(locations, definition, false);
+    }
+
+    /**
+     * 地点ごとの64m近傍へ、必要に応じてクライアントの長距離粒子フラグ付きで表示します。
+     * プレイヤーの粒子密度、OFF、統合版の非表示指定は従来と同じように適用します。
+     * @param locations 同一worldの有限な表示地点
+     * @param definition 種類・個数・追加データの共通定義
+     * @param longDistance 広い戦闘予兆など、クライアントの拡張描画距離を要求する場合true
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition,
+        boolean longDistance
+    ) {
         if (locations.isEmpty()) {
             return;
         }
@@ -523,10 +539,22 @@ public class ParticleDisplayService {
                 spawnForViewerResolvedCount(
                     viewer, location, definition.particle(), count,
                     definition.offsetX(), definition.offsetY(), definition.offsetZ(),
-                    definition.extra(), definition.data()
+                    definition.extra(), definition.data(), longDistance
                 );
             }
         }
+    }
+
+    /**
+     * 一地点の広い戦闘演出を密度設定と地点別の64m近傍判定を維持して表示します。
+     * @param location 表示する一地点
+     * @param definition パーティクルの共通定義
+     * @param longDistance クライアントの拡張描画距離を要求する場合true
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Location location, @NotNull SharedParticleDefinition definition, boolean longDistance
+    ) {
+        spawnForNearbyViewers(List.of(location), definition, longDistance);
     }
 
     private <T> void spawnForNearbyViewers(
@@ -613,9 +641,17 @@ public class ParticleDisplayService {
         double extra,
         @Nullable T data
     ) {
+        spawnForViewerResolvedCount(viewer, location, particle, count, offsetX, offsetY, offsetZ, extra, data, false);
+    }
+
+    /** 解決済み個数と長距離フラグをBukkitの送信APIへそのまま渡します。 */
+    private <T> void spawnForViewerResolvedCount(
+        @NotNull Player viewer, @NotNull Location location, @NotNull Particle particle, int count,
+        double offsetX, double offsetY, double offsetZ, double extra, @Nullable T data, boolean longDistance
+    ) {
         if (count <= 0) {
             return;
         }
-        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
+        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data, longDistance);
     }
 }
