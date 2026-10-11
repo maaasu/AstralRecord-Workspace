@@ -49,9 +49,9 @@ final class SeleneaEncounterController {
     static final String BOSS_ID = "selenea_eclipse_witch";
     private static final String GUARD = "selenea_sealed_grimoire";
     private static final String EXPOSURE = "selenea_unbound_grimoire";
-    private static final int MAX_POINTS = 144;
+    private static final int MAX_POINTS = 256;
     private static final int MAX_DISPLAYS = 16;
-    private static final double RUNE_RADIUS = 1.7D;
+    private static final double RUNE_RADIUS = 3.0D;
     private static final long RUNE_HOLD = 30L;
     private static final Stage[] FIRST = {Stage.FORK, Stage.MARKS, Stage.INNER, Stage.SEALS};
     private static final Stage[] SECOND = {Stage.FORK, Stage.PASSAGE, Stage.MARKS, Stage.INNER, Stage.SEALS};
@@ -89,7 +89,7 @@ final class SeleneaEncounterController {
      * @param tick 単調増加する5tick時計
      */
     void tick(@NotNull MobInstance boss, @NotNull Entity entity, long tick) {
-        Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss));
+        Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss, fieldResolver.test(boss)));
         try {
             List<Player> active = active(boss);
             if (active.isEmpty() || entity.getWorld() != state.center.getWorld() || !SeleneaArena.loaded(state.center)) {
@@ -105,8 +105,8 @@ final class SeleneaEncounterController {
             }
             state.requestedPhase = Math.max(state.requestedPhase, phase(boss));
             if (tick % 20L == 0L) {
-                List<Location> boundary = new ArrayList<>(48);
-                ring(state.center, SeleneaArena.RADIUS, 48, boundary);
+                List<Location> boundary = new ArrayList<>(96);
+                ring(state.center, state.radius, 96, boundary);
                 particles.spawnForNearbyViewers(state.center, boundary, SharedParticleDefinitions.SELENEA_BOUNDARY);
             }
             if (state.cast != null) { advance(state, entity, active, tick); return; }
@@ -117,7 +117,7 @@ final class SeleneaEncounterController {
                 if (begin(state, Stage.RETURN, tick, null)) state.nextBoundaryAt = tick + 240L;
                 return;
             }
-            if (inside(active, state.center).isEmpty()) return;
+            if (inside(active, state.center, state.radius).isEmpty()) return;
             if (state.followUp != null) {
                 if (begin(state, state.followUp, tick, state.followDirection)) {
                     state.followUp = null;
@@ -155,7 +155,7 @@ final class SeleneaEncounterController {
      */
     private boolean begin(Encounter state, Stage stage, long tick, @Nullable Vector inherited) {
         List<Player> active = active(state.boss);
-        List<Player> targets = stage == Stage.RETURN || stage == Stage.INTRO ? active : inside(active, state.center);
+        List<Player> targets = stage == Stage.RETURN || stage == Stage.INTRO ? active : inside(active, state.center, state.radius);
         if (targets.isEmpty()) return false;
         List<Player> ordered = new ArrayList<>(targets);
         ordered.sort(Comparator.comparing(Player::getUniqueId));
@@ -171,10 +171,10 @@ final class SeleneaEncounterController {
             }
             if (marks.isEmpty()) return retry(state, tick);
         }
-        Cast cast = new Cast(stage, tick, state.center, aim, marks);
+        Cast cast = new Cast(stage, tick, state.center, aim, marks, state.radius, warningDuration(stage, state.field));
         if (stage.shape != SeleneaArena.Shape.NONE) {
             for (Player player : targets) {
-                Location safe = SeleneaArena.safeSpot(player.getLocation(), state.center, stage.shape, aim, marks, stage.duration);
+                Location safe = SeleneaArena.safeSpot(player.getLocation(), state.center, stage.shape, aim, marks, cast.duration, cast.radius);
                 if (safe == null) return retry(state, tick);
                 cast.safe.add(safe);
             }
@@ -201,16 +201,21 @@ final class SeleneaEncounterController {
     /** 地形が整うまで無害に待ち、毎tickの床走査を防ぎます。 */
     private static boolean retry(Encounter state, long tick) { state.nextAt = tick + 40L; return false; }
 
-    /** 1～3枚の封頁を歩いて届く床に配置し、同時解除と一人での順次解除を両立します。 */
+    /**
+     * 中心から9mの床に、半径3mの輪が重ならない6m以上の間隔で封頁を配置します。
+     * 少なくとも一人が予兆時間から保持30tickを除いた時間で歩いて届く床だけを採用します。
+     * @param cast 解除操作の予兆と出力先 @param players 円内の参加者 @return 必要枚数を配置できた場合true
+     */
     private static boolean prepareRunes(Cast cast, List<Player> players) {
         cast.required = sealCount(players.size());
         for (int i = 0; i < 12 && cast.runes.size() < cast.required; i++) {
             double angle = i * Math.PI * 5.0D / 6.0D;
-            Location point = SeleneaArena.ground(cast.center.clone().add(Math.cos(angle) * 5.5D, 0, Math.sin(angle) * 5.5D));
-            if (point == null || cast.runes.stream().anyMatch(r -> SeleneaArena.squared(r.point, point) < 16.0D)) continue;
+            Location point = SeleneaArena.ground(cast.center.clone().add(Math.cos(angle) * 9.0D, 0, Math.sin(angle) * 9.0D));
+            if (point == null || cast.runes.stream().anyMatch(r -> SeleneaArena.squared(r.point, point) < 4.0D * RUNE_RADIUS * RUNE_RADIUS)) continue;
             boolean reachable = players.stream().anyMatch(p -> {
                 Location feet = SeleneaArena.ground(p.getLocation());
-                return feet != null && SeleneaArena.walkablePath(feet, point);
+                return feet != null && SeleneaArena.squared(feet, point) <= Math.pow((cast.duration - RUNE_HOLD) / 20.0D * 3.0D, 2)
+                    && SeleneaArena.walkablePath(feet, point);
             });
             if (reachable) cast.runes.add(new Rune(point));
         }
@@ -229,8 +234,7 @@ final class SeleneaEncounterController {
         }
         if (tick < cast.ends) return;
         if (cast.stage.shape != SeleneaArena.Shape.NONE) {
-            particles.spawnForNearbyViewers(cast.center, cast.danger, SharedParticleDefinitions.SELENEA_IMPACT);
-            sound(cast.center, Sound.ENTITY_EVOKER_CAST_SPELL, 0.7F);
+            impact(cast);
             for (Player player : List.copyOf(active)) {
                 if (!contains(cast, player.getLocation())) continue;
                 Location origin = cast.stage == Stage.MARKS ? cast.marks.stream()
@@ -268,7 +272,7 @@ final class SeleneaEncounterController {
      * @return 必要枚数が揃った場合true
      */
     private boolean advanceRunes(Encounter state, Cast cast, List<Player> active, long tick) {
-        List<Player> available = inside(active, cast.center);
+        List<Player> available = inside(active, cast.center, cast.radius);
         if (available.isEmpty()) return false;
         int done = (int) cast.runes.stream().filter(r -> r.done).count();
         cast.required = Math.min(cast.required, done + sealCount(available.size()));
@@ -371,50 +375,32 @@ final class SeleneaEncounterController {
     }
 
     /** @return 通常技と解除操作を行える円内の参加者 */
-    private static List<Player> inside(List<Player> players, Location center) {
-        return players.stream().filter(p -> SeleneaArena.inArena(p.getLocation(), center)).toList();
+    private static List<Player> inside(List<Player> players, Location center, double radius) {
+        return players.stream().filter(p -> SeleneaArena.inArena(p.getLocation(), center, radius)).toList();
     }
 
     /** @return 凍結済み形状の危険面に入っている場合true */
     private static boolean contains(Cast cast, Location point) {
-        return SeleneaArena.contains(cast.stage.shape, cast.center, cast.direction, cast.marks, point);
+        return SeleneaArena.contains(cast.stage.shape, cast.center, cast.direction, cast.marks, cast.radius, point);
     }
 
     /** 危険面の有限点群と本、封頁の表示を生成します。実体ブロックは変更しません。 */
     private static void buildVisuals(Cast cast) {
-        List<Location> candidates = new ArrayList<>();
-        double radius = cast.stage == Stage.RETURN ? SeleneaArena.ENGAGEMENT_RADIUS : SeleneaArena.RADIUS;
-        if (cast.stage.shape != SeleneaArena.Shape.NONE) {
-            List<Location> outline = new ArrayList<>();
-            if (cast.stage.shape == SeleneaArena.Shape.FORK) {
-                for (int ray = -1; ray <= 1; ray++) {
-                    Vector aim = cast.direction.clone().rotateAroundY(ray * Math.PI / 6.0D);
-                    Vector side = new Vector(-aim.getZ(), 0, aim.getX());
-                    for (int step = 0; step <= 12; step++) {
-                        for (double edge : new double[]{-1.24D, 1.24D}) {
-                            outline.add(cast.center.clone().add(aim.clone().multiply(step * 1.4D))
-                                .add(side.clone().multiply(edge)));
-                        }
-                    }
-                }
-            } else if (cast.stage == Stage.INNER || cast.stage == Stage.OUTER) {
-                ring(cast.center, cast.stage == Stage.INNER ? 5.95D : 6.05D, 48, outline);
-            }
-            for (Location point : outline) {
-                Location floor = SeleneaArena.ground(point);
-                if (floor != null && contains(cast, floor)) candidates.add(floor.add(0, 0.12D, 0));
-            }
-            for (double x = -radius; x <= radius; x += 2.0D) {
-                for (double z = -radius; z <= radius; z += 2.0D) {
-                    Location point = SeleneaArena.ground(cast.center.clone().add(x, 0, z));
-                    if (point != null && contains(cast, point)) candidates.add(point.add(0, 0.12D, 0));
+        buildDanger(cast);
+        for (Location point : cast.safe) ring(point, SeleneaArena.SAFE_HINT_RADIUS, 24, cast.enterRing);
+        if (cast.stage.shape == SeleneaArena.Shape.PASSAGE) {
+            Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
+            double halfWidth = SeleneaArena.PASSAGE_HALF_WIDTH - 0.15D;
+            double length = Math.sqrt(cast.radius * cast.radius - halfWidth * halfWidth);
+            for (int i = 0; i < 48; i++) {
+                double along = -length + length * 2.0D * i / 47.0D;
+                for (double across : new double[]{-halfWidth, halfWidth}) {
+                    Location floor = SeleneaArena.ground(cast.center.clone().add(cast.direction.clone().multiply(along))
+                        .add(side.clone().multiply(across)));
+                    if (floor != null && !contains(cast, floor)) cast.enterRing.add(floor.add(0, 0.15D, 0));
                 }
             }
-            // 落款は床グリッドに加えて正確な円周を表示する。
-            if (cast.stage == Stage.MARKS) for (Location mark : cast.marks) ring(mark, SeleneaArena.MARK_RADIUS, 24, candidates);
         }
-        int count = Math.min(MAX_POINTS, candidates.size());
-        for (int i = 0; i < count; i++) cast.danger.add(candidates.get(i * candidates.size() / count));
         int passageMarkers = cast.stage.shape == SeleneaArena.Shape.PASSAGE ? 4 : 0;
         int displays = Math.min(MAX_DISPLAYS - 4 - passageMarkers, cast.danger.size());
         for (int i = 0; i < displays; i++) {
@@ -424,8 +410,8 @@ final class SeleneaEncounterController {
         }
         if (passageMarkers > 0) {
             Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
-            for (double along : new double[]{-12.0D, 12.0D}) {
-                for (double across : new double[]{-2.8D, 2.8D}) {
+            for (double along : new double[]{-cast.radius * 0.65D, cast.radius * 0.65D}) {
+                for (double across : new double[]{-SeleneaArena.PASSAGE_HALF_WIDTH + 0.3D, SeleneaArena.PASSAGE_HALF_WIDTH - 0.3D}) {
                     Location point = SeleneaArena.ground(cast.center.clone().add(cast.direction.clone().multiply(along))
                         .add(side.clone().multiply(across)));
                     if (point != null) block(cast, point.clone().add(0, 0.15D, 0), Material.SEA_LANTERN, 0.5F);
@@ -444,6 +430,79 @@ final class SeleneaEncounterController {
             book.setTeleportDuration(5);
             book.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.7F), new Quaternionf()));
             cast.books.add(book);
+        }
+    }
+
+    /**
+     * 半径の二乗に比例する床グリッドを避け、輪郭を優先して最大256地点だけを床へ投影します。
+     * @param cast 凍結した形状。描画と命中で同じcontains判定を使います
+     */
+    private static void buildDanger(Cast cast) {
+        SeleneaArena.Shape shape = cast.stage.shape;
+        if (shape == SeleneaArena.Shape.NONE) return;
+        if (shape == SeleneaArena.Shape.FORK) {
+            for (int ray = -1; ray <= 1; ray++) {
+                Vector aim = cast.direction.clone().rotateAroundY(ray * Math.PI / 6.0D);
+                Vector side = new Vector(-aim.getZ(), 0, aim.getX());
+                for (int i = 0; i < 25; i++) {
+                    for (double across : new double[]{-1.24D, 0, 1.24D}) {
+                        dangerPoint(cast, cast.center.clone().add(aim.clone().multiply((cast.radius - 0.1D) * i / 24.0D))
+                            .add(side.clone().multiply(across)));
+                    }
+                }
+            }
+        } else if (shape == SeleneaArena.Shape.MARKS) {
+            for (Location mark : cast.marks) {
+                dangerRing(cast, mark, SeleneaArena.MARK_RADIUS - 0.01D, 40);
+                dangerDisc(cast, mark, 0, SeleneaArena.MARK_RADIUS - 0.1D, 40);
+            }
+        } else if (shape == SeleneaArena.Shape.PASSAGE) {
+            Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
+            double halfWidth = SeleneaArena.PASSAGE_HALF_WIDTH + 0.05D;
+            double length = Math.sqrt(cast.radius * cast.radius - halfWidth * halfWidth) - 0.05D;
+            for (int i = 0; i < 48; i++) {
+                for (double across : new double[]{-halfWidth, halfWidth}) {
+                    dangerPoint(cast, cast.center.clone().add(cast.direction.clone().multiply(-length + length * 2 * i / 47.0D))
+                        .add(side.clone().multiply(across)));
+                }
+            }
+            dangerRing(cast, cast.center, cast.radius - 0.01D, 64);
+            dangerDisc(cast, cast.center, 0, cast.radius - 0.1D, 96);
+        } else {
+            double inner = shape == SeleneaArena.Shape.INNER ? 0
+                : shape == SeleneaArena.Shape.RETURN ? cast.radius : SeleneaArena.MOON_RADIUS;
+            double outer = shape == SeleneaArena.Shape.INNER ? SeleneaArena.MOON_RADIUS
+                : shape == SeleneaArena.Shape.RETURN ? SeleneaArena.ENGAGEMENT_RADIUS : cast.radius;
+            if (inner > 0) dangerRing(cast, cast.center, inner + 0.01D, 64);
+            dangerRing(cast, cast.center, outer - 0.01D, 96);
+            dangerDisc(cast, cast.center, inner + 0.01D, outer - 0.1D, 96);
+        }
+    }
+
+    /** @param cast 危険点の出力先 @param point 同じ危険判定を満たす床だけを最大256点まで追加 */
+    private static void dangerPoint(Cast cast, Location point) {
+        if (cast.danger.size() >= MAX_POINTS || !contains(cast, point)) return;
+        Location floor = SeleneaArena.ground(point);
+        if (floor != null && contains(cast, floor)) cast.danger.add(floor.add(0, 0.12D, 0));
+    }
+
+    /** @param cast 詠唱 @param center 円中心 @param radius 輪郭半径 @param count 上限付きのサンプル数 */
+    private static void dangerRing(Cast cast, Location center, double radius, int count) {
+        for (int i = 0; i < count; i++) {
+            double angle = i * Math.PI * 2.0D / count;
+            dangerPoint(cast, center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+        }
+    }
+
+    /**
+     * 面積が均等な黄金角サンプルで円・環の内部を示します。サンプル数は半径に依存しません。
+     * @param cast 詠唱 @param center 円中心 @param inner 内側半径 @param outer 外側半径 @param count 有限点数
+     */
+    private static void dangerDisc(Cast cast, Location center, double inner, double outer, int count) {
+        for (int i = 0; i < count; i++) {
+            double radius = Math.sqrt(inner * inner + (outer * outer - inner * inner) * (i + 0.5D) / count);
+            double angle = i * Math.PI * (3.0D - Math.sqrt(5.0D));
+            dangerPoint(cast, center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
         }
     }
 
@@ -478,33 +537,33 @@ final class SeleneaEncounterController {
         }
     }
 
-    /** 10tickごとに危険面・白い退避輪・封頁進捗を点群単位で描画します。 */
+    /** 10tickごとに危険面と、入るだけの白い輪・スニークする紫の文字輪を別の粒子種で描きます。 */
     private void draw(Cast cast) {
-        particles.spawnForNearbyViewers(cast.center, cast.danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
-        List<Location> safe = new ArrayList<>();
-        for (Location point : cast.safe) ring(point, 0.65D, 12, safe);
-        if (cast.stage.shape == SeleneaArena.Shape.PASSAGE) {
-            Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
-            for (int i = -8; i <= 8; i++) {
-                for (double edge : new double[]{-2.9D, 2.9D}) {
-                    Location point = SeleneaArena.ground(cast.center.clone().add(cast.direction.clone().multiply(i * 2))
-                        .add(side.clone().multiply(edge)));
-                    if (point != null) safe.add(point.add(0, 0.15D, 0));
-                }
-            }
-        }
-        for (Rune rune : cast.runes) {
-            ring(rune.point, RUNE_RADIUS, 20, safe);
-            if (!rune.done) safe.add(rune.point.clone().add(0, 1.2D, 0));
-        }
-        BossParticleEffect.safeArea(particles, cast.center, safe);
+        particles.spawnForNearbyViewers(cast.danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+        particles.spawnForNearbyViewers(cast.enterRing, SharedParticleDefinitions.SELENEA_ENTER_RING);
+        particles.spawnForNearbyViewers(cast.enterRing, SharedParticleDefinitions.SELENEA_ENTER_ACCENT);
+        List<Location> sneak = new ArrayList<>(96);
+        for (Rune rune : cast.runes) if (!rune.done) ring(rune.point, RUNE_RADIUS, 32, sneak);
+        particles.spawnForNearbyViewers(sneak, SharedParticleDefinitions.SELENEA_SNEAK_RING);
+        particles.spawnForNearbyViewers(sneak, SharedParticleDefinitions.SELENEA_SNEAK_ACCENT);
+    }
+
+    /** 危険形状と同じ有限点群に、命中を確定する瞬間だけ火花と最大24地点の爆発を重ねます。 */
+    private void impact(Cast cast) {
+        particles.spawnForNearbyViewers(cast.danger, SharedParticleDefinitions.SELENEA_ATTACK_SPARK);
+        List<Location> bursts = new ArrayList<>(24);
+        int count = Math.min(24, cast.danger.size());
+        for (int i = 0; i < count; i++) bursts.add(cast.danger.get(i * cast.danger.size() / count));
+        particles.spawnForNearbyViewers(bursts, SharedParticleDefinitions.SELENEA_ATTACK_BURST);
+        cast.center.getWorld().playSound(cast.center, Sound.ENTITY_GENERIC_EXPLODE, 3.0F,
+            cast.stage.shape == SeleneaArena.Shape.FORK ? 1.4F : 0.8F);
     }
 
     /** 残時間、解除枚数、個人の継続保持進捗を参加者のBossBarへ反映します。 */
     private void updateBar(Encounter state, List<Player> active, long tick) {
         Cast cast = state.cast;
         if (cast.bar == null) return;
-        cast.bar.setProgress(Math.clamp((cast.ends - tick) / (double) cast.stage.duration, 0, 1));
+        cast.bar.setProgress(Math.clamp((cast.ends - tick) / (double) cast.duration, 0, 1));
         if (cast.stage == Stage.SEALS) {
             long done = cast.runes.stream().filter(r -> r.done).count();
             long held = cast.runes.stream().flatMap(r -> r.holders.values().stream())
@@ -540,13 +599,27 @@ final class SeleneaEncounterController {
         void hit(MobInstance boss, Player player, double ratio);
     }
 
+    /**
+     * 専用フィールドの48m端から徒歩3m/sで退避・解除できる時間を、詠唱開始時に固定します。
+     * @param stage 技 @param field 専用フィールドか @return 予兆または操作のtick時間
+     */
+    private static long warningDuration(Stage stage, boolean field) {
+        if (!field) return stage.duration;
+        return switch (stage) {
+            case OUTER -> 280L;
+            case PASSAGE, TURN_PAGE, ECLIPSE -> 320L;
+            case SEALS -> 440L;
+            default -> stage.duration;
+        };
+    }
+
     /** 技の予兆時間、倍率、形状、操作案内。 */
     private enum Stage {
         INTRO(60, 0, SeleneaArena.Shape.NONE, PlayerMsgId.P_7650),
         FORK(60, 0.75D, SeleneaArena.Shape.FORK, PlayerMsgId.P_7651),
         ECHO(60, 0.75D, SeleneaArena.Shape.FORK, PlayerMsgId.P_7661),
         MARKS(65, 0.80D, SeleneaArena.Shape.MARKS, PlayerMsgId.P_7652),
-        INNER(60, 0.85D, SeleneaArena.Shape.INNER, PlayerMsgId.P_7653),
+        INNER(120, 0.85D, SeleneaArena.Shape.INNER, PlayerMsgId.P_7653),
         OUTER(100, 0.85D, SeleneaArena.Shape.OUTER, PlayerMsgId.P_7654),
         PASSAGE(110, 0.90D, SeleneaArena.Shape.PASSAGE, PlayerMsgId.P_7655),
         TURN_PAGE(110, 0.90D, SeleneaArena.Shape.PASSAGE, PlayerMsgId.P_7662),
@@ -569,32 +642,39 @@ final class SeleneaEncounterController {
     private static final class Encounter {
         final MobInstance boss;
         final Location center;
+        final boolean field;
+        final double radius;
         int completedPhase = 1, requestedPhase = 1, pendingPhase, actionIndex, targetCursor;
         long nextAt, nextBoundaryAt;
         boolean introduced;
         @Nullable Cast cast;
         @Nullable Stage followUp;
         @Nullable Vector followDirection;
-        /** @param boss 所有ボス */
-        Encounter(MobInstance boss) { this.boss = boss; this.center = boss.spawnLocation().clone(); }
+        /** @param boss 所有ボス @param field 専用フィールドなら48mの会場を固定 */
+        Encounter(MobInstance boss, boolean field) {
+            this.boss = boss; this.center = boss.spawnLocation().clone(); this.field = field;
+            this.radius = field ? SeleneaArena.FIELD_RADIUS : SeleneaArena.RADIUS;
+        }
     }
 
     /** 単一詠唱の固定情報と所有する演出。 */
     private static final class Cast {
         final Stage stage;
-        final long started, ends;
+        final long started, ends, duration;
+        final double radius;
         final Location center;
         final Vector direction;
-        final List<Location> marks, safe = new ArrayList<>(), danger = new ArrayList<>();
+        final List<Location> marks, safe = new ArrayList<>(), danger = new ArrayList<>(), enterRing = new ArrayList<>();
         final List<Entity> displays = new ArrayList<>();
         final List<Shard> shards = new ArrayList<>();
         final List<ItemDisplay> books = new ArrayList<>();
         final List<Rune> runes = new ArrayList<>();
         @Nullable BossBar bar;
         int required;
-        /** @param stage 技 @param tick 開始 @param center 中心 @param direction 固定方向 @param marks 固定落款 */
-        Cast(Stage stage, long tick, Location center, Vector direction, List<Location> marks) {
-            this.stage = stage; started = tick; ends = tick + stage.duration;
+        /** @param stage 技 @param tick 開始 @param center 中心 @param direction 固定方向 @param marks 固定落款
+         * @param radius 凍結した攻撃半径 @param duration 歩行退避に必要な予兆tick時間 */
+        Cast(Stage stage, long tick, Location center, Vector direction, List<Location> marks, double radius, long duration) {
+            this.stage = stage; started = tick; ends = tick + duration; this.duration = duration; this.radius = radius;
             this.center = center.clone(); this.direction = direction.clone(); this.marks = List.copyOf(marks);
         }
     }

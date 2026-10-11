@@ -56,6 +56,27 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
             new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
 
+    /** 入るだけで退避できるセレネアの白い輪です。 */
+    public static final SharedParticleDefinition SELENEA_ENTER_RING =
+        new SharedParticleDefinition("selenea_enter_ring", Particle.END_ROD, 4, 0, 0, 0, 0);
+    /** 入るだけの輪に添える緑の縁です。 */
+    public static final SharedParticleDefinition SELENEA_ENTER_ACCENT =
+        new SharedParticleDefinition("selenea_enter_accent", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(100, 245, 155), 1.2F));
+    /** スニーク保持が必要な封頁の文字粒子です。白い退避輪とは粒子種も区別します。 */
+    public static final SharedParticleDefinition SELENEA_SNEAK_RING =
+        new SharedParticleDefinition("selenea_sneak_ring", Particle.ENCHANT, 4, 0, 0, 0, 0);
+    /** 封頁の実際の半径を示す紫の輪郭です。 */
+    public static final SharedParticleDefinition SELENEA_SNEAK_ACCENT =
+        new SharedParticleDefinition("selenea_sneak_accent", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(195, 90, 255), 1.3F));
+    /** 命中判定と同時に危険面だけへ出す、地形を変更しない爆発演出です。 */
+    public static final SharedParticleDefinition SELENEA_ATTACK_BURST =
+        new SharedParticleDefinition("selenea_attack_burst", Particle.EXPLOSION, 4, 0, 0, 0, 0);
+    /** 命中した形状を一度だけ明るくなぞる火花です。 */
+    public static final SharedParticleDefinition SELENEA_ATTACK_SPARK =
+        new SharedParticleDefinition("selenea_attack_spark", Particle.ELECTRIC_SPARK, 4, 0.05D, 0.2D, 0.05D, 0.02D);
+
     /** 全ボスの攻撃予見。最低密度でも一点一粒を残し、粒子OFF設定は尊重します。 */
     public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
         new SharedParticleDefinition("boss_attack_warning", Particle.ANGRY_VILLAGER, 4, 0, 0, 0, 0);
