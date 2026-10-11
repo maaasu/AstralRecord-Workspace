@@ -47,9 +47,12 @@ final class SeleneaChunkLeaseRegistry {
                 lease.owners.add(owner);
                 acquired.add(key);
                 ensureTicket(key, lease);
+                if (owners.get(owner) != acquired) {
+                    throw new IllegalStateException("Required chunk owner was released during loading");
+                }
             }
         } catch (RuntimeException failure) {
-            try { release(owner); }
+            try { if (owners.get(owner) == acquired) release(owner); }
             catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
             throw failure;
         }
@@ -91,6 +94,10 @@ final class SeleneaChunkLeaseRegistry {
     /** 既存ticketは借用し、ticketがない場合だけ追加した所有権を記録します。 */
     private void ensureTicket(ChunkKey key, Lease lease) {
         Chunk chunk = key.world.getChunkAt(key.x, key.z);
+        // ChunkLoadEventから所有ボスが破棄された場合、解除済みのleaseへticketを追加しません。
+        if (leases.get(key) != lease || lease.owners.isEmpty()) {
+            throw new IllegalStateException("Required chunk lease was released during loading");
+        }
         if (!chunk.getPluginChunkTickets().contains(plugin)) {
             if (!chunk.addPluginChunkTicket(plugin)) {
                 throw new IllegalStateException("Required chunk ticket could not be retained");

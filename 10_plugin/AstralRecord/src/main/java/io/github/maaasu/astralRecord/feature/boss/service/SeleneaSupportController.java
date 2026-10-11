@@ -297,10 +297,18 @@ final class SeleneaSupportController {
             essential.add(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT));
             essential.add(offset(state.center, role, ADD_RADIUS, OUTER_HEIGHT));
         }
-        chunkLeases.acquire(boss.instanceId(), essential);
+        // 同期ChunkLoadEventからの被ダメージ再入も、同じ遭遇へ合流させます。
         encounters.put(boss.instanceId(), state);
-        // 外周足場の攻略中も、通常AIの60秒無人回収で所有ボスを失わない。
         boss.keepWhenUnobserved(true);
+        try {
+            chunkLeases.acquire(boss.instanceId(), essential);
+            if (encounters.get(boss.instanceId()) != state) {
+                throw new IllegalStateException("Encounter was released during chunk loading");
+            }
+        } catch (RuntimeException failure) {
+            if (encounters.get(boss.instanceId()) == state) clearAfterFailure(boss.instanceId(), failure);
+            throw failure;
+        }
         return state;
     }
 
