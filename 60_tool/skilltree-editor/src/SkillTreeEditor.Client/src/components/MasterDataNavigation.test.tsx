@@ -3,25 +3,33 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { JsonObject, JsonValue } from '../types/editor'
 import { closestContainerPointer } from '../data/masterDataNavigation'
-import { MasterDataDetails, MasterDataOutline } from './MasterDataNavigation'
+import { MasterDataDetails, MasterDataSearch } from './MasterDataNavigation'
 
 const initial = { schemaVersion: 1, id: 'test', unknown: 'root', skills: [{ params: { 'a/b~c': 2, UnknownRpc: 'keep' } }, { id: 'sibling' }] }
 function Editable({ readOnly = false, value: startingValue = initial, schema = {} }: { readOnly?: boolean; value?: JsonValue; schema?: JsonObject }) {
   const [value, setValue] = useState<JsonValue>(startingValue)
   const [path, setPath] = useState('')
   const selected = closestContainerPointer(value, path)
-  return <><MasterDataOutline value={value} fields={[]} schema={schema} selectedPath={selected} onSelect={setPath} onFocus={vi.fn()} />
-    <MasterDataDetails value={value} path={selected} fields={[]} references={[]} schema={schema} disabled={readOnly} navigationDisabled={false} onSelect={setPath} onInvalid={vi.fn()} onChange={setValue} />
+  return <><MasterDataDetails value={value} path={selected} fields={[]} references={[]} schema={schema} disabled={readOnly} navigationDisabled={false} onSelect={setPath} onFocus={vi.fn()} onInvalid={vi.fn()} onChange={setValue} />
     <output data-testid="value">{JSON.stringify(value)}</output></>
 }
-describe('master data tree and details', () => {
+describe('master data sections, search and details', () => {
+  it('moves directly between Japanese sections without returning to the root', () => {
+    render(<Editable value={{ id: 'dungeon', entry: { worldId: 'world' }, challenge: { timeLimitSeconds: 900 } }} />)
+    fireEvent.click(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '入場地点' }))
+    expect(screen.getByRole('textbox', { name: '/entry/worldId' })).toHaveValue('world')
+    fireEvent.click(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '挑戦ルール' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '/challenge/timeLimitSeconds' }), { target: { value: '600' } })
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ id: 'dungeon', entry: { worldId: 'world' }, challenge: { timeLimitSeconds: 600 } })
+  })
+
   it('renders colored node summaries and searches visible names without changing stored codes', () => {
     const name = '&6Go&alden'
     const value = { items: [{ name }] }
     render(<Editable value={value} />)
     fireEvent.click(screen.getByRole('button', { name: '/items を開く' }))
-    expect(within(screen.getByRole('button', { name: '/items/0 を編集' })).getByText('Go')).toHaveStyle({ color: '#ffaa00' })
     const summary = screen.getByRole('button', { name: '/items/0 を開く' }).parentElement!
+    expect(within(summary).getByText('Go')).toHaveStyle({ color: '#ffaa00' })
     expect(within(summary).getByText(/^lden/)).toHaveStyle({ color: '#55ff55' })
     fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'Golden' } })
     expect(screen.getByRole('button', { name: '/items/0 に移動' })).toBeInTheDocument()
@@ -35,13 +43,13 @@ describe('master data tree and details', () => {
     fireEvent.click(screen.getByRole('button', { name: '/skills/0/params を開く' }))
     fireEvent.change(screen.getByRole('textbox', { name: '/skills/0/params/a~1b~0c' }), { target: { value: '8' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ ...initial, skills: [{ params: { 'a/b~c': 8, UnknownRpc: 'keep' } }, { id: 'sibling' }] })
-    fireEvent.click(within(screen.getByRole('navigation', { name: '現在の階層' })).getByRole('button', { name: '全体' }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: '現在の階層' })).getByRole('button', { name: '基本情報' }))
     expect(screen.getByRole('textbox', { name: '/id' })).toHaveValue('test')
   })
   it('searches Japanese schema titles, keys and values across collapsed nodes', () => {
     const onFocus = vi.fn()
     const schema = { properties: { skills: { items: { properties: { params: { properties: { UnknownRpc: { title: '固有の設定' } } } } } } } }
-    render(<MasterDataOutline value={initial} fields={[]} schema={schema} selectedPath="" onSelect={vi.fn()} onFocus={onFocus} />)
+    render(<MasterDataSearch value={initial} fields={[]} schema={schema} onSelect={vi.fn()} onFocus={onFocus} />)
     fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: '固有の設定' } })
     fireEvent.click(screen.getByRole('button', { name: '/skills/0/params/UnknownRpc に移動' }))
     expect(onFocus).toHaveBeenCalledWith('/skills/0/params/UnknownRpc')
@@ -50,15 +58,15 @@ describe('master data tree and details', () => {
   })
   it('keeps navigation available for read-only documents while disabling deep mutations', () => {
     render(<Editable readOnly />)
-    fireEvent.click(screen.getByRole('button', { name: '/skills を編集' }))
-    fireEvent.click(screen.getByRole('button', { name: '/skills/0 を編集' }))
-    fireEvent.click(screen.getByRole('button', { name: '/skills/0/params を編集' }))
+    fireEvent.click(screen.getByRole('button', { name: /^skills/ }))
+    fireEvent.click(screen.getByRole('button', { name: '/skills/0 を開く' }))
+    fireEvent.click(screen.getByRole('button', { name: '/skills/0/params を開く' }))
     expect(screen.getByRole('textbox', { name: '/skills/0/params/UnknownRpc' })).toBeDisabled()
     expect(screen.getByTestId('value')).toHaveTextContent(JSON.stringify(initial))
   })
   it('searches the end of long values while keeping result summaries short', () => {
     const onFocus = vi.fn()
-    render(<MasterDataOutline value={{ description: 'x'.repeat(100) + 'UNIQUE_LATE_VALUE' }} fields={[]} schema={{}} selectedPath="" onSelect={vi.fn()} onFocus={onFocus} />)
+    render(<MasterDataSearch value={{ description: 'x'.repeat(100) + 'UNIQUE_LATE_VALUE' }} fields={[]} schema={{}} onSelect={vi.fn()} onFocus={onFocus} />)
     fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'UNIQUE_LATE_VALUE' } })
     const result = screen.getByRole('button', { name: '/description に移動' })
     expect(result.querySelector('small')?.textContent?.length).toBeLessThanOrEqual(80)

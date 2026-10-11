@@ -1,3 +1,4 @@
+import { masterFieldLabel } from '../data/masterDataPresentation'
 import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
@@ -182,7 +183,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const isRequired = required.has(key) || field?.required === true
       const structured = Array.isArray(child) || objectOf(child)
       const textLines = isTextLineArray(childPath, child)
-      const label = String(definition.title ?? field?.label ?? key)
+      const label = String(definition.title ?? field?.label ?? masterFieldLabel(key))
       const description = String(definition.description ?? field?.description ?? '')
       const declaredType = normalizeMasterType(definition.type ?? field?.type)
       const currentType = valueType(child, definition, field)
@@ -202,7 +203,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           }}>削除</button></div></details></div>
         {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
-        {structured && onNavigate && !textLines ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(child)} /></span><button type="button" className="button compact" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>開く →</button></div>
+        {structured && onNavigate && !textLines ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}><span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{label}を編集 →</b></button>
           : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>

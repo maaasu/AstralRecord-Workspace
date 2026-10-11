@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from '../types/editor'
+import { masterDisplayName } from './masterDataPresentation'
 
 function pointerParts(path: string): string[] {
   if (path === '') return []
@@ -144,15 +145,23 @@ export function summarizeMasterValue(value: JsonValue): string {
   const object = objectOf(value)
   if (!object) return shortScalar(value) ?? ''
   const entries = Object.entries(object)
-  const preferred = ['名前', 'name', 'id', 'type']
+  const preferred = ['displayName', '名前', 'name', 'title', 'id', 'type']
   const selected = [...preferred.filter((key) => Object.hasOwn(object, key)), ...entries.map(([key]) => key)]
   const seen = new Set<string>()
   const parts: string[] = []
+  let named = false
   for (const key of selected) {
     if (seen.has(key)) continue
     seen.add(key)
     const scalar = shortScalar(object[key])
-    if (scalar !== undefined) parts.push(`${key}: ${scalar}`)
+    if (scalar !== undefined) {
+      if (['displayName', 'name', 'title'].includes(key)) {
+        if (named || scalar !== shortScalar(masterDisplayName(object))) continue
+        named = true
+      }
+      const label = ['displayName', 'name', '名前'].includes(key) ? '名前' : key === 'title' ? '題名' : key === 'type' ? '種類' : key
+      parts.push(`${label}: ${scalar}`)
+    }
     if (parts.length === 3) break
   }
   return parts.length ? `${parts.join(' · ')}（${entries.length} 項目）` : `${entries.length} 項目`

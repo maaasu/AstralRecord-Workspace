@@ -89,7 +89,7 @@ describe('master data navigation', () => {
   it('summarizes collection sizes, useful scalar fields and long text', () => {
     expect(summarizeMasterValue([1, 2, 3])).toBe('3 件')
     expect(summarizeMasterValue({ nested: { x: 1 } })).toBe('1 項目')
-    expect(summarizeMasterValue({ other: 1, name: 'Sword', id: 'sword', type: 'weapon' })).toBe('name: Sword · id: sword · type: weapon（4 項目）')
+    expect(summarizeMasterValue({ other: 1, name: 'Sword', id: 'sword', type: 'weapon' })).toBe('名前: Sword · id: sword · 種類: weapon（4 項目）')
     expect(summarizeMasterValue('a'.repeat(100))).toHaveLength(80)
     expect(summarizeMasterValue({ description: 'a'.repeat(100) })).toContain('…')
   })

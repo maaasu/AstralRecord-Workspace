@@ -32,6 +32,51 @@ async function openFile() {
 }
 
 describe('master editor workflow', () => {
+  it.each(['displayName', 'title'])('shows and updates Japanese %s in the document heading and tab', async (key) => {
+    const document = { ...original, content: { id: 'old', [key]: '日本語の名称' } }
+    vi.mocked(masterDataApi.file).mockResolvedValue(document)
+    vi.mocked(masterDataApi.files).mockResolvedValue([{ path: original.path, category: 'class', format: 'yaml', name: '日本語の名称', id: 'old', revision: original.revision, size: 20, modifiedUtc: '' }])
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /日本語の名称/ }))
+    await screen.findByRole('heading', { name: '日本語の名称' })
+    expect(screen.getByRole('tab', { name: '日本語の名称' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: '/' + key }), { target: { value: '新しい日本語名' } })
+    expect(screen.getByRole('heading', { name: '新しい日本語名' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /新しい日本語名 · 未保存/ })).toBeInTheDocument()
+  })
+
+  it('shows Japanese names and file names while omitting only redundant IDs', async () => {
+    vi.mocked(masterDataApi.files).mockResolvedValue([
+      { path: '20.features.class/v1.ruins.yml', category: 'class', format: 'yaml', name: '始まりの遺跡', id: 'ruins', revision: 'a', size: 20, modifiedUtc: '' },
+      { path: '20.features.class/v1.central_base.yml', category: 'class', format: 'yaml', name: '星影の街ノクス', id: 'starlit_nox', revision: 'b', size: 20, modifiedUtc: '' },
+      { path: '20.features.class/v1.20a00001.sword.yml', category: 'class', format: 'yaml', name: '日本語の剣', id: '20a00001', revision: 'c', size: 20, modifiedUtc: '' },
+      { path: '20.features.class/v1.sample.extra.yml', category: 'class', format: 'yaml', name: 'sample', id: 'sample', revision: 'd', size: 20, modifiedUtc: '' },
+    ])
+    render(<MasterDataEditor />)
+    const ruins = await screen.findByRole('button', { name: /始まりの遺跡/ })
+    expect(within(ruins).getByText('v1.ruins.yml')).toBeInTheDocument()
+    expect(within(ruins).queryByText('ID: ruins')).not.toBeInTheDocument()
+    expect(ruins).toHaveAttribute('title', expect.stringContaining('ID: ruins'))
+    expect(within(screen.getByRole('button', { name: /星影の街ノクス/ })).getByText('ID: starlit_nox')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /日本語の剣/ })).getByText('ID: 20a00001')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /sample/ })).getByText('ID: sample')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'マスター検索' }), { target: { value: '始まり' } })
+    expect(screen.getByRole('button', { name: /始まりの遺跡/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /星影の街ノクス/ })).not.toBeInTheDocument()
+  })
+
+  it('uses Japanese world names in filters while retaining ID-based filtering', async () => {
+    vi.mocked(masterDataApi.filterIndex).mockResolvedValue({ sources: [], skillTags: [], tags: [], entries: [{ path: original.path, facets: { world: ['starlit_nox'] } }] })
+    vi.mocked(masterDataApi.candidates).mockResolvedValue([{ path: '60.features.world/v1.central_base.yml', pointer: '/id', kind: 'world', value: 'starlit_nox', label: '星影の街ノクス' }])
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: /元クラス/ })
+    fireEvent.click(screen.getByText('詳細な絞り込み'))
+    const option = screen.getByRole('option', { name: '星影の街ノクス (starlit_nox)' })
+    expect(option).toHaveValue('starlit_nox')
+    fireEvent.change(screen.getByRole('combobox', { name: 'ワールド' }), { target: { value: 'starlit_nox' } })
+    expect(screen.getByRole('button', { name: /元クラス/ })).toBeInTheDocument()
+  })
+
   it('starts from the complete item parent and shows nested category counts', async () => {
     const item = { ...catalog.categories[0], id: '10.features.item', label: 'アイテム共通', directory: '10.features.item', fileCount: 0 }
     const material = { ...item, id: '10.features.item/10.material', label: 'アイテム共通 / 素材', directory: '10.features.item/10.material', fileCount: 1 }
@@ -222,7 +267,7 @@ describe('master editor workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '検証' }))
     fireEvent.click(await screen.findByRole('button', { name: path }))
     await waitFor(() => expect(screen.getByRole('textbox', { name: path })).toHaveFocus())
-    expect(screen.getByRole('button', { name: '/a~1b~0c/items/1/params を編集' })).toHaveAttribute('aria-current', 'true')
+    expect(within(screen.getByRole('navigation', { name: '現在の階層' })).getByRole('button', { name: 'params' })).toHaveAttribute('aria-current', 'page')
   })
   it('focuses the shared lore textarea for a validation issue at one array element', async () => {
     vi.mocked(masterDataApi.file).mockResolvedValue({ ...original, content: { id: 'old', lore: ['一行目', '二行目'] } })
@@ -252,15 +297,15 @@ describe('master editor workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '/params を開く' }))
     const input = screen.getByRole('textbox', { name: '/params/amount' })
     fireEvent.change(input, { target: { value: 'invalid' } })
-    const navigationButton = screen.getByRole('button', { name: 'ナビを隠す' })
+    const navigationButton = screen.getByRole('button', { name: 'ナビを閉じる' })
     fireEvent.keyDown(navigationButton, { key: 'z', ctrlKey: true })
     fireEvent.keyDown(navigationButton, { key: 'z', ctrlKey: true, shiftKey: true })
     fireEvent.keyDown(navigationButton, { key: 'y', ctrlKey: true })
-    expect(screen.getByRole('button', { name: '全体を編集' })).toBeDisabled()
-    expect(within(screen.getByRole('navigation', { name: '現在の階層' })).getByRole('button', { name: '全体' })).toBeDisabled()
+    expect(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '基本情報' })).toBeDisabled()
+    expect(within(screen.getByRole('navigation', { name: '現在の階層' })).getByRole('button', { name: '基本情報' })).toBeDisabled()
     expect(input).toHaveValue('invalid')
     fireEvent.change(input, { target: { value: '3' } })
-    fireEvent.click(screen.getByRole('button', { name: '全体を編集' }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '基本情報' }))
     expect(screen.getByRole('textbox', { name: '/id' })).toBeInTheDocument()
   })
   it('keeps existing history and the invalid input lock until the number is corrected', async () => {
@@ -270,12 +315,12 @@ describe('master editor workflow', () => {
     const input = screen.getByRole('textbox', { name: '/params/amount' })
     fireEvent.change(screen.getByRole('textbox', { name: '/params/label' }), { target: { value: 'edited' } })
     fireEvent.change(input, { target: { value: 'invalid' } })
-    fireEvent.keyDown(screen.getByRole('button', { name: 'ナビを隠す' }), { key: 'z', ctrlKey: true })
+    fireEvent.keyDown(screen.getByRole('button', { name: 'ナビを閉じる' }), { key: 'z', ctrlKey: true })
     expect(input).toHaveValue('invalid')
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByRole('textbox', { name: '/params/label' })).toHaveValue('edited')
     expect(screen.getByRole('button', { name: '↶' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '全体を編集' })).toBeDisabled()
+    expect(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '基本情報' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
     fireEvent.change(input, { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: '↶' }))

@@ -44,6 +44,39 @@ public sealed class MasterDataTests : IDisposable
         Assert.NotEqual(document.Revision, saved.Revision);
     }
 
+    [Theory]
+    [InlineData("65.features.dungeon/v1.ruins.yml", "id: ruins\ndisplayName: 遺跡\nname: internal\ntitle: caption\n", "遺跡")]
+    [InlineData("60.features.world/v1.central.yml", "id: central\ndisplayName: 星影の街\n", "星影の街")]
+    [InlineData("05.features.mail/v1.welcome.yml", "id: welcome\ntitle: 初ログインの贈り物\n", "初ログインの贈り物")]
+    [InlineData("09.features.guide/v1.guide.yml", "id: guide\ntitle: 初めてのダンジョン\n", "初めてのダンジョン")]
+    [InlineData("40.features.mob/v1.npc.yml", "id: npc\nname: 錬金術師\ntitle: 植物調合\n", "錬金術師")]
+    [InlineData("test/v1.blank.yml", "id: blank\ndisplayName: ' '\nname: 名称\n", "名称")]
+    [InlineData("test/v1.invalid.yml", "id: invalid\ndisplayName: {value: x}\nname: ''\ntitle: 題名\n", "題名")]
+    public async Task ListAndCandidatesResolveJapaneseDisplayNamesWithoutChangingIdentity(string path, string raw, string name)
+    {
+        Write(path, raw);
+        var summary = Assert.Single(await _service.ListAsync(null, name, CancellationToken.None));
+        var candidate = Assert.Single(await _service.CandidatesAsync(CancellationToken.None));
+        Assert.Equal(name, summary.Name);
+        Assert.Equal(name, candidate.Label);
+        Assert.Equal(summary.Id, candidate.Value);
+        Assert.Equal(path, candidate.Path);
+        Assert.Equal("/id", candidate.Pointer);
+        Assert.Equal(raw, (await _service.ReadAsync(path, CancellationToken.None)).Raw);
+    }
+
+    [Fact]
+    public async Task ReferencesUseTheJapaneseNameOfTheReferringDocument()
+    {
+        const string world = "60.features.world/v1.greenfields.yml";
+        Write(world, "id: greenfields\ndisplayName: ミズガルズの緑野\n");
+        Write("65.features.dungeon/v1.ruins.yml", "id: ruins\ndisplayName: アルダ始まりの遺跡\nentry:\n  worldRef: world:greenfields\n");
+        var reference = Assert.Single(await _service.ReferencesAsync(world, CancellationToken.None));
+        Assert.Equal("アルダ始まりの遺跡", reference.Label);
+        Assert.Equal("world:greenfields", reference.Value);
+        Assert.Equal("/entry/worldRef", reference.Pointer);
+    }
+
     [Fact]
     public async Task StaleRevisionCannotOverwriteOrDeleteExternalEdit()
     {

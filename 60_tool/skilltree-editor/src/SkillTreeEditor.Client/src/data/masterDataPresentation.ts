@@ -1,0 +1,28 @@
+import type { JsonValue } from '../types/editor'
+
+const fieldLabels: Record<string, string> = {
+  displayName: '表示名', name: '表示名', title: '題名',
+  entry: '入場地点', party: 'パーティー', challenge: '挑戦ルール', clearRewards: 'クリア報酬',
+  generation: '生成設定', theme: '外観テーマ', encounter: 'モブの出現設定',
+}
+export const masterFieldLabel = (key: string): string => fieldLabels[key] ?? key
+
+export function masterDisplayName(value: JsonValue | undefined): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
+  for (const key of ['displayName', 'name', 'title']) {
+    const name = value[key]
+    if (typeof name === 'string' && name.trim()) return name
+  }
+  return ''
+}
+
+export function fileNameIncludesId(path: string, id: string | null | undefined): boolean {
+  if (!id) return false
+  const fileName = path.split('/').at(-1) ?? path
+  const stem = fileName.replace(/\.(ya?ml|json)$/i, '').replace(/^v\d+\./, '')
+  return stem === id
+}
+
+export function namedMasterOption(name: string | null | undefined, id: string): string {
+  return name && name !== id ? `${name} (${id})` : id
+}

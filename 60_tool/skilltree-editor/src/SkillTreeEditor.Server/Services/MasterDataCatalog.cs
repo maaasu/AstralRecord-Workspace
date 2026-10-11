@@ -10,6 +10,11 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
         ["schemaVersion"] = "スキーマバージョン", ["id"] = "ID", ["name"] = "表示名",
+        ["displayName"] = "表示名", ["title"] = "題名",
+        ["recommendedLevel"] = "推奨レベル", ["worldRef"] = "ワールド参照",
+        ["deathLimit"] = "死亡回数の上限", ["reviveDelaySeconds"] = "復活までの待機時間（秒）", ["timeLimitSeconds"] = "制限時間（秒）",
+        ["entry"] = "入場地点", ["party"] = "パーティー", ["challenge"] = "挑戦ルール",
+        ["clearRewards"] = "クリア報酬", ["generation"] = "生成設定", ["theme"] = "外観テーマ", ["encounter"] = "モブの出現設定",
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
         ["iconGlint"] = "アイコンのエンチャントエフェクト", ["chargeSaleValue"] = "売却額分のGoldを消費",
         ["rankBasis"] = "状態変化のランク判定基準",

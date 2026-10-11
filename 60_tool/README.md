@@ -10,8 +10,8 @@
 | 02 | `02-deploy-debug-plugin-only.bat` | 01のPlugin限定ショートカット（従来どおりテスト省略） |
 | 03 | `03-master-data-reload.bat` | 01のマスタ限定ショートカット（Filebase同期→seed→起動または稼働中再読込待ち→パッチ公開） |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
-| 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
-| 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
+| 05 | `05-master-data-editor.bat` | マスターデータエディタをビルドしてローカル起動 |
+| 06 | `06-master-data-editor-build.bat` | マスターデータエディタのフロントエンドだけをビルド |
 | 07 | `07-generate-status-types.bat` | 共有ステータスカタログからKotlin / C# / TypeScriptを生成 |
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
@@ -34,8 +34,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 02-deploy-debug-plugin-only.bat
 ├─ 03-master-data-reload.bat
 ├─ 04-db-rebuild.bat
-├─ 05-skilltree-editor.bat
-├─ 06-skilltree-editor-build.bat
+├─ 05-master-data-editor.bat
+├─ 06-master-data-editor-build.bat
 ├─ 07-generate-status-types.bat
 ├─ 08-generate-tag-types.bat
 ├─ 09-astralarchitect-build-deploy.bat
@@ -152,7 +152,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tes
 .\12-build-network-plugins.bat -Target Proxy -SkipTests
 ```
 
-スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
+マスターデータエディタのフロントエンドを手動ビルドする場合は `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
 
 共有ステータスカタログを変更した後は`07-generate-status-types.bat`を実行します。生成漏れだけを検査する場合は`07-generate-status-types.bat -Check`を使用できます。
 

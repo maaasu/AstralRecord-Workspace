@@ -17,7 +17,7 @@ for %%I in ("%NPM_COMMAND%") do set "NODEJS_DIR=%%~dpI"
 set "PATH=%NODEJS_DIR%;%PATH%"
 
 if not exist "%CLIENT_DIR%\package.json" (
-    echo ERROR: Skill Tree Editor client was not found:
+    echo ERROR: Master Data Editor client was not found:
     echo %CLIENT_DIR%
     exit /b 1
 )
@@ -34,7 +34,7 @@ if defined INSTALL_DEPENDENCIES (
     if errorlevel 1 goto dependencies_failed
 )
 
-echo Building Skill Tree Editor frontend...
+echo Building Master Data Editor frontend...
 call "%NPM_COMMAND%" run build
 if errorlevel 1 goto retry_build
 goto build_succeeded
@@ -48,7 +48,7 @@ if errorlevel 1 goto build_failed
 
 :build_succeeded
 popd
-echo Skill Tree Editor frontend build succeeded.
+echo Master Data Editor frontend build succeeded.
 exit /b 0
 
 :dependencies_failed
@@ -58,15 +58,15 @@ exit /b 1
 
 :build_failed
 popd
-echo ERROR: Skill Tree Editor frontend build failed after reinstalling dependencies.
+echo ERROR: Master Data Editor frontend build failed after reinstalling dependencies.
 exit /b 1
 
 :install_dependencies
 if exist "node_modules\" (
-    echo Removing incomplete Skill Tree Editor frontend dependencies...
+    echo Removing incomplete Master Data Editor frontend dependencies...
     rmdir /s /q "node_modules"
     if exist "node_modules\" exit /b 1
 )
-echo Installing Skill Tree Editor frontend dependencies...
+echo Installing Master Data Editor frontend dependencies...
 call "%NPM_COMMAND%" ci
 exit /b %ERRORLEVEL%

@@ -18,7 +18,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var document = await ReadAsync(paths.Relative(file), token);
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
-            var name = MasterDataValidation.Text(obj?["name"]);
+            var name = DisplayName(obj);
             var icon = obj?["icon"] is JsonValue iconValue && iconValue.TryGetValue<string>(out var material) ? material : null;
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             var info = new FileInfo(file);
@@ -175,7 +175,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 var keys = value.Pointer.Split('/');
                 if (sourceIds.Any(sourceId => prefixes.Any(prefix => value.Value == prefix + ":" + sourceId)
                     || value.Value == sourceId && keys.Any(key => IsReferenceKey(key, kind))))
-                    result.Add(new(relative, value.Pointer, value.Value, MasterDataValidation.Text((document.Content as JsonObject)?["name"]), kind));
+                    result.Add(new(relative, value.Pointer, value.Value, DisplayName(document.Content as JsonObject), kind));
             }
             // Local $schema references are path based, not identity based.
             if (path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase) && document.Content is JsonObject root
@@ -208,7 +208,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             {
                 var key = root.ContainsKey("id") ? "id" : root.ContainsKey("nodeId") ? "nodeId" : "structureId";
                 if (MasterDataValidation.Text(root[key]) is { } id)
-                    result.Add(new(path, "/" + key, id, MasterDataValidation.Text(root["name"]), Kind(path)));
+                    result.Add(new(path, "/" + key, id, DisplayName(root), Kind(path)));
                 if (Kind(path) is "tag" or "status")
                 {
                     var keyPath = Kind(path) == "tag" ? "tags" : "statuses";
@@ -224,11 +224,19 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         if (node is JsonObject obj)
         {
             if (MasterDataValidation.Text(obj["id"]) is { } id)
-                result.Add(new(path, pointer + "/id", id, MasterDataValidation.Text(obj["displayName"] ?? obj["name"]), kind));
+                result.Add(new(path, pointer + "/id", id, DisplayName(obj), kind));
             foreach (var pair in obj) CollectCatalogCandidates(pair.Value, path, pointer + "/" + MasterDataValidation.Escape(pair.Key), kind, result);
         }
         else if (node is JsonArray array)
             for (var index = 0; index < array.Count; index++) CollectCatalogCandidates(array[index], path, pointer + "/" + index, kind, result);
+    }
+
+    private static string? DisplayName(JsonObject? obj)
+    {
+        foreach (var key in new[] { "displayName", "name", "title" })
+            if (obj?[key] is JsonValue value && value.TryGetValue<string>(out var name) && !string.IsNullOrWhiteSpace(name))
+                return name;
+        return null;
     }
 
     private static bool IsReferenceKey(string key, string kind) => kind switch

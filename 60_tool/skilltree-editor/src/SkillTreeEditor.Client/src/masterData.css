@@ -124,29 +124,15 @@ body:has(.master-app-content:not([hidden]) .master-editor) { min-width: 0; }
 .master-diff-line.added { color: #b7f4d9; background: #163528; }
 .master-diff-line.removed { color: #ffd7da; background: #43202a; }
 .master-editor button:focus-visible, .master-app-nav button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.master-sidebar-header, .master-sidebar-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.master-sidebar-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .master-sidebar-header h2 { flex: 1; }
 .master-sidebar-files { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
-.master-sidebar-outline { flex: 1; min-height: 0; overflow: auto; }
-.master-sidebar[hidden], .master-sidebar-files[hidden], .master-sidebar-outline[hidden] { display: none; }
+.master-sidebar[hidden], .master-sidebar-files[hidden] { display: none; }
 .master-editor.master-sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
 .master-document-header > div { flex: 1; min-width: 0; }
 .master-document-header h2 { overflow-wrap: anywhere; }
 .master-document-header .save-state { flex-shrink: 0; }
-.master-outline > label { margin-bottom: 12px; }
-.master-outline-list { list-style: none; padding: 0; margin: 3px 0; }
-.master-outline-list .master-outline-list { padding-left: 12px; border-left: 1px solid var(--line); margin-left: 9px; }
-.master-outline-row { display: flex; align-items: start; gap: 3px; }
-.master-outline-node { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; text-align: left; width: 100%; padding: 7px; background: transparent; border: 1px solid transparent; border-radius: 4px; color: inherit; cursor: pointer; font-size: 12px; }
-.master-outline-node:hover { background: var(--surface-soft); }
-.master-outline-node.selected { color: var(--gold); border-color: var(--gold-dark); background: var(--surface-soft); }
-.master-outline-node > span, .master-outline-node small, .master-outline-node code { overflow-wrap: anywhere; }
-.master-outline-node small, .master-outline-node code { color: var(--text-muted); font-size: 11px; }
-.master-outline-node:disabled { opacity: .6; cursor: default; }
-.master-outline-root { margin-bottom: 8px; }
-.master-outline-toggle, .master-outline-dot { flex: 0 0 22px; text-align: center; padding: 7px 0; color: var(--text-muted); font-size: 12px; }
-.master-outline-toggle { border: 0; background: transparent; cursor: pointer; }
-.master-breadcrumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 13px; padding: 7px 0; position: sticky; top: -15px; z-index: 2; background: var(--surface); font-size: 12px; }
+.master-breadcrumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 13px; padding: 7px 0;  background: var(--surface); font-size: 12px; }
 .master-breadcrumbs button { overflow-wrap: anywhere; text-align: left; }
 .master-breadcrumbs [aria-current="page"] { color: var(--gold); }
 .master-node-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
@@ -179,3 +165,24 @@ body:has(.master-app-content:not([hidden]) .master-editor) { min-width: 0; }
 @media (max-width: 1150px) { .master-editor { grid-template-columns: 300px minmax(0, 1fr); } .master-app-nav small { display: none; } }
 @media (max-width: 800px) { body { min-width: 0; } .master-editor { grid-template-columns: 260px minmax(0, 1fr); } .master-editor .button { padding: 6px 8px; } .master-edit-area { padding: 12px; } .master-field-heading { gap: 5px; } .master-add-row { flex-wrap: wrap; } }
 @media (max-width: 640px) { .master-editor { grid-template-columns: minmax(0, 1fr); } }
+
+.master-tab-context-menu { position: fixed; z-index: 1000; display: grid; min-width: 225px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; padding: 5px; border: 1px solid var(--line-bright); border-radius: 5px; background: var(--surface); box-shadow: 0 8px 28px #0008; }
+.master-tab-context-menu button { padding: 9px 12px; border: 0; border-radius: 3px; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; font-size: 12px; }
+.master-tab-context-menu button:hover:not(:disabled), .master-tab-context-menu button:focus-visible { background: var(--surface-soft); outline: 1px solid var(--blue); }
+.master-tab-context-menu button:disabled { color: var(--text-muted); opacity: .5; cursor: default; }
+.master-form-navigation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 260px); gap: 12px; align-items: center; position: sticky; top: -15px; z-index: 3; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.master-section-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-height: 145px; overflow: auto; padding: 3px; }
+.master-section-links button { flex-shrink: 0; }
+.master-section-links small { margin-left: 6px; color: var(--text-muted); }
+.master-form-search { position: relative; min-width: 0; }
+.master-form-search > label { display: grid; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.master-form-search-results { position: absolute; right: 0; top: 100%; z-index: 4; width: min(420px, calc(100vw - 48px)); max-height: 45vh; overflow: auto; padding: 10px; border: 1px solid var(--line-bright); border-radius: 4px; background: var(--surface); box-shadow: 0 8px 20px #0008; }
+.master-form-search-results ul { list-style: none; padding: 0; margin: 0; }
+.master-search-result { display: grid; gap: 4px; width: 100%; text-align: left; padding: 9px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+.master-search-result:hover { background: var(--surface-soft); }
+.master-search-result small, .master-search-result code { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+button.master-node-link { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-soft); text-align: left; cursor: pointer; }
+button.master-node-link:hover { border-color: var(--blue); }
+button.master-node-link:disabled { opacity: .6; cursor: default; }
+button.master-node-link b { color: var(--text); font-size: 12px; flex-shrink: 0; }
+@media (max-width: 950px) { .master-form-navigation { grid-template-columns: minmax(0, 1fr); } }

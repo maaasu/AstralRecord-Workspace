@@ -9,6 +9,7 @@ export type MasterTabsAction =
   | { type: 'select'; id: string }
   | { type: 'status'; id: string; status: MasterTabStatus }
   | { type: 'close'; id: string }
+  | { type: 'closeMany'; ids: string[] }
 
 export function masterTabsReducer(state: MasterTabsState, action: MasterTabsAction): MasterTabsState {
   if (action.type === 'open') {
@@ -24,8 +25,11 @@ export function masterTabsReducer(state: MasterTabsState, action: MasterTabsActi
     if (!tab || tab.dirty === action.status.dirty && tab.busy === action.status.busy && tab.name === action.status.name) return state
     return { ...state, tabs: state.tabs.map((entry) => entry.id === action.id ? { ...entry, ...action.status } : entry) }
   }
-  const index = state.tabs.findIndex((tab) => tab.id === action.id)
-  if (index < 0) return state
-  const tabs = state.tabs.filter((tab) => tab.id !== action.id)
-  return { ...state, tabs, activeId: state.activeId === action.id ? (tabs[index] ?? tabs[index - 1])?.id ?? '' : state.activeId }
+  const ids = new Set(action.type === 'closeMany' ? action.ids : [action.id])
+  const tabs = state.tabs.filter((tab) => !ids.has(tab.id))
+  if (tabs.length === state.tabs.length) return state
+  const index = state.tabs.findIndex((tab) => tab.id === state.activeId)
+  const adjacent = state.tabs.slice(index + 1).find((tab) => !ids.has(tab.id))
+    ?? state.tabs.slice(0, index).reverse().find((tab) => !ids.has(tab.id))
+  return { ...state, tabs, activeId: ids.has(state.activeId) ? adjacent?.id ?? '' : state.activeId }
 }

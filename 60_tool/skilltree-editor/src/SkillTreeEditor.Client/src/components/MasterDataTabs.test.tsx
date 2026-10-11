@@ -6,6 +6,7 @@ import type { MasterDocument, MasterFileSummary } from '../types/masterData'
 
 const a: MasterDocument = { path: '20.features.class/v1.a.yml', format: 'yaml', revision: 'revision-a', raw: 'id: a\nname: ファイルA\nlevel: 1\n', content: { id: 'a', name: 'ファイルA', level: 1 }, issues: [] }
 const b: MasterDocument = { ...a, path: '20.features.class/v1.b.yml', revision: 'revision-b', raw: 'id: b\nname: ファイルB\nlevel: 2\n', content: { id: 'b', name: 'ファイルB', level: 2 } }
+const c: MasterDocument = { ...a, path: '20.features.class/v1.c.yml', revision: 'revision-c', raw: 'id: c\nname: ファイルC\nlevel: 3\n', content: { id: 'c', name: 'ファイルC', level: 3 } }
 const summaries: MasterFileSummary[] = [a, b].map((document) => ({ path: document.path, category: 'class', format: 'yaml', id: (document.content as { id: string }).id, name: (document.content as { name: string }).name, revision: document.revision, size: 30, modifiedUtc: '' }))
 const panel = () => within(screen.getByRole('tabpanel'))
 const input = (name: string) => panel().getByRole('textbox', { name })
@@ -24,9 +25,7 @@ beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
 
-async function open(name: 'ファイルA' | 'ファイルB') {
-  const listButton = screen.queryByRole('button', { name: 'ファイル一覧' })
-  if (listButton) fireEvent.click(listButton)
+async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
   fireEvent.click(await screen.findByRole('button', { name: new RegExp(name) }))
   await waitFor(() => expect(input('/name')).toHaveValue(name))
 }
@@ -34,14 +33,124 @@ async function open(name: 'ファイルA' | 'ファイルB') {
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
 describe('master file tabs', () => {
+  it('keeps the file list visible after opening a file and removes redundant navigation controls', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    expect(panel().getByRole('button', { name: /ファイルB/ })).toBeVisible()
+    expect(panel().getByRole('textbox', { name: 'マスター検索' })).toBeVisible()
+    expect(panel().queryByRole('button', { name: 'ファイル一覧' })).not.toBeInTheDocument()
+    expect(panel().queryByRole('button', { name: 'レコード内の構造' })).not.toBeInTheDocument()
+    expect(panel().queryByRole('button', { name: 'ナビを隠す' })).not.toBeInTheDocument()
+    fireEvent.click(panel().getByRole('button', { name: 'ナビを閉じる' }))
+    expect(panel().queryByRole('textbox', { name: 'マスター検索' })).not.toBeInTheDocument()
+    fireEvent.click(panel().getByRole('button', { name: 'ナビを表示' }))
+    expect(panel().getByRole('button', { name: /ファイルB/ })).toBeVisible()
+  })
+
+  it('confirms bulk discard once and cancels without closing any tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    fireEvent.change(input('/name'), { target: { value: '編集B' } })
+    vi.mocked(window.confirm).mockReturnValue(false)
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /編集A/ }), { clientX: 200, clientY: 100 })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'すべてのタブを閉じる' }))
+    expect(window.confirm).toHaveBeenCalledTimes(1)
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('編集A'))
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('編集B'))
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    expect(input('/name')).toHaveValue('編集B')
+    expect(screen.getByRole('tab', { name: /編集A/ })).toHaveFocus()
+    vi.mocked(window.confirm).mockReturnValue(true)
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /編集A/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'すべてのタブを閉じる' }))
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '＋ 新規' })).toHaveFocus()
+  })
+
+  it('closes other tabs relative to the right-clicked inactive tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /編集A/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'このタブ以外を閉じる' }))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(input('/name')).toHaveValue('編集A')
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it.each([['右側のタブを閉じる', 'ファイルC', 'ファイルA'], ['左側のタブを閉じる', 'ファイルA', 'ファイルC']])('supports %s from the middle tab', async (command, closed, kept) => {
+    vi.mocked(masterDataApi.files).mockResolvedValue([...summaries, { ...summaries[0], path: c.path, id: 'c', name: 'ファイルC' }])
+    vi.mocked(masterDataApi.file).mockImplementation(async (path) => structuredClone(path === a.path ? a : path === b.path ? b : c))
+    render(<MasterDataEditor />)
+    await open('ファイルA'); await open('ファイルB'); await open('ファイルC')
+    fireEvent.contextMenu(screen.getByRole('tab', { name: 'ファイルB' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: command }))
+    expect(screen.queryByRole('tab', { name: closed })).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: kept })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'ファイルB' })).toBeInTheDocument()
+  })
+
+  it('keeps dirty tabs when closing saved tabs and supports keyboard dismissal', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    await open('ファイルB')
+    const tab = screen.getByRole('tab', { name: /編集A/ })
+    fireEvent.keyDown(tab, { key: 'F10', shiftKey: true })
+    expect(screen.getByRole('menuitem', { name: '閉じる' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(tab).toHaveFocus()
+    fireEvent.contextMenu(tab)
+    fireEvent.click(screen.getByRole('menuitem', { name: '保存済みのタブを閉じる' }))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(input('/name')).toHaveValue('編集A')
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it('dismisses the portal menu when the editor becomes inactive and retains the draft', async () => {
+    const view = render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /編集A/ }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    view.rerender(<MasterDataEditor active={false} />)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    view.rerender(<MasterDataEditor />)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(input('/name')).toHaveValue('編集A')
+  })
+
+  it('protects a busy tab and focuses an all-disabled menu so Escape can dismiss it', async () => {
+    let finishSave!: (document: MasterDocument) => void
+    vi.mocked(masterDataApi.save).mockImplementation(() => new Promise((resolve) => { finishSave = resolve }))
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '保存中A' } })
+    fireEvent.click(panel().getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' })).toBeDisabled())
+    const tab = screen.getByRole('tab', { name: /保存中A/ })
+    fireEvent.keyDown(tab, { key: 'F10', shiftKey: true })
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveFocus()
+    expect(within(menu).getAllByRole('menuitem').every((item) => (item as HTMLButtonElement).disabled)).toBe(true)
+    fireEvent.keyDown(menu, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(tab).toHaveFocus()
+    await act(async () => finishSave({ ...a, content: { id: 'a', name: '保存中A', level: 1 } }))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+  })
+
   it('keeps filters minimized when opening and switching file tabs', async () => {
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: 'フィルタを最小化' }))
     await open('ファイルA')
-    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
     expect(panel().getByRole('button', { name: 'フィルタを展開' })).toBeInTheDocument()
     await open('ファイルB')
-    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
     expect(panel().queryByRole('combobox', { name: 'マスターのカテゴリ' })).not.toBeInTheDocument()
     fireEvent.click(panel().getByRole('button', { name: 'フィルタを展開' }))
     select(/ファイルA/)
@@ -58,7 +167,6 @@ describe('master file tabs', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(2)
     select(/編集A/)
     expect(input('/name')).toHaveValue('編集A')
-    fireEvent.click(panel().getByRole('button', { name: 'ファイル一覧' }))
     fireEvent.click(panel().getByRole('button', { name: /ファイルB/ }))
     expect(input('/name')).toHaveValue('ファイルB')
     expect(masterDataApi.file).toHaveBeenCalledTimes(2)
