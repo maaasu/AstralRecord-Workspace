@@ -39,8 +39,9 @@ public final class DisplayTextService {
 
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final int MAX_DAMAGE_DISPLAYS = 80;
-    private static final int DAMAGE_ANIMATION_FRAMES = 6;
-    private static final long DAMAGE_ANIMATION_FRAME_TICKS = 4L;
+    private static final long FLOATING_FRAME_TICKS = 4L;
+    private static final long FLOATING_ENTRANCE_TICKS = 8L;
+    private static final long FLOATING_EXIT_TICKS = 12L;
     private static final int MAX_RESULTS_PER_VIEWER = 3;
     private static final long RESULT_FRAME_TICKS = 4L;
     private static final long RESULT_ENTRANCE_TICKS = 12L;
@@ -113,7 +114,7 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnDamageNumber(@NotNull Location origin, double amount, boolean critical) {
         pruneDamageDisplays();
-        return spawnFloatingNumber(origin, amount, critical ? "&e✦ " : "&c");
+        return spawnFloatingNumber(origin, amount, critical ? FloatingStyle.CRITICAL : FloatingStyle.DAMAGE);
     }
 
     /**
@@ -125,11 +126,11 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnShieldDamageNumber(@NotNull Location origin, double amount) {
         pruneDamageDisplays();
-        return spawnFloatingNumber(origin, amount, "&b");
+        return spawnFloatingNumber(origin, amount, FloatingStyle.SHIELD);
     }
 
     /**
-     * HP 回復向けの黄緑色の浮遊数値を表示します。
+     * HP 回復向けのハート・正符号付き黄緑色の数値を、穏やかに上昇させて表示します。
      *
      * @param origin 表示起点
      * @param amount 表示する実回復量
@@ -137,7 +138,7 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnHealingNumber(@NotNull Location origin, double amount) {
         pruneDamageDisplays();
-        return spawnFloatingNumber(origin, amount, "&a+");
+        return spawnFloatingNumber(origin, amount, FloatingStyle.HEALING);
     }
 
     /**
@@ -148,17 +149,23 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnEvadedText(@NotNull Location origin) {
         pruneDamageDisplays();
-        return spawnFloatingText(origin, "&7Miss");
+        return spawnFloatingText(origin, PlayerMsgResource.getMessage(FloatingStyle.EVADE.messageId.getId()),
+                FloatingStyle.EVADE);
     }
 
-    private @NotNull ManagedTextDisplay spawnFloatingNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
-        String text = floatingNumberText(prefix, amount);
-        return spawnFloatingText(origin, text);
-    }
-
-    /** 浮遊数値の色コード・符号・整数丸めを共通化します。 */
-    static @NotNull String floatingNumberText(@NotNull String prefix, double amount) {
-        return prefix + String.format(Locale.ROOT, "%.0f", Math.max(0.0D, amount));
+    /**
+     * 実量を3桁区切りの整数へ丸め、種別に対応するメッセージで表示します。
+     * @param origin 表示起点
+     * @param amount 表示する実量
+     * @param style 色・記号・動きの種別
+     * @return 管理ハンドル
+     */
+    private @NotNull ManagedTextDisplay spawnFloatingNumber(
+            @NotNull Location origin, double amount, @NotNull FloatingStyle style
+    ) {
+        String text = PlayerMsgResource.format(style.messageId.getId(),
+                String.format(Locale.ROOT, "%,.0f", Math.max(0.0D, amount)));
+        return spawnFloatingText(origin, text, style);
     }
 
     /**
@@ -166,39 +173,22 @@ public final class DisplayTextService {
      *
      * @param origin 表示起点
      * @param text 表示文字列
+     * @param style 種別に応じた拡大率・上昇量・寿命
      * @return 管理ハンドル
      */
-    private @NotNull ManagedTextDisplay spawnFloatingText(@NotNull Location origin, @NotNull String text) {
+    private @NotNull ManagedTextDisplay spawnFloatingText(
+            @NotNull Location origin, @NotNull String text, @NotNull FloatingStyle style
+    ) {
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
                 DisplayTextOptions.damage(text),
                 true
         );
 
-        double xDrift = ThreadLocalRandom.current().nextDouble(-0.32D, 0.32D);
-        double zDrift = ThreadLocalRandom.current().nextDouble(-0.22D, 0.22D);
-        display.playTransformAnimation(damageAnimationFrames(text, xDrift, zDrift), false, true);
+        double xDrift = ThreadLocalRandom.current().nextDouble(-0.32D, 0.32D) * style.drift;
+        double zDrift = ThreadLocalRandom.current().nextDouble(-0.22D, 0.22D) * style.drift;
+        display.requireState().floatingAnimation = new FloatingAnimation(style, xDrift, zDrift);
         return display;
-    }
-
-    static @NotNull List<DisplayAnimationFrame> damageAnimationFrames(
-            @NotNull String text,
-            double xDrift,
-            double zDrift
-    ) {
-        List<DisplayAnimationFrame> frames = new ArrayList<>(DAMAGE_ANIMATION_FRAMES);
-        for (int index = 0; index < DAMAGE_ANIMATION_FRAMES; index++) {
-            double progress = index / (double) (DAMAGE_ANIMATION_FRAMES - 1);
-            double easedRise = 1.0D - Math.pow(1.0D - progress, 2.0D);
-            double lateralEase = 1.0D - Math.pow(1.0D - progress, 3.0D);
-            double pop = Math.sin(progress * Math.PI) * 0.16D;
-            frames.add(new DisplayAnimationFrame(
-                    text,
-                    new Vector(xDrift * lateralEase, 0.08D + easedRise * 0.88D + pop, zDrift * lateralEase),
-                    DAMAGE_ANIMATION_FRAME_TICKS
-            ));
-        }
-        return List.copyOf(frames);
     }
 
     private void pruneDamageDisplays() {
@@ -301,6 +291,10 @@ public final class DisplayTextService {
             tickResult(state, anchorLocation);
             return;
         }
+        if (state.floatingAnimation != null) {
+            tickFloating(state, anchorLocation);
+            return;
+        }
         DisplayAnimationFrame frame = resolveFrame(state);
         Entity attachment = state.anchor.attachment();
         Vector attachedOffset = resolveAttachedOffset(state, frame);
@@ -337,6 +331,51 @@ public final class DisplayTextService {
                 displays.remove(state.id);
             }
         }
+    }
+
+    /**
+     * 浮遊表示を種別ごとに拡大・上昇させ、終盤の文字と背景をフェードして回収します。
+     * 変換と透過の更新は4tickごととし、1表示1実体と共通の表示数上限を維持します。
+     * @param state 浮遊表示の管理状態
+     * @param anchorLocation 表示起点
+     */
+    private void tickFloating(@NotNull ManagedDisplayState state, @NotNull Location anchorLocation) {
+        FloatingAnimation animation = state.floatingAnimation;
+        FloatingStyle style = animation.style();
+        if (state.animationAge >= style.durationTicks) {
+            state.destroyed = true;
+            destroyEntity(state);
+            displays.remove(state.id);
+            return;
+        }
+        TextDisplay entity = ensureEntity(state, anchorLocation);
+        if (entity == null) return;
+        applyOptionsIfNeeded(entity, state);
+        applyFrame(entity, state, new DisplayAnimationFrame(state.options.text(), new Vector(), 1L));
+        if (state.animationAge % FLOATING_FRAME_TICKS == 0L) {
+            double progress = state.animationAge / (double) style.durationTicks;
+            double rise = 1.0D - Math.pow(1.0D - progress, 2.0D);
+            double entrance = Math.min(1.0D, state.animationAge / (double) FLOATING_ENTRANCE_TICKS);
+            double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
+            float scale = (float) (style.scale * (0.72D + 0.28D * eased)
+                    + style.pop * Math.sin(entrance * Math.PI));
+            // 次の補間区間の終点を送り、破棄時点までにフェードを完了させます。
+            double fade = Math.clamp((state.animationAge - style.durationTicks
+                    + FLOATING_EXIT_TICKS + FLOATING_FRAME_TICKS)
+                    / (double) FLOATING_EXIT_TICKS, 0.0D, 1.0D);
+            scale *= (float) (1.0D - fade * 0.08D);
+            entity.setInterpolationDelay(0);
+            entity.setInterpolationDuration((int) FLOATING_FRAME_TICKS);
+            entity.setTransformation(new Transformation(
+                    new Vector3f((float) (animation.xDrift() * (0.25D + rise)),
+                            (float) (0.08D + style.rise * rise),
+                            (float) (animation.zDrift() * (0.25D + rise))),
+                    new Quaternionf(), new Vector3f(scale, scale, scale), new Quaternionf()));
+            // TextDisplayは0〜3のopacityを特殊扱いするため、フェードの下限を4にします。
+            entity.setTextOpacity((byte) Math.max(4L, Math.round(255.0D * (1.0D - fade))));
+            entity.setBackgroundColor(Color.fromARGB((int) Math.round(64.0D * (1.0D - fade)), 8, 8, 16));
+        }
+        state.animationAge++;
     }
 
     /**
@@ -468,6 +507,12 @@ public final class DisplayTextService {
                         new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
                 display.setTextOpacity((byte) 64);
                 display.setBackgroundColor(Color.fromARGB(44, 8, 8, 24));
+            } else if (state.floatingAnimation != null) {
+                applyOptions(display, state.options);
+                float scale = state.floatingAnimation.style().scale * 0.72F;
+                display.setTransformation(new Transformation(
+                        new Vector3f(0.0F, 0.08F, 0.0F), new Quaternionf(),
+                        new Vector3f(scale, scale, scale), new Quaternionf()));
             }
         });
         if (state.resultAnimation != null && state.resultAnimation.viewerId() != null && plugin != null) {
@@ -834,6 +879,7 @@ public final class DisplayTextService {
         private @Nullable DisplayTextOptions lastAppliedOptions;
         private @Nullable Supplier<String> textSupplier;
         private @Nullable ResultAnimation resultAnimation;
+        private @Nullable FloatingAnimation floatingAnimation;
         private @Nullable String resultFullText;
         private List<List<String>> resultPages = List.of();
         private float lastResultScale = Float.NaN;
@@ -856,4 +902,32 @@ public final class DisplayTextService {
      * @param durationTicks 表示寿命
      */
     private record ResultAnimation(@Nullable UUID viewerId, long durationTicks) { }
+
+    /** 浮遊表示だけの強弱・速度を管理し、汎用表示のアニメーションには適用しません。 */
+    private enum FloatingStyle {
+        DAMAGE(PlayerMsgId.P_6563, 1.0F, 0.18F, 32L, 0.85D, 1.0D),
+        CRITICAL(PlayerMsgId.P_6564, 1.25F, 0.32F, 36L, 1.0D, 1.15D),
+        SHIELD(PlayerMsgId.P_6565, 0.95F, 0.14F, 32L, 0.75D, 0.8D),
+        HEALING(PlayerMsgId.P_6566, 1.0F, 0.08F, 36L, 1.10D, 0.35D),
+        EVADE(PlayerMsgId.P_6567, 0.85F, 0.10F, 24L, 0.65D, 1.1D);
+
+        private final PlayerMsgId messageId;
+        private final float scale;
+        private final float pop;
+        private final long durationTicks;
+        private final double rise;
+        private final double drift;
+
+        FloatingStyle(PlayerMsgId messageId, float scale, float pop, long durationTicks, double rise, double drift) {
+            this.messageId = messageId;
+            this.scale = scale;
+            this.pop = pop;
+            this.durationTicks = durationTicks;
+            this.rise = rise;
+            this.drift = drift;
+        }
+    }
+
+    /** @param style 表示種別 @param xDrift 横方向の移動幅 @param zDrift 奥行方向の移動幅 */
+    private record FloatingAnimation(FloatingStyle style, double xDrift, double zDrift) { }
 }

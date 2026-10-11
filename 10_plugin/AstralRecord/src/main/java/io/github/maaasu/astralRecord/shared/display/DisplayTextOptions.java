@@ -98,17 +98,17 @@ public record DisplayTextOptions(
     }
 
     /**
-     * 浮遊ダメージ表示向けの既定オプションを生成します。
+     * 浮遊数値向けに薄い暗色背景・影・最大光量を使い、4tickで補間するオプションを生成します。
      *
      * @param text 表示文字列
      * @return ダメージ表示向けオプション
      */
     public static @NotNull DisplayTextOptions damage(@NotNull String text) {
-        return defaults(text)
-                .withShadowed(true)
-                .withViewRange(48.0F)
-                .withInterpolationDuration(1)
-                .withTeleportDuration(1);
+        return new DisplayTextOptions(
+                text, new Vector(), Display.Billboard.CENTER, DEFAULT_LINE_WIDTH, 48.0F,
+                FULL_OPACITY, false, true, false, Color.fromARGB(64, 8, 8, 16),
+                4, 0, false, 15, 15
+        );
     }
 
     /**
