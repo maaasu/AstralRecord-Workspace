@@ -1,8 +1,6 @@
 # design:
 #   motif: "天体 / 月蝕と魔女の写本"
 #   progression: 30
-# 座標待ちの雛形。spawnLocation の null を実座標に置き換えた後、
-# 拡張子を .yml に変更し、セレネアの challenge 設定と一緒に有効化する。
 schemaVersion: 1
 id: vanaheim_boss_selenea_field
 displayName: "月蝕の綴り魔女 セレネア・ボスフィールド"
@@ -17,10 +15,9 @@ allowBlockPlace: false
 allowMobSpawn: false
 showSpawnParticle: false
 spawnLocation:
-  # 後から指定されるプレイヤーのスポーン座標を設定する。
-  x: null
-  y: null
-  z: null
+  x: 8.5
+  y: 64.0
+  z: -13.5
   yaw: 0.0
   pitch: 0.0
 description: "月蝕の綴り魔女 セレネアと戦うインスタンス式のボスフィールド。"

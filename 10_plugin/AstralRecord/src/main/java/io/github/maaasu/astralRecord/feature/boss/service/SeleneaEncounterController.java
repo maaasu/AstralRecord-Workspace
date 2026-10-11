@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * 月蝕の綴り魔女の直列詠唱・封頁解除・反撃窓を5tickの共通時計で進めます。
@@ -62,6 +63,10 @@ final class SeleneaEncounterController {
     private final HitHandler hitHandler;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
     private @Nullable TemporarySkillEffectService effects;
+    private Predicate<MobInstance> fieldResolver = ignored -> false;
+
+    /** @param resolver 専用フィールドの実ワールドを判定する関数 */
+    void setFieldResolver(@NotNull Predicate<MobInstance> resolver) { fieldResolver = resolver; }
 
     /**
      * @param mobs 実体位置を同期する共通サービス
@@ -107,7 +112,8 @@ final class SeleneaEncounterController {
             if (state.cast != null) { advance(state, entity, active, tick); return; }
             if (tick < state.nextAt) return;
             if (!state.introduced) { begin(state, Stage.INTRO, tick, null); return; }
-            if (tick >= state.nextBoundaryAt && active.stream().anyMatch(p -> !SeleneaArena.inArena(p.getLocation(), state.center))) {
+            if (!fieldResolver.test(boss) && tick >= state.nextBoundaryAt
+                && active.stream().anyMatch(p -> !SeleneaArena.inArena(p.getLocation(), state.center))) {
                 if (begin(state, Stage.RETURN, tick, null)) state.nextBoundaryAt = tick + 240L;
                 return;
             }
@@ -355,11 +361,12 @@ final class SeleneaEncounterController {
         for (Rune rune : cast.runes) rune.holders.clear();
     }
 
-    /** @return 同じworld・階・32m以内の戦闘参加者（最大6人） */
+    /** @return 専用フィールドでは四方向の足場と跳躍を含み、通常会場では同じ階の32m以内の参加者 */
     private List<Player> active(MobInstance boss) {
         return participants.apply(boss).stream().filter(p -> p.isOnline() && !p.isDead())
-            .filter(p -> SeleneaArena.sameFloor(p.getLocation(), boss.spawnLocation()))
-            .filter(p -> SeleneaArena.squared(p.getLocation(), boss.spawnLocation()) <= 1024.0D)
+            .filter(p -> fieldResolver.test(boss) ? SeleneaArena.inFieldArena(p.getLocation(), boss.spawnLocation())
+                : SeleneaArena.sameFloor(p.getLocation(), boss.spawnLocation())
+                    && SeleneaArena.squared(p.getLocation(), boss.spawnLocation()) <= 1024.0D)
             .sorted(Comparator.comparing(Player::getUniqueId)).limit(6).toList();
     }
 

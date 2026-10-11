@@ -1,0 +1,48 @@
+# design:
+#   motif: "天体 / 月蝕と魔女の写本"
+#   progression: 30
+schemaVersion: 1
+id: selenea_ward_page
+type: MOB
+category: ENEMY
+name: "&b封護の写本守"
+level: 30
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7魔女の防御を強める封護の頁。"
+  - "&7足場から動かず、三分後に周囲を爆発させる。"
+tags:
+  - humanoid
+  - magic
+equipment:
+  mainHand: BOOK
+  offHand: GLOW_INK_SAC
+baseStats:
+  # 召喚時に参加人数補正後のボス最大HPの1/6へ置き換える。
+  - status: MAX_HEALTH
+    value: 25333.333333333332
+  - status: ATTACK
+    value: 0
+  - status: DEFENSE
+    value: 3816
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 0
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 1
+  combat:
+    style: MAGIC
+    preferredRange: 0

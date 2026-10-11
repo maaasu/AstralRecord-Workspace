@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Predicate;
 
 /**
  * ボス固有のフェーズ、予兆攻撃、召喚、地形破壊を同期 tick で管理します。
@@ -163,6 +164,7 @@ public final class BossMechanicService {
     private final VentosEncounterController ventosEncounterController;
     private final KnockerEncounterController knockerEncounterController;
     private final SeleneaEncounterController seleneaEncounterController;
+    private final SeleneaSupportController seleneaSupportController;
     private final Map<UUID, Set<UUID>> seleneaDirectParticipants = new HashMap<>();
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
@@ -238,6 +240,30 @@ public final class BossMechanicService {
             mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
         );
+        this.seleneaSupportController = new SeleneaSupportController(
+            mobService, particleDisplayService, this::seleneaParticipants,
+            (boss, player) -> damageService.applyLethalMechanicDamage(
+                AstEntity.mob(boss), damageService.resolveEntity(player))
+        );
+    }
+
+    /**
+     * セレネア専用フィールドのマスタIDに基づく実ワールド判定を設定します。
+     * @param resolver 元ワールドと登録済みインスタンスを判定する同期関数
+     */
+    public void setSeleneaFieldResolver(@NotNull Predicate<MobInstance> resolver) {
+        seleneaSupportController.setFieldResolver(resolver);
+        seleneaEncounterController.setFieldResolver(resolver);
+    }
+
+    /**
+     * 生存する写本守の割合に基づく被ダメージ倍率を返します。初撃時も召喚を保証します。
+     * @param victim 被弾対象
+     * @return 専用魔女では0〜1、それ以外では1
+     */
+    public double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
+        return victim.isMob() && victim.mob() != null
+            ? seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks) : 1.0D;
     }
 
     /**
@@ -249,6 +275,7 @@ public final class BossMechanicService {
         this.temporarySkillEffectService = temporarySkillEffectService;
         knockerEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
         seleneaEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
+        seleneaSupportController.setTemporarySkillEffectService(temporarySkillEffectService);
         vesperalaEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
     }
 
@@ -290,6 +317,7 @@ public final class BossMechanicService {
         ventosEncounterController.clear(bossInstanceId);
         knockerEncounterController.clear(bossInstanceId);
         seleneaEncounterController.clear(bossInstanceId);
+        seleneaSupportController.clear(bossInstanceId);
         seleneaDirectParticipants.remove(bossInstanceId);
     }
 
@@ -327,6 +355,7 @@ public final class BossMechanicService {
         ventosEncounterController.clearAll();
         knockerEncounterController.clearAll();
         seleneaEncounterController.clearAll();
+        seleneaSupportController.clearAll();
         seleneaDirectParticipants.clear();
     }
 
@@ -362,7 +391,13 @@ public final class BossMechanicService {
 
             if (selenea) {
                 activeSeleneas.add(boss.instanceId());
-                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                boolean dedicatedField = seleneaSupportController.isField(boss);
+                seleneaSupportController.tick(boss, entity, clockTicks);
+                if (mobService.getInstance(boss.instanceId()) != boss || boss.currentHealth() <= 0.0D) {
+                    activeSeleneas.remove(boss.instanceId());
+                    continue;
+                }
+                if (!dedicatedField && (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE)) {
                     seleneaEncounterController.clear(boss.instanceId());
                     seleneaDirectParticipants.remove(boss.instanceId());
                 } else if (!conditionService.canRunAi(AstEntity.mob(boss))
@@ -370,6 +405,11 @@ public final class BossMechanicService {
                     seleneaEncounterController.cancelCast(boss.instanceId());
                 } else {
                     seleneaEncounterController.tick(boss, entity, clockTicks);
+                }
+                if (dedicatedField) {
+                    // 外周足場への転送を通常AIの敵対解除・帰還として扱わない。
+                    boss.scriptedAction(true);
+                    mobService.stopPathfinding(boss);
                 }
                 continue;
             }
@@ -516,6 +556,7 @@ public final class BossMechanicService {
         ventosEncounterController.retain(activeVentoses);
         knockerEncounterController.retain(activeKnockers);
         seleneaEncounterController.retain(activeSeleneas);
+        seleneaSupportController.retain(activeSeleneas);
         seleneaDirectParticipants.keySet().retainAll(activeSeleneas);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
@@ -2567,12 +2608,24 @@ public final class BossMechanicService {
      * @return 専用会場制約のないMobはtrue。対象ボスでは場内参加者または直接召喚の初撃だけtrue
      */
     public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (victim.isMob() && seleneaSupportController.ownsAdd(victim.id())) {
+            MobInstance ownerBoss = seleneaSupportController.ownerForAdd(victim.id());
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (ownerBoss == null || owner == null || !seleneaEligible(ownerBoss, owner.getBukkit())) return false;
+            if (!bossChallengeService.isBossMob(ownerBoss.instanceId())
+                && !dungeonService.isDungeonMob(ownerBoss.instanceId())) {
+                captureSeleneaParty(ownerBoss, owner.getBukkit());
+            }
+            return seleneaParticipants(ownerBoss).contains(owner.getBukkit());
+        }
         if (victim.isMob() && SeleneaEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
             var owner = attacker == null ? null : attacker.combatOwner();
             if (owner == null) return false;
             Player player = owner.getBukkit();
             MobInstance boss = victim.mob();
-            if (!seleneaEligible(boss, player) || !SeleneaArena.inArena(player.getLocation(), boss.spawnLocation())) return false;
+            if (!seleneaEligible(boss, player)
+                || !seleneaSupportController.isField(boss)
+                    && !SeleneaArena.inArena(player.getLocation(), boss.spawnLocation())) return false;
             if (!bossChallengeService.isBossMob(boss.instanceId()) && !dungeonService.isDungeonMob(boss.instanceId())) {
                 captureSeleneaParty(boss, player);
             }
@@ -2627,7 +2680,7 @@ public final class BossMechanicService {
     /**
      * セレネアの挑戦・ダンジョン確定参加者、または直接召喚の固定パーティーを返します。
      * @param boss 同期処理中の魔女
-     * @return 同一world・32m・高さ±3m内の戦闘可能な参加者
+     * @return 通常会場では32m・高さ±3m、専用フィールドでは四方向の足場と跳躍を含む生存参加者
      */
     private @NotNull List<Player> seleneaParticipants(@NotNull MobInstance boss) {
         Set<UUID> ids;
@@ -2656,14 +2709,16 @@ public final class BossMechanicService {
      */
     private void captureSeleneaParty(@NotNull MobInstance boss, @NotNull Player owner) {
         if (seleneaDirectParticipants.containsKey(boss.instanceId()) || !seleneaEligible(boss, owner)
-            || !SeleneaArena.inArena(owner.getLocation(), boss.spawnLocation())) return;
+            || !seleneaSupportController.isField(boss)
+                && !SeleneaArena.inArena(owner.getLocation(), boss.spawnLocation())) return;
         Set<UUID> roster = new LinkedHashSet<>();
         roster.add(owner.getUniqueId());
         Party party = partyService.findParty(owner.getUniqueId());
         if (party != null) {
             party.members().stream().sorted().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
                 .filter(player -> seleneaEligible(boss, player))
-                .filter(player -> SeleneaArena.inArena(player.getLocation(), boss.spawnLocation()))
+                .filter(player -> seleneaSupportController.isField(boss)
+                    || SeleneaArena.inArena(player.getLocation(), boss.spawnLocation()))
                 .filter(player -> !player.getUniqueId().equals(owner.getUniqueId())).limit(5)
                 .forEach(player -> roster.add(player.getUniqueId()));
         }
@@ -2671,13 +2726,15 @@ public final class BossMechanicService {
         BossMobScalingService.apply(boss, roster.size());
     }
 
-    /** @return 見学・死亡・別world・別階を除いた、場外帰還予兆も受けられる参加者ならtrue */
+    /** @return 見学・死亡を除き、通常会場の戦闘階または専用フィールドの足場・跳躍領域にいるならtrue */
     private boolean seleneaEligible(@NotNull MobInstance boss, @NotNull Player player) {
         return player.isOnline() && !player.isDead() && damageService.isMobCombatTarget(player)
             && player.getGameMode() != org.bukkit.GameMode.CREATIVE
             && player.getGameMode() != org.bukkit.GameMode.SPECTATOR
-            && SeleneaArena.sameFloor(player.getLocation(), boss.spawnLocation())
-            && SeleneaArena.squared(player.getLocation(), boss.spawnLocation()) <= TARGET_RANGE * TARGET_RANGE;
+            && (seleneaSupportController.isField(boss)
+                ? SeleneaArena.inFieldArena(player.getLocation(), boss.spawnLocation())
+                : SeleneaArena.sameFloor(player.getLocation(), boss.spawnLocation())
+                    && SeleneaArena.squared(player.getLocation(), boss.spawnLocation()) <= TARGET_RANGE * TARGET_RANGE);
     }
 
     private @NotNull List<Player> nearbyManagedPlayers(@NotNull Location center, double radius) {

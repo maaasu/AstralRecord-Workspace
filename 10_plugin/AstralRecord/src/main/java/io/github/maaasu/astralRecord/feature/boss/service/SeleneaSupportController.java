@@ -31,7 +31,6 @@ import java.util.function.Predicate;
  * 実体とHPはMobService、致死ダメージと参加権限は呼び出し側を正本とします。
  */
 final class SeleneaSupportController {
-    static final String FIELD_WORLD_ID = "vanaheim_boss_selenea_field";
     private static final String WARD_EFFECT = "selenea_support_ward";
     private static final String WRATH_EFFECT = "selenea_support_wrath";
     private static final long HEAL_INTERVAL = 60L;
@@ -187,6 +186,7 @@ final class SeleneaSupportController {
             return;
         }
         clearBuffs(state.boss.instanceId());
+        state.boss.keepWhenUnobserved(state.originalBossRetention);
         state.orbs.clear();
         state.portalCooldowns.clear();
         for (Add add : state.adds.values()) addOwners.remove(add.instanceId);
@@ -217,6 +217,8 @@ final class SeleneaSupportController {
         if (!Double.isFinite(boss.maxHealth()) || boss.maxHealth() < 6.0D) return null;
         Encounter state = new Encounter(boss, currentTick);
         encounters.put(boss.instanceId(), state);
+        // 外周足場の攻略中も、通常AIの60秒無人回収で所有ボスを失わない。
+        boss.keepWhenUnobserved(true);
         try {
             for (Role role : Role.values()) {
                 Location anchor = offset(state.center, role, 60.0D, 3.0D);
@@ -451,6 +453,7 @@ final class SeleneaSupportController {
     /** 四体、最大四弾、参加者ごとの転送制限を所有する一遭遇です。 */
     private static final class Encounter {
         private final MobInstance boss;
+        private final boolean originalBossRetention;
         private final Location center;
         private final Map<Role, Add> adds = new EnumMap<>(Role.class);
         private final List<Orb> orbs = new ArrayList<>(4);
@@ -463,6 +466,7 @@ final class SeleneaSupportController {
         /** 召喚基準を実際のboss.spawnLocationに固定し、全体の180秒期限を設定します。 */
         private Encounter(MobInstance boss, long tick) {
             this.boss = boss;
+            originalBossRetention = boss.keepWhenUnobserved();
             center = boss.spawnLocation();
             detonateAt = tick + DETONATION_DELAY;
             nextHealAt = tick + HEAL_INTERVAL;

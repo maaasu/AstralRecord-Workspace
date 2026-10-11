@@ -63,6 +63,18 @@ final class SeleneaArena {
         return sameFloor(point, center) && squared(point, center) <= RADIUS * RADIUS;
     }
 
+    /**
+     * 専用フィールドで中央、四方向の足場、高跳びを含む参加領域を判定します。
+     * @param point 参加者の現在位置
+     * @param center ボス出現位置
+     * @return 同一world・水平75m以内・高さ差-8〜40mならtrue
+     */
+    static boolean inFieldArena(Location point, Location center) {
+        double height = point.getY() - center.getY();
+        return point.getWorld() == center.getWorld() && height >= -8.0D && height <= 40.0D
+            && squared(point, center) <= 75.0D * 75.0D;
+    }
+
     /** @return 同一worldかつ出現高さとの差が3m以内ならtrue */
     static boolean sameFloor(Location point, Location center) {
         return point.getWorld() == center.getWorld() && Math.abs(point.getY() - center.getY()) <= 3.0D;

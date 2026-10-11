@@ -883,6 +883,29 @@ public final class DamageService {
     }
 
     /**
+     * 即死を要求する会場ギミックのHP被害を共通死亡処理へ渡します。
+     * 防御・回避・シールド・一時倍率を通さず、残HPを一度だけ消費します。
+     * @param attacker ギミックを所有するMob。報酬・死亡回数の帰属元
+     * @param victim 生存する通常アカウントの参加プレイヤー
+     * @return 実際に適用した固定HPダメージ。対象外・既死亡なら0
+     */
+    public @NotNull DamageResult applyLethalMechanicDamage(
+            @NotNull AstEntity attacker, @NotNull AstEntity victim
+    ) {
+        if (!victim.isPlayer() || victim.player() == null || isPlayerDead(victim.id())
+                || !isMobCombatTarget(victim.player().getBukkit()) || isInvulnerable(victim)
+                || !canApplyPlayerDamage(attacker, victim)
+                || bossMechanicService != null && !bossMechanicService.canApplyCombatDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
+        ensureStatusLoaded(victim);
+        DamageResult result = new DamageResult(0.0D).withAddedFixedHealthDamage(Math.max(0.0D, victim.currentHealth()));
+        applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
+        spawnDamageDisplay(attacker, victim, result);
+        return result;
+    }
+
+    /**
      * 状態異常由来のダメージを custom combat 経路へ流します。
      *
      * @param attacker 付与元。環境由来なら null
@@ -1272,7 +1295,7 @@ public final class DamageService {
                 && calculated.finalDamage() <= 0.0D
                 && isDirectDamage(source)
                 && !hasActiveShield(victim)) {
-            double fixedHealthDamage = fixedHealthDamage(attacker);
+            double fixedHealthDamage = fixedHealthDamage(attacker) * seleneaSupportDamageMultiplier(victim);
             if (fixedHealthDamage > 0.0D) {
                 justDodgeDamage = calculated.withAddedFixedHealthDamage(
                         fixedHealthDamage);
@@ -1308,7 +1331,7 @@ public final class DamageService {
                 shieldBreakRatio);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(
-                    fixedHealthDamage(attacker));
+                    fixedHealthDamage(attacker) * seleneaSupportDamageMultiplier(victim));
         }
         double rawFixedHealthDamage = result.fixedHealthDamage();
         PaladinGuardianProtectRuntimeService.DamageShare protectionShare = null;
@@ -1547,12 +1570,13 @@ public final class DamageService {
         }
     }
 
-    /** バフの被ダメージ軽減率と、既存の一時与・被ダメージ倍率を乗算します。 */
+    /** バフ、一時与・被ダメージ倍率、専用フィールドの生存写本守による軽減を乗算します。 */
     private double temporaryDamageMultiplier(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim
     ) {
-        double reduction = damageReductionMultiplier(victim.statValue(StatusType.DAMAGE_REDUCTION_RATE));
+        double reduction = damageReductionMultiplier(victim.statValue(StatusType.DAMAGE_REDUCTION_RATE))
+                * seleneaSupportDamageMultiplier(victim);
         if (temporarySkillEffectService == null) {
             return reduction;
         }
@@ -1560,6 +1584,11 @@ public final class DamageService {
                 ? 1.0D
                 : temporarySkillEffectService.outgoingMultiplier(attacker);
         return reduction * outgoing * temporarySkillEffectService.incomingMultiplier(victim);
+    }
+
+    /** @return 専用魔女の生存写本守による被ダメージ倍率。それ以外は1 */
+    private double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
+        return bossMechanicService == null ? 1.0D : bossMechanicService.seleneaSupportDamageMultiplier(victim);
     }
 
     /**

@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.boss.gui.BossChallengeCancelGui;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
+import io.github.maaasu.astralRecord.feature.boss.service.SeleneaFieldJumpService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
@@ -615,6 +616,7 @@ public final class AstralRecord extends JavaPlugin {
     private BossFieldInstanceService bossFieldInstanceService;
     private BossChallengeService bossChallengeService;
     private BossMechanicService bossMechanicService;
+    private SeleneaFieldJumpService seleneaFieldJumpService;
     private BossChallengeCancelGui bossChallengeCancelGui;
     private DungeonService dungeonService;
     private ChallengeWaitingHubArrivalGuard arrivalGuard;
@@ -890,6 +892,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (bossMechanicService != null) {
             bossMechanicService.stop();
+        }
+        if (seleneaFieldJumpService != null) {
+            seleneaFieldJumpService.stop();
         }
         if (dungeonService != null) {
             dungeonService.stop();
@@ -1617,6 +1622,13 @@ public final class AstralRecord extends JavaPlugin {
             conditionService,
             particleDisplayService
         );
+        bossMechanicService.setSeleneaFieldResolver(boss -> {
+            var world = boss.spawnLocation().getWorld();
+            var master = world == null ? null : worldService.findByBukkitWorld(world);
+            return master != null && SeleneaFieldJumpService.FIELD_WORLD_ID.equals(master.id());
+        });
+        seleneaFieldJumpService = new SeleneaFieldJumpService(this, worldService, playerDeathService);
+        getServer().getPluginManager().registerEvents(seleneaFieldJumpService, this);
         bossChallengeCancelGui = new BossChallengeCancelGui();
         damageService.setBossMechanicService(bossMechanicService);
         playerHudService = new PlayerHudService(
@@ -1992,6 +2004,7 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService
         );
         playerDeathService.setDeathStartedListener(playerId -> {
+            seleneaFieldJumpService.clearPlayer(playerId);
             clearSkillbookCombatState(playerId);
             activeSkillLifecycleService.clearAll(playerId);
             PhantomArcherCastLifecycle.clearOwner(playerId);
@@ -2950,6 +2963,7 @@ public final class AstralRecord extends JavaPlugin {
         questService.start();
         bossChallengeService.start();
         bossMechanicService.start();
+        seleneaFieldJumpService.start();
         passiveSkillService.start();
         skillTreeService.start();
         // インベントリオートセーブ（60 秒）を開始
