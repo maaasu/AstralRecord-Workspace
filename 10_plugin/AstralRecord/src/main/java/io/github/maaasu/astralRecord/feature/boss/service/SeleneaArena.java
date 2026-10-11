@@ -87,13 +87,18 @@ final class SeleneaArena {
     /**
      * 通常呪文とボスへの攻撃を同じ中央の参加範囲へ限定します。
      * @param point 足元 @param center 会場中心 @param radius 攻撃半径 @param field 専用フィールドか
-     * @return 専用では参加高さ内の水平円かつ直下の床が戦闘階、通常では足元が高さ±3mの円内ならtrue
+     * @return 専用では参加高さ内の水平円かつ直下の床が中心の高さ±0.6m、通常では足元が高さ±3mの円内ならtrue
      */
     static boolean inAttackArena(Location point, Location center, double radius, boolean field) {
         if (squared(point, center) > radius * radius) return false;
         if (!field) return sameFloor(point, center);
         Location floor = ground(point, center, true);
-        return floor != null && sameFloor(floor, center);
+        return floor != null && battleFloor(floor, center);
+    }
+
+    /** 投影済みの床だけを中央戦闘階の段差0.6m以内で判定し、孤立した下段床を除外します。 */
+    private static boolean battleFloor(Location floor, Location center) {
+        return floor.getWorld() == center.getWorld() && Math.abs(floor.getY() - center.getY()) <= 0.6D;
     }
 
     /**
