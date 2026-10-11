@@ -7,9 +7,9 @@ displayName: "風切りの草原"
 recommendedLevel: 15
 entry:
   worldRef: world:vanaheim_supercontinent
-  x: -1149.5
-  y: 107.0
-  z: 1480.5
+  x: -869.5
+  y: 119.5
+  z: 1101.6
   yaw: 0.0
   pitch: 0.0
 party:
