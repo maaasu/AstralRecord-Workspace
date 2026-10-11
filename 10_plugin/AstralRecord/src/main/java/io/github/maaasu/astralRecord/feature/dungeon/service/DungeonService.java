@@ -2195,7 +2195,7 @@ public final class DungeonService {
      *
      * @param playerId 操作プレイヤー UUID
      * @param sessionId セッション ID
-     * @return 中止権限があれば {@code true}
+     * @return 中止またはクリア後の終了権限があれば {@code true}
      */
     public boolean isSessionLeader(@NotNull UUID playerId, @NotNull UUID sessionId) {
         Session session = sessionsById.get(sessionId);
@@ -2205,11 +2205,30 @@ public final class DungeonService {
         return party != null && session.partyKey.equals("party:" + party.getPartyId()) && party.isLeader(playerId);
     }
 
-    /** リーダーによる全員強制帰還付き中止を実行します。 */
+    /**
+     * クリア後の報酬待機中かを返し、操作GUIの終了表示に使います。
+     * @param sessionId 対象セッションID
+     * @return クリア済みかつ終了処理前なら {@code true}。未登録の場合は {@code false}
+     */
+    public boolean isClearedWaiting(@NotNull UUID sessionId) {
+        Session session = sessionsById.get(sessionId);
+        return session != null && session.cleared && !session.ending;
+    }
+
+    /**
+     * リーダーによる全員強制帰還付き中止、またはクリア後の即時終了を実行します。
+     * @param playerId 操作プレイヤーUUID
+     * @param sessionId 対象セッションID
+     * @return クリア後は FINISHED、クリア前は CANCELLED。権限・セッションが失効した場合は対応する拒否結果
+     */
     public @NotNull CancelResult cancelForLeader(@NotNull UUID playerId, @NotNull UUID sessionId) {
         Session session = sessionsById.get(sessionId);
         if (session == null || session.ending) return CancelResult.NO_SESSION;
         if (!isSessionLeader(playerId, sessionId)) return CancelResult.NOT_LEADER;
+        if (session.cleared) {
+            completeSession(session, EndReason.CLEARED, true);
+            return CancelResult.FINISHED;
+        }
         completeSession(session, EndReason.CANCELLED, false);
         return CancelResult.CANCELLED;
     }
@@ -2218,6 +2237,8 @@ public final class DungeonService {
     private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
         if (session.cleared || session.ending || session.instanceWorld == null) return;
         session.cleared = true;
+        DungeonCancelController controller = cancelControllers.get(session.id);
+        if (controller != null) controller.showFinishPrompt();
         session.roomBossBars.clear();
         List<Player> eligiblePlayers = activePlayersInWorld(session);
         showDungeonClear(eligiblePlayers, session.loaded.definition().displayName());
@@ -5300,9 +5321,10 @@ public final class DungeonService {
         NO_SESSION
     }
 
-    /** 中止確認 GUI の確定結果です。 */
+    /** 中止・クリア後の終了 GUI の確定結果です。 */
     public enum CancelResult {
         CANCELLED,
+        FINISHED,
         NO_SESSION,
         NOT_LEADER
     }

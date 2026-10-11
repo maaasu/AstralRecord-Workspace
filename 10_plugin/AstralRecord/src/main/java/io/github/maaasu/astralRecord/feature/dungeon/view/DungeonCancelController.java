@@ -88,6 +88,11 @@ public final class DungeonCancelController {
         }
     }
 
+    /** クリア確定時に、装置の案内を終了GUIへ切り替えます。 */
+    public void showFinishPrompt() {
+        promptDisplay.setText(PlayerMsgResource.getMessage(PlayerMsgId.P_7728.getId()));
+    }
+
     /** @return セッション ID */
     public @NotNull UUID sessionId() { return sessionId; }
 

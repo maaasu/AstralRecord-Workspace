@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.view;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -85,12 +87,17 @@ public final class BossChallengeCancelController {
         interaction.setInteractionHeight(1.8F);
         DisplayTextService.ManagedTextDisplay promptDisplay = displayTextService.create(
                 DisplayAnchor.fixed(center.clone().add(0.0D, 2.25D, 0.0D)),
-                DisplayTextOptions.defaults("&cボス挑戦操作\n&eドロップ&fで中止GUIを開く")
+                DisplayTextOptions.defaults(PlayerMsgResource.getMessage(PlayerMsgId.P_7720.getId()))
                         .withLineWidth(260)
                         .withViewRange(48.0F)
                         .withShadowed(true)
         );
         return new BossChallengeCancelController(challengeId, center, base, top, interaction, promptDisplay);
+    }
+
+    /** 討伐確定時に、装置の案内を終了GUIへ切り替えます。 */
+    public void showFinishPrompt() {
+        promptDisplay.setText(PlayerMsgResource.getMessage(PlayerMsgId.P_7721.getId()));
     }
 
     /**

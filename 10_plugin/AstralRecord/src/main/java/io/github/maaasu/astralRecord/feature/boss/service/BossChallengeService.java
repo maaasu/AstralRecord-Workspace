@@ -980,10 +980,10 @@ public final class BossChallengeService {
     }
 
     /**
-     * プレイヤーが中止操作を開ける挑戦 ID を返します。
+     * プレイヤーが中止・討伐後の終了操作を開ける挑戦 ID を返します。
      *
      * @param playerId プレイヤー UUID
-     * @return 中止可能な挑戦 ID。存在しない場合は null
+     * @return 中止または終了可能な挑戦 ID。存在しない場合は null
      */
     public @Nullable UUID findCancelableChallengeId(@NotNull UUID playerId) {
         for (BossChallengeInstance challenge : challengesById.values()) {
@@ -999,7 +999,7 @@ public final class BossChallengeService {
      *
      * @param playerId 判定対象プレイヤー UUID
      * @param challengeId 挑戦 ID
-     * @return 挑戦中のパーティーリーダーなら true
+     * @return 中止・討伐後の終了が可能な挑戦のパーティーリーダーなら true
      */
     public boolean isChallengeLeader(@NotNull UUID playerId, @NotNull UUID challengeId) {
         BossChallengeInstance challenge = challengesById.get(challengeId);
@@ -1016,11 +1016,11 @@ public final class BossChallengeService {
     }
 
     /**
-     * パーティーリーダーによるボス挑戦中止を実行します。
+     * パーティーリーダーによる中止または討伐後の即時終了を実行します。
      *
      * @param playerId 操作プレイヤー UUID
      * @param challengeId GUI から操作する挑戦 ID。null の場合はプレイヤーの挑戦を検索する
-     * @return 中止結果
+     * @return 中止・終了結果。討伐後は FINISHED、討伐前は STOPPED
      */
     public @NotNull PlayerCancelResult stopChallengeForLeader(
             @NotNull UUID playerId,
@@ -1036,6 +1036,10 @@ public final class BossChallengeService {
         BossChallengeInstance challenge = challengesById.get(resolvedId);
         if (challenge == null) {
             return PlayerCancelResult.NO_CHALLENGE;
+        }
+        if (challenge.state() == BossChallengeState.RESULT_WAITING) {
+            beginChallengeCompletion(challenge, BossChallengeEndReason.DEFEATED);
+            return PlayerCancelResult.FINISHED;
         }
         endChallenge(challenge, BossChallengeEndReason.ADMIN_STOP);
         return PlayerCancelResult.STOPPED;
@@ -1785,6 +1789,8 @@ public final class BossChallengeService {
         long now = System.currentTimeMillis();
         long defeatElapsedSeconds = calculateDefeatElapsedSeconds(challenge.startedAtMs(), now);
         challenge.state(BossChallengeState.RESULT_WAITING);
+        BossChallengeCancelController controller = cancelControllersByChallengeId.get(challenge.challengeId());
+        if (controller != null) controller.showFinishPrompt();
         challenge.resultWaitEndsAtMs(now + DEFEATED_RESULT_WAIT_TICKS * 50L);
         recordBossClearHistory(challenge, now);
         Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), BossChallengeEndReason.DEFEATED.name());
@@ -2010,9 +2016,21 @@ public final class BossChallengeService {
         challengesById.remove(challenge.challengeId());
     }
 
+    /**
+     * 討伐後の結果待機中かを返し、操作GUIの終了表示に使います。
+     * @param challengeId 対象挑戦ID
+     * @return 討伐後の結果待機中なら {@code true}。未登録・終了処理中は {@code false}
+     */
+    public boolean isResultWaiting(@NotNull UUID challengeId) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        return challenge != null && challenge.state() == BossChallengeState.RESULT_WAITING;
+    }
+
+    /** 中止前と討伐後の結果待機を、リーダーの終了操作対象として扱います。 */
     private boolean isCancelable(@NotNull BossChallengeInstance challenge) {
         return challenge.state() == BossChallengeState.PREPARING
-                || challenge.state() == BossChallengeState.IN_PROGRESS;
+                || challenge.state() == BossChallengeState.IN_PROGRESS
+                || challenge.state() == BossChallengeState.RESULT_WAITING;
     }
 
     private void destroyCancelController(@NotNull UUID challengeId) {
@@ -2960,9 +2978,10 @@ public final class BossChallengeService {
     ) {
     }
 
-    /** プレイヤーによる挑戦中止の結果です。 */
+    /** プレイヤーによる挑戦中止・討伐後の終了の結果です。 */
     public enum PlayerCancelResult {
         STOPPED,
+        FINISHED,
         NO_CHALLENGE,
         NOT_LEADER
     }

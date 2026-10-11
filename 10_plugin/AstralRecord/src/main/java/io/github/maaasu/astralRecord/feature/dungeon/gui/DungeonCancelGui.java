@@ -27,29 +27,31 @@ public final class DungeonCancelGui {
 
     /** @param player 表示対象 @param sessionId 中止対象セッション */
     public void open(@NotNull Player player, @NotNull UUID sessionId) {
-        open(player, sessionId, 0L);
+        open(player, sessionId, 0L, false);
     }
 
     /**
-     * ダンジョン中止確認 GUI と緊急転送ボタンを開きます。
+     * ダンジョン中止・クリア後の終了 GUI と緊急転送ボタンを開きます。
      *
      * @param player 表示対象
      * @param sessionId 中止対象セッション
      * @param emergencyCooldownRemainingSeconds 緊急転送の残りクールダウン秒数
+     * @param cleared クリア後の報酬待機中なら終了表示にする
      */
     public void open(
             @NotNull Player player,
             @NotNull UUID sessionId,
-            long emergencyCooldownRemainingSeconds
+            long emergencyCooldownRemainingSeconds,
+            boolean cleared
     ) {
-        Inventory inventory = Bukkit.createInventory(new Holder(sessionId), SIZE,
+        Inventory inventory = Bukkit.createInventory(new Holder(sessionId, cleared), SIZE,
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7037.getId()));
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, GuiItems.create(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of()));
         }
         inventory.setItem(CANCEL_SLOT, GuiItems.create(
                 Material.RED_CONCRETE,
-                PlayerMsgResource.getComponent(PlayerMsgId.P_7038.getId()),
+                PlayerMsgResource.getComponent((cleared ? PlayerMsgId.P_7729 : PlayerMsgId.P_7038).getId()),
                 List.of(PlayerMsgResource.getComponent(PlayerMsgId.P_7039.getId()))
         ));
         inventory.setItem(EMERGENCY_TELEPORT_SLOT, emergencyTeleportItem(emergencyCooldownRemainingSeconds));
@@ -76,9 +78,10 @@ public final class DungeonCancelGui {
         return inventory != null && inventory.getHolder() instanceof Holder holder ? holder.sessionId() : null;
     }
 
-    private record Holder(@NotNull UUID sessionId) implements HotbarShortcutGuiHolder {
+    private record Holder(@NotNull UUID sessionId, boolean cleared) implements HotbarShortcutGuiHolder {
         @Override public @NotNull GuiNavigationDestination getNavigationDestination() {
-            return new GuiNavigationDestination(Material.BARRIER, "ダンジョン中止確認");
+            return new GuiNavigationDestination(Material.BARRIER, PlayerMsgResource.getMessage(
+                    (cleared ? PlayerMsgId.P_7729 : PlayerMsgId.P_7038).getId()));
         }
         @Override public @NotNull Inventory getInventory() { return Bukkit.createInventory(this, SIZE); }
     }

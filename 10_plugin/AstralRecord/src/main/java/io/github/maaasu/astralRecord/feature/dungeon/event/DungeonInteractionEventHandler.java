@@ -201,7 +201,8 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
         }
         GuiSound.OPEN.play(player);
         service.cancelGui().open(
-                player, sessionId, service.emergencyCooldownRemainingSeconds(sessionId));
+                player, sessionId, service.emergencyCooldownRemainingSeconds(sessionId),
+                service.isClearedWaiting(sessionId));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -222,6 +223,7 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
             DungeonService.CancelResult result = service.cancelForLeader(player.getUniqueId(), sessionId);
             switch (result) {
                 case CANCELLED -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7030);
+                case FINISHED -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7730);
                 case NOT_LEADER -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7028);
                 case NO_SESSION -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7029);
             }

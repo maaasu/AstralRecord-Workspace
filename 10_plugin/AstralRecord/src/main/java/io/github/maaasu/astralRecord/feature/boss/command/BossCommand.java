@@ -73,6 +73,7 @@ public final class BossCommand extends AstCommand {
         );
         switch (result) {
             case STOPPED -> sendSuccess(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6528.getId()));
+            case FINISHED -> sendSuccess(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7727.getId()));
             case NOT_LEADER -> sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6526.getId()));
             case NO_CHALLENGE -> sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6527.getId()));
         }

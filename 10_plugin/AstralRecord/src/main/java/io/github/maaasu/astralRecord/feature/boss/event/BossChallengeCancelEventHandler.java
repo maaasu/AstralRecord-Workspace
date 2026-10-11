@@ -154,7 +154,7 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
             return;
         }
         GuiSound.OPEN.play(player);
-        gui.open(player, challengeId);
+        gui.open(player, challengeId, service.isResultWaiting(challengeId));
     }
 
     private void notifyResult(
@@ -165,6 +165,10 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
         switch (result) {
             case STOPPED -> {
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6528);
+                GuiSound.SUCCESS.play(player);
+            }
+            case FINISHED -> {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7727);
                 GuiSound.SUCCESS.play(player);
             }
             case NOT_LEADER -> {

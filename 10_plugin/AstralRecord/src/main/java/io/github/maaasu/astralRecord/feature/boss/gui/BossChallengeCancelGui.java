@@ -1,10 +1,11 @@
 package io.github.maaasu.astralRecord.feature.boss.gui;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -22,16 +23,17 @@ public final class BossChallengeCancelGui {
     public static final int CANCEL_SLOT = 13;
 
     /**
-     * ボス挑戦中止 GUI を開きます。
+     * ボス挑戦の中止または討伐後の終了 GUI を開きます。
      *
      * @param player 表示対象プレイヤー
      * @param challengeId 対象挑戦 ID
+     * @param defeated 討伐後の結果待機中なら終了表示にする
      */
-    public void open(@NotNull Player player, @NotNull UUID challengeId) {
+    public void open(@NotNull Player player, @NotNull UUID challengeId, boolean defeated) {
         Inventory inventory = Bukkit.createInventory(
-                new Holder(challengeId),
+                new Holder(challengeId, defeated),
                 SIZE,
-                Component.text("ボス挑戦操作", NamedTextColor.RED)
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7726.getId())
         );
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, GuiItems.create(
@@ -42,8 +44,9 @@ public final class BossChallengeCancelGui {
         }
         inventory.setItem(CANCEL_SLOT, GuiItems.create(
                 Material.RED_CONCRETE,
-                Component.text("ボス挑戦を中止", NamedTextColor.RED),
-                java.util.List.of(Component.text("クリックで挑戦を中止します", NamedTextColor.GRAY))
+                PlayerMsgResource.getComponent((defeated ? PlayerMsgId.P_7724 : PlayerMsgId.P_7722).getId()),
+                java.util.List.of(PlayerMsgResource.getComponent(
+                        (defeated ? PlayerMsgId.P_7725 : PlayerMsgId.P_7723).getId()))
         ));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
@@ -71,10 +74,11 @@ public final class BossChallengeCancelGui {
         return null;
     }
 
-    private record Holder(@NotNull UUID challengeId) implements HotbarShortcutGuiHolder {
+    private record Holder(@NotNull UUID challengeId, boolean defeated) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull GuiNavigationDestination getNavigationDestination() {
-            return new GuiNavigationDestination(Material.BARRIER, "ボス挑戦中止確認");
+            return new GuiNavigationDestination(Material.BARRIER, PlayerMsgResource.getMessage(
+                    (defeated ? PlayerMsgId.P_7724 : PlayerMsgId.P_7722).getId()));
         }
 
         @Override
