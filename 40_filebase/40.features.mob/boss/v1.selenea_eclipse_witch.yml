@@ -58,7 +58,7 @@ ai:
 #   fieldWorldId: vanaheim_boss_selenea_field
 #   entryLocation:
 #     worldId: vanaheim_supercontinent
-#     # 幽翠のトウヒ館の受付X=-1159.5から、X方向へ+3ブロック。
+#     # 幽翠のトウヒ館の旧仮受付X=-1159.5を基準に、X方向へ+3ブロックとした案。
 #     x: -1156.5
 #     y: 107.0
 #     z: 1480.5
