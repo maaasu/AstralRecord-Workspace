@@ -247,24 +247,24 @@ final class SeleneaSupportController {
         try { clearBuffs(state.boss.instanceId()); }
         catch (RuntimeException cleanupFailure) {
             if (failure == null) failure = cleanupFailure;
-            else failure.addSuppressed(cleanupFailure);
+            else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
         }
         for (Add add : state.adds.values()) {
             try { mobs.destroy(add.instanceId); }
             catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
-                else failure.addSuppressed(cleanupFailure);
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
             }
         }
         try { gatePlatforms.release(instanceId); }
         catch (RuntimeException cleanupFailure) {
             if (failure == null) failure = cleanupFailure;
-            else failure.addSuppressed(cleanupFailure);
+            else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
         }
         try { chunkLeases.release(instanceId); }
         catch (RuntimeException cleanupFailure) {
             if (failure == null) failure = cleanupFailure;
-            else failure.addSuppressed(cleanupFailure);
+            else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
         }
         if (failure != null) throw failure;
     }
@@ -276,7 +276,7 @@ final class SeleneaSupportController {
             try { clear(bossId); }
             catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
-                else failure.addSuppressed(cleanupFailure);
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
             }
         }
         addOwners.clear();
@@ -333,7 +333,9 @@ final class SeleneaSupportController {
     /** 元の例外を保持しながら、途中で残った遭遇・表示・chunk所有権を回収します。 */
     private void clearAfterFailure(UUID bossId, RuntimeException failure) {
         try { clear(bossId); }
-        catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
+        catch (RuntimeException cleanupFailure) {
+            if (cleanupFailure != failure) failure.addSuppressed(cleanupFailure);
+        }
     }
 
     /**
@@ -462,19 +464,33 @@ final class SeleneaSupportController {
             if (encounters.get(boss.instanceId()) != state) return;
             announce(state, active, PlayerMsgId.P_7681);
         } catch (RuntimeException exception) {
-            if (encounters.get(boss.instanceId()) == state) clearPartialSummon(state);
+            if (encounters.get(boss.instanceId()) == state) {
+                try { clearPartialSummon(state); }
+                catch (RuntimeException cleanupFailure) {
+                    if (cleanupFailure != exception) exception.addSuppressed(cleanupFailure);
+                }
+            }
             throw exception;
         }
     }
 
-    /** 部分召喚だけを所有関係から外して破棄し、遭遇の保持と再試行期限を維持します。 */
+    /** 部分召喚を先に所有関係から外し、回収例外があっても全個体の破棄を試行します。 */
     private void clearPartialSummon(Encounter state) {
         List<Add> partialAdds = List.copyOf(state.adds.values());
         state.adds.clear();
         state.orbs.clear();
         for (Add add : partialAdds) addOwners.remove(add.instanceId);
-        clearBuffs(state.boss.instanceId());
-        for (Add add : partialAdds) mobs.destroy(add.instanceId);
+        RuntimeException failure = null;
+        try { clearBuffs(state.boss.instanceId()); }
+        catch (RuntimeException cleanupFailure) { failure = cleanupFailure; }
+        for (Add add : partialAdds) {
+            try { mobs.destroy(add.instanceId); }
+            catch (RuntimeException cleanupFailure) {
+                if (failure == null) failure = cleanupFailure;
+                else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
+            }
+        }
+        if (failure != null) throw failure;
     }
 
     /** 登録済みMobとBukkit実体の両方で、生存を確認します。 */
