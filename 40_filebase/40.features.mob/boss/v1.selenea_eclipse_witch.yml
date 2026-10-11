@@ -52,6 +52,27 @@ ai:
   combat:
     style: MAGIC
     preferredRange: 8
+# 座標待ちの挑戦設定。両スポーン座標を確定し、対応するワールド雛形を
+# .yml に変更した後、以下の challenge ブロックを有効化する。
+# challenge:
+#   fieldWorldId: vanaheim_boss_selenea_field
+#   entryLocation:
+#     worldId: vanaheim_supercontinent
+#     # 幽翠のトウヒ館の受付X=-1159.5から、X方向へ+3ブロック。
+#     x: -1156.5
+#     y: 107.0
+#     z: 1480.5
+#     yaw: 0.0
+#     pitch: 0.0
+#   playerSpawnLocation:
+#     x: null
+#     y: null
+#     z: null
+#   bossSpawnLocation:
+#     x: null
+#     y: null
+#     z: null
+
 drops:
   exp: 12000
   items:
