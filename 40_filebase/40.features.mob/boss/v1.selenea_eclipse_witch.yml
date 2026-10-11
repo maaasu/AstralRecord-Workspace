@@ -56,10 +56,9 @@ challenge:
   fieldWorldId: vanaheim_boss_selenea_field
   entryLocation:
     worldId: vanaheim_supercontinent
-    # 幽翠のトウヒ館の受付X=-745.5から、X方向へ+3ブロック。
-    x: -742.5
-    y: 110.0
-    z: 1648.5
+    x: -1052.5
+    y: 118.0
+    z: 806.5
     yaw: 0.0
     pitch: 0.0
   playerSpawnLocation:
