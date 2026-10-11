@@ -5,7 +5,7 @@ schemaVersion: 1
 id: normal_enemy_common_pool_tier_2
 type: LOOT_POOL
 # 全候補を独立判定し、成功候補の間引きによる確率低下を防ぐ。
-pick: 9
+pick: 10
 contents:
   - itemId:
       ref: item:40a00024
@@ -42,4 +42,8 @@ contents:
   - itemId:
       ref: item:50a00003
     rate: 0.5
+    amount: 1
+  - itemId:
+      ref: item:10a00025
+    rate: 12.0
     amount: 1
