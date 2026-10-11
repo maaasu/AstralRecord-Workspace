@@ -37,6 +37,15 @@ final class SeleneaSupportController {
     private static final long ORB_DURATION = 40L;
     private static final long DETONATION_DELAY = 3_600L;
     private static final long GATE_COOLDOWN = 40L;
+    private static final long SUMMON_RETRY_DELAY = 100L;
+    private static final double SUMMON_HEALTH_RATIO = 0.5D;
+    private static final double INNER_GATE_RADIUS = 26.0D;
+    private static final double OUTER_GATE_RADIUS = 58.0D;
+    private static final double ADD_RADIUS = 72.0D;
+    private static final double OUTER_HEIGHT = 3.0D;
+    private static final double GATE_VISUAL_RADIUS = 3.0D;
+    private static final double GATE_CENTER_HEIGHT = 3.2D;
+    private static final double GATE_INTERACTION_RADIUS = 3.2D;
     private static final double DETONATION_RADIUS_SQUARED = 60.0D * 60.0D;
     private static final double HEAL_RATIO = 0.03D;
 
@@ -107,7 +116,8 @@ final class SeleneaSupportController {
     }
 
     /**
-     * 初撃前にも召喚を確定し、生存する写本守1体ごとに25%の軽減を返します。
+     * HP50%以下で初回召喚を試み、生存する写本守1体ごとに25%の軽減を返します。
+     * 初回召喚前は軽減せず、召喚後に回復しても召喚済み状態を維持します。
      * Mob生成の副作用があるため、ダメージ処理のメインスレッドだけで呼び出します。
      * @param boss 被ダメージ対象
      * @param tick 現在のBossMechanicService共通時計。初召喚の180秒期限にも使用します
@@ -117,7 +127,8 @@ final class SeleneaSupportController {
         currentTick = tick;
         if (!isField(boss) || boss.state() == MobState.DEAD || boss.currentHealth() <= 0.0D) return 1.0D;
         Encounter state = ensureEncounter(boss);
-        if (state == null) return 1.0D;
+        summonIfRequired(state);
+        if (encounters.get(boss.instanceId()) != state) return 1.0D;
         syncAddHealth(state);
         refreshBuffs(state);
         long alive = state.adds.values().stream().filter(this::isAlive).count();
@@ -125,7 +136,8 @@ final class SeleneaSupportController {
     }
 
     /**
-     * IDLE中も召喚とカウントダウンを進めます。追加のScheduler taskは作成しません。
+     * フィールド登場時からボスとゲートを保持し、HP50%以下で一度召喚して時計を開始します。
+     * IDLE中も進行し、追加のScheduler taskは作成しません。
      * @param boss 生存する専用フィールドの魔女
      * @param entity 有効なボス実体
      * @param tick 単調増加する共通5tick時計
@@ -138,7 +150,8 @@ final class SeleneaSupportController {
             return;
         }
         Encounter state = ensureEncounter(boss);
-        if (state == null) return;
+        summonIfRequired(state);
+        if (encounters.get(boss.instanceId()) != state) return;
         syncAddHealth(state);
         for (Add add : state.adds.values()) {
             if (isAlive(add)) {
@@ -152,13 +165,13 @@ final class SeleneaSupportController {
                         && player.getWorld() == state.center.getWorld()).toList();
         advanceOrbs(state, tick);
         if (encounters.get(boss.instanceId()) != state) return;
-        if (tick >= state.detonateAt && !state.detonated) {
+        if (state.addsSummoned && tick >= state.detonateAt && !state.detonated) {
             state.detonated = true;
             detonate(state, active);
             if (encounters.get(boss.instanceId()) != state) return;
             refreshBuffs(state);
         }
-        if (tick >= state.nextHealAt) {
+        if (state.addsSummoned && tick >= state.nextHealAt) {
             state.nextHealAt = tick + HEAL_INTERVAL;
             launchHealingOrbs(state, tick);
         }
@@ -209,23 +222,40 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 四体を一度だけ生成し、一体でも生成できなければ部分召喚を回収します。 */
-    private @Nullable Encounter ensureEncounter(MobInstance boss) {
+    /** フィールド登場時からゲートとボス保持を登録し、召喚前にも無人回収を防ぎます。 */
+    private Encounter ensureEncounter(MobInstance boss) {
         Encounter existing = encounters.get(boss.instanceId());
         if (existing != null) return existing;
-        // MobInstanceのHP下限1を避け、要求の実行時HP/6を厳密に設定できる個体だけを扱います。
-        if (!Double.isFinite(boss.maxHealth()) || boss.maxHealth() < 6.0D) return null;
         Encounter state = new Encounter(boss, currentTick);
         encounters.put(boss.instanceId(), state);
         // 外周足場の攻略中も、通常AIの60秒無人回収で所有ボスを失わない。
         boss.keepWhenUnobserved(true);
+        return state;
+    }
+
+    /**
+     * HP50%以下で四体の初回召喚を試み、成功した召喚だけで180秒期限を確定します。
+     * 部分失敗はボスとゲートを保持して回収し、5秒後以降に再試行します。
+     * 召喚成功後は回復や全滅によって再召喚しません。
+     */
+    private void summonIfRequired(Encounter state) {
+        MobInstance boss = state.boss;
+        if (state.addsSummoned || currentTick < state.nextSummonAttemptAt
+                || !Double.isFinite(boss.maxHealth()) || boss.maxHealth() < 6.0D
+                || !Double.isFinite(boss.currentHealth()) || boss.currentHealth() <= 0.0D
+                || boss.currentHealth() > boss.maxHealth() * SUMMON_HEALTH_RATIO) return;
+        state.nextSummonAttemptAt = currentTick + SUMMON_RETRY_DELAY;
         try {
             for (Role role : Role.values()) {
-                Location anchor = offset(state.center, role, 60.0D, 3.0D);
+                Location anchor = offset(state.center, role, ADD_RADIUS, OUTER_HEIGHT);
                 MobInstance add = mobs.spawn(role.templateId, anchor);
                 if (add == null) {
-                    clear(boss.instanceId());
-                    return null;
+                    clearPartialSummon(state);
+                    return;
+                }
+                if (encounters.get(boss.instanceId()) != state) {
+                    mobs.destroy(add.instanceId());
+                    return;
                 }
                 state.adds.put(role, new Add(add.instanceId(), anchor));
                 addOwners.put(add.instanceId(), boss.instanceId());
@@ -240,11 +270,23 @@ final class SeleneaSupportController {
                 mobs.holdPosition(add, anchor);
             }
             refreshBuffs(state);
-            return state;
+            state.addsSummoned = true;
+            state.detonateAt = currentTick + DETONATION_DELAY;
+            state.nextHealAt = currentTick + HEAL_INTERVAL;
         } catch (RuntimeException exception) {
-            clear(boss.instanceId());
+            clearPartialSummon(state);
             throw exception;
         }
+    }
+
+    /** 部分召喚だけを所有関係から外して破棄し、遭遇の保持と再試行期限を維持します。 */
+    private void clearPartialSummon(Encounter state) {
+        List<Add> partialAdds = List.copyOf(state.adds.values());
+        state.adds.clear();
+        state.orbs.clear();
+        for (Add add : partialAdds) addOwners.remove(add.instanceId);
+        clearBuffs(state.boss.instanceId());
+        for (Add add : partialAdds) mobs.destroy(add.instanceId);
     }
 
     /** 登録済みMobとBukkit実体の両方で、生存を確認します。 */
@@ -371,8 +413,8 @@ final class SeleneaSupportController {
                     || player.getWorld() != state.center.getWorld()) continue;
             if (state.portalCooldowns.containsKey(player.getUniqueId())) continue;
             for (Role role : Role.values()) {
-                Location source = offset(state.center, role, 12.0D, 0.0D);
-                Location destination = offset(state.center, role, 46.0D, 3.0D);
+                Location source = offset(state.center, role, INNER_GATE_RADIUS, 0.0D);
+                Location destination = offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT);
                 Location location = player.getLocation();
                 Location target = inGate(location, source) ? destination : inGate(location, destination) ? source : null;
                 if (target == null) continue;
@@ -382,33 +424,51 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 足元位置を基準にゲートの水平半径1.6m・上下の通過範囲を判定します。 */
+    /** 足元位置を基準に大型ゲートの水平半径3.2m・高さ-0.5～6mの通過範囲を判定します。 */
     private static boolean inGate(Location location, Location base) {
         if (location.getWorld() != base.getWorld()) return false;
         double y = location.getY() - base.getY();
         double x = location.getX() - base.getX();
         double z = location.getZ() - base.getZ();
-        return y >= -0.5D && y <= 3.0D && x * x + z * z <= 1.6D * 1.6D;
+        return y >= -0.5D && y <= 6.0D && x * x + z * z <= GATE_INTERACTION_RADIUS * GATE_INTERACTION_RADIUS;
     }
 
-    /** 八個の縦リングを同じ形状で描画し、各方向に対応する色だけを変えます。 */
+    /** 八個の大型二重リングと回転する放射線を役割色で描き、白い光点を一括描画します。 */
     private void renderGates(Encounter state) {
         if (state.center.getWorld() == null || state.center.getWorld().getPlayers().isEmpty()) return;
+        List<Location> accents = new ArrayList<>(96);
+        double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
-            List<Location> points = new ArrayList<>(64);
-            portalRing(offset(state.center, role, 12.0D, 0.0D), role, points);
-            portalRing(offset(state.center, role, 46.0D, 3.0D), role, points);
+            List<Location> points = new ArrayList<>(224);
+            portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
+            portalRing(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT), role, rotation, points, accents);
             particles.spawnForNearbyViewers(points, role.particle());
+        }
+        particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB);
+    }
+
+    /** 縦面に半径3m・2.65mの二重輪と六本の回転放射線を固定上限点数で配置します。 */
+    private static void portalRing(Location base, Role role, double rotation,
+            List<Location> points, List<Location> accents) {
+        for (int index = 0; index < 40; index++) {
+            double angle = Math.PI * 2.0D * index / 40.0D;
+            points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
+            points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS - 0.35D));
+        }
+        for (int spoke = 0; spoke < 6; spoke++) {
+            double angle = rotation + Math.PI * 2.0D * spoke / 6.0D;
+            for (int index = 1; index <= 5; index++) {
+                points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS * index / 5.0D));
+            }
+            accents.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
+            accents.add(portalPoint(base, role, angle + Math.PI / 6.0D, GATE_VISUAL_RADIUS - 0.35D));
         }
     }
 
-    /** 方向へ直交する縦面に半径1.4mのリングを32点で配置します。 */
-    private static void portalRing(Location base, Role role, List<Location> points) {
-        for (int index = 0; index < 32; index++) {
-            double angle = Math.PI * 2.0D * index / 32.0D;
-            double tangent = Math.cos(angle) * 1.4D;
-            points.add(base.clone().add(-role.z * tangent, 1.5D + Math.sin(angle) * 1.4D, role.x * tangent));
-        }
+    /** 方向へ直交する縦面で、床から3.2mの中心を持つ円周上の一点を返します。 */
+    private static Location portalPoint(Location base, Role role, double angle, double radius) {
+        double tangent = Math.cos(angle) * radius;
+        return base.clone().add(-role.z * tangent, GATE_CENTER_HEIGHT + Math.sin(angle) * radius, role.x * tangent);
     }
 
     /** ボスの実際の召喚位置から方向別の相対座標を生成します。 */
@@ -458,18 +518,18 @@ final class SeleneaSupportController {
         private final Map<Role, Add> adds = new EnumMap<>(Role.class);
         private final List<Orb> orbs = new ArrayList<>(4);
         private final Map<UUID, Long> portalCooldowns = new HashMap<>();
-        private final long detonateAt;
+        private long detonateAt;
+        private long nextSummonAttemptAt;
         private long nextHealAt;
         private long nextRenderAt;
+        private boolean addsSummoned;
         private boolean detonated;
 
-        /** 召喚基準を実際のboss.spawnLocationに固定し、全体の180秒期限を設定します。 */
+        /** 実際のboss.spawnLocationを保持し、召喚前は回復・爆発の時計を開始しません。 */
         private Encounter(MobInstance boss, long tick) {
             this.boss = boss;
             originalBossRetention = boss.keepWhenUnobserved();
             center = boss.spawnLocation();
-            detonateAt = tick + DETONATION_DELAY;
-            nextHealAt = tick + HEAL_INTERVAL;
             nextRenderAt = tick;
         }
     }
