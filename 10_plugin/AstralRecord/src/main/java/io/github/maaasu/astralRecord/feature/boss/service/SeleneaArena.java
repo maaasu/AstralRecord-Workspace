@@ -37,7 +37,18 @@ final class SeleneaArena {
      * @return 同一world・高さ±3mで危険領域内ならtrue
      */
     static boolean contains(Shape shape, Location center, Vector direction, List<Location> marks, double radius, Location point) {
-        if (!sameFloor(point, center)) return false;
+        return contains(shape, center, direction, marks, radius, point, false);
+    }
+
+    /**
+     * 専用フィールドでは高跳び中も水平の危険形状で判定します。
+     * @param shape 固定形状 @param center 会場中心 @param direction 固定方向 @param marks 落款中心
+     * @param radius 攻撃半径 @param point 足元 @param field 専用フィールドか
+     * @return 参加高さと水平形状の両方を満たす場合true
+     */
+    static boolean contains(Shape shape, Location center, Vector direction, List<Location> marks,
+                            double radius, Location point, boolean field) {
+        if (field ? !inFieldArena(point, center) : !sameFloor(point, center)) return false;
         double distance = squared(point, center);
         if (shape == Shape.RETURN) return distance > radius * radius
             && distance <= ENGAGEMENT_RADIUS * ENGAGEMENT_RADIUS;
@@ -71,6 +82,16 @@ final class SeleneaArena {
      * @return 同じ戦闘階の指定半径内ならtrue */
     static boolean inArena(Location point, Location center, double radius) {
         return sameFloor(point, center) && squared(point, center) <= radius * radius;
+    }
+
+    /**
+     * 通常呪文とボスへの攻撃を同じ中央の参加範囲へ限定します。
+     * @param point 足元 @param center 会場中心 @param radius 攻撃半径 @param field 専用フィールドか
+     * @return 専用では参加高さ内の水平円、通常では高さ±3mの円内ならtrue
+     */
+    static boolean inAttackArena(Location point, Location center, double radius, boolean field) {
+        return (field ? inFieldArena(point, center) : sameFloor(point, center))
+            && squared(point, center) <= radius * radius;
     }
 
     /**
@@ -131,6 +152,38 @@ final class SeleneaArena {
         return null;
     }
 
+    /**
+     * 専用フィールドの空中の足元を参加高さ内の直下の安全な床へ投影します。
+     * @param point 足元 @param center 会場中心 @param field 専用フィールドか
+     * @return 歩行可能な床。参加範囲外、未ロード、床なしではnull
+     */
+    static @Nullable Location ground(Location point, Location center, boolean field) {
+        if (!field) return ground(point);
+        if (!inFieldArena(point, center) || !loaded(point)) return null;
+        World world = point.getWorld();
+        int minimum = Math.max(world.getMinHeight(), (int) Math.floor(center.getY() - 8.0D) - 1);
+        for (int y = Math.min(point.getBlockY(), world.getMaxHeight() - 1); y >= minimum; y--) {
+            Block floor = world.getBlockAt(point.getBlockX(), y, point.getBlockZ());
+            if (!floor.getType().isSolid() || floor.isPassable()) continue;
+            double top = floor.getBoundingBox().getMaxY();
+            if (top > point.getY() + 0.05D || top < center.getY() - 8.0D || top > center.getY() + 40.0D) continue;
+            Location result = point.clone();
+            result.setY(top);
+            // 最初の固体床が危険・閉塞なら、床を貫通して下の安全床を採用しません。
+            return walkable(result) ? result : null;
+        }
+        return null;
+    }
+
+    /**
+     * クライアント申告の接地flagに依存せず、安全な床面と足元の高さから接地を確認します。
+     * @param point 足元 @return 足元の直下0.1m以内に安全な床がある場合true
+     */
+    static boolean standingOnGround(Location point) {
+        Location floor = ground(point);
+        return floor != null && Math.abs(point.getY() - floor.getY()) <= 0.1D;
+    }
+
     /** 穴、接触ダメージ、頭上2mの障害物を除外します。 */
     private static boolean walkable(Location point) {
         if (!loaded(point)) return false;
@@ -177,7 +230,18 @@ final class SeleneaArena {
      */
     static @Nullable Location safeSpot(Location from, Location center, Shape shape, Vector direction,
                                        List<Location> marks, long warningTicks, double radius) {
-        Location start = ground(from);
+        return safeSpot(from, center, shape, direction, marks, warningTicks, radius, false);
+    }
+
+    /**
+     * 空中参加者も専用フィールドの床へ投影して、同じ水平形状から退避先を探します。
+     * @param from 足元 @param center 会場中心 @param shape 形状 @param direction 固定方向 @param marks 落款
+     * @param warningTicks 退避時間 @param radius 攻撃半径 @param field 専用フィールドか
+     * @return 体幅を含む輪と歩行経路が安全な床。成立しなければnull
+     */
+    static @Nullable Location safeSpot(Location from, Location center, Shape shape, Vector direction,
+                                       List<Location> marks, long warningTicks, double radius, boolean field) {
+        Location start = ground(from, center, field);
         if (start == null) return null;
         double maxDistance = Math.min(radius * 2.0D, warningTicks / 20.0D * 3.0D);
         for (double distance = 0; distance <= maxDistance; distance += 1.0D) {
@@ -185,7 +249,7 @@ final class SeleneaArena {
                 double radians = angle * Math.PI / 12.0D;
                 Location candidate = ground(start.clone().add(Math.cos(radians) * distance, 0,
                     Math.sin(radians) * distance));
-                if (candidate == null || !safeCircle(candidate, center, shape, direction, marks, radius)) continue;
+                if (candidate == null || !safeCircle(candidate, center, shape, direction, marks, radius, field)) continue;
                 if (walkablePath(start, candidate)) return candidate;
             }
         }
@@ -194,14 +258,14 @@ final class SeleneaArena {
 
     /** 表示半径1.5mの安全輪に体幅0.35mの余白を加え、内周と外周の床・危険領域を検査します。 */
     private static boolean safeCircle(Location point, Location center, Shape shape, Vector direction, List<Location> marks,
-                                      double radius) {
-        if (!inArena(point, center, radius) || contains(shape, center, direction, marks, radius, point)
+                                      double radius, boolean field) {
+        if (!inAttackArena(point, center, radius, field) || contains(shape, center, direction, marks, radius, point, field)
             || !walkable(point)) return false;
         for (double ringRadius : new double[]{SAFE_MARGIN_RADIUS / 2.0D, SAFE_MARGIN_RADIUS}) {
             for (int i = 0; i < 16; i++) {
                 Location edge = point.clone().add(Math.cos(i * Math.PI / 8) * ringRadius,
                     0, Math.sin(i * Math.PI / 8) * ringRadius);
-                if (!inArena(edge, center, radius) || contains(shape, center, direction, marks, radius, edge)
+                if (!inAttackArena(edge, center, radius, field) || contains(shape, center, direction, marks, radius, edge, field)
                     || !walkable(edge)) return false;
             }
         }
