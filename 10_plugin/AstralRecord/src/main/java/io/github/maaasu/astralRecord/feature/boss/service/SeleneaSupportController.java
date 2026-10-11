@@ -62,6 +62,7 @@ final class SeleneaSupportController {
     private final Function<MobInstance, List<Player>> participants;
     private final BiConsumer<MobInstance, Player> lethalHit;
     private final SeleneaChunkLeaseRegistry chunkLeases;
+    private final SeleneaGatePlatformRegistry gatePlatforms;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
     private final Map<UUID, UUID> addOwners = new HashMap<>();
     private Predicate<MobInstance> fieldResolver = boss -> false;
@@ -84,6 +85,7 @@ final class SeleneaSupportController {
         this.participants = participants;
         this.lethalHit = lethalHit;
         this.chunkLeases = new SeleneaChunkLeaseRegistry(plugin);
+        this.gatePlatforms = new SeleneaGatePlatformRegistry(plugin);
     }
 
     /**
@@ -240,6 +242,7 @@ final class SeleneaSupportController {
         }
         state.orbs.clear();
         state.portalCooldowns.clear();
+        state.blockedPortalWarnings.clear();
         for (Add add : state.adds.values()) addOwners.remove(add.instanceId);
         try { clearBuffs(state.boss.instanceId()); }
         catch (RuntimeException cleanupFailure) {
@@ -252,6 +255,11 @@ final class SeleneaSupportController {
                 if (failure == null) failure = cleanupFailure;
                 else failure.addSuppressed(cleanupFailure);
             }
+        }
+        try { gatePlatforms.release(instanceId); }
+        catch (RuntimeException cleanupFailure) {
+            if (failure == null) failure = cleanupFailure;
+            else failure.addSuppressed(cleanupFailure);
         }
         try { chunkLeases.release(instanceId); }
         catch (RuntimeException cleanupFailure) {
@@ -290,11 +298,17 @@ final class SeleneaSupportController {
         Encounter existing = encounters.get(boss.instanceId());
         if (existing != null) return existing;
         Encounter state = new Encounter(boss, currentTick);
-        List<Location> essential = new ArrayList<>(13);
+        List<Location> essential = new ArrayList<>(29);
+        List<Location> outerGates = new ArrayList<>(4);
         essential.add(state.center);
         for (Role role : Role.values()) {
             essential.add(offset(state.center, role, INNER_GATE_RADIUS, 0.0D));
-            essential.add(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT));
+            Location outer = offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT);
+            essential.add(outer);
+            outerGates.add(outer);
+            for (double x : new double[]{-3.0D, 3.0D}) {
+                for (double z : new double[]{-3.0D, 3.0D}) essential.add(outer.clone().add(x, -1.0D, z));
+            }
             essential.add(offset(state.center, role, ADD_RADIUS, OUTER_HEIGHT));
         }
         // 同期ChunkLoadEventからの被ダメージ再入も、同じ遭遇へ合流させます。
@@ -304,6 +318,10 @@ final class SeleneaSupportController {
             chunkLeases.acquire(boss.instanceId(), essential);
             if (encounters.get(boss.instanceId()) != state) {
                 throw new IllegalStateException("Encounter was released during chunk loading");
+            }
+            gatePlatforms.acquire(boss.instanceId(), outerGates);
+            if (encounters.get(boss.instanceId()) != state) {
+                throw new IllegalStateException("Encounter was released during gate preparation");
             }
         } catch (RuntimeException failure) {
             if (encounters.get(boss.instanceId()) == state) clearAfterFailure(boss.instanceId(), failure);
@@ -577,6 +595,7 @@ final class SeleneaSupportController {
     /** プレイヤーごとに2秒の再転送制限を設け、同色ゲート間を往復させます。 */
     private void teleportParticipants(Encounter state, List<Player> active, long tick) {
         state.portalCooldowns.entrySet().removeIf(entry -> entry.getValue() <= tick);
+        state.blockedPortalWarnings.entrySet().removeIf(entry -> entry.getValue() <= tick);
         for (Player player : active) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!player.isOnline() || !player.isValid() || player.isDead()
@@ -588,6 +607,14 @@ final class SeleneaSupportController {
                 Location location = player.getLocation();
                 Location target = inGate(location, source) ? destination : inGate(location, destination) ? source : null;
                 if (target == null) continue;
+                if (!SeleneaGatePlatformRegistry.safeLanding(target)) {
+                    if (!state.blockedPortalWarnings.containsKey(player.getUniqueId())) {
+                        state.blockedPortalWarnings.put(player.getUniqueId(), tick + GATE_COOLDOWN);
+                        announce(state, List.of(player), PlayerMsgId.P_7689);
+                    }
+                    break;
+                }
+                if (encounters.get(state.boss.instanceId()) != state) return;
                 if (PlayerTeleportService.teleport(player, target)) state.portalCooldowns.put(player.getUniqueId(), tick + GATE_COOLDOWN);
                 break;
             }
@@ -690,6 +717,7 @@ final class SeleneaSupportController {
         private final Map<Role, Add> adds = new EnumMap<>(Role.class);
         private final List<Orb> orbs = new ArrayList<>(4);
         private final Map<UUID, Long> portalCooldowns = new HashMap<>();
+        private final Map<UUID, Long> blockedPortalWarnings = new HashMap<>();
         private long detonateAt;
         private long nextSummonAttemptAt;
         private long nextHealAt;
