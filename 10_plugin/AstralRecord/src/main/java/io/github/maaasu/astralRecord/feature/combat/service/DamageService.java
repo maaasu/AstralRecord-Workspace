@@ -1340,7 +1340,7 @@ public final class DamageService {
         }
         if (seijakuIssenSkillRuntimeService != null
                 && seijakuIssenSkillRuntimeService.tryCounterDirectDamage(
-                        victim, attacker, source, justDodgeDamage)) {
+                        victim, attacker, source)) {
             return new DamageResult(0.0D);
         }
         Location superStarOrigin = shouldSpawnSuperStarCriticalProjectiles(attacker, victim, calculated, superStarCriticalMode)

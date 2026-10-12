@@ -192,24 +192,22 @@ public final class SeijakuIssenSkillRuntimeService {
 
     /**
      * 構え中の直接攻撃を無効化し、剣気を一つ補充して反撃と横薙ぎの倍率を確定します。
+     * 攻撃元の命中・ミス判定やダメージ量にかかわらず反撃します。
      * 横薙ぎ中の剣気の増減は今回の倍率に影響しません。
      *
      * @param victim 被弾者
      * @param attacker 攻撃元。特定できない場合はnull
      * @param source 攻撃の発生元種別
-     * @param calculated 計算済みダメージ
-     * @return 攻撃を無効化した場合はtrue
+     * @return 攻撃を無効化し、反撃を開始した場合はtrue
      */
     public boolean tryCounterDirectDamage(
             @NotNull AstEntity victim,
             @Nullable AstEntity attacker,
-            @NotNull DamageSource source,
-            @NotNull DamageResult calculated
+            @NotNull DamageSource source
     ) {
         if ((source != DamageSource.NORMAL_ATTACK && source != DamageSource.SKILL)
                 || !victim.isPlayer() || victim.player() == null
-                || attacker == null || attacker.id().equals(victim.id())
-                || calculated.evaded()) {
+                || attacker == null || attacker.id().equals(victim.id())) {
             return false;
         }
         UUID playerId = victim.id();
