@@ -1,0 +1,23 @@
+# design:
+#   motif: "記録媒体 / 栄誉の記録碑"
+#   progression: 0
+schemaVersion: 1
+id: server_record
+displayName: "サーバーレコード"
+worldType: BASE
+baseWorldPath: "plugins/AstralRecord/worlds/base/server_record"
+instanceRootPath: "plugins/AstralRecord/_world_instances/server_record"
+autoLoad: true
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: -46
+  y: 199
+  z: -82
+  yaw: 90.0
+  pitch: 0.0
+description: "冒険者の成長や偉業を記したランキングを閲覧する広場。"

@@ -1,0 +1,44 @@
+# design:
+#   motif: "記録媒体 / 栄誉の記録碑"
+#   progression: 0
+schemaVersion: 1
+id: server_record_guide
+type: MOB
+category: NPC
+name: "&6記録の案内人"
+title: "&eサーバーレコード案内"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAiIDogMTYyMDA2NzgwNzQ4NCwKICAicHJvZmlsZUlkIiA6ICI1ZWE0ODg2NTg2OWI0Y2ZhOWRjNTg5YmFlZWQwNzM5MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJfUllOMF8iLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmYxOGViMGNiM2RkMjNmYTYxMmZlOGJiOWFkNTY2ZWM0NzZmYjlmM2VjOTcyYjIxYWE3YWUwNGJhYWM4ZTFiNiIKICAgIH0KICB9Cn0="
+  signature: "oZsLPurQbQBTG5Y1Nb0aIj2RWtsV/PIQIresRnsUf3XIh+lnDuwoWJjXjm6SVjaodMpGuYIfR63F2nIXdPj7fSOBB3ol/mYCAPIx0oy8FDujpZGJsxKMRDWGyDrG4HHdGlK5Mrm92m/NWw2rIm4Ra6JBQdZq/2t6LZOIkas4pykojyuEoF5dvfxrLE1H+iRREudgmzLCmVwN0i9jDOMnCbRb/p5REvLkLUPhvYkv+iUMrA5eTLSvgxUgNIo10unZqFJ/38S7axZqOx3vmbrfsjBtG2wAsYnqbmi0uriVBSh64/y7+DflO0ZY775siPEaMd4KppagKsAzeXrtvsrE/xNzao//Ny+M83fqrKjtwiksP9hZgQSxqhqQ8adP6YzK1OEM6aIGm1n/qW0lSGNfD1cXjTWLacdJniAdxxcTT8/coh4/zLleUYE9EsX2mAoTqv/XSV+DOKm405sNYnaF33ji70vAEgFL+wBJs4qAfnArfgOYci0GF46FS2Isx53+8y+9EWRvhXI8v7thG/U7aoAb1egQbxDpCV9+H730E/X2vaElqiAfxD19Nufbr7I4VcnvoGZOCemEELmfo2NQNe83/NXNfAjSjvk7MSjRUxVcW+CrTJdRPx1DMEZUhBkdINn69F+/vPqmrNnaXT7XchblYjCfCTNQ0L7mV9NlvaM="
+nameVisible: true
+damageImmune: true
+icon: BOOK
+lore:
+  - "&7冒険者の記録と栄誉が集う広場への案内人。"
+  - "&7右クリックでサーバーレコードへ移動できる。"
+tags:
+  - npc
+  - humanoid
+  - entry
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6記録の案内人&7: 右クリックで冒険者のランキングを見に行けます。"
+  rightClick:
+    - id: command
+      params:
+        command: "serverrecord"
