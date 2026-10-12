@@ -1,0 +1,172 @@
+# design:
+#   motif: "怪談 / 草木をまとうゾンビ"
+#   progression: 16
+schemaVersion: 1
+id: eriva_camouflage_zombie
+type: MOB
+category: ENEMY
+name: "&2エリヴァ・迷彩ゾンビ"
+level: 18
+entityType: ZOMBIE
+variant:
+  age: ADULT
+icon: ZOMBIE_SPAWN_EGG
+lore:
+  - "&7草葉と苔をまとい、平原に紛れるゾンビ。"
+  - "&7近づいた獲物を追い、近接攻撃を仕掛ける。"
+tags:
+  - grassland
+  - undead
+  - humanoid
+  - melee
+
+levels:
+  - level: 18
+    name: "&2エリヴァ・迷彩ゾンビ Lv.18"
+  - level: 20
+    name: "&2エリヴァ・迷彩ゾンビ Lv.20"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 8000
+      - status: ATTACK
+        value: 1449
+      - status: DEFENSE
+        value: 1394
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 240
+  - level: 22
+    name: "&2エリヴァ・迷彩ゾンビ Lv.22"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 10000
+      - status: ATTACK
+        value: 1811
+      - status: DEFENSE
+        value: 1742
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 280
+  - level: 24
+    name: "&2エリヴァ・迷彩ゾンビ Lv.24"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 12000
+      - status: ATTACK
+        value: 2174
+      - status: DEFENSE
+        value: 2090
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 320
+  - level: 26
+    name: "&2エリヴァ・迷彩ゾンビ Lv.26"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 14200
+      - status: ATTACK
+        value: 2572
+      - status: DEFENSE
+        value: 2475
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 360
+  - level: 28
+    name: "&2エリヴァ・迷彩ゾンビ Lv.28"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 16600
+      - status: ATTACK
+        value: 3007
+      - status: DEFENSE
+        value: 2896
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 400
+  - level: 30
+    name: "&2エリヴァ・迷彩ゾンビ Lv.30"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 19000
+      - status: ATTACK
+        value: 3442
+      - status: DEFENSE
+        value: 3318
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 440
+
+equipment:
+  helmet: MOSS_BLOCK
+  chestplate: LEATHER_CHESTPLATE
+  leggings: LEATHER_LEGGINGS
+  boots: LEATHER_BOOTS
+  trim:
+    material: EMERALD
+    pattern: WILD
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 6560
+  - status: ATTACK
+    value: 1188
+  - status: DEFENSE
+    value: 1143
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 95
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+
+drops:
+  exp: 200
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2
