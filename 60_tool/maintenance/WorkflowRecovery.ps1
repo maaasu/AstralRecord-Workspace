@@ -6,8 +6,44 @@ function Test-UpdateWorkflowMigrationEvidence([string]$RunDirectory) {
     return $false
 }
 
+function Test-UpdateWorkflowUndeployedRun([string]$RunDirectory, [string]$Label, [string]$Fingerprint) {
+    $path=Join-Path $RunDirectory 'workflow-state.json'
+    if (!(Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+    $state=Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json -AsHashtable
+    if ($state.schemaVersion -ne 1 -or $state.label -cne $Label -or $state.configurationFingerprint -cne $Fingerprint -or
+        $state.status -cne 'AwaitingDeployment' -or $state.seedStatus -cne 'PENDING') { return $false }
+    if (Test-UpdateWorkflowMigrationEvidence $RunDirectory) { return $false }
+    # Deploying is persisted before invoking any deployment action. Contradictory evidence blocks automatic archival.
+    foreach ($name in @('dev-deployment-progress.json','dev-deploy.log','deploy-action-success.json','deployment.json','patch-publication-result.json')) {
+        if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $false }
+    }
+    return $true
+}
+
+function Stop-UpdateWorkflowConfigurationChange($Active, $State, [string]$RunDirectory, [string]$Fingerprint, [string]$Label) {
+    $status=if ($State) { $State.status } else { '不明（workflow-state.jsonなし）' }
+    $seed=if ($State -and $State.Contains('seedStatus')) { $State.seedStatus } else { '不明' }
+    $entry=if ($Label -eq 'Dev') { '01/02/03' } else { '16' }
+    $guidance=if ($State -and $State.status -in @('WaitingForStartup','PublishingPatch','Completed')) {
+        '配置後の実行記録です。設定を元に戻して再開してください。Devでは前回と同じ更新モード・テスト条件も必要です。起動待ちなら対象サーバーを起動してください。-Recovery Restartではやり直せません。'
+    } else {
+        '配布未着手を確認できません。設定を元に戻して再開するか、前回の配布ログとDB・配置先・子プロセスの終了を確認し、配布失敗時の復旧手順に従ってください。'
+    }
+    throw @"
+Configuration changed while an update workflow run is active.
+このエラーは実行中プロセスの検出ではなく、未完了記録と今回の設定識別値の不一致です。
+前回の状態: $status / マスタ投入: $seed
+前回の記録: $RunDirectory
+前回の識別値: $($Active.configurationFingerprint)
+今回の識別値: $Fingerprint
+$guidance
+$entry の入口で再開できます。識別値だけでは変更項目を特定できません。記録の削除やプロセス終了だけでは解消しません。
+"@
+}
+
 function Get-UpdateWorkflowRecoveryDecision([string]$RunDirectory, [string]$Label, [string]$Fingerprint) {
     if (Test-UpdateWorkflowMigrationEvidence $RunDirectory) { throw '移行記録があります。新規実行へ切り替えず、17-player-patch-migration.bat に同じ設定と実行記録先を指定して再開してください。' }
+    if (Test-UpdateWorkflowUndeployedRun $RunDirectory $Label $Fingerprint) { return @{kind='Fresh';reason='配布未着手の実行記録です。前回の記録を保全して新しい設定で開始します。'} }
     if ($Label -eq 'Dev') {
         if (Test-Path -LiteralPath (Join-Path $RunDirectory 'deploy-action-success.json') -PathType Leaf) { return @{kind='Resume';reason='Dev配置完了済みです。再配布せず再開します。'} }
         $path=Join-Path $RunDirectory 'dev-deployment-progress.json'

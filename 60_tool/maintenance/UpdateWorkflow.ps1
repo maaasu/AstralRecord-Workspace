@@ -280,7 +280,12 @@ function Invoke-UpdateWorkflow {
                 $previousJournal=Get-Content -Raw -Encoding UTF8 -LiteralPath $journalPath | ConvertFrom-Json -AsHashtable
                 $restored=$previousJournal.status -ceq 'Restored'
             }
-            if (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto')) {
+            $configurationChanged=$active.configurationFingerprint -cne $ConfigurationFingerprint
+            if ($configurationChanged -and (Test-UpdateWorkflowUndeployedRun $runDirectory $Label $active.configurationFingerprint)) {
+                $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
+                    -Fingerprint $active.configurationFingerprint -Recovery Auto -ConfigurationChanged
+                if ($archived) { $active=$null }
+            } elseif (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto')) {
                 if ($Recovery -ne 'Auto' -or !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
                     $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
                         -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
@@ -288,8 +293,10 @@ function Invoke-UpdateWorkflow {
                         -ConfigurationChanged:($active.configurationFingerprint -cne $ConfigurationFingerprint)
                     if ($archived) { $active=$null }
                 }
-            } elseif ($Recovery -ne 'Auto') { throw 'この実行は配布失敗状態ではありません。記録を破棄せず、通常の再開を使用してください。' }
-            if ($active -and $active.configurationFingerprint -ne $ConfigurationFingerprint) { throw 'Configuration changed while an update workflow run is active.' }
+            } elseif ($Recovery -ne 'Auto' -and !$configurationChanged) { throw 'この実行は配布失敗状態ではありません。記録を破棄せず、通常の再開を使用してください。' }
+            if ($active -and $configurationChanged) {
+                Stop-UpdateWorkflowConfigurationChange $active $prior $runDirectory $ConfigurationFingerprint $Label
+            }
         }
         if (!$active -or $active.status -eq 'Completed') {
             $run = New-UpdateWorkflowRunDirectory $validated.RunRoot; $runDirectory=$run.Path

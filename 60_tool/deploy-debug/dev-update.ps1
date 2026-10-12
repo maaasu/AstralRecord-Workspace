@@ -89,6 +89,12 @@ try {
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0
     }
+    Write-Host "設定ファイル: $ConfigPath"
+    Write-Host "更新モード: $mode"
+    if ($config.plugin.enabled -and !$MasterDataOnly) {
+        Write-Host "Pluginテスト条件: $($testSelection.Mode)"
+        if ($testSelection.Tests) { Write-Host "対象テスト: $($testSelection.Tests)" }
+    }
     $fingerprint=Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $testSelection
     $deployAction={
         param($RunDirectory)
