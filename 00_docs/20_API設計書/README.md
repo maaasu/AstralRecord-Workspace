@@ -14,6 +14,7 @@
 | `feature/33-network` | ロビーadmission、オンライン所在、サーバー状態、チャット中継 |
 | `feature/39-pet` | 卵・孵化・育成・配合・装備選択・死亡復活の冪等操作 |
 | `feature/40-player-admin-edit` | Web管理者の参加制限・保存退避・オフラインinventory/class/level訂正 |
+| `feature/41-server-records` | 運営を除外したプレイヤー単位のサーバーレコード8種類の一括取得 |
 
 ## 0. 編集ツールと参照記法
 

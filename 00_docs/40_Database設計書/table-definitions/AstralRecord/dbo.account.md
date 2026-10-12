@@ -30,6 +30,7 @@
 | `menu_shortcuts_json` | `NVARCHAR(MAX)` |    |    ○    | `["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]` | 2x2 craft shortcut settings JSON array |
 | `level`        | `INT`              |    |    ○    |  `1`   | プレイヤーレベル。初期値は `1`、最小値も `1`                             |
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 現在のレベル進行に用いる累計経験値。転生開始・終了時は対応する基準値へ置換し、負数不可 |
+| `play_time_seconds` | `BIGINT` | | ○ | `0` | 導入後の通常プレイ（PLAYERモード）累計秒数。player-state差分を冪等加算。アカウント複製時は0から開始 |
 | `highest_level` | `INT` | | ○ | `1` | 過去最高プレイヤーレベル。PP算出元で、現在レベル以上 |
 | `rebirth_original_level` | `INT` | | | | 転生前レベル。転生中だけ現在レベルより大きい値を保持 |
 | `rebirth_experience_remainder` | `SMALLINT` | | ○ | `0` | EXPポイントへ未変換の転生中経験値（0～99） |

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AstralRecordApi.Models;
 
@@ -26,6 +27,8 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? LoginBonusClaims { get; init; }
     public JsonElement? GuideProgress { get; init; }
     public JsonElement? AdventureRecords { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? PlayTime { get; init; }
     public JsonElement? PlayerSettings { get; init; }
     public JsonElement? MailClaim { get; init; }
     public JsonElement? MailDelete { get; init; }
@@ -291,6 +294,13 @@ public sealed class PlayerStateAdventureRecordsSection
     public IReadOnlyList<PlayerStateDungeonClearDelta> DungeonClearDeltas { get; init; } = [];
 }
 
+/// <summary>導入後の通常プレイ時間。snapshotIdの再送は差分を再加算しません。</summary>
+public sealed class PlayerStatePlayTimeSection
+{
+    public Guid AccountId { get; init; }
+    public long DeltaSeconds { get; init; }
+}
+
 public sealed class PlayerStateMobDefeatDelta
 {
     public required string MobId { get; init; }
@@ -357,6 +367,8 @@ public sealed class PlayerStateSnapshotAck
     public JsonElement? LoginBonusClaims { get; init; }
     public JsonElement? GuideProgress { get; init; }
     public JsonElement? AdventureRecords { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? PlayTime { get; init; }
     public JsonElement? PlayerSettings { get; init; }
     public JsonElement? MailClaim { get; init; }
     public JsonElement? MailDelete { get; init; }

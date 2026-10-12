@@ -412,6 +412,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.MenuShortcutsJson).HasColumnName("menu_shortcuts_json");
             entity.Property(account => account.Level).HasColumnName("level");
             entity.Property(account => account.TotalExperience).HasColumnName("total_experience");
+            entity.Property(account => account.PlayTimeSeconds).HasColumnName("play_time_seconds").HasDefaultValue(0L);
             entity.Property(account => account.HighestLevel).HasColumnName("highest_level");
             entity.Property(account => account.RebirthOriginalLevel).HasColumnName("rebirth_original_level");
             entity.Property(account => account.RebirthExperienceRemainder)

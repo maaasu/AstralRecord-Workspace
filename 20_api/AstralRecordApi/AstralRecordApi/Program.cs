@@ -112,6 +112,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGeyserHeadRepository, GeyserHeadRepository>();
 builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository>();
+builder.Services.AddScoped<IServerRecordsRepository, ServerRecordsRepository>();
 builder.Services.AddScoped<IAccountSkillTreeStateRepository, AccountSkillTreeStateRepository>();
 builder.Services.AddScoped<ISkillTreeOperationRepository, SkillTreeOperationRepository>();
 builder.Services.AddScoped<IAccountQuestStateRepository, AccountQuestStateRepository>();

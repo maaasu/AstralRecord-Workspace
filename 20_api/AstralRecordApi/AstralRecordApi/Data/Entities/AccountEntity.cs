@@ -11,6 +11,7 @@ public class AccountEntity
     public string MenuShortcutsJson { get; set; } = """["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]""";
     public int Level { get; set; } = 1;
     public long TotalExperience { get; set; }
+    public long PlayTimeSeconds { get; set; }
     public int HighestLevel { get; set; } = 1;
     public int? RebirthOriginalLevel { get; set; }
     public int RebirthExperienceRemainder { get; set; }

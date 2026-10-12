@@ -654,6 +654,7 @@ public sealed class PlayerStateSnapshotRepository(
             LoginBonusClaims = baseAck.LoginBonusClaims,
             GuideProgress = baseAck.GuideProgress,
             AdventureRecords = baseAck.AdventureRecords,
+            PlayTime = baseAck.PlayTime,
             PlayerSettings = baseAck.PlayerSettings,
             MailClaim = baseAck.MailClaim,
             MailDelete = baseAck.MailDelete,
@@ -676,6 +677,7 @@ public sealed class PlayerStateSnapshotRepository(
         JsonElement? loginBonusClaimsAck = null;
         JsonElement? guideProgressAck = null;
         JsonElement? adventureRecordsAck = null;
+        JsonElement? playTimeAck = null;
         JsonElement? playerSettingsAck = null;
         JsonElement? mailClaimAck = null;
         JsonElement? mailDeleteAck = null;
@@ -802,6 +804,20 @@ public sealed class PlayerStateSnapshotRepository(
             adventureRecordsAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
         }
 
+        if (request.PlayTime.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStatePlayTimeSection>(request.PlayTime.Value);
+            if (section is null || section.AccountId != request.AccountId || section.DeltaSeconds < 0)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "playTime section is invalid.");
+            // Pluginが過去のPLAYER区間を測る正本。保存を待つ間にmodeが複数回変わるため現在modeでは判定できない。
+            if (account.PlayTimeSeconds < 0 || section.DeltaSeconds > long.MaxValue - account.PlayTimeSeconds)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "playTime section conflicts with account total.");
+            account.PlayTimeSeconds += section.DeltaSeconds;
+            account.UpdatedAt = now;
+            account.UpdatedBy = request.UpdatedBy;
+            playTimeAck = JsonSerializer.SerializeToElement(new { accountId = account.Uuid, totalSeconds = account.PlayTimeSeconds }, JsonOptions);
+        }
+
         if (request.PlayerSettings.HasValue)
         {
             var section = TryDeserializeSection<PlayerStatePlayerSettingsSection>(request.PlayerSettings.Value);
@@ -849,6 +865,7 @@ public sealed class PlayerStateSnapshotRepository(
             LoginBonusClaims = loginBonusClaimsAck,
             GuideProgress = guideProgressAck,
             AdventureRecords = adventureRecordsAck,
+            PlayTime = playTimeAck,
             PlayerSettings = playerSettingsAck,
             MailClaim = mailClaimAck,
             MailDelete = mailDeleteAck,
@@ -2204,6 +2221,12 @@ public sealed class PlayerStateSnapshotRepository(
 
     private static bool ValidateSections(PlayerStateSnapshotSaveRequest request)
     {
+        if (request.PlayTime is { } playTimeJson)
+        {
+            var section = TryDeserializeSection<PlayerStatePlayTimeSection>(playTimeJson);
+            if (section is null || section.AccountId != request.AccountId || section.DeltaSeconds < 0)
+                return false;
+        }
         if (request.LearnedSkills is { } learnedJson)
         {
             var section = TryDeserializeSection<PlayerStateLearnedSkillsSection>(learnedJson);

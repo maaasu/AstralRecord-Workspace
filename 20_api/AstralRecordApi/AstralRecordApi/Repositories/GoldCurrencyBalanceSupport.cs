@@ -1,6 +1,7 @@
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace AstralRecordApi.Repositories;
 
@@ -80,6 +81,58 @@ internal static class GoldCurrencyBalanceSupport
             }
         }
         return total;
+    }
+
+    /// <summary>共通の額面表をSQL CASEへ変換し、ランキング集計も残高表示と同じ換算を使います。</summary>
+    internal static IQueryable<GoldAccountAmount> GoldAmounts(AstralRecordDbContext dbContext)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            // EFの既定decimal(18,2) castでは大きなBIGINT quantityを表現できない。
+            // 額面表も値パラメーターとして渡す。
+            var parameters = GoldValues.SelectMany(pair => new object[] { pair.Key, pair.Value }).ToArray();
+            var denominations = string.Join(" ", GoldValues.Select((_, index) => "WHEN {" + index * 2 + "} THEN {" + (index * 2 + 1) + "}"));
+            var sql = $"""
+                SELECT inventory.[account_id] AS [AccountId],
+                    CAST(entry.[quantity] AS decimal(38,0)) *
+                    CASE LOWER(entry.[item_id]) {denominations} ELSE 0 END AS [Amount]
+                FROM [dbo].[inventory_entry] AS entry
+                INNER JOIN [dbo].[inventory] AS inventory ON entry.[inventory_id] = inventory.[inventory_id]
+                WHERE entry.[is_deleted] = 0 AND entry.[quantity] > 0 AND entry.[item_id] IS NOT NULL
+                    AND inventory.[is_deleted] = 0 AND inventory.[is_enabled] = 1
+                    AND inventory.[inventory_type] = 'CURRENCY' AND inventory.[inventory_profile] = 'GAME'
+                """;
+            return dbContext.Database.SqlQuery<GoldAccountAmount>(System.Runtime.CompilerServices.FormattableStringFactory.Create(sql, parameters));
+        }
+        var entry = Expression.Parameter(typeof(InventoryEntryEntity), "entry");
+        var itemId = Expression.Property(entry, nameof(InventoryEntryEntity.ItemId));
+        var normalizedId = Expression.Call(itemId, nameof(string.ToLower), Type.EmptyTypes);
+        Expression denomination = Expression.Constant(0m);
+        foreach (var pair in GoldValues)
+            denomination = Expression.Condition(Expression.Equal(normalizedId, Expression.Constant(pair.Key)),
+                Expression.Constant((decimal)pair.Value), denomination);
+        var amount = Expression.Multiply(Expression.Convert(Expression.Property(entry, nameof(InventoryEntryEntity.Quantity)), typeof(decimal)), denomination);
+        var projection = Expression.MemberInit(Expression.New(typeof(GoldEntryAmount)),
+            Expression.Bind(typeof(GoldEntryAmount).GetProperty(nameof(GoldEntryAmount.InventoryId))!, Expression.Property(entry, nameof(InventoryEntryEntity.InventoryId))),
+            Expression.Bind(typeof(GoldEntryAmount).GetProperty(nameof(GoldEntryAmount.Amount))!, amount));
+        var amounts = dbContext.InventoryEntries.AsNoTracking().Where(row => !row.IsDeleted && row.Quantity > 0 && row.ItemId != null)
+            .Select(Expression.Lambda<Func<InventoryEntryEntity, GoldEntryAmount>>(projection, entry));
+        return amounts.Join(dbContext.Inventories.AsNoTracking().Where(inventory => !inventory.IsDeleted && inventory.IsEnabled
+                && inventory.InventoryType == "CURRENCY" && inventory.InventoryProfile == GameProfile),
+            row => row.InventoryId, inventory => inventory.InventoryId,
+            (row, inventory) => new GoldAccountAmount { AccountId = inventory.AccountId, Amount = row.Amount });
+    }
+
+    private sealed class GoldEntryAmount
+    {
+        public Guid InventoryId { get; init; }
+        public decimal Amount { get; init; }
+    }
+
+    internal sealed class GoldAccountAmount
+    {
+        public Guid AccountId { get; init; }
+        public decimal Amount { get; init; }
     }
 
     internal static async Task<IReadOnlyList<Guid>> RewriteBalanceAsync(
