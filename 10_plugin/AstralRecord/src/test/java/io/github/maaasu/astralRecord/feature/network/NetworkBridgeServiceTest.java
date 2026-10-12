@@ -61,7 +61,7 @@ class NetworkBridgeServiceTest {
             new Fixture(true).service.onPluginMessageReceived(BackendProtocol.CHANNEL, recipient, payload);
             new Fixture(false).service.onPluginMessageReceived(BackendProtocol.CHANNEL, recipient, payload);
             new Fixture(true).service.onPluginMessageReceived("another:channel", recipient, payload);
-            verify(messageService, times(1)).send(recipient, PlayerMsgId.P_7155, "Player", "チャンネル1");
+            verify(messageService, times(1)).send(recipient, PlayerMsgId.P_7156, "Player", "チャンネル1");
         }
     }
 
