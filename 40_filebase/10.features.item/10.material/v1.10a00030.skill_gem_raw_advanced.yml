@@ -11,6 +11,6 @@ maxStack: 64
 saleValue: 0
 lore:
   - "&7上級の力を宿したスキルジェムの原石。"
-  - "&7星晶錬成師との交換に使用できる。"
+  - "&7スキルの習得・強化に使用できる。"
 unTradeable: false
 unSellable: false
