@@ -2,18 +2,16 @@ package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeConfig;
 import io.github.maaasu.astralRecord.feature.boss.model.BossLocation;
-import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportDestination;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportFilter;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -36,39 +34,31 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/** 読込済みボス・ダンジョンの受付一覧と、通常ワールド上の受付への転送を扱います。 */
+/** 管理者向けに、読込済みボス・ダンジョンの受付一覧と受付への直接転送を扱います。 */
 public final class InstanceTeleportService {
     private final Plugin plugin;
     private final WorldService worldService;
     private final MobService mobService;
-    private final BossChallengeService bossService;
     private final DungeonService dungeonService;
-    private final InventoryService inventoryService;
     private final Set<UUID> pendingPlayers = new HashSet<>();
 
     /**
-     * 読込済みマスタと既存の挑戦・転送サービスを使用します。メインスレッド専用です。
+     * 読込済みマスタと転送サービスを使用します。メインスレッド専用です。
      * @param plugin プラグイン本体
      * @param worldService ワールド参照と転送サービス
      * @param mobService 読込済みボスマスタ
-     * @param bossService ボス挑戦状態
-     * @param dungeonService 検証済みダンジョンマスタと挑戦状態
-     * @param inventoryService 受付ワールドへ入るための所持品条件
+     * @param dungeonService 検証済みダンジョンマスタ
      */
     public InstanceTeleportService(
             @NotNull Plugin plugin,
             @NotNull WorldService worldService,
             @NotNull MobService mobService,
-            @NotNull BossChallengeService bossService,
-            @NotNull DungeonService dungeonService,
-            @NotNull InventoryService inventoryService
+            @NotNull DungeonService dungeonService
     ) {
         this.plugin = plugin;
         this.worldService = worldService;
         this.mobService = mobService;
-        this.bossService = bossService;
         this.dungeonService = dungeonService;
-        this.inventoryService = inventoryService;
     }
 
     /**
@@ -118,7 +108,8 @@ public final class InstanceTeleportService {
 
     /**
      * 選択した候補を最新マスタで再解決し、受付地点へ非同期転送します。
-     * 視線方向は共通転送サービスが保持し、挑戦参加中・account 切替・二重転送を拒否します。
+     * 管理者の直接転送のため、所持品・通常プレイモード・挑戦参加状態は条件にしません。
+     * 視線方向は共通転送サービスが保持し、account 切替・二重転送を拒否します。
      * @param astPlayer 操作時のプレイヤー
      * @param key 選択した受付の内部キー
      * @return 転送処理を開始した場合は true。拒否理由はプレイヤーへ通知します
@@ -126,12 +117,8 @@ public final class InstanceTeleportService {
     public boolean teleportToEntry(@NotNull AstPlayer astPlayer, @NotNull InstanceTeleportDestination.Key key) {
         Player player = astPlayer.getBukkit();
         PlayerMessageService messages = PlayerMessageService.getInstance();
-        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
-            messages.send(astPlayer, PlayerMsgId.P_5065);
-            return false;
-        }
-        if (isInChallenge(player.getUniqueId())) {
-            messages.send(astPlayer, PlayerMsgId.P_5792);
+        if (!astPlayer.hasPermissionLevel(UserPermission.ADMIN.getValue())) {
+            messages.send(astPlayer, PlayerMsgId.P_5061);
             return false;
         }
         if (pendingPlayers.contains(player.getUniqueId())) {
@@ -142,10 +129,6 @@ public final class InstanceTeleportService {
         WorldMasterData worldData = entryWorld(destination);
         if (destination == null || worldData == null) {
             messages.send(astPlayer, PlayerMsgId.P_5791);
-            return false;
-        }
-        if (!hasRequiredItem(astPlayer, worldData)) {
-            messages.send(astPlayer, PlayerMsgId.P_5777);
             return false;
         }
         World world = worldService.resolveOrLoadWorld(worldData);
@@ -161,7 +144,7 @@ public final class InstanceTeleportService {
         player.closeInventory();
         try {
             worldService.teleportPlayerAsync(player, target, null,
-                    () -> isCurrentTransfer(player, accountId, destination, worldData))
+                    () -> isCurrentTransfer(player, accountId))
                     .whenComplete((success, failure) -> Bukkit.getScheduler().runTask(plugin, () -> {
                         pendingPlayers.remove(playerId);
                         AstPlayer current = AstPlayerCache.get(player);
@@ -173,8 +156,7 @@ public final class InstanceTeleportService {
                             Logger.log(LogId.E_5790, failure, player.getName(), "teleport");
                         }
                         if (failure != null || !Boolean.TRUE.equals(success)) {
-                            messages.send(current, hasRequiredItem(current, worldData)
-                                    ? PlayerMsgId.P_5791 : PlayerMsgId.P_5777);
+                            messages.send(current, PlayerMsgId.P_5791);
                         } else {
                             messages.send(current, PlayerMsgId.P_5790, destination.displayName());
                         }
@@ -222,44 +204,16 @@ public final class InstanceTeleportService {
     }
 
     /**
-     * 実転送直前にプレイヤー・account・挑戦状態・マスタ世代の一致を再検証します。
+     * 実転送直前にオンライン状態・同じ account・管理者権限だけを確認します。
      * @param player 転送対象
      * @param accountId 操作時 account UUID
-     * @param expected 操作時の受付定義
-     * @param expectedWorld 操作時のワールド定義
-     * @return 操作時の条件が引き続き有効なら true
+     * @return 操作時と同じ account の管理者がオンラインなら true
      */
     private boolean isCurrentTransfer(
-            @NotNull Player player, @NotNull UUID accountId,
-            @NotNull InstanceTeleportDestination expected, @NotNull WorldMasterData expectedWorld
+            @NotNull Player player, @NotNull UUID accountId
     ) {
         AstPlayer current = AstPlayerCache.get(player);
-        InstanceTeleportDestination latest = findDestination(expected.key());
         return player.isOnline() && current != null && current.getAccount().getUuid().equals(accountId)
-                && AccountModeGuard.isGameplayPlayer(current) && !isInChallenge(player.getUniqueId())
-                && hasRequiredItem(current, expectedWorld)
-                && expected.equals(latest) && expectedWorld.equals(entryWorld(latest));
-    }
-
-    /**
-     * 通常のオーバーワールド転送と同じ入場用アイテム所持条件を確認します。
-     * @param player 現在 account のプレイヤー
-     * @param world 入場先ワールドマスタ
-     * @return 条件未指定または必要アイテムを1個以上所持している場合は true
-     */
-    private boolean hasRequiredItem(@NotNull AstPlayer player, @NotNull WorldMasterData world) {
-        String requiredItemId = world.requiredItemId();
-        return requiredItemId == null || (!requiredItemId.isBlank()
-                && inventoryService.getCurrencyAmount(player.getAccount().getUuid(), requiredItemId) >= 1L);
-    }
-
-    /**
-     * ボスまたはダンジョンで移動を制限する参加状態かを返します。
-     * @param playerId プレイヤー UUID
-     * @return 既存挑戦サービスが参加中として扱う場合は true
-     */
-    private boolean isInChallenge(@NotNull UUID playerId) {
-        return bossService.isPlayerInActiveChallenge(playerId)
-                || dungeonService.isPlayerInActiveSession(playerId);
+                && current.hasPermissionLevel(UserPermission.ADMIN.getValue());
     }
 }

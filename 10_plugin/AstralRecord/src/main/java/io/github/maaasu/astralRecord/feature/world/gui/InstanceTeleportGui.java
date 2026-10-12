@@ -60,7 +60,7 @@ public final class InstanceTeleportGui {
                 .map(InstanceTeleportDestination::key).toList();
         Inventory inventory = Bukkit.createInventory(
                 new Holder(player.getUniqueId(), accountId, filter, page, entries.size(), visibleKeys), SIZE,
-                Component.text("インスタンス受付転送", NamedTextColor.AQUA, TextDecoration.BOLD)
+                Component.text("インスタンス受付転送（管理者用）", NamedTextColor.AQUA, TextDecoration.BOLD)
         );
         for (int index = start; index < end; index++) {
             InstanceTeleportDestination destination = entries.get(index);
@@ -158,7 +158,7 @@ public final class InstanceTeleportGui {
                 Component.text("受付転送ガイド", NamedTextColor.YELLOW), List.of(
                         Component.text("一覧クリックで受付へ移動", NamedTextColor.AQUA),
                         Component.text("受付で挑戦を開始できます", NamedTextColor.GRAY),
-                        Component.text("挑戦参加中は転送できません", NamedTextColor.GRAY),
+                        Component.text("管理者用の直接転送です", NamedTextColor.GRAY),
                         Component.text(count + "件 / " + (page + 1) + " / " + totalPages + "ページ", NamedTextColor.WHITE))));
         inventory.setItem(NEXT_SLOT, GuiItems.nextPageButton(
                 Component.text("次のページ", NamedTextColor.WHITE), List.of(),

@@ -4,22 +4,24 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.event.InstanceTeleportGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportFilter;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
-/** コマンド入口ごとの初期種別だけを指定して、共通受付 GUI を開きます。 */
+/** 管理者限定で、コマンド入口ごとの初期種別を指定して共通受付 GUI を開きます。 */
 public final class InstanceTeleportCommand extends AstCommand {
     private final InstanceTeleportFilter initialFilter;
 
     /**
-     * 引数なし・通常プレイヤー向けの GUI コマンドを構築します。
+     * 引数なし・管理者向けの GUI コマンドを構築します。account mode は制限しません。
      * @param name 登録するコマンド名
      * @param initialFilter GUI の初期表示種別
      */
     public InstanceTeleportCommand(@NotNull String name, @NotNull InstanceTeleportFilter initialFilter) {
-        super(name, "ボス・ダンジョンの受付転送GUIを開きます。", "/" + name, true);
+        super(name, "管理者用のボス・ダンジョン受付転送GUIを開きます。", "/" + name,
+                true, UserPermission.ADMIN.getValue());
         this.initialFilter = initialFilter;
     }
 
@@ -30,9 +32,6 @@ public final class InstanceTeleportCommand extends AstCommand {
      */
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (!requireGameplayMode(player)) {
-            return;
-        }
         AstralRecord plugin = AstralRecord.getInstance();
         InstanceTeleportGuiEventHandler handler = plugin == null ? null : plugin.getInstanceTeleportGuiEventHandler();
         if (handler == null) {

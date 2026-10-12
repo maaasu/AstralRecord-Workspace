@@ -2,9 +2,11 @@ package io.github.maaasu.astralRecord.feature.world.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.gui.InstanceTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportFilter;
 import io.github.maaasu.astralRecord.feature.world.service.InstanceTeleportService;
@@ -45,11 +47,15 @@ public final class InstanceTeleportGuiEventHandler extends AbstractEventHandler 
     }
 
     /**
-     * コマンド入口から指定した種別を初期状態として一覧を開きます。
+     * 管理者に対し、指定した種別を初期状態として一覧を開きます。account mode は制限しません。
      * @param player 表示対象
      * @param filter 入口が指定する表示種別
      */
     public void open(@NotNull AstPlayer player, @NotNull InstanceTeleportFilter filter) {
+        if (!player.hasPermissionLevel(UserPermission.ADMIN.getValue())) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5061);
+            return;
+        }
         openList(player, filter, 0);
     }
 
@@ -75,7 +81,7 @@ public final class InstanceTeleportGuiEventHandler extends AbstractEventHandler 
             AstPlayer current = AstPlayerCache.get(player);
             if (current == null || !ownerId.equals(player.getUniqueId())
                     || !accountId.equals(current.getAccount().getUuid())
-                    || !AccountModeGuard.isGameplayPlayer(current)) {
+                    || !current.hasPermissionLevel(UserPermission.ADMIN.getValue())) {
                 GuiSound.DENY.play(player);
                 player.closeInventory();
                 return;

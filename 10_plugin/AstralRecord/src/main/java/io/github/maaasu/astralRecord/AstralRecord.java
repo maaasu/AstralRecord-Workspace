@@ -1625,7 +1625,7 @@ public final class AstralRecord extends JavaPlugin {
         dungeonService.setHistoryService(playerActivityHistoryService);
         instanceTeleportGuiEventHandler = new InstanceTeleportGuiEventHandler(
             new InstanceTeleportGui(),
-            new InstanceTeleportService(this, worldService, mobService, bossChallengeService, dungeonService, inventoryService),
+            new InstanceTeleportService(this, worldService, mobService, dungeonService),
             inventoryService
         );
         partyService.setChallengePartyMutationGuard(playerId ->
