@@ -110,6 +110,11 @@ masterData:
     enabled: true
     pollIntervalSeconds: 30
 
+# サーバーレコード。未設定でも30秒・上位10人で動作します。
+serverRecord:
+  refreshIntervalSeconds: 30
+  limit: 10
+
 # リソースパック設定
 resourcePack:
   enabled: false

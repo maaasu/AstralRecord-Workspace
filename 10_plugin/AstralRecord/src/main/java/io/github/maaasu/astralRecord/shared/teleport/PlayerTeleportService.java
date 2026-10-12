@@ -79,4 +79,17 @@ public final class PlayerTeleportService {
     ) {
         return player.teleportAsync(withCurrentLookDirection(player, targetLocation));
     }
+
+    /**
+     * 行き先が明示した向きで非同期転送します。通常の移動はteleportAsyncを使用します。
+     * サーバーレコード入場の指定スポーン方向と、保存した帰還時の方向を復元する例外経路です。
+     * @param player 移動対象プレイヤー
+     * @param targetLocation 明示的なyaw/pitchを含む転送先
+     * @return 転送結果
+     */
+    public static @NotNull CompletableFuture<Boolean> teleportAsyncWithTargetDirection(
+            @NotNull Player player, @NotNull Location targetLocation
+    ) {
+        return player.teleportAsync(targetLocation.clone());
+    }
 }

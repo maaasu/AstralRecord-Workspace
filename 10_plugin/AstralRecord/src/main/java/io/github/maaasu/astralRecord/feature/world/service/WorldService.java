@@ -697,6 +697,43 @@ public class WorldService {
             @Nullable Runnable onSuccess,
             @NotNull BooleanSupplier beforeTeleport
     ) {
+        return teleportPlayerAsync(player, targetLocation, onSuccess, beforeTeleport, false);
+    }
+
+    /**
+     * 明示された行き先のyaw/pitchを適用し、チャンク準備と頭上表示の退避を経て転送します。
+     * サーバーレコードの指定入場方向・保存した帰還方向の復元に使用します。
+     * @param player 転送対象
+     * @param targetLocation 指定方向を含む転送先
+     * @param onSuccess 成功後処理
+     * @param beforeTeleport 実転送直前の有効性検証
+     * @return 非同期転送結果
+     */
+    public CompletableFuture<Boolean> teleportPlayerWithTargetDirectionAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull Location targetLocation,
+            @Nullable Runnable onSuccess,
+            @NotNull BooleanSupplier beforeTeleport
+    ) {
+        return teleportPlayerAsync(player, targetLocation, onSuccess, beforeTeleport, true);
+    }
+
+    /**
+     * 転送先チャンクの準備後に条件を検証し、方向の適用方式を選んで転送します。
+     * @param player 対象
+     * @param targetLocation 転送先
+     * @param onSuccess 成功後処理
+     * @param beforeTeleport 有効性条件
+     * @param targetDirection 行き先の明示方向を適用するか
+     * @return 転送結果
+     */
+    private CompletableFuture<Boolean> teleportPlayerAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull Location targetLocation,
+            @Nullable Runnable onSuccess,
+            @NotNull BooleanSupplier beforeTeleport,
+            boolean targetDirection
+    ) {
         if (targetLocation.getWorld() == null) {
             return CompletableFuture.completedFuture(false);
         }
@@ -738,7 +775,10 @@ public class WorldService {
                 }
 
                 detachTextDisplayPassengers(player);
-                PlayerTeleportService.teleportAsync(player, targetLocation).whenComplete((success, teleportThrowable) ->
+                CompletableFuture<Boolean> teleport = targetDirection
+                        ? PlayerTeleportService.teleportAsyncWithTargetDirection(player, targetLocation)
+                        : PlayerTeleportService.teleportAsync(player, targetLocation);
+                teleport.whenComplete((success, teleportThrowable) ->
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             boolean teleported = teleportThrowable == null && Boolean.TRUE.equals(success);
                             if (teleported && onSuccess != null) {

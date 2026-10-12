@@ -384,3 +384,12 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playeradmin/*`
 - `feature/player` のjoin/quit境界、`feature/inventory` の保存・操作凍結を依存境界として利用
 - `AstralRecordProxy` / `AstralRecordLobby` の参加制限・退避確認は [[33_0-概要]] を主所有者とする
+
+### [[41_0-概要|41-server-records]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/serverrecord/*`
+- `10_plugin/AstralRecord/src/main/resources/config.yml` の `serverRecord` 設定
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7800`～`P_7848`）
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（`W_7800`、`E_7801`）
+- `40_filebase/60.features.world/v1.server_record.yml` / `40_filebase/40.features.mob/npc/v1.server_record_guide.yml`
+- `feature/player` のプレイ時間計測・保存は [[03_0-概要]]、ワールド転送は [[17_0-概要]] の契約を利用

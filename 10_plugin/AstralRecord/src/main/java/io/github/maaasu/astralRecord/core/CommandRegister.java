@@ -81,6 +81,10 @@ import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
 import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayCommand;
 import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayTabCompleter;
 import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
+import io.github.maaasu.astralRecord.feature.serverrecord.command.ServerRecordCommand;
+import io.github.maaasu.astralRecord.feature.serverrecord.command.ServerRecordTabCompleter;
+import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordDisplayService;
+import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordWorldService;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterCommand;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
@@ -134,6 +138,8 @@ public class CommandRegister {
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
     private final TextDisplayPlacementService textDisplayPlacementService;
+    private final ServerRecordDisplayService serverRecordDisplayService;
+    private final ServerRecordWorldService serverRecordWorldService;
     private final TeleporterService teleporterService;
     private final TrainingDummyService trainingDummyService;
     private final TrainingDummyGui trainingDummyGui;
@@ -155,6 +161,8 @@ public class CommandRegister {
      * @param gatheringService 採集サービス
      * @param gatheringSpawnerService 採集スポナーサービス
      * @param textDisplayPlacementService 表示文字の配置サービス
+     * @param serverRecordDisplayService ランキング表示管理
+     * @param serverRecordWorldService ランキング閲覧ワールドへの入退場
      * @param teleporterService ウェイストーンサービス
      * @param trainingDummyService カカシサービス
      * @param trainingDummyGui カカシ調整GUI
@@ -174,6 +182,8 @@ public class CommandRegister {
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService,
             TextDisplayPlacementService textDisplayPlacementService,
+            ServerRecordDisplayService serverRecordDisplayService,
+            ServerRecordWorldService serverRecordWorldService,
             TeleporterService teleporterService,
             TrainingDummyService trainingDummyService,
             TrainingDummyGui trainingDummyGui,
@@ -192,6 +202,8 @@ public class CommandRegister {
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
         this.textDisplayPlacementService = textDisplayPlacementService;
+        this.serverRecordDisplayService = serverRecordDisplayService;
+        this.serverRecordWorldService = serverRecordWorldService;
         this.teleporterService = teleporterService;
         this.trainingDummyService = trainingDummyService;
         this.trainingDummyGui = trainingDummyGui;
@@ -316,6 +328,7 @@ public class CommandRegister {
         cm.registerCommand("quest", new QuestCommand());
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));
+        cm.registerCommand("serverrecord", new ServerRecordCommand(serverRecordDisplayService, serverRecordWorldService), new ServerRecordTabCompleter(serverRecordDisplayService));
         cm.registerCommand("teleporter", new TeleporterCommand(teleporterService), new TeleporterTabCompleter(teleporterService));
         cm.registerCommand("test", new TestCommand(mobService));
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());

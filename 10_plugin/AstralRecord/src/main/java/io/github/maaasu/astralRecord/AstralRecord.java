@@ -348,6 +348,11 @@ import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEv
 import io.github.maaasu.astralRecord.feature.textdisplay.event.TextDisplayPlacementWorldEventHandler;
 import io.github.maaasu.astralRecord.feature.textdisplay.repository.TextDisplayPlacementRepository;
 import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
+import io.github.maaasu.astralRecord.feature.serverrecord.config.ServerRecordConfig;
+import io.github.maaasu.astralRecord.feature.serverrecord.event.ServerRecordEventHandler;
+import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordDisplayService;
+import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordWorldService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerPlayTimeService;
 import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterInteractEventHandler;
 import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterPlayerEventHandler;
@@ -506,6 +511,10 @@ public final class AstralRecord extends JavaPlugin {
     private DisplayTextService displayTextService;
     private AdminMessageBossBarService adminMessageBossBarService;
     private TextDisplayPlacementService textDisplayPlacementService;
+    private ServerRecordDisplayService serverRecordDisplayService;
+    private ServerRecordWorldService serverRecordWorldService;
+    private PlayerPlayTimeService playerPlayTimeService;
+    private org.bukkit.scheduler.BukkitTask playerPlayTimeSaveTask;
     private TeleporterService teleporterService;
     private TeleporterGui teleporterGui;
     private TeleporterGuiEventHandler teleporterGuiEventHandler;
@@ -644,6 +653,8 @@ public final class AstralRecord extends JavaPlugin {
         textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
         teleporterService = new TeleporterService(this, new WaystoneDefinitionRepository(this), new AccountWaystoneRepository());
         worldService = new WorldService(new WorldRepository());
+        serverRecordDisplayService = new ServerRecordDisplayService(this);
+        serverRecordWorldService = new ServerRecordWorldService(this, worldService);
         playerRegionService = new PlayerRegionService(this, worldService);
         mobSpawnerService = new MobSpawnerService(
                 this,
@@ -690,6 +701,8 @@ public final class AstralRecord extends JavaPlugin {
                 gatheringService,
                 gatheringSpawnerService,
                 textDisplayPlacementService,
+                serverRecordDisplayService,
+                serverRecordWorldService,
                 teleporterService,
                 trainingDummyService,
                 trainingDummyGui,
@@ -724,6 +737,13 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         setupFeature();
+        serverRecordWorldService.start(joinSpawnWorldId);
+        ServerRecordConfig serverRecordConfig = ServerRecordConfig.load(ConfigManager.getInstance().getConfig());
+        serverRecordDisplayService.start(displayTextService, serverRecordConfig);
+        playerPlayTimeSaveTask = getServer().getScheduler().runTaskTimer(this,
+                playerPlayTimeService::flushOnlineSessions, 20L, serverRecordConfig.refreshIntervalSeconds() * 20L);
+        eventManager.registerHandler(new ServerRecordEventHandler(this, serverRecordWorldService, serverRecordDisplayService),
+                getServer().getPluginManager());
         setupNetworkBridge();
         setupDiscordChatBridge();
 
@@ -923,6 +943,9 @@ public final class AstralRecord extends JavaPlugin {
         if (damageService != null) {
             damageService.stop();
         }
+        if (playerPlayTimeSaveTask != null) playerPlayTimeSaveTask.cancel();
+        if (serverRecordWorldService != null) serverRecordWorldService.stop();
+        if (serverRecordDisplayService != null) serverRecordDisplayService.stop();
         if (textDisplayPlacementService != null) {
             textDisplayPlacementService.saveIfDirty();
             textDisplayPlacementService.stop();
@@ -1295,7 +1318,10 @@ public final class AstralRecord extends JavaPlugin {
             inventoryPersistence,
             inventorySaveCoordinator
         );
+        playerPlayTimeService = new PlayerPlayTimeService(inventoryService);
+        inventoryPersistence.registerStateParticipant(playerPlayTimeService::snapshotPlayerState);
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
+        accountModeApplicationService.setPlayTimeService(playerPlayTimeService);
         accountService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
         inventoryPersistence.registerStateParticipant(accountService::snapshotPlayerState);
         inventoryPersistence.registerStateParticipant(teleporterService::snapshotPlayerState);
@@ -1524,6 +1550,7 @@ public final class AstralRecord extends JavaPlugin {
             playerRegionService
         );
         playerService.setPetServices(petService,petRuntimeService);
+        playerService.setPlayTimeService(playerPlayTimeService);
         bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
         String bossHubWorldId = getConfig().getString(
             "boss.hubWorldId",
