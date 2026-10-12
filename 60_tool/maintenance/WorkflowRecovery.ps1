@@ -20,6 +20,20 @@ function Test-UpdateWorkflowUndeployedRun([string]$RunDirectory, [string]$Label,
     return $true
 }
 
+function Test-UpdateWorkflowStartupRestart([string]$RunDirectory, [string]$Label, [string]$Fingerprint) {
+    if ($Label -cne 'Dev' -or (Test-UpdateWorkflowMigrationEvidence $RunDirectory)) { return $false }
+    foreach ($name in @('patch-publication-result.json','deployment.json')) {
+        if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $false }
+    }
+    if (!(Test-Path -LiteralPath (Join-Path $RunDirectory 'deploy-action-success.json') -PathType Leaf)) { return $false }
+    $path=Join-Path $RunDirectory 'workflow-state.json'
+    if (!(Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+    $state=Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json -AsHashtable
+    # Publication starts only after persisting PublishingPatch; WaitingForStartup cannot have sent a publication request.
+    return ($state.schemaVersion -eq 1 -and $state.label -ceq 'Dev' -and
+        $state.configurationFingerprint -ceq $Fingerprint -and $state.status -ceq 'WaitingForStartup')
+}
+
 function Stop-UpdateWorkflowConfigurationChange($Active, $State, [string]$RunDirectory, [string]$Fingerprint, [string]$Label) {
     $status=if ($State) { $State.status } else { '不明（workflow-state.jsonなし）' }
     $seed=if ($State -and $State.Contains('seedStatus')) { $State.seedStatus } else { '不明' }
@@ -105,6 +119,9 @@ function Invoke-UpdateWorkflowRecovery {
         try { $lock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None') }
         catch [IO.IOException] { throw '前回の処理が実行中、または記録がロックされています。終了を待ってから再実行してください。' }
         $decision=Get-UpdateWorkflowRecoveryDecision $RunDirectory $Label $Fingerprint
+        if ($decision.kind -eq 'Resume' -and $ConfigurationChanged -and (Test-UpdateWorkflowStartupRestart $RunDirectory $Label $Fingerprint)) {
+            $decision=@{kind='Manual';reason='Dev配置済み・パッチ公開前の起動待ちで設定が変わっています。外部状態を確認して前回記録を保全し、新しい設定で再配布できます。'}
+        }
         Write-Host "復旧判定: $($decision.reason)"
         Write-Host "前回の記録: $RunDirectory"
         if ($decision.kind -eq 'Resume') {

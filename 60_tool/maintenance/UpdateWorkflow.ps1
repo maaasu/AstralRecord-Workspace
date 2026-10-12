@@ -285,6 +285,12 @@ function Invoke-UpdateWorkflow {
                 $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
                     -Fingerprint $active.configurationFingerprint -Recovery Auto -ConfigurationChanged
                 if ($archived) { $active=$null }
+            } elseif ($configurationChanged -and (Test-UpdateWorkflowStartupRestart $runDirectory $Label $active.configurationFingerprint)) {
+                if ($ServerAlreadyRunning) { throw '新しい設定で再配布するにはDevを停止し、-ServerAlreadyRunningを外して同じバッチを再実行してください。' }
+                $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
+                    -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
+                    -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -ConfigurationChanged
+                if ($archived) { $active=$null }
             } elseif (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto')) {
                 if ($Recovery -ne 'Auto' -or !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
                     $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
