@@ -1307,7 +1307,7 @@ public final class AstralRecordProxyPlugin {
         return playerDisplayName(value, frame, false);
     }
 
-    /** Tab専用のCLV・PL・PLVを持つ名前を生成する。 */
+    /** Tab専用のCLvと、アカウント名・PLvをまとめたタグを生成する。 */
     static Component tabEntryDisplayName(PlayerMetadata value, int frame) {
         return playerDisplayName(value, frame, true);
     }
@@ -1316,8 +1316,7 @@ public final class AstralRecordProxyPlugin {
     private static Component playerDisplayName(PlayerMetadata value, int frame, boolean tab) {
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
         if (value.accountNameOnly()) {
-            Component name = prefix.append(accountDisplayName(value, frame));
-            return tab ? name.append(tabPlayerDetails(value)) : name;
+            return prefix.append(tab ? tabAccountDisplayName(value, frame) : accountDisplayName(value, frame));
         }
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
@@ -1328,29 +1327,31 @@ public final class AstralRecordProxyPlugin {
             .append(className);
         if (value.classLevelMax()) {
             classTag = classTag
-                .append(Component.text(tab ? " CLV." : " Lv.", NamedTextColor.GRAY))
+                .append(Component.text(tab ? " CLv." : " Lv.", NamedTextColor.GRAY))
                 .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD));
         } else {
             classTag = classTag
-                .append(Component.text(tab ? " CLV." : " Lv.", NamedTextColor.GRAY))
+                .append(Component.text(tab ? " CLv." : " Lv.", NamedTextColor.GRAY))
                 .append(Component.text(String.valueOf(value.level()), NamedTextColor.YELLOW));
         }
         classTag = classTag.append(Component.text("] ", NamedTextColor.DARK_GRAY));
         Component afk = value.afk() ? Component.text("[AFK] ", NamedTextColor.RED) : Component.empty();
-        Component name = prefix
+        return prefix
             .append(classTag)
             .append(afk)
-            .append(accountDisplayName(value, frame));
-        return tab ? name.append(tabPlayerDetails(value)) : name;
+            .append(tab ? tabAccountDisplayName(value, frame) : accountDisplayName(value, frame));
     }
 
-    /** アカウント名の右側へMCIDとプレイヤーレベルを独立した装飾で表示する。 */
+    /** アカウント名とプレイヤーレベルを同じ括弧にまとめ、名前の装飾範囲を維持する。 */
+    private static Component tabAccountDisplayName(PlayerMetadata value, int frame) {
+        return Component.text("[", NamedTextColor.DARK_GRAY)
+            .append(accountDisplayName(value, frame))
+            .append(tabPlayerDetails(value));
+    }
+
+    /** アカウント名タグの末尾へPLvと閉じ括弧を独立した装飾で表示する。 */
     private static Component tabPlayerDetails(PlayerMetadata value) {
-        return Component.text(" [", NamedTextColor.DARK_GRAY)
-            .append(Component.text("PL: ", ProxyTabDisplay.MUTED))
-            .append(Component.text(value.mcid(), ProxyTabDisplay.SILVER))
-            .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-            .append(Component.text("PLV: ", ProxyTabDisplay.MUTED))
+        return Component.text(" PLv.", ProxyTabDisplay.MUTED)
             .append(Component.text(value.playerLevel() == null ? "--" : String.valueOf(Math.max(1, value.playerLevel())),
                 ProxyTabDisplay.WHITE))
             .append(Component.text("]", NamedTextColor.DARK_GRAY));

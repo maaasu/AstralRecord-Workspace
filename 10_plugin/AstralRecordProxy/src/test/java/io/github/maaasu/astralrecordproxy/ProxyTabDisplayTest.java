@@ -100,7 +100,7 @@ class ProxyTabDisplayTest {
 
         Component first = AstralRecordProxyPlugin.tabEntryDisplayName(astralder, 0);
         Component next = AstralRecordProxyPlugin.tabEntryDisplayName(astralder, 1);
-        assertEquals("[rpg] [MAG CLV.4] astral#2 [PL: test-account | PLV: 35]", PLAIN.serialize(first));
+        assertEquals("[rpg] [MAG CLv.4] [astral#2 PLv.35]", PLAIN.serialize(first));
         assertEquals("[rpg] [MAG Lv.4] astral#2",
             PLAIN.serialize(AstralRecordProxyPlugin.tabDisplayName(astralder, 1)));
         assertEquals(PLAIN.serialize(first), PLAIN.serialize(next));

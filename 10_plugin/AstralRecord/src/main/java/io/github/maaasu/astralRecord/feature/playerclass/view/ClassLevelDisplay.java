@@ -64,7 +64,7 @@ public final class ClassLevelDisplay {
      *
      * @param level 現在クラスレベル
      * @param maximum 最大レベルへ到達済みか
-     * @param prefix 表示接頭辞。TabではCLV.、通常表示ではLv.
+     * @param prefix 表示接頭辞。TabではCLv.、通常表示ではLv.
      * @return 通常時は黄色い数値、最大時は赤太字のmaxを持つ表示
      */
     public static @NotNull String legacy(int level, boolean maximum, @NotNull String prefix) {
