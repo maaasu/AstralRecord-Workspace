@@ -595,7 +595,7 @@ public final class MobDropPresentationService {
             index,
             future,
             () -> grantPreparedItem(recipient, dropLocation, future, dropSource, reservation),
-            () -> handleCancelledPreparedItem(dropLocation, future, reservation)
+            () -> handleCancelledPreparedItem(recipient, dropLocation, future, dropSource, reservation)
         );
     }
 
@@ -854,20 +854,28 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 回収演出が取消された場合、予約を解除します。通常スタック品だけをワールドへ戻し、
-     * 未確定の装備個体は生成しません。
+     * 表示消失・会場終了で回収演出が取消されても、オンラインの確定受取人へ準備完了後に付与します。
+     * オフライン時は予約を解除し、通常スタック品だけをワールドへ戻します。
      *
+     * @param recipient 抽選時に確定した受取人
      * @param dropLocation world-drop fallback の位置
      * @param future 準備済みドロップ future
+     * @param dropSource インベントリ付与元
      * @param reservation 装備用の事前予約。通常スタック品では {@code null}
      */
     private void handleCancelledPreparedItem(
+        @NotNull AstPlayer recipient,
         @NotNull Location dropLocation,
         @NotNull CompletableFuture<PreparedDropGrant> future,
+        @NotNull String dropSource,
         @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
         future.thenAccept(prepared ->
             mainExecutor.execute(() -> {
+                if (recipient.getBukkit().isOnline()) {
+                    grantPreparedItem(recipient, dropLocation, CompletableFuture.completedFuture(prepared), dropSource, reservation);
+                    return;
+                }
                 releaseReservation(reservation);
                 if (prepared.kind() == PreparedDropKind.STACKED) {
                     dropPreparedItem(dropLocation, prepared);
