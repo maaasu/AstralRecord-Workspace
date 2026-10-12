@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerGroundSupport;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
@@ -149,11 +150,12 @@ public final class AirShiftSkillRuntimeService {
     /**
      * プレイヤーが着地している場合だけ再発動ロックを解除します。
      *
-     * @param playerId 着地判定対象プレイヤーのBukkit UUID
+     * @param player 着地判定対象プレイヤー
      * @param location 移動先の位置
      */
-    public void clearActivationLockIfGrounded(@NotNull UUID playerId, @NotNull Location location) {
-        if (awaitingLanding.contains(playerId) && isGrounded(location)) {
+    public void clearActivationLockIfGrounded(@NotNull Player player, @NotNull Location location) {
+        UUID playerId = player.getUniqueId();
+        if (awaitingLanding.contains(playerId) && PlayerGroundSupport.isGrounded(player, location)) {
             clearActivationLock(playerId);
         }
     }
@@ -231,13 +233,13 @@ public final class AirShiftSkillRuntimeService {
         );
     }
 
+    /**
+     * 共通の衝突面判定で接地を確認します。
+     * @param player 対象プレイヤー
+     * @return 足元に衝突面がある場合は {@code true}
+     */
     private boolean isGrounded(@NotNull Player player) {
-        return isGrounded(player.getLocation());
-    }
-
-    private boolean isGrounded(@NotNull Location location) {
-        Location below = location.clone().subtract(0.0D, 0.05D, 0.0D);
-        return below.getBlock().getType().isSolid();
+        return PlayerGroundSupport.isGrounded(player);
     }
 
     private record Configuration(

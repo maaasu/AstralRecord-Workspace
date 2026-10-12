@@ -356,9 +356,13 @@ public class DodgeService {
         return Double.isFinite(resolved) && resolved >= 0.0D ? resolved : DEFAULT_ENERGY_COST;
     }
 
+    /**
+     * 共通の衝突面判定で接地を確認します。
+     * @param player 対象プレイヤー
+     * @return 足元に衝突面がある場合は {@code true}
+     */
     private boolean isGrounded(@NotNull Player player) {
-        Location below = player.getLocation().clone().subtract(0.0D, 0.05D, 0.0D);
-        return below.getBlock().getType().isSolid();
+        return PlayerGroundSupport.isGrounded(player);
     }
 
 }

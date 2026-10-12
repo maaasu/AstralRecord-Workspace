@@ -1,17 +1,13 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerGroundSupport;
 import io.github.maaasu.astralRecord.feature.skill.executor.passive.mage.MageBlinkSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -73,22 +69,13 @@ public final class MageBlinkSkillRuntimeService {
         return true;
     }
 
+    /**
+     * 共通の衝突面判定で接地を確認します。
+     * @param player 対象プレイヤー
+     * @return 足元に衝突面がある場合は {@code true}
+     */
     private static boolean isGrounded(@NotNull Player player) {
-        Location feet = player.getLocation();
-        Block supportCandidate = feet.getWorld().getBlockAt(
-                feet.getBlockX(),
-                (int) Math.floor(feet.getY() - 0.05D),
-                feet.getBlockZ()
-        );
-        Location probe = feet.clone().add(0.0D, 0.05D, 0.0D);
-        RayTraceResult surface = supportCandidate.rayTrace(
-                probe,
-                new Vector(0.0D, -1.0D, 0.0D),
-                0.1D,
-                FluidCollisionMode.NEVER
-        );
-        return surface != null
-                && Math.abs(surface.getHitPosition().getY() - feet.getY()) <= 0.1D;
+        return PlayerGroundSupport.isGrounded(player);
     }
 
     private String findBoundBlinkInstance(@NotNull AstPlayer player) {

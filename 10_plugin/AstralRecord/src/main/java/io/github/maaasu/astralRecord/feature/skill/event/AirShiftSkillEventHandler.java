@@ -29,7 +29,7 @@ public final class AirShiftSkillEventHandler extends AbstractEventHandler {
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
         Location to = event.getTo();
         if (to == null) return;
-        runtimeService.clearActivationLockIfGrounded(event.getPlayer().getUniqueId(), to);
+        runtimeService.clearActivationLockIfGrounded(event.getPlayer(), to);
     }
 
     /** 死亡時に再発動ロックを解除します。 */
