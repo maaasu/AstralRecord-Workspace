@@ -180,6 +180,7 @@ public final class BossMechanicService {
 
     private BukkitTask tickTask;
     private long clockTicks;
+    private long motionClockTicks;
 
     /**
      * ボス固有ギミックを管理するサービスを作成します。
@@ -306,13 +307,26 @@ public final class BossMechanicService {
         this.bindCircleRuntimeService = bindCircleRuntimeService;
     }
 
-    /** ボス固有ギミックの定期処理を開始します。 */
+    /** 初回20tick後から、共通ギミックを5tick・セレネアの通常弾と波を1tick周期で進めます。 */
     public void start() {
         if (tickTask != null) {
             return;
         }
         clockTicks = 0L;
-        tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, TICK_PERIOD);
+        motionClockTicks = TICK_PERIOD - 1L;
+        tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::pulse, 20L, 1L);
+    }
+
+    /** 同じtick軸を使い、全Mob走査・主呪文は従来の5tick間隔、通常弾と波だけを中間tickでも更新します。 */
+    private void pulse() {
+        motionClockTicks++;
+        if (motionClockTicks % TICK_PERIOD == 0L) {
+            tick();
+        } else {
+            seleneaEncounterController.tickPressure(motionClockTicks, boss ->
+                conditionService.canRunAi(AstEntity.mob(boss))
+                    && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId())));
+        }
     }
 
     /**

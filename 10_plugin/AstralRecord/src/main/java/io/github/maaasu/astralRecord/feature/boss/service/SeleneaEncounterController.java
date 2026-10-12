@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -151,6 +152,34 @@ final class SeleneaEncounterController {
             Logger.log(LogId.E_6509, exception, boss.instanceId());
             cancelCast(boss.instanceId());
             state.nextAt = tick + 40L;
+        }
+    }
+
+    /**
+     * 主呪文・分身の構成を変えず、管理中の通常弾・波・発射予告だけを中間tickで進めます。
+     * @param tick 5tick時計と同じ軸の1tick時計 @param allowed 状態異常・拘束による実行資格
+     */
+    void tickPressure(long tick, Predicate<MobInstance> allowed) {
+        for (Encounter state : List.copyOf(encounters.values())) {
+            MobInstance boss = state.boss;
+            try {
+                Entity entity = mobs.entityController().getEntity(boss);
+                if (mobs.getInstance(boss.instanceId()) != boss || boss.currentHealth() <= 0
+                    || !state.field && (boss.state() == MobState.IDLE || boss.state() == MobState.LEASHED)
+                    || entity == null || !entity.isValid() || entity.isDead() || !allowed.test(boss)
+                    || entity.getWorld() != state.center.getWorld() || !SeleneaArena.loaded(state.center)
+                    || !SeleneaArena.inArena(entity.getLocation(), state.center)) {
+                    pressure.clear(boss.instanceId());
+                    continue;
+                }
+                List<Player> active = active(boss);
+                if (active.isEmpty()) { pressure.clear(boss.instanceId()); continue; }
+                pressure.tickMotion(boss, entity, active, tick, ultimateProtected(boss) || !state.introduced,
+                    state.radius, state.field);
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_6509, failure, boss.instanceId());
+                cancelCast(boss.instanceId());
+            }
         }
     }
 

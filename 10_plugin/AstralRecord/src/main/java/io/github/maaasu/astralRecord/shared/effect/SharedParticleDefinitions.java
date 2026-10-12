@@ -61,8 +61,20 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("selenea_bolt_impact", Particle.WITCH, 12, 0.2D, 0.3D, 0.2D, 0);
     /** ジャンプで回避できる床上の低い月蝕波です。 */
     public static final SharedParticleDefinition SELENEA_GROUND_WAVE =
-        new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 4, 0.04D, 0.08D, 0.04D, 0,
-            new Particle.DustOptions(Color.fromRGB(180, 90, 245), 1.2F));
+        new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 2, 0.04D, 0.08D, 0.04D, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 220, 45), 1.35F));
+    /** 三連弾の発射点へ収束する紫の予告輪です。 */
+    public static final SharedParticleDefinition SELENEA_VOLLEY_RING =
+        new SharedParticleDefinition("selenea_volley_ring", Particle.DUST, 2, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(235, 105, 255), 1.1F));
+    /** 頭上の発射点で待機する三つの光球です。 */
+    public static final SharedParticleDefinition SELENEA_VOLLEY_CHARGE =
+        new SharedParticleDefinition("selenea_volley_charge", Particle.DUST, 4, 0.06D, 0.06D, 0.06D, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 175, 245), 1.3F));
+    /** 予告が完了し、三連弾を解放する瞬間の閃光です。 */
+    public static final SharedParticleDefinition SELENEA_VOLLEY_RELEASE =
+        new SharedParticleDefinition("selenea_volley_release", Particle.FLASH, 2, 0, 0, 0, 0,
+            Color.fromRGB(235, 105, 255));
 
     /** 攻撃と区別した青灰の会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =
