@@ -1551,20 +1551,14 @@ public class ItemStackFactory {
         return eq.getEnchant() != null ? eq.getEnchant().getMaxSlots() : 0;
     }
 
-    /** 装備単体で適用されない乗数を灰色・取り消し線・理由で区別します。範囲設定には依存しません。 */
+    /** 装備単体で適用されない乗数を灰色・取り消し線で区別します。範囲設定には依存しません。 */
     private @NotNull String formatEnchantApplicability(
             @NotNull String line, @NotNull EquipmentStatContributionCalculator.ScalarInactiveReason reason) {
         if (reason == EquipmentStatContributionCalculator.ScalarInactiveReason.NONE) {
             return line;
         }
-        String explanation = switch (reason) {
-            case NO_FLAT -> "無効: 同じステータスの加算値が0";
-            case OVERRIDDEN -> "無効: 後の乗数で上書き";
-            case UNKNOWN_STATUS -> "無効: 未登録のステータス";
-            case NONE -> "";
-        };
         return ColorCodeUtil.DARK_GRAY + ColorCodeUtil.STRIKETHROUGH + ColorCodeUtil.toPlainText(line, "効果")
-                + ColorCodeUtil.RESET + ColorCodeUtil.GRAY + " (" + explanation + ")";
+                + ColorCodeUtil.RESET;
     }
 
     /**
