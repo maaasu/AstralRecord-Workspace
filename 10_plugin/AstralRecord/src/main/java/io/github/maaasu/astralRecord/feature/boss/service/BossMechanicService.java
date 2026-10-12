@@ -428,6 +428,9 @@ public final class BossMechanicService {
                 boolean dedicatedField = seleneaSupportController.isField(boss);
                 seleneaEncounterController.observeHealthThreshold(boss);
                 try {
+                    if (dedicatedField || boss.state() != MobState.LEASHED && boss.state() != MobState.IDLE) {
+                        seleneaEncounterController.maintainPresentation(boss, entity);
+                    }
                     seleneaSupportController.tick(boss, entity, clockTicks);
                 } catch (RuntimeException exception) {
                     Logger.log(LogId.E_6509, exception, boss.instanceId());

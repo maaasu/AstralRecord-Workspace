@@ -56,8 +56,8 @@ final class SeleneaSupportController {
     private static final double GATE_CENTER_HEIGHT = 3.2D;
     private static final double GATE_INTERACTION_RADIUS = 1.4D;
     private static final double DETONATION_RADIUS = 60.0D;
-    private static final int MAX_SURFACE_POINTS = 1_200;
-    private static final int MAX_FLOOR_POINTS = 900;
+    private static final int MAX_SURFACE_POINTS = 288;
+    private static final int MAX_FLOOR_POINTS = 160;
     private static final double DETONATION_RADIUS_SQUARED = 60.0D * 60.0D;
     private static final double HEAL_RATIO = 0.03D;
     private static final int MAX_ORBS = 5;
@@ -414,7 +414,7 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 球形60mの表面と床面へ範囲比例・有限上限の予告を20tick周期で描きます。 */
+    /** 球形60mの三つの大円と床の外周・疎な刻印を20tick周期で描きます。 */
     private void renderDetonationDanger(Encounter state) {
         if (state.center.getWorld() == null || state.center.getWorld().getPlayers().isEmpty()) return;
         for (Map.Entry<Role, Add> entry : state.adds.entrySet()) {
@@ -482,6 +482,7 @@ final class SeleneaSupportController {
             }
             refreshBuffs(state);
             state.wavesSummoned = wave;
+            state.openedGates.addAll(state.adds.keySet());
             state.addsSummoned = true;
             state.detonated = false;
             state.returnAnnounced = false;
@@ -651,7 +652,7 @@ final class SeleneaSupportController {
     /** 生存個体の球形60mを一度だけ判定し、元個体を回収して第一門へ永久残像を置きます。 */
     private void detonate(Encounter state, List<Player> active) {
         List<Add> survivors = state.adds.values().stream().filter(this::isAlive).toList();
-        // 致死通知の再入より前に全門・軽減・BossBarを閉じます。元個体の回収所有権は保持します。
+        // 致死通知の再入より前に行きの門・軽減・BossBarを閉じ、帰りの門は保持します。
         for (Add add : state.adds.values()) add.combatActive = false;
         state.orbs.clear();
         if (state.supportBar != null) {
@@ -666,8 +667,8 @@ final class SeleneaSupportController {
             List<Location> floor = detonationFloor(add.anchor, 4.0D);
             particles.spawnForNearbyViewers(floor,
                     SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
-            List<Location> bursts = new ArrayList<>((floor.size() + 3) / 4);
-            for (int index = 0; index < floor.size(); index += 4) bursts.add(floor.get(index));
+            List<Location> bursts = new ArrayList<>((floor.size() + 7) / 8);
+            for (int index = 0; index < floor.size(); index += 8) bursts.add(floor.get(index));
             particles.spawnForNearbyViewers(bursts, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
             for (Player player : active) {
                 if (!player.isDead() && player.getWorld() == add.anchor.getWorld()
@@ -714,30 +715,32 @@ final class SeleneaSupportController {
         refreshBuffs(state);
     }
 
-    /** 球面積に比例するFibonacci配置を使い、一個体最大1200点の表面を生成します。 */
+    /** 球形の水平・二方向の垂直大円だけをなぞり、体積を埋めずに最大288点で半径を示します。 */
     private static List<Location> detonationSurface(Location center, double areaPerPoint) {
-        int count = Math.min(MAX_SURFACE_POINTS, (int) Math.ceil(4.0D * Math.PI
-                * DETONATION_RADIUS * DETONATION_RADIUS / areaPerPoint));
-        List<Location> points = new ArrayList<>(count);
-        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
+        int count = Math.min(MAX_SURFACE_POINTS / 3, (int) Math.ceil(2.0D * Math.PI
+                * DETONATION_RADIUS / Math.sqrt(areaPerPoint)));
+        List<Location> points = new ArrayList<>(count * 3);
         for (int index = 0; index < count; index++) {
-            double y = 1.0D - 2.0D * (index + 0.5D) / count;
-            double radial = Math.sqrt(1.0D - y * y);
-            double angle = goldenAngle * index;
-            points.add(center.clone().add(DETONATION_RADIUS * radial * Math.cos(angle),
-                    DETONATION_RADIUS * y, DETONATION_RADIUS * radial * Math.sin(angle)));
+            double angle = Math.PI * 2.0D * index / count;
+            double a = DETONATION_RADIUS * Math.cos(angle), b = DETONATION_RADIUS * Math.sin(angle);
+            points.add(center.clone().add(a, 0, b));
+            points.add(center.clone().add(a, b, 0));
+            points.add(center.clone().add(0, b, a));
         }
         return points;
     }
 
-    /** 水平面積に比例する円盤配置を使い、一個体最大900点の範囲内の床面を生成します。 */
+    /** 外周を優先し、内部48点の刻印と合わせて最大160点で広範囲を示します。 */
     private static List<Location> detonationFloor(Location center, double spacing) {
-        int count = Math.min(MAX_FLOOR_POINTS, (int) Math.ceil(Math.PI
-                * DETONATION_RADIUS * DETONATION_RADIUS / (spacing * spacing)));
-        List<Location> points = new ArrayList<>(count);
-        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
+        int count = Math.min(MAX_FLOOR_POINTS - 48, (int) Math.ceil(2.0D * Math.PI * DETONATION_RADIUS / spacing));
+        List<Location> points = new ArrayList<>(count + 48);
         for (int index = 0; index < count; index++) {
-            double radius = DETONATION_RADIUS * Math.sqrt((index + 0.5D) / count);
+            double angle = Math.PI * 2.0D * index / count;
+            points.add(center.clone().add(DETONATION_RADIUS * Math.cos(angle), 0.25D, DETONATION_RADIUS * Math.sin(angle)));
+        }
+        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
+        for (int index = 0; index < 48; index++) {
+            double radius = DETONATION_RADIUS * Math.sqrt((index + 0.5D) / 48.0D);
             double angle = goldenAngle * index;
             points.add(center.clone().add(radius * Math.cos(angle), 0.25D, radius * Math.sin(angle)));
         }
@@ -755,6 +758,7 @@ final class SeleneaSupportController {
             Location location = player.getLocation();
             boolean insideAnyGate = false;
             for (Role role : Role.values()) {
+                if (!state.openedGates.contains(role)) continue;
                 if (inGate(location, offset(state.center, role, INNER_GATE_RADIUS, 0.0D))
                         || inGate(location, offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT))) {
                     insideAnyGate = true;
@@ -764,10 +768,11 @@ final class SeleneaSupportController {
             if (!insideAnyGate) state.portalLocks.remove(player.getUniqueId());
             if (state.portalLocks.contains(player.getUniqueId())) continue;
             for (Role role : Role.values()) {
-                if (!isAlive(state.adds.get(role))) continue;
+                if (!state.openedGates.contains(role)) continue;
                 Location source = offset(state.center, role, INNER_GATE_RADIUS, 0.0D);
                 Location destination = offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT);
-                Location target = inGate(location, source) ? destination : inGate(location, destination) ? source : null;
+                Location target = inGate(location, destination) ? source
+                    : isAlive(state.adds.get(role)) && inGate(location, source) ? destination : null;
                 if (target == null) continue;
                 if (!SeleneaGatePlatformRegistry.safeLanding(target)) {
                     if (!state.blockedPortalWarnings.containsKey(player.getUniqueId())) {
@@ -793,17 +798,19 @@ final class SeleneaSupportController {
         return y >= -0.5D && y <= 3.2D && x * x + z * z <= GATE_INTERACTION_RADIUS * GATE_INTERACTION_RADIUS;
     }
 
-    /** 八個の大型二重リングと回転する放射線を役割色で描き、白い光点を一括描画します。 */
+    /** 行きは写本守の生存中、帰りは初出現から遭遇終了まで役割色の門を描きます。 */
     private void renderGates(Encounter state) {
         if (state.summoning || state.detonating || state.center.getWorld() == null
                 || state.center.getWorld().getPlayers().isEmpty()) return;
-        List<Location> accents = new ArrayList<>(96);
+        List<Location> accents = new ArrayList<>(32);
         double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
             if (encounters.get(state.boss.instanceId()) != state) return;
-            if (!isAlive(state.adds.get(role))) continue;
-            List<Location> points = new ArrayList<>(224);
-            portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
+            if (!state.openedGates.contains(role)) continue;
+            List<Location> points = new ArrayList<>(108);
+            if (isAlive(state.adds.get(role))) {
+                portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
+            }
             portalRing(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT), role, rotation, points, accents);
             particles.spawnForNearbyViewers(points, role.particle(), true);
         }
@@ -811,21 +818,22 @@ final class SeleneaSupportController {
         particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
     }
 
-    /** 縦面に半径3m・2.65mの二重輪と六本の回転放射線を固定上限点数で配置します。 */
+    /** 主輪28点・回転する副輪14点・四本の放射線12点で、役割色の輪郭と動きを残します。 */
     private static void portalRing(Location base, Role role, double rotation,
             List<Location> points, List<Location> accents) {
-        for (int index = 0; index < 40; index++) {
-            double angle = Math.PI * 2.0D * index / 40.0D;
+        for (int index = 0; index < 28; index++) {
+            double angle = Math.PI * 2.0D * index / 28.0D;
             points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
-            points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS - 0.35D));
         }
-        for (int spoke = 0; spoke < 6; spoke++) {
-            double angle = rotation + Math.PI * 2.0D * spoke / 6.0D;
-            for (int index = 1; index <= 5; index++) {
-                points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS * index / 5.0D));
+        for (int index = 0; index < 14; index++) {
+            points.add(portalPoint(base, role, rotation + Math.PI * 2.0D * index / 14.0D, GATE_VISUAL_RADIUS - 0.35D));
+        }
+        for (int spoke = 0; spoke < 4; spoke++) {
+            double angle = rotation + Math.PI * 2.0D * spoke / 4.0D;
+            for (int index = 1; index <= 3; index++) {
+                points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS * index / 3.0D));
             }
             accents.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
-            accents.add(portalPoint(base, role, angle + Math.PI / 6.0D, GATE_VISUAL_RADIUS - 0.35D));
         }
     }
 
@@ -888,6 +896,7 @@ final class SeleneaSupportController {
         private final boolean originalBossRetention;
         private final Location center;
         private final Map<Role, Add> adds = new EnumMap<>(Role.class);
+        private final Set<Role> openedGates = EnumSet.noneOf(Role.class);
         private final List<Add> remnants = new ArrayList<>(8);
         private final Set<Role> permanentRoles = EnumSet.noneOf(Role.class);
         private final List<Orb> orbs = new ArrayList<>(MAX_ORBS);
