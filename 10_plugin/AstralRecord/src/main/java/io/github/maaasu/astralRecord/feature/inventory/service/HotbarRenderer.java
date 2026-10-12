@@ -31,6 +31,14 @@ final class HotbarRenderer {
         this.itemStackResolver = itemStackResolver;
     }
 
+    /**
+     * 空の保持中スロットとオフハンドをブランクにし、他の空ホットバーだけをダミーで描画します。
+     * Bukkit メインスレッドで呼び出し、変更があればプレイヤーのインベントリ表示を更新します。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @param entries DB スロット番号ごとの表示用 entry
+     * @param selectedSlot 明示選択した割当先。未選択なら null
+     */
     void renderHotbarInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull Map<Integer, InventoryEntryModel> entries,
@@ -39,6 +47,16 @@ final class HotbarRenderer {
         renderHotbarInventory(astPlayer, entries, selectedSlot, Map.of());
     }
 
+    /**
+     * 空の保持中スロットとオフハンドをブランクにし、装備中アイテムにはセット効果表示を反映します。
+     * Bukkit メインスレッドで呼び出し、旧オフハンドダミーを除去して実装備は保持します。
+     * 変更があればプレイヤーのインベントリ表示を更新します。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @param entries DB スロット番号ごとの表示用 entry
+     * @param selectedSlot 明示選択した割当先。未選択なら null。オフハンドには選択表示を付けない
+     * @param equippedSetCounts 装備中セットの有効装備数
+     */
     void renderHotbarInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull Map<Integer, InventoryEntryModel> entries,
@@ -54,7 +72,7 @@ final class HotbarRenderer {
             boolean selected = selectedSlot != null && selectedSlot == dbSlot;
             boolean equipped = heldDbSlot == dbSlot;
             ItemStack itemStack = entry == null
-                ? createHotbarDummyItem(dbSlot, astPlayer.isBedrock())
+                ? null
                 : equipped
                     ? itemStackResolver.resolveForEquippedDisplay(entry, accountId, equippedSetCounts)
                     : itemStackResolver.resolve(entry, accountId);
@@ -62,9 +80,9 @@ final class HotbarRenderer {
                 itemStackResolver.applyHotbarDisplayIcon(entry, accountId, itemStack);
             }
             if (itemStack == null || itemStack.getType() == Material.AIR) {
-                itemStack = createHotbarDummyItem(dbSlot, astPlayer.isBedrock());
+                itemStack = equipped ? null : createHotbarDummyItem(dbSlot, astPlayer.isBedrock());
             }
-            if (selected) {
+            if (selected && itemStack != null) {
                 itemStack = withSelectionGlow(itemStack);
             }
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
@@ -73,19 +91,11 @@ final class HotbarRenderer {
         ItemStack currentOffhand = inventory.getItemInOffHand();
         ItemStack offhandStack = offhandEntry == null
             ? isEmptyOrDummy(currentOffhand)
-                ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock())
+                ? null
                 : currentOffhand
             : itemStackResolver.resolveForEquippedDisplay(offhandEntry, accountId, equippedSetCounts);
         if (offhandEntry != null && offhandStack != null) {
             itemStackResolver.applyHotbarDisplayIcon(offhandEntry, accountId, offhandStack);
-        }
-        if (offhandStack == null || offhandStack.getType() == Material.AIR) {
-            offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock());
-        }
-        if (selectedSlot != null
-            && selectedSlot == HotbarLayout.DB_SLOT_OFFHAND
-            && (offhandEntry != null || isHotbarDummy(offhandStack))) {
-            offhandStack = withSelectionGlow(offhandStack);
         }
         if (!isSameItemStack(inventory.getItemInOffHand(), offhandStack)) {
             inventory.setItemInOffHand(offhandStack);
@@ -101,9 +111,7 @@ final class HotbarRenderer {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER, 1);
-            String label = HotbarLayout.isOffhandSlot(dbSlot)
-                ? ColorCodeUtil.GRAY + "オフハンドスロット"
-                : ColorCodeUtil.GRAY + "ホットバースロット[" + dbSlot + "]";
+            String label = ColorCodeUtil.GRAY + "ホットバースロット[" + dbSlot + "]";
             meta.displayName(Component.text(label));
             meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "アイテム未選択")));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

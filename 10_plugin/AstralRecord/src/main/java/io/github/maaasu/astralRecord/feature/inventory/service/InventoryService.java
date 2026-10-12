@@ -5771,6 +5771,7 @@ public class InventoryService {
      * <p>
      * オフハンドに HOTBAR entry がない場合でも、実際に管理中の装備があれば
      * 所有インベントリへ返却します。返却に失敗した場合は、実オフハンドを変更しません。
+     * 空のオフハンドは割当先として選択せず、選択状態も変更しません。
      *
      * @param astPlayer 対象プレイヤー
      * @param hotbarSlotIndex HOTBAR の DB slot_index
@@ -5822,6 +5823,7 @@ public class InventoryService {
                     renderHotbarInventory(astPlayer);
                     return true;
                 }
+                return false;
             }
 
             Integer currentSelected = state.getSelectedHotbarSlot();
@@ -6248,7 +6250,8 @@ public class InventoryService {
 
     /**
      * 表示中インベントリ上のアイテムを、その entry を正本として装備または HOTBAR へ割り当てます。
-     * 選択スロットがない場合、同一の通常アイテムが HOTBAR にあれば最初の stack へ加算し、
+     * 明示選択した空スロットを優先し、未選択なら現在保持中の空スロットへ割り当てます。
+     * どちらもない場合、同一の通常アイテムが HOTBAR にあれば最初の stack へ加算し、
      * 最大値を超える分は元の BAG entry に残します。既存 stack が満杯の場合は空き HOTBAR slot へ移動します。
      *
      * @param astPlayer 対象プレイヤー
@@ -6375,6 +6378,17 @@ public class InventoryService {
         return true;
     }
 
+    /**
+     * 明示選択、保持中の空スロット、既存スタック、左からの空き枠の順で割り当てます。
+     * Bukkit メインスレッドから呼び出し、移動量に応じて元 entry と HOTBAR を更新・再描画します。
+     * 空き枠も統合余地もなければ state を変更しません。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param state 対象アカウントの読み込み済み状態
+     * @param sourceEntry 表示中インベントリの移動元 entry
+     * @param sourceModel 移動元アイテムの定義
+     * @return 割当または既存スタックへの統合に成功した場合 true
+     */
     private boolean assignHotbarItem(
         @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventoryState state,
@@ -6383,8 +6397,15 @@ public class InventoryService {
     ) {
         Integer selectedHotbarSlotIndex = state.getSelectedHotbarSlot();
         if (selectedHotbarSlotIndex != null
-            && !canAssignToHotbarSlot(sourceModel, selectedHotbarSlotIndex)) {
-            return false;
+            && (!HotbarLayout.isMainHotbarSlot(selectedHotbarSlotIndex)
+                || findHotbarEntryBySlot(state, selectedHotbarSlotIndex) != null)) {
+            selectedHotbarSlotIndex = null;
+        }
+        if (selectedHotbarSlotIndex == null) {
+            int heldDbSlot = HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot());
+            if (findHotbarEntryBySlot(state, heldDbSlot) == null) {
+                selectedHotbarSlotIndex = heldDbSlot;
+            }
         }
 
         if (selectedHotbarSlotIndex == null) {
@@ -6408,11 +6429,10 @@ public class InventoryService {
             }
         }
 
-        int targetDbSlot = selectedHotbarSlotIndex != null && HotbarLayout.isManagedSlot(selectedHotbarSlotIndex)
+        int targetDbSlot = selectedHotbarSlotIndex != null
             ? selectedHotbarSlotIndex
             : findNextHotbarSlot(state);
-        if (!HotbarLayout.isManagedSlot(targetDbSlot)
-            || !canAssignToHotbarSlot(sourceModel, targetDbSlot)) {
+        if (!HotbarLayout.isMainHotbarSlot(targetDbSlot)) {
             return false;
         }
         state.setSelectedHotbarSlot(null);
@@ -6420,14 +6440,6 @@ public class InventoryService {
         removeDisplayedEntryAfterMove(state, sourceEntry);
         requestManagedInventoryUiRefresh(astPlayer, true);
         return true;
-    }
-
-    private boolean canAssignToHotbarSlot(@NotNull ItemModel sourceModel, int targetDbSlot) {
-        if (!HotbarLayout.isOffhandSlot(targetDbSlot)) {
-            return true;
-        }
-        return sourceModel.getEquipment() != null
-            && sourceModel.getEquipment().getSlot() == ItemEquipmentSlot.SUBWEAPON;
     }
 
     /**
