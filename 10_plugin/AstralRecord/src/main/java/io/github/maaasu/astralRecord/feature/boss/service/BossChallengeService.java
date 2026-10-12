@@ -93,7 +93,7 @@ public final class BossChallengeService {
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
-    private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
+    private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = 5L * 20L;
     private static final int ENTRY_RING_POINTS = 10;
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
@@ -258,7 +258,7 @@ public final class BossChallengeService {
     }
 
     /**
-     * ボス生成時の参加者無敵を黄色発光へ同期するサービスを設定します。
+     * 死亡復帰時の参加者無敵を黄色発光へ同期するサービスを設定します。
      *
      * @param service 無敵表示サービス
      */
@@ -1541,7 +1541,6 @@ public final class BossChallengeService {
                 return;
             }
             applyParticipantScaling(challenge, boss);
-            grantParticipantInvulnerability(challenge);
 
             challenge.bossMobInstanceId(boss.instanceId());
             challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
@@ -1569,24 +1568,23 @@ public final class BossChallengeService {
         }
     }
 
-    private void grantParticipantInvulnerability(@NotNull BossChallengeInstance challenge) {
-        for (Player player : participantsInField(challenge)) {
-            if (invulnerabilityVisualService != null) {
-                invulnerabilityVisualService.grantTemporary(
-                        player,
-                        PLAYER_RESPAWN_INVULNERABILITY_TICKS
-                );
-                continue;
-            }
-            boolean wasInvulnerable = player.isInvulnerable();
-            player.setInvulnerable(true);
-            if (!wasInvulnerable) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (player.isOnline()) {
-                        player.setInvulnerable(false);
-                    }
-                }, PLAYER_RESPAWN_INVULNERABILITY_TICKS);
-            }
+    /**
+     * 復帰する本人だけに5秒の無敵を付与し、共有サービスがある場合は黄色発光も同期します。
+     * @param player 死亡復帰するオンライン参加者
+     */
+    private void grantRespawnInvulnerability(@NotNull Player player) {
+        if (invulnerabilityVisualService != null) {
+            invulnerabilityVisualService.grantTemporary(player, PLAYER_RESPAWN_INVULNERABILITY_TICKS);
+            return;
+        }
+        boolean wasInvulnerable = player.isInvulnerable();
+        player.setInvulnerable(true);
+        if (!wasInvulnerable) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && !playerDeathService.isDead(player.getUniqueId())) {
+                    player.setInvulnerable(false);
+                }
+            }, PLAYER_RESPAWN_INVULNERABILITY_TICKS);
         }
     }
 
@@ -2606,6 +2604,7 @@ public final class BossChallengeService {
 
     /**
      * 死亡した参加者をフィールドへ転送し、完了まで奈落死亡の再受理を抑止します。
+     * 共有サービスで転送開始時にも一時無敵を付与し、転送成功後から5秒の無敵を保証します。
      * @param challengeId 復帰する挑戦
      * @param playerId 復帰する参加者
      */
@@ -2617,6 +2616,9 @@ public final class BossChallengeService {
             return;
         }
         Location spawn = challenge.config().playerSpawnLocation().toLocation(challenge.field().world());
+        if (invulnerabilityVisualService != null) {
+            invulnerabilityVisualService.grantTemporary(player, PLAYER_RESPAWN_INVULNERABILITY_TICKS);
+        }
         CompletableFuture<Boolean> transfer = worldService.teleportPlayerAsync(player, spawn, null);
         recoveryChallengeByParticipant.put(playerId, challengeId);
         transfer.whenComplete((success, throwable) ->
@@ -2625,6 +2627,15 @@ public final class BossChallengeService {
                     if (challenge.state() == BossChallengeState.IN_PROGRESS
                             && (throwable != null || !Boolean.TRUE.equals(success))) {
                         endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);
+                    } else if (throwable == null && Boolean.TRUE.equals(success)
+                            && challengesById.get(challengeId) == challenge
+                            && challenge.state() == BossChallengeState.IN_PROGRESS
+                            && challenge.participantIds().contains(playerId)
+                            && player.isOnline() && Bukkit.getPlayer(playerId) == player
+                            && !playerDeathService.isDead(playerId)
+                            && challenge.field() != null
+                            && player.getWorld().getUID().equals(challenge.field().world().getUID())) {
+                        grantRespawnInvulnerability(player);
                     }
                 }));
     }
