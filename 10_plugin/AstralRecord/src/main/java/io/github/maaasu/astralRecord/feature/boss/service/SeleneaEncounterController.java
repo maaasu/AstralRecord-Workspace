@@ -402,6 +402,9 @@ final class SeleneaEncounterController {
         for (UUID id : List.copyOf(encounters.keySet())) if (!liveIds.contains(id)) clear(id);
     }
 
+    /** @param playerId 転送した参加者。波が存在しない歩行経路を補間しないよう位置履歴を解除します */
+    void forgetParticipantPosition(@NotNull UUID playerId) { pressure.forgetPlayerPosition(playerId); }
+
     /** castを先に無効化して再入を防ぎ、所有表示と専用効果だけを解除します。 */
     private void close(Encounter state) {
         Cast cast = state.cast;

@@ -236,6 +236,13 @@ final class SeleneaPressureController {
         state.waves.clear();
     }
 
+    /** @param playerId 瞬間転送した参加者。通過済み判定を保ち、歩行用の前回座標だけを解除します */
+    void forgetPlayerPosition(UUID playerId) {
+        for (Pressure state : encounters.values()) {
+            for (Wave wave : state.waves) wave.previousFeet.remove(playerId);
+        }
+    }
+
     /** 生存参加者が減っても発射済み弾の対象と波ごとの通過判定を混ぜません。 */
     private static final class Pressure {
         final List<Witch> clones = new ArrayList<>(5);

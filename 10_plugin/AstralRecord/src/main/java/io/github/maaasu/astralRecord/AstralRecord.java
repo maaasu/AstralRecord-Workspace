@@ -2601,7 +2601,7 @@ public final class AstralRecord extends JavaPlugin {
             arrivalGuard
         );
         eventManager.registerHandler(
-            new BossPlayerEventHandler(bossChallengeService),
+            new BossPlayerEventHandler(bossChallengeService, bossMechanicService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

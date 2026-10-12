@@ -261,6 +261,14 @@ public final class BossMechanicService {
     }
 
     /**
+     * 取消されていないプレイヤー転送の際、通常波が瞬間移動を歩行経路として補間するのを防ぎます。
+     * @param playerId 転送参加者。命中・回避の通過済み記録は維持します
+     */
+    public void handlePlayerTeleport(@NotNull UUID playerId) {
+        seleneaEncounterController.forgetParticipantPosition(playerId);
+    }
+
+    /**
      * 大技の開始待ち・発動中は無敵、生存写本守がある場合はその割合で軽減します。
      * @param victim 被弾対象
      * @return 専用魔女では0〜1、それ以外では1
