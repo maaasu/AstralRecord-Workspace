@@ -67,7 +67,7 @@ growthPerLevel:
   - status: MAX_HEALTH
     value: 7
   - status: MAX_MANA
-    value: 1
+    value: 2
   - status: STRENGTH
     value: 1.2
   - status: VITALITY
@@ -98,6 +98,12 @@ growthPerLevel:
     value: 0.4
   - status: MOVEMENT_SPEED
     value: 0.602372881356
+  - status: MP_REGEN
+    value: 0.106779661017
+  - status: MAX_ENERGY
+    value: 1.694915254237
+  - status: ENERGY_REGEN
+    value: 0.254237288136
 expRate: 100
 usableSkills:
   - skill:adventurer_astral_edge

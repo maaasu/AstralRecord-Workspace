@@ -1,3 +1,6 @@
+# design:
+#   motif: "冒険 / 基礎修練"
+#   progression: 1
 schemaVersion: 1
 id: adventurer
 type: CLASS
@@ -64,6 +67,10 @@ growthPerLevel:
     value: 0.5
   - status: MOVEMENT_SPEED
     value: 1.250344827587
+  - status: MP_REGEN
+    value: 0.267586206897
+  - status: ENERGY_REGEN
+    value: 0.344827586207
 expRate: 58
 usableSkills:
   - skill:adventurer_astral_edge

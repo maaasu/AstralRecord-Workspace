@@ -1,3 +1,6 @@
+# design:
+#   motif: "魔術 / 属性"
+#   progression: 1
 schemaVersion: 1
 id: mage
 type: CLASS
@@ -64,11 +67,13 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.8
   - status: MP_REGEN
-    value: 0.05
+    value: 0.165084745763
   - status: SHIELD_BREAK
     value: 0.1
   - status: MOVEMENT_SPEED
     value: 0.785254237289
+  - status: ENERGY_REGEN
+    value: 0.084745762712
 expRate: 100
 usableSkills:
   - skill:adventurer_mana_burst
