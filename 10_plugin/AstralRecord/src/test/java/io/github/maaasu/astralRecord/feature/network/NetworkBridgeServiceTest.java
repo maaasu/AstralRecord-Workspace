@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
@@ -39,6 +40,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class NetworkBridgeServiceTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## ゲーム内チャンネル接続通知
+     * 検証契約: Dev受信者にも接続通知を届け、network無効時と別plugin channelでは配信しない。
+     */
+    @Test
+    void gatesChannelNotificationsByNetworkEnabledWithoutExcludingDevRecipients() throws Exception {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("channel_connection");
+            output.writeUTF("Player");
+            output.writeUTF("チャンネル1");
+        }
+        byte[] payload = bytes.toByteArray();
+        Player recipient = mock(Player.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+            new Fixture(true).service.onPluginMessageReceived(BackendProtocol.CHANNEL, recipient, payload);
+            new Fixture(false).service.onPluginMessageReceived(BackendProtocol.CHANNEL, recipient, payload);
+            new Fixture(true).service.onPluginMessageReceived("another:channel", recipient, payload);
+            verify(messageService, times(1)).send(recipient, PlayerMsgId.P_7155, "Player", "チャンネル1");
+        }
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## サーバー選択

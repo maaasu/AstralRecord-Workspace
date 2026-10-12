@@ -1837,6 +1837,8 @@ public enum PlayerMsgId {
     P_7154(7154),
     /** TABのアカウント名タグのPLv末尾表示。 */
     P_7155(7155),
+    /** ネットワーク内のチャンネル接続通知。 */
+    P_7156(7156),
     // endregion
 
     // region /feature/world/command/AdminWorldTeleportItemCommand.java 7160-7169

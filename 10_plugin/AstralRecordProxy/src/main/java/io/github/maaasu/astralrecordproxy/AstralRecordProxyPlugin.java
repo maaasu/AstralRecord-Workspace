@@ -77,6 +77,7 @@ public final class AstralRecordProxyPlugin {
     private final Logger logger;
     private final Path dataDirectory;
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
+    private final Map<UUID, String> pendingChannelNotifications = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
     private final Map<UUID, AuthorityTransferPreparation> authorityTransferPreparations = new ConcurrentHashMap<>();
     private final Set<UUID> pendingGameConnections = ConcurrentHashMap.newKeySet();
@@ -299,6 +300,7 @@ public final class AstralRecordProxyPlugin {
         Player player = event.getPlayer();
         authorityTransferPreparations.remove(player.getUniqueId());
         String serverId = event.getServer().getServerInfo().getName();
+        pendingChannelNotifications.remove(player.getUniqueId());
         metadata.compute(player.getUniqueId(), (ignored, current) -> {
             if (current == null) {
                 return lobbyMetadata(player, serverId);
@@ -321,6 +323,10 @@ public final class AstralRecordProxyPlugin {
         String previousServer = event.getPreviousServer() == null
             ? null : event.getPreviousServer().getServerInfo().getName();
         LifecycleNotification notification = lifecycleNotification(playerName, previousServer, currentServer, settings);
+        if (notification != null && settings.isGameServer(currentServer)
+            && !settings.isDiscordSourceServerExcluded(currentServer)) {
+            pendingChannelNotifications.put(playerId, currentServer);
+        }
         if (notification != null) {
             api.publishLifecycleMessage(
                 currentServer, playerId, playerName, notification.action(), notification.message())
@@ -345,6 +351,7 @@ public final class AstralRecordProxyPlugin {
         NetworkSettings settings = settings();
         if (settings == null) return;
         UUID playerId = event.getPlayer().getUniqueId();
+        pendingChannelNotifications.remove(playerId);
         authorityTransferPreparations.remove(playerId);
         String currentServer = event.getPlayer().getCurrentServer()
             .map(connection -> connection.getServerInfo().getName())
@@ -435,6 +442,9 @@ public final class AstralRecordProxyPlugin {
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
                     update.level(), update.className(), update.afk(), update.permission(),
                     update.classLevelMax(), update.accountNameOnly(), update.vipTier(), update.playerLevel()));
+                if (pendingChannelNotifications.remove(update.playerId(), sourceServer)) {
+                    broadcastChannelConnection(connection.getPlayer(), sourceServer, settings);
+                }
                 refreshTabEntries();
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
@@ -481,6 +491,22 @@ public final class AstralRecordProxyPlugin {
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
+        }
+    }
+
+    /**
+     * network有効なRPGのメタデータ到着後、接続通知を各backendのプレイヤーへ一度だけ送ります。
+     * 受信先のDiscord除外設定は適用せず、Devチャンネルにも公開チャンネルの通知を届けます。
+     *
+     * @param player 接続したプレイヤー
+     * @param serverId 接続先backend名
+     * @param settings 現在のネットワーク設定
+     */
+    private void broadcastChannelConnection(Player player, String serverId, NetworkSettings settings) {
+        if (settings.isDiscordSourceServerExcluded(serverId)) return;
+        byte[] payload = BackendProtocol.channelConnection(player.getUsername(), settings.channelName(serverId));
+        for (Player recipient : proxy.getAllPlayers()) {
+            recipient.getCurrentServer().ifPresent(connection -> connection.sendPluginMessage(CHANNEL, payload));
         }
     }
 

@@ -19,6 +19,28 @@ final class BackendProtocol {
     static final String CHANNEL = "astralrecord:network";
     private static final String PREPARE_CONNECT = "prepare_connect";
 
+    /**
+     * Proxyのチャンネル接続通知を復元します。他種別はnullを返します。
+     * @param payload Plugin message payload
+     * @return プレイヤー名とチャンネル表示名。他種別の場合はnull
+     * @throws IOException payloadが不正な場合
+     */
+    static ChannelConnection decodeChannelConnection(byte[] payload) throws IOException {
+        if (payload.length > 32_767) throw new IOException("Plugin message is too large");
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
+            if (!"channel_connection".equals(input.readUTF())) return null;
+            String playerName = input.readUTF();
+            String channelName = input.readUTF();
+            if (playerName.isBlank() || channelName.isBlank() || input.available() > 0) {
+                throw new IOException("Invalid channel_connection payload");
+            }
+            return new ChannelConnection(playerName, channelName);
+        }
+    }
+
+    record ChannelConnection(String playerName, String channelName) {
+    }
+
     private BackendProtocol() {
     }
 

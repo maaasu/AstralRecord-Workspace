@@ -19,6 +19,7 @@ final class BackendProtocol {
     static final String DIRECT_MESSAGE = "direct_message";
     static final String OPEN_MENU = "open_menu";
     static final String PREPARE_CONNECT = "prepare_connect";
+    static final String CHANNEL_CONNECTION = "channel_connection";
 
     private BackendProtocol() {
     }
@@ -119,6 +120,26 @@ final class BackendProtocol {
     /** RPG backendへ保存完了後のチャンネル接続要求を指示する。 */
     static byte[] prepareConnect(String targetServer) {
         return outgoing(PREPARE_CONNECT, targetServer);
+    }
+
+    /**
+     * backendの受信プレイヤーへ表示するチャンネル接続通知を生成します。
+     * @param playerName 接続したプレイヤーのMinecraft名
+     * @param channelName 管理設定のチャンネル表示名
+     * @return 通知payload
+     */
+    static byte[] channelConnection(String playerName, String channelName) {
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (DataOutputStream output = new DataOutputStream(bytes)) {
+                output.writeUTF(CHANNEL_CONNECTION);
+                output.writeUTF(playerName);
+                output.writeUTF(channelName);
+            }
+            return bytes.toByteArray();
+        } catch (IOException impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 
     private static byte[] outgoing(String type, String value) {

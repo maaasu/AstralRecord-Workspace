@@ -285,7 +285,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     }
 
     /**
-     * Proxyからの保存付き接続準備要求を受け取ります。
+     * Proxyから保存付き接続準備要求またはチャンネル接続通知を受け取ります。
+     * 接続通知は受信対象プレイヤーへ表示し、接続準備要求だけで転送権限を確認します。
      *
      * @param channel 受信チャンネル
      * @param player 対象プレイヤー
@@ -300,6 +301,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (!enabled || !BackendProtocol.CHANNEL.equals(channel)) return;
         String targetServer;
         try {
+            BackendProtocol.ChannelConnection notification = BackendProtocol.decodeChannelConnection(message);
+            if (notification != null) {
+                PlayerMessageService.getInstance().send(
+                    player, PlayerMsgId.P_7156, notification.playerName(), notification.channelName());
+                return;
+            }
             targetServer = BackendProtocol.decodePrepareConnect(message);
         } catch (java.io.IOException ignored) {
             return;
