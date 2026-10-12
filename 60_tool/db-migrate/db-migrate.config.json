@@ -2002,6 +2002,20 @@
           { "name": "UX_account_guide_completion_reward_mail", "columns": [ "mail_id" ], "isUnique": true }
         ]
       }
+    },
+    {
+      "id": "20261012_account_play_time",
+      "fileName": "20261012_account_play_time.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account",
+        "primaryKey": "PK_account",
+        "columns": [
+          { "name": "play_time_seconds", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false }
+        ],
+        "checkConstraints": [ "CK_account_play_time_seconds" ],
+        "indexes": []
+      }
     }
   ]
 }
