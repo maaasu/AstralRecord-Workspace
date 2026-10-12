@@ -638,6 +638,7 @@ public final class DamageService {
     /**
      * 通常攻撃へ継承された属性ダメージ増加分を、基礎ダメージへ属性ごとに加算して適用します。
      * 元の属性成分は維持し、加算分だけに各属性の耐性・貫通を適用します。
+     * 無属性の増加・耐性は無属性成分だけへ反映し、有属性の加算分へ重ねません。
      *
      * @param attacker 攻撃者
      * @param victim 被弾者
@@ -657,15 +658,9 @@ public final class DamageService {
             double attackerDamageMultiplier,
             @NotNull Set<DamageElement> additiveElements
     ) {
-        ensureStatusLoaded(attacker);
-        ensureStatusLoaded(victim);
-        double additiveMultiplier = damageCalculator.additiveElementMultiplier(
-                attacker, victim, attackType, source, additiveElements
-        );
-        return attack(
-                attacker, victim, attackType, components, source,
-                attackerDamageMultiplier * additiveMultiplier
-        );
+        return applyDamage(attacker, victim, 0.0D, attackType, components,
+                DamageScaling.ATTACKER_STATUS, source, attackerDamageMultiplier, 1.0D,
+                SuperStarCriticalMode.ROLL, 0.0D, null, null, Set.copyOf(additiveElements));
     }
 
     /**
@@ -1232,6 +1227,28 @@ public final class DamageService {
             @Nullable Double shieldBreakRatio,
             @Nullable Double superStarCriticalRateOverride
     ) {
+        return applyDamage(attacker, victim, baseDamage, attackType, components, scaling, source,
+                attackerDamageMultiplier, shieldBreakMultiplier, superStarCriticalMode,
+                attackerAccuracyBonus, shieldBreakRatio, superStarCriticalRateOverride, Set.of());
+    }
+
+    /** 基礎成分と独立した加算属性を含め、共通の反映・Shield・追尾弾処理を実行します。 */
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier,
+            @NotNull SuperStarCriticalMode superStarCriticalMode,
+            double attackerAccuracyBonus,
+            @Nullable Double shieldBreakRatio,
+            @Nullable Double superStarCriticalRateOverride,
+            @NotNull Set<DamageElement> additiveElements
+    ) {
         if (!canDamageFishing(attacker, victim)) {
             return new DamageResult(0.0D);
         }
@@ -1277,7 +1294,8 @@ public final class DamageService {
                 attackerAccuracyBonus,
                 usesDefenseConversion(victim),
                 temporaryDefenseMultiplier(victim),
-                temporaryEvasionMultiplier(victim)
+                temporaryEvasionMultiplier(victim),
+                additiveElements
         );
         double postCalculationMultiplier = 1.0D;
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
@@ -1422,7 +1440,8 @@ public final class DamageService {
                     components,
                     scaling,
                     source,
-                    attackerDamageMultiplier
+                    attackerDamageMultiplier,
+                    additiveElements
             );
         }
         return result;
@@ -1491,6 +1510,8 @@ public final class DamageService {
      * @param components 属性別ダメージ倍率
      * @param scaling 基礎ダメージの解決方法
      * @param source ダメージの発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @param additiveElements 主攻撃と同じく増加分を独立加算する属性
      */
     private void spawnSuperStarCriticalProjectiles(
             @NotNull AstEntity attacker,
@@ -1501,7 +1522,8 @@ public final class DamageService {
             @NotNull List<DamageComponent> components,
             @NotNull DamageScaling scaling,
             @NotNull DamageSource source,
-            double attackerDamageMultiplier
+            double attackerDamageMultiplier,
+            @NotNull Set<DamageElement> additiveElements
     ) {
         if (superStarCriticalProjectileService == null) {
             return;
@@ -1516,7 +1538,12 @@ public final class DamageService {
                 scaling,
                 source,
                 attackerDamageMultiplier,
-                SuperStarCriticalMode.FORCE
+                1.0D,
+                SuperStarCriticalMode.FORCE,
+                0.0D,
+                null,
+                null,
+                additiveElements
         ));
     }
 
@@ -2130,7 +2157,9 @@ public final class DamageService {
                 outgoing ? PlayerMsgId.P_5350 : PlayerMsgId.P_5352,
                 damageSummary(result),
                 attackTypeCode(context.attackType()),
-                damageElementsCode(context.components()),
+                damageElementsCode(result.breakdown().elementResistances().stream()
+                        .map(resistance -> new DamageComponent(resistance.element(), 1.0D))
+                        .toList()),
                 formatCompactNumber(result.breakdown().resolvedAttackPower()),
                 formatCompactNumber(result.breakdown().rawDefense()),
                 formatCompactNumber(result.breakdown().effectiveDefense()),

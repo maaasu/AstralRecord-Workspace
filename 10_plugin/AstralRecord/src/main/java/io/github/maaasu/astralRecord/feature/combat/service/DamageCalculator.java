@@ -28,6 +28,7 @@ import java.util.function.DoubleSupplier;
 public final class DamageCalculator {
 
     private static final double DEFAULT_ELEMENT_RESISTANCE_CAP = 75.0D;
+    private static final double DEFAULT_NONE_RESISTANCE_CAP = 50.0D;
 
     private static final double DEFAULT_CRITICAL_DAMAGE = 150.0D;
     private static final double DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER = 30.0D;
@@ -186,6 +187,29 @@ public final class DamageCalculator {
             double victimDefenseMultiplier,
             double victimEvasionMultiplier
     ) {
+        return calculate(context, attackerAccuracyBonus, defenseConversionActive,
+                victimDefenseMultiplier, victimEvasionMultiplier, Set.of());
+    }
+
+    /**
+     * 基礎成分へ、指定属性のダメージ増加分を独立した属性成分として加算します。
+     * 加算分は基礎成分と同じ命中・会心・防御を使い、対応属性の耐性だけを適用します。
+     * @param context ダメージ計算入力
+     * @param attackerAccuracyBonus この一撃の命中補正
+     * @param defenseConversionActive 防御変換を適用するか
+     * @param victimDefenseMultiplier 被弾者の一時防御倍率
+     * @param victimEvasionMultiplier 被弾者の一時回避倍率
+     * @param additiveElements 増加分だけを追加する属性。NONEは加算対象外
+     * @return 加算成分の耐性内訳を含む計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus,
+            boolean defenseConversionActive,
+            double victimDefenseMultiplier,
+            double victimEvasionMultiplier,
+            @NotNull Set<DamageElement> additiveElements
+    ) {
         HitCheck hitCheck = checkHit(context, attackerAccuracyBonus, victimEvasionMultiplier);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
@@ -244,6 +268,23 @@ public final class DamageCalculator {
             attributedDamage += share * element.multiplier();
             double preDefenseShare = preDefenseDamage * component.ratio() / totalRatio;
             attributedPreDefenseDamage += preDefenseShare * element.multiplier();
+        }
+
+        for (DamageElement damageElement : DamageElement.values()) {
+            if (damageElement == DamageElement.NONE || !additiveElements.contains(damageElement)) {
+                continue;
+            }
+            ElementCalculation element = elementCalculations.get(damageElement);
+            if (element == null) {
+                element = elementCalculation(context, damageElement);
+            }
+            if (element.increaseRatio() <= 0.0D) {
+                continue;
+            }
+            elementCalculations.putIfAbsent(damageElement, element);
+            double additiveMultiplier = element.increaseRatio() * element.resistanceMultiplier();
+            attributedDamage += damage * additiveMultiplier;
+            attributedPreDefenseDamage += preDefenseDamage * additiveMultiplier;
         }
 
         return new DamageResult(
@@ -504,56 +545,56 @@ public final class DamageCalculator {
         return Math.max(0.0D, 1.0D + context.attacker().statValue(statusType) / 100.0D);
     }
 
+    /** 無属性を含む各成分の増加・耐性上限・貫通と、同じ計算で使用する耐性内訳を解決します。 */
     private @NotNull ElementCalculation elementCalculation(
             @NotNull DamageContext context,
             @NotNull DamageElement element
     ) {
-        if (element == DamageElement.NONE) {
-            double increase = context.attacker() == null ? 0.0D
-                    : context.attacker().statValue(StatusType.NONE_DAMAGE_INCREASE);
-            return new ElementCalculation(Math.max(0.0D, 1.0D + increase / 100.0D), null);
-        }
         double increase = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementDamageIncrease(element));
         double resistance = context.victim().statValue(elementResistance(element));
-        double penetration = context.attacker() == null ? 0.0D
+        double penetration = context.attacker() == null || element == DamageElement.NONE ? 0.0D
                 : context.attacker().statValue(elementPenetration(element));
         double resistanceCap = elementResistanceCap(context, element);
         double effectiveResistance = Math.min(resistance, resistanceCap) - penetration;
-        double increaseMultiplier = Math.max(0.0D, 1.0D + increase / 100.0D);
+        double increaseRatio = increase / 100.0D;
+        double increaseMultiplier = Math.max(0.0D, 1.0D + increaseRatio);
+        double resistanceMultiplier = Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
         return new ElementCalculation(
-                increaseMultiplier * elementResistanceMultiplier(context, element),
+                increaseMultiplier * resistanceMultiplier,
+                resistanceMultiplier,
+                increaseRatio,
                 new DamageBreakdown.ElementResistance(element, resistance, effectiveResistance)
         );
     }
 
-    /** 指定属性の耐性・貫通を反映した倍率を返します。 */
+    /** 指定属性の耐性上限・貫通を反映した倍率を返します。無属性は貫通を持ちません。 */
     private double elementResistanceMultiplier(
             @NotNull DamageContext context,
             @NotNull DamageElement element
     ) {
-        double penetration = context.attacker() == null ? 0.0D
+        double penetration = context.attacker() == null || element == DamageElement.NONE ? 0.0D
                 : context.attacker().statValue(elementPenetration(element));
         double resistance = context.victim().statValue(elementResistance(element));
         double effectiveResistance = Math.min(resistance, elementResistanceCap(context, element)) - penetration;
         return Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
     }
 
-    private @Nullable StatusType elementDamageIncrease(@NotNull DamageElement element) {
+    private @NotNull StatusType elementDamageIncrease(@NotNull DamageElement element) {
         return switch (element) {
             case FIRE -> StatusType.FIRE_DAMAGE_INCREASE;
             case ICE -> StatusType.ICE_DAMAGE_INCREASE;
             case LIGHTNING -> StatusType.LIGHTNING_DAMAGE_INCREASE;
-            case NONE -> null;
+            case NONE -> StatusType.NONE_DAMAGE_INCREASE;
         };
     }
 
-    private @Nullable StatusType elementResistance(@NotNull DamageElement element) {
+    private @NotNull StatusType elementResistance(@NotNull DamageElement element) {
         return switch (element) {
             case FIRE -> StatusType.FIRE_RESISTANCE;
             case ICE -> StatusType.ICE_RESISTANCE;
             case LIGHTNING -> StatusType.LIGHTNING_RESISTANCE;
-            case NONE -> null;
+            case NONE -> StatusType.NONE_RESISTANCE;
         };
     }
 
@@ -566,18 +607,18 @@ public final class DamageCalculator {
         };
     }
 
+    /** Mobの上限未指定時だけ無属性50%、他属性75%を補完し、プレイヤーは最終statusを使います。 */
     private double elementResistanceCap(@NotNull DamageContext context, @NotNull DamageElement element) {
         StatusType capStatus = switch (element) {
             case FIRE -> StatusType.FIRE_RESISTANCE_CAP;
             case ICE -> StatusType.ICE_RESISTANCE_CAP;
             case LIGHTNING -> StatusType.LIGHTNING_RESISTANCE_CAP;
-            case NONE -> null;
+            case NONE -> StatusType.NONE_RESISTANCE_CAP;
         };
-        if (capStatus == null) {
-            return 0.0D;
-        }
         if (context.victim().isMob()) {
-            return context.victim().mob().template().statValue(capStatus.name(), DEFAULT_ELEMENT_RESISTANCE_CAP);
+            double defaultCap = element == DamageElement.NONE
+                    ? DEFAULT_NONE_RESISTANCE_CAP : DEFAULT_ELEMENT_RESISTANCE_CAP;
+            return context.victim().mob().template().statValue(capStatus.name(), defaultCap);
         }
         return context.victim().statValue(capStatus);
     }
@@ -590,6 +631,8 @@ public final class DamageCalculator {
 
     private record ElementCalculation(
             double multiplier,
-            @Nullable DamageBreakdown.ElementResistance resistance
+            double resistanceMultiplier,
+            double increaseRatio,
+            @NotNull DamageBreakdown.ElementResistance resistance
     ) {}
 }

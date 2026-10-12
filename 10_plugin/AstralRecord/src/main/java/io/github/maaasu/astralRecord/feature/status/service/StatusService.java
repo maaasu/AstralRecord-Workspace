@@ -8,14 +8,10 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
@@ -25,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentStatContributionCalculator;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
@@ -1347,6 +1344,11 @@ public class StatusService {
     private record TemporaryShieldGrant(double amount, long expiresAtMs) {
     }
 
+    /**
+     * ステータスの基礎値を返します。属性耐性上限は無属性50%、火・氷・雷75%です。
+     * @param type ステータス種別
+     * @return 補正前の基礎値
+     */
     private double getBaseValue(@NotNull StatusType type) {
         return switch (type) {
             // リソース系
@@ -1380,6 +1382,7 @@ public class StatusService {
             case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
             case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
             // 属性系
+            case NONE_RESISTANCE_CAP -> 50.0D;
             case FIRE_RESISTANCE_CAP, ICE_RESISTANCE_CAP, LIGHTNING_RESISTANCE_CAP -> 75.0D;
             // 防御系
             case DEFENSE -> 5.0D;
@@ -1641,10 +1644,10 @@ public class StatusService {
         if (setId != null && !setId.isBlank()) {
             setCounts.merge(setId.trim(), 1, Integer::sum);
         }
-        EquipmentItemBonus itemBonus = resolveEquipmentItemBonus(equipment, instance, false);
+        EquipmentStatContributionCalculator.Result itemBonus = resolveEquipmentItemBonus(equipment, instance, false);
 
         for (StatusType statusType : StatusType.values()) {
-            StatusRange contribution = itemBonus.resolve(statusType);
+            EquipmentStatContributionCalculator.Range contribution = itemBonus.resolve(statusType);
             if (contribution != null) {
                 addBonus(bonus, statusType, ItemEquipmentStatType.FLAT, contribution.min(), contribution.max());
             }
@@ -1671,111 +1674,18 @@ public class StatusService {
             || isBrokenEquipment(instance) || !EquipmentRequirementService.check(player, equipment).allowed()) {
             return new StatusValue(0.0D, 0.0D);
         }
-        StatusRange range = resolveEquipmentItemBonus(equipment, instance, true).resolve(statusType);
+        EquipmentStatContributionCalculator.Range range = resolveEquipmentItemBonus(equipment, instance, true).resolve(statusType);
         return range == null ? new StatusValue(0.0D, 0.0D)
             : new StatusValue(0.0D, 0.0D, range.min(), range.max());
     }
 
-    /** 装備1個の共通補正集計。釣りレベルは未移行のインスタンスへだけマスタ値を補完します。 */
-    private @NotNull EquipmentItemBonus resolveEquipmentItemBonus(
+    /** 表示と実戦で共有する装備単体の集計へ委譲し、要求されたルーン参照境界を保ちます。 */
+    private @NotNull EquipmentStatContributionCalculator.Result resolveEquipmentItemBonus(
         @NotNull ItemEquipment equipment, @NotNull EquipmentInstance instance, boolean cachedRunesOnly
     ) {
-        EquipmentItemBonus itemBonus = new EquipmentItemBonus();
-        boolean hasGatheringLevelRoll = false;
-        boolean hasFishingLevelRoll = false;
-
-        for (EquipmentStatRoll roll : instance.getStatRolls()) {
-            StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
-            if (statusType == null) {
-                continue;
-            }
-            if (statusType == StatusType.GATHERING_LEVEL) {
-                hasGatheringLevelRoll = true;
-            }
-            if (statusType == StatusType.FISHING_LEVEL) hasFishingLevelRoll = true;
-            ItemEquipmentStat statDefinition = equipment.findStatDefinition(roll);
-            ItemEquipmentStatType statType = statDefinition == null
-                ? ItemEquipmentStatType.FLAT
-                : statDefinition.getType();
-            addItemBonus(
-                itemBonus,
-                statusType,
-                statType,
-                parseStatDouble(roll.getMin()),
-                parseStatDouble(roll.getMax())
-            );
-        }
-        if (!hasGatheringLevelRoll) {
-            applyMissingGatheringLevelMasterBonus(equipment, itemBonus);
-        }
-
-        if (!hasFishingLevelRoll) {
-            for (ItemEquipmentStat stat : equipment.getStats()) {
-                if (StatusType.FISHING_LEVEL.getId().equalsIgnoreCase(stat.getStatus())) {
-                    addItemBonus(itemBonus, StatusType.FISHING_LEVEL, stat.getType(), stat.getMin(), stat.getMax());
-                }
-            }
-        }
-
-        for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
-            EquipmentStatAmount amount = entry.getValue();
-            addItemBonus(itemBonus, amount.statusType, amount.type, amount.min, amount.max);
-        }
-
-        for (EquipmentEnchant enchant : instance.getEnchants()) {
-            StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
-            if (statusType == null) {
-                continue;
-            }
-            addItemBonus(
-                itemBonus,
-                statusType,
-                ItemEquipmentStatType.fromApiValue(enchant.getType()),
-                enchant.getValue(),
-                enchant.getValue()
-            );
-        }
-
-        for (var equippedRune : instance.getRunes()) {
-            ItemModel rune = cachedRunesOnly
-                ? itemService.findLoadedById(equippedRune.getItemId()) : resolveItemModel(equippedRune.getItemId());
-            if (rune == null || rune.getRune() == null) {
-                continue;
-            }
-            for (ItemEquipmentStat stat : rune.getRune().getStats()) {
-                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
-                if (statusType != null) {
-                    addItemBonus(itemBonus, statusType, stat.getType(), stat.getMin(), stat.getMax());
-                }
-            }
-        }
-
-        return itemBonus;
-    }
-
-    /**
-     * 新ステータス追加前に生成された装備インスタンスへ、masterで明示されたギャザリングレベルを補完します。
-     * 既にインスタンスrollがある場合は呼び出し元で除外し、二重加算を防ぎます。
-     *
-     * @param equipment 装備master定義
-     * @param itemBonus 対象装備だけのステータス集計先
-     */
-    private void applyMissingGatheringLevelMasterBonus(
-        @NotNull ItemEquipment equipment,
-        @NotNull EquipmentItemBonus itemBonus
-    ) {
-        for (ItemEquipmentStat stat : equipment.getStats()) {
-            if (!StatusType.GATHERING_LEVEL.getId().equalsIgnoreCase(stat.getStatus())) {
-                continue;
-            }
-            addItemBonus(
-                itemBonus,
-                StatusType.GATHERING_LEVEL,
-                stat.getType(),
-                stat.getMin(),
-                stat.getMax()
-            );
-        }
+        return EquipmentStatContributionCalculator.calculate(equipment, instance,
+            itemService == null ? itemId -> null
+                : cachedRunesOnly ? itemService::findLoadedById : this::resolveItemModel);
     }
 
     private void countSetId(
@@ -1881,55 +1791,6 @@ public class StatusService {
         target.computeIfAbsent(statusType, ignored -> new StatusRangeAccumulator()).add(min, max);
     }
 
-    private void addItemBonus(
-        @NotNull EquipmentItemBonus bonus,
-        @NotNull StatusType statusType,
-        @NotNull ItemEquipmentStatType statType,
-        double min,
-        double max
-    ) {
-        Map<StatusType, StatusRangeAccumulator> target = statType == ItemEquipmentStatType.SCALAR
-            ? bonus.scalarValues
-            : bonus.flatValues;
-        StatusRangeAccumulator accumulator = target.computeIfAbsent(
-            statusType,
-            ignored -> new StatusRangeAccumulator()
-        );
-        if (statType == ItemEquipmentStatType.SCALAR) {
-            accumulator.set(min, max);
-        } else {
-            accumulator.add(min, max);
-        }
-    }
-
-    private @NotNull Map<String, EquipmentStatAmount> calculateEnhanceStats(
-        @NotNull ItemEquipment equipment,
-        int enhanceLevel
-    ) {
-        Map<String, EquipmentStatAmount> amounts = new LinkedHashMap<>();
-        if (equipment.getEnhance() == null || enhanceLevel <= 0) {
-            return amounts;
-        }
-        for (var level : equipment.getEnhance().getLevels()) {
-            if (level.getLevel() > enhanceLevel) {
-                continue;
-            }
-            for (ItemEquipmentEnhanceStatIncrease increase : level.getStatIncrease()) {
-                StatusType statusType = resolveStatusTypeOrNull(increase.getStatus());
-                if (statusType == null) {
-                    continue;
-                }
-                String key = statusType.name() + "#" + increase.getType().name();
-                EquipmentStatAmount current = amounts.computeIfAbsent(
-                    key,
-                    ignored -> new EquipmentStatAmount(statusType, increase.getType())
-                );
-                current.add(increase.getMin(), increase.getMax());
-            }
-        }
-        return amounts;
-    }
-
     private double parseStatDouble(@NotNull String value) {
         try {
             return Double.parseDouble(value.trim().split("~")[0].trim());
@@ -1963,35 +1824,6 @@ public class StatusService {
         }
     }
 
-    private static final class EquipmentItemBonus {
-        private final Map<StatusType, StatusRangeAccumulator> flatValues = new EnumMap<>(StatusType.class);
-        private final Map<StatusType, StatusRangeAccumulator> scalarValues = new EnumMap<>(StatusType.class);
-
-        private @Nullable StatusRange resolve(@NotNull StatusType statusType) {
-            StatusRangeAccumulator flat = flatValues.get(statusType);
-            if (flat == null) {
-                return null;
-            }
-            StatusRangeAccumulator scalar = scalarValues.get(statusType);
-            if (scalar == null) {
-                return new StatusRange(flat.min, flat.max);
-            }
-            double[] values = {
-                flat.min * scalar.min,
-                flat.min * scalar.max,
-                flat.max * scalar.min,
-                flat.max * scalar.max
-            };
-            double min = values[0];
-            double max = values[0];
-            for (double value : values) {
-                min = Math.min(min, value);
-                max = Math.max(max, value);
-            }
-            return new StatusRange(min, max);
-        }
-    }
-
     private static final class StatusRangeAccumulator {
         private double min;
         private double max;
@@ -1999,11 +1831,6 @@ public class StatusService {
         private void add(double first, double second) {
             min += Math.min(first, second);
             max += Math.max(first, second);
-        }
-
-        private void set(double first, double second) {
-            min = Math.min(first, second);
-            max = Math.max(first, second);
         }
 
         private double average() {
@@ -2029,30 +1856,6 @@ public class StatusService {
     }
 
     private record StatusRange(double min, double max) {
-    }
-
-    private static final class EquipmentStatAmount {
-        private final StatusType statusType;
-        private final ItemEquipmentStatType type;
-        private double min;
-        private double max;
-
-        private EquipmentStatAmount(
-            @NotNull StatusType statusType,
-            @NotNull ItemEquipmentStatType type
-        ) {
-            this.statusType = statusType;
-            this.type = type;
-        }
-
-        private void add(double min, double max) {
-            this.min += min;
-            this.max += max;
-        }
-
-        private double average() {
-            return (min + max) / 2.0D;
-        }
     }
 
     public record ActiveSetEffect(

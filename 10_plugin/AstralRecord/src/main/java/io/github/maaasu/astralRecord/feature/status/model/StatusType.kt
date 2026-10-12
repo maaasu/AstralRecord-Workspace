@@ -52,6 +52,8 @@ enum class StatusType(
     MAGIC_DEFENSE_PENETRATION_RATE("MAGIC_DEFENSE_PENETRATION_RATE", "魔法防御貫通率", "対象の魔法防御力を割合で無視する補正。", Category.OFFENSE, "%", 1, true),
     LIFE_STEAL("LIFE_STEAL", "ライフスティール", "HPへ与えたダメージの一部を自身のHPとして回復する補正。", Category.OFFENSE, "%", 1, true),
     NONE_DAMAGE_INCREASE("NONE_DAMAGE_INCREASE", "無属性ダメージ増加", "無属性で与えるダメージを増加させる補正。", Category.ELEMENT, "%", 1, true),
+    NONE_RESISTANCE("NONE_RESISTANCE", "無属性耐性", "無属性から受けるダメージを軽減する補正。", Category.ELEMENT, "%", 1, true),
+    NONE_RESISTANCE_CAP("NONE_RESISTANCE_CAP", "無属性耐性上限値", "無属性耐性として計算できる上限値。", Category.ELEMENT, "%", 1, true),
     FIRE_DAMAGE_INCREASE("FIRE_DAMAGE_INCREASE", "火属性ダメージ増加", "火属性で与えるダメージを増加させる補正。", Category.ELEMENT, "%", 1, true),
     FIRE_RESISTANCE("FIRE_RESISTANCE", "火属性耐性", "火属性から受けるダメージを軽減する補正。", Category.ELEMENT, "%", 1, true),
     FIRE_RESISTANCE_CAP("FIRE_RESISTANCE_CAP", "火属性耐性上限値", "火属性耐性として計算できる上限値。", Category.ELEMENT, "%", 1, true),
