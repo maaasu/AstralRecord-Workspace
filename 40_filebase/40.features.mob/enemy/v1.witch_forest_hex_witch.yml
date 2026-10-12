@@ -1,0 +1,58 @@
+# design:
+#   motif: "民間伝承 / 魔女と鬼火"
+#   progression: 20
+schemaVersion: 1
+id: witch_forest_hex_witch
+type: MOB
+category: ENEMY
+name: "&5森陰の魔女 Lv.20"
+level: 20
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+lore:
+  - "&7薄暗い森をさまよい、黄緑の呪灯を操る魔女。"
+  - "&7詠唱後に放つ呪灯弾は、横へ動くと避けられる。"
+tags:
+  - forest
+  - humanoid
+  - magic
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 6400
+  - status: ATTACK
+    value: 1500
+  - status: MAGIC_ATTACK
+    value: 529
+  - status: DEFENSE
+    value: 1115
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 95
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MAGIC
+    preferredRange: 8
+    skills:
+      - id: mob_witch_forest_hex_bolt
+        activationRange: 14
+        cooldownTicks: 48
+        castTimeTicks: 20
+
+drops:
+  exp: 240
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

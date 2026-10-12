@@ -633,6 +633,33 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition MOB_ERIVA_SPORE_CLOUD =
         new SharedParticleDefinition("mob_eriva_spore_cloud", Particle.WARPED_SPORE, 30,
             1.4D, 0.7D, 1.4D, 0.0D);
+    /** 森陰の魔女が放つ黄緑の呪灯弾です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_HEX_BOLT =
+        new SharedParticleDefinition("mob_witch_forest_hex_bolt", Particle.DUST, 4,
+            0.04D, 0.04D, 0.04D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(165, 225, 75), 1.2F));
+    /** 呪灯弾の着弾で散る魔女の火花です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_HEX_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_hex_impact", Particle.WITCH, 12,
+            0.2D, 0.25D, 0.2D, 0.0D);
+    /** 呪糸輪の外周を示す薄紫の予告です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_WEB_WARNING =
+        new SharedParticleDefinition("mob_witch_forest_web_warning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(195, 155, 235), 1.15F));
+    /** 呪糸輪の発動で上がる白い糸片です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_WEB_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_web_impact", Particle.ITEM, 2,
+            0.05D, 0.25D, 0.05D, 0.02D, new ItemStack(Material.COBWEB));
+    /** 前方の三つの茨輪を示す琥珀色の予告です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_BRAMBLE_WARNING =
+        new SharedParticleDefinition("mob_witch_forest_bramble_warning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(220, 145, 45), 1.2F));
+    /** 茨輪の突き上げで舞う根の破片です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_BRAMBLE_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_bramble_impact", Particle.BLOCK, 3,
+            0.06D, 0.35D, 0.06D, 0.04D, Material.ROOTED_DIRT.createBlockData());
     public static final SharedParticleDefinition MOB_PURPLE_TREE_WARNING =
         new SharedParticleDefinition("mob_purple_tree_warning", Particle.DUST, 1,
             0.01D, 0.01D, 0.01D, 0.0D,

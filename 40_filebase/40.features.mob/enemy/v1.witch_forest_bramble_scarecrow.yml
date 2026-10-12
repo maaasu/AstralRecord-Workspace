@@ -1,0 +1,63 @@
+# design:
+#   motif: "民間伝承 / 案山子と茨"
+#   progression: 20
+schemaVersion: 1
+id: witch_forest_bramble_scarecrow
+type: MOB
+category: ENEMY
+name: "&6茨灯の案山子 Lv.20"
+level: 20
+entityType: HUSK
+icon: HUSK_SPAWN_EGG
+lore:
+  - "&7朽ちた畑から歩き出した、茨をまとった案山子。"
+  - "&7前方に三つの茨輪を並べ、予兆の後に一度だけ突き上げる。"
+tags:
+  - forest
+  - undead
+  - melee
+
+equipment:
+  mainHand: WOODEN_HOE
+  helmet: CARVED_PUMPKIN
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 12000
+  - status: ATTACK
+    value: 1160
+  - status: DEFENSE
+    value: 1743
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 85
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+      - id: mob_witch_forest_bramble_line
+        activationRange: 5
+        cooldownTicks: 140
+        castTimeTicks: 20
+
+drops:
+  exp: 240
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

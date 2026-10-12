@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -57,6 +59,80 @@ public final class MobProjectileService {
     public MobProjectileService(@NotNull MobService mobService, @NotNull ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
         this.particleDisplayService = particleDisplayService;
+    }
+
+    /**
+     * 魔女の森の呪灯弾を、詠唱開始時の方向へ直進させます。
+     * 壁と有効対象のhitboxのうち最初の衝突で消滅し、対象に魔法・無属性100%を一度だけ与えます。
+     * 弾速0.65m/tick、最大16m、命中半径0.2m。粒子は2tickごとに描画し、未読込chunkには進みません。
+     * 帰還・対象変更・行動不能・Mob破棄・Plugin停止で回収します。Bukkitメインスレッドから呼びます。
+     * @param context 詠唱開始時の固定位置・方向と主対象
+     * @param damageService 命中判定とダメージ適用先
+     * @param conditionService 発動者の行動不能判定先
+     */
+    public void launchWitchForestHexBolt(@NotNull MobSkillContext context,
+            @NotNull DamageService damageService, @NotNull ConditionService conditionService) {
+        if (context.origin().getWorld() == null || context.direction().lengthSquared() <= 1.0E-6D) return;
+        MobInstance caster = context.mob();
+        Vector direction = context.direction().clone().normalize();
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private Location position = context.origin().clone();
+            private double travelled;
+            private long elapsedTicks;
+
+            /** 同じ戦闘が継続している間だけ、線分ごとの衝突判定と有限距離の飛翔を行います。 */
+            @Override public void run() {
+                AstEntity attacker = AstEntity.mob(caster);
+                if (mobService.getInstance(caster.instanceId()) != caster || caster.state() != MobState.COMBAT
+                        || caster.currentHealth() <= 0.0D || travelled >= 16.0D
+                        || elapsedTicks++ >= MAX_LIFETIME_TICKS
+                        || !context.target().getUniqueId().equals(caster.targetId())
+                        || !damageService.isMobCombatTarget(context.target())
+                        || caster.currentLocation().getWorld() != position.getWorld()
+                        || context.target().getWorld() != position.getWorld()
+                        || !conditionService.canRunAi(attacker) || !conditionService.canCastSkill(attacker)
+                        || !conditionService.canAttack(attacker)) {
+                    finish();
+                    return;
+                }
+                double step = Math.min(0.65D, 16.0D - travelled);
+                Location next = position.clone().add(direction.clone().multiply(step));
+                World world = position.getWorld();
+                if (!world.isChunkLoaded(position.getBlockX() >> 4, position.getBlockZ() >> 4)
+                        || !world.isChunkLoaded(next.getBlockX() >> 4, next.getBlockZ() >> 4)) {
+                    finish();
+                    return;
+                }
+                ProjectileImpact impact = firstImpact(position, next, 0.2D, damageService);
+                if (impact != null) {
+                    particleDisplayService.spawnForNearbyViewers(impact.location(),
+                            SharedParticleDefinitions.MOB_WITCH_FOREST_HEX_IMPACT);
+                    world.playSound(impact.location(), org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_BREAK, 0.7F, 0.7F);
+                    try {
+                        if (impact.target() != null) {
+                            damageService.attack(attacker, damageService.resolveEntity(impact.target()), AttackType.MAGIC,
+                                    List.of(new DamageComponent(DamageElement.NONE, 1.0D)), DamageSource.SKILL);
+                        }
+                    } finally {
+                        finish();
+                    }
+                    return;
+                }
+                position = next;
+                travelled += step;
+                if (elapsedTicks % 2L == 1L) {
+                    particleDisplayService.spawnForNearbyViewers(position, SharedParticleDefinitions.MOB_WITCH_FOREST_HEX_BOLT);
+                }
+            }
+
+            /** 飛翔タスクを停止し、発動者ごとの保持一覧から除去します。 */
+            private void finish() {
+                cancel();
+                removeTask(caster.instanceId(), getTaskId());
+            }
+        };
+        BukkitTask task = runnable.runTaskTimer(mobService.plugin(), 0L, 1L);
+        tasksByCaster.computeIfAbsent(caster.instanceId(), ignored -> new ArrayList<>()).add(task);
     }
 
     /**
