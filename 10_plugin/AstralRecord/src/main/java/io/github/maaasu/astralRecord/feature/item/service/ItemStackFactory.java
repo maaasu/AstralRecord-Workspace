@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.buff.repository.BuffRepository;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffModifierDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskSettings;
+import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
@@ -1420,16 +1421,32 @@ public class ItemStackFactory {
                 if (instance.getEnchants().isEmpty()) {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 未付与");
                 } else {
-                    for (EquipmentEnchant enchant : instance.getEnchants()) {
-                        ItemEquipmentStatType enchantType = "SCALAR".equals(enchant.getType())
-                                ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
+                    var contribution = EquipmentStatContributionCalculator.calculate(eq, instance, itemService::findLoadedById);
+                    // 1回の描画中は同じmaster参照を使い、次の描画では公開済みの最新世代を参照します。
+                    Map<String, EnchantMaster> enchantMasters = new LinkedHashMap<>();
+                    for (int enchantIndex = 0; enchantIndex < instance.getEnchants().size(); enchantIndex++) {
+                        EquipmentEnchant enchant = instance.getEnchants().get(enchantIndex);
+                        ItemEquipmentStatType enchantType = ItemEquipmentStatType.fromApiValue(enchant.getType());
                         StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
                         String statColor = statusCategoryColor(enchant.getStatus(), statusType);
                         String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType, enchantType);
-                        lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
+                        String line = ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
                                 + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
-                                + formatStatValueWithType(enchantType, statusType, enchant.getValue()));
+                                + formatStatValueWithType(enchantType, statusType, enchant.getValue());
+                        var reason = enchantType == ItemEquipmentStatType.SCALAR
+                                ? contribution.scalarInactiveReason(enchantIndex)
+                                : EquipmentStatContributionCalculator.ScalarInactiveReason.NONE;
+                        lore.add(formatEnchantApplicability(line, reason));
+                        String masterKey = enchant.getEnchantMasterId().trim().toLowerCase(Locale.ROOT);
+                        if (!enchantMasters.containsKey(masterKey)) {
+                            enchantMasters.put(masterKey, itemService.findEnchantMasterById(masterKey));
+                        }
+                        var range = EnchantRollRangeResolver.resolve(enchantMasters.get(masterKey), eq.getSlot(), enchant);
+                        if (range != null) {
+                            lore.add(RANDOM_STATUS_RANGE_MARKER + ColorCodeUtil.GRAY + "   └"
+                                    + formatStatRange(enchantType, statusType, range.min(), range.max()));
+                        }
                     }
                 }
             }
@@ -1532,6 +1549,22 @@ public class ItemStackFactory {
             }
         }
         return eq.getEnchant() != null ? eq.getEnchant().getMaxSlots() : 0;
+    }
+
+    /** 装備単体で適用されない乗数を灰色・取り消し線・理由で区別します。範囲設定には依存しません。 */
+    private @NotNull String formatEnchantApplicability(
+            @NotNull String line, @NotNull EquipmentStatContributionCalculator.ScalarInactiveReason reason) {
+        if (reason == EquipmentStatContributionCalculator.ScalarInactiveReason.NONE) {
+            return line;
+        }
+        String explanation = switch (reason) {
+            case NO_FLAT -> "無効: 同じステータスの加算値が0";
+            case OVERRIDDEN -> "無効: 後の乗数で上書き";
+            case UNKNOWN_STATUS -> "無効: 未登録のステータス";
+            case NONE -> "";
+        };
+        return ColorCodeUtil.DARK_GRAY + ColorCodeUtil.STRIKETHROUGH + ColorCodeUtil.toPlainText(line, "効果")
+                + ColorCodeUtil.RESET + ColorCodeUtil.GRAY + " (" + explanation + ")";
     }
 
     /**
