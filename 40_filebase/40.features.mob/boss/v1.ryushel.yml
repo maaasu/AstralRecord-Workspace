@@ -33,7 +33,7 @@ baseStats:
   - status: ACCURACY
     value: 95
   - status: EVASION
-    value: 20
+    value: 60
   - status: MOVEMENT_SPEED
     value: 118
   - status: KNOCKBACK_RESISTANCE
