@@ -3,17 +3,79 @@ package io.github.maaasu.astralRecord.feature.player.service;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class PlayerPlayTimeServiceTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
+     * 検証契約: offline ADMIN保存中にPLAYERで参加したセッションでは、mode合成時点からADMIN時間を加算しない。
+     */
+    @Test
+    void offlineAdminSaveStopsPlayTimeWhenPlayerJoinedDuringApiRequest() {
+        assertOfflineModeBoundary(AccountMode.PLAYER, AccountMode.ADMIN, 3L);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
+     * 検証契約: offline PLAYER保存中にADMINで参加したセッションでは、mode合成時点からPLAYER時間を加算する。
+     */
+    @Test
+    void offlinePlayerSaveStartsPlayTimeWhenPlayerJoinedDuringApiRequest() {
+        assertOfflineModeBoundary(AccountMode.ADMIN, AccountMode.PLAYER, 7L);
+    }
+
+    /** offline API保存開始、旧mode参加確定、API応答の合成反映を決定的な時計で順に再現します。 */
+    private void assertOfflineModeBoundary(AccountMode initialMode, AccountMode savedMode, long expectedSeconds) {
+        AtomicLong now = new AtomicLong();
+        UUID accountId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        InventoryService inventory = mock(InventoryService.class);
+        AccountService accounts = mock(AccountService.class);
+        PlayerPlayTimeService playTime = new PlayerPlayTimeService(inventory, now::get);
+        AccountModeApplicationService modes = new AccountModeApplicationService(accounts, inventory);
+        modes.setPlayTimeService(playTime);
+        AstPlayer joined = player(accountId, initialMode);
+        AccountModel saved = mock(AccountModel.class);
+        when(saved.getUuid()).thenReturn(accountId);
+        when(saved.getMode()).thenReturn(savedMode);
+        when(accounts.saveOfflineMode(accountId, savedMode, updatedBy)).thenReturn(saved);
+        when(accounts.mergeSavedOfflineMode(joined.getAccount(), saved)).thenReturn(saved);
+        when(inventory.executeLocalPlayerMutation(eq(accountId),
+            org.mockito.ArgumentMatchers.<Supplier<Void>>any()))
+            .thenAnswer(invocation -> invocation.<Supplier<Void>>getArgument(1).get());
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(AstPlayerCache::getAll).thenReturn(List.of());
+            var persisted = modes.persistOfflineModeChange(joined.getAccount(), savedMode, updatedBy);
+            cache.when(AstPlayerCache::getAll).thenReturn(List.of(joined));
+            playTime.startSession(joined);
+            now.set(3_000_000_000L);
+            assertTrue(modes.applyPersistedMode(persisted));
+            now.set(10_000_000_000L);
+            playTime.flushOnlineSessions();
+            var captured = playTime.snapshotPlayerState(accountId);
+            assertNotNull(captured);
+            assertEquals(expectedSeconds, captured.payload().getAsJsonObject().get("deltaSeconds").getAsLong());
+            verify(joined).applyAccountMode(saved);
+            verify(accounts, never()).requestLocalPlayerSave(accountId);
+        }
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存

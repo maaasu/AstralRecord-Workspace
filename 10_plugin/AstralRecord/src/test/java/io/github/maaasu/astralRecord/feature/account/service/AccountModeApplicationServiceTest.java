@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerPlayTimeService;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -170,6 +171,8 @@ class AccountModeApplicationServiceTest {
         ))
             .thenAnswer(invocation -> invocation.<Supplier<Void>>getArgument(1).get());
         AccountModeApplicationService service = new AccountModeApplicationService(accountService, inventoryService);
+        PlayerPlayTimeService playTime = mock(PlayerPlayTimeService.class);
+        service.setPlayTimeService(playTime);
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(AstPlayerCache::getAll).thenReturn(List.of(), List.of(astPlayer));
@@ -182,6 +185,7 @@ class AccountModeApplicationServiceTest {
             assertTrue(service.applyPersistedMode(persisted));
             verify(accountService).mergeSavedOfflineMode(joined, saved);
             verify(astPlayer).applyAccountMode(merged);
+            verify(playTime).changeMode(astPlayer, merged.getMode());
             verify(accountService, never()).requestLocalPlayerSave(accountUuid);
         }
     }

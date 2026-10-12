@@ -158,6 +158,7 @@ public final class AccountModeApplicationService {
     /**
      * 永続化済みの最新モードだけをオンラインプレイヤーへ反映します。
      * より新しい永続化が完了済みの場合は古い結果を破棄します。メインスレッドから呼び出してください。
+     * offline保存中に参加したセッションでは、mode合成と同じstate lock下でプレイ時間の計測も切り替えます。
      *
      * @param persisted 永続化結果
      * @return 最新世代を反映した場合は {@code true}
@@ -177,8 +178,12 @@ public final class AccountModeApplicationService {
                 if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
                     inventoryService.saveToolInventorySnapshot(astPlayer);
                 }
-                astPlayer.applyAccountMode(persisted.savedRemotely()
-                    ? accountService.mergeSavedOfflineMode(astPlayer.getAccount(), updated) : updated);
+                AccountModel applied = persisted.savedRemotely()
+                    ? accountService.mergeSavedOfflineMode(astPlayer.getAccount(), updated) : updated;
+                if (persisted.savedRemotely() && playTimeService != null) {
+                    playTimeService.changeMode(astPlayer, applied.getMode());
+                }
+                astPlayer.applyAccountMode(applied);
                 if (updated.getMode().shouldReflectInventoryToGui()) {
                     if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
                         inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
