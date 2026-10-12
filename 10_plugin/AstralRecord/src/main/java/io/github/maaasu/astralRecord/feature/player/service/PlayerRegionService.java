@@ -27,6 +27,7 @@ import java.util.function.BiConsumer;
 public final class PlayerRegionService {
 
     private static final long WORLD_CHANGE_TITLE_DELAY_TICKS = 45L;
+    private static final long REGION_TITLE_COOLDOWN_NANOS = Duration.ofSeconds(60L).toNanos();
     private static final Title.Times REGION_CHANGE_TITLE_TIMES =
             Title.Times.times(Duration.ofMillis(150L), Duration.ofMillis(1800L), Duration.ofMillis(250L));
 
@@ -34,6 +35,7 @@ public final class PlayerRegionService {
     private final WorldService worldService;
     private final BiConsumer<Player, String> titleDisplayer;
     private final Map<UUID, BukkitTask> pendingWorldChangeTitles = new HashMap<>();
+    private final Map<UUID, Map<String, Long>> lastRegionTitleTimes = new HashMap<>();
 
     /**
      * サービスを構築します。
@@ -78,6 +80,7 @@ public final class PlayerRegionService {
      * ワールド移動後の地域をワールド種別の既定値へ更新します。
      * 既存のワールド移動タイトルと競合しないよう、地域タイトルは遅延して表示します。
      * 遅延中にスポナー地域へ切り替わった場合は、その最終地域だけを表示します。
+     * 既定のオーバーワールド地域と、同じプレイヤーに表示してから60秒未満の地域は表示しません。
      *
      * @param astPlayer ワールドを移動したプレイヤー
      */
@@ -96,14 +99,16 @@ public final class PlayerRegionService {
             if (current == null || !current.getBukkit().isOnline() || current.getCurrentRegion() == null) {
                 return;
             }
-            titleDisplayer.accept(current.getBukkit(), current.getCurrentRegion());
+            displayRegionTitleIfAllowed(current.getBukkit(), current.getCurrentRegion());
         }, WORLD_CHANGE_TITLE_DELAY_TICKS);
         pendingWorldChangeTitles.put(playerId, task);
     }
 
     /**
      * Mob スポナーの地域をプレイヤーへ反映します。
-     * オーバーワールド以外、地域未設定、現在地域と同一の場合は何も行いません。
+     * オーバーワールド以外、地域未設定の場合は何も行いません。同一地域でも地域レベルは更新します。
+     * タイトルは地域ごとに60秒間再表示を抑制し、既定のオーバーワールド地域は表示しません。
+     * 表示の抑制中も現在地域と地域レベルは更新します。
      *
      * @param astPlayer 対象プレイヤー
      * @param region スポナーに定義された地域名
@@ -125,7 +130,7 @@ public final class PlayerRegionService {
             return false;
         }
         if (!pendingWorldChangeTitles.containsKey(astPlayer.getBukkit().getUniqueId())) {
-            titleDisplayer.accept(astPlayer.getBukkit(), normalized);
+            displayRegionTitleIfAllowed(astPlayer.getBukkit(), normalized);
         }
         return true;
     }
@@ -141,12 +146,13 @@ public final class PlayerRegionService {
     }
 
     /**
-     * プレイヤーの保留中タイトルタスクを破棄します。
+     * プレイヤーの保留中タイトルタスクと地域タイトルの表示履歴を破棄します。
      *
      * @param playerId 対象プレイヤー UUID
      */
     public void clearPlayer(@NotNull UUID playerId) {
         cancelPendingTitle(playerId);
+        lastRegionTitleTimes.remove(playerId);
     }
 
     /**
@@ -207,6 +213,29 @@ public final class PlayerRegionService {
         if (pending != null) {
             pending.cancel();
         }
+    }
+
+    /**
+     * 既定のオーバーワールド地域を除き、プレイヤー・地域ごとに60秒間隔でタイトルを表示します。
+     * 抑制した呼び出しでは表示時刻を更新せず、再表示を予約しません。
+     * Bukkit メインスレッドで呼び出してください。
+     *
+     * @param player 表示対象プレイヤー
+     * @param region 表示する地域名
+     */
+    private void displayRegionTitleIfAllowed(@NotNull Player player, @NotNull String region) {
+        if (WorldType.OVERWORLD.getRegionDisplayName().equals(region)) {
+            return;
+        }
+        long now = System.nanoTime();
+        Map<String, Long> regionTimes = lastRegionTitleTimes.computeIfAbsent(
+                player.getUniqueId(), ignored -> new HashMap<>());
+        regionTimes.entrySet().removeIf(entry -> now - entry.getValue() >= REGION_TITLE_COOLDOWN_NANOS);
+        if (regionTimes.containsKey(region)) {
+            return;
+        }
+        titleDisplayer.accept(player, region);
+        regionTimes.put(region, System.nanoTime());
     }
 
     /**

@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: verdia_mooshroom_lv20_spawner
 type: MOB_SPAWNER
-region: ヴェルディア森林
+region: ヴェルディア草原
 radiusMeters: 18
 spawnMobs:
   - mobId: mob:verdia_mooshroom
