@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerPlayTimeService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -19,6 +20,7 @@ public final class AccountModeApplicationService {
     private final InventoryService inventoryService;
     private final Map<UUID, ModeChangeState> modeChangeStates = new ConcurrentHashMap<>();
     private Consumer<AstPlayer> modeAppliedListener = ignored -> { };
+    private PlayerPlayTimeService playTimeService;
 
     public AccountModeApplicationService(@NotNull AccountService accountService, @NotNull InventoryService inventoryService) {
         this.accountService = accountService;
@@ -32,6 +34,14 @@ public final class AccountModeApplicationService {
      */
     public void setModeAppliedListener(@NotNull Consumer<AstPlayer> listener) {
         modeAppliedListener = listener;
+    }
+
+    /**
+     * ローカル mode 確定をプレイ時間の計測境界へ接続します。
+     * @param service 参加確定・退出保存と共有する時間サービス
+     */
+    public void setPlayTimeService(@NotNull PlayerPlayTimeService service) {
+        playTimeService = java.util.Objects.requireNonNull(service);
     }
 
     /**
@@ -107,6 +117,7 @@ public final class AccountModeApplicationService {
 
     /**
      * 取得済みaccountをローカルstateへ確定します。
+     * 通常プレイ時間の計測境界も同じstate lock下で新モードへ切り替えます。
      *
      * @param current 現在のaccount正本
      * @param mode 変更後のmode
@@ -132,7 +143,11 @@ public final class AccountModeApplicationService {
             }
             AccountModel updated = inventoryService.executeLocalPlayerMutation(
                     accountUuid,
-                    () -> accountService.setMode(latest, mode, updatedBy)
+                    () -> {
+                        AccountModel next = accountService.setMode(latest, mode, updatedBy);
+                        if (playTimeService != null) playTimeService.changeMode(onlinePlayer, mode);
+                        return next;
+                    }
                 );
             long generation = state.persistedGeneration.incrementAndGet();
             change = new PersistedModeChange(updated, generation);

@@ -52,11 +52,20 @@ public class PlayerService {
     private final StatusService statusService;
     private final PlayerSaveCoordinator playerSaveCoordinator;
     private final PlayerRegionService playerRegionService;
+    private PlayerPlayTimeService playTimeService;
     private java.util.function.Consumer<AstPlayer> logoutStateSavedListener = ignored -> { };
 
     /** 全退出保存のACK後、inventory解放前に呼ぶ非同期境界処理を登録する。Bukkit APIは使用しない。 */
     public void setLogoutStateSavedListener(@NotNull java.util.function.Consumer<AstPlayer> listener) {
         logoutStateSavedListener = java.util.Objects.requireNonNull(listener);
+    }
+
+    /**
+     * プレイ時間を参加確定と退出保存の境界へ接続します。初期化時に一度呼び出します。
+     * @param service アカウント別の計測・保存サービス
+     */
+    public void setPlayTimeService(@NotNull PlayerPlayTimeService service) {
+        playTimeService = java.util.Objects.requireNonNull(service);
     }
 
     /**
@@ -344,6 +353,7 @@ public class PlayerService {
 
     /**
      * 後続 feature を含む参加反映が完了したことを確定し、retained-state lease をオンライン状態へ移します。
+     * 参加確定後からアカウントの通常プレイ時間を計測します。
      * より新しいログイン試行が lease を取得済みの場合は確定せず、呼び出し元でロールバックできるよう例外を返します。
      *
      * @param application 確定する参加反映
@@ -369,11 +379,15 @@ public class PlayerService {
                 application.player.getUniqueId()
             ));
         }
+        if (playTimeService != null && application.astPlayer != null) {
+            playTimeService.startSession(application.astPlayer);
+        }
     }
 
     /**
      * プレイヤーのログアウト処理を行います。
      * {@link AstPlayerCache} からプレイヤーを削除します。
+     * 保存登録前に通常プレイ時間の最終経過分を捕捉し、計測を終了します。
      *
      * @param player ログアウトした Bukkit プレイヤー
      * @return ログアウト保存の完了結果
@@ -383,6 +397,7 @@ public class PlayerService {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
             UUID accountId = astPlayer.getAccount().getUuid();
+            if (playTimeService != null) playTimeService.stopSession(astPlayer);
             if(petRuntime!=null)petRuntime.dismiss(astPlayer);
             playerRegionService.clearPlayer(player.getUniqueId());
             // Bukkit inventory の参照だけをメインスレッドで完了させ、API I/O は保存キューへ委譲する。
@@ -447,6 +462,7 @@ public class PlayerService {
             return CompletableFuture.completedFuture(null);
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        if (playTimeService != null) playTimeService.stopSession(astPlayer);
         if(petRuntime!=null)petRuntime.dismiss(astPlayer);
         if(petService!=null)petService.forgetAccount(accountId);
         CompletableFuture<Void> disposal = inventorySaveCoordinator.discardAccountForRecovery(accountId);
@@ -459,7 +475,9 @@ public class PlayerService {
         statusService.clearShieldRuntimeState(astPlayer);
         AstPlayerCache.remove(player.getUniqueId(), astPlayer);
         player.updateCommands();
-        return disposal;
+        return disposal.thenRun(() -> {
+            if (playTimeService != null) playTimeService.discardAccountState(accountId);
+        });
     }
 
     /**
@@ -469,7 +487,9 @@ public class PlayerService {
      * @return 旧 state と保存補助 cache の破棄完了 future
      */
     public @NotNull CompletableFuture<Void> discardAccountStateForRecovery(@NotNull UUID accountId) {
-        return inventorySaveCoordinator.discardAccountForRecovery(accountId);
+        return inventorySaveCoordinator.discardAccountForRecovery(accountId).thenRun(() -> {
+            if (playTimeService != null) playTimeService.discardAccountState(accountId);
+        });
     }
 
     /**
@@ -502,6 +522,7 @@ public class PlayerService {
         if (AstPlayerCache.get(bukkit) != player) {
             return CompletableFuture.completedFuture(false);
         }
+        if (playTimeService != null) playTimeService.flushSession(player);
         if (!playerSaveCoordinator.prepare(player, PlayerSaveTrigger.MANUAL)) {
             return CompletableFuture.completedFuture(false);
         }
@@ -521,6 +542,7 @@ public class PlayerService {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        if (playTimeService != null) playTimeService.discardAccountState(accountId);
         if(petRuntime!=null)petRuntime.dismiss(astPlayer);
         if(petService!=null)petService.forgetAccount(accountId);
         player.closeInventory();
@@ -594,6 +616,7 @@ public class PlayerService {
     /**
      * キャッシュ済みオンラインプレイヤーの停止保存をアカウントlaneへ登録します。
      * accepted済みオーブ操作と正本照合の後ろで保存し、成功したセッションだけstate/cacheを解放します。
+     * 通常プレイ時間は保存登録前に停止し、最後の経過分を同じsnapshotへ渡します。
      *
      * @return 各プレイヤーの停止保存future
      */
@@ -601,6 +624,7 @@ public class PlayerService {
         List<CompletableFuture<Boolean>> saves = new ArrayList<>();
         for (AstPlayer astPlayer : List.copyOf(AstPlayerCache.getAll())) {
             UUID accountId = astPlayer.getAccount().getUuid();
+            if (playTimeService != null) playTimeService.stopSession(astPlayer);
             if (inventorySaveCoordinator.hasUnresolvedExternalOperation(accountId)) {
                 continue;
             }

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.*;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerPlayTimeService;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiDateTimeUtil;
 
 import java.time.LocalDateTime;
@@ -320,13 +321,16 @@ final class PlayerStateSnapshot {
             for (String name : List.of(
                 "learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones",
                 "questState", "loginBonusClaims", "guideProgress", "adventureRecords", "playerSettings",
-                "mailClaim", "mailDelete"
+                "mailClaim", "mailDelete", PlayerPlayTimeService.SECTION_NAME
             )) {
                 if (!request.has(name)) continue;
                 JsonObject section = request.getAsJsonObject(name);
                 JsonObject received = ack.getAsJsonObject(name);
-                requireEqual(section.get("clientRevision"), received.get("clientRevision"));
+                if (!PlayerPlayTimeService.SECTION_NAME.equals(name)) {
+                    requireEqual(section.get("clientRevision"), received.get("clientRevision"));
+                }
                 switch (name) {
+                    case PlayerPlayTimeService.SECTION_NAME -> PlayerPlayTimeService.validateAcknowledgement(section, received);
                     case "learnedSkills" -> {
                         requireSectionVersions(section.getAsJsonArray("skills"), received, "learnedSkillId");
                         requireApiDateTimes(received.getAsJsonArray("entries"), "updatedAt");
